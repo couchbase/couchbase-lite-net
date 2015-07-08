@@ -105,46 +105,7 @@ namespace Couchbase.Lite
                 }
             }
         }
-
-        private static CountdownEvent ReplicationWatcherThread(Replication replication, ReplicationObserver observer)
-        {
-            var started = replication.IsRunning;
-            var doneSignal = new CountdownEvent(1);
-
-            Task.Factory.StartNew(()=>
-            {
-                var done = observer.IsReplicationFinished(); //Prevent race condition where the replicator stops before this portion is reached
-                while (!done)
-                {
-                    if (replication.IsRunning)
-                    {
-                        started = true;
-                    }
-
-                    var statusIsDone = (
-                        replication.Status == ReplicationStatus.Stopped 
-                        || replication.Status == ReplicationStatus.Idle
-                    );
-
-                    if (started && statusIsDone)
-                    {
-                        break;
-                    }
-
-                    try
-                    {
-                        Thread.Sleep(1000);
-                    }
-                    catch (Exception e)
-                    {
-                        Runtime.PrintStackTrace(e);
-                    }
-                }
-                doneSignal.Signal();
-            });
-
-            return doneSignal;
-        }
+            
 
         private void RunReplication(Replication replication)
         {
@@ -152,15 +113,8 @@ namespace Couchbase.Lite
             var observer = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += observer.Changed;
             replication.Start();
-
-            var replicationDoneSignalPolling = ReplicationWatcherThread(replication, observer);
-
-            Log.D(Tag, "Waiting for replicator to finish.");
-
-            var success = WaitHandle.WaitAll(new[] { replicationDoneSignal.WaitHandle, replicationDoneSignalPolling.WaitHandle }, 60*1000);
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(60));
             Assert.IsTrue(success);
-
-            Log.D(Tag, "replicator finished");
 
             replication.Changed -= observer.Changed;
         }
@@ -175,8 +129,7 @@ namespace Couchbase.Lite
             var doneEvent = new ManualResetEvent(false);
             replication.Changed += (object sender, ReplicationChangeEventArgs e) => 
             {
-                if (!e.Source.online)
-                {
+                if (e.Source.Status == ReplicationStatus.Offline) {
                     doneEvent.Set();
                 }
             };
@@ -455,9 +408,10 @@ namespace Couchbase.Lite
 
             // TODO: Verify the foloowing 2 asserts. ChangesCount and CompletedChangesCount
             // should already be reset when the replicator stopped.
-             Assert.IsTrue(repl.ChangesCount >= 2);
-             Assert.IsTrue(repl.CompletedChangesCount >= 2);
-             Assert.IsNull(repl.LastError);
+            Assert.IsNull(repl.LastError);
+            Assert.IsTrue(repl.ChangesCount >= 2);
+            Assert.IsTrue(repl.CompletedChangesCount >= 2);
+             
 
             VerifyRemoteDocExists(remote, doc1Id);
 
@@ -988,7 +942,17 @@ namespace Couchbase.Lite
             Assert.IsFalse(replicator.Continuous);
             Assert.IsFalse(replicator.IsRunning);
 
+                ReplicationStatus lastStatus = replicator.Status;
+            var mre = new ManualResetEventSlim();
+            replicator.Changed += (sender, e) => 
+            {
+                if(lastStatus != e.Source.Status) {
+                    lastStatus = e.Source.Status;
+                    mre.Set();
+                }
+            };
             replicator.Start();
+            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)), "Timed out waiting for replicator to start");
             Assert.IsTrue(replicator.IsRunning);
 
             var activeReplicators = new Replication[database.ActiveReplicators.Count];
@@ -998,12 +962,8 @@ namespace Couchbase.Lite
 
             replicator.Stop();
 
-            // Wait for a second to ensure that the replicator finishes
-            // updating all status (esp Database.ActiveReplicator that will
-            // be updated when receiving a Replication.Changed event which
-            // is distached asynchronously when running tests.
-            System.Threading.Thread.Sleep(1000);
-
+            mre.Reset();
+            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)), "Timed out waiting for replicator to stop");
             Assert.IsFalse(replicator.IsRunning);
             activeReplicators = new Replication[database.ActiveReplicators.Count];
             database.ActiveReplicators.CopyTo(activeReplicators, 0);

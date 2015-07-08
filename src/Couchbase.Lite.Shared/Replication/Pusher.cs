@@ -186,6 +186,7 @@ namespace Couchbase.Lite.Replicator
 
             // Now listen for future changes (in continuous mode):
             if (continuous) {
+                FireTrigger(ReplicationTrigger.WaitingForChanges);
                 observing = true;
                 LocalDatabase.Changed += OnChanged;
             } else {
@@ -197,12 +198,37 @@ namespace Couchbase.Lite.Replicator
         {
             StopObserving();
             base.StopGraceful();
+
+            Action<Task> cont = null;
+            cont = t =>
+            {
+                if(_requests.Count > 0) {
+                    Task.WhenAll(_requests.Values).ContinueWith(cont);
+                    return;
+                }
+
+                FireTrigger(ReplicationTrigger.StopImmediate);
+            };
+
+            Task.WhenAll(_requests.Values).ContinueWith(cont);
+        }
+
+        protected override void PerformGoOnline()
+        {
+            base.PerformGoOnline();
+
+            CheckSession();
+        }
+
+        protected override void PerformGoOffline()
+        {
+            base.PerformGoOffline();
+            StopObserving();
         }
 
         private void StopObserving()
         {
-            if (observing)
-            {
+            if (observing) {
                 observing = false;
                 LocalDatabase.Changed -= OnChanged;
             }
@@ -274,7 +300,7 @@ namespace Couchbase.Lite.Replicator
 
         internal override void ProcessInbox(RevisionList inbox)
         {
-            if (!online) {
+            if (Status == ReplicationStatus.Offline) {
                 Log.V(Tag, "Offline, so skipping inbox process");
                 return;
             }
@@ -389,6 +415,10 @@ namespace Couchbase.Lite.Replicator
                             foreach (var revisionInternal in inbox) {
                                 RemovePending(revisionInternal);
                             }
+                        }
+
+                        if(Continuous) {
+                            FireTrigger(ReplicationTrigger.WaitingForChanges);
                         }
                     }
                 } catch (Exception ex) {

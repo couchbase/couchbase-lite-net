@@ -314,7 +314,7 @@ namespace Couchbase.Lite.Replicator
         /// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
         internal override void ProcessInbox(RevisionList inbox)
         {
-            if (!online) {
+            if (Status == ReplicationStatus.Offline) {
                 Log.D(Tag, "Offline, so skipping inbox process");
                 return;
             }
@@ -921,19 +921,23 @@ namespace Couchbase.Lite.Replicator
             return Uri.EscapeUriString(Runtime.GetStringForBytes(json));
         }
 
-        internal override Boolean GoOffline()
+        protected override void PerformGoOffline()
         {
-            Log.D(Tag, "goOffline() called, stopping changeTracker: " + changeTracker);
-            if (!base.GoOffline())
-            {
-                return false;
-            }
-            if (changeTracker != null)
-            {
+            base.PerformGoOffline();
+            if (changeTracker != null) {
                 changeTracker.Stop();
             }
-            return true;
+
+            StopRemoteRequests();
         }
+
+        protected override void PerformGoOnline()
+        {
+            base.PerformGoOnline();
+
+            BeginReplicating();
+        }
+            
     }
 
 }

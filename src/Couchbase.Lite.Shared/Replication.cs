@@ -230,7 +230,9 @@ namespace Couchbase.Lite
             {
                 try {
                     Log.V(Tag, "*** BEGIN ProcessInbox ({0} sequences)", inbox.Count);
+                    FireTrigger(ReplicationTrigger.Resume);
                     ProcessInbox (new RevisionList(inbox));
+
                     Log.V(Tag, "*** END ProcessInbox (lastSequence={0})", LastSequence);
                 } catch (Exception e) {
                     Log.E(Tag, "ProcessInbox failed: ", e);
@@ -321,8 +323,6 @@ namespace Couchbase.Lite
         internal Boolean savingCheckpoint;
         internal Boolean overdueForSave;
         internal IDictionary<String, Object> remoteCheckpoint;
-        internal volatile Boolean online;
-        internal volatile Boolean offline_inprogress;
 
         internal Boolean continuous;
 
@@ -480,9 +480,9 @@ namespace Couchbase.Lite
 
         private void NotifyChangeListeners(ReplicationStateTransition transition = null)
         {
-            Log.V(Tag, "NotifyChangeListeners ({0}/{1}, active={2} (batch={3}, net={4}), online={5})",
+            Log.V(Tag, "NotifyChangeListeners ({0}/{1}, state={2} (batch={3}, net={4}))",
                 CompletedChangesCount, ChangesCount,
-                Status == ReplicationStatus.Active, Batcher == null ? 0 : Batcher.Count(), asyncTaskCount, online);
+                _stateMachine.State, Batcher == null ? 0 : Batcher.Count(), asyncTaskCount);
             
             var evt = _changed;
             if (evt == null) {
@@ -497,65 +497,26 @@ namespace Couchbase.Lite
         }
 
         // This method will be used by Router & Reachability Manager
-        internal virtual bool GoOffline()
+        internal void GoOffline()
         {
-            //TODO.JHB: Should we check to see if the replication URL is local (if so,
-            //it would be unaffected by any network status changes)?  Or is that too much
-            //of an edge case...
-            if (!online || offline_inprogress)
-            {
-                return false;
-            }
+            FireTrigger(ReplicationTrigger.GoOffline);
+        }
 
-            if (LocalDatabase == null)
-            {
-                return false;
-            }
+        protected virtual void PerformGoOffline()
+        {
+           
+        }
 
-            offline_inprogress = true;
+        protected virtual void PerformGoOnline()
+        {
 
-            LocalDatabase.Manager.RunAsync(() =>
-            {
-                Log.D(Tag, "Going offline");
-
-                online = false;
-                // FIXME: Shouldn't we let batcher drain?
-                StopRemoteRequests();
-                NotifyChangeListeners();
-                offline_inprogress = false;
-            });
-
-            return true;
         }
 
         // This method will be used by Router & Reachability Manager
-        internal virtual bool GoOnline()
+        internal void GoOnline()
         {
-            if (online)
-            {
-                return false;
-            }
 
-            if (LocalDatabase == null)
-            {
-                return false;
-            }
-
-            LocalDatabase.Manager.RunAsync(() =>
-            {
-                Log.D(Tag, "Going online");
-                online = true;
-                if (IsRunning)
-                {
-                    lastSequence = null;
-                    LastError = null;;
-                }
-
-                CheckSession();
-                NotifyChangeListeners();
-            });
-
-            return true;
+            FireTrigger(ReplicationTrigger.GoOnline);
         }
 
         internal void StopRemoteRequests()
@@ -735,8 +696,6 @@ namespace Couchbase.Lite
         internal virtual void Stopping()
         {
             Log.V(Tag, "Stopping");
-
-            NotifyChangeListeners();
 
 			lastSequenceChanged = true; // force save the sequence
 			SaveLastSequence (() => {
@@ -1610,7 +1569,10 @@ namespace Couchbase.Lite
                 return;
             }
 
-            online = LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri);
+            if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri)) {
+                FireTrigger(ReplicationTrigger.GoOffline);
+            }
+
             LocalDatabase.AddReplication(this);
             LocalDatabase.AddActiveReplication(this);
 
@@ -2044,14 +2006,14 @@ namespace Couchbase.Lite
             _stateMachine.Configure(ReplicationState.Offline).OnEntry(transition =>
             {
                 Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination);
-                GoOffline();
+                PerformGoOffline();
                 NotifyChangeListenersStateTransition(transition);
             });
 
             _stateMachine.Configure(ReplicationState.Offline).OnExit(transition =>
             {
                 Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination);
-                GoOnline();
+                PerformGoOnline();
                 NotifyChangeListenersStateTransition(transition);
             });
 
