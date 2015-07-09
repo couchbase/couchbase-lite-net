@@ -198,15 +198,15 @@ namespace Couchbase.Lite
         /// </summary>
         protected internal string sessionID;
 
-        private bool savingCheckpoint;
-        private bool overdueForSave;
-        private IDictionary<String, Object> remoteCheckpoint;
-        private bool continuous;
-        private int revisionsFailed;
-        private static int lastSessionID = 0;
-        private string remoteCheckpointDocID = null;
-        private CancellationTokenSource RetryIfReadyTokenSource;
-        private Task RetryIfReadyTask;
+        private bool _savingCheckpoint;
+        private bool _overdueForSave;
+        private IDictionary<string, object> _remoteCheckpoint;
+        private bool _continuous;
+        private int _revisionsFailed;
+        private static int _lastSessionID;
+        private string _remoteCheckpointDocID;
+        private CancellationTokenSource _retryIfReadyTokenSource;
+        private Task _retryIfReadyTask;
 
         #endregion
 
@@ -246,8 +246,8 @@ namespace Couchbase.Lite
         /// </summary>
         public bool Continuous
         {
-            get { return continuous; }
-            set { if (!IsRunning) continuous = value; }
+            get { return _continuous; }
+            set { if (!IsRunning) _continuous = value; }
         }
 
         /// <summary>
@@ -753,7 +753,7 @@ namespace Couchbase.Lite
         /// </summary>
         protected void RevisionFailed()
         {
-            revisionsFailed++;
+            _revisionsFailed++;
         }
 
         /// <summary>
@@ -828,7 +828,7 @@ namespace Couchbase.Lite
 
             if (_stateMachine.IsInState(ReplicationState.Idle)) {
                 Log.D(TAG, "RETRYING, to transfer missed revisions...");
-                revisionsFailed = 0;
+                _revisionsFailed = 0;
                 CancelPendingRetryIfReady();
                 Retry();
             }
@@ -863,8 +863,8 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void CancelPendingRetryIfReady()
         {
-            if (RetryIfReadyTask != null && !RetryIfReadyTask.IsCanceled && RetryIfReadyTokenSource != null) {
-                RetryIfReadyTokenSource.Cancel();
+            if (_retryIfReadyTask != null && !_retryIfReadyTask.IsCanceled && _retryIfReadyTokenSource != null) {
+                _retryIfReadyTokenSource.Cancel();
             }
         }
 
@@ -873,13 +873,13 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void ScheduleRetryIfReady()
         {
-            RetryIfReadyTokenSource = new CancellationTokenSource();
-            RetryIfReadyTask = Task.Delay(RETRY_DELAY * 1000)
+            _retryIfReadyTokenSource = new CancellationTokenSource();
+            _retryIfReadyTask = Task.Delay(RETRY_DELAY * 1000)
                 .ContinueWith(task =>
                 {
-                    if (RetryIfReadyTokenSource != null && !RetryIfReadyTokenSource.IsCancellationRequested)
+                    if (_retryIfReadyTokenSource != null && !_retryIfReadyTokenSource.IsCancellationRequested)
                         RetryIfReady();
-                }, RetryIfReadyTokenSource.Token);
+                }, _retryIfReadyTokenSource.Token);
         }
 
         /// <summary>
@@ -904,7 +904,7 @@ namespace Couchbase.Lite
 
             SetupRevisionBodyTransformationFunction();
 
-            sessionID = string.Format("repl{0:000}", Interlocked.Increment(ref lastSessionID));
+            sessionID = string.Format("repl{0:000}", Interlocked.Increment(ref _lastSessionID));
             Log.V(TAG, "STARTING ...");
             LastSequence = null;
 
@@ -1033,7 +1033,7 @@ namespace Couchbase.Lite
         {
             Log.D(TAG, "Stop Graceful...");
 
-            continuous = false;
+            _continuous = false;
             if (Batcher != null)  {
                 Batcher.FlushAll();
             }
@@ -1403,8 +1403,8 @@ namespace Couchbase.Lite
         /// </remarks>
         internal string RemoteCheckpointDocID()
         {
-            if (remoteCheckpointDocID != null) {
-                return remoteCheckpointDocID;
+            if (_remoteCheckpointDocID != null) {
+                return _remoteCheckpointDocID;
             } else {
                 // TODO: Needs to be consistent with -hasSameSettingsAs: --
                 // TODO: If a.remoteCheckpointID == b.remoteCheckpointID then [a hasSameSettingsAs: b]
@@ -1450,8 +1450,8 @@ namespace Couchbase.Lite
                     throw new RuntimeException(e);
                 }
 
-                remoteCheckpointDocID = Misc.HexSHA1Digest(inputBytes);
-                return remoteCheckpointDocID;
+                _remoteCheckpointDocID = Misc.HexSHA1Digest(inputBytes);
+                return _remoteCheckpointDocID;
             }
         }
 
@@ -1571,9 +1571,9 @@ namespace Couchbase.Lite
 
                         if (response != null) {
                             result = response.AsDictionary<string, object>();
-                            remoteCheckpoint = result;
+                            _remoteCheckpoint = result;
                         }
-                        remoteCheckpoint = result;
+                        _remoteCheckpoint = result;
                         string remoteLastSequence = null;
 
                         if (result != null) {
@@ -1613,21 +1613,21 @@ namespace Couchbase.Lite
                 return;
             }
 
-            if (savingCheckpoint) {
+            if (_savingCheckpoint) {
                 // If a save is already in progress, don't do anything. (The completion block will trigger
                 // another save after the first one finishes.)
-                overdueForSave = true;
+                _overdueForSave = true;
                 return;
             }
 
             lastSequenceChanged = false;
-            overdueForSave = false;
+            _overdueForSave = false;
 
             Log.D(TAG, "saveLastSequence() called. lastSequence: " + LastSequence);
 
             var body = new Dictionary<String, Object>();
-            if (remoteCheckpoint != null) {
-                body.PutAll(remoteCheckpoint);
+            if (_remoteCheckpoint != null) {
+                body.PutAll(_remoteCheckpoint);
             }
 
             body["lastSequence"] = LastSequence;
@@ -1637,10 +1637,10 @@ namespace Couchbase.Lite
                 return;
             }
 
-            savingCheckpoint = true;
+            _savingCheckpoint = true;
             SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => 
             {
-                savingCheckpoint = false;
+                _savingCheckpoint = false;
                 if (e != null) {
                     Log.V (TAG, "Unable to save remote checkpoint", e);
                 }
@@ -1665,8 +1665,8 @@ namespace Couchbase.Lite
                 if (e != null) {
                     switch (GetStatusFromError(e)) {
                         case StatusCode.NotFound:
-                            remoteCheckpoint = null;
-                            overdueForSave = true;
+                            _remoteCheckpoint = null;
+                            _overdueForSave = true;
                             break;
                         case StatusCode.Conflict:
                             RefreshRemoteCheckpointDoc();
@@ -1680,11 +1680,11 @@ namespace Couchbase.Lite
                     Log.D(TAG, "Save checkpoint response: " + result.ToString());
                     var response = result.AsDictionary<string, object>();
                     body.Put ("_rev", response.Get ("rev"));
-                    remoteCheckpoint = body;
+                    _remoteCheckpoint = body;
                     LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
                 }
 
-                if (overdueForSave) {
+                if (_overdueForSave) {
                     SaveLastSequence (completionHandler);
                 } else if (completionHandler != null) {
                     completionHandler ();
@@ -1721,7 +1721,7 @@ namespace Couchbase.Lite
         private void RefreshRemoteCheckpointDoc()
         {
             Log.D(TAG, "Refreshing remote checkpoint to get its _rev...");
-            savingCheckpoint = true;
+            _savingCheckpoint = true;
 
             SendAsyncRequest(HttpMethod.Get, "/_local/" + RemoteCheckpointDocID(), null, (result, e) =>
             {
@@ -1730,13 +1730,13 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                savingCheckpoint = false;
+                _savingCheckpoint = false;
 
                 if (e != null && GetStatusFromError(e) != StatusCode.NotFound) {
                     Log.E(TAG, "Error refreshing remote checkpoint", e);
                 } else {
                     Log.D(TAG, "Refreshed remote checkpoint: " + result);
-                    remoteCheckpoint = (IDictionary<string, object>)result;
+                    _remoteCheckpoint = (IDictionary<string, object>)result;
                     lastSequenceChanged = true;
                     SaveLastSequence(null);
                 }         
@@ -1774,7 +1774,7 @@ namespace Couchbase.Lite
         private void ClearDbRef()
         {
             Log.D(TAG, "ClearDbRef...");
-            if (LocalDatabase != null && savingCheckpoint && LastSequence != null)
+            if (LocalDatabase != null && _savingCheckpoint && LastSequence != null)
             {
                 LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
                 LocalDatabase = null;
