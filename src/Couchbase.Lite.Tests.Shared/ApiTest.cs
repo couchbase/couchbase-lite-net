@@ -870,7 +870,7 @@ namespace Couchbase.Lite
             {
                 Assert.AreEqual(row.Key, rowNumber);
 
-                var prevDoc = docs[rowNumber - 1];
+                var prevDoc = docs[rowNumber];
                 Assert.AreEqual(row.DocumentId, prevDoc.Id);
                 Assert.AreEqual(row.Document, prevDoc);
 

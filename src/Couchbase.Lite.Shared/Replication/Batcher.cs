@@ -114,6 +114,10 @@ namespace Couchbase.Lite.Support
 
             _lastProcessedTime = DateTime.UtcNow;
             Log.D(Tag, "Set lastProcessedTime to {0}", _lastProcessedTime.ToString());
+
+            if (_inbox.Count > 0) {
+                ScheduleWithDelay(DelayToUse());
+            }
         }
 
         public void QueueObjects(IList<T> objects)
@@ -201,7 +205,7 @@ namespace Couchbase.Lite.Support
                 _cancellationSource = new CancellationTokenSource();
                 _flushFuture = Task.Delay(suggestedDelay).ContinueWith((t) =>
                 {
-                    if (!(_cancellationSource.IsCancellationRequested)) {
+                    if (_cancellationSource != null && !(_cancellationSource.IsCancellationRequested)) {
                         ProcessNow();
                     }
 

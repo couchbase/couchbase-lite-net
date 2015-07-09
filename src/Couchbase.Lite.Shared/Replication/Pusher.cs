@@ -186,7 +186,6 @@ namespace Couchbase.Lite.Replicator
 
             // Now listen for future changes (in continuous mode):
             if (Continuous) {
-                FireTrigger(ReplicationTrigger.WaitingForChanges);
                 observing = true;
                 LocalDatabase.Changed += OnChanged;
             } else {
@@ -415,10 +414,6 @@ namespace Couchbase.Lite.Replicator
                             foreach (var revisionInternal in inbox) {
                                 RemovePending(revisionInternal);
                             }
-                        }
-
-                        if(Continuous) {
-                            FireTrigger(ReplicationTrigger.WaitingForChanges);
                         }
                     }
                 } catch (Exception ex) {

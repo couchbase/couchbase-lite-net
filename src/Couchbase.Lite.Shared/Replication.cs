@@ -844,10 +844,12 @@ namespace Couchbase.Lite
         protected void FireTrigger(ReplicationTrigger trigger)
         {
             Log.D(TAG, "Preparing to fire {0}", trigger);
+            var stackTrace = Environment.StackTrace;
+
             WorkExecutor.StartNew(() =>
             {
                 try {
-                    Log.D(TAG, "Firing {0}", trigger);
+                    Log.D(TAG, "Firing {0}:{1}{2}", trigger, Environment.NewLine, stackTrace);
                     _stateMachine.Fire(trigger);
                 } catch(Exception e) {
                     Log.E(TAG, "State machine error", e);
@@ -997,9 +999,12 @@ namespace Couchbase.Lite
             }
 
             Log.V(TAG, ">>>Updating completedChangesCount from {0} by {1}", _completedChangesCount, value);
-            Interlocked.Add(ref _completedChangesCount, value);
+            var newCount = Interlocked.Add(ref _completedChangesCount, value);
             Log.V(TAG, "<<<Updated completedChanges count to {0}", _completedChangesCount);
             NotifyChangeListeners();
+            if (Continuous && newCount == _changesCount) {
+                FireTrigger(ReplicationTrigger.WaitingForChanges);
+            }
         }
 
         /// <summary>
@@ -1016,6 +1021,7 @@ namespace Couchbase.Lite
             Log.V(TAG, ">>>Updating changesCount from {0} by {1}", _changesCount, value);
             Interlocked.Add(ref _changesCount, value);
             Log.V(TAG, "<<<Updated changesCount to {0}", _changesCount);
+            FireTrigger(ReplicationTrigger.Resume);
             NotifyChangeListeners();
         }
 
@@ -1033,9 +1039,6 @@ namespace Couchbase.Lite
             }
 
             CancelPendingRetryIfReady();
-            if (LocalDatabase != null) {
-                LocalDatabase.ForgetReplication(this);
-            }
         }
 
         /// <summary>
@@ -1061,18 +1064,18 @@ namespace Couchbase.Lite
             Log.V(TAG, "Stopping");
 
             lastSequenceChanged = true; // force save the sequence
-            SaveLastSequence (() => {
-
+            SaveLastSequence (() => 
+            {
                 Log.V (TAG, "Set batcher to null");
-
                 Batcher = null;
-
                 if (LocalDatabase != null) {
                     var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
                     if (reachabilityManager != null) {
                         reachabilityManager.StatusChanged -= NetworkStatusChanged;
                         reachabilityManager.StopListening ();
                     }
+
+                    LocalDatabase.ForgetReplication(this);
                 }
 
                 ClearDbRef ();
@@ -1504,7 +1507,6 @@ namespace Couchbase.Lite
         // This method will be used by Router & Reachability Manager
         internal void GoOnline()
         {
-
             FireTrigger(ReplicationTrigger.GoOnline);
         }
 
@@ -1880,16 +1882,6 @@ namespace Couchbase.Lite
                 NotifyChangeListenersStateTransition(transition);
             });
 
-            _stateMachine.Configure(ReplicationState.Idle).OnExit(transition =>
-            {
-                Log.V(TAG, "{0} => {1}", transition.Source, transition.Destination);
-                if(transition.Source == transition.Destination) {
-                    return;
-                }
-
-                NotifyChangeListenersStateTransition(transition);
-            });
-
             _stateMachine.Configure(ReplicationState.Offline).OnEntry(transition =>
             {
                 Log.V(TAG, "{0} => {1}", transition.Source, transition.Destination);
@@ -1912,10 +1904,8 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                WorkExecutor.StartNew(() => {
-                    StopGraceful();
-                    NotifyChangeListenersStateTransition(transition);
-                });
+                NotifyChangeListenersStateTransition(transition);
+                StopGraceful();
             });
 
             _stateMachine.Configure(ReplicationState.Stopped).OnEntry(transition =>
@@ -1952,7 +1942,12 @@ namespace Couchbase.Lite
             var args = new ReplicationChangeEventArgs(this, transition);
 
             // Ensure callback runs on captured context, which should be the UI thread.
-            LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
+            var stackTrace = Environment.StackTrace;
+            LocalDatabase.Manager.CapturedContext.StartNew(() =>
+            {
+                Log.V(TAG, "Changed event called from:{0}{1}", Environment.NewLine, stackTrace);
+                evt(this, args);
+            });
         }
 
         #endregion

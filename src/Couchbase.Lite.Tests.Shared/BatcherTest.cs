@@ -187,7 +187,7 @@ namespace Couchbase.Lite
             batcher.QueueObject(0);
             batcher.Clear();
             batcher.QueueObject(0);
-            Assert.False(evt.Wait(TimeSpan.FromSeconds(1)), "Batcher ran too many times");
+            Assert.False(evt.Wait(TimeSpan.FromSeconds(1.5)), "Batcher ran too many times");
             Assert.True(evt.CurrentCount == 1, "Batcher never ran");
         }
     }
