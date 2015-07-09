@@ -1240,6 +1240,10 @@ namespace Couchbase.Lite
             var repl = database.CreatePullReplication(remote);
             repl.Continuous = true;
             repl.Start();
+
+            //Some platforms will fire an intial GoOnline event because of network status
+            //change registration, so get that out of the way first
+            Thread.Sleep(1000);
             PutReplicationOffline(repl);
             Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
         }

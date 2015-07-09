@@ -498,6 +498,9 @@ namespace Couchbase.Lite.Replicator
             if (Continuous) {
                 _observing = true;
                 LocalDatabase.Changed += OnChanged;
+                if (changes.Count == 0) {
+                    FireTrigger(ReplicationTrigger.WaitingForChanges);
+                }
             } else {
                 FireTrigger(ReplicationTrigger.StopGraceful);
             }

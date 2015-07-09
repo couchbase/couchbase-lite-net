@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Support
         private bool _scheduled;
         private DateTime _lastProcessedTime;
         private CancellationTokenSource _cancellationSource;
-        private ConcurrentQueue<T> _inbox = new ConcurrentQueue<T>();
+        private Queue<T> _inbox = new Queue<T>();
 
         /// <summary>Constructor</summary>
         /// <param name="workExecutor">the work executor that performs actual work</param>
@@ -99,10 +99,10 @@ namespace Couchbase.Lite.Support
 
             _scheduled = false;
 
-            IList<T> toProcess = new List<T>();
-            T nextItem;
-            while (toProcess.Count < _capacity && _inbox.TryDequeue(out nextItem)) {
-                toProcess.Add(nextItem);
+            var amountToTake = Math.Min(_capacity, _inbox.Count);
+            List<T> toProcess = new List<T>();
+            for (int i = 0; i < amountToTake; i++) {
+                toProcess.Add(_inbox.Dequeue());
             }
 
             if (toProcess != null && toProcess.Count > 0) {
@@ -152,11 +152,7 @@ namespace Couchbase.Lite.Support
         {
             Unschedule();
 
-            IList<T> nextList = new List<T>();
-            T nextItem;
-            while (_inbox.TryDequeue(out nextItem)) {
-                nextList.Add(nextItem);
-            }
+            IList<T> nextList = _inbox.ToList();
 
             if (nextList.Count > 0) {
                 Log.D(Tag, "Flushing {0} items.", nextList.Count);
@@ -178,7 +174,7 @@ namespace Couchbase.Lite.Support
             Unschedule();
 
             var itemCount = _inbox.Count;
-            _inbox = new ConcurrentQueue<T>();
+            _inbox.Clear();
 
             Log.D(Tag, "Discarded {0} items", itemCount);
         }
