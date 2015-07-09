@@ -185,7 +185,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             // Now listen for future changes (in continuous mode):
-            if (continuous) {
+            if (Continuous) {
                 FireTrigger(ReplicationTrigger.WaitingForChanges);
                 observing = true;
                 LocalDatabase.Changed += OnChanged;
@@ -354,7 +354,7 @@ namespace Couchbase.Lite.Replicator
 
                                 // Get the revision's properties:
                                 var contentOptions = DocumentContentOptions.IncludeAttachments;
-                                if (!dontSendMultipart && revisionBodyTransformationFunction == null)
+                                if (!dontSendMultipart && RevisionBodyTransformationFunction == null)
                                 {
                                     contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
                                 }

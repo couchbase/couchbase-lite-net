@@ -22,14 +22,45 @@ using System;
 
 namespace Couchbase.Lite.Replicator
 {
+
+    /// <summary>
+    /// A set of triggers for the replication state machine
+    /// </summary>
     public enum ReplicationTrigger
     {
+        /// <summary>
+        /// Triggers the replication to start
+        /// </summary>
         Start,
+
+        /// <summary>
+        /// Triggers the replication to go idle and wait for new data
+        /// </summary>
         WaitingForChanges,
+
+        /// <summary>
+        /// Triggers the replication to resume after becoming idle
+        /// </summary>
         Resume,
+
+        /// <summary>
+        /// Triggers the replication to go offline
+        /// </summary>
         GoOffline,
+
+        /// <summary>
+        /// Triggers the replication to go online
+        /// </summary>
         GoOnline,
+
+        /// <summary>
+        /// Triggers the replication to shutdown and finish any pending work
+        /// </summary>
         StopGraceful,
+
+        /// <summary>
+        /// Triggers the replication to shutdown and ignore any pending work
+        /// </summary>
         StopImmediate
     }
 }

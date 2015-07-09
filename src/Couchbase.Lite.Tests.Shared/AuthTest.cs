@@ -185,7 +185,7 @@ namespace Couchbase.Lite
                 var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(30);
                 while (DateTime.UtcNow < timeout)
                 {
-                    if (!replicator.active)
+                    if (replicator.Status != ReplicationStatus.Active)
                     {
                         break;
                     }
@@ -233,7 +233,7 @@ namespace Couchbase.Lite
                 var stop = false;
                 while (DateTime.UtcNow < timeout && !stop)
                 {
-                    stop |= !replicator.active;
+                    stop |= replicator.Status != ReplicationStatus.Active;
                     Thread.Sleep(TimeSpan.FromMilliseconds(10));
                 }
                 doneEvent.Set();

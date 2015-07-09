@@ -129,7 +129,7 @@ namespace Couchbase.Lite
                 return true;
             }
 
-            return name.Equals(Replication.ReplicatorDatabaseName);
+            return name.Equals(Replication.REPLICATOR_DATABASE_NAME);
         }
 
     #endregion

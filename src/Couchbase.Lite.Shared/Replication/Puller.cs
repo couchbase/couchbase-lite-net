@@ -268,10 +268,10 @@ namespace Couchbase.Lite.Replicator
 
         public HttpClient GetHttpClient(bool longPoll)
         {
-            var client = clientFactory.GetHttpClient(longPoll);
+            var client = ClientFactory.GetHttpClient(longPoll);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
-                var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                var authHandler = ClientFactory.Handler as DefaultAuthHandler;
                 if (authHandler != null) {
                     authHandler.Authenticator = challengeResponseAuth;
                 }
@@ -294,21 +294,37 @@ namespace Couchbase.Lite.Replicator
 
             base.StopGraceful();
 
-            Task.WhenAll(pendingBulkDownloads).ContinueWith(t =>
-            {
-                StopRemoteRequests();
-                lock (locker) {
-                    revsToPull = null;
-                    deletedRevsToPull = null;
-                    bulkRevsToPull = null;
-                }
+            if (CompletedChangesCount == ChangesCount) {
+                FinishStopping();
+            } else {
+                Changed += ReplicationChanged;
+            }
+        }
 
-                if (downloadsToInsert != null) {
-                    downloadsToInsert.FlushAll();
-                }
+        private void FinishStopping()
+        {
+            StopRemoteRequests();
+            lock (locker) {
+                revsToPull = null;
+                deletedRevsToPull = null;
+                bulkRevsToPull = null;
+            }
 
-                FireTrigger(ReplicationTrigger.StopImmediate);
-            });
+            if (downloadsToInsert != null) {
+                downloadsToInsert.FlushAll();
+            }
+
+            FireTrigger(ReplicationTrigger.StopImmediate);
+        }
+
+        private void ReplicationChanged(object sender, ReplicationChangeEventArgs args)
+        {
+            if (args.Source.CompletedChangesCount < args.Source.ChangesCount) {
+                return;
+            }
+
+            Changed -= ReplicationChanged;
+            FinishStopping();
         }
             
         /// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
@@ -486,7 +502,7 @@ namespace Couchbase.Lite.Replicator
             BulkDownloader dl;
             try
             {
-                dl = new BulkDownloader(WorkExecutor, clientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
+                dl = new BulkDownloader(WorkExecutor, ClientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
                 dl.DocumentDownloaded += (sender, args) =>
                 {
                     var props = args.DocumentProperties;
@@ -582,7 +598,7 @@ namespace Couchbase.Lite.Replicator
         // This invokes the tranformation block if one is installed and queues the resulting Revision
         private void QueueDownloadedRevision(RevisionInternal rev)
         {
-            if (revisionBodyTransformationFunction != null)
+            if (RevisionBodyTransformationFunction != null)
             {
                 // Add 'file' properties to attachments pointing to their bodies:
                 foreach (var entry in rev.GetProperties().Get("_attachments").AsDictionary<string,object>())

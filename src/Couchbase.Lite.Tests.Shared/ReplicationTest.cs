@@ -113,7 +113,7 @@ namespace Couchbase.Lite
             var observer = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += observer.Changed;
             replication.Start();
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(60));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(15));
             Assert.IsTrue(success);
 
             replication.Changed -= observer.Changed;
@@ -1821,7 +1821,7 @@ namespace Couchbase.Lite
             }
 
             // Create a bunch (InboxCapacity * 2) local documents
-            var numDocsToSend = Replication.InboxCapacity * 2;
+            var numDocsToSend = Replication.INBOX_CAPACITY * 2;
             for (var i = 0; i < numDocsToSend; i++)
             {
                 var properties = new Dictionary<string, object>();

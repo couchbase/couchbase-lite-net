@@ -22,13 +22,39 @@ using System;
 
 namespace Couchbase.Lite.Replicator
 {
+    /// <summary>
+    /// The possible states for the replication state machine
+    /// </summary>
     public enum ReplicationState
     {
+        /// <summary>
+        /// The replication has never been started
+        /// </summary>
         Initial,
+
+        /// <summary>
+        /// The replication is actively sending and/or receiving data
+        /// </summary>
         Running,
+
+        /// <summary>
+        /// The replication is waiting for new data
+        /// </summary>
         Idle,
+
+        /// <summary>
+        /// The replication cannot reach its endpoint
+        /// </summary>
         Offline,
+
+        /// <summary>
+        /// The replication is shutting down
+        /// </summary>
         Stopping,
+
+        /// <summary>
+        /// The replication has stopped
+        /// </summary>
         Stopped
     }
 }

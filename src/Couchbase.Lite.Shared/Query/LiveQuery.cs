@@ -242,7 +242,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <remarks>
         /// If an error occurs while executing the <see cref="Couchbase.Lite.Query"/>, <see cref="LastError"/> 
-        /// will contain the exception. Can be cancelled if results are not returned after <see cref="DefaultQueryTimeout"/> (90 seconds).
+        /// will contain the exception. Can be cancelled if results are not returned after <see cref="DEFAULT_QUERY_TIMEOUT"/> (90 seconds).
         /// </remarks>
         public void WaitForRows()
         {
