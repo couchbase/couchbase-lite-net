@@ -406,6 +406,276 @@ namespace Couchbase.Lite
             Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[1]);
         }
 
+        [Test] // Issue #449
+        public void TestPushAttachmentToCouchDB()
+        {
+            const string dbName = "db";
+            var dbUri = new Uri("http://localhost:5984/" + dbName);
+
+            try {
+                HttpWebRequest.Create(dbUri).GetResponse();
+            } catch(Exception) {
+                Assert.Inconclusive("Apache CouchDB not running");
+            }
+                
+
+            var  deleteRequest = HttpWebRequest.Create(dbUri);
+            deleteRequest.Method = "DELETE";
+            try {
+                var response = (HttpWebResponse)deleteRequest.GetResponse();
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            } catch(WebException ex) {
+                if (ex.Status == WebExceptionStatus.ProtocolError) {
+                    var response = ex.Response as HttpWebResponse;
+                    if (response != null) {
+                        Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+                    } else {
+                        Assert.Fail("Error from CouchDB: {0}", response.StatusCode);
+                    }
+                } else {
+                    Assert.Fail("Error from CouchDB: {0}", ex);
+                }
+            }
+
+            var putRequest = HttpWebRequest.Create(dbUri);
+            putRequest.Method = "PUT";
+            var putResponse = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, putResponse.StatusCode);
+
+            var push = database.CreatePushReplication(dbUri);
+            CreateDocuments(database, 2);
+            var attachDoc = database.CreateDocument();
+            var newRev = attachDoc.CreateRevision();
+            var newProps = newRev.UserProperties;
+            newProps["foo"] = "bar";
+            newRev.SetUserProperties(newProps);
+            var attachmentStream = GetAsset("attachment.png");
+            newRev.SetAttachment("attachment.png", "image/png", attachmentStream);
+            newRev.Save();
+
+            RunReplication(push);
+            Assert.AreEqual(3, push.ChangesCount);
+            Assert.AreEqual(3, push.CompletedChangesCount);
+            attachDoc = database.GetExistingDocument(attachDoc.Id);
+            attachDoc.Update(rev =>
+            {
+                var props = rev.UserProperties;
+                props["extraminutes"] = "5";
+                rev.SetUserProperties(props);
+                return true;
+            });
+
+            push = database.CreatePushReplication(push.RemoteUrl);
+            RunReplication(push);
+
+            database.Close();
+            database = EnsureEmptyDatabase(database.Name);
+            var pull = database.CreatePullReplication(push.RemoteUrl);
+            RunReplication(pull);
+            Assert.AreEqual(3, database.DocumentCount);
+            attachDoc = database.GetExistingDocument(attachDoc.Id);
+            Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
+            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
+            attachDoc.Update(rev =>
+            {
+                var props = rev.UserProperties;
+                props["extraminutes"] = "10";
+                rev.SetUserProperties(props);
+                return true;
+            });
+
+            push = database.CreatePushReplication(pull.RemoteUrl);
+            RunReplication(push);
+            Assert.IsNull(push.LastError);
+            Assert.AreEqual(1, push.ChangesCount);
+            Assert.AreEqual(1, push.CompletedChangesCount);
+            Assert.AreEqual(3, database.DocumentCount);
+        }
+
+        [Test]
+        public void TestPullerChangedEvent()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+            var doc2Id = string.Format("doc2-{0}", docIdTimestamp);           
+            AddDocWithId(doc1Id, "attachment.png");
+            AddDocWithId(doc2Id, "attachment2.png");
+
+            var pull = database.CreatePullReplication(GetReplicationURL());
+            List<ReplicationStatus> statusHistory = new List<ReplicationStatus>();
+
+            pull.Changed += (sender, e) => 
+            {
+                statusHistory.Add(e.Source.Status);
+                if(e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
+                    Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                }
+
+                if(e.Source.Status == ReplicationStatus.Stopped) {
+                    Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
+                    Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                }
+            };
+
+            RunReplication(pull);
+
+            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                Assert.AreEqual(ReplicationStatus.Active, status);
+            }
+                
+            Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[statusHistory.Count - 1]);
+
+            doc1Id = string.Format("doc3-{0}", docIdTimestamp);
+            doc2Id = string.Format("doc4-{0}", docIdTimestamp);           
+            AddDocWithId(doc1Id, "attachment.png");
+            AddDocWithId(doc2Id, "attachment2.png");
+            pull = database.CreatePullReplication(GetReplicationURL());
+            pull.Continuous = true;
+            statusHistory.Clear();
+            var doneEvent = new ManualResetEventSlim();
+
+            pull.Changed += (sender, e) => 
+            {
+                statusHistory.Add(e.Source.Status);
+                if(e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
+                    Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                }
+
+                if(e.Source.Status == ReplicationStatus.Idle) {
+                    Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
+                    Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                    doneEvent.Set();
+                } else if(e.Source.Status == ReplicationStatus.Stopped) {
+                    doneEvent.Set();
+                }
+            };
+
+            pull.Start();
+            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+            Assert.IsNull(pull.LastError);
+            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                Assert.AreEqual(ReplicationStatus.Active, status);
+            }
+
+            Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
+            doneEvent.Reset();
+
+            statusHistory.Clear();
+            doc1Id = string.Format("doc5-{0}", docIdTimestamp);         
+            AddDocWithId(doc1Id, "attachment.png");
+
+            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+            Assert.IsNull(pull.LastError);
+            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                Assert.AreEqual(ReplicationStatus.Active, status);
+            }
+
+            Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
+            doneEvent.Reset();
+            statusHistory.Clear();
+            pull.Stop();
+            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+            Assert.IsNull(pull.LastError);
+
+            Assert.AreEqual(2, statusHistory.Count);
+            Assert.AreEqual(ReplicationStatus.Active, statusHistory.First());
+            Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[1]);
+        }
+
+        [Test]
+        public void TestPusherChangedEvent()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            CreateDocuments(database, 2);
+            var push = database.CreatePushReplication(GetReplicationURL());
+            List<ReplicationStatus> statusHistory = new List<ReplicationStatus>();
+
+            push.Changed += (sender, e) => 
+            {
+                statusHistory.Add(e.Source.Status);
+                if(e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
+                    Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                }
+
+                if(e.Source.Status == ReplicationStatus.Stopped) {
+                    Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
+                    Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                }
+            };
+
+            RunReplication(push);
+
+            Assert.IsNull(push.LastError);
+            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                Assert.AreEqual(ReplicationStatus.Active, status);
+            }
+
+            Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[statusHistory.Count - 1]);
+
+            CreateDocuments(database, 2);
+            push = database.CreatePushReplication(GetReplicationURL());
+            push.Continuous = true;
+            statusHistory.Clear();
+            var doneEvent = new ManualResetEventSlim();
+
+            push.Changed += (sender, e) => 
+            {
+                statusHistory.Add(e.Source.Status);
+                if(e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
+                    Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                }
+
+                if(e.Source.Status == ReplicationStatus.Idle) {
+                    Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
+                    Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                    doneEvent.Set();
+                } else if(e.Source.Status == ReplicationStatus.Stopped) {
+                    doneEvent.Set();
+                }
+            };
+
+            push.Start();
+            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+            Assert.IsNull(push.LastError);
+            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                Assert.AreEqual(ReplicationStatus.Active, status);
+            }
+
+            Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
+            doneEvent.Reset();
+
+            statusHistory.Clear();
+            CreateDocuments(database, 1);
+
+            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+            Assert.IsNull(push.LastError);
+            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                Assert.AreEqual(ReplicationStatus.Active, status);
+            }
+
+            Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
+
+            doneEvent.Reset();
+            statusHistory.Clear();
+            push.Stop();
+            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+            Assert.IsNull(push.LastError);
+
+            Assert.AreEqual(2, statusHistory.Count);
+            Assert.AreEqual(ReplicationStatus.Active, statusHistory.First());
+            Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[1]);
+        }
+
         // Reproduces issue #167
         // https://github.com/couchbase/couchbase-lite-android/issues/167
         /// <exception cref="System.Exception"></exception>

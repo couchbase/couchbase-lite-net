@@ -358,7 +358,7 @@ PRAGMA user_version = 3;";
 
         internal IDictionary<string, object> GetRevisionHistoryDictStartingFromAnyAncestor(RevisionInternal rev, IList<string>ancestorRevIDs)
         {
-            var history = GetRevisionHistory(rev); // This is in reverse order, newest ... oldest
+            var history = GetRevisionHistory(rev, null); // This is in reverse order, newest ... oldest
             if (ancestorRevIDs != null && ancestorRevIDs.Any())
             {
                 for (var i = 0; i < history.Count; i++)
@@ -1234,7 +1234,7 @@ PRAGMA user_version = 3;";
             return result;
         }
 
-        public IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev)
+        public IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, ICollection<string> ancestorRevIds)
         {
             string docId = rev.GetDocId();
             string revId = rev.GetRevId();
@@ -1272,6 +1272,10 @@ PRAGMA user_version = 3;";
                     if(lastSequence == 0) {
                         return false;
                     }
+
+                    if(ancestorRevIds.Contains(revId)) {
+                        return false;
+                    }
                 }
 
                 return true;
@@ -1285,7 +1289,7 @@ PRAGMA user_version = 3;";
             return history;
         }
 
-        public IDictionary<string, object> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds)
+        public IDictionary<string, object> GetRevisionHistoryDict(RevisionInternal rev, IList<string> ancestorRevIds)
         {
             string docId = rev.GetDocId();
             string revId = rev.GetRevId();

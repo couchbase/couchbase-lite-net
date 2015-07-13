@@ -169,7 +169,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(changeRevisions.Count == 1);
 
             // Get Revision History:
-            IList<RevisionInternal> history = database.Storage.GetRevisionHistory(revD);
+            IList<RevisionInternal> history = database.Storage.GetRevisionHistory(revD, null);
             Assert.AreEqual(revD, history[0]);
             Assert.AreEqual(rev2, history[1]);
             Assert.AreEqual(rev1, history[2]);

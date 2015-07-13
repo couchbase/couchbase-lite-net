@@ -501,7 +501,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevsInfo)) {
-                    dst["_revs_info"] = db.Storage.GetRevisionHistory(rev).Select(x =>
+                    dst["_revs_info"] = db.Storage.GetRevisionHistory(rev, null).Select(x =>
                     {
                         string status = "available";
                         if(x.IsDeleted()) {
