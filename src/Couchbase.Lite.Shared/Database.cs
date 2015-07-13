@@ -3456,7 +3456,7 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal void InstallAttachment(AttachmentInternal attachment, IDictionary<String, Object> attachInfo)
         {
-            var digest = (string)attachInfo.Get("digest");
+            var digest = attachment.Digest;
             if (digest == null)
             {
                 throw new CouchbaseLiteException(StatusCode.BadAttachment);
@@ -3584,6 +3584,12 @@ PRAGMA user_version = 3;";
             }
             //NOOP: retval will be null
             return retval;
+        }
+
+        internal IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds)
+        {
+            HashSet<string> ancestors = ancestorRevIds != null ? new HashSet<string>(ancestorRevIds) : null;
+            return Storage.GetRevisionHistory(rev, ancestors);
         }
 
         internal bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
@@ -3810,7 +3816,7 @@ PRAGMA user_version = 3;";
                 AttachmentInternal attachment = null;
                 try {
                     attachment = new AttachmentInternal(name, attachInfo);
-                } catch(CouchbaseLiteException e) {
+                } catch(CouchbaseLiteException) {
                     return null;
                 }
 
@@ -3827,7 +3833,7 @@ PRAGMA user_version = 3;";
                     // "follows" means the uploader provided the attachment in a separate MIME part.
                     // This means it's already been registered in _pendingAttachmentsByDigest;
                     // I just need to look it up by its "digest" property and install it into the store:
-                    InstallAttachment(attachment, attachInfo);
+                    InstallAttachment(attachment);
                 } else if(attachInfo.GetCast<bool>("stub")) {
                     // "stub" on an incoming revision means the attachment is the same as in the parent.
                     if(parentAttachments == null && prevRevId != null) {
@@ -3854,7 +3860,7 @@ PRAGMA user_version = 3;";
                 // Set or validate the revpos:
                 if(attachment.RevPos == 0) {
                     attachment.RevPos = generation;
-                } else if(attachment.RevPos >= generation) {
+                } else if(attachment.RevPos > generation) {
                     status.Code = StatusCode.BadAttachment;
                     return null;
                 }
@@ -3929,7 +3935,7 @@ PRAGMA user_version = 3;";
                         // "follows" means the uploader provided the attachment in a separate MIME part.
                         // This means it's already been registered in _pendingAttachmentsByDigest;
                         // I just need to look it up by its "digest" property and install it into the store:
-                        InstallAttachment(attachment, attachInfo);
+                        InstallAttachment(attachment);
                     }
                     else
                     {

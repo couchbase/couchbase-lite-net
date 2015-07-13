@@ -406,6 +406,92 @@ namespace Couchbase.Lite
             Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[1]);
         }
 
+        [Test] // Issue #449
+        public void TestPushAttachmentToCouchDB()
+        {
+            const string dbName = "db";
+            var dbUri = new Uri("http://localhost:5984/" + dbName);
+
+            try {
+                HttpWebRequest.Create(dbUri).GetResponse();
+            } catch(Exception) {
+                Assert.Inconclusive("Apache CouchDB not running");
+            }
+                
+
+            var  deleteRequest = HttpWebRequest.Create(dbUri);
+            deleteRequest.Method = "DELETE";
+            try {
+                var response = (HttpWebResponse)deleteRequest.GetResponse();
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            } catch(WebException ex) {
+                if (ex.Status == WebExceptionStatus.ProtocolError) {
+                    var response = ex.Response as HttpWebResponse;
+                    if (response != null) {
+                        Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+                    } else {
+                        Assert.Fail("Error from CouchDB: {0}", response.StatusCode);
+                    }
+                } else {
+                    Assert.Fail("Error from CouchDB: {0}", ex);
+                }
+            }
+
+            var putRequest = HttpWebRequest.Create(dbUri);
+            putRequest.Method = "PUT";
+            var putResponse = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, putResponse.StatusCode);
+
+            var push = database.CreatePushReplication(dbUri);
+            CreateDocuments(database, 2);
+            var attachDoc = database.CreateDocument();
+            var newRev = attachDoc.CreateRevision();
+            var newProps = newRev.UserProperties;
+            newProps["foo"] = "bar";
+            newRev.SetUserProperties(newProps);
+            var attachmentStream = GetAsset("attachment.png");
+            newRev.SetAttachment("attachment.png", "image/png", attachmentStream);
+            newRev.Save();
+
+            RunReplication(push);
+            Assert.AreEqual(3, push.ChangesCount);
+            Assert.AreEqual(3, push.CompletedChangesCount);
+            attachDoc = database.GetExistingDocument(attachDoc.Id);
+            attachDoc.Update(rev =>
+            {
+                var props = rev.UserProperties;
+                props["extraminutes"] = "5";
+                rev.SetUserProperties(props);
+                return true;
+            });
+
+            push = database.CreatePushReplication(push.RemoteUrl);
+            RunReplication(push);
+
+            database.Close();
+            database = EnsureEmptyDatabase(database.Name);
+            var pull = database.CreatePullReplication(push.RemoteUrl);
+            RunReplication(pull);
+            Assert.AreEqual(3, database.DocumentCount);
+            attachDoc = database.GetExistingDocument(attachDoc.Id);
+            Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
+            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
+            attachDoc.Update(rev =>
+            {
+                var props = rev.UserProperties;
+                props["extraminutes"] = "10";
+                rev.SetUserProperties(props);
+                return true;
+            });
+
+            push = database.CreatePushReplication(pull.RemoteUrl);
+            RunReplication(push);
+            Assert.IsNull(push.LastError);
+            Assert.AreEqual(1, push.ChangesCount);
+            Assert.AreEqual(1, push.CompletedChangesCount);
+            Assert.AreEqual(3, database.DocumentCount);
+        }
+
         // Reproduces issue #167
         // https://github.com/couchbase/couchbase-lite-android/issues/167
         /// <exception cref="System.Exception"></exception>

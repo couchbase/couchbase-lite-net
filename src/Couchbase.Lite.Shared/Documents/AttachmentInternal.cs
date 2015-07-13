@@ -234,6 +234,15 @@ namespace Couchbase.Lite.Internal
                 if (Digest == null) {
                     throw new CouchbaseLiteException(StatusCode.BadAttachment);
                 }
+
+                if(info.ContainsKey("revpos")) {
+                    var revPos = info.GetCast<int>("revpos");
+                    if (revPos <= 0) {
+                        throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                    }
+
+                    RevPos = revPos;
+                }
             } else {
                 throw new CouchbaseLiteException(StatusCode.BadAttachment);
             }
