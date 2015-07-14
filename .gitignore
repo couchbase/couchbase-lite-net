@@ -155,3 +155,4 @@ UnityDemo.sln
 #Sync Gateway
 *.walrus
 tmp/
+sync_gateway
