@@ -144,3 +144,4 @@ samples/CouchbaseSample.Android/Resources/Resource.designer.cs
 UnityEngine.dll
 version
 src/Build.proj
+sync_gateway
