@@ -2,7 +2,8 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
-    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' "></MonoPrefix>
+    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' ">
+    </MonoPrefix>
   </PropertyGroup>
   <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
@@ -67,7 +68,7 @@
       <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0002\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
     </Reference>
     <Reference Include="Stateless">
-      <HintPath>..\packages\Stateless.2.5.18.0\lib\portable-net40+sl50+win+wp80\Stateless.dll</HintPath>
+      <HintPath>..\packages\Stateless.2.5.21.0\lib\portable-net40+sl50+win+wp80\Stateless.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
