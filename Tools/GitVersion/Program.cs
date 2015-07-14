@@ -26,6 +26,7 @@
 //
 using System;
 using System.IO;
+using System.Text;
 
 namespace GitVersion
 {
@@ -41,11 +42,10 @@ namespace GitVersion
             string hash = "No git information";
             DirectoryInfo gitFolder = FindGitFolder(new DirectoryInfo(args[0]));
             if(gitFolder != null) {
-                var headPath = Path.Combine(gitFolder.FullName, "HEAD");
-                var headRef = File.ReadAllText(headPath).TrimEnd('\r', '\n').Substring(5);
-                var refPath = Path.Combine(gitFolder.FullName, headRef);
-                var fullHash = File.ReadAllText(refPath).TrimEnd('\r', '\n');
-                hash = fullHash.Substring(0, 7);
+                var headPath = Path.Combine(gitFolder.FullName, "logs", "HEAD");
+                var logLine = LastFullLineOfFile(headPath);
+                string possibleHash = HashFromLogLine(logLine);
+                hash = possibleHash ?? hash;
             }
             
             File.WriteAllText(args[1], hash);
@@ -62,6 +62,40 @@ namespace GitVersion
             }
             
             return FindGitFolder(startingPath.Parent);
+        }
+        
+        private static string LastFullLineOfFile(string path)
+        {
+            using(var fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                int nextByte = 0;
+                bool foundNewline = false;
+                bool foundText = false;
+                fs.Seek(-1, SeekOrigin.End);
+                do {
+                    nextByte = fs.ReadByte();
+                    foundNewline = nextByte == '\n';
+                    foundText = foundText || !foundNewline;
+                    fs.Seek(-2, SeekOrigin.Current);
+                } while(fs.Position > 0 && (!foundNewline || !foundText));
+                
+                fs.Seek(2, SeekOrigin.Current);
+                var length = fs.Length - fs.Position;
+                var buffer = new byte[length];
+                fs.Read(buffer, 0, buffer.Length);
+                
+                return Encoding.UTF8.GetString(buffer).TrimEnd('\r', '\n');
+            }
+        }
+        
+        private static string HashFromLogLine(string line)
+        {
+            var split = line.Split(' ');
+            if(split.Length < 2) {
+                Console.WriteLine("Failed to parse git log");
+                return null;
+            }
+            
+            return split[1].Substring(0, 7);
         }
     }
 }
