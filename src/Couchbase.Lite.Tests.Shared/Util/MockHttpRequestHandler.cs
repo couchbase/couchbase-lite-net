@@ -1,4 +1,4 @@
-﻿//
+//
 // MockHttpRequestHandler.cs
 //
 // Author:
@@ -62,16 +62,21 @@ namespace Couchbase.Lite.Tests
 
         #region Constructors
 
-        public MockHttpRequestHandler()
+        public MockHttpRequestHandler(bool defaultFail = true)
         {
             responders = new Dictionary<string, HttpResponseDelegate>();
             CapturedRequests = new List<HttpRequestMessage>();
-            AddDefaultResponders();
+            if(defaultFail)
+                AddDefaultResponders();
+
+            _defaultFail = defaultFail;
         }
 
         #endregion
 
         #region Instance Members
+
+        private bool _defaultFail;
 
         public Int32 ResponseDelayMilliseconds { get; set; }
 
@@ -103,10 +108,15 @@ namespace Couchbase.Lite.Tests
 
                 Task<HttpResponseMessage> retVal = Task.FromResult<HttpResponseMessage>(message);
                 NotifyResponseListeners(request, message);
+                if (message is RequestCorrectHttpMessage)
+                    return base.SendAsync(request, cancellationToken);
+                
                 return retVal;
-            } else {
+            } else if(_defaultFail) {
                 throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
             }
+
+            return base.SendAsync(request, cancellationToken);
         }
 
         public void SetResponder(string urlPattern, HttpResponseDelegate responder)

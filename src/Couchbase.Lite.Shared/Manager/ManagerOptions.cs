@@ -56,7 +56,7 @@ namespace Couchbase.Lite
         /// transient network errors.
         /// </summary>
         /// <value>The max retries.</value>
-        internal int MaxRetries { get; private set; }
+        public int MaxRetries { get; set; }
 
         /// <summary>
         /// Gets the default option flags.
@@ -82,6 +82,11 @@ namespace Couchbase.Lite
         /// Provides configuration settings.
         /// </summary>
         public ManagerOptions()
+        {
+            RestoreDefaults();
+        }
+
+        internal void RestoreDefaults()
         {
             MaxRetries = 10;
 

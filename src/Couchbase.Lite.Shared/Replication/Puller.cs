@@ -517,20 +517,25 @@ namespace Couchbase.Lite.Replicator
                 dl.Complete += (sender, args) => 
                 {
                     if (args != null && args.Error != null) {
-                        LastError = args.Error;
                         RevisionFailed();
+                        if(remainingRevs.Count == 0) {
+                            LastError = args.Error;
+                        }
 
-                    } else if(remainingRevs.Count > 0) {
-                        Log.W(Tag, "{0} revs not returned from _bulk_get: {1}",
-                            remainingRevs.Count, remainingRevs);
+                        for(int i = 0; i < remainingRevs.Count; i++) {
+                            var rev = remainingRevs[i];
+                            if(ShouldRetryDownload(rev.GetDocId())) {
+                                bulkRevsToPull.Add(remainingRevs[i]);
+                            } else {
+                                LastError = args.Error;
+                                SafeIncrementCompletedChangesCount();
+                            }
+                        }
                     }
-
-                    SafeAddToCompletedChangesCount(remainingRevs.Count);
-                    AsyncTaskFinished(1);
-
+                        
                     --httpConnectionCount;
-
                     PullRemoteRevisions();
+                    WorkExecutor.StartNew(() => AsyncTaskFinished(1));
                 };
             } catch (Exception) {
                 return;
@@ -538,7 +543,35 @@ namespace Couchbase.Lite.Replicator
 
             dl.Authenticator = Authenticator;
             WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler);
-//            dl.Run();
+        }
+
+        private bool ShouldRetryDownload(string docId)
+        {
+            var localDoc = LocalDatabase.GetExistingLocalDocument(docId);
+            if (localDoc == null)
+            {
+                LocalDatabase.PutLocalDocument(docId, new Dictionary<string, object>
+                {
+                    {"retryCount", 1}
+                });
+                return true;
+            }
+
+            var retryCount = (long)localDoc["retryCount"];
+            if (retryCount >= ManagerOptions.Default.MaxRetries)
+            {
+                PruneFailedDownload(docId);
+                return false;
+            }
+
+            localDoc["retryCount"] = (long)localDoc["retryCount"] + 1;
+            LocalDatabase.PutLocalDocument(docId, localDoc);
+            return true;
+        }
+
+        private void PruneFailedDownload(string docId)
+        {
+            LocalDatabase.DeleteLocalDocument(docId);
         }
 
         // This invokes the tranformation block if one is installed and queues the resulting Revision

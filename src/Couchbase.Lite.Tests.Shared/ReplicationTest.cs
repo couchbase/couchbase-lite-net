@@ -252,6 +252,23 @@ namespace Couchbase.Lite
             return json.AsDictionary<string, object>();
         }
 
+        private void CreatePullAndTest(int docCount, Action<Replication> tester)
+        {
+            for (int i = 0; i < docCount; i++)
+            {
+                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
+                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
+
+                AddDocWithId(docId, null);
+            }
+
+            var pull = database.CreatePullReplication(GetReplicationURL());
+            RunReplication(pull);
+
+            Log.D("TestPullManyDocuments", "Document count at end {0}", database.DocumentCount);
+            tester(pull);
+        }
+
         // Reproduces issue #167
         // https://github.com/couchbase/couchbase-lite-android/issues/167
         /// <exception cref="System.Exception"></exception>
@@ -721,7 +738,7 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+            /*var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
             var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 
@@ -729,12 +746,15 @@ namespace Couchbase.Lite
             AddDocWithId(doc1Id, "attachment.png");
 
             Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
-            AddDocWithId(doc2Id, "attachment2.png");
+            AddDocWithId(doc2Id, "attachment2.png");*/
 
+            Manager.DefaultOptions.MaxOpenHttpConnections = 4;
+            Manager.DefaultOptions.RequestTimeout = TimeSpan.FromSeconds(20);
+            Manager.DefaultOptions.MaxRetries = 2;
             DoPullReplication();
             Assert.IsNotNull(database);
 
-            Log.D(Tag, "Fetching doc1 via id: " + doc1Id);
+            /*Log.D(Tag, "Fetching doc1 via id: " + doc1Id);
             var doc1 = database.GetExistingDocument(doc1Id);
             Log.D(Tag, "doc1" + doc1);
             Assert.IsNotNull(doc1);
@@ -750,7 +770,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(doc2.CurrentRevisionId.StartsWith("1-", StringComparison.Ordinal));
             Assert.IsNotNull(doc2.Properties);
             Assert.AreEqual(1, doc2.GetProperty("foo"));
-            Log.D(Tag, "testPuller() finished");
+            Log.D(Tag, "testPuller() finished");*/
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -812,6 +832,15 @@ namespace Couchbase.Lite
             repl.Continuous = false;
             RunReplication(repl);
             Assert.IsNull(repl.LastError);
+        }
+
+        private long SyncGatewayRowCount() 
+        {
+            WebRequest countRequest = WebRequest.Create(GetReplicationURL().AppendPath("_all_docs"));
+            HttpWebResponse response = (HttpWebResponse)countRequest.GetResponse();
+            Stream data = response.GetResponseStream();
+            var responseData = Manager.GetObjectMapper().ReadValue<IDictionary<string,object>>(data);
+            return (long)responseData["total_rows"];  
         }
 
         /// <exception cref="System.IO.IOException"></exception>
@@ -2464,5 +2493,98 @@ namespace Couchbase.Lite
             Assert.AreEqual(push.FilterParams, gotParams);
         }
             
+        [Test]
+        public void TestBulkPullTransientExceptionRecovery() {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            var initialRowCount = SyncGatewayRowCount();
+    
+            var fakeFactory = new MockHttpClientFactory(false);
+            FlowControl flow = new FlowControl(new FlowItem[]
+            {
+                new FunctionRunner<HttpResponseMessage>(() => {
+                    Thread.Sleep(7000);
+                    return new RequestCorrectHttpMessage();
+                }) { ExecutionCount = 2 },
+                new FunctionRunner<HttpResponseMessage>(() => {
+                    fakeFactory.HttpHandler.ClearResponders();
+                    return new RequestCorrectHttpMessage();
+                }) { ExecutionCount = 1 }
+            });
+
+            fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) =>
+                flow.ExecuteNext<HttpResponseMessage>());
+            manager.DefaultHttpClientFactory = fakeFactory;
+            ManagerOptions.Default.RequestTimeout = TimeSpan.FromSeconds(5);
+
+            CreatePullAndTest(20, (repl) => Assert.IsTrue(database.DocumentCount - initialRowCount == 20, "Didn't recover from the error"));
+        }
+
+        [Test]
+        public void TestBulkPullPermanentExceptionSurrender() {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            var initialRowCount = SyncGatewayRowCount();
+
+            var fakeFactory = new MockHttpClientFactory(false);
+            FlowControl flow = new FlowControl(new FlowItem[]
+            {
+                new ExceptionThrower(new TaskCanceledException()) { ExecutionCount = -1 },
+            });
+
+            fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) => 
+                flow.ExecuteNext<HttpResponseMessage>());
+            manager.DefaultHttpClientFactory = fakeFactory;
+            ManagerOptions.Default.RequestTimeout = TimeSpan.FromSeconds(5);
+
+            CreatePullAndTest(20, (repl) => Assert.IsTrue(database.DocumentCount - initialRowCount < 20, "Somehow got all the docs"));
+        }
+
+        [Test]
+        public void TestFailedBulkGetDoesntChangeLastSequence()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+                
+            var fakeFactory = new MockHttpClientFactory(false);
+            fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) =>
+            {
+                var str = request.Content.ReadAsStringAsync().Result;
+                if(str.IndexOf("doc2") != -1) {
+                    Log.D(Tag, "Rejecting this bulk get because it looks like the first batch");
+                    throw new OperationCanceledException();
+                }
+
+                Log.D(Tag, "Letting this bulk get through");
+                return new RequestCorrectHttpMessage();
+            });
+            manager.DefaultHttpClientFactory = fakeFactory;
+            Manager.DefaultOptions.MaxRevsToGetInBulk = 10;
+            Manager.DefaultOptions.MaxOpenHttpConnections = 8;
+            Manager.DefaultOptions.RequestTimeout = TimeSpan.FromSeconds(5);
+
+            CreatePullAndTest((int)(Manager.DefaultOptions.MaxRevsToGetInBulk * 1.5), repl => {
+                Log.D(Tag, "Document count increased to {0} with last sequence '{1}'", database.DocumentCount, repl.LastSequence);
+                Assert.IsTrue(database.DocumentCount > 0, "Didn't get docs from second bulk get batch");
+                Assert.AreEqual("0", repl.LastSequence, "LastSequence was advanced");
+            });
+
+            fakeFactory.HttpHandler.ClearResponders();
+            var pull = database.CreatePullReplication(GetReplicationURL());
+            RunReplication(pull);
+            Assert.AreEqual(pull.ChangesCount, pull.CompletedChangesCount);
+            Assert.AreNotEqual(pull.LastSequence, "0");
+        }
     }
 }
