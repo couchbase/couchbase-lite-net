@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Util
         void WriteOptionalTraceInfo()
         {
             #if !__MOBILE__
-            var traceInfo = new TraceEventCache();
+            /*var traceInfo = new TraceEventCache();
             if (TraceOutputOptions.HasFlag(TraceOptions.ThreadId))
             {
                 PrintThreadId(traceInfo);
@@ -83,7 +83,7 @@ namespace Couchbase.Lite.Util
             if (TraceOutputOptions.HasFlag(TraceOptions.Timestamp))
             {
                 PrintTimeStamp(traceInfo);
-            }
+            }*/
             #endif
         }
 

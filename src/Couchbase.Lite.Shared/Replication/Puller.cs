@@ -90,6 +90,8 @@ namespace Couchbase.Lite.Replicator
         internal volatile int httpConnectionCount;
 
         private readonly Object locker = new object ();
+        
+        private SemaphoreSlim _bulkDownloadWait = new SemaphoreSlim(1);
 
         /// <summary>Constructor</summary>
         internal Puller(Database db, Uri remote, bool continuous, TaskFactory workExecutor)
@@ -311,6 +313,7 @@ namespace Couchbase.Lite.Replicator
             var lastInboxSequence = ((PulledRevision)inbox[inbox.Count - 1]).GetRemoteSequenceID();
 
             var numRevisionsRemoved = 0;
+            var originalInboxCount = inbox == null ? 0 : inbox.Count;
             try {
                 // findMissingRevisions is the local equivalent of _revs_diff. it looks at the
                 // array of revisions in inbox and removes the ones that already exist. So whatever's left in inbox
@@ -337,7 +340,11 @@ namespace Couchbase.Lite.Replicator
             if (inboxCount == 0)
             {
                 // Nothing to do. Just bump the lastSequence.
-                Log.W(Tag, string.Format("{0} no new remote revisions to fetch", this));
+                if(originalInboxCount != 0 && originalInboxCount == numRevisionsRemoved) {
+                    Log.W(Tag, "Received {0} already known revisions (most likely due to a new call to access())", numRevisionsRemoved);
+                } else {
+                    Log.W(Tag, string.Format("No new remote revisions to fetch"));
+                }
 
                 var seq = pendingSequences.AddValue(lastInboxSequence);
                 pendingSequences.RemoveSequence(seq);
@@ -551,7 +558,10 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
             dl.Authenticator = Authenticator;
-            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler);
+            _bulkDownloadWait.WaitAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => {
+                dl.Run();
+                _bulkDownloadWait.Release();
+            });
 //            dl.Run();
         }
 

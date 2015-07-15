@@ -75,6 +75,7 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("TRACE")]
         public static void V(string tag, string msg)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.V(tag, msg);
@@ -92,6 +93,7 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("TRACE")]
         public static void V(string tag, string msg, Exception tr)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.V(tag, msg, tr);
@@ -109,6 +111,7 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("TRACE")]
         public static void V(string tag, string format, params object[] args)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.V(tag, format, args);
@@ -125,6 +128,7 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string msg)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.D(tag, msg);
@@ -142,6 +146,7 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string msg, Exception tr)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.D(tag, msg, tr);
@@ -159,6 +164,7 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string  format, params object[] args)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.D(tag, format, args);
@@ -174,6 +180,7 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void I(string tag, string msg)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.I(tag, msg);
@@ -190,6 +197,7 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void I(string tag, string msg, Exception tr)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.I(tag, msg, tr);
@@ -206,6 +214,7 @@ namespace Couchbase.Lite.Util
         /// <param name="args">string format arguments</param>
         public static void I(string tag, string  format, params object[] args)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.D(tag, format, args);
@@ -221,6 +230,7 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void W(string tag, string msg)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.W(tag, msg);
@@ -233,6 +243,7 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">Exception</param>
         public static void W(string tag, Exception tr)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.W(tag, tr);
@@ -249,6 +260,7 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void W(string tag, string msg, Exception tr)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.W(tag, msg, tr);
@@ -265,6 +277,7 @@ namespace Couchbase.Lite.Util
         /// <param name="args">string format arguments</param>
         public static void W(string tag, string  format, params object[] args)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.W(tag, format, args);
@@ -280,6 +293,7 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void E(string tag, string msg)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.E(tag, msg);
@@ -296,6 +310,7 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void E(string tag, string msg, Exception tr)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.E(tag, msg, tr);
@@ -312,6 +327,7 @@ namespace Couchbase.Lite.Util
         /// <param name="args">string format arguments</param>
         public static void E(string tag, string format, params object[] args)
         {
+            tag = DateTime.Now.ToString("HH:mm:ss.fff ") + tag;
             if (Logger != null)
             {
                 Logger.E(tag, format, args);

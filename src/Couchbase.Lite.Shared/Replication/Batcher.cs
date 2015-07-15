@@ -236,9 +236,7 @@ namespace Couchbase.Lite.Support
                 {
                     Unschedule();
 
-                    var toProcess = new List<T>(inbox);
-                    inbox.Clear();
-                    processor(toProcess);
+                    ProcessNow();
                     lastProcessedTime = DateTime.UtcNow;
                 }
             }
