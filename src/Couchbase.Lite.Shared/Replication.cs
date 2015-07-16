@@ -1715,6 +1715,12 @@ namespace Couchbase.Lite
                 return couchbaseLiteException.CBLStatus.Code;
             }
 
+            var httpException = e as HttpResponseException;
+            if(httpException != null) {
+                return (StatusCode)httpException.StatusCode;
+            }
+
+
             return StatusCode.Unknown;
         }
 
