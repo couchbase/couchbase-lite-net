@@ -1339,6 +1339,11 @@ namespace Couchbase.Lite
             {
                 return couchbaseLiteException.GetCBLStatus().GetCode();
             }
+
+            var httpException = e as HttpResponseException;
+            if(httpException != null) {
+                return (StatusCode)httpException.StatusCode;
+            }
             return StatusCode.Unknown;
         }
 
@@ -1369,7 +1374,7 @@ namespace Couchbase.Lite
                     else
                     {
                         Log.D(Tag, "Refreshed remote checkpoint: " + result);
-                        remoteCheckpoint = (IDictionary<string, object>)result;
+                        remoteCheckpoint = result.AsDictionary<string, object>();
                         lastSequenceChanged = true;
                         SaveLastSequence();
                     }
