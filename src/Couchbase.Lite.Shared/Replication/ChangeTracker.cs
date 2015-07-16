@@ -729,13 +729,6 @@ namespace Couchbase.Lite.Replicator
                 bodyParams["limit"] = LongPollModeLimit;
             }
 
-            if (docIDs != null && docIDs.Count > 0)
-            {
-                filterName = "_doc_ids";
-                filterParams = new Dictionary<String, Object>();
-                filterParams["doc_ids"] = docIDs;
-            }
-
             if (filterName != null)
             {
                 bodyParams["filter"] = filterName;
