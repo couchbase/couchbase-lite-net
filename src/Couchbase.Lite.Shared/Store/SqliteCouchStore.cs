@@ -1273,7 +1273,7 @@ PRAGMA user_version = 3;";
                         return false;
                     }
 
-                    if(ancestorRevIds.Contains(revId)) {
+                    if(ancestorRevIds != null && ancestorRevIds.Contains(revId)) {
                         return false;
                     }
                 }
