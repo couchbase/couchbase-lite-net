@@ -1614,7 +1614,7 @@ namespace Couchbase.Lite
                 // Set or validate the revpos:
                 if(attachment.RevPos == 0) {
                     attachment.RevPos = generation;
-                } else if(attachment.RevPos >= generation) {
+                } else if(attachment.RevPos > generation) {
                     status.Code = StatusCode.BadAttachment;
                     return null;
                 }
