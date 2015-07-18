@@ -255,6 +255,8 @@ namespace Couchbase.Lite.Replicator
                 AddToInbox(rev);
             }
 
+            PauseOrResume();
+
             while (revsToPull != null && revsToPull.Count > 1000)
             {
                 try
@@ -349,6 +351,7 @@ namespace Couchbase.Lite.Replicator
                 var seq = pendingSequences.AddValue(lastInboxSequence);
                 pendingSequences.RemoveSequence(seq);
                 LastSequence = pendingSequences.GetCheckpointedValue();
+                PauseOrResume();
                 return;
             }
 
@@ -380,6 +383,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             PullRemoteRevisions();
+            PauseOrResume();
         }
 
         /// <summary>Add a revision to the appropriate queue of revs to individually GET</summary>
@@ -591,6 +595,7 @@ namespace Couchbase.Lite.Replicator
                     Log.V(Tag, "Transformer rejected revision {0}", rev);
                     pendingSequences.RemoveSequence(rev.GetSequence());
                     LastSequence = pendingSequences.GetCheckpointedValue();
+                    PauseOrResume();
                     return;
                 }
 
@@ -678,6 +683,21 @@ namespace Couchbase.Lite.Replicator
             });
         }
 
+        private void PauseOrResume()
+        {
+            var pending = 0;
+            if(Batcher != null) {
+                pending += Batcher.Count();
+            }
+
+            if(pendingSequences != null) {
+                pending += pendingSequences.Count;
+            }
+
+            if(changeTracker != null) {
+                changeTracker.Paused = pending >= 200;
+            }
+        }
 
         private new static Status StatusFromBulkDocsResponseItem(IDictionary<string, object> item)
         {
@@ -883,6 +903,7 @@ namespace Couchbase.Lite.Replicator
             SafeAddToCompletedChangesCount(downloads.Count);
 
             Log.D(Tag, "InsertDownloads updating completedChangesCount from " + newCompletedChangesCount + " -> " + CompletedChangesCount);
+            PauseOrResume();
         }
 
         private sealed class RevisionComparer : IComparer<RevisionInternal>

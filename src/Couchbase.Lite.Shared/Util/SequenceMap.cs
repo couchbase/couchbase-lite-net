@@ -65,6 +65,11 @@ namespace Couchbase.Lite.Support
 
         private object locker = new object ();
 
+        public int Count
+        {
+            get { return sequences.Count; }
+        }
+
         public SequenceMap()
         {
             // Sequence numbers currently in the map
