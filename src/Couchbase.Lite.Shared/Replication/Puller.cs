@@ -343,12 +343,12 @@ namespace Couchbase.Lite.Replicator
                         }
 
                     } else if(remainingRevs.Count > 0) {
-                        Log.W(Tag, "{0} revs not returned from _bulk_get: {1}",
+                        Log.W(TAG, "{0} revs not returned from _bulk_get: {1}",
                             remainingRevs.Count, remainingRevs);
                         for(int i = 0; i < remainingRevs.Count; i++) {
                             var rev = remainingRevs[i];
                             if(ShouldRetryDownload(rev.GetDocId())) {
-                                bulkRevsToPull.Add(remainingRevs[i]);
+                                _bulkRevsToPull.Add(remainingRevs[i]);
                             } else {
                                 LastError = args.Error;
                                 SafeIncrementCompletedChangesCount();
@@ -361,7 +361,6 @@ namespace Couchbase.Lite.Replicator
                     --_httpConnectionCount;
 
                     PullRemoteRevisions();
-                    WorkExecutor.StartNew(() => AsyncTaskFinished(1));
                 };
             } catch (Exception) {
                 return;
