@@ -126,7 +126,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) {
-                _ts.WriteLine(SourceLevels.Verbose, msg, tag); 
+                _ts.WriteLine(SourceLevels.ActivityTracing, msg, tag); 
             }
         }
 
@@ -140,7 +140,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-                _ts.WriteLine(SourceLevels.Verbose, msg, tag); 
+                _ts.WriteLine(SourceLevels.ActivityTracing, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); 
             }
         }
 

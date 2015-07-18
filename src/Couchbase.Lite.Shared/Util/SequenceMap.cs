@@ -66,6 +66,11 @@ namespace Couchbase.Lite.Support
 
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
 
+        public int Count
+        {
+            get { return sequences.Count; }
+        }
+
         public SequenceMap()
         {
             // Sequence numbers currently in the map

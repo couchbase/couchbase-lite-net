@@ -849,7 +849,6 @@ namespace Couchbase.Lite
             WorkExecutor.StartNew(() =>
             {
                 try {
-                    Log.D(TAG, "Firing {0}:{1}{2}", trigger, Environment.NewLine, stackTrace);
                     _stateMachine.Fire(trigger);
                 } catch(Exception e) {
                     Log.E(TAG, "State machine error", e);
@@ -1843,7 +1842,9 @@ namespace Couchbase.Lite
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.StopImmediate, ReplicationState.Stopped);
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.StopGraceful, ReplicationState.Stopping);
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.GoOffline, ReplicationState.Offline);
-            _stateMachine.Configure(ReplicationState.Offline).Permit(ReplicationTrigger.GoOnline, ReplicationState.Running);
+            _stateMachine.Configure(ReplicationState.Offline).PermitIf(ReplicationTrigger.GoOnline, ReplicationState.Running, 
+                () => LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri));
+            
             _stateMachine.Configure(ReplicationState.Stopping).Permit(ReplicationTrigger.StopImmediate, ReplicationState.Stopped);
             _stateMachine.Configure(ReplicationState.Stopped).Permit(ReplicationTrigger.Start, ReplicationState.Running);
 
@@ -1954,7 +1955,6 @@ namespace Couchbase.Lite
             var stackTrace = Environment.StackTrace;
             LocalDatabase.Manager.CapturedContext.StartNew(() =>
             {
-                Log.V(TAG, "Changed event called from:{0}{1}", Environment.NewLine, stackTrace);
                 evt(this, args);
             });
         }

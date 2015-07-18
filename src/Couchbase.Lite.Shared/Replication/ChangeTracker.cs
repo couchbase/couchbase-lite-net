@@ -55,6 +55,8 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -91,9 +93,7 @@ namespace Couchbase.Lite.Replicator
 
         private DateTime _startTime;
 
-//        private Task runTask;
-
-//        Task changesRequestTask;
+        private ManualResetEventSlim _pauseWait = new ManualResetEventSlim(true);
 
         private readonly object stopMutex = new object();
 
@@ -112,6 +112,22 @@ namespace Couchbase.Lite.Replicator
         private CancellationTokenSource tokenSource;
 
         CancellationTokenSource changesFeedRequestTokenSource;
+
+        public bool Paused
+        {
+            get { return !_pauseWait.IsSet; }
+            set
+            {
+                if(value != Paused) {
+                    if(value) {
+                        _pauseWait.Reset();
+                    } else {
+                        _pauseWait.Set();
+                    }
+                }
+            }
+        }
+
 
         /// <summary>Set Authenticator for BASIC Authentication</summary>
         public IAuthenticator Authenticator { get; set; }
@@ -358,8 +374,9 @@ namespace Couchbase.Lite.Replicator
                         var e = ex.InnerException ?? ex;
                         // Swallow TaskCancelledExceptions, which will always happen
                         // if either errorHandler or successHandler don't need to fire.
-                        if (!(e is OperationCanceledException))
+                        if (!(ex is OperationCanceledException) && !(ex.InnerException is OperationCanceledException)) {
                             throw ex;
+                        }
                     } 
                     finally 
                     {
@@ -426,11 +443,6 @@ namespace Couchbase.Lite.Replicator
                     if (httpClient != null)
                     {
                         httpClient.Dispose();
-                    }
-
-                    if (mode == ChangeTrackerMode.OneShot)
-                    {
-                        Stop();
                     }
                 }
             }
@@ -521,32 +533,34 @@ namespace Couchbase.Lite.Replicator
                     break;
                 default:
                     {
-                        var content = response.Content.ReadAsByteArrayAsync().Result;
-                        var results = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(content.AsEnumerable());
-                        Log.D(Tag, "Received results from changes feed: {0}", results);
-                        var resultsValue = results["results"].AsList<object>();
-                        foreach (var item in resultsValue) {
-                            IDictionary<String, Object> change = null;
-                            try {
-                                change = item.AsDictionary<string, Object>();
+                        var content = response.Content.ReadAsStreamAsync().Result;
+                        Task.Factory.StartNew(() =>
+                        {
+                            using (var jsonReader = new JsonTextReader(new StreamReader(content))) {
+                                bool started = false;
+                                while (jsonReader.Read()) {
+                                    _pauseWait.Wait();
+                                    if (jsonReader.TokenType == JsonToken.StartArray) {
+                                        started = true;
+                                    } else if (jsonReader.TokenType == JsonToken.EndArray) {
+                                            started = false;
+                                    } else if (started) {
+                                    var change = JObject.ReadFrom(jsonReader).ToObject<IDictionary<string, object>>();
+                                        if (!ReceivedChange(change))
+                                        {
+                                            Log.W(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
+                                        }
+                                    }
+                                }
                             }
-                            catch (Exception) {
-                                Log.E(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
-                            }
-                            if (!ReceivedChange(change)) {
-                                Log.W(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
-                            }
-                        }
-                    
-                        // As ReceivedChange() dispatches the change event to its client via WorkExecutor,
-                        // to avoid the Stop() to be called before the client is done handling the change event,    
-                        // we need to setup the Stop() call with the WorkExecutor as well 
-                        // (Assuming that the WorkExecutor is a single thread executor).
-
-                        WorkExecutor.StartNew(Stop);
+                                   
+                            WorkExecutor.StartNew(Stop);
+                        }, TaskCreationOptions.LongRunning);
                     }
-                    break;
+                    return;
             }
+
+            backoff.ResetBackoff();
         }
 
         public bool ReceivedChange(IDictionary<string, object> change)
