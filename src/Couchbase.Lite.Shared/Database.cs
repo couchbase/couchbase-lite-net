@@ -1075,6 +1075,40 @@ PRAGMA user_version = 3;";
             }
         }
 
+        internal bool AddReplication(Replication replication)
+        {
+            lock (_allReplicatorsLocker) {
+                if (AllReplications.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
+                    AllReplicators.Add(replication);
+                    return true;
+                }
+
+                return false;
+
+            }
+        }
+
+        internal bool AddActiveReplication(Replication replication)
+        {
+            if (ActiveReplicators == null) {
+                Log.W(Tag, "ActiveReplicators is null, so replication will not be added");
+                return false;
+            }
+
+            if (ActiveReplicators.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
+                ActiveReplicators.Add(replication);
+            } else {
+                return false;
+            }
+
+            replication.Changed += (sender, e) => {
+                {
+                }
+            };
+
+            return true;
+        }
+
         internal RevisionInternal GetLocalDocument(string docID, string revID)
         {
             // docID already should contain "_local/" prefix
@@ -1126,7 +1160,7 @@ PRAGMA user_version = 3;";
             }
         }
 
-        //TODO: Refactor to return status and not throw exceptions since it has two possible return codes
+		///TODO: Refactor to return status and not throw exceptions since it has two possible return codes
         /// <summary>Inserts an already-existing revision replicated from a remote sqliteDb.</summary>
         /// <remarks>
         /// Inserts an already-existing revision replicated from a remote sqliteDb.
@@ -1297,6 +1331,7 @@ PRAGMA user_version = 3;";
                 }
             });
         }
+
 
         private Int64 GetOrInsertDocNumericID(String docId)
         {
@@ -4781,26 +4816,9 @@ PRAGMA user_version = 3;";
             }
         }
 
-        internal void AddReplication(Replication replication)
-        {
-            lock (_allReplicatorsLocker) { AllReplicators.Add(replication); }
-        }
-
         internal void ForgetReplication(Replication replication)
         {
             lock (_allReplicatorsLocker) { AllReplicators.Remove(replication); }
-        }
-
-        internal void AddActiveReplication(Replication replication)
-        {
-            ActiveReplicators.Add(replication);
-            replication.Changed += (sender, e) => 
-            {
-                if (e.Source != null && !e.Source.IsRunning && ActiveReplicators != null)
-                {
-                    ActiveReplicators.Remove(e.Source);
-                }
-            };
         }
 
         internal int PruneRevsToMaxDepth(int maxDepth)
