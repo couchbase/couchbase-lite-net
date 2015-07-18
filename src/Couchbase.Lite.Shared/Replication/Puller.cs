@@ -103,6 +103,22 @@ namespace Couchbase.Lite.Replicator
         #endregion
 
         #region Private Methods
+        
+        private void PauseOrResume()
+        {
+            var pending = 0;
+            if(Batcher != null) {
+                pending += Batcher.Count();
+            }
+
+            if(_pendingSequences != null) {
+                pending += _pendingSequences.Count;
+            }
+
+            if(_changeTracker != null) {
+                _changeTracker.Paused = pending >= 200;
+            }
+        }
 
         private void StartChangeTracker()
         {
@@ -114,7 +130,7 @@ namespace Couchbase.Lite.Replicator
 
             _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
             _changeTracker.Authenticator = Authenticator;
-            if (ServerType.StartsWith("CouchDB")) {
+            if (ServerType != null && ServerType.StartsWith("CouchDB")) {
                 if(DocIds != null) {
                     _changeTracker.SetDocIDs(DocIds.ToList());
                 }
@@ -433,6 +449,7 @@ namespace Couchbase.Lite.Replicator
                     Log.V(TAG, "Transformer rejected revision {0}", rev);
                     _pendingSequences.RemoveSequence(rev.GetSequence());
                     LastSequence = _pendingSequences.GetCheckpointedValue();
+                    PauseOrResume();
                     return;
                 }
 
@@ -648,6 +665,7 @@ namespace Couchbase.Lite.Replicator
             var newCompletedChangesCount = CompletedChangesCount + downloads.Count;
             Log.D(TAG, "InsertDownloads() updating CompletedChangesCount from {0} -> {1}", CompletedChangesCount, newCompletedChangesCount);
             SafeAddToCompletedChangesCount(downloads.Count);
+            PauseOrResume();
         }
 
         #endregion
@@ -747,7 +765,7 @@ namespace Couchbase.Lite.Replicator
                 var seq = _pendingSequences.AddValue(lastInboxSequence);
                 _pendingSequences.RemoveSequence(seq);
                 LastSequence = _pendingSequences.GetCheckpointedValue();
-                //TODO: Pause and resume
+                PauseOrResume();
                 return;
             }
 
@@ -778,7 +796,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             PullRemoteRevisions();
-            //TODO: Pause and resume
+            PauseOrResume();
         }
 
         internal override void BeginReplicating()
@@ -851,6 +869,8 @@ namespace Couchbase.Lite.Replicator
                 Log.D(TAG, "Adding rev to inbox " + rev);
                 AddToInbox(rev);
             }
+
+            PauseOrResume();
 
             while (_revsToPull != null && _revsToPull.Count > 1000) {
                 try {
