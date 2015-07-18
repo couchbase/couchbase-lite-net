@@ -724,9 +724,17 @@ namespace Couchbase.Lite
             }
         }
 
-        internal void AddReplication(Replication replication)
+        internal bool AddReplication(Replication replication)
         {
-            lock (_allReplicatorsLocker) { AllReplicators.Add(replication); }
+            lock (_allReplicatorsLocker) {
+                if (AllReplications.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
+                    AllReplicators.Add(replication);
+                    return true;
+                }
+
+                return false;
+
+            }
         }
 
         internal void ForgetReplication(Replication replication)
@@ -734,21 +742,27 @@ namespace Couchbase.Lite
             lock (_allReplicatorsLocker) { AllReplicators.Remove(replication); }
         }
 
-        internal void AddActiveReplication(Replication replication)
+        internal bool AddActiveReplication(Replication replication)
         {
             if (ActiveReplicators == null) {
                 Log.W(TAG, "ActiveReplicators is null, so replication will not be added");
-                return;
+                return false;
             }
 
-            ActiveReplicators.Add(replication);
-            replication.Changed += (sender, e) => 
-            {
+            if (ActiveReplicators.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
+                ActiveReplicators.Add(replication);
+            } else {
+                return false;
+            }
+
+            replication.Changed += (sender, e) => {
                 if (e.Source != null && !e.Source.IsRunning && ActiveReplicators != null)
                 {
                     ActiveReplicators.Remove(e.Source);
                 }
             };
+
+            return true;
         }
 
         internal bool Exists()

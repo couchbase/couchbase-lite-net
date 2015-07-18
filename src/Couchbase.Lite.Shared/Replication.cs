@@ -899,8 +899,11 @@ namespace Couchbase.Lite
                 FireTrigger(ReplicationTrigger.GoOffline);
             }
 
-            LocalDatabase.AddReplication(this);
-            LocalDatabase.AddActiveReplication(this);
+            if(!LocalDatabase.AddReplication(this) || !LocalDatabase.AddActiveReplication(this)) {
+                Log.W(TAG, "Replication did not start");
+                return;
+            }
+
 
             SetupRevisionBodyTransformationFunction();
 
