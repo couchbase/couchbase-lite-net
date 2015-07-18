@@ -1281,7 +1281,7 @@ namespace Couchbase.Lite
                 }
             };
 
-            var success = gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(1000));
+            var success = gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(60));
             Assert.IsTrue(success);
             query.Stop();
 

@@ -646,7 +646,7 @@ namespace Couchbase.Lite.Listener
             {
                 var response = context.CreateResponse();
                 // Look them up, removing the existing ones from revs:
-                int missing = db.Storage.FindMissingRevisions(revs);
+                db.Storage.FindMissingRevisions(revs);
 
                 // Return the missing revs in a somewhat different format:
                 IDictionary<string, object> diffs = new Dictionary<string, object>();

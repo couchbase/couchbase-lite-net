@@ -205,31 +205,23 @@ namespace Couchbase.Lite
             var remote = GetReplicationURL();
             var doneSignal = new ManualResetEvent(false);
             var replication = database.CreatePullReplication(remote);
+            replication.Continuous = true;
+
+            Func<Replication, bool> doneLogic = r =>
+                replication.Status == ReplicationStatus.Active;
+            
             replication.Changed += (sender, e) => {
-                if (!replication.IsRunning) {
+                if (doneLogic(e.Source)) {
                     doneSignal.Set();
                 }
             };
-
+                
             Assert.AreEqual(0, database.AllReplications.ToList().Count);
-            Assert.AreEqual(0, database.ActiveReplicators.Count);
 
             replication.Start();
-
-            Assert.AreEqual(1, database.AllReplications.ToList().Count);
-            Assert.AreEqual(1, database.ActiveReplicators.Count);
-
-            // TODO: Port full ReplicationFinishedObserver
-            var failed = doneSignal.WaitOne(TimeSpan.FromSeconds(60));
-
-            Assert.True(failed);
-
-            //Active replicators also get removed in a changed callback and sometimes the done
-            //signal gets set before the changed event that removes the active replicator has a
-            //chance to run
-            Thread.Sleep(TimeSpan.FromMilliseconds(500)); 
+            var passed = doneSignal.WaitOne(TimeSpan.FromSeconds(5));
+            Assert.IsTrue(passed);
             Assert.AreEqual(1, database.AllReplications.Count());
-            Assert.AreEqual(0, database.ActiveReplicators.Count);
         }
 
         [Test]

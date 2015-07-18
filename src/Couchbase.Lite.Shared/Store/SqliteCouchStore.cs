@@ -1381,12 +1381,12 @@ PRAGMA user_version = 3;";
         {
             int generation = rev.GetGeneration();
             if (generation <= 1L) {
-                return null;
+                return new List<string>();
             }
 
             long docNumericId = GetDocNumericID(rev.GetDocId());
             if (docNumericId <= 0L) {
-                return null;
+                return new List<string>();
             }
 
             int sqlLimit = limit > 0 ? limit : -1;

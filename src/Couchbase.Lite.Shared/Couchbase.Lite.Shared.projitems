@@ -168,6 +168,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Auth\DigestAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\DigestCalculator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View\UpdateJob.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ReplicationState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ReplicationTrigger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ReplicationStateTransition.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

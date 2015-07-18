@@ -2,7 +2,8 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
-    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' "></MonoPrefix>
+    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' ">
+    </MonoPrefix>
   </PropertyGroup>
   <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
@@ -59,6 +60,9 @@
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Stateless">
+      <HintPath>..\packages\Stateless.2.5.21.0\lib\Stateless.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
