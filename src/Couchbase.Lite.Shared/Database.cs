@@ -4558,9 +4558,17 @@ PRAGMA user_version = 3;";
             return true;
         }
 
-        internal void AddReplication(Replication replication)
+        internal bool AddReplication(Replication replication)
         {
-            lock (_allReplicatorsLocker) { AllReplicators.Add(replication); }
+            lock (_allReplicatorsLocker) 
+            {
+                if(!AllReplications.Any(x => x.RemoteCheckpointDocID() == replication.RemoteCheckpointDocID())) {
+                    AllReplicators.Add(replication);
+                    return true;
+                }
+
+                return false;
+            }
         }
 
         internal void ForgetReplication(Replication replication)
@@ -4568,9 +4576,14 @@ PRAGMA user_version = 3;";
             lock (_allReplicatorsLocker) { AllReplicators.Remove(replication); }
         }
 
-        internal void AddActiveReplication(Replication replication)
+        internal bool AddActiveReplication(Replication replication)
         {
-            ActiveReplicators.Add(replication);
+            if(!ActiveReplicators.Any(x => x.RemoteCheckpointDocID() == replication.RemoteCheckpointDocID())) {
+                ActiveReplicators.Add(replication);
+            } else {
+                return false;
+            }
+
             replication.Changed += (sender, e) => 
             {
                 if (!e.Source.IsRunning && ActiveReplicators != null)
@@ -4578,6 +4591,8 @@ PRAGMA user_version = 3;";
                     ActiveReplicators.Remove(e.Source);
                 }
             };
+
+            return true;
         }
 
         internal int PruneRevsToMaxDepth(int maxDepth)

@@ -1778,8 +1778,10 @@ namespace Couchbase.Lite
                 return;
             }
 
-            LocalDatabase.AddReplication(this);
-            LocalDatabase.AddActiveReplication(this);
+            if(!LocalDatabase.AddReplication(this) || !LocalDatabase.AddActiveReplication(this)) {
+                Log.W(Tag, "Replication already running");
+                return;
+            }
 
             SetupRevisionBodyTransformationFunction();
 
