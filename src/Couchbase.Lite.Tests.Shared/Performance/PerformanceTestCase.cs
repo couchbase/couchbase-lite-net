@@ -223,7 +223,7 @@ namespace Couchbase.Lite
             return doneSignal;
         }
 
-        protected void RunReplication(Replication replication)
+        protected override void RunReplication(Replication replication)
         {
             var replicationDoneSignal = new CountdownEvent(1);
             var observer = new ReplicationObserver(replicationDoneSignal);

@@ -105,20 +105,7 @@ namespace Couchbase.Lite
                 }
             }
         }
-            
-
-        private void RunReplication(Replication replication)
-        {
-            var replicationDoneSignal = new CountdownEvent(1);
-            var observer = new ReplicationObserver(replicationDoneSignal);
-            replication.Changed += observer.Changed;
-            replication.Start();
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(15));
-            Assert.IsTrue(success);
-
-            replication.Changed -= observer.Changed;
-        }
-
+ 
         private void WorkaroundSyncGatewayRaceCondition() 
         {
             System.Threading.Thread.Sleep(2 * 100);
@@ -719,102 +706,6 @@ namespace Couchbase.Lite
             Assert.AreEqual(repl2.LastSequence, remoteLastSequence);
 
             Log.D(Tag, "testPusher() finished");
-        }
-
-        [Test]
-        public void TestReplicateWithListener()
-        {
-            var listener = new CouchbaseLiteTcpListener(manager, 59840);
-            listener.Start();
-
-            var dbCopy = EnsureEmptyDatabase("replicate_end");
-  
-            var push = database.CreatePushReplication(new Uri("http://localhost:59840/replicate_end"));
-            CreateDocuments(database, 20);
-            var attachDoc = CreateDocWithAttachment(database, "attachment.png", "image/png");
-            var attachDocId = attachDoc.Id;
-            RunReplication(push);
-
-            Assert.IsNull(push.LastError);
-            Assert.AreEqual(21, dbCopy.DocumentCount);
-
-            attachDoc = dbCopy.GetExistingDocument(attachDocId);
-            Assert.IsNotNull(attachDoc, "Failed to store doc with attachment");
-            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to store attachments on attachment doc");
-
-            var name = database.Name;
-            database.Close();
-            database = EnsureEmptyDatabase(name);
-
-            var pull = database.CreatePullReplication(new Uri("http://localhost:59840/replicate_end"));
-            RunReplication(pull);
-            Assert.IsNull(pull.LastError);
-            Assert.AreEqual(21, database.DocumentCount);
-
-            attachDoc = database.GetExistingDocument(attachDocId);
-            Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
-            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
-
-            // Now with auth
-            // Digest
-            listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
-            dbCopy = EnsureEmptyDatabase("replicate_end");
-            push = database.CreatePushReplication(new Uri("http://localhost:59840/replicate_end"));
-            push.Authenticator = new DigestAuthenticator("jim", "borden");
-            RunReplication(push);
-
-            Assert.IsNull(push.LastError);
-            Assert.AreEqual(21, dbCopy.DocumentCount);
-
-            attachDoc = dbCopy.GetExistingDocument(attachDocId);
-            Assert.IsNotNull(attachDoc, "Failed to store doc with attachment");
-            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to store attachments on attachment doc");
-
-            name = database.Name;
-            database.Close();
-            database = EnsureEmptyDatabase(name);
-
-            pull = database.CreatePullReplication(new Uri("http://localhost:59840/replicate_end"));
-            pull.Authenticator = push.Authenticator;
-            RunReplication(pull);
-            Assert.IsNull(pull.LastError);
-            Assert.AreEqual(21, database.DocumentCount);
-
-            attachDoc = database.GetExistingDocument(attachDocId);
-            Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
-            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
-
-            // and now Basic
-            listener.Stop();
-            listener = new CouchbaseLiteTcpListener(manager, 59840, CouchbaseLiteTcpOptions.AllowBasicAuth);
-            listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
-            listener.Start();
-
-            dbCopy = EnsureEmptyDatabase("replicate_end");
-            push = database.CreatePushReplication(new Uri("http://localhost:59840/replicate_end"));
-            push.Authenticator = new BasicAuthenticator("jim", "borden");
-            RunReplication(push);
-
-            Assert.IsNull(push.LastError);
-            Assert.AreEqual(21, dbCopy.DocumentCount);
-
-            attachDoc = dbCopy.GetExistingDocument(attachDocId);
-            Assert.IsNotNull(attachDoc, "Failed to store doc with attachment");
-            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to store attachments on attachment doc");
-
-            name = database.Name;
-            database.Close();
-            database = EnsureEmptyDatabase(name);
-
-            pull = database.CreatePullReplication(new Uri("http://localhost:59840/replicate_end"));
-            pull.Authenticator = push.Authenticator;
-            RunReplication(pull);
-            Assert.IsNull(pull.LastError);
-            Assert.AreEqual(21, database.DocumentCount);
-
-            attachDoc = database.GetExistingDocument(attachDocId);
-            Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
-            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
         }
 
         /// <exception cref="System.Exception"></exception>
