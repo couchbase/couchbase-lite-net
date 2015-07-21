@@ -156,7 +156,7 @@ namespace Couchbase.Lite {
         public override IEnumerable<SavedRevision> RevisionHistory {
             get {
                 var revisions = new List<SavedRevision>();
-                var internalRevisions = Database.Storage.GetRevisionHistory(RevisionInternal);
+                var internalRevisions = Database.Storage.GetRevisionHistory(RevisionInternal, null);
 
                 foreach (var internalRevision in internalRevisions)
                 {

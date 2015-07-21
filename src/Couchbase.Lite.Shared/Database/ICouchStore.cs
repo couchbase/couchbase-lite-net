@@ -149,14 +149,7 @@ namespace Couchbase.Lite.Store
         /// Returns the given revision's list of direct ancestors (as Revision objects) in _reverse_
         /// chronological order, starting with the revision itself.
         /// </summary>
-        IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev);
-
-        /// <summary>
-        /// Returns the revision history as a _revisions dictionary, as returned by the REST API's ?revs=true option. 
-        /// If 'ancestorRevIDs' is present, the revision history will only go back as far as any of the revision ID 
-        /// strings in that array.
-        /// </summary>
-        IDictionary<string, object> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds);
+        IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, ICollection<string> ancestorRevIds);
 
         /// <summary>
         /// Returns all the known revisions (or all current/conflicting revisions) of a document.

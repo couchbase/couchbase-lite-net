@@ -271,7 +271,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(rev, gotRev);
             AssertPropertiesAreEqual(rev.GetProperties(), gotRev.GetProperties());
 
-            var revHistory = db.Storage.GetRevisionHistory(gotRev);
+            var revHistory = db.Storage.GetRevisionHistory(gotRev, null);
             Assert.AreEqual(history.Count, revHistory.Count);
             
             for (int i = 0; i < history.Count; i++)

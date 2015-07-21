@@ -736,6 +736,11 @@ namespace Couchbase.Lite
 
         internal void AddActiveReplication(Replication replication)
         {
+            if (ActiveReplicators == null) {
+                Log.W(TAG, "ActiveReplicators is null, so replication will not be added");
+                return;
+            }
+
             ActiveReplicators.Add(replication);
             replication.Changed += (sender, e) => 
             {
@@ -1327,9 +1332,9 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void InstallAttachment(AttachmentInternal attachment, IDictionary<String, Object> attachInfo)
+        internal void InstallAttachment(AttachmentInternal attachment)
         {
-            var digest = (string)attachInfo.Get("digest");
+            var digest = attachment.Digest;
             if (digest == null) {
                 throw new CouchbaseLiteException(StatusCode.BadAttachment);
             }
@@ -1377,6 +1382,12 @@ namespace Couchbase.Lite
             }
             //NOOP: retval will be null
             return retval;
+        }
+
+        internal IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds)
+        {
+            HashSet<string> ancestors = ancestorRevIds != null ? new HashSet<string>(ancestorRevIds) : null;
+            return Storage.GetRevisionHistory(rev, ancestors);
         }
 
         internal bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
@@ -1559,7 +1570,7 @@ namespace Couchbase.Lite
                 AttachmentInternal attachment = null;
                 try {
                     attachment = new AttachmentInternal(name, attachInfo);
-                } catch(CouchbaseLiteException e) {
+                } catch(CouchbaseLiteException) {
                     return null;
                 }
 
@@ -1576,7 +1587,7 @@ namespace Couchbase.Lite
                     // "follows" means the uploader provided the attachment in a separate MIME part.
                     // This means it's already been registered in _pendingAttachmentsByDigest;
                     // I just need to look it up by its "digest" property and install it into the store:
-                    InstallAttachment(attachment, attachInfo);
+                    InstallAttachment(attachment);
                 } else if(attachInfo.GetCast<bool>("stub")) {
                     // "stub" on an incoming revision means the attachment is the same as in the parent.
                     if(parentAttachments == null && prevRevId != null) {
@@ -1603,7 +1614,7 @@ namespace Couchbase.Lite
                 // Set or validate the revpos:
                 if(attachment.RevPos == 0) {
                     attachment.RevPos = generation;
-                } else if(attachment.RevPos >= generation) {
+                } else if(attachment.RevPos > generation) {
                     status.Code = StatusCode.BadAttachment;
                     return null;
                 }
@@ -1678,7 +1689,7 @@ namespace Couchbase.Lite
                         // "follows" means the uploader provided the attachment in a separate MIME part.
                         // This means it's already been registered in _pendingAttachmentsByDigest;
                         // I just need to look it up by its "digest" property and install it into the store:
-                        InstallAttachment(attachment, attachInfo);
+                        InstallAttachment(attachment);
                     }
                     else
                     {
