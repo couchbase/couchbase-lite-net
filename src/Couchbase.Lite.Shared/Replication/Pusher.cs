@@ -209,7 +209,7 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        internal override void ProcessInbox(RevisionList inbox)
+        /*internal override void ProcessInbox(RevisionList inbox)
         {
             if (!online) {
                 Log.V(Tag, "Offline, so skipping inbox process");
@@ -335,7 +335,7 @@ namespace Couchbase.Lite.Replicator
                     AsyncTaskFinished(1);
                 }
             });
-        }
+        }*/
 
         private void UploadBulkDocs(IList<object> docsToSend, RevisionList revChanges)
         {
@@ -745,8 +745,8 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 properties = new Dictionary<string, object>(populatedRev.GetProperties());
-                                var revisions = LocalDatabase.Storage.GetRevisionHistory(populatedRev, possibleAncestors);
-                                properties["_revisions"] = revisions;
+                                var history = LocalDatabase.GetRevisionHistory(populatedRev, possibleAncestors);
+                                properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
                                 populatedRev.SetProperties(properties);
 
                                 // Strip any attachments already known to the target db:
