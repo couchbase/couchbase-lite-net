@@ -307,6 +307,18 @@ namespace Couchbase.Lite
             Manager.DefaultOptions.RestoreDefaults();
         }
 
+        protected virtual void RunReplication(Replication replication)
+        {
+            var replicationDoneSignal = new CountdownEvent(1);
+            var observer = new ReplicationObserver(replicationDoneSignal);
+            replication.Changed += observer.Changed;
+            replication.Start();
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(15));
+            Assert.IsTrue(success);
+
+            replication.Changed -= observer.Changed;
+        }
+
         protected IDictionary<string, object> UserProperties(IDictionary
             <string, object> properties)
         {
