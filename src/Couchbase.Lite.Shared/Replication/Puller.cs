@@ -130,13 +130,13 @@ namespace Couchbase.Lite.Replicator
 
             _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
             _changeTracker.Authenticator = Authenticator;
-            if (ServerType != null && ServerType.StartsWith("CouchDB")) {
-                if(DocIds != null) {
+            if(DocIds != null) {
+                if(ServerType != null && ServerType.StartsWith("CouchDB")) {
                     _changeTracker.SetDocIDs(DocIds.ToList());
+                } else {
+                    Log.W(TAG, "DocIds parameter only supported on CouchDB");
                 }
-            } else {
-                Log.W(TAG, "DocIds parameter only supported on CouchDB");
-            }
+            }       
 
             if (Filter != null) {
                 _changeTracker.SetFilterName(Filter);
@@ -913,7 +913,7 @@ namespace Couchbase.Lite.Replicator
 
             public int Compare(RevisionInternal reva, RevisionInternal revb)
             {
-                return Misc.TDSequenceCompare(reva.GetSequence(), revb.GetSequence());
+                return Misc.TDSequenceCompare(reva != null ? reva.GetSequence() : -1L, revb != null ? revb.GetSequence() : -1L);
             }
         }
 

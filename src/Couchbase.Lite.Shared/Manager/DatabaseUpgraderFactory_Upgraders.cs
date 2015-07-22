@@ -481,7 +481,7 @@ namespace Couchbase.Lite.Db
 
                 raw.sqlite3_create_collation(_sqlite, "JSON", raw.SQLITE_UTF8, CollateRevIDs);
                 sqlite3_stmt stmt = null;
-                var status = PrepareSQL(ref stmt, "SELECT name FROM sqlite_master WHERE type='table' AND name='map'");
+                var status = PrepareSQL(ref stmt, "SELECT name FROM sqlite_master WHERE type='table' AND name='maps'");
 
                 err = raw.sqlite3_step(stmt);
                 if (err == raw.SQLITE_ROW) {
@@ -512,6 +512,7 @@ namespace Couchbase.Lite.Db
                     }
 
                     raw.sqlite3_finalize(stmt2);
+                    stmt2 = null;
                     status = PrepareSQL(ref stmt2, "DROP TABLE maps");
                     raw.sqlite3_step(stmt2);
                     raw.sqlite3_finalize(stmt2);
