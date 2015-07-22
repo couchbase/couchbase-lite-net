@@ -18,18 +18,42 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+using System;
 using System.Collections.Generic;
 using System.IO;
 
 namespace Couchbase.Lite
 {
+    public enum JsonToken
+    {
+        None,
+        StartObject,
+        StartArray,
+        StartConstructor,
+        PropertyName,
+        Comment,
+        Raw,
+        Integer,
+        Float,
+        String,
+        Boolean,
+        Null,
+        Undefined,
+        EndObject,
+        EndArray,
+        EndConstructor,
+        Date,
+        Bytes
+    }
 
     /// <summary>
     /// An interface describing a class that can serialize .NET objects 
     /// to and from their JSON representation
     /// </summary>
-    public interface IJsonSerializer
+    public interface IJsonSerializer : IDisposable
     {
+        JsonToken CurrentToken { get; }
+
         /// <summary>
         /// Convert an object to a JSON string
         /// </summary>
@@ -54,6 +78,12 @@ namespace Couchbase.Lite
         /// <typeparam name="T">The type of object to return</typeparam>
         T Deserialize<T>(Stream json);
 
+        void StartIncrementalParse(Stream json);
+
+        bool Read();
+
+        IDictionary<string, object> DeserializeNextObject();
+
         /// <summary>
         /// Converts the object from its intermediary JSON dictionary class to a .NET dictionary,
         /// if applicable.
@@ -72,6 +102,8 @@ namespace Couchbase.Lite
         /// <param name="obj">The object to try to convert</param>
         /// <typeparam name="T">The type of object in the list</typeparam>
         IList<T> ConvertToList<T>(object obj);
+
+        IJsonSerializer DeepClone();
     }
 }
 

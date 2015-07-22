@@ -78,6 +78,13 @@ namespace Couchbase.Lite
             return new ObjectWriter(true); // Currently doesn't do anything, but could use something like http://www.limilabs.com/blog/json-net-formatter in the future.
         }
 
+        public IJsonSerializer StartIncrementalParse(Stream json)
+        {
+            var serializer = ManagerOptions.SerializationEngine.DeepClone();
+            serializer.StartIncrementalParse(json);
+            return serializer;
+        }
+
         public IEnumerable<Byte> WriteValueAsBytes<T> (T item, bool canonical = false)
         {
             var json = WriteValueAsString<T>(item, canonical);
