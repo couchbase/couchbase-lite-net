@@ -55,8 +55,6 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -371,7 +369,6 @@ namespace Couchbase.Lite.Replicator
                         Log.D(Tag, "Finished processing changes feed.");
                     } 
                     catch (Exception ex) {
-                        var e = ex.InnerException ?? ex;
                         // Swallow TaskCancelledExceptions, which will always happen
                         // if either errorHandler or successHandler don't need to fire.
                         if (!(ex is OperationCanceledException) && !(ex.InnerException is OperationCanceledException)) {
@@ -471,47 +468,21 @@ namespace Couchbase.Lite.Replicator
             {
                 case ChangeTrackerMode.LongPoll:
                     {
-                        if (response.Content == null) {
-                            throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
-                        }
+                    if (response.Content == null) {
+                        throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
+                    }
 
-                        var stream = response.Content.ReadAsStreamAsync().Result;
-                        var outString = new StringBuilder();
-                        using (var sr = new StreamReader(stream)) {
-                            string line;
-                            while ((line = sr.ReadLine()) != null) {
-                                outString.AppendLine(line);
-                            }
-                        }
-
-                        var content = outString.ToString();
-                        Log.D(Tag, "Received long poll response: {0}", content);
+                    var stream = response.Content.ReadAsStreamAsync().Result;
+                        bool beforeFirstItem = true;
                         bool responseOK = false;
-                        try
-                        {
-                            var fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content) ?? new Dictionary<string, object>();
-                            responseOK = ReceivedPollResponse(fullBody);
-                        } 
-                        catch (CouchbaseLiteException ex)
-                        {
-                            if (ex.Code != StatusCode.BadJson) {
-                                throw ex;
-                            }
-
-                            const string timeoutContent = "{\"results\":[";
-                            if (!content.Trim().Equals(timeoutContent))
-                                throw ex;
-                            Log.V(Tag, "Timeout while waiting for changes.");
-
+                        using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(stream)) {
+                            responseOK = ReceivedPollResponse(jsonReader, ref beforeFirstItem);
                         }
 
-                        if (responseOK)
-                        {
+                        if (responseOK) {
                             Log.V(Tag, "Starting new longpoll");
                             backoff.ResetBackoff();
-                        }
-                        else
-                        {
+                        } else {
                             backoff.SleepAppropriateAmountOfTime();
                             var elapsed = DateTime.Now - _startTime;
                             Log.W(Tag, "Longpoll connection closed (by proxy?) after {0} sec", elapsed.TotalSeconds);
@@ -528,36 +499,19 @@ namespace Couchbase.Lite.Replicator
                             }
                         }
 
-
                     }
                     break;
                 default:
                     {
                         var content = response.Content.ReadAsStreamAsync().Result;
-                        Task.Factory.StartNew(() =>
-                        {
-                            using (var jsonReader = new JsonTextReader(new StreamReader(content))) {
-                                bool started = false;
-                                while (jsonReader.Read()) {
-                                    _pauseWait.Wait();
-                                    if (jsonReader.TokenType == JsonToken.StartArray) {
-                                        started = true;
-                                    } else if (jsonReader.TokenType == JsonToken.EndArray) {
-                                            started = false;
-                                    } else if (started) {
-                                    var change = JObject.ReadFrom(jsonReader).ToObject<IDictionary<string, object>>();
-                                        if (!ReceivedChange(change))
-                                        {
-                                            Log.W(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
-                                        }
-                                    }
-                                }
-                            }
-                                   
-                            WorkExecutor.StartNew(Stop);
-                        }, TaskCreationOptions.LongRunning);
+                        using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(content)) {
+                            bool timedOut = false;
+                            ReceivedPollResponse(jsonReader, ref timedOut);
+                        }
+                               
+                        WorkExecutor.StartNew(Stop);
                     }
-                    return;
+                    break;
             }
 
             backoff.ResetBackoff();
@@ -566,35 +520,53 @@ namespace Couchbase.Lite.Replicator
         public bool ReceivedChange(IDictionary<string, object> change)
         {
             var seq = change.Get("seq");
-            if (seq == null)
-            {
+            if (seq == null) {
                 return false;
             }
 
             //pass the change to the client on the thread that created this change tracker
-            if (client != null)
-            {
+            if (client != null) {
                 Log.D(Tag, "changed tracker posting change");
                 client.ChangeTrackerReceivedChange(change);
             }
+
             lastSequenceID = seq;
             return true;
         }
 
-        public bool ReceivedPollResponse(IDictionary<string, object> response)
+        public bool ReceivedPollResponse(IJsonSerializer jsonReader, ref bool timedOut)
         {
-            var changes = response.Get("results").AsList<IDictionary<string, object>>();
-            if (changes == null)
-            {
-                return false;
-            }
-            foreach (var change in changes)
-            {
-                if (! ReceivedChange(change))
-                {
-                    return false;
+            bool started = false;
+            timedOut = true;
+            while (jsonReader.Read()) {
+                _pauseWait.Wait();
+                if (jsonReader.CurrentToken == JsonToken.StartArray) {
+                    started = true;
+                } else if (jsonReader.CurrentToken == JsonToken.EndArray) {
+                    started = false;
+                } else if (started) {
+                    IDictionary<string, object> change;
+                    try {
+                        change = jsonReader.DeserializeNextObject();
+                    } catch(Exception e) {
+                        var ex = e as CouchbaseLiteException;
+                        if (ex == null || ex.Code != StatusCode.BadJson) {
+                            Log.E(Tag, "Failure during change tracker JSON parsing", e);
+                            throw;
+                        }
+                            
+                        return false;
+                    }
+
+                    if (!ReceivedChange(change)) {
+                        Log.W(Tag,  String.Format("Received unparseable change line from server: {0}", change));
+                        return false;
+                    }
+
+                    timedOut = false;
                 }
             }
+
             return true;
         }
 

@@ -18,22 +18,44 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+using System;
 using System.Collections.Generic;
 using System.IO;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
     //Eventually split this into another assembly
     internal class NewtonsoftJsonSerializer : IJsonSerializer
     {
+        
         #region Constants
 
         private static readonly JsonSerializerSettings settings = new JsonSerializerSettings { 
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         };
+
+        private const string TAG = "NewtonsoftJsonSerializer";
+
+        #endregion
+
+        #region Variables
+
+        private JsonTextReader _textReader;
+
+        #endregion
+
+        #region Properties
+
+        public JsonToken CurrentToken
+        {
+            get {
+                return _textReader == null ? JsonToken.None : (JsonToken)_textReader.TokenType;
+            }
+        }
 
         #endregion
 
@@ -72,6 +94,34 @@ namespace Couchbase.Lite
             }
         }
 
+        public void StartIncrementalParse(Stream json)
+        {
+            if (_textReader != null) {
+                ((IDisposable)_textReader).Dispose();
+            }
+
+            _textReader = new JsonTextReader(new StreamReader(json));
+        }
+
+        public bool Read()
+        {
+            return _textReader != null && _textReader.Read();
+        }
+
+        public IDictionary<string, object> DeserializeNextObject()
+        {
+            if (_textReader == null) {
+                Log.W(TAG, "DeserializeNextObject is only valid after a call to StartIncrementalParse");
+                return null;
+            }
+
+            try {
+                return JObject.ReadFrom(_textReader).ToObject<IDictionary<string, object>>();
+            } catch(Exception e) {
+                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+            }
+        }
+
         public IDictionary<K, V> ConvertToDictionary<K, V>(object obj)
         {
             if (obj == null) {
@@ -90,6 +140,21 @@ namespace Couchbase.Lite
 
             var jObj = obj as JArray;
             return jObj == null ? null : jObj.ToObject<IList<T>>();
+        }
+
+        public IJsonSerializer DeepClone()
+        {
+            return new NewtonsoftJsonSerializer();
+        }
+            
+        #endregion
+
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            ((IDisposable)_textReader).Dispose();
         }
 
         #pragma warning restore 1591

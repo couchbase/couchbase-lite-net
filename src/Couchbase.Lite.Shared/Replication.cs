@@ -1785,8 +1785,9 @@ namespace Couchbase.Lite
             if (LocalDatabase != null && _savingCheckpoint && LastSequence != null)
             {
                 LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
-                LocalDatabase = null;
             }
+
+            LocalDatabase = null;
         }
 
         private void CheckSessionAtPath(string sessionPath)
