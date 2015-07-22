@@ -47,6 +47,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.Util;
+using System.Collections.Concurrent;
 
 namespace Couchbase.Lite.Support
 {

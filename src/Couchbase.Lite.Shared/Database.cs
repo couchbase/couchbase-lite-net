@@ -3454,7 +3454,7 @@ PRAGMA user_version = 3;";
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void InstallAttachment(AttachmentInternal attachment, IDictionary<String, Object> attachInfo)
+        internal void InstallAttachment(AttachmentInternal attachment)
         {
             var digest = attachment.Digest;
             if (digest == null)
@@ -3589,7 +3589,53 @@ PRAGMA user_version = 3;";
         internal IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds)
         {
             HashSet<string> ancestors = ancestorRevIds != null ? new HashSet<string>(ancestorRevIds) : null;
-            return Storage.GetRevisionHistory(rev, ancestors);
+            string docId = rev.GetDocId();
+            string revId = rev.GetRevId();
+            Debug.Assert(docId != null && revId != null);
+
+            var docNumericId = GetDocNumericID(docId);
+            if (docNumericId < 0) {
+                return null;
+            }
+
+            if (docNumericId == 0) {
+                return new List<RevisionInternal>(0);
+            }
+
+            var lastSequence = 0L;
+            var history = new List<RevisionInternal>();
+            try {
+                var c = StorageEngine.RawQuery("SELECT sequence, parent, revid, deleted, json isnull" +
+                " FROM revs WHERE doc_id=? ORDER BY sequence DESC", docNumericId);
+                var sequence = c.GetLong(0);
+                bool matches;
+                if(lastSequence == 0) {
+                    matches = revId == c.GetString(2);
+                } else {
+                    matches = lastSequence == sequence;
+                }
+
+                if(matches) {
+                    string nextRevId = c.GetString(2);
+                    bool deleted = c.GetInt(3) != 0;
+                    var nextRev = new RevisionInternal(docId, nextRevId, deleted);
+                    nextRev.SetSequence(sequence);
+                    nextRev.SetMissing(c.GetInt(4) != 0);
+                    history.Add(nextRev);
+                    lastSequence = c.GetLong(1);
+                    if(lastSequence == 0) {
+                        return history;
+                    }
+
+                    if(ancestorRevIds != null && ancestorRevIds.Contains(revId)) {
+                        return history;
+                    }
+                }
+            } catch(Exception) {
+                return null;
+            }
+
+            return history;
         }
 
         internal bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
