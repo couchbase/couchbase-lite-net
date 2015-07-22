@@ -144,4 +144,15 @@ samples/CouchbaseSample.Android/Resources/Resource.designer.cs
 UnityEngine.dll
 version
 src/Build.proj
+
+#Unity generated
+Temp/
+Library/
+Assembly-CSharp*
+UnityDemo-csharp.sln
+UnityDemo.sln
+
+#Sync Gateway
+*.walrus
+tmp/
 sync_gateway
