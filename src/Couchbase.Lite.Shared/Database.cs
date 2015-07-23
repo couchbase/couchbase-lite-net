@@ -186,7 +186,7 @@ namespace Couchbase.Lite
                 var sanitizedName = Name.Replace('/', '.');
 
                 // Database files
-                foreach (var fileInfo in info.EnumerateFiles(sanitizedName + "*")) {
+                foreach (var fileInfo in info.EnumerateFiles(sanitizedName + "*", SearchOption.TopDirectoryOnly)) {
                     size += fileInfo.Length;
                 }
 
