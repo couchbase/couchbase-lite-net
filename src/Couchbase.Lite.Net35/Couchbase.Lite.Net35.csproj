@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
@@ -30,6 +30,11 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>False</ConsolePause>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="Build" command="make debug" />
+      </CustomCommands>
+    </CustomCommands>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>True</Optimize>
@@ -54,6 +59,9 @@
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>vendor\ICSharpCode\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="Stateless">
+      <HintPath>..\packages\Stateless.2.5.21.0\lib\Stateless.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net35\Newtonsoft.Json.dll</HintPath>

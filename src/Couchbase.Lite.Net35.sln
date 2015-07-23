@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 VisualStudioVersion = 12.0.31101.0
@@ -111,6 +111,10 @@ Global
 		{A15EEC02-60EC-4705-A58B-A6ECD55A9628}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A15EEC02-60EC-4705-A58B-A6ECD55A9628}.release|anycpu.ActiveCfg = Debug|Any CPU
 		{A15EEC02-60EC-4705-A58B-A6ECD55A9628}.release|anycpu.Build.0 = Debug|Any CPU
+		{A15EEC02-60EC-4705-A58B-A6ECD55A9628}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A15EEC02-60EC-4705-A58B-A6ECD55A9628}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A15EEC02-60EC-4705-A58B-A6ECD55A9628}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A15EEC02-60EC-4705-A58B-A6ECD55A9628}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DCB5D745-525C-46A1-BFC0-E12F87AB6165}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DCB5D745-525C-46A1-BFC0-E12F87AB6165}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DCB5D745-525C-46A1-BFC0-E12F87AB6165}.debug|anycpu.ActiveCfg = Debug|Any CPU

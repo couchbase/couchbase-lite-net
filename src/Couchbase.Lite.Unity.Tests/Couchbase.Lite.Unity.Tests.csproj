@@ -35,9 +35,6 @@
     <Reference Include="nunitlite">
       <HintPath>..\Couchbase.Lite.Net35.Tests\NUnit\nunitlite.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\Couchbase.Lite.Net35\vendor\JSON.NET\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System.Configuration" />
     <Reference Include="System.Net" />
   </ItemGroup>
@@ -91,6 +88,10 @@
     <ProjectReference Include="..\ListenerComponent\Couchbase.Lite.Listener.Unity\Couchbase.Lite.Listener.Unity.csproj">
       <Project>{DBD30658-44C1-4903-8763-8E23FB4ADD9E}</Project>
       <Name>Couchbase.Lite.Listener.Unity</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Unity\vendor\JSON.NET\Src\Newtonsoft.Json\Newtonsoft.Json.Net35.csproj">
+      <Project>{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}</Project>
+      <Name>Newtonsoft.Json.Net35</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
