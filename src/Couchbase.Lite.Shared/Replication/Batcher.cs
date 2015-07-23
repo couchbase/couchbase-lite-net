@@ -76,6 +76,8 @@ namespace Couchbase.Lite.Support
         private DateTime _lastProcessedTime;
         private CancellationTokenSource _cancellationSource;
         private ConcurrentQueue<T> _inbox = new ConcurrentQueue<T>();
+        
+        private object _scheduleLocker = new object();
 
         #endregion
 
@@ -111,10 +113,12 @@ namespace Couchbase.Lite.Support
 
             _scheduled = false;
 
-            IList<T> toProcess = new List<T>();
-            T nextItem;
-            while (toProcess.Count < _capacity && _inbox.TryDequeue(out nextItem)) {
-                toProcess.Add(nextItem);
+            var amountToTake = Math.Min(_capacity, _inbox.Count);
+            List<T> toProcess = new List<T>();
+            T nextObj;
+            int i = 0;
+            while(i < amountToTake && _inbox.TryDequeue(out nextObj)) {
+                toProcess.Add(nextObj);
             }
 
             if (toProcess != null && toProcess.Count > 0) {
@@ -162,17 +166,10 @@ namespace Couchbase.Lite.Support
         /// <summary>Sends _all_ the queued objects at once to the processor block.</summary>
         public void FlushAll()
         {
-            Unschedule();
-
-            IList<T> nextList = new List<T>();
-            T nextItem;
-            while (_inbox.TryDequeue(out nextItem)) {
-                nextList.Add(nextItem);
-            }
-
-            if (nextList.Count > 0) {
-                Log.D(TAG, "Flushing {0} items.", nextList.Count);
-                _processor(nextList);
+            while(_inbox.Count > 0) {
+                Unschedule();
+                
+                ProcessNow();
                 _lastProcessedTime = DateTime.UtcNow;
             }
         }
@@ -226,47 +223,51 @@ namespace Couchbase.Lite.Support
 
         private void ScheduleWithDelay(int suggestedDelay)
         {
-            if (_scheduled) {
-                Log.V(TAG, "ScheduleWithDelay called with delay: {0} ms but already scheduled", suggestedDelay);
-            }
-
-            if (_scheduled && (suggestedDelay < _scheduledDelay)) {
-                Log.V(TAG, "Unscheduling");
-                Unschedule();
-            }
-
-            if (!_scheduled) {
-                _scheduled = true;
-                _scheduledDelay = suggestedDelay;
-
-                Log.D(TAG, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, _workExecutor.Scheduler.GetType().Name, ((SingleTaskThreadpoolScheduler)_workExecutor.Scheduler).ScheduledTasks.Count());
-
-                _cancellationSource = new CancellationTokenSource();
-                _flushFuture = Task.Delay(suggestedDelay).ContinueWith((t) =>
-                {
-                    if (_cancellationSource != null && !(_cancellationSource.IsCancellationRequested)) {
-                        ProcessNow();
-                    }
-
-                    return true;
-                }, _cancellationSource.Token, TaskContinuationOptions.None, _workExecutor.Scheduler);
-            } else {
-                if (_flushFuture == null || _flushFuture.IsCompleted)
-                    throw new InvalidOperationException("Flushfuture missing despite scheduled.");
+            lock(_scheduleLocker) {
+                if (_scheduled) {
+                    Log.V(TAG, "ScheduleWithDelay called with delay: {0} ms but already scheduled", suggestedDelay);
+                }
+    
+                if (_scheduled && (suggestedDelay < _scheduledDelay)) {
+                    Log.V(TAG, "Unscheduling");
+                    Unschedule();
+                }
+    
+                if (!_scheduled) {
+                    _scheduled = true;
+                    _scheduledDelay = suggestedDelay;
+    
+                    Log.D(TAG, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, _workExecutor.Scheduler.GetType().Name, ((SingleTaskThreadpoolScheduler)_workExecutor.Scheduler).ScheduledTasks.Count());
+    
+                    _cancellationSource = new CancellationTokenSource();
+                    _flushFuture = Task.Delay(suggestedDelay).ContinueWith((t) =>
+                    {
+                        if (_cancellationSource != null && !(_cancellationSource.IsCancellationRequested)) {
+                            ProcessNow();
+                        }
+    
+                        return true;
+                    }, _cancellationSource.Token, TaskContinuationOptions.None, _workExecutor.Scheduler);
+                } else {
+                    if (_flushFuture == null || _flushFuture.IsCompleted)
+                        throw new InvalidOperationException("Flushfuture missing despite scheduled.");
+                }
             }
         }
 
         private void Unschedule()
         {
-            _scheduled = false;
-            if (_cancellationSource != null) {
-                try {
-                    _cancellationSource.Cancel(true);
-                } catch (Exception) {
-                    // Swallow it.
-                } 
-
-                _cancellationSource = null;
+            lock(_scheduleLocker) {
+                _scheduled = false;
+                if (_cancellationSource != null) {
+                    try {
+                        _cancellationSource.Cancel(true);
+                    } catch (Exception) {
+                        // Swallow it.
+                    } 
+    
+                    _cancellationSource = null;
+                }
             }
         }
 

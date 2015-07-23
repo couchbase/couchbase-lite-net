@@ -73,7 +73,7 @@ namespace Couchbase.Lite.Replicator
     {
         const String Tag = "ChangeTracker";
 
-        const Int32 LongPollModeLimit = 50;
+        const Int32 LongPollModeLimit = 5000;
 
         private Int32 _heartbeatMilliseconds = 300000;
 
