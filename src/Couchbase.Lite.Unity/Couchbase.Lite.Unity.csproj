@@ -67,12 +67,9 @@
     <Reference Include="SQLitePCL.raw">
       <HintPath>..\Couchbase.Lite.Net35\vendor\SQLitePCL\SQLitePCL.raw.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\Couchbase.Lite.Net35\vendor\JSON.NET\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System.Data" />
     <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>..\Couchbase.Lite.Net35\vendor\ICSharpCode\ICSharpCode.SharpZipLib.dll</HintPath>
+      <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -119,5 +116,12 @@
       <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
       <Name>Stateless</Name>
     </ProjectReference>
+    <ProjectReference Include="vendor\JSON.NET\Src\Newtonsoft.Json\Newtonsoft.Json.Net35.csproj">
+      <Project>{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}</Project>
+      <Name>Newtonsoft.Json.Net35</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

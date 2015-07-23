@@ -64,7 +64,7 @@ namespace Couchbase.Lite
             doc.PutProperties(props);
 
             var doc2 = database.GetExistingDocument(docId);
-            CollectionAssert.AreEqual(dateArray, doc2.UserProperties["starttime"].AsList<int>());
+            Assert.AreEqual(dateArray, doc2.UserProperties["starttime"].AsList<int>());
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>

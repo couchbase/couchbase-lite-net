@@ -60,11 +60,11 @@
     <Reference Include="ugly_net35">
       <HintPath>vendor\SQLitePCL\ugly_net35.dll</HintPath>
     </Reference>
-    <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>vendor\ICSharpCode\ICSharpCode.SharpZipLib.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
