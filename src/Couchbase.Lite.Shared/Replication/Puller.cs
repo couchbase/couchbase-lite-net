@@ -391,6 +391,7 @@ namespace Couchbase.Lite.Replicator
 
             dl.Authenticator = Authenticator;
             var t = WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler);
+            t.ConfigureAwait(false).GetAwaiter().OnCompleted(() => _pendingBulkDownloads.Remove(t));
             _pendingBulkDownloads.Add(t);
         }
 
