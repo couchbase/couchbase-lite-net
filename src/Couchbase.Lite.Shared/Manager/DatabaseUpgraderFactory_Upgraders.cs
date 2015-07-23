@@ -196,7 +196,7 @@ namespace Couchbase.Lite.Db
                             parentSeq = (long)ancestor[1];
                         }
 
-                        Log.D(TAG, "Upgrading doc {0} history {1}", rev, history);
+                        Log.D(TAG, "Upgrading doc {0} history {1}", rev, Manager.GetObjectMapper().WriteValueAsString(history));
                         try {
                             _db.ForceInsert(rev, history, null);
                         } catch (CouchbaseLiteException e) {
@@ -568,6 +568,7 @@ namespace Couchbase.Lite.Db
                 _db.RunInTransaction(() =>
                 {
                     int transactionErr;
+                    int count = 0;
                     while(raw.SQLITE_ROW == (transactionErr = raw.sqlite3_step(docQuery))) {
                         long docNumericID = raw.sqlite3_column_int64(docQuery, 0);
                         string docID = raw.sqlite3_column_text(docQuery, 1);
@@ -575,6 +576,10 @@ namespace Couchbase.Lite.Db
                         if(transactionStatus.IsError) {
                             status = transactionStatus;
                             return false;
+                        }
+                        
+                        if((++count % 1000) == 0) {
+                            Log.I(TAG, "Migrated {0} documents", count);
                         }
                     }
 
