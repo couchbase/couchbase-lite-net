@@ -491,7 +491,7 @@ namespace Couchbase.Lite.Db
                         int viewId = raw.sqlite3_column_int(stmt2, 0);
                         sqlite3_stmt stmt3 = null;
                         status = PrepareSQL(ref stmt3, "CREATE TABLE IF NOT EXISTS maps_" + viewId + 
-                            "sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE," +
+                            " (sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE," +
                             "key TEXT NOT NULL COLLATE JSON," +
                             "value TEXT," +
                             "fulltext_id INTEGER, " +
@@ -499,6 +499,7 @@ namespace Couchbase.Lite.Db
                             "geokey BLOB)");
                         raw.sqlite3_step(stmt3);
                         raw.sqlite3_finalize(stmt3);
+                        stmt3 = null;
 
                         var sequence = raw.sqlite3_column_int64(stmt2, 1);
                         var key = raw.sqlite3_column_text(stmt2, 2);
@@ -506,6 +507,7 @@ namespace Couchbase.Lite.Db
 
                         var insertSql = String.Format("INSERT INTO maps_{0} (sequence, key, value) VALUES ({1}, {2}, {3}",
                                             viewId, sequence, key, value);
+                        
                         status = PrepareSQL(ref stmt3, insertSql);
                         raw.sqlite3_step(stmt3);
                         raw.sqlite3_finalize(stmt3);

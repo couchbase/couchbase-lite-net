@@ -117,7 +117,7 @@ namespace Couchbase.Lite.Support
             List<T> toProcess = new List<T>();
             T nextObj;
             int i = 0;
-            while(i < amountToTake && _inbox.TryDequeue(out nextObj)) {
+            while(i++ < amountToTake && _inbox.TryDequeue(out nextObj)) {
                 toProcess.Add(nextObj);
             }
 
