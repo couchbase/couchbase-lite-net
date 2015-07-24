@@ -56,6 +56,7 @@ using System.Collections;
 using System.Runtime.CompilerServices;
 using Couchbase.Lite.Support;
 using SQLitePCL.Ugly;
+using SQLitePCL;
 
 
 #if !NET_3_5
@@ -831,6 +832,103 @@ PRAGMA user_version = 3;";
 
     #region Non-Public Instance Members
 
+        internal IDictionary<string, object> GetDocumentProperties(IEnumerable<byte> json, string docId, string revId, bool deleted, long sequence)
+        {
+            var realizedJson = json.ToArray();
+            IDictionary<string, object> docProperties;
+            if (realizedJson.Length == 0 || (realizedJson.Length == 2 && Encoding.UTF8.GetString(realizedJson) == "{}")) {
+                docProperties = new Dictionary<string, object>();
+            } else {
+                try {
+                    docProperties = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(realizedJson);
+                } catch(CouchbaseLiteException) {
+                    Log.W(Tag, "Unparseable JSON for doc={0}, rev={1}: {2}", docId, revId, Encoding.UTF8.GetString(realizedJson));
+                    docProperties = new Dictionary<string, object>();
+                }
+            }
+
+            docProperties["_id"] = docId;
+            docProperties["_rev"] = revId;
+            if (deleted) {
+                docProperties["_deleted"] = true;
+            }
+
+            return docProperties;
+        }
+
+        internal Status TryQuery(Func<Cursor, bool> action, bool readUncommit, string sqlQuery, params object[] args)
+        {
+            Cursor c = null;
+            try {
+                if (readUncommit) {
+                    c = StorageEngine.IntransactionRawQuery(sqlQuery, args);
+                } else {
+                    c = StorageEngine.RawQuery(sqlQuery, args);
+                }
+
+                var retVal = new Status(StatusCode.NotFound);
+                while(c.MoveToNext()) {
+                    retVal.Code = StatusCode.Ok;
+                    if(!action(c)) {
+                        break;
+                    }
+                }
+
+                return retVal;
+            } catch(SQLException e) {
+                Log.E(Tag, "Error executing SQL query", e);
+            } finally {
+                if (c != null) {
+                    c.Dispose();
+                }
+            }
+
+            return new Status(StatusCode.DbError);
+        }
+
+        internal T QueryOrDefault<T>(Func<Cursor, T> action, bool readUncommit, T defaultVal, string sqlQuery, params object[] args)
+        {
+            T retVal = defaultVal;
+            var success = TryQuery(c => {
+                retVal = action(c);
+                return false;
+            }, readUncommit, sqlQuery, args);
+            if(success.IsError) {
+                return defaultVal;
+            }
+
+            return retVal;
+        }
+
+        internal bool RunStatements(string sqlStatements)
+        {
+            foreach (var quotedStatement in sqlStatements.Split(';')) {
+                var statement = quotedStatement.Replace('|', ';');
+
+                if (SqliteVersion < 3008000) {
+                    // No partial index support before SQLite 3.8
+                    if (statement.Contains("CREATE INDEX")) {
+                        var where = statement.IndexOf("WHERE");
+                        if (where >= 0) {
+                            statement = statement.Substring(0, where);
+                        }
+                    }
+                }
+
+                if (!StringEx.IsNullOrWhiteSpace(statement)) {
+                    try {
+                        StorageEngine.ExecSQL(statement);
+                    } catch(Exception e) {
+                        Log.E(Tag, String.Format("Error running statement", statement), e);
+                        return false;
+                    }
+
+                }
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Each database can have an associated PersistentCookieStore,
         /// where the persistent cookie store uses the database to store
@@ -1171,6 +1269,33 @@ PRAGMA user_version = 3;";
         {
             if (status == null) {
                 status = new Status();
+            }
+
+            if (revHistory == null) {
+                revHistory = new List<string>(0);
+            }
+
+            var nuRev = rev.CopyWithDocID(rev.GetDocId(), rev.GetRevId());
+            nuRev.SetSequence(0);
+            string revID = nuRev.GetRevId();
+            if (!IsValidDocumentId(nuRev.GetDocId()) || revID == null) {
+                throw new CouchbaseLiteException(StatusCode.BadId);
+            }
+
+            if (revHistory.Count == 0) {
+                revHistory.Add(revID);
+            } else if (revID != revHistory[0]) {
+                throw new CouchbaseLiteException(StatusCode.BadId);
+            }
+
+            if (rev.GetAttachments() != null) {
+                var updatedRev = rev.CopyWithDocID(rev.GetDocId(), rev.GetRevId());
+                string prevRevID = revHistory.Count >= 2 ? revHistory[1] : null;
+                if (!ProcessAttachmentsForRevision(updatedRev, prevRevID, status)) {
+                    throw new CouchbaseLiteException(status.Code);
+                }
+
+                rev = updatedRev;
             }
 
             var inConflict = false;

@@ -280,7 +280,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="sql">Sql.</param>
         /// <param name="paramArgs">Parameter arguments.</param>
-        public void ExecSQL(String sql, params Object[] paramArgs)
+        public int ExecSQL(String sql, params Object[] paramArgs)
         {  
             var t = Factory.StartNew(()=>
             {
@@ -323,13 +323,15 @@ namespace Couchbase.Lite
                 //ExecSQL was called after Close, and the job will be ignored.  Might consider
                 //subclassing the factory to avoid this awkward behavior
                 Log.D(Tag, "StorageEngine closed, canceling operation");
-                return;
+                return 0;
             }
 
             if (t.Status != TaskStatus.RanToCompletion) {
                 Log.E(Tag, "ExecSQL timed out waiting for Task #{0}", t.Id);
                 throw new CouchbaseLiteException("ExecSQL timed out", StatusCode.InternalServerError);
             }
+
+            return _writeConnection.changes();
         }
 
         /// <summary>
