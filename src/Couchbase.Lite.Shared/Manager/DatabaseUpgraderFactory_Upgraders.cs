@@ -379,7 +379,7 @@ namespace Couchbase.Lite.Db
 
             private Status MoveAttachmentsDir()
             {
-                var oldAttachmentsPath = Path.ChangeExtension(_db.Path, null) + Path.DirectorySeparatorChar + "attachments";
+                var oldAttachmentsPath = Path.Combine(Path.ChangeExtension(_db.Path, null), "attachments");
                 var newAttachmentsPath = _db.AttachmentStorePath;
                 if (oldAttachmentsPath.Equals(newAttachmentsPath)) {
                     Log.D(TAG, "Skip moving the attachments folder as no path change ('{0}' vs '{1}').", oldAttachmentsPath, newAttachmentsPath);
