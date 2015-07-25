@@ -2398,8 +2398,32 @@ PRAGMA user_version = 3;";
             return retval;
         }
 
-        internal IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, ICollection<string> ancestorRevIds)
+        internal IDictionary<string, object> GetRevisionHistoryDictStartingFromAnyAncestor(RevisionInternal rev, IList<string>ancestorRevIDs)
         {
+            var history = GetRevisionHistory(rev, null); // This is in reverse order, newest ... oldest
+            if (ancestorRevIDs != null && ancestorRevIDs.Any())
+            {
+                for (var i = 0; i < history.Count; i++)
+                {
+                    if (ancestorRevIDs.Contains(history[i].GetRevId()))
+                    {
+                        var newHistory = new List<RevisionInternal>();
+                        for (var index = 0; index < i + 1; index++) 
+                        {
+                            newHistory.Add(history[index]);
+                        }
+                        history = newHistory;
+                        break;
+                    }
+                }
+            }
+
+            return Database.MakeRevisionHistoryDict(history);
+        }
+
+        internal IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds)
+        {
+            HashSet<string> ancestors = ancestorRevIds != null ? new HashSet<string>(ancestorRevIds) : null;
             string docId = rev.GetDocId();
             string revId = rev.GetRevId();
             Debug.Assert(docId != null && revId != null);
@@ -2437,7 +2461,7 @@ PRAGMA user_version = 3;";
                         return false;
                     }
 
-                    if(ancestorRevIds != null && ancestorRevIds.Contains(revId)) {
+                    if(ancestors != null && ancestors.Contains(revId)) {
                         return false;
                     }
                 }
@@ -2451,12 +2475,6 @@ PRAGMA user_version = 3;";
             }
 
             return history;
-        }
-
-        internal IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds)
-        {
-            HashSet<string> ancestors = ancestorRevIds != null ? new HashSet<string>(ancestorRevIds) : null;
-            return GetRevisionHistory(rev, ancestors);
         }
 
         internal bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
