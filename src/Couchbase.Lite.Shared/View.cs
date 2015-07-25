@@ -889,7 +889,8 @@ namespace Couchbase.Lite {
             List<QueryRow> rows = new List<QueryRow>();
             RunQuery(options, (keyData, valueData, docID, c) =>
             {
-                if(group && !GroupTogether(keyData.Value, lastKeyData.Value, groupLevel)) {
+                var lastKeyValue = lastKeyData != null ? lastKeyData.Value : null;
+                if(group && !GroupTogether(keyData.Value, lastKeyValue, groupLevel)) {
                     if(lastKeyData != null && lastKeyData.Value != null) {
                         // This pair starts a new group, so reduce & record the last one:
                         var key = GroupKey(lastKeyData.Value, groupLevel);
@@ -907,7 +908,7 @@ namespace Couchbase.Lite {
 
                 Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, keyData.Value, valueData.Value);
 
-                object valueOrData = valueData.Value;
+                object valueOrData = FromJSON(valueData.Value);
                 if(valuesToReduce != null && RowValueIsEntireDoc(valueData)) {
                     // map fn emitted 'doc' as value, which was stored as a "*" placeholder; expand now:
                     Status status = new Status();
@@ -941,7 +942,7 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>Indexing</summary>
-        internal string ToJSONString(object obj)
+        internal static string ToJSONString(object obj)
         {
             if (obj == null)
                 return null;
@@ -958,7 +959,7 @@ namespace Couchbase.Lite {
             return result;
         }
 
-        internal object FromJSON(IEnumerable<byte> json)
+        internal static object FromJSON(IEnumerable<byte> json)
         {
             if (json == null)
             {
@@ -1062,37 +1063,28 @@ namespace Couchbase.Lite {
 
         #region Private Methods
 
-        private static bool GroupTogether(object key1, object key2, int groupLevel)
+        private static bool GroupTogether(byte[] key1, byte[] key2, int groupLevel)
         {
-            var key1List = key1 == null ? null : key1 as IList;
-            var key2List = key2 == null ? null : key2 as IList;
-            if (groupLevel == 0 || key1List == null || key2List == null) {
-                return key1.Equals(key2);
+            if (key1 == null || key2 == null) {
+                return false;
             }
 
-            var end = Math.Min(groupLevel, Math.Min(key1List.Count, key2List.Count));
-            for (int i = 0; i < end; ++i) {
-                if (!key1List[i].Equals(key2List[i])) {
-                    return false;
-                }
+            if (groupLevel == 0) {
+                groupLevel = Int32.MaxValue;
             }
 
-            return true;
+            return JsonCollator.Compare(JsonCollationMode.Unicode, Encoding.UTF8.GetString(key1), Encoding.UTF8.GetString(key2), groupLevel) == 0;
         }
 
-        private static object GroupKey(object key, int groupLevel)
+        private static object GroupKey(byte[] keyJson, int groupLevel)
         {
-            if (groupLevel > 0) {
-                var keyList = key.AsList<object>();
-                if (keyList == null) {
-                    return key;
-                }
+            var key = FromJSON(keyJson);
+            var keyList = key.AsList<object>();
+            if (groupLevel > 0 && keyList != null && keyList.Count > groupLevel) {
+                return new Couchbase.Lite.Util.ArraySegment<object>(keyList.ToArray(), 0, groupLevel);
+            }
 
-                return keyList.SubList(0, groupLevel);
-            }
-            else {
-                return key;
-            }
+            return key;
         }
 
         private static object CallReduce(ReduceDelegate reduce, List<object> keysToReduce, List<object> valuesToReduce)
