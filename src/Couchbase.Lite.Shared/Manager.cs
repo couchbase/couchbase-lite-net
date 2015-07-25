@@ -45,19 +45,17 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Db;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
-using Couchbase.Lite.Db;
-using System.Diagnostics;
 using ICSharpCode.SharpZipLib.Zip;
+using Sharpen;
 using Couchbase.Lite.Internal;
 using System.Diagnostics;
 
@@ -72,10 +70,10 @@ namespace Couchbase.Lite
     /// <summary>
     /// The top-level object that manages Couchbase Lite <see cref="Couchbase.Lite.Database"/>s.
     /// </summary>
-    public sealed class Manager
+    public sealed class Manager
     {
 
-    #region Constants
+        #region Constants
 
         /// <summary>
         /// The version of Couchbase Lite that is running
@@ -86,17 +84,17 @@ namespace Couchbase.Lite
         /// <summary>
         /// The error domain used for HTTP status codes.
         /// </summary>
-        const string HttpErrorDomain = "CBLHTTP";
+        private const string HttpErrorDomain = "CBLHTTP";
 
         internal const string DatabaseSuffixv0 = ".touchdb";
         internal const string DatabaseSuffix = ".cblite";
 
         // FIXME: Not all of these are valid Windows file chars.
-        const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
+        private const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
 
-    #endregion
+        #endregion
 
-    #region Static Members
+        #region Static Members
 
         /// <summary>
         /// Gets the default options for creating a manager
@@ -108,7 +106,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The shared instance.</value>
         // FIXME: SharedInstance lifecycle is undefined, so returning default manager for now.
-        public static Manager SharedInstance { 
+        public static Manager SharedInstance { 
             get { 
                 return sharedManager ?? (sharedManager = new Manager(defaultDirectory, ManagerOptions.Default)); 
             }
@@ -125,7 +123,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns><c>true</c> if the given name is a valid <see cref="Couchbase.Lite.Database"/> name, otherwise <c>false</c>.</returns>
         /// <param name="name">The Database name to validate.</param>
-        public static Boolean IsValidDatabaseName(String name) 
+        public static Boolean IsValidDatabaseName(String name) 
         {
             if (name.Length > 0 && name.Length < 240 && ContainsOnlyLegalCharacters(name) && Char.IsLower(name[0])) {
                 return true;
@@ -134,9 +132,9 @@ namespace Couchbase.Lite
             return name.Equals(Replication.REPLICATOR_DATABASE_NAME);
         }
 
-    #endregion
-    
-    #region Constructors
+        #endregion
+
+        #region Constructors
 
         static Manager()
         {
@@ -149,12 +147,7 @@ namespace Couchbase.Lite
             // So, let's only set it only when GetFolderPath returns something and allow the directory to be
             // manually specified via the ctor that accepts a DirectoryInfo
             #if __UNITY__
-            string defaultDirectoryPath = null;
-            if(Thread.CurrentThread.ManagedThreadId != 1) {
-                defaultDirectoryPath = Unity.UnityMainThreadScheduler.TaskFactory.StartNew<string>(() => UnityEngine.Application.persistentDataPath).Result;
-            } else {
-                defaultDirectoryPath = UnityEngine.Application.persistentDataPath;
-            }
+            string defaultDirectoryPath = Unity.UnityMainThreadScheduler.PersistentDataPath;
 
             #else
             var defaultDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -167,15 +160,15 @@ namespace Couchbase.Lite
             #if !OFFICIAL
             string gitVersion= String.Empty;
             using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly()
-                .GetManifestResourceStream("version")) {
-                if(stream != null) {
-                    using (StreamReader reader = new StreamReader(stream))
-                    {
-                        gitVersion= reader.ReadToEnd();
-                    }
-                } else {
-                    gitVersion = "No git information";
-                }
+            .GetManifestResourceStream("version")) {
+            if(stream != null) {
+            using (StreamReader reader = new StreamReader(stream))
+            {
+            gitVersion= reader.ReadToEnd();
+            }
+            } else {
+            gitVersion = "No git information";
+            }
             }
 
             VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
@@ -222,17 +215,17 @@ namespace Couchbase.Lite
             Foundation.NSString protection;
             switch(options.FileProtection & Foundation.NSDataWritingOptions.FileProtectionMask) {
             case Foundation.NSDataWritingOptions.FileProtectionNone:
-                protection = Foundation.NSFileManager.FileProtectionNone;
-                break;
+            protection = Foundation.NSFileManager.FileProtectionNone;
+            break;
             case Foundation.NSDataWritingOptions.FileProtectionComplete:
-                protection = Foundation.NSFileManager.FileProtectionComplete;
-                break;
+            protection = Foundation.NSFileManager.FileProtectionComplete;
+            break;
             case Foundation.NSDataWritingOptions.FileProtectionCompleteUntilFirstUserAuthentication:
-                protection = Foundation.NSFileManager.FileProtectionCompleteUntilFirstUserAuthentication;
-                break;
+            protection = Foundation.NSFileManager.FileProtectionCompleteUntilFirstUserAuthentication;
+            break;
             default:
-                protection = Foundation.NSFileManager.FileProtectionCompleteUnlessOpen;
-                break;
+            protection = Foundation.NSFileManager.FileProtectionCompleteUnlessOpen;
+            break;
             }
 
             var attributes = new Foundation.NSDictionary(Foundation.NSFileManager.FileProtectionKey, protection);
@@ -249,23 +242,25 @@ namespace Couchbase.Lite
             this.NetworkReachabilityManager = new NetworkReachabilityManager();
 
             SharedCookieStore = new CookieStore(this.directoryFile.FullName);
+            StorageType = "SQLite";
+            Shared = new SharedState();
         }
 
-    #endregion
+        #endregion
 
-    #region Instance Members
+        #region Instance Members
         //Properties
         /// <summary>
         /// Gets the directory where the <see cref="Couchbase.Lite.Manager"/> stores <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
         /// <value>The directory.</value>
-        public String Directory { get { return directoryFile.FullName; } }
+        public String Directory { get { return directoryFile.FullName; } }
 
         /// <summary>
         /// Gets the names of all existing <see cref="Couchbase.Lite.Database"/>s.
         /// </summary>
         /// <value>All database names.</value>
-        public IEnumerable<String> AllDatabaseNames 
+        public IEnumerable<String> AllDatabaseNames 
         { 
             get 
             { 
@@ -296,10 +291,10 @@ namespace Couchbase.Lite
         /// <summary>
         /// Releases all resources used by the <see cref="Couchbase.Lite.Manager"/> and closes all its <see cref="Couchbase.Lite.Database"/>s.
         /// </summary>
-        public void Close() 
+        public void Close() 
         {
             Log.I(TAG, "Closing " + this);
-            foreach (var database in databases.Values) {
+            foreach (var database in databases.Values.ToArray()) {
                 var replicators = database.AllReplications;
 
                 if (replicators != null) {
@@ -321,16 +316,16 @@ namespace Couchbase.Lite
         /// <returns>The database.</returns>
         /// <param name="name">Name.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while gettings or createing the <see cref="Couchbase.Lite.Database"/>.</exception>
-        public Database GetDatabase(String name) 
+        public Database GetDatabase(String name) 
         {
             var db = GetDatabaseWithoutOpening(name, false);
-            if (db != null)
-            {
+            if (db != null) {
                 var opened = db.Open();
-                if (!opened)
-                {
+                if (!opened) {
                     return null;
                 }
+
+                Shared.OpenedDatabase(db);
             }
             return db;
         }
@@ -341,13 +336,14 @@ namespace Couchbase.Lite
         /// <returns>The <see cref="Couchbase.Lite.Database"/> with the given name if it exists, otherwise null.</returns>
         /// <param name="name">The name of the Database to get.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while getting the <see cref="Couchbase.Lite.Database"/>.</exception>
-        public Database GetExistingDatabase(String name)
+        public Database GetExistingDatabase(String name)
         {
-            var db = GetDatabaseWithoutOpening(name, mustExist: true);
-            if (db != null)
-            {
+            var db = GetDatabaseWithoutOpening(name, true);
+            if (db != null) {
                 db.Open();
+                Shared.OpenedDatabase(db);
             }
+
             return db;
         }
 
@@ -394,7 +390,7 @@ namespace Couchbase.Lite
                     database.Open();
                 }
             } catch (Exception e) {
-                Log.E(Database.Tag, string.Empty, e);
+                Log.E(Database.TAG, string.Empty, e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
         }
@@ -460,9 +456,9 @@ namespace Couchbase.Lite
             database.Open();
         }
 
-    #endregion
-    
-    #region Non-public Members
+        #endregion
+
+        #region Non-public Members
 
         // Static Fields
         private static readonly ObjectWriter mapper;
@@ -494,6 +490,8 @@ namespace Couchbase.Lite
         internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
         internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
         internal CookieStore SharedCookieStore { get; set; } 
+        internal string StorageType { get; set; } // @"SQLite" (default) or @"ForestDB"
+        internal SharedState Shared { get; private set; }
 
         // Instance Methods
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
@@ -513,10 +511,10 @@ namespace Couchbase.Lite
                     return null;
                 }
 
-                db = new Database(path, this);
+                db = new Database(path, name, this);
                 if (mustExist && !db.Exists()) {
                     var msg = string.Format("mustExist is true and db ({0}) does not exist", name);
-                    Log.W(Database.Tag, msg);
+                    Log.W(Database.TAG, msg);
                     return null;
                 }
 
@@ -535,20 +533,20 @@ namespace Couchbase.Lite
         {
             // remove from cached list of dbs
             databases.Remove(database.Name);
+            if (Shared != null) {
+                Shared.ClosedDatabase(database);
+            }
 
             // remove from list of replications
             // TODO: should there be something that actually stops the replication(s) first?
-            if (replications.Count == 0)
-            {
+            if (replications.Count == 0) {
                 return;
             }
 
             var i = replications.Count;
-            for (; i >= 0; i--) 
-            {
+            for (; i >= 0; i--) {
                 var replication = replications[i];
-                if (replication.LocalDatabase == database) 
-                {
+                if (replication.LocalDatabase == database) {
                     replications.RemoveAt(i);
                 }
             }
@@ -596,7 +594,7 @@ namespace Couchbase.Lite
 
             if (!oldFilename.Equals(newFilename) && newFile.Exists) {
                 var msg = String.Format("Cannot rename {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
-                Log.W(Database.Tag, msg);
+                Log.W(Database.TAG, msg);
                 return;
             }
 
@@ -845,7 +843,7 @@ namespace Couchbase.Lite
             if (new FilePath(result).Exists()) {
                 return result;
             }
-            
+
             name = name.Replace('/', '.');
             fileName = name + Manager.DatabaseSuffix;
             result = Path.Combine(directoryFile.FullName, fileName);
@@ -867,8 +865,8 @@ namespace Couchbase.Lite
         internal Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action, CancellationToken token) 
         {
             var task = token == CancellationToken.None 
-                   ? workExecutor.StartNew<QueryEnumerator>(action) 
-                    : workExecutor.StartNew<QueryEnumerator>(action, token);
+                ? workExecutor.StartNew<QueryEnumerator>(action) 
+                : workExecutor.StartNew<QueryEnumerator>(action, token);
 
             return task;
         }
@@ -888,7 +886,7 @@ namespace Couchbase.Lite
         {
             var task = token == CancellationToken.None ?
                 workExecutor.StartNew(action) :
-                    workExecutor.StartNew(action, token);
+                workExecutor.StartNew(action, token);
             return task;
         }
 
@@ -901,12 +899,11 @@ namespace Couchbase.Lite
         {
             var task = token == CancellationToken.None 
                 ? workExecutor.StartNew(action) 
-                  : workExecutor.StartNew(action, token);
+                : workExecutor.StartNew(action, token);
             return task;
         }
 
-    #endregion
-    }
+        #endregion
+    }
 
 }
-

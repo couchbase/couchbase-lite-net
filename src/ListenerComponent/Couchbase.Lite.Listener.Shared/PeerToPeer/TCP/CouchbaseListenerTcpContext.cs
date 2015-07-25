@@ -2,7 +2,7 @@
 //  CouchbaseLiteTcpContext.cs
 //
 //  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
+//      Jim Borden  <jim.borden@couchbase.com>
 //
 //  Copyright (c) 2015 Couchbase, Inc All rights reserved.
 //
@@ -19,8 +19,10 @@
 //  limitations under the License.
 //
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Linq;
 using System.Net;
 
 namespace Couchbase.Lite.Listener.Tcp
@@ -92,6 +94,16 @@ namespace Couchbase.Lite.Listener.Tcp
             return _httpContext.Request.QueryString[key];
         }
 
+        public override IDictionary<string, object> GetQueryParams()
+        {
+            var retVal = new Dictionary<string, object>(_httpContext.Request.QueryString.Count);
+            foreach (string key in _httpContext.Request.QueryString.AllKeys) {
+                retVal[key] = _httpContext.Request.QueryString[key];
+            }
+
+            return retVal;
+        }
+
         public override bool CacheWithEtag(string etag)
         {
             etag = String.Format("\"{0}\"", etag);
@@ -109,4 +121,3 @@ namespace Couchbase.Lite.Listener.Tcp
         #endregion
     }
 }
-

@@ -44,14 +44,15 @@ using System;
 using System.Collections.Generic;
 
 using Couchbase.Lite.Util;
-using Couchbase.Lite.Storage;
+using Couchbase.Lite.Store;
 using Sharpen;
-using Couchbase.Lite.Internal;
+using System.Threading;
+using System.Collections.Concurrent;
 using System.Linq;
-using Newtonsoft.Json.Linq;
-using System.Collections;
-using Couchbase.Lite.Views;
+using Couchbase.Lite.Internal;
 using System.Diagnostics;
+using Couchbase.Lite.Storage;
+using System.Collections;
 using System.Text;
 
 namespace Couchbase.Lite {
@@ -81,28 +82,21 @@ namespace Couchbase.Lite {
     /// A Couchbase Lite <see cref="Couchbase.Lite.View"/>. 
     /// A <see cref="Couchbase.Lite.View"/> defines a persistent index managed by map/reduce.
     /// </summary>
-    public sealed class View {
+    public sealed class View {
 
-    #region Constructors
+        #region Constants
 
-        internal View(Database database, String name)
-        {
-            Database = database;
-            Name = name;
-            _id = -1;
-            // means 'unknown'
-            Collation = ViewCollation.Unicode;
-        }
+        internal const string TAG = "View";
+        private const int REDUCE_BATCH_SIZE = 100;
 
-    #endregion
+        #endregion
 
         #region Variables
 
         internal event TypedEventHandler<View, EventArgs> Changed;
-
-        private readonly object _updateLock = new object();
-
+        private ConcurrentQueue<UpdateJob> _updateQueue = new ConcurrentQueue<UpdateJob>();
         private string _emitSql;
+        private ViewCollation _collation;
 
         #endregion
 
@@ -111,14 +105,83 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Gets or sets an object that can compile source code into map and reduce delegates.
         /// </summary>
-        /// <value>The compiler object.</value>
         public static IViewCompiler Compiler { get; set; }
+
+        /// <summary>
+        /// Get the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
+        /// </summary>
+        public Database Database { get; private set; }
+
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.View"/>'s name.
+        /// </summary>
+        public string Name { get; private set; }
+
+
+        /// <summary>
+        /// Gets if the <see cref="Couchbase.Lite.View"/>'s indices are currently out of date.
+        /// </summary>
+        /// <value><c>true</c> if this instance is stale; otherwise, <c>false</c>.</value>
+        public bool IsStale { get { return (LastSequenceIndexed < Database.LastSequenceNumber); } }
+
+        /// <summary>
+        /// Gets the last sequence number indexed so far.
+        /// </summary>
+        public long LastSequenceIndexed { 
+            get {
+                return Database.QueryOrDefault<long>(c => c.GetLong(0), true, 0, "SELECT lastsequence FROM views WHERE name=?", Name);
+            }
+        }
+
+        /// <summary>
+        /// Gets the last sequence that there was a change in the view
+        /// </summary>
+        public long LastSequenceChangedAt
+        {
+            get {
+                return LastSequenceIndexed;
+            }
+        }
+
+        /// <summary>
+        /// Gets the total number of rows present in the view
+        /// </summary>
+        public int TotalRows {
+            get {
+                var db = Database;
+                var totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), false, 0, "SELECT total_docs FROM views WHERE name=?", Name);
+                if (totalRows == -1) { //means unknown
+                    CreateIndex();
+                    totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), false, 0, QueryString("SELECT COUNT(*) FROM 'maps_#'"));
+                    var args = new ContentValues();
+                    args["total_docs"] = totalRows;
+                    db.StorageEngine.Update("views", args, "view_id=?", ViewID.ToString());
+                }
+
+                Debug.Assert(totalRows >= 0);
+                return totalRows;
+            }
+        }
+
+        internal ViewCollation Collation { get; set; }
+
+        private int ViewID
+        {
+            get {
+                if (_viewId < 0) {
+                    _viewId = Database.QueryOrDefault<int>(c => c.GetInt(0), false, 0, "SELECT view_id FROM views WHERE name=?", Name);
+                }
+
+                return _viewId;
+            }
+        }
+        private int _viewId;
 
         private string MapTableName
         {
             get {
                 if(_mapTableName == null) {
-                    _mapTableName = Id.ToString();
+                    _mapTableName = ViewID.ToString();
                 }
 
                 return _mapTableName;
@@ -126,441 +189,525 @@ namespace Couchbase.Lite {
         }
         private string _mapTableName;
 
-    #endregion
-    
-    #region Constants
+        #endregion
 
-        internal const String Tag = "View";
+        #region Constructors
 
-        const Int32 ReduceBatchSize = 100;
+        internal static View MakeView(Database database, string name, bool create)
+        {
+            var view = new View();
+            view.Database = database;
+            view.Name = name;
+            view._viewId = -1;
+            if (!create && view.ViewID <= 0) {
+                return null;
+            }
 
-    #endregion
+            // means 'unknown'
+            view.Collation = ViewCollation.Unicode;
+            return view;
+        }
 
-    #region Non-public Members
+        #endregion
 
-        private Int32 _id;
+        #region Public Methods
 
-        internal ViewCollation Collation { get; set; }
+        /// <summary>
+        /// Defines the <see cref="Couchbase.Lite.View"/>'s <see cref="Couchbase.Lite.MapDelegate"/> and sets 
+        /// its <see cref="Couchbase.Lite.ReduceDelegate"/> to null.
+        /// </summary>
+        /// <returns>
+        /// True if the <see cref="Couchbase.Lite.MapDelegate"/> was set, otherwise false. If the values provided are 
+        /// identical to the values that are already set, then the values will not be updated and false will be returned.  
+        /// In addition, if true is returned, the index was deleted and will be rebuilt on the next 
+        /// <see cref="Couchbase.Lite.Query"/> execution.
+        /// </returns>
+        /// <param name="mapDelegate">The <see cref="Couchbase.Lite.MapDelegate"/> to set</param>
+        /// <param name="version">
+        /// The key of the property value to return. The value of this parameter must change when 
+        /// the <see cref="Couchbase.Lite.MapDelegate"/> is changed in a way that will cause it to 
+        /// produce different results.
+        /// </param>
+        public Boolean SetMap(MapDelegate mapDelegate, string version) {
+            return SetMapReduce(mapDelegate, null, version);
+        }
 
-        internal Int32 Id {
-            get {
-                if (_id < 0)
-                {
-                    string sql = "SELECT view_id FROM views WHERE name=?";
-                    var args = new [] { Name };
-                    Cursor cursor = null;
-                    try
-                    {
-                        cursor = Database.StorageEngine.RawQuery(sql, args);
-                        if (cursor.MoveToNext())
-                        {
-                            _id = cursor.GetInt(0);
-                        }
-                        else
-                        {
-                            _id = 0;
-                        }
-                    }
-                    catch (SQLException e)
-                    {
-                        Log.E(Database.Tag, "Error getting view id", e);
-                        _id = 0;
-                    }
-                    finally
-                    {
-                        if (cursor != null)
-                        {
-                            cursor.Close();
-                        }
-                    }
+        /// <summary>
+        /// Defines the View's <see cref="Couchbase.Lite.MapDelegate"/> 
+        /// and <see cref="Couchbase.Lite.ReduceDelegate"/>.
+        /// </summary>
+        /// <remarks>
+        /// Defines a view's functions.
+        /// The view's definition is given as a class that conforms to the Mapper or
+        /// Reducer interface (or null to delete the view). The body of the block
+        /// should call the 'emit' object (passed in as a paramter) for every key/value pair
+        /// it wants to write to the view.
+        /// Since the function itself is obviously not stored in the database (only a unique
+        /// string idenfitying it), you must re-define the view on every launch of the app!
+        /// If the database needs to rebuild the view but the function hasn't been defined yet,
+        /// it will fail and the view will be empty, causing weird problems later on.
+        /// It is very important that this block be a law-abiding map function! As in other
+        /// languages, it must be a "pure" function, with no side effects, that always emits
+        /// the same values given the same input document. That means that it should not access
+        /// or change any external state; be careful, since callbacks make that so easy that you
+        /// might do it inadvertently!  The callback may be called on any thread, or on
+        /// multiple threads simultaneously. This won't be a problem if the code is "pure" as
+        /// described above, since it will as a consequence also be thread-safe.
+        /// </remarks>
+        /// <returns>
+        /// <c>true</c> if the <see cref="Couchbase.Lite.MapDelegate"/> 
+        /// and <see cref="Couchbase.Lite.ReduceDelegate"/> were set, otherwise <c>false</c>.
+        /// If the values provided are identical to the values that are already set, 
+        /// then the values will not be updated and <c>false</c> will be returned. 
+        /// In addition, if <c>true</c> is returned, the index was deleted and 
+        /// will be rebuilt on the next <see cref="Couchbase.Lite.Query"/> execution.
+        /// </returns>
+        /// <param name="map">The <see cref="Couchbase.Lite.MapDelegate"/> to set.</param>
+        /// <param name="reduce">The <see cref="Couchbase.Lite.ReduceDelegate"/> to set.</param>
+        /// <param name="version">
+        /// The key of the property value to return. The value of this parameter must change 
+        /// when the <see cref="Couchbase.Lite.MapDelegate"/> and/or <see cref="Couchbase.Lite.ReduceDelegate"/> 
+        /// are changed in a way that will cause them to produce different results.
+        /// </param>
+        public bool SetMapReduce(MapDelegate map, ReduceDelegate reduce, string version) { 
+            System.Diagnostics.Debug.Assert(map != null);
+            System.Diagnostics.Debug.Assert(version != null); // String.Empty is valid.
+
+            var changed = version != MapVersion;
+            var shared = Database.Shared;
+            shared.SetValue("map", Name, Database.Name, map);
+            shared.SetValue("mapVersion", Name, Database.Name, version);
+            shared.SetValue("reduce", Name, Database.Name, reduce);
+
+            if (changed) {
+                SetVersion(version);
+                if (Changed != null) {
+                    Changed(this, null);
                 }
-                return _id;
+            }
+
+            return changed;
+        }
+
+        /// <summary>
+        /// Deletes the <see cref="Couchbase.Lite.View"/>'s persistent index. 
+        /// The index is regenerated on the next <see cref="Couchbase.Lite.Query"/> execution.
+        /// </summary>
+        public void DeleteIndex()
+        {
+            if (ViewID <= 0) {
+                return;
+            }
+
+            const string sql = "DROP TABLE IF EXISTS 'maps_#';UPDATE views SET lastSequence=0, total_docs=0 WHERE view_id=#";
+            if (!RunStatements(sql)) {
+                Log.W(TAG, "Couldn't delete view index `{0}`", Name);
             }
         }
 
-        internal void DatabaseClosing()
-        {
-            Database = null;
-            _id = 0;
+        /// <summary>
+        /// Deletes the <see cref="Couchbase.Lite.View"/>.
+        /// </summary>
+        public void Delete()
+        { 
+            DeleteView();
+            Database.ForgetView(Name);
+            Close();
         }
 
-        internal void UpdateIndex()
-        {
-            UpdateIndexes(new List<View> { this });
+        /// <summary>
+        /// Creates a new <see cref="Couchbase.Lite.Query"/> for this view.
+        /// </summary>
+        /// <returns>A new <see cref="Couchbase.Lite.Query"/> for this view.</returns>
+        public Query CreateQuery() {
+            return new Query(Database, this);
         }
 
-        internal void UpdateIndexes(IEnumerable<View> inputViews)
+        #endregion
+
+
+        #region Internal Methods
+
+        internal Status UpdateIndexes(IEnumerable<View> inputViews)
         {
-            Log.D(Tag, "Checking indexes of ({0}) for {1}", ViewNames(inputViews), Name);
+            Log.D(TAG, "Checking indexes of ({0}) for {1}", ViewNames(inputViews), Name);
             var db = Database;
 
-            lock (_updateLock) {
-                var success = db.RunInTransaction(() =>
-                {
-                    // If the view the update is for doesn't need any update, don't do anything:
-                    long dbMaxSequence = db.LastSequenceNumber;
-                    long forViewLastSequence = LastSequenceIndexed;
-                    if (forViewLastSequence >= dbMaxSequence) {
-                        return true;
+            Status status = null;
+            var success = db.RunInTransaction(() =>
+            {
+                // If the view the update is for doesn't need any update, don't do anything:
+                long dbMaxSequence = db.LastSequenceNumber;
+                long forViewLastSequence = LastSequenceIndexed;
+                if (forViewLastSequence >= dbMaxSequence) {
+                    status = new Status(StatusCode.NotModified);
+                    return true;
+                }
+
+                // Check whether we need to update at all,
+                // and remove obsolete emitted results from the 'maps' table:
+                long minLastSequence = dbMaxSequence;
+                long[] viewLastSequence = new long[inputViews.Count()];
+                int deletedCount = 0;
+                int i = 0;
+                HashSet<string> docTypes = new HashSet<string>();
+                IDictionary<string, string> viewDocTypes = null;
+                bool allDocTypes = false;
+                IDictionary<int, int> viewTotalRows = new Dictionary<int, int>();
+                List<View> views = new List<View>(inputViews.Count());
+                List<MapDelegate> mapBlocks = new List<MapDelegate>();
+                foreach (var view in inputViews) {
+                    var mapBlock = Map;
+                    if (mapBlock == null) {
+                        Debug.Assert(view != this, String.Format("Cannot index view {0}: no map block registered", view.Name));
+                        Log.V(TAG, "    {0} has no map block; skipping it", view.Name);
+                        continue;
                     }
 
-                    // Check whether we need to update at all,
-                    // and remove obsolete emitted results from the 'maps' table:
-                    long minLastSequence = dbMaxSequence;
-                    long[] viewLastSequence = new long[inputViews.Count()];
-                    int deletedCount = 0;
-                    int i = 0;
-                    HashSet<string> docTypes = new HashSet<string>();
-                    IDictionary<string, string> viewDocTypes = null;
-                    bool allDocTypes = true;
-                    IDictionary<int, int> viewTotalRows = new Dictionary<int, int>();
-                    List<View> views = new List<View>(inputViews.Count());
-                    List<MapDelegate> mapBlocks = new List<MapDelegate>();
-                    foreach (var view in inputViews) {
-                        var mapBlock = Map;
-                        if (mapBlock == null) {
-                            Debug.Assert(view != this, String.Format("Cannot index view {0}: no map block registered", view.Name));
-                            Log.V(Tag, "    {0} has no map block; skipping it", view.Name);
+                    views.Add(view);
+                    mapBlocks.Add(mapBlock);
+
+                    int viewId = view.ViewID;
+                    Debug.Assert(viewId > 0, String.Format("View '{0}' not found in database", view.Name));
+
+                    int totalRows = view.TotalRows;
+                    viewTotalRows[viewId] = totalRows;
+
+                    long last = view == this ? forViewLastSequence : view.LastSequenceIndexed;
+                    viewLastSequence[i++] = last;
+                    if (last < 0) {
+                        status = new Status(StatusCode.DbError);
+                        return false;
+                    }
+
+                    if (last < dbMaxSequence) {
+                        if (last == 0) {
+                            CreateIndex();
+                        }
+
+                        minLastSequence = Math.Min(minLastSequence, last);
+                        Log.V(TAG, "    {0} last indexed at #{1}", view.Name, last);
+
+                        string docType = DocumentType;
+                        if (docType != null) {
+                            docTypes.Add(docType);
+                            if (viewDocTypes == null) {
+                                viewDocTypes = new Dictionary<string, string>();
+                            }
+
+                            viewDocTypes[view.Name] = docType;
+                        } else {
+                            // can't filter by doc_type
+                            allDocTypes = true; 
+                        }
+
+                        bool ok = true;
+                        int changes = 0;
+                        if (last == 0) {
+                            try {
+                                // If the lastSequence has been reset to 0, make sure to remove all map results:
+                                changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#'"));
+                            } catch (Exception) {
+                                ok = false;
+                            }
+                        } else {
+                            db.OptimizeSQLIndexes(); // ensures query will use the right indexes
+                            // Delete all obsolete map results (ones from since-replaced revisions):
+                            try {
+                                changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#' WHERE sequence IN (" +
+                                    "SELECT parent FROM revs WHERE sequence>?" +
+                                    "AND +parent>0 AND +parent<=?)"), last, last);
+                            } catch (Exception) {
+                                ok = false;
+                            }
+                        }
+
+                        if (!ok) {
+                            status = new Status(StatusCode.DbError);
+                            return false;
+                        }
+
+                        // Update #deleted rows
+                        deletedCount += changes;
+
+                        // Only count these deletes as changes if this isn't a view reset to 0
+                        if (last != 0) {
+                            viewTotalRows[viewId] -= changes;
+                        }
+                    }
+                }
+
+                if (minLastSequence == dbMaxSequence) {
+                    status = new Status(StatusCode.NotModified);
+                    return true;
+                }
+
+                Log.D(TAG, "Updating indexes of ({0}) from #{1} to #{2} ...",
+                    ViewNames(views), minLastSequence, dbMaxSequence);
+
+                // This is the emit() block, which gets called from within the user-defined map() block
+                // that's called down below.
+                View currentView = null;
+                IDictionary<string, object> currentDoc = null;
+                long sequence = minLastSequence;
+                Status emitStatus = new Status(StatusCode.Ok);
+                int insertedCount = 0;
+                EmitDelegate emit = (key, value) =>
+                {
+                    StatusCode s = currentView.Emit(key, value, value == currentDoc, sequence);
+                    if (s != StatusCode.Ok) {
+                        emitStatus.Code = s;
+                    } else {
+                        viewTotalRows[currentView.ViewID] += 1;
+                        insertedCount++;
+                    }
+                };
+
+                // Now scan every revision added since the last time the views were indexed:
+                bool checkDocTypes = docTypes.Count > 1 || (allDocTypes && docTypes.Count > 0);
+                var sql = new StringBuilder("SELECT revs.doc_id, sequence, docid, revid, json, deleted ");
+                if (checkDocTypes) {
+                    sql.Append(", doc_type ");
+                }
+
+                sql.Append("FROM revs, docs WHERE sequence>? AND sequence <=? AND current!=0 ");
+                if (minLastSequence == 0) {
+                    sql.Append("AND deleted=0 ");
+                }
+
+                if (!allDocTypes && docTypes.Count > 0) {
+                    sql.AppendFormat("AND doc_type IN ({0}) ", Database.JoinQuoted(docTypes));
+                }
+
+                sql.Append("AND revs.doc_id = docs.doc_id " +
+                    "ORDER BY revs.doc_id, deleted, revid DESC");
+
+                Cursor c = null;
+                Cursor c2 = null;
+                try {
+                    c = db.StorageEngine.IntransactionRawQuery(sql.ToString(), minLastSequence, dbMaxSequence);
+                    bool keepGoing = c.MoveToNext();
+                    while (keepGoing) {
+                        // Get row values now, before the code below advances 'c':
+                        long doc_id = c.GetLong(0);
+                        sequence = c.GetLong(1);
+                        string docId = c.GetString(2);
+                        if (docId.StartsWith("_design/")) { // design documents don't get indexed
+                            keepGoing = c.MoveToNext();
                             continue;
                         }
 
-                        views.Add(view);
-                        mapBlocks.Add(mapBlock);
+                        string revId = c.GetString(3);
+                        var json = c.GetBlob(4);
+                        bool deleted = c.GetInt(5) != 0;
+                        string docType = checkDocTypes ? c.GetString(6) : null;
 
-                        int viewId = view.Id;
-                        Debug.Assert(viewId > 0, String.Format("View '{0}' not found in database", view.Name));
-
-                        int totalRows = view.TotalRows;
-                        viewTotalRows[viewId] = totalRows;
-
-                        long last = view == this ? forViewLastSequence : view.LastSequenceIndexed;
-                        viewLastSequence[i++] = last;
-                        if (last < 0) {
-                            return false;
+                        // Skip rows with the same doc_id -- these are losing conflicts.
+                        while ((keepGoing = c.MoveToNext()) && c.GetLong(0) == doc_id) {
                         }
 
-                        if (last < dbMaxSequence) {
-                            if (last == 0) {
-                                CreateIndex();
-                            }
+                        long realSequence = sequence; // because sequence may be changed, below
+                        if (minLastSequence > 0) {
+                            // Find conflicts with documents from previous indexings.
+                            using (c2 = db.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs " +
+                                "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " +
+                                "ORDER BY revID DESC " +
+                                "LIMIT 1", doc_id, minLastSequence)) {
 
-                            minLastSequence = Math.Min(minLastSequence, last);
-                            Log.V(Tag, "    {0} last indexed at #{1}", view.Name, last);
+                                if (c2.MoveToNext()) {
+                                    string oldRevId = c2.GetString(0);
+                                    // This is the revision that used to be the 'winner'.
+                                    // Remove its emitted rows:
+                                    long oldSequence = c2.GetLong(1);
+                                    foreach (var view in views) {
+                                        int changes = db.StorageEngine.ExecSQL(QueryString("DELETE FROM 'maps_#' WHERE sequence=?"), oldSequence);
+                                        deletedCount += changes;
+                                        viewTotalRows[view.ViewID] -= changes;
+                                    }
 
-                            bool ok = true;
-                            int changes = 0;
-                            if (last == 0) {
-                                try {
-                                    // If the lastSequence has been reset to 0, make sure to remove all map results:
-                                    changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#'"));
-                                } catch (Exception) {
-                                    ok = false;
-                                }
-                            } else {
-                                db.OptimizeSQLIndexes(); // ensures query will use the right indexes
-                                // Delete all obsolete map results (ones from since-replaced revisions):
-                                try {
-                                    changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#' WHERE sequence IN (" +
-                                        "SELECT parent FROM revs WHERE sequence>?" +
-                                        "AND +parent>0 AND +parent<=?)"), last, last);
-                                } catch (Exception) {
-                                    ok = false;
+                                    if (deleted || RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0) {
+                                        // It still 'wins' the conflict, so it's the one that
+                                        // should be mapped [again], not the current revision!
+                                        revId = oldRevId;
+                                        deleted = false;
+                                        sequence = oldSequence;
+                                        json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
+
+                                    }
                                 }
                             }
+                        }
 
-                            if (!ok) {
-                                return false;
-                            }
+                        if (deleted) {
+                            continue;
+                        }
 
-                            // Update #deleted rows
-                            deletedCount += changes;
+                        // Get the document properties, to pass to the map function:
+                        currentDoc = db.GetDocumentProperties(json, docId, revId, deleted, sequence);
+                        if (currentDoc == null) {
+                            Log.W(TAG, "Failed to parse JSON of doc {0} rev {1}", docId, revId);
+                            continue;
+                        }
 
-                            // Only count these deletes as changes if this isn't a view reset to 0
-                            if (last != 0) {
-                                viewTotalRows[viewId] -= changes;
+                        currentDoc["_local_seq"] = sequence;
+
+                        // Call the user-defined map() to emit new key/value pairs from this revision:
+                        int viewIndex = -1;
+                        var e = views.GetEnumerator();
+                        while (e.MoveNext()) {
+                            currentView = e.Current;
+                            ++viewIndex;
+                            if (viewLastSequence[viewIndex] < realSequence) {
+                                if (checkDocTypes) {
+                                    var viewDocType = viewDocTypes[currentView.Name];
+                                    if (viewDocType != null && viewDocType != docType) {
+                                        // skip; view's documentType doesn't match this doc
+                                        continue;
+                                    }
+                                }
+
+                                Log.V(TAG, "    #{0}: map \"{1}\" for view {2}...",
+                                    sequence, docId, e.Current.Name);
+                                try {
+                                    mapBlocks[viewIndex](currentDoc, emit);
+                                } catch (Exception x) {
+                                    Log.E(TAG, String.Format("Exception in map() block for view {0}", currentView.Name), x);
+                                    emitStatus.Code = StatusCode.Exception;
+                                }
+
+                                if (emitStatus.IsError) {
+                                    c.Dispose();
+                                    status = emitStatus;
+                                    return false;
+                                }
                             }
                         }
+
+                        currentView = null;
                     }
-
-                    if (minLastSequence == dbMaxSequence) {
-                        return true;
+                } catch (Exception) {
+                    status = new Status(StatusCode.DbError);
+                    return false;
+                } finally {
+                    if (c != null) {
+                        c.Dispose();
                     }
+                }
 
-                    Log.D(Tag, "Updating indexes of ({0}) from #{1} to #{2} ...",
-                        ViewNames(views), minLastSequence, dbMaxSequence);
+                // Finally, record the last revision sequence number that was indexed and update #rows:
+                foreach (var view in views) {
+                    view.FinishCreatingIndex();
+                    int newTotalRows = viewTotalRows[view.ViewID];
+                    Debug.Assert(newTotalRows >= 0);
 
-                    // This is the emit() block, which gets called from within the user-defined map() block
-                    // that's called down below.
-                    View currentView = null;
-                    IDictionary<string, object> currentDoc = null;
-                    long sequence = minLastSequence;
-                    Status emitStatus = new Status(StatusCode.Ok);
-                    int insertedCount = 0;
-                    EmitDelegate emit = (key, value) =>
-                    {
-                        StatusCode s = currentView.Emit(key, value, value == currentDoc, sequence);
-                        if (s != StatusCode.Ok) {
-                            emitStatus.Code = s;
-                        } else {
-                            viewTotalRows[currentView.Id] += 1;
-                            insertedCount++;
-                        }
-                    };
-
-                    // Now scan every revision added since the last time the views were indexed:
-                    bool checkDocTypes = docTypes.Count > 1 || (allDocTypes && docTypes.Count > 0);
-                    var sql = new StringBuilder("SELECT revs.doc_id, sequence, docid, revid, json, deleted ");
-                    if (checkDocTypes) {
-                        sql.Append(", doc_type ");
-                    }
-
-                    sql.Append("FROM revs, docs WHERE sequence>? AND sequence <=? AND current!=0 ");
-                    if (minLastSequence == 0) {
-                        sql.Append("AND deleted=0 ");
-                    }
-
-                    if (!allDocTypes && docTypes.Count > 0) {
-                        sql.AppendFormat("AND doc_type IN ({0}) ", Database.JoinQuoted(docTypes.ToList()));
-                    }
-
-                    sql.Append("AND revs.doc_id = docs.doc_id " +
-                        "ORDER BY revs.doc_id, deleted, revid DESC");
-
-                    Cursor c = null;
-                    Cursor c2 = null;
+                    var args = new ContentValues();
+                    args["lastSequence"] = dbMaxSequence;
+                    args["total_docs"] = newTotalRows;
                     try {
-                        c = db.StorageEngine.IntransactionRawQuery(sql.ToString(), minLastSequence, dbMaxSequence);
-                        bool keepGoing = c.MoveToNext();
-                        while (keepGoing) {
-                            // Get row values now, before the code below advances 'c':
-                            long doc_id = c.GetLong(0);
-                            sequence = c.GetLong(1);
-                            string docId = c.GetString(2);
-                            if (docId.StartsWith("_design/")) { // design documents don't get indexed
-                                keepGoing = c.MoveToNext();
-                                continue;
-                            }
-
-                            string revId = c.GetString(3);
-                            var json = c.GetBlob(4);
-                            bool deleted = c.GetInt(5) != 0;
-                            string docType = checkDocTypes ? c.GetString(6) : null;
-
-                            // Skip rows with the same doc_id -- these are losing conflicts.
-                            while ((keepGoing = c.MoveToNext()) && c.GetLong(0) == doc_id) {
-                            }
-
-                            long realSequence = sequence; // because sequence may be changed, below
-                            if (minLastSequence > 0) {
-                                // Find conflicts with documents from previous indexings.
-                                using (c2 = db.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs " +
-                                    "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " +
-                                    "ORDER BY revID DESC " +
-                                    "LIMIT 1", doc_id, minLastSequence)) {
-
-                                    if (c2.MoveToNext()) {
-                                        string oldRevId = c2.GetString(0);
-                                        // This is the revision that used to be the 'winner'.
-                                        // Remove its emitted rows:
-                                        long oldSequence = c2.GetLong(1);
-                                        foreach (var view in views) {
-                                            int changes = db.StorageEngine.ExecSQL(QueryString("DELETE FROM 'maps_#' WHERE sequence=?"), oldSequence);
-                                            deletedCount += changes;
-                                            viewTotalRows[view.Id] -= changes;
-                                        }
-
-                                        if (deleted || RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0) {
-                                            // It still 'wins' the conflict, so it's the one that
-                                            // should be mapped [again], not the current revision!
-                                            revId = oldRevId;
-                                            deleted = false;
-                                            sequence = oldSequence;
-                                            json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
-
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (deleted) {
-                                continue;
-                            }
-
-                            // Get the document properties, to pass to the map function:
-                            currentDoc = db.GetDocumentProperties(json, docId, revId, deleted, sequence);
-                            if (currentDoc == null) {
-                                Log.W(Tag, "Failed to parse JSON of doc {0} rev {1}", docId, revId);
-                                continue;
-                            }
-
-                            currentDoc["_local_seq"] = sequence;
-
-                            // Call the user-defined map() to emit new key/value pairs from this revision:
-                            int viewIndex = -1;
-                            var e = views.GetEnumerator();
-                            while (e.MoveNext()) {
-                                currentView = e.Current;
-                                ++viewIndex;
-                                if (viewLastSequence[viewIndex] < realSequence) {
-                                    if (checkDocTypes) {
-                                        var viewDocType = viewDocTypes[currentView.Name];
-                                        if (viewDocType != null && viewDocType != docType) {
-                                            // skip; view's documentType doesn't match this doc
-                                            continue;
-                                        }
-                                    }
-
-                                    Log.V(Tag, "    #{0}: map \"{1}\" for view {2}...",
-                                        sequence, docId, e.Current.Name);
-                                    try {
-                                        mapBlocks[viewIndex](currentDoc, emit);
-                                    } catch (Exception x) {
-                                        Log.E(Tag, String.Format("Exception in map() block for view {0}", currentView.Name), x);
-                                        emitStatus.Code = StatusCode.Exception;
-                                    }
-
-                                    if (emitStatus.IsError) {
-                                        c.Dispose();
-                                        return false;
-                                    }
-                                }
-                            }
-
-                            currentView = null;
-                        }
+                        db.StorageEngine.Update("views", args, "view_id=?", view.ViewID.ToString());
                     } catch (Exception) {
+                        status = new Status(StatusCode.DbError);
                         return false;
-                    } finally {
-                        if (c != null) {
-                            c.Dispose();
-                        }
                     }
-
-                    // Finally, record the last revision sequence number that was indexed and update #rows:
-                    foreach (var view in views) {
-                        view.FinishCreatingIndex();
-                        int newTotalRows = viewTotalRows[view.Id];
-                        Debug.Assert(newTotalRows >= 0);
-
-                        var args = new ContentValues();
-                        args["lastSequence"] = dbMaxSequence;
-                        args["total_docs"] = newTotalRows;
-                        try {
-                            db.StorageEngine.Update("views", args, "view_id=?", view.Id.ToString());
-                        } catch (Exception) {
-                            return false;
-                        }
-                    }
-
-                    Log.D(Tag, "...Finished re-indexing ({0}) to #{1} (deleted {2}, added {3})",
-                        ViewNames(views), dbMaxSequence, deletedCount, insertedCount);
-                    return true;
-                });
-
-                if(!success) {
-                    Log.W(Tag, "CouchbaseLite: Failed to rebuild views ({0})", ViewNames(inputViews));
-                }
-            }
-        }
-
-        private StatusCode Emit(object key, object value, bool valueIsDoc, long sequence)
-        {
-            var db = Database;
-            string valueJSON;
-            if (valueIsDoc) {
-                valueJSON = "*";
-            } else {
-                valueJSON = Manager.GetObjectMapper().WriteValueAsString(value);
-            }
-
-            string keyJSON;
-            //IEnumerable<byte> geoKey = null;
-            if (false) {
-                //TODO: bbox, geo, fulltext
-            } else {
-                keyJSON = Manager.GetObjectMapper().WriteValueAsString(key);
-                Log.V(Tag, "    emit({0}, {1}", keyJSON, valueJSON);
-            }
-
-            if (keyJSON == null) {
-                keyJSON = "null";
-            }
-
-            if (_emitSql == null) {
-                _emitSql = QueryString("INSERT INTO 'maps_#' (sequence, key, value, " +
-                    "fulltext_id, bbox_id, geokey) VALUES (?, ?, ?, ?, ?, ?)");
-            }
-
-            //TODO: bbox, geo, fulltext
-            try {
-                db.StorageEngine.ExecSQL(_emitSql, sequence, keyJSON, valueJSON, null, null, null);
-            } catch(Exception) {
-                return StatusCode.DbError;
-            }
-
-            return StatusCode.Ok;
-        }
-
-        private void CreateIndex()
-        {
-            const string sql = 
-                "CREATE TABLE IF NOT EXISTS 'maps_#' (" +
-                "sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE," +
-                "key TEXT NOT NULL COLLATE JSON," +
-                "value TEXT," +
-                "fulltext_id INTEGER, " +
-                "bbox_id INTEGER, " +
-                "geokey BLOB)";
-
-            if (!RunStatements(sql)) {
-                Log.W(Tag, "Couldn't create view index `{0}`", Name);
-            }
-        }
-
-        private void FinishCreatingIndex()
-        {
-            const string sql = "CREATE INDEX IF NOT EXISTS 'maps_#_keys' on 'maps_#'(key COLLATE JSON);" +
-                "CREATE INDEX IF NOT EXISTS 'maps_#_sequence' ON 'maps_#'(sequence)";
-
-            if (!RunStatements(sql)) {
-                Log.W(Tag, "Couldn't create view SQL index `{0}`", Name);
-            }
-        }
-
-        private bool RunStatements(string sqlStatements)
-        {
-            var db = Database;
-            return db.RunInTransaction(() =>
-            {
-                if(db.RunStatements(QueryString(sqlStatements))) {
-                    return true;
                 }
 
-                return false;
-            });
-        }
-
-        private string QueryString(string statement)
-        {
-            return statement.Replace("#", MapTableName);
-        }
-
-        private static string ViewNames(IEnumerable<View> inputViews)
-        {
-            var names = inputViews.Select(x => x.Name);
-            return String.Join(", ", names.ToStringArray());
-        }
-
-        private bool GroupOrReduce(QueryOptions options) {
-            if (options.Group|| options.GroupLevel> 0) {
+                Log.D(TAG, "...Finished re-indexing ({0}) to #{1} (deleted {2}, added {3})",
+                    ViewNames(views), dbMaxSequence, deletedCount, insertedCount);
+                status = new Status(StatusCode.Ok);
                 return true;
+            });
+
+            if(status.Code >= StatusCode.BadRequest) {
+                Log.W(TAG, "CouchbaseLite: Failed to rebuild views ({0}): {1}", ViewNames(inputViews), status);
             }
 
-            if (options.ReduceSpecified) {
-                return options.Reduce;
+            return status;
+        }
+
+        internal UpdateJob CreateUpdateJob(IEnumerable<View> viewsToUpdate)
+        {
+            return new UpdateJob(UpdateIndexes, viewsToUpdate, from store in viewsToUpdate
+                select store.LastSequenceIndexed);
+        }
+
+        internal void DeleteView()
+        {
+            var db = Database;
+            db.RunInTransaction(() =>
+            {
+                DeleteIndex();
+                try {
+                    db.StorageEngine.Delete("views", "name=?", Name);
+                } catch(Exception) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            _viewId = 0;
+        }
+
+        internal bool SetVersion(string version)
+        {
+            // Update the version column in the db. This is a little weird looking because we want to
+            // avoid modifying the db if the version didn't change, and because the row might not exist yet.
+            var db = Database;
+            var args = new ContentValues();
+            args["name"] = Name;
+            args["version"] = version;
+            args["total_docs"] = 0;
+
+            long changes = 0;
+            try {
+                changes = db.StorageEngine.InsertWithOnConflict("views", null, args, ConflictResolutionStrategy.Ignore);
+            } catch(Exception) {
+                return false;
             }
 
-            return Reduce != null;
+            if (changes > 0) {
+                CreateIndex();
+                return true; //created new view
+            }
+
+            try {
+                args = new ContentValues();
+                args["version"] = version;
+                args["lastSequence"] = 0;
+                args["total_docs"] = 0;
+                db.StorageEngine.Update("views", args, "name=? AND version!=?", Name, version);
+            } catch(Exception) {
+                return false;
+            }
+
+            return true;
+        }
+
+
+        internal void Close()
+        {
+            Database = null;
+        }
+
+        internal Status UpdateIndex()
+        {
+            //TODO: View grouping
+            var viewsToUpdate = new List<View> { this };
+
+            UpdateJob proposedJob = CreateUpdateJob(viewsToUpdate);
+            UpdateJob nextJob = null;
+            if (_updateQueue.TryPeek(out nextJob)) {
+                if (!nextJob.LastSequences.SequenceEqual(proposedJob.LastSequences)) {
+                    QueueUpdate(proposedJob);
+                    nextJob = proposedJob;
+                } 
+            } else {
+                QueueUpdate(proposedJob);
+                nextJob = proposedJob;
+            }
+
+            nextJob.Wait();
+            return nextJob.Result;
         }
 
         /// <summary>Queries the view.</summary>
@@ -570,248 +717,357 @@ namespace Couchbase.Lite {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal IEnumerable<QueryRow> QueryWithOptions(QueryOptions options)
         {
-            if (options == null)
+            if (options == null) {
                 options = new QueryOptions();
-
-            Cursor cursor = null;
-            IList<QueryRow> rows = new List<QueryRow>();
-            try
-            {
-                cursor = ResultSetWithOptions(options);
-                int groupLevel = options.GroupLevel;
-                var group = options.Group || (groupLevel > 0);
-                var reduceBlock = Reduce;
-                var reduce = GroupOrReduce(options);
-
-                if (reduce && (reduceBlock == null) && !group)
-                {
-                    var msg = "Cannot use reduce option in view " + Name + " which has no reduce block defined";
-                    Log.W(Database.Tag, msg);
-                    throw new CouchbaseLiteException(StatusCode.BadRequest);
-                }
-
-                if (reduce || group)
-                {
-                    // Reduced or grouped query:
-                    rows = ReducedQuery(cursor, group, groupLevel);
-                }
-                else
-                {
-                    // regular query
-                    cursor.MoveToNext();
-                    while (!cursor.IsAfterLast())
-                    {
-                        var key = FromJSON(cursor.GetBlob(0));
-                        var value = FromJSON(cursor.GetBlob(1));
-                        var docId = cursor.GetString(2);
-                        var sequenceLong = cursor.GetLong(3);
-                        var sequence = Convert.ToInt32(sequenceLong);
-
-
-                        IDictionary<string, object> docContents = null;
-                        if (options.IncludeDocs)
-                        {
-                            // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
-                            if (value is IDictionary<string,object> && ((IDictionary<string,object>)value).ContainsKey("_id"))
-                            {
-                                var linkedDocId = (string)((IDictionary<string,object>)value).Get("_id");
-                                var linkedDoc = Database.GetDocumentWithIDAndRev(linkedDocId, null, DocumentContentOptions.None);
-                                docContents = linkedDoc.GetProperties();
-                            }
-                            else
-                            {
-                                var revId = cursor.GetString(4);
-                                docContents = Database.DocumentPropertiesFromJSON(cursor.GetBlob(5), docId, revId, false, sequenceLong, options.ContentOptions);
-                            }
-                        }
-                        var row = new QueryRow(docId, sequence, key, value, docContents);
-                        row.Database = Database;
-                        rows.AddItem<QueryRow>(row);  // NOTE.ZJG: Change to `yield return row` to convert to a generator.
-                        cursor.MoveToNext();
-                    }
-                }
             }
-            catch (SQLException e)
-            {
-                var errMsg = string.Format("Error querying view: {0}", this);
-                Log.E(Database.Tag, errMsg, e);
-                throw new CouchbaseLiteException(errMsg, e, new Status(StatusCode.DbError));
+
+            IEnumerable<QueryRow> iterator = null;
+            if (false) {
+                //TODO: Full text
+            } else if (GroupOrReduce(options)) {
+                iterator = ReducedQuery(options);
+            } else {
+                iterator = RegularQuery(options);
             }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
+
+            if (iterator != null) {
+                Log.D(TAG, "Query {0}: Returning iterator", Name);
+            } else {
+                Log.D(TAG, "Query {0}: Failed", Name);
             }
-            return rows;
+
+            return iterator;
         }
 
-        internal IList<IDictionary<string, object>> dump() 
+        internal static bool RowValueIsEntireDoc(object valueData)
         {
-            if (Id < 0)
-            {
-                return null;
+            var valueString = valueData as IEnumerable<byte>;
+            if (valueString == null) {
+                return false;
             }
-                
-            var selectArgs  = new[] { Id.ToString() };
 
-            Cursor cursor = null;
-
-            var result = new List<IDictionary<string, object>>();
-
-            try
-            {
-                cursor = Database.StorageEngine.
-                    RawQuery("SELECT sequence, key, value FROM map WHERE view_id=? ORDER BY key", selectArgs);
-
-                while(cursor.MoveToNext())
-                {
-                    var row = new Dictionary<string, object>();
-                    row["seq"] = cursor.GetInt(0);
-                    row["key"] = cursor.GetString(1);
-                    row["value"] = cursor.GetString(2);
-                    result.Add(row);
+            bool first = true;
+            foreach (var character in valueString) {
+                if (!first) {
+                    return false;
                 }
-            }
-            catch (Exception e)
-            {
-                Log.E(Tag, "Error dumping view", e);
-                result = null;
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
+
+                if (character != (byte)'*') {
+                    return false;
                 }
+
+                first = false;
             }
 
-            return result;
+            return true;
         }
 
-        internal IList<IDictionary<string, object>> Dump()
+        internal static T ParseRowValue<T>(IEnumerable<byte> valueData)
         {
-            if (Id < 0)
-            {
-                return null;
-            }
-
-            var result = new List<IDictionary<string, object>>();
-
-            var selectArgs = new string[] { Id.ToString() };
-
-            Cursor cursor = null;
-            try
-            {
-                cursor = Database.StorageEngine.RawQuery(
-                    "SELECT sequence, key, value FROM maps WHERE view_id=? ORDER BY key", selectArgs);
-
-                while (cursor.MoveToNext()) 
-                {
-                    var row = new Dictionary<string, object>();
-                    row.Put("seq", cursor.GetInt(0));
-                    row.Put("key", cursor.GetString(1));
-                    row.Put("value", cursor.GetString(2));
-                    result.AddItem(row);
-                }
-
-            }
-            catch (SQLException e)
-            {
-                Log.E(Tag, "Error dumping view", e);
-                result = null;
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
-            }
-
-            return result;
+            return Manager.GetObjectMapper().ReadValue<T>(valueData);
         }
 
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal IList<QueryRow> ReducedQuery(Cursor cursor, Boolean group, Int32 groupLevel)
+        internal IDictionary<string, object> DocumentProperties(string docId, long sequenceNumber)
         {
-            IList<object> keysToReduce = null;
-            IList<object> valuesToReduce = null;
-            Lazy<object> lastKey = null;
+            return Database.GetDocument(docId, sequenceNumber).GetProperties();
+        }
 
-            var reduce = Reduce;
-            // FIXME: If reduce is null, then so are keysToReduce and ValuesToReduce, which can throw an NRE below.
-            if (reduce != null)
-            {
-                keysToReduce = new List<Object>(ReduceBatchSize);
-                valuesToReduce = new List<Object>(ReduceBatchSize);
+        internal IEnumerable<QueryRow> RegularQuery(QueryOptions options)
+        {
+            var db = Database;
+            var filter = options.Filter;
+            int limit = int.MaxValue;
+            int skip = 0;
+            if (filter != null) {
+                // Custom post-filter means skip/limit apply to the filtered rows, not to the
+                // underlying query, so handle them specially:
+                limit = options.Limit;
+                skip = options.Skip;
+                options.Limit = QueryOptions.DEFAULT_LIMIT;
+                options.Skip = 0;
             }
 
             var rows = new List<QueryRow>();
-            cursor.MoveToNext();
-
-            while (!cursor.IsAfterLast())
+            RunQuery(options, (keyData, valueData, docId, cursor) =>
             {
-                var lazyKey = new Lazy<Object>(()=>FromJSON(cursor.GetBlob(0)));
-                var lazyValue = new Lazy<Object>(()=>FromJSON(cursor.GetBlob(1)));
+                long sequence = cursor.GetLong(3);
+                RevisionInternal docRevision = null;
+                if(options.IncludeDocs) {
+                    IDictionary<string, object> value = null;
+                    if(valueData != null && !RowValueIsEntireDoc(valueData.Value)) {
+                        value = valueData.Value.AsDictionary<string, object>();
+                    }
 
-                System.Diagnostics.Debug.Assert((lazyKey != null));
-                if (group && !GroupTogether(lazyKey, lastKey, groupLevel))
-                {
-                    if (lastKey != null && lastKey.Value != null)
-                    {
+                    string linkedId = value == null ? null : value.GetCast<string>("_id");
+                    if(linkedId != null) {
+                        // Linked document: http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
+                        string linkedRev = value == null ? null : value.GetCast<string>("_rev"); //usually null
+                        docRevision = db.GetDocument(linkedId, linkedRev, true);
+                        sequence = docRevision == null ? 0 : docRevision.GetSequence();
+                    } else {
+                        docRevision = db.GetRevision(docId, cursor.GetString(4), false, sequence, cursor.GetBlob(5));
+                    }
+                }
+
+                Log.V(TAG, "Query {0}: Found row with key={1}, value={2}, id={3}",
+                    Name, keyData.Value, valueData.Value, docId);
+
+                QueryRow row = null;
+                if(false) {
+                    //TODO: bbox
+                } else {
+                    row = new QueryRow(docId, sequence, keyData.Value, valueData.Value, docRevision, this);
+                }
+
+                if(filter != null) {
+                    if(!filter(row)) {
+                        return new Status(StatusCode.Ok);
+                    }
+
+                    if(skip > 0) {
+                        --skip;
+                        return new Status(StatusCode.Ok);
+                    }
+                }
+
+                rows.Add(row);
+                if(limit-- == 0) {
+                    return new Status(StatusCode.Reserved);
+                }
+
+                return new Status(StatusCode.Ok);
+            });
+
+            // If given keys, sort the output into that order, and add entries for missing keys:
+            if (options.Keys != null) {
+                // Group rows by key:
+                var rowsByKey = new Dictionary<object, List<QueryRow>>();
+                foreach (var row in rows) {
+                    var dictRows = rowsByKey.Get(row.Key);
+                    if (dictRows == null) {
+                        dictRows = rowsByKey[row.Key] = new List<QueryRow>();
+                    }
+
+                    dictRows.Add(row);
+                }
+
+                // Now concatenate them in the order the keys are given in options:
+                var sortedRows = new List<QueryRow>();
+                foreach (var key in options.Keys) {
+                    var dictRows = rowsByKey.Get(key);
+                    if (dictRows != null) {
+                        sortedRows.AddRange(dictRows);
+                    }
+                }
+
+                rows = sortedRows;
+            }
+
+            return rows;
+        }
+
+        internal IEnumerable<QueryRow> ReducedQuery(QueryOptions options)
+        {
+            var db = Database;
+            var groupLevel = options.GroupLevel;
+            bool group = options.Group || groupLevel > 0;
+            var reduce = Reduce;
+            if (options.ReduceSpecified) {
+                if (options.Reduce && reduce == null) {
+                    Log.W(TAG, "Cannot use reduce option in view {0} which has no reduce block defined", Name);
+                    return null;
+                }
+            }
+
+            List<object> keysToReduce = null, valuesToReduce = null;
+            if (reduce != null) {
+                keysToReduce = new List<object>(100);
+                valuesToReduce = new List<object>(100);
+            }
+
+            Lazy<byte[]> lastKeyData = null;
+            List<QueryRow> rows = new List<QueryRow>();
+            RunQuery(options, (keyData, valueData, docID, c) =>
+            {
+                if(group && !GroupTogether(keyData.Value, lastKeyData.Value, groupLevel)) {
+                    if(lastKeyData != null && lastKeyData.Value != null) {
                         // This pair starts a new group, so reduce & record the last one:
-                        var reduced = (reduce != null) 
-                            ? reduce(keysToReduce, valuesToReduce, false) 
-                            : null;
-                        var key = GroupKey(lastKey.Value, groupLevel);
-                        var row = new QueryRow(null, 0, key, reduced, null)
-                        {
-                            Database = Database
-                        };
-                        rows.AddItem(row); // NOTE.ZJG: Change to `yield return row` to convert to a generator.
+                        var key = GroupKey(lastKeyData.Value, groupLevel);
+                        var reduced = CallReduce(reduce, keysToReduce, valuesToReduce);
+                        var row = new QueryRow(null, 0, key, reduced, null, this);
+                        if(options.Filter == null || options.Filter(row)) {
+                            rows.Add(row);
+                        }
 
                         keysToReduce.Clear();
                         valuesToReduce.Clear();
                     }
-                    lastKey = lazyKey;
+                    lastKeyData = keyData;
                 }
-                keysToReduce.AddItem(lazyKey.Value);
-                valuesToReduce.AddItem(lazyValue.Value);
-                cursor.MoveToNext();
-            }
-            // NOTE.ZJG: Need to handle grouping differently if switching this to a generator.
-            if (keysToReduce.Count > 0)
-            {
+
+                Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, keyData.Value, valueData.Value);
+
+                object valueOrData = valueData.Value;
+                if(valuesToReduce != null && RowValueIsEntireDoc(valueData)) {
+                    // map fn emitted 'doc' as value, which was stored as a "*" placeholder; expand now:
+                    Status status = new Status();
+                    var rev = db.GetDocument(docID, c.GetLong(1), status);
+                    if(rev == null) {
+                        Log.W(TAG, "Couldn't load doc for row value: status {0}", status.Code);
+                    }
+
+                    valueOrData = rev.GetProperties();
+                }
+
+                keysToReduce.Add(keyData.Value);
+                valuesToReduce.Add(valueOrData);
+                return new Status(StatusCode.Ok);
+            });
+
+            if((keysToReduce != null && keysToReduce.Count > 0) || lastKeyData != null) {
                 // Finish the last group (or the entire list, if no grouping):
-                var key = group ? GroupKey(lastKey.Value, groupLevel) : null;
-                var reduced = (reduce != null) ? reduce(keysToReduce, valuesToReduce, false) : null;
-                var row = new QueryRow(null, 0, key, reduced, null);
-                row.Database = Database;
-                rows.AddItem(row);
+                var key = group ? GroupKey(lastKeyData.Value, groupLevel) : null;
+                var reduced = CallReduce(reduce, keysToReduce, valuesToReduce);
+                Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, Manager.GetObjectMapper().WriteValueAsString(key),
+                    Manager.GetObjectMapper().WriteValueAsString(reduced));
+
+                var row = new QueryRow(null, 0, key, reduced, null, this);
+                if (options.Filter == null || options.Filter(row)) {
+                    rows.Add(row);
+                }
             }
+
             return rows;
         }
-            
-        /// <summary>
-        /// Checks if two keys belong in the same grouping level (i.e. they are equal at all
-        /// levels up to and including groupLevel
-        /// </summary>
-        /// <returns><c>true</c>, if the two keys belong in the same grouping level,
-        ///  <c>false</c> otherwise.</returns>
-        /// <param name="key1">Key1.</param>
-        /// <param name="key2">Key2.</param>
-        /// <param name="groupLevel">Group level.</param>
-        public static bool GroupTogether(Lazy<object> key1, Lazy<object> key2, int groupLevel)
+
+        /// <summary>Indexing</summary>
+        internal string ToJSONString(object obj)
         {
-            var key1List = key1 == null ? null : key1.Value as IList;
-            var key2List = key2 == null ? null : key2.Value as IList;
+            if (obj == null)
+                return null;
+
+            string result = null;
+            try
+            {
+                result = Manager.GetObjectMapper().WriteValueAsString(obj);
+            }
+            catch (Exception e)
+            {
+                Log.W(Database.TAG, "Exception serializing object to json: " + obj, e);
+            }
+            return result;
+        }
+
+        internal object FromJSON(IEnumerable<byte> json)
+        {
+            if (json == null)
+            {
+                return null;
+            }
+            object result = null;
+            try
+            {
+                result = Manager.GetObjectMapper().ReadValue<object>(json);
+            }
+            catch (Exception e)
+            {
+                Log.W(Database.TAG, "Exception parsing json", e);
+            }
+            return result;
+        }
+
+        internal IEnumerable<IDictionary<string, object>> Dump()
+        {
+            if (ViewID <= 0) {
+                return null;
+            }
+
+            List<IDictionary<string, object>> retVal = new List<IDictionary<string, object>>();
+            Database.TryQuery(c =>
+            {
+                retVal.Add(new Dictionary<string, object>() {
+                    { "seq", c.GetLong(0) },
+                    { "key", c.GetString(1) },
+                    { "val", c.GetString(2) }
+                });
+
+                return true;
+            }, false, QueryString("SELECT sequence, key, value FROM 'maps_#' ORDER BY key"));
+
+            return retVal;
+        }
+
+        internal Status CompileFromDesignDoc()
+        {
+            MapDelegate map;
+            if (Database.Shared.TryGetValue("map", Name, Database.Name, out map)) {
+                return new Status(StatusCode.Ok);
+            }
+
+            string language = null;
+            var viewProps = Database.GetDesignDocFunction(Name, "views", out language).AsDictionary<string, object>();
+            if (viewProps == null) {
+                return new Status(StatusCode.NotFound);
+            }
+
+            Log.D(TAG, "{0}: Attempting to compile {1} from design doc", Name, language);
+            if (Compiler == null) {
+                return new Status(StatusCode.NotImplemented);
+            }
+
+            return Compile(viewProps, language);
+        }
+
+        internal Status Compile(IDictionary<string, object> viewProps, string language)
+        {
+            language = language ?? "javascript";
+            string mapSource = viewProps.Get("map") as string;
+            if (mapSource == null) {
+                return new Status(StatusCode.NotFound);
+            }
+
+            MapDelegate mapDelegate = Compiler.CompileMap(mapSource, language);
+            if (mapDelegate == null) {
+                Log.W(TAG, "View {0} could not compile {1} map fn: {2}", Name, language, mapSource);
+                return new Status(StatusCode.CallbackError);
+            }
+
+            string reduceSource = viewProps.Get("reduce") as string;
+            ReduceDelegate reduceDelegate = null;
+            if (reduceSource != null) {
+                reduceDelegate = Compiler.CompileReduce(reduceSource, language);
+                if (reduceDelegate == null) {
+                    Log.W(TAG, "View {0} could not compile {1} reduce fn: {2}", Name, language, mapSource);
+                    return new Status(StatusCode.CallbackError);
+                }
+            }
+
+            string version = Misc.HexSHA1Digest(Manager.GetObjectMapper().WriteValueAsBytes(viewProps));
+            SetMapReduce(mapDelegate, reduceDelegate, version);
+            DocumentType = viewProps.GetCast<string>("documentType");
+
+            var options = viewProps.Get("options").AsDictionary<string, object>();
+            Collation = ViewCollation.Unicode;
+            if (options != null && options.ContainsKey("collation")) {
+                string collation = options["collation"] as string;
+                if (collation.ToLower().Equals("raw")) {
+                    Collation = ViewCollation.Raw;
+                }
+            }
+
+            return new Status(StatusCode.Ok);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private static bool GroupTogether(object key1, object key2, int groupLevel)
+        {
+            var key1List = key1 == null ? null : key1 as IList;
+            var key2List = key2 == null ? null : key2 as IList;
             if (groupLevel == 0 || key1List == null || key2List == null) {
-                var key2val = key2 != null 
-                    ? key2.Value 
-                    : null;
-                return key1.Value.Equals(key2val);
+                return key1.Equals(key2);
             }
 
             var end = Math.Min(groupLevel, Math.Min(key1List.Count, key2List.Count));
@@ -823,16 +1079,9 @@ namespace Couchbase.Lite {
 
             return true;
         }
-            
-        /// <summary>
-        /// Returns the prefix of the key to use in the result row, at this groupLevel
-        /// </summary>
-        /// <returns>The prefix of the key to use in the result row</returns>
-        /// <param name="key">The key to check.</param>
-        /// <param name="groupLevel">The group level to use.</param>
-        public static object GroupKey(object key, int groupLevel)
+
+        private static object GroupKey(object key, int groupLevel)
         {
-            
             if (groupLevel > 0) {
                 var keyList = key.AsList<object>();
                 if (keyList == null) {
@@ -846,16 +1095,34 @@ namespace Couchbase.Lite {
             }
         }
 
-        internal Cursor ResultSetWithOptions(QueryOptions options)
+        private static object CallReduce(ReduceDelegate reduce, List<object> keysToReduce, List<object> valuesToReduce)
+        {
+            if (reduce == null) {
+                return null;
+            }
+
+            try {
+                object result = reduce(keysToReduce, valuesToReduce, false);
+                if(result != null) {
+                    return result;
+                }
+            } catch(Exception e) {
+                Log.E(TAG, "Exception in reduce block", e);
+            }
+
+            return null;
+        }
+
+        private Status RunQuery(QueryOptions options, Func<Lazy<byte[]>, Lazy<byte[]>, string, Cursor, Status> action)
         {
             if (options == null) {
                 options = new QueryOptions();
             }
 
             string collationStr = "";
-            if (Collation == ViewCollation.ASCII) {
+            if (_collation == ViewCollation.ASCII) {
                 collationStr = " COLLATE JSON_ASCII ";
-            } else if (Collation == ViewCollation.Raw) {
+            } else if (_collation == ViewCollation.Raw) {
                 collationStr = " COLLATE JSON_RAW ";
             }
 
@@ -959,12 +1226,64 @@ namespace Couchbase.Lite {
             args.Add(limit);
             args.Add(options.Skip);
 
-            Log.D(Tag, "Query {0}: {1}\n\tArguments: {2}", Name, sql, Manager.GetObjectMapper().WriteValueAsString(args));
+            Log.D(TAG, "Query {0}: {1}\n\tArguments: {2}", Name, sql, Manager.GetObjectMapper().WriteValueAsString(args));
 
             var dbStorage = Database;
             var status = new Status();
-            return dbStorage.StorageEngine.IntransactionRawQuery(sql.ToString(), args.ToArray());
+            dbStorage.TryQuery(c => 
+            {
+                var docId = c.GetString(2);
+                status = action(new Lazy<byte[]>(() => c.GetBlob(0)), new Lazy<byte[]>(() => c.GetBlob(1)), docId, c);
+                if(status.IsError) {
+                    return false;
+                } else if((int)status.Code <= 0) {
+                    status.Code = StatusCode.Ok;
+                }
 
+                return true;
+            }, true, sql.ToString(), args.ToArray());
+
+            return status;
+        }
+
+        private static string ViewNames(IEnumerable<View> inputViews)
+        {
+            var names = inputViews.Select(x => x.Name);
+            return String.Join(", ", names.ToStringArray());
+        }
+
+        private bool RunStatements(string sqlStatements)
+        {
+            var db = Database;
+            return db.RunInTransaction(() =>
+            {
+                if(Database.RunStatements(QueryString(sqlStatements))) {
+                    return true;
+                }
+
+                return false;
+            });
+        }
+
+        private string QueryString(string statement)
+        {
+            return statement.Replace("#", MapTableName);
+        }
+
+        private void CreateIndex()
+        {
+            const string sql = 
+                "CREATE TABLE IF NOT EXISTS 'maps_#' (" +
+                "sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE," +
+                "key TEXT NOT NULL COLLATE JSON," +
+                "value TEXT," +
+                "fulltext_id INTEGER, " +
+                "bbox_id INTEGER, " +
+                "geokey BLOB)";
+
+            if (!RunStatements(sql)) {
+                Log.W(TAG, "Couldn't create view index `{0}`", Name);
+            }
         }
 
         private object KeyForPrefixMatch(object key, int depth)
@@ -994,368 +1313,154 @@ namespace Couchbase.Lite {
             return key;
         }
 
-        /// <summary>Indexing</summary>
-        internal string ToJSONString(Object obj)
+        private StatusCode Emit(object key, object value, bool valueIsDoc, long sequence)
         {
-            if (obj == null)
-                return null;
+            var db = Database;
+            string valueJSON;
+            if (valueIsDoc) {
+                valueJSON = "*";
+            } else {
+                valueJSON = Manager.GetObjectMapper().WriteValueAsString(value);
+            }
 
-            String result = null;
-            try
-            {
-                result = Manager.GetObjectMapper().WriteValueAsString(obj);
+            string keyJSON;
+            //IEnumerable<byte> geoKey = null;
+            if (false) {
+                //TODO: bbox, geo, fulltext
+            } else {
+                keyJSON = Manager.GetObjectMapper().WriteValueAsString(key);
+                Log.V(TAG, "    emit({0}, {1}", keyJSON, valueJSON);
             }
-            catch (Exception e)
-            {
-                Log.W(Database.Tag, "Exception serializing object to json: " + obj, e);
+
+            if (keyJSON == null) {
+                keyJSON = "null";
             }
-            return result;
+
+            if (_emitSql == null) {
+                _emitSql = QueryString("INSERT INTO 'maps_#' (sequence, key, value, " +
+                    "fulltext_id, bbox_id, geokey) VALUES (?, ?, ?, ?, ?, ?)");
+            }
+
+            //TODO: bbox, geo, fulltext
+            try {
+                db.StorageEngine.ExecSQL(_emitSql, sequence, keyJSON, valueJSON, null, null, null);
+            } catch(Exception) {
+                return StatusCode.DbError;
+            }
+
+            return StatusCode.Ok;
         }
 
-        internal Object FromJSON(IEnumerable<Byte> json)
+        private void FinishCreatingIndex()
         {
-            if (json == null)
-            {
-                return null;
-            }
-            object result = null;
-            try
-            {
-                result = Manager.GetObjectMapper().ReadValue<Object>(json);
-            }
-            catch (Exception e)
-            {
-                Log.W(Database.Tag, "Exception parsing json", e);
-            }
-            return result;
-        }
+            const string sql = "CREATE INDEX IF NOT EXISTS 'maps_#_keys' on 'maps_#'(key COLLATE JSON);" +
+                "CREATE INDEX IF NOT EXISTS 'maps_#_sequence' ON 'maps_#'(sequence)";
 
-        internal static double TotalValues(IList<object> values)
-        {
-            double total = 0;
-            foreach (object o in values)
-            {
-                try {
-                    double number = Convert.ToDouble(o);
-                    total += number;
-                } 
-                catch (Exception e)
-                {
-                    Log.E(Database.Tag, "Warning non-numeric value found in totalValues: " + o, e);
-                }
-            }
-            return total;
-        }
-
-        internal Status CompileFromDesignDoc()
-        {
-            if (Map != null) {
-                return new Status(StatusCode.Ok);
-            }
-
-            string language = null;
-            var viewProps = Database.GetDesignDocFunction(Name, "views", out language).AsDictionary<string, object>();
-            if (viewProps == null) {
-                return new Status(StatusCode.NotFound);
-            }
-
-            Log.D(Tag, "{0}: Attempting to compile {1} from design doc", Name, language);
-            if (Compiler == null) {
-                return new Status(StatusCode.NotImplemented);
-            }
-
-            return Compile(viewProps, language);
-        }
-
-        internal Status Compile(IDictionary<string, object> viewProps, string language)
-        {
-            language = language ?? "javascript";
-            string mapSource = viewProps.Get("map") as string;
-            if (mapSource == null) {
-                return new Status(StatusCode.NotFound);
-            }
-
-            MapDelegate mapDelegate = Compiler.CompileMap(mapSource, language);
-            if (mapDelegate == null) {
-                Log.W(Tag, "View {0} could not compile {1} map fn: {2}", Name, language, mapSource);
-                return new Status(StatusCode.CallbackError);
-            }
-
-            string reduceSource = viewProps.Get("reduce") as string;
-            ReduceDelegate reduceDelegate = null;
-            if (reduceSource != null) {
-                reduceDelegate = Compiler.CompileReduce(reduceSource, language);
-                if (reduceDelegate == null) {
-                    Log.W(Tag, "View {0} could not compile {1} reduce fn: {2}", Name, language, mapSource);
-                    return new Status(StatusCode.CallbackError);
-                }
-            }
-                
-            string version = Misc.HexSHA1Digest(Manager.GetObjectMapper().WriteValueAsBytes(viewProps));
-            SetMapReduce(mapDelegate, reduceDelegate, version);
-            //TODO: DocumentType
-
-            var options = viewProps.Get("options").AsDictionary<string, object>();
-            Collation = ViewCollation.Unicode;
-            if (options != null && options.ContainsKey("collation")) {
-                string collation = options["collation"] as string;
-                if (collation.ToLower().Equals("raw")) {
-                    Collation = ViewCollation.Raw;
-                }
-            }
-
-            return new Status(StatusCode.Ok);
-        }
-
-    #endregion
-
-    #region Instance Members
-        /// <summary>
-        /// Get the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
-        /// </summary>
-        /// <value>
-        /// The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
-        /// </value>
-        public Database Database { get; private set; }
-
-        /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.View"/>'s name.
-        /// </summary>
-        /// <value>the <see cref="Couchbase.Lite.View"/>'s name.</value>
-        public String Name { get; private set; }
-
-        /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.View"/>'s <see cref="Couchbase.Lite.MapDelegate"/>.
-        /// </summary>
-        /// <value>The map function.</value>
-        public MapDelegate Map { get; private set; }
-
-        /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.View"/>'s <see cref="Couchbase.Lite.ReduceDelegate"/>.
-        /// </summary>
-        /// <value>The reduce function.</value>
-        public ReduceDelegate Reduce { get; set; }
-
-        /// <summary>
-        /// Gets if the <see cref="Couchbase.Lite.View"/>'s indices are currently out of date.
-        /// </summary>
-        /// <value><c>true</c> if this instance is stale; otherwise, <c>false</c>.</value>
-        public Boolean IsStale { get { return (LastSequenceIndexed < Database.GetLastSequenceNumber()); } }
-
-        /// <summary>
-        /// Gets the last sequence number indexed so far.
-        /// </summary>
-        /// <value>The last sequence number indexed.</value>
-        public Int64 LastSequenceIndexed { 
-            get {
-                var sql = "SELECT lastSequence FROM views WHERE name=?";
-                var args = new[] { Name };
-                Cursor cursor = null;
-                var result = -1L;
-                try {
-                    cursor = Database.StorageEngine.RawQuery(sql, args);
-                    if (cursor.MoveToNext()) {
-                        result = cursor.GetLong(0);
-                    }
-                } catch (SQLException) {
-                    Log.E(Database.Tag, "Error getting last sequence indexed");
-                } finally {
-                    if (cursor != null) {
-                        cursor.Dispose();
-                    }
-                }
-
-                return result;
-            }
-        }
-
-        /// <summary>
-        /// Gets the total number of rows present in the view
-        /// </summary>
-        public int TotalRows {
-            get {
-                var db = Database;
-                var totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), false, 0, "SELECT total_docs FROM views WHERE name=?", Name);
-                if (totalRows == -1) { //means unknown
-                    CreateIndex();
-                    totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), true, 0, QueryString("SELECT COUNT(*) FROM 'maps_#'"));
-                    var args = new ContentValues();
-                    args["total_docs"] = totalRows;
-                    db.StorageEngine.Update("views", args, "view_id=?", Id.ToString());
-                }
-
-                Debug.Assert(totalRows >= 0);
-                return totalRows;
-            }
-        }
-
-        /// <summary>
-        /// Defines the <see cref="Couchbase.Lite.View"/>'s <see cref="Couchbase.Lite.MapDelegate"/> and sets 
-        /// its <see cref="Couchbase.Lite.ReduceDelegate"/> to null.
-        /// </summary>
-        /// <returns>
-        /// True if the <see cref="Couchbase.Lite.MapDelegate"/> was set, otherwise false. If the values provided are 
-        /// identical to the values that are already set, then the values will not be updated and false will be returned.  
-        /// In addition, if true is returned, the index was deleted and will be rebuilt on the next 
-        /// <see cref="Couchbase.Lite.Query"/> execution.
-        /// </returns>
-        /// <param name="mapDelegate">The <see cref="Couchbase.Lite.MapDelegate"/> to set</param>
-        /// <param name="version">
-        /// The key of the property value to return. The value of this parameter must change when 
-        /// the <see cref="Couchbase.Lite.MapDelegate"/> is changed in a way that will cause it to 
-        /// produce different results.
-        /// </param>
-        public Boolean SetMap(MapDelegate mapDelegate, String version) {
-            return SetMapReduce(mapDelegate, null, version);
-        }
-
-        /// <summary>
-        /// Defines the View's <see cref="Couchbase.Lite.MapDelegate"/> 
-        /// and <see cref="Couchbase.Lite.ReduceDelegate"/>.
-        /// </summary>
-        /// <remarks>
-        /// Defines a view's functions.
-        /// The view's definition is given as a class that conforms to the Mapper or
-        /// Reducer interface (or null to delete the view). The body of the block
-        /// should call the 'emit' object (passed in as a paramter) for every key/value pair
-        /// it wants to write to the view.
-        /// Since the function itself is obviously not stored in the database (only a unique
-        /// string idenfitying it), you must re-define the view on every launch of the app!
-        /// If the database needs to rebuild the view but the function hasn't been defined yet,
-        /// it will fail and the view will be empty, causing weird problems later on.
-        /// It is very important that this block be a law-abiding map function! As in other
-        /// languages, it must be a "pure" function, with no side effects, that always emits
-        /// the same values given the same input document. That means that it should not access
-        /// or change any external state; be careful, since callbacks make that so easy that you
-        /// might do it inadvertently!  The callback may be called on any thread, or on
-        /// multiple threads simultaneously. This won't be a problem if the code is "pure" as
-        /// described above, since it will as a consequence also be thread-safe.
-        /// </remarks>
-        /// <returns>
-        /// <c>true</c> if the <see cref="Couchbase.Lite.MapDelegate"/> 
-        /// and <see cref="Couchbase.Lite.ReduceDelegate"/> were set, otherwise <c>false</c>.
-        /// If the values provided are identical to the values that are already set, 
-        /// then the values will not be updated and <c>false</c> will be returned. 
-        /// In addition, if <c>true</c> is returned, the index was deleted and 
-        /// will be rebuilt on the next <see cref="Couchbase.Lite.Query"/> execution.
-        /// </returns>
-        /// <param name="map">The <see cref="Couchbase.Lite.MapDelegate"/> to set.</param>
-        /// <param name="reduce">The <see cref="Couchbase.Lite.ReduceDelegate"/> to set.</param>
-        /// <param name="version">
-        /// The key of the property value to return. The value of this parameter must change 
-        /// when the <see cref="Couchbase.Lite.MapDelegate"/> and/or <see cref="Couchbase.Lite.ReduceDelegate"/> 
-        /// are changed in a way that will cause them to produce different results.
-        /// </param>
-        public Boolean SetMapReduce(MapDelegate map, ReduceDelegate reduce, String version) { 
-            System.Diagnostics.Debug.Assert(map != null);
-            System.Diagnostics.Debug.Assert(version != null); // String.Empty is valid.
-
-            Map = map;
-            Reduce = reduce;
-
-            if (!Database.Open())
-            {
-                return false;
-            }
-            // Update the version column in the database. This is a little weird looking
-            // because we want to
-            // avoid modifying the database if the version didn't change, and because the
-            // row might not exist yet.
-            var storageEngine = this.Database.StorageEngine;
-
-            // Older Android doesnt have reliable insert or ignore, will to 2 step
-            // FIXME review need for change to execSQL, manual call to changes()
-            const string sql = "SELECT name, version FROM views WHERE name=?"; // TODO: Convert to ADO params.
-            var args = new [] { Name };
-            Cursor cursor = null;
-
-            // NOTE: Probably needs to be a run in transaction call.
-            try
-            {
-                cursor = storageEngine.RawQuery(sql, args);
-
-                if (!cursor.MoveToNext())
-                {
-                    // no such record, so insert
-                    var insertValues = new ContentValues();
-                    insertValues["name"] = Name;
-                    insertValues["version"] = version;
-                    storageEngine.Insert("views", null, insertValues);
-                    return true;
-                }
-                
-                if (cursor != null)
-                {
-                    cursor.Close();
-                    cursor = null;
-                }
-
-                var updateValues = new ContentValues();
-                updateValues["version"] = version;
-                updateValues["lastSequence"] = 0;
-
-                var whereArgs = new [] { Name, version };
-                var rowsAffected = storageEngine.Update("views", updateValues, "name=? AND version!=?", whereArgs);
-
-                return (rowsAffected > 0);
-            }
-            catch (SQLException e)
-            {
-                Log.E(Database.Tag, "Error setting map block", e);
-                return false;
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Deletes the <see cref="Couchbase.Lite.View"/>'s persistent index. 
-        /// The index is regenerated on the next <see cref="Couchbase.Lite.Query"/> execution.
-        /// </summary>
-        public void DeleteIndex()
-        {
-            if (Id <= 0) {
-                return;
-            }
-
-            const string sql = "DROP TABLE IF EXISTS 'maps_#';UPDATE views SET lastSequence=0, total_docs=0 WHERE view_id=#";
             if (!RunStatements(sql)) {
-                Log.W(Tag, "Couldn't delete view index `{0}`", Name);
+                Log.W(TAG, "Couldn't create view SQL index `{0}`", Name);
             }
         }
 
-        /// <summary>
-        /// Deletes the <see cref="Couchbase.Lite.View"/>.
-        /// </summary>
-        public void Delete()
-        { 
-            Database.DeleteViewNamed(Name);
-            _id = 0;
+        private UpdateJob QueueUpdate(UpdateJob job)
+        {
+            job.Finished += (sender, e) => {
+                UpdateJob nextJob;
+                _updateQueue.TryDequeue(out nextJob);
+                if(_updateQueue.TryPeek(out nextJob)) {
+                    nextJob.Run();
+                }
+            };
+
+            _updateQueue.Enqueue(job);
+            if (_updateQueue.Count == 1) {
+                job.Run();
+            }
+
+            return job;
         }
 
-        /// <summary>
-        /// Creates a new <see cref="Couchbase.Lite.Query"/> for this view.
-        /// </summary>
-        /// <returns>A new <see cref="Couchbase.Lite.Query"/> for this view.</returns>
-        public Query CreateQuery() {
-            return new Query(Database, this);
+        private bool GroupOrReduce(QueryOptions options) {
+            if (options.Group|| options.GroupLevel> 0) {
+                return true;
+            }
+
+            if (options.ReduceSpecified) {
+                return options.Reduce;
+            }
+
+            return Reduce != null;
         }
 
-    #endregion
-    
-    }
+        #endregion
+
+        #region IViewStoreDelegate
+        #pragma warning disable 1591
+
+        public MapDelegate Map
+        {
+            get
+            {
+                MapDelegate map;
+                if (!Database.Shared.TryGetValue("map", Name, Database.Name, out map)) {
+                    map = null;
+                    if (CompileFromDesignDoc().IsSuccessful) {
+                        map = Map;
+                    }
+                }
+
+                return map;
+            }
+        }
+
+        public ReduceDelegate Reduce
+        {
+            get {
+                ReduceDelegate retVal;
+                if (!Database.Shared.TryGetValue("reduce", Name, Database.Name, out retVal)) {
+                    return null;
+                }
+
+                return retVal;
+            }
+        }
+
+        public string MapVersion
+        {
+            get {
+                string retVal;
+                if (!Database.Shared.TryGetValue("mapVersion", Name, Database.Name, out retVal)) {
+                    return null;
+                }
+
+                return retVal;
+            }
+        }
+
+        public string DocumentType { 
+            get {
+                string retVal;
+                if(!Database.Shared.TryGetValue("docType", Name, Database.Name, out retVal)) {
+                    return null;
+                }
+
+                return retVal;
+            }
+            set { 
+                Database.Shared.SetValue("docType", Name, Database.Name, value);
+            }
+        }
+
+        #pragma warning restore 1591
+        #endregion
+
+    }
 
     /// <summary>
     /// An object that can be used to compile source code into map and reduce delegates.
     /// </summary>
-    public interface IViewCompiler {
+    public interface IViewCompiler 
+    {
 
-    #region Instance Members
         //Methods
         /// <summary>
         /// Compiles source code into a <see cref="Couchbase.Lite.MapDelegate"/>.
@@ -1363,7 +1468,7 @@ namespace Couchbase.Lite {
         /// <returns>A compiled <see cref="Couchbase.Lite.MapDelegate"/>.</returns>
         /// <param name="source">The source code to compile into a <see cref="Couchbase.Lite.MapDelegate"/>.</param>
         /// <param name="language">The language of the source.</param>
-        MapDelegate CompileMap(String source, String language);
+        MapDelegate CompileMap(string source, string language);
 
         /// <summary>
         /// Compiles source code into a <see cref="Couchbase.Lite.ReduceDelegate"/>.
@@ -1371,11 +1476,9 @@ namespace Couchbase.Lite {
         /// <returns>A compiled <see cref="Couchbase.Lite.ReduceDelegate"/>.</returns>
         /// <param name="source">The source code to compile into a <see cref="Couchbase.Lite.ReduceDelegate"/>.</param>
         /// <param name="language">The language of the source.</param>
-        ReduceDelegate CompileReduce(String source, String language);
+        ReduceDelegate CompileReduce(string source, string language);
 
-    #endregion
-    
-    }
+    }
 
     #region Global Delegates
 
@@ -1385,24 +1488,23 @@ namespace Couchbase.Lite {
     /// </summary>
     /// <param name="document">The <see cref="Couchbase.Lite.Document"/> being mapped.</param>
     /// <param name="emit">The delegate to use to add key/values to the <see cref="Couchbase.Lite.View"/>.</param>
-    public delegate void MapDelegate(IDictionary<String, Object> document, EmitDelegate emit);
-        
+    public delegate void MapDelegate(IDictionary<string, object> document, EmitDelegate emit);
+
     /// <summary>
     /// A delegate that can be invoked to add key/values to a <see cref="Couchbase.Lite.View"/> 
     /// during a <see cref="Couchbase.Lite.MapDelegate"/> call.
     /// </summary>
     /// <param name="key">The key.</param>
     /// <param name="value">The value.</param>
-    public delegate void EmitDelegate(Object key, Object value);
-        
+    public delegate void EmitDelegate(object key, object value);
+
     /// <summary>
     /// A delegate that can be invoked to summarize the results of a <see cref="Couchbase.Lite.View"/>.
     /// </summary>
     /// <param name="keys">A list of keys to be reduced, or null if this is a rereduce.</param>
     /// <param name="values">A parallel array of values to be reduced, corresponding 1-to-1 with the keys.</param>
     /// <param name="rereduce"><c>true</c> if the input values are the results of previous reductions, otherwise <c>false</c>.</param>
-    public delegate Object ReduceDelegate(IEnumerable<Object> keys, IEnumerable<Object> values, Boolean rereduce);
+    public delegate object ReduceDelegate(IEnumerable<object> keys, IEnumerable<object> values, Boolean rereduce);
 
-    #endregion
+    #endregion
 }
-

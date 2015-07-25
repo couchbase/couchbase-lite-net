@@ -48,14 +48,14 @@ using System.Net;
 using System.IO;
 
 namespace Couchbase.Lite {
-    
+
     /// <summary>
     /// An enumerator for Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/> results.
     /// </summary>
     public sealed class QueryEnumerator : IEnumerator<QueryRow>, IEnumerable<QueryRow>
     {
 
-    #region Constructors
+        #region Constructors
 
         internal QueryEnumerator (QueryEnumerator rows)
         {
@@ -75,19 +75,19 @@ namespace Couchbase.Lite {
             Reset();
         }
 
-    #endregion
+        #endregion
 
-    #region Non-public Members
-    
+        #region Non-public Members
+
         private Database Database { get; set; }
 
         private IEnumerable<QueryRow> Rows { get; set; }
 
         private Int32 CurrentRow { get; set; }
 
-    #endregion
+        #endregion
 
-    #region Instance Members
+        #region Instance Members
         //Properties
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace Couchbase.Lite {
         /// the <see cref="Couchbase.Lite.View"/> results were generated.
         /// </summary>
         /// <value><c>true</c> if stale; otherwise, <c>false</c>.</value>
-        public Boolean Stale { get { return SequenceNumber < Database.GetLastSequenceNumber(); } }
+        public Boolean Stale { get { return SequenceNumber < Database.LastSequenceNumber; } }
 
 
         /// <summary>
@@ -121,9 +121,9 @@ namespace Couchbase.Lite {
             return row;
         }
 
-    #endregion
+        #endregion
 
-    #region Operator Overloads
+        #region Operator Overloads
 
         /// <summary>
         /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="Couchbase.Lite.QueryEnumerator"/>.
@@ -156,9 +156,9 @@ namespace Couchbase.Lite {
         }
 
 
-    #endregion
+        #endregion
 
-    #region IEnumerator Implementation
+        #region IEnumerator Implementation
 
         /// <Docs>The collection was modified after the enumerator was instantiated.</Docs>
         /// <attribution license="cc4" from="Microsoft" modified="false"></attribution>
@@ -214,9 +214,9 @@ namespace Couchbase.Lite {
         /// <value>The current QueryRow.</value>
         Object IEnumerator.Current { get { return Current; } }
 
-    #endregion
+        #endregion
 
-    #region IEnumerable implementation
+        #region IEnumerable implementation
 
         /// <summary>
         /// Gets the enumerator.
@@ -239,10 +239,10 @@ namespace Couchbase.Lite {
             return new QueryEnumerator(this);
         }
 
-    #endregion
+        #endregion
 
-    }
+    }
 
-    
+
 
 }

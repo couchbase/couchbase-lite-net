@@ -65,6 +65,9 @@ using Couchbase.Lite.Listener.Tcp;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
+using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
+using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
+using WebException = System.Net.Couchbase.WebException;
 #endif
 
 
@@ -81,10 +84,10 @@ namespace Couchbase.Lite
             internal ReplicationIdleObserver(CountdownEvent doneSignal) {
                 this.doneSignal = doneSignal;
             }
-                
+
             public void Changed(object sender, ReplicationChangeEventArgs args) {
                 var replicator = args.Source;
-                if (replicator.Status == ReplicationStatus.Idle) {
+                if (replicator.Status == ReplicationStatus.Idle && doneSignal.CurrentCount > 0) {
                     doneSignal.Signal();
                 }
             }
@@ -105,7 +108,7 @@ namespace Couchbase.Lite
                 }
             }
         }
- 
+
         private void WorkaroundSyncGatewayRaceCondition() 
         {
             System.Threading.Thread.Sleep(2 * 100);
@@ -178,7 +181,7 @@ namespace Couchbase.Lite
                 httpRequestDoneSignal.CountDown();
             });
 
-            var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+            var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(30));
             Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
         }
 
@@ -244,7 +247,7 @@ namespace Couchbase.Lite
             foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
                 Assert.AreEqual(ReplicationStatus.Active, status);
             }
-                
+
             Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[statusHistory.Count - 1]);
 
             doc1Id = string.Format("doc3-{0}", docIdTimestamp);
@@ -404,7 +407,7 @@ namespace Couchbase.Lite
             } catch(Exception) {
                 Assert.Inconclusive("Apache CouchDB not running");
             }
-                
+
 
             var  deleteRequest = HttpWebRequest.Create(dbUri);
             deleteRequest.Method = "DELETE";
@@ -496,9 +499,9 @@ namespace Couchbase.Lite
             var doc = CreateDocumentWithProperties(
                 database, 
                 new Dictionary<string, object>
-                {
-                    {"testName", "testPurgeDocument"}
-                }
+            {
+                {"testName", "testPurgeDocument"}
+            }
             );
             Assert.IsNotNull(doc);
 
@@ -511,7 +514,6 @@ namespace Couchbase.Lite
             manager.DefaultHttpClientFactory = factory;
 
             var pusher = database.CreatePushReplication(remote);
-            pusher.Continuous = true;
 
             var replicationCaughtUpSignal = new CountdownEvent(1);
             pusher.Changed += (sender, e) => 
@@ -521,8 +523,8 @@ namespace Couchbase.Lite
                 var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
                 Log.D(Tag, msg);
                 if (changesCount == completedChangesCount 
-                 && changesCount != 0
-                 && replicationCaughtUpSignal.CurrentCount > 0)
+                    && changesCount != 0
+                    && replicationCaughtUpSignal.CurrentCount > 0)
                 {
                     replicationCaughtUpSignal.Signal();
                 }
@@ -569,6 +571,7 @@ namespace Couchbase.Lite
 
             // but then immediately purge it
             doc.Purge();
+            pusher.Start();
 
             // wait for a while to give the replicator a chance to push it
             // (it should not actually push anything)
@@ -578,10 +581,8 @@ namespace Couchbase.Lite
             // the replicator should not have pushed anything else.
             // (in the case of the bug, it was trying to push the purged revision)
             numBulkDocRequests = 0;
-            foreach (var capturedRequest in handler.CapturedRequests)
-            {
-                if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal))
-                {
+            foreach (var capturedRequest in handler.CapturedRequests) {
+                if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal)) {
                     numBulkDocRequests++;
                 }
             }
@@ -670,7 +671,7 @@ namespace Couchbase.Lite
             Assert.IsNull(repl.LastError);
             Assert.IsTrue(repl.ChangesCount >= 2);
             Assert.IsTrue(repl.CompletedChangesCount >= 2);
-             
+
 
             VerifyRemoteDocExists(remote, doc1Id);
 
@@ -753,26 +754,26 @@ namespace Couchbase.Lite
             var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
             Log.D(Tag, "Send http request to " + pathToDoc);
             var httpRequestDoneSignal = new CountDownLatch(1);
-                var httpclient = new HttpClient();
-                try
-                {
-                    var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
-                    var statusLine = getDocResponse.StatusCode;
-                    Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
-                    Assert.AreEqual(Couchbase.Lite.StatusCode.NotFound, statusLine.GetStatusCode());                        
-                }
-                catch (ProtocolViolationException e)
-                {
-                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                }
-                catch (IOException e)
-                {
-                    Assert.IsNull(e, "Got IOException: " + e.Message);
-                }
-                finally
-                {
-                    httpRequestDoneSignal.CountDown();
-                }
+            var httpclient = new HttpClient();
+            try
+            {
+                var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
+                var statusLine = getDocResponse.StatusCode;
+                Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
+                Assert.AreEqual(Couchbase.Lite.StatusCode.NotFound, statusLine.GetStatusCode());                        
+            }
+            catch (ProtocolViolationException e)
+            {
+                Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+            }
+            catch (IOException e)
+            {
+                Assert.IsNull(e, "Got IOException: " + e.Message);
+            }
+            finally
+            {
+                httpRequestDoneSignal.CountDown();
+            }
             Log.D(Tag, "Waiting for http request to finish");
             try
             {
@@ -789,16 +790,15 @@ namespace Couchbase.Lite
         [Test]
         public void TestUpdateToServerSavesAttachment()
         {
-            var pull = database.CreatePullReplication(new Uri("http://localhost:5984/db"));
-            pull.Continuous = true;
-            pull.Start();
-
             try {
                 HttpWebRequest.Create("http://localhost:5984/").GetResponse();
             } catch(Exception) {
-                pull.Stop();
                 Assert.Inconclusive("Apache CouchDB not running");
             }
+
+            var pull = database.CreatePullReplication(new Uri("http://localhost:5984/db"));
+            pull.Continuous = true;
+            pull.Start();
 
             var docName = "doc" + Convert.ToString(DateTime.UtcNow.ToMillisecondsSinceEpoch());
             var endpoint = "http://localhost:5984/db/" + docName;
@@ -902,7 +902,7 @@ namespace Couchbase.Lite
             // Even though this test is passed, there is a runtime exception
             // thrown regarding the replication's number of changes count versus
             // number of completed changes count. Investigation is required.
-            Log.D(Database.Tag, "testPullerWithLiveQuery");
+            Log.D(Database.TAG, "testPullerWithLiveQuery");
             string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
             string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
@@ -929,7 +929,7 @@ namespace Couchbase.Lite
                 {
                     NUnit.Framework.Assert.IsTrue(e.Rows.Count > numDocsBeforePull);
                 }
-                Log.D(Database.Tag, "rows " + e.Rows);
+                Log.D(Database.TAG, "rows " + e.Rows);
             };
 
             // the first time this is called back, the rows will be empty.
@@ -1105,7 +1105,7 @@ namespace Couchbase.Lite
             Assert.IsFalse(replicator.Continuous);
             Assert.IsFalse(replicator.IsRunning);
 
-                ReplicationStatus lastStatus = replicator.Status;
+            ReplicationStatus lastStatus = replicator.Status;
             var mre = new ManualResetEventSlim();
             replicator.Changed += (sender, e) => 
             {
@@ -1219,6 +1219,10 @@ namespace Couchbase.Lite
             var repl = database.CreatePullReplication(remote);
             repl.Continuous = true;
             repl.Start();
+
+            //Some platforms will fire an intial GoOnline event because of network status
+            //change registration, so get that out of the way first
+            Thread.Sleep(1000);
             PutReplicationOffline(repl);
             Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
         }
@@ -1328,7 +1332,7 @@ namespace Couchbase.Lite
             filterParams = new Dictionary<string, object>();
             filterParams.Put("channels", "NBC,MTV");
             Assert.AreEqual(filterParams, r1.FilterParams);
-                        
+
             r1.Channels = null;
             Assert.AreEqual(r1.Filter, null);
             Assert.AreEqual(null, r1.FilterParams);
@@ -1688,7 +1692,7 @@ namespace Couchbase.Lite
             });
             pusher.DocIds = new List<string> { doc1.GetProperty("_id") as string };
 
-                var doc2 = database.CreateDocument();
+            var doc2 = database.CreateDocument();
             doc2.PutProperties(new Dictionary<string, object> {
                 { "doc2", "Foo" }
             });
@@ -2165,7 +2169,7 @@ namespace Couchbase.Lite
 
             var pusher = database.CreatePushReplication(GetReplicationURL());
             RunReplication(pusher);
-         
+
             httpHandler.ClearCapturedRequests();
 
             var oldDoc = database.GetDocument(doc.Id);
@@ -2360,7 +2364,7 @@ namespace Couchbase.Lite
             {
                 var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
                 var docId = string.Format("doc{0}-{1}", i, docIdTimestamp);
-                         
+
                 var docBody = GetDocWithId(docId, "attachment.png");
                 var doc = database.CreateDocument();
                 doc.PutProperties(docBody);
@@ -2368,7 +2372,6 @@ namespace Couchbase.Lite
                 docList.Add(doc.Id);
             }
 
-            var docsBefore = database.DocumentCount;
             var mre = new CountdownEvent(docsToCreate * 2);
             var puller = database.CreatePullReplication(GetReplicationURL());
             puller.Changed += (sender, e) => {
@@ -2417,15 +2420,12 @@ namespace Couchbase.Lite
             var pusher = database.CreatePushReplication(GetReplicationURL());
             pusher.Start ();
 
-            try {
-                Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(120)), "Replication Timeout");
-            } finally {
-                pusher.Stop();
-                puller.Stop();
-                allDocsLiveQuery.Stop();   
 
-                Thread.Sleep(500);
-            }
+            pusher.Stop();
+            puller.Stop();
+            allDocsLiveQuery.Stop();   
+
+            Thread.Sleep(1000);
         }
 
         [Test, Category("issue348")]
@@ -2489,7 +2489,7 @@ namespace Couchbase.Lite
                     }
                 }
 
-                Log.D(Tag, "Remaining docs to be found: {0}", mre.InitialCount - mre.CurrentCount);
+                Log.D(Tag, "Remaining docs to be found: {0}", mre.CurrentCount);
             };
 
             // the first time this is called back, the rows will be empty.
@@ -2502,7 +2502,9 @@ namespace Couchbase.Lite
 
             pusher.Stop();
             puller.Stop();  
-            allDocsLiveQuery.Stop();            
+            allDocsLiveQuery.Stop(); 
+
+            Thread.Sleep(500);
         }
 
         [Test]
@@ -2555,6 +2557,20 @@ namespace Couchbase.Lite
                 Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
                 AddDocWithId(doc2Id, "attachment2.png");
 
+                repl = database.CreatePullReplication(GetReplicationURL());
+                repl.Changed += (sender, e) =>
+                {
+                    if(wait.CurrentCount == 0) {
+                        return;
+                    }
+
+                    Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
+                    if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
+                        e.Source.CompletedChangesCount == e.Source.ChangesCount) {
+                        wait.Signal();
+                    }
+                };
+
                 repl.Authenticator = new BasicAuthenticator("jim", "bogus");
                 wait.Reset(1);
                 repl.Start();
@@ -2562,8 +2578,6 @@ namespace Couchbase.Lite
                 Assert.IsNull(database.GetExistingDocument(doc1Id), "Got rogue doc1 from puller");
                 Assert.IsNull(database.GetExistingDocument(doc2Id), "Got rogue doc2 from puller");
                 repl.Stop();
-
-                Thread.Sleep(2000);
             });
         }
 
@@ -2582,7 +2596,42 @@ namespace Couchbase.Lite
 
             Assert.AreNotEqual(repl1.RemoteCheckpointDocID(), repl2.RemoteCheckpointDocID());
         }
-            
+
+        [Test]
+        [Category("issue_398")]
+        public void TestPusherUsesFilterParams()
+        {
+            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+            var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+
+            var doc1 = database.GetDocument(doc1Id);
+            doc1.PutProperties(new Dictionary<string, object> { { "foo", "bar" } });
+
+            var doc2 = database.GetDocument(doc2Id);
+            doc2.PutProperties(new Dictionary<string, object> { { "bar", "foo" } });
+
+            var mre = new ManualResetEventSlim();
+            IDictionary<string, object> gotParams = null;
+            database.SetFilter("issue-398", (rev, parameters) =>
+            {
+                gotParams = parameters;
+                if(!mre.IsSet) {
+                    mre.Set();
+                }
+
+                return true;
+            });
+
+            var push = database.CreatePushReplication(GetReplicationURL());
+            push.Filter = "issue-398";
+            push.FilterParams = new Dictionary<string, object>() { { "issue-398", "finished" } };
+            push.Start();
+
+            mre.Wait();
+            Assert.AreEqual(push.FilterParams, gotParams);
+        }
+
         [Test]
         public void TestBulkPullTransientExceptionRecovery() {
             if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
@@ -2592,7 +2641,7 @@ namespace Couchbase.Lite
             }
 
             var initialRowCount = SyncGatewayRowCount();
-    
+
             var fakeFactory = new MockHttpClientFactory(false);
             FlowControl flow = new FlowControl(new FlowItem[]
             {
@@ -2646,7 +2695,7 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-                
+
             var fakeFactory = new MockHttpClientFactory(false);
             fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) =>
             {

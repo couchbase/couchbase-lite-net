@@ -2,7 +2,7 @@
 //  RouterTests.cs
 //
 //  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
+//      Jim Borden  <jim.borden@couchbase.com>
 //
 //  Copyright (c) 2015 Couchbase, Inc All rights reserved.
 //
@@ -444,7 +444,7 @@ namespace Couchbase.Lite
             });
 
             // Check if the current last sequence indexed has been changed:
-            Thread.Sleep(5000);
+            Thread.Sleep(8000);
             Assert.IsTrue(prevSequenceIndexed < view.LastSequenceIndexed);
 
             // Confirm the result with stale = ok:
@@ -474,7 +474,7 @@ namespace Couchbase.Lite
         public void TestJSViews()
         {
             View.Compiler = new JSViewCompiler();
-           // Database.FilterCompiler = new JSFilterCompiler();
+            // Database.FilterCompiler = new JSFilterCompiler();
 
             string endpoint = String.Format("/{0}/doc1", database.Name);
             SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
@@ -818,19 +818,19 @@ namespace Couchbase.Lite
             // Artificially short heartbeat (made possible by SetUp) to speed up the test
             SendRequest("GET", String.Format("/{0}/_changes?feed=longpoll&heartbeat=1000", database.Name), null, null, true,
                 r =>
+            {
+                var stream = r.GetResponseStream();
+                byte[] data = new byte[4096];
+                while (stream.Read(data, 0, data.Length) > 0)
                 {
-                    var stream = r.GetResponseStream();
-                    byte[] data = new byte[4096];
-                    while (stream.Read(data, 0, data.Length) > 0)
-                    {
-                        if(data[0] == 13 && data[1] == 10) {
-                            Log.D(TAG, "Heartbeat came at {0} seconds", (DateTime.Now - start).TotalSeconds);
-                            heartbeat += 1;
-                        }
+                    if(data[0] == 13 && data[1] == 10) {
+                        Log.D(TAG, "Heartbeat came at {0} seconds", (DateTime.Now - start).TotalSeconds);
+                        heartbeat += 1;
                     }
+                }
 
-                    mre.Set();
-                });
+                mre.Set();
+            });
 
             Assert.IsFalse(mre.IsSet);
             Thread.Sleep(2500);
@@ -1030,18 +1030,15 @@ namespace Couchbase.Lite
             });
 
             // Update the document but not the attachments:
-            //FIXME.JHB: iOS doesn't need the revpos property present here
             var attachmentsDict = new Dictionary<string, object> {
                 { "attach", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "stub", true },
-                        { "revpos", 1L }
+                        { "stub", true }
                     }
                 },
                 { "path/to/attachment", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "stub", true },
-                        { "revpos", 1L }
+                        { "stub", true }
                     }
                 },
             };
@@ -1193,12 +1190,12 @@ namespace Couchbase.Lite
             };
             const string attachmentstring = "This is the value of the attachment.";
             var body = String.Format("\r\n--BOUNDARY\r\n\r\n" +
-                       "{0}" +
-                       "\r\n--BOUNDARY\r\n" +
-                       "Content-Disposition: attachment; filename=attach\r\n" +
-                       "Content-Type: text/plain\r\n\r\n" +
-                       "{1}" +
-                       "\r\n--BOUNDARY--", Manager.GetObjectMapper().WriteValueAsString(props), attachmentstring);
+                "{0}" +
+                "\r\n--BOUNDARY\r\n" +
+                "Content-Disposition: attachment; filename=attach\r\n" +
+                "Content-Type: text/plain\r\n\r\n" +
+                "{1}" +
+                "\r\n--BOUNDARY--", Manager.GetObjectMapper().WriteValueAsString(props), attachmentstring);
 
             SendRequest("PUT", String.Format("/{0}/doc", database.Name), new Dictionary<string, string> {
                 { "Content-Type", "multipart/related; boundary=\"BOUNDARY\"" }
@@ -1419,7 +1416,7 @@ namespace Couchbase.Lite
         {
             SendRequest(method, path, headers, bodyObj, isAsync, false, callback);
         }
-            
+
         private void SendRequest(string method, string path, IDictionary<string, string> headers,
             Body bodyObj, bool isAsync, bool keepAlive, Action<HttpWebResponse> callback)
         {
@@ -1442,7 +1439,7 @@ namespace Couchbase.Lite
             } else {
                 request.ContentLength = 0;
             }
-                
+
             if (isAsync) {
                 request.GetResponseAsync().ContinueWith(t =>
                 {
@@ -1584,13 +1581,13 @@ namespace Couchbase.Lite
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
             }), HttpStatusCode.Created, null);
-            var revId2 = result.GetCast<string>("rev");
+            var revId3 = result.GetCast<string>("rev");
 
             endpoint = endpoint.Replace("doc3", "doc2");
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
             }), HttpStatusCode.Created, null);
-            var revId3 = result.GetCast<string>("rev");
+            var revId2 = result.GetCast<string>("rev");
 
             endpoint = String.Format("/{0}/_all_docs", database.Name);
             result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);
@@ -1663,4 +1660,3 @@ namespace Couchbase.Lite
         }
     }
 }
-

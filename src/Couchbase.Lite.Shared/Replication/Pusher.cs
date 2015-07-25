@@ -82,28 +82,16 @@ namespace Couchbase.Lite.Replicator
 
         #endregion
 
-        #region Properties
-
-        public override IEnumerable<string> DocIds { get; set; }
-
-        public override IDictionary<String, String> Headers { get; set; }
-
-        public override Boolean CreateTarget { get; set; }
-
-        public override bool IsPull { get { return false; } }
-
-        #endregion
-
         #region Constructors
 
         public Pusher(Database db, Uri remote, bool continuous, TaskFactory workExecutor) 
-        : this(db, remote, continuous, null, workExecutor) { }
-        
+            : this(db, remote, continuous, null, workExecutor) { }
+
         public Pusher(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor) 
-        : base(db, remote, continuous, clientFactory, workExecutor)
+            : base(db, remote, continuous, clientFactory, workExecutor)
         {
-                CreateTarget = false;
-                _observing = false;
+            CreateTarget = false;
+            _observing = false;
         }
 
         #endregion
@@ -141,7 +129,8 @@ namespace Couchbase.Lite.Replicator
                 return 0;
             }
 
-            return Database.ParseRevIDNumber(ancestorID);
+            var parsed = RevisionInternal.ParseRevId(ancestorID);
+            return parsed.Item1;
         }
 
         #endregion
@@ -163,8 +152,7 @@ namespace Couchbase.Lite.Replicator
             {
                 // Skip revisions that originally came from the database I'm syncing to:
                 var source = change.SourceUrl;
-                if (source != null && source.Equals(RemoteUrl))
-                {
+                if (source != null && source.Equals(RemoteUrl)) {
                     return;
                 }
 
@@ -272,7 +260,7 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 var revs = revResults.Get("missing").AsList<string>();
-								if (revs == null || !revs.Any( id => id.Equals(rev.GetRevId(), StringComparison.OrdinalIgnoreCase))) {
+                                if (revs == null || !revs.Any( id => id.Equals(rev.GetRevId(), StringComparison.OrdinalIgnoreCase))) {
                                     RemovePending(rev);
                                     continue;
                                 }
@@ -456,8 +444,8 @@ namespace Couchbase.Lite.Replicator
                         } else {
                             if (attachment.ContainsKey("content-type")) {
                                 var message = string.Format("Found attachment that uses content-type"
-                                              + " field name instead of content_type (see couchbase-lite-android"
-                                              + " issue #80): " + attachment);
+                                    + " field name instead of content_type (see couchbase-lite-android"
+                                    + " issue #80): " + attachment);
                                 Log.W(TAG, message);
                             }
                         }
@@ -545,6 +533,14 @@ namespace Couchbase.Lite.Replicator
 
         #region Overrides
 
+        public override IEnumerable<String> DocIds { get; set; }
+
+        public override IDictionary<String, String> Headers { get; set; }
+
+        public override Boolean CreateTarget { get; set; }
+
+        public override bool IsPull { get { return false; } }
+
         protected internal override void MaybeCreateRemoteDB()
         {
             if (!CreateTarget)
@@ -630,6 +626,9 @@ namespace Couchbase.Lite.Replicator
             if (Continuous) {
                 _observing = true;
                 LocalDatabase.Changed += OnChanged;
+                if (changes.Count == 0) {
+                    FireTrigger(ReplicationTrigger.WaitingForChanges);
+                }
             } else {
                 FireTrigger(ReplicationTrigger.StopGraceful);
             }
@@ -731,7 +730,7 @@ namespace Couchbase.Lite.Replicator
 
                                 RevisionInternal loadedRev;
                                 try {
-                                    loadedRev = LocalDatabase.LoadRevisionBody (rev, contentOptions);
+                                    loadedRev = LocalDatabase.LoadRevisionBody (rev);
                                     properties = new Dictionary<string, object>(rev.GetProperties());
                                 } catch (CouchbaseLiteException e1) {
                                     Log.W(TAG, string.Format("{0} Couldn't get local contents of {1}", rev, this), e1);
@@ -746,8 +745,8 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 properties = new Dictionary<string, object>(populatedRev.GetProperties());
-                                var history = LocalDatabase.GetRevisionHistoryDictStartingFromAnyAncestor(populatedRev, possibleAncestors);
-                                properties["_revisions"] = history;
+                                var history = LocalDatabase.GetRevisionHistory(populatedRev, possibleAncestors);
+                                properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
                                 populatedRev.SetProperties(properties);
 
                                 // Strip any attachments already known to the target db:

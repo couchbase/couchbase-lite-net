@@ -50,11 +50,11 @@ namespace Couchbase.Lite
     [System.Serializable]
     internal class RevisionList : List<RevisionInternal>
     {
-        
+
         public RevisionList() : base()
         {
         }
-            
+
         public RevisionList(IList<RevisionInternal> list) : base(list)
         {
         }
@@ -97,20 +97,23 @@ namespace Couchbase.Lite
             return result;
         }
 
-        public virtual void SortBySequence()
+        public virtual void SortBySequence(bool ascending = false)
         {
-            this.Sort(new _IComparer_82());
+            this.Sort(new SortBySequenceImpl(ascending));
         }
 
-        private sealed class _IComparer_82 : IComparer<RevisionInternal>
+        private sealed class SortBySequenceImpl : IComparer<RevisionInternal>
         {
-            public _IComparer_82()
+            private readonly bool _ascending;
+
+            public SortBySequenceImpl(bool ascending = false)
             {
+                _ascending = ascending;
             }
 
             public int Compare(RevisionInternal rev1, RevisionInternal rev2)
             {
-                return Misc.TDSequenceCompare(rev1.GetSequence(), rev2.GetSequence());
+                return Misc.TDSequenceCompare(rev1.GetSequence(), rev2.GetSequence(), _ascending);
             }
         }
 

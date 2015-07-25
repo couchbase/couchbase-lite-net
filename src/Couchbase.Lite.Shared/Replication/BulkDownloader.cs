@@ -299,23 +299,18 @@ namespace Couchbase.Lite.Replicator
         {
             Func<RevisionInternal, IDictionary<String, Object>> invoke = source =>
             {
-                var hasAttachment = true;
-                var attsSince = database.GetPossibleAncestorRevisionIDs(source, Puller.MAX_ATTS_SINCE, ref hasAttachment);
+                var attsSince = database.GetPossibleAncestors(source, Puller.MAX_ATTS_SINCE, true);
 
-                if (!hasAttachment || attsSince.Count == 0) 
-                {
-                    attsSince = null;
-                }
 
                 var mapped = new Dictionary<string, object> ();
-                mapped["id"] = source.GetDocId ();
-                mapped["rev"] = source.GetRevId ();
-                mapped["atts_since"] = attsSince;
+                mapped.Put ("id", source.GetDocId ());
+                mapped.Put ("rev", source.GetRevId ());
+                mapped.Put ("atts_since", attsSince);
 
                 return mapped;
             };
 
-                // Build up a JSON body describing what revisions we want:
+            // Build up a JSON body describing what revisions we want:
             IEnumerable<IDictionary<string, object>> keys = null;
             try
             {
@@ -325,7 +320,7 @@ namespace Couchbase.Lite.Replicator
             {
                 Log.E(Tag, "Error generating bulk request data.", ex);
             }       
-            
+
             var retval = new Dictionary<string, object>();
             retval.Put("docs", keys);
             return retval;

@@ -55,19 +55,19 @@ namespace Couchbase.Lite {
     /// <summary>
     /// Provides details about a Document change.
     /// </summary>
-    public partial class DocumentChange
+    public class DocumentChange
     {
         internal RevisionInternal AddedRevision { get; private set; }
 
-        internal DocumentChange(RevisionInternal addedRevision, RevisionInternal winningRevision, bool isConflict, Uri sourceUrl)
+        internal DocumentChange(RevisionInternal addedRevision, string winningRevisionId, bool isConflict, Uri sourceUrl)
         {
             AddedRevision = addedRevision;
-            WinningRevision = winningRevision;
+            WinningRevisionId = winningRevisionId;
             IsConflict = isConflict;
             SourceUrl = sourceUrl;
         }
-    
-    #region Instance Members
+
+        #region Instance Members
         //Properties
         /// <summary>
         /// Gets the Id of the <see cref="Couchbase.Lite.Document"/> that changed.
@@ -85,13 +85,26 @@ namespace Couchbase.Lite {
         /// Gets a value indicating whether this instance is current revision.
         /// </summary>
         /// <value><c>true</c> if this instance is current revision; otherwise, <c>false</c>.</value>
-        public Boolean IsCurrentRevision { get { return WinningRevision != null && WinningRevision.GetRevId().Equals(AddedRevision.GetRevId()); } }
+        public Boolean IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.GetRevId()); } }
+
+        internal string WinningRevisionId { get; private set; }
 
         /// <summary>
         /// Gets the winning revision.
         /// </summary>
         /// <value>The winning revision.</value>
-        internal RevisionInternal WinningRevision { get; private set; }
+        internal RevisionInternal WinningRevisionIfKnown
+        { 
+            get
+            {
+                return IsCurrentRevision ? AddedRevision : null;
+            }
+        }
+
+        internal void ReduceMemoryUsage()
+        {
+            AddedRevision = AddedRevision.CopyWithoutBody();
+        }
 
         /// <summary>
         /// Gets a value indicating whether this instance is conflict.
@@ -105,8 +118,8 @@ namespace Couchbase.Lite {
         /// <value>The remote URL of the source Database from which this change was replicated.</value>
         public Uri SourceUrl { get; private set; }
 
-    #endregion
+        #endregion
 
-    }
+    }
 
 }

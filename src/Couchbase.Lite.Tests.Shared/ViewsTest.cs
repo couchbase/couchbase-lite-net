@@ -52,12 +52,28 @@ using NUnit.Framework;
 using Sharpen;
 using Newtonsoft.Json.Linq;
 using System.Threading;
+using Couchbase.Lite.Views;
 
 namespace Couchbase.Lite
 {
     public class ViewsTest : LiteTestCase
     {
         public const string Tag = "Views";
+
+        [Test]
+        public void TestViewValueIsEntireDoc()
+        {
+            var view = database.GetView("vu");
+            view.SetMap((doc, emit) => emit(doc["_id"], doc), "0.1");
+            CreateDocuments(database, 10);
+            var rows = view.CreateQuery().Run();
+            foreach (var row in rows) {
+                Assert.IsNotNull(row.Value);
+                var dict = row.Value.AsDictionary<string, object>();
+                Assert.IsNotNull(dict);
+                Assert.AreEqual(row.Key, dict["_id"]);
+            }
+        }
 
         [Test]
         public void TestLiveQueryUpdateWhenOptionsChanged()
@@ -237,14 +253,14 @@ namespace Couchbase.Lite
         {
             var view = db.GetView("aview");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
+            {
+                Assert.IsNotNull(document["_id"]);
+                Assert.IsNotNull(document["_rev"]);
+                if (document["key"] != null)
                 {
-                    Assert.IsNotNull(document["_id"]);
-                    Assert.IsNotNull(document["_rev"]);
-                    if (document["key"] != null)
-                    {
-                        emitter(document["key"], null);
-                    }
-                }, null, "1");
+                    emitter(document["key"], null);
+                }
+            }, null, "1");
             return view;
         }
 
@@ -287,11 +303,12 @@ namespace Couchbase.Lite
             };
             view.SetMap(mapBlock, "1");
 
-            Assert.AreEqual(1, view.Id);
+
+            //Assert.AreEqual(1, view.Id);
             Assert.IsTrue(view.IsStale);
             view.UpdateIndex();
 
-            IList<IDictionary<string, object>> dumpResult = view.Dump();
+            IList<IDictionary<string, object>> dumpResult = view.Dump().ToList();
             Log.V(Tag, "View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"one\"", dumpResult[0]["key"]);
@@ -322,7 +339,7 @@ namespace Couchbase.Lite
             view.UpdateIndex();
 
             // Make sure the map function was only invoked one more time (for the document that was added)
-            Assert.AreEqual(numTimesInvoked, numTimesMapFunctionInvoked + 1);
+            Assert.AreEqual(numTimesMapFunctionInvoked + 1, numTimesInvoked);
 
             var dict4 = new Dictionary<string, object>();
             dict4["key"] = "four";
@@ -334,7 +351,7 @@ namespace Couchbase.Lite
             // Reindex again:
             Assert.IsTrue(view.IsStale);
             view.UpdateIndex();
-            dumpResult = view.Dump();
+            dumpResult = view.Dump().ToList();
             Log.V(Tag, "View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"one\"", dumpResult[2]["key"]);
@@ -447,7 +464,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, rows.Count);
             Assert.AreEqual(dict4["key"], rows[0].Key);
 
-            // Specific keys:
+            // Specific keys: (note that rows should be in same order as input keys, not sorted)
             options = new QueryOptions();
             var keys = new List<object>();
             keys.AddItem("two");
@@ -458,8 +475,8 @@ namespace Couchbase.Lite
             expectedRows.AddItem(dict4);
             expectedRows.AddItem(dict2);
             Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(dict4["key"], rows[0].Key);
-            Assert.AreEqual(dict2["key"], rows[1].Key);
+            Assert.AreEqual(dict2["key"], rows[0].Key);
+            Assert.AreEqual(dict4["key"], rows[1].Key);
         }
 
         [Test]
@@ -488,75 +505,142 @@ namespace Couchbase.Lite
         public void TestAllDocsQuery()
         {
             var docs = PutDocs(database);
-            var expectedRow = new List<QueryRow>();
+            var expectedRowBase = new List<IDictionary<string, object>>(docs.Count);
             foreach (RevisionInternal rev in docs)
             {
-                var value = new Dictionary<string, object>();
-                value.Put("rev", rev.GetRevId());
-                value.Put("_conflicts", new List<string>());
-
-                var queryRow = new QueryRow(rev.GetDocId(), 0, rev.GetDocId(), value, null);
-                queryRow.Database = database;
-                expectedRow.AddItem(queryRow);
+                expectedRowBase.Add(new Dictionary<string, object> {
+                    { "id", rev.GetDocId() },
+                    { "key", rev.GetDocId() },
+                    { "value", new Dictionary<string, object> {
+                            { "rev", rev.GetRevId() }
+                        }
+                    }
+                });
             }
 
+            // Create a conflict, won by the old revision:
+            var props = new Dictionary<string, object> {
+                { "_id", "44444" },
+                { "_rev", "1-00" }, // lower revID, will lose conflict
+                { "key", "40ur" }
+            };
+
+            var leaf2 = new RevisionInternal(props);
+            database.ForceInsert(leaf2, null, null);
+            Assert.AreEqual(docs[1].GetRevId(), database.GetDocument("44444", null, true).GetRevId());
+
+            // Query all rows:
             var options = new QueryOptions();
             var allDocs = database.GetAllDocs(options);
-            var expectedRows = new List<QueryRow>();
-            expectedRows.AddItem(expectedRow[2]);
-            expectedRows.AddItem(expectedRow[0]);
-            expectedRows.AddItem(expectedRow[3]);
-            expectedRows.AddItem(expectedRow[1]);
-            expectedRows.AddItem(expectedRow[4]);
+            var expectedRows = new List<IDictionary<string, object>> {
+                expectedRowBase[2],
+                expectedRowBase[0],
+                expectedRowBase[3],
+                expectedRowBase[1],
+                expectedRowBase[4]
+            };
 
-            var expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            //CollectionAssert.AreEqual(expectedQueryResult, allDocs);
-            AssertPropertiesAreEqual(expectedQueryResult, allDocs);
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+
+            // Limit:
+            options.Limit = 1;
+            allDocs = database.GetAllDocs(options);
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2] };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+
+            // Limit+Skip:
+            options.Skip = 2;
+            allDocs = database.GetAllDocs(options);
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[3] };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
 
             // Start/end key query:
             options = new QueryOptions();
             options.StartKey = "2";
             options.EndKey = "44444";
             allDocs = database.GetAllDocs(options);
-            expectedRows = new List<QueryRow>();
-            expectedRows.AddItem(expectedRow[0]);
-            expectedRows.AddItem(expectedRow[3]);
-            expectedRows.AddItem(expectedRow[1]);
-            expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[0], expectedRowBase[3], expectedRowBase[1] };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
 
             // Start/end query without inclusive end:
             options.InclusiveEnd = false;
             allDocs = database.GetAllDocs(options);
-            expectedRows = new List<QueryRow>();
-            expectedRows.AddItem(expectedRow[0]);
-            expectedRows.AddItem(expectedRow[3]);
-            expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[0], expectedRowBase[3] };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
 
-            // Get all documents: with default QueryOptions
+            // Get zero specific documents:
             options = new QueryOptions();
+            options.Keys = new List<object>();
             allDocs = database.GetAllDocs(options);
-            expectedRows = new List<QueryRow>();
-            expectedRows.AddItem(expectedRow[2]);
-            expectedRows.AddItem(expectedRow[0]);
-            expectedRows.AddItem(expectedRow[3]);
-            expectedRows.AddItem(expectedRow[1]);
-            expectedRows.AddItem(expectedRow[4]);
-            expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
+            Assert.IsNull(allDocs);
 
             // Get specific documents:
             options = new QueryOptions();
-            IList<object> docIds = new List<object>();
-            QueryRow expected2 = expectedRow[2];
-            docIds.AddItem(expected2.Document.Id);
-            options.Keys = docIds;
+            options.Keys = new List<object> {
+                expectedRowBase[2].GetCast<string>("id"),
+                expectedRowBase[3].GetCast<string>("id")
+            };
             allDocs = database.GetAllDocs(options);
-            expectedRows = new List<QueryRow>();
-            expectedRows.AddItem(expected2);
-            expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2], expectedRowBase[3] };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+
+            // Delete a document:
+            var del = docs[0];
+            del = new RevisionInternal(del.GetDocId(), del.GetRevId(), true);
+            var status = new Status();
+            del = database.PutRevision(del, del.GetRevId(), false, status);
+            Assert.AreEqual(StatusCode.Ok, status.Code);
+
+            // Get deleted doc, and one bogus one:
+            options = new QueryOptions();
+            options.Keys = new List<object> { "BOGUS", expectedRowBase[0].GetCast<string>("id") };
+            allDocs = database.GetAllDocs(options);
+            var expectedResult = new List<IDictionary<string, object>> {
+                new Dictionary<string, object> {
+                    { "key", "BOGUS" },
+                    { "error", "not_found" }
+                },
+                new Dictionary<string, object> {
+                    { "id", del.GetDocId() },
+                    { "key", del.GetDocId() },
+                    { "value", new Dictionary<string, object> {
+                            { "rev", del.GetRevId() },
+                            { "deleted", true }
+                        }
+                    }
+                }
+            };
+            Assert.AreEqual(expectedResult, RowsToDicts(allDocs));
+
+            // Get conflicts:
+            options = new QueryOptions();
+            options.AllDocsMode = AllDocsMode.ShowConflicts;
+            allDocs = database.GetAllDocs(options);
+            var curRevId = docs[1].GetRevId();
+            var expectedConflict1 = new Dictionary<string, object> {
+                { "id", "44444" },
+                { "key", "44444" },
+                { "value", new Dictionary<string, object> {
+                        { "rev", curRevId },
+                        { "_conflicts", new List<string> {
+                                curRevId, "1-00"
+                            }
+                        }
+                    }
+                }
+            };
+
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2], expectedRowBase[3], expectedConflict1,
+                expectedRowBase[4]
+            };
+
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+
+            // Get _only_ conflicts:
+            options.AllDocsMode = AllDocsMode.OnlyConflicts;
+            allDocs = database.GetAllDocs(options);
+            expectedRows = new List<IDictionary<string, object>>() { expectedConflict1 };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
         }
 
         private IDictionary<string, object> CreateExpectedQueryResult(IList<QueryRow> rows, int offset)
@@ -595,24 +679,22 @@ namespace Couchbase.Lite
                 if (cost != null) {
                     emitter (document.Get ("_id"), cost);
                 }
-            }, (IEnumerable<Object> keys, IEnumerable<Object> values, Boolean rereduce)=> {
-                return View.TotalValues(values.ToList());
-                }, "1");
+            }, BuiltinReduceFunctions.Sum, "1");
 
 
             view.UpdateIndex();
 
-            IList<IDictionary<string, object>> dumpResult = view.Dump();
+            IList<IDictionary<string, object>> dumpResult = view.Dump().ToList();
             Log.V(Tag, "View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"App\"", dumpResult[0]["key"]);
-            Assert.AreEqual("1.95", dumpResult[0]["value"]);
+            Assert.AreEqual("1.95", dumpResult[0]["val"]);
             Assert.AreEqual(2, dumpResult[0]["seq"]);
             Assert.AreEqual("\"CD\"", dumpResult[1]["key"]);
-            Assert.AreEqual("8.99", dumpResult[1]["value"]);
+            Assert.AreEqual("8.99", dumpResult[1]["val"]);
             Assert.AreEqual(1, dumpResult[1]["seq"]);
             Assert.AreEqual("\"Dessert\"", dumpResult[2]["key"]);
-            Assert.AreEqual("6.5", dumpResult[2]["value"]);
+            Assert.AreEqual("6.5", dumpResult[2]["val"]);
             Assert.AreEqual(3, dumpResult[2]["seq"]);
             QueryOptions options = new QueryOptions();
             options.Reduce = true;
@@ -711,17 +793,15 @@ namespace Couchbase.Lite
             PutDoc(database, docProperties5);
 
             View view = database.GetView("grouper");
-            view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
+            view.SetMapReduce((document, emitter) =>
             {
-                    IList<object> key = new List<object>();
-                    key.AddItem(document["artist"]);
-                    key.AddItem(document["album"]);
-                    key.AddItem(document["track"]);
-                    emitter(key, document["time"]);
-            }, (IEnumerable<object> keys, IEnumerable<object> values, bool rereduce) => {
-                return View.TotalValues(values.ToList());
-            }, "1");
-                
+                IList<object> key = new List<object>();
+                key.AddItem(document["artist"]);
+                key.AddItem(document["album"]);
+                key.AddItem(document["track"]);
+                emitter(key, document["time"]);
+            }, BuiltinReduceFunctions.Sum, "1");
+
             view.UpdateIndex();
             QueryOptions options = new QueryOptions();
             options.Reduce = true;
@@ -783,15 +863,15 @@ namespace Couchbase.Lite
             row5["key"] = key5;
             row5["value"] = 309.0;
             expectedRows.AddItem(row5);
-            Assert.AreEqual(row1["key"], ((JArray)rows[0].Key).Values<String>().ToList());
+            Assert.AreEqual(row1["key"], rows[0].Key.AsList<string>());
             Assert.AreEqual(row1["value"], rows[0].Value);
-            Assert.AreEqual(row2["key"], ((JArray)rows[1].Key).Values<String>().ToList());
+            Assert.AreEqual(row2["key"], rows[1].Key.AsList<string>());
             Assert.AreEqual(row2["value"], rows[1].Value);
-            Assert.AreEqual(row3["key"], ((JArray)rows[2].Key).Values<String>().ToList());
+            Assert.AreEqual(row3["key"], rows[2].Key.AsList<string>());
             Assert.AreEqual(row3["value"], rows[2].Value);
-            Assert.AreEqual(row4["key"], ((JArray)rows[3].Key).Values<String>().ToList());
+            Assert.AreEqual(row4["key"], rows[3].Key.AsList<string>());
             Assert.AreEqual(row4["value"], rows[3].Value);
-            Assert.AreEqual(row5["key"], ((JArray)rows[4].Key).Values<String>().ToList());
+            Assert.AreEqual(row5["key"], rows[4].Key.AsList<string>());
             Assert.AreEqual(row5["value"], rows[4].Value);
 
             //group level 1
@@ -877,7 +957,7 @@ namespace Couchbase.Lite
                 {
                     emitter(name.Substring(0, 1), 1);
                 }
-            }, (keys, values, rereduce) => View.TotalValues(values.ToList()), "1.0");
+            }, BuiltinReduceFunctions.Sum, "1.0");
 
             view.UpdateIndex();
             QueryOptions options = new QueryOptions();
@@ -967,7 +1047,7 @@ namespace Couchbase.Lite
 
             View view = database.GetView("default/names");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter) => 
-            emitter(document["name"], null), null, "1.0");
+                emitter(document["name"], null), null, "1.0");
 
             QueryOptions options = new QueryOptions();
             IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
@@ -1037,7 +1117,7 @@ namespace Couchbase.Lite
 
             View view = database.GetView("default/names");
             view.SetMapReduce((document, emitter) => 
-            emitter(document["name"], null), null, "1.0");
+                emitter(document["name"], null), null, "1.0");
 
             view.Collation = ViewCollation.Raw;
 
@@ -1152,10 +1232,13 @@ namespace Couchbase.Lite
 
             var properties = new Dictionary<string, object>();
             properties.Put("name", "test");
-            database.BeginTransaction();
-            var doc = database.CreateDocument();
-            var rev = doc.PutProperties(properties);
-            database.EndTransaction(true);
+            SavedRevision rev = null;
+            database.RunInTransaction(() =>
+            {
+                var doc = database.CreateDocument();
+                rev = doc.PutProperties(properties);
+                return true;
+            });
             for (var i = 0; i < 50; i++) {
                 rev = rev.CreateRevision(properties);
             }
@@ -1172,13 +1255,13 @@ namespace Couchbase.Lite
         {
             var view = database.GetView("vu");
             view.SetMapReduce((document, emit) => emit(document["sequence"], 1), 
-                (keys, values, rereduce) => View.TotalValues(values.ToList()), "1");
+                BuiltinReduceFunctions.Sum, "1");
 
             var query = view.CreateQuery().ToLiveQuery();
 
             var view1 = database.GetView("vu1");
             view1.SetMapReduce((document, emit) => emit(document["sequence"], 1), 
-                (keys, values, rereduce) => View.TotalValues(values.ToList()), "1");
+                BuiltinReduceFunctions.Sum, "1");
 
             var query1 = view1.CreateQuery().ToLiveQuery();
 
@@ -1198,7 +1281,7 @@ namespace Couchbase.Lite
                 }
             };
 
-            var success = gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(10));
+            var success = gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(60));
             Assert.IsTrue(success);
             query.Stop();
 
@@ -1267,7 +1350,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, rows.Count());
             Assert.AreEqual(33547239, rows.GetRow(0).Key);
         }
-            
+
         [Test]
         public void TestViewQueryStartKeyDocID()
         {
@@ -1368,6 +1451,62 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, rows.Count);
             row = rows.GetRow(0);
             Assert.AreEqual(row.Key, "3");
+        }
+
+        [Test]
+        public void TestMultipleQueriesOnSameView()
+        {
+            var view = database.GetView("view1");
+            view.SetMapReduce((doc, emit) =>
+            {
+                emit(doc["jim"], doc["_id"]);
+            }, (keys, vals, rereduce) => 
+            {
+                return keys.Count();
+            }, "1");
+            var query1 = view.CreateQuery().ToLiveQuery();
+            query1.Start();
+
+            var query2 = view.CreateQuery().ToLiveQuery();
+            query2.Start();
+
+            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+            for(int i = 0; i < 50; i++) {
+                database.GetDocument(string.Format("doc{0}-{1}", i, docIdTimestamp)).PutProperties(new Dictionary<string, object> { {
+                        "jim",
+                        "borden"
+                    } });
+            }
+
+            Thread.Sleep(5000);
+            Assert.AreEqual(50, view.TotalRows);
+            Assert.AreEqual(50, view.LastSequenceIndexed);
+
+            query1.Stop();
+            for(int i = 50; i < 60; i++) {
+                database.GetDocument(string.Format("doc{0}-{1}", i, docIdTimestamp)).PutProperties(new Dictionary<string, object> { {
+                        "jim",
+                        "borden"
+                    } });
+                if (i == 55) {
+                    query1.Start();
+                }
+            }
+
+            Thread.Sleep(5000);
+            Assert.AreEqual(60, view.TotalRows);
+            Assert.AreEqual(60, view.LastSequenceIndexed);
+        }
+
+        private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)
+        {
+            Assert.IsNotNull(allDocs);
+            var rows = new List<IDictionary<string, object>>();
+            foreach (var row in allDocs) {
+                rows.Add(row.AsJSONDictionary());
+            }
+
+            return rows;
         }
     }
 }

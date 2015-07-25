@@ -94,8 +94,8 @@ namespace Couchbase.Lite
             Assert.IsTrue(rev1.GetRevId().StartsWith("1-"));
 
             //read it back
-            var readRev = database.GetDocumentWithIDAndRev(rev1.GetDocId(), null, 
-                DocumentContentOptions.None);
+            var readRev = database.GetDocument(rev1.GetDocId(), null, 
+                true);
             Assert.IsNotNull(readRev);
 
             var userReadRevProps = UserProperties(readRev.GetProperties());
@@ -118,23 +118,15 @@ namespace Couchbase.Lite
             Assert.IsTrue(rev2.GetRevId().StartsWith("2-"));
 
             //read it back
-            readRev = database.GetDocumentWithIDAndRev(rev2.GetDocId(), null, 
-                DocumentContentOptions.None);
+            readRev = database.GetDocument(rev2.GetDocId(), null, 
+                true);
             Assert.IsNotNull(readRev);
             Assert.AreEqual(UserProperties(readRev.GetProperties()), UserProperties
                 (body.GetProperties()));
 
             // Try to update the first rev, which should fail:
-            var gotExpectedError = false;
-            try
-            {
-                database.PutRevision(rev2input, rev1.GetRevId(), false, status);
-            }
-            catch (CouchbaseLiteException e)
-            {
-                gotExpectedError = e.CBLStatus.Code == StatusCode.Conflict;
-            }
-            Assert.IsTrue(gotExpectedError);
+            database.PutRevision(rev2input, rev1.GetRevId(), false, status);
+            Assert.AreEqual(StatusCode.Conflict, status.Code);
 
             // Check the changes feed, with and without filters:
             var changeRevisions = database.ChangesSince(0, null, null, null);
@@ -153,39 +145,23 @@ namespace Couchbase.Lite
             // Delete it:
             var revD = new RevisionInternal(rev2.GetDocId(), null, true);
             RevisionInternal revResult = null;
-            gotExpectedError = false;
-            try
-            {
-                revResult = database.PutRevision(revD, null, false, status);
-            }
-            catch (CouchbaseLiteException e)
-            {
-                gotExpectedError = e.CBLStatus.Code == StatusCode.Conflict;
-            }
-            Assert.IsTrue(gotExpectedError);
+            revResult = database.PutRevision(revD, null, false, status);
+            Assert.AreEqual(StatusCode.Conflict, status.Code);
             Assert.IsNull(revResult);
 
             revD = database.PutRevision(revD, rev2.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Ok, status.Code);
             Assert.AreEqual(revD.GetDocId(), rev2.GetDocId());
             Assert.IsTrue(revD.GetRevId().StartsWith("3-"));
-            
+
             // Delete nonexistent doc:
             var revFake = new RevisionInternal("fake", null, true);
-            gotExpectedError = false;
-            try
-            {
-                database.PutRevision(revFake, null, false, status);
-            }
-            catch (CouchbaseLiteException e)
-            {
-                gotExpectedError = e.CBLStatus.Code == StatusCode.NotFound;
-            }
-            Assert.IsTrue(gotExpectedError);
+            database.PutRevision(revFake, null, false, status);
+            Assert.AreEqual(StatusCode.NotFound, status.Code);
 
             // Read it back (should fail):
-            readRev = database.GetDocumentWithIDAndRev(revD.GetDocId(), null, 
-                DocumentContentOptions.None);
+            readRev = database.GetDocument(revD.GetDocId(), null, 
+                true);
             Assert.IsNull(readRev);
 
             // Get Changes feed:
@@ -193,7 +169,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(changeRevisions.Count == 1);
 
             // Get Revision History:
-            IList<RevisionInternal> history = database.GetRevisionHistory(revD);
+            IList<RevisionInternal> history = database.GetRevisionHistory(revD, null);
             Assert.AreEqual(revD, history[0]);
             Assert.AreEqual(rev2, history[1]);
             Assert.AreEqual(rev1, history[2]);

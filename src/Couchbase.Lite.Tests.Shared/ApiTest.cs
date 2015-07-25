@@ -61,56 +61,56 @@ namespace Couchbase.Lite
     public class ApiTest : LiteTestCase
     {
         private const string Tag = "ApiTest";
-//        public static Task CreateDocumentsAsync(Database db, int n)
-//      {
-//            return db.RunAsync((database)=>
-//                {
-//                    database.BeginTransaction();
-//                    ApiTest.CreateDocuments(database, n);
-//                    database.EndTransaction(true);
-//                });
-//      }
+        //        public static Task CreateDocumentsAsync(Database db, int n)
+        //      {
+        //            return db.RunAsync((database)=>
+        //                {
+        //                    database.BeginTransaction();
+        //                    ApiTest.CreateDocuments(database, n);
+        //                    database.EndTransaction(true);
+        //                });
+        //      }
 
-//          public static void CreateDocuments(Database db, int numberOfDocsToCreate)
-//      {
-//          //TODO should be changed to use db.runInTransaction
-//          for (int i = 0; i < numberOfDocsToCreate; i++)
-//          {
-//                var properties = new Dictionary<String, Object>();
-//                properties["testName"] = "testDatabase";
-//                properties["sequence"] = i;
-//              CreateDocumentWithProperties(db, properties);
-//          }
-//      }
-//
-//        public static Document CreateDocumentWithProperties(Database db, IDictionary<String, Object> properties)
-//      {
-//            var doc = db.CreateDocument();
-//
-//          Assert.IsNotNull(doc);
-//          Assert.IsNull(doc.CurrentRevisionId);
-//          Assert.IsNull(doc.CurrentRevision);
-//          Assert.IsNotNull("Document has no ID", doc.Id);
-//
-//          // 'untitled' docs are no longer untitled (8/10/12)
-//          try
-//          {
-//              doc.PutProperties(properties);
-//          }
-//          catch (Exception e)
-//          {
-//              Log.E(Tag, "Error creating document", e);
-//                Assert.IsTrue( false, "can't create new document in db:" + db.Name +
-//                    " with properties:" + properties.Aggregate(new StringBuilder(" >>> "), (str, kvp)=> { str.AppendFormat("'{0}:{1}' ", kvp.Key, kvp.Value); return str; }, str=>str.ToString()));
-//          }
-//
-//          Assert.IsNotNull(doc.Id);
-//          Assert.IsNotNull(doc.CurrentRevisionId);
-//          Assert.IsNotNull(doc.UserProperties);
-//          Assert.AreEqual(db.GetDocument(doc.Id), doc);
-//
-//          return doc;
-//      }
+        //          public static void CreateDocuments(Database db, int numberOfDocsToCreate)
+        //      {
+        //          //TODO should be changed to use db.runInTransaction
+        //          for (int i = 0; i < numberOfDocsToCreate; i++)
+        //          {
+        //                var properties = new Dictionary<String, Object>();
+        //                properties["testName"] = "testDatabase";
+        //                properties["sequence"] = i;
+        //              CreateDocumentWithProperties(db, properties);
+        //          }
+        //      }
+        //
+        //        public static Document CreateDocumentWithProperties(Database db, IDictionary<String, Object> properties)
+        //      {
+        //            var doc = db.CreateDocument();
+        //
+        //          Assert.IsNotNull(doc);
+        //          Assert.IsNull(doc.CurrentRevisionId);
+        //          Assert.IsNull(doc.CurrentRevision);
+        //          Assert.IsNotNull("Document has no ID", doc.Id);
+        //
+        //          // 'untitled' docs are no longer untitled (8/10/12)
+        //          try
+        //          {
+        //              doc.PutProperties(properties);
+        //          }
+        //          catch (Exception e)
+        //          {
+        //              Log.E(Tag, "Error creating document", e);
+        //                Assert.IsTrue( false, "can't create new document in db:" + db.Name +
+        //                    " with properties:" + properties.Aggregate(new StringBuilder(" >>> "), (str, kvp)=> { str.AppendFormat("'{0}:{1}' ", kvp.Key, kvp.Value); return str; }, str=>str.ToString()));
+        //          }
+        //
+        //          Assert.IsNotNull(doc.Id);
+        //          Assert.IsNotNull(doc.CurrentRevisionId);
+        //          Assert.IsNotNull(doc.UserProperties);
+        //          Assert.AreEqual(db.GetDocument(doc.Id), doc);
+        //
+        //          return doc;
+        //      }
 
         /// <exception cref="System.Exception"></exception>
         public void RunLiveQuery(String methodNameToCall)
@@ -192,7 +192,7 @@ namespace Couchbase.Lite
 
         //SERVER & DOCUMENTS
         /// <exception cref="System.IO.IOException"></exception>
-       // [Test]
+        // [Test]
         public void TestAPIManager()
         {
             Manager manager = this.manager;
@@ -237,7 +237,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(db.GetDocument(docID), doc);
 
             db.DocumentCache.EvictAll();
-            
+
             // so we can load fresh copies
             var doc2 = db.GetExistingDocument(docID);
             Assert.AreEqual(doc2.Id, docID);
@@ -334,11 +334,11 @@ namespace Couchbase.Lite
             Assert.IsTrue(doc.CurrentRevisionId.StartsWith("2-"), "Document revision ID is still " + doc.CurrentRevisionId);
             Assert.AreEqual(rev2.Id, doc.CurrentRevisionId);
             Assert.IsNotNull(rev2.PropertiesAvailable);
-            Assert.AreEqual(rev2.UserProperties, properties2);
-            Assert.AreEqual(rev2.Document, doc);
-            Assert.AreEqual(rev2.GetProperty("_id"), doc.Id);
-            Assert.AreEqual(rev2.GetProperty("_rev"), rev2.Id);
-            
+            Assert.AreEqual(properties2, rev2.UserProperties);
+            Assert.AreEqual(doc, rev2.Document);
+            Assert.AreEqual(doc.Id, rev2.GetProperty("_id"));
+            Assert.AreEqual(rev2.Id, rev2.GetProperty("_rev"));
+
             // Test -createRevision:
             var newRev = rev2.CreateRevision();
             Assert.IsNull(newRev.Id);
@@ -464,7 +464,7 @@ namespace Couchbase.Lite
 
             var db = manager.GetExistingDatabase(DefaultTestDb);
             var doc = CreateDocumentWithProperties(db, properties);
-            
+
             Assert.IsTrue(!doc.Deleted);
             Assert.IsTrue(!doc.CurrentRevision.IsDeletion);
 
@@ -520,12 +520,12 @@ namespace Couchbase.Lite
 
             // clear the cache so all documents/revisions will be re-fetched:
             db.DocumentCache.EvictAll();
-            
+
             Log.I(Tag, "----- all documents -----");
 
             var query = db.CreateAllDocumentsQuery();
             //query.prefetch = YES;
-            
+
             Log.I(Tag, "Getting all documents: " + query);
 
             var rows = query.Run();
@@ -546,7 +546,7 @@ namespace Couchbase.Lite
 
                 Assert.IsNotNull(doc.Properties, "Couldn't get doc properties");
                 Assert.AreEqual("testDatabase", doc.GetProperty("testName"));
-                
+
                 n++;
             }
 
@@ -566,22 +566,22 @@ namespace Couchbase.Lite
             Assert.IsNull(props);
 
             db.PutLocalDocument("dock" , properties);
-            
+
             props = db.GetExistingLocalDocument("dock");
             Assert.AreEqual(props["foo"], "bar");
-            
+
             var newProperties = new Dictionary<String, Object>();
             newProperties["FOOO"] = "BARRR";
             db.PutLocalDocument("dock", newProperties);
-            
+
             props = db.GetExistingLocalDocument("dock");
             Assert.IsFalse(props.ContainsKey("foo"));
             Assert.AreEqual(props["FOOO"], "BARRR");
             Assert.IsNotNull(db.DeleteLocalDocument("dock"), "Couldn't delete local doc");
-            
+
             props = db.GetExistingLocalDocument("dock");
             Assert.IsNull(props);
-            Assert.IsNotNull(!db.DeleteLocalDocument("dock"),"Second delete should have failed");
+            Assert.IsFalse(db.DeleteLocalDocument("dock"),"Second delete should have failed");
         }
 
         //TODO issue: deleteLocalDocument should return error.code( see ios)
@@ -660,8 +660,8 @@ namespace Couchbase.Lite
             var confRevs = new List<SavedRevision>();
             confRevs.AddItem(rev2b);
             confRevs.AddItem(rev2a);
-            Assert.AreEqual(doc.ConflictingRevisions, confRevs);
-            Assert.AreEqual(doc.LeafRevisions, confRevs);
+            Assert.AreEqual(confRevs, doc.ConflictingRevisions);
+            Assert.AreEqual(confRevs, doc.LeafRevisions);
 
             SavedRevision defaultRev;
             SavedRevision otherRev;
@@ -680,13 +680,13 @@ namespace Couchbase.Lite
             var query = db.CreateAllDocumentsQuery();
             query.AllDocsMode = AllDocsMode.ShowConflicts;
             var rows = query.Run();
-            Assert.AreEqual(rows.Count, 1);
+            Assert.AreEqual(1, rows.Count);
 
             var row = rows.GetRow(0);
             var revs = row.GetConflictingRevisions().ToList();
             Assert.AreEqual(2, revs.Count);
-            Assert.AreEqual(revs[0], defaultRev);
-            Assert.AreEqual(revs[1], otherRev);
+            Assert.AreEqual(defaultRev, revs[0]);
+            Assert.AreEqual(otherRev, revs[1]);
         }
 
         //ATTACHMENTS
@@ -740,16 +740,20 @@ namespace Couchbase.Lite
         {
             var doneSignal = new CountdownEvent(1);
             var db = database;
-            db.Changed += (sender, e) => 
-                doneSignal.Signal();
+            db.Changed += (sender, e) =>
+            {
+                if (doneSignal.CurrentCount != 0) {
+                    doneSignal.Signal();
+                }
+            };
 
             var task = CreateDocumentsAsync(db, 5);
 
             // We expect that the changes reported by the server won't be notified, because those revisions
             // are already cached in memory.
-            var success = doneSignal.Wait(TimeSpan.FromSeconds(10));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(100));
             Assert.IsTrue(success);
-            Assert.AreEqual(5, db.GetLastSequenceNumber());
+            Assert.AreEqual(5, db.LastSequenceNumber);
 
             Assert.IsTrue(task.Status.HasFlag(TaskStatus.RanToCompletion));
         }
@@ -799,16 +803,16 @@ namespace Couchbase.Lite
             var db = database;
 
             db.SetValidation("uncool", (newRevision, context)=>
+            {
                 {
+                    if (newRevision.GetProperty("groovy") == null)
                     {
-                        if (newRevision.GetProperty("groovy") == null)
-                        {
-                            context.Reject("uncool");
-                            return false;
-                        }
-                        return true;
+                        context.Reject("uncool");
+                        return false;
                     }
-                });
+                    return true;
+                }
+            });
             var properties = new Dictionary<String, Object>();
             properties["groovy"] = "right on";
             properties["foo"] = "bar";
@@ -826,7 +830,6 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                //TODO
                 Assert.AreEqual(StatusCode.Forbidden, e.CBLStatus.Code);
             }
         }
@@ -853,7 +856,7 @@ namespace Couchbase.Lite
                 lastDocID = doc.Id;
             }
 
-            var query = db.SlowQuery((document, emitter)=> emitter (document ["sequence"], new object[] { "_id", document ["prev"] }));
+            var query = db.SlowQuery((document, emitter)=> emitter (document ["sequence"], new Dictionary<string, object> { { "_id", document ["prev"] } }));
             query.StartKey = 23;
             query.EndKey = 33;
             query.Prefetch = true;
@@ -957,14 +960,14 @@ namespace Couchbase.Lite
             var query = view.CreateQuery();
             query.StartKey=23;
             query.EndKey=33;
-            
+
             var task = query.RunAsync().ContinueWith((resultTask) => 
             {
                 Log.I (Tag, "Async query finished!");
                 var rows = resultTask.Result;
 
                 Assert.IsNotNull (rows);
-                Assert.AreEqual (rows.Count, 11);
+                Assert.AreEqual (11, rows.Count);
 
                 var expectedKey = 23;
                 for (IEnumerator<QueryRow> it = rows; it.MoveNext ();) {
@@ -1011,16 +1014,16 @@ namespace Couchbase.Lite
             var filter = db.GetFilter("phil");
             var validation = db.GetValidation("val");
             var result = mgr.RunAsync("db", (database)=>
-                {
-                    Assert.IsNotNull(database);
-                    var serverView = database.GetExistingView("view");
-                    Assert.IsNotNull(serverView);
-                    Assert.AreEqual(database.GetFilter("phil"), filter);
-                    Assert.AreEqual(database.GetValidation("val"), validation);
-                    Assert.AreEqual(serverView.Map, map);
-                    Assert.AreEqual(serverView.Reduce, reduce);
-                    return true;
-                });
+            {
+                Assert.IsNotNull(database);
+                var serverView = database.GetExistingView("view");
+                Assert.IsNotNull(serverView);
+                Assert.AreEqual(database.GetFilter("phil"), filter);
+                Assert.AreEqual(database.GetValidation("val"), validation);
+                Assert.AreEqual(serverView.Map, map);
+                Assert.AreEqual(serverView.Reduce, reduce);
+                return true;
+            });
             result.Wait(TimeSpan.FromSeconds(5));
             // blocks until async task has run
             db.Close();

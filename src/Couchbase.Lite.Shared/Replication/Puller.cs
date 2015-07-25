@@ -96,14 +96,14 @@ namespace Couchbase.Lite.Replicator
 
         internal Puller(Database db, Uri remote, bool continuous, TaskFactory workExecutor)
             : this(db, remote, continuous, null, workExecutor) { }
-        
+
         internal Puller(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor) 
             : base(db, remote, continuous, clientFactory, workExecutor) {  }
 
         #endregion
 
         #region Private Methods
-        
+
         private void PauseOrResume()
         {
             var pending = 0;
@@ -395,7 +395,7 @@ namespace Couchbase.Lite.Replicator
             _pendingBulkDownloads.Add(t);
         }
 
-		private bool ShouldRetryDownload(string docId)
+        private bool ShouldRetryDownload(string docId)
         {
             var localDoc = LocalDatabase.GetExistingLocalDocument(docId);
             if (localDoc == null)
@@ -463,7 +463,7 @@ namespace Couchbase.Lite.Replicator
                     attachment.Remove("file");
                 }
             }
-                
+
             //TODO: rev.getBody().compact();
 
             if (_downloadsToInsert != null) {
@@ -549,8 +549,7 @@ namespace Couchbase.Lite.Replicator
             // been added since the latest revisions we have locally.
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
             var path = new StringBuilder("/" + Uri.EscapeUriString(rev.GetDocId()) + "?rev=" + Uri.EscapeUriString(rev.GetRevId()) + "&revs=true&attachments=true");
-            var hasAtts = true;
-            var tmp = LocalDatabase.GetPossibleAncestorRevisionIDs(rev, MAX_ATTS_SINCE, ref hasAtts);
+            var tmp = LocalDatabase.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
             var knownRevs = tmp == null ? null : tmp.ToList();
             if (knownRevs == null) {
                 //this means something is wrong, possibly the replicator has shut down
@@ -671,7 +670,7 @@ namespace Couchbase.Lite.Replicator
         }
 
         #endregion
-            
+
         #region Overrides
 
         public override bool CreateTarget { get { return false; } set { return; /* No-op intended. Only used in Pusher. */ } }

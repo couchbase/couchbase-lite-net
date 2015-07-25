@@ -2,7 +2,7 @@
 //  DBMonitorCouchbaseResponseState.cs
 //
 //  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
+//      Jim Borden  <jim.borden@couchbase.com>
 //
 //  Copyright (c) 2015 Couchbase, Inc All rights reserved.
 //
@@ -19,6 +19,7 @@
 //  limitations under the License.
 //
 
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
@@ -44,13 +45,16 @@ namespace Couchbase.Lite.Listener
 
         #region Variables
 
-        private Database _db;
         private Timer _heartbeatTimer;
         private RevisionList _changes = new RevisionList();
 
         #endregion
 
         #region Properties
+
+        public ICouchbaseListenerContext Context { get; set; }
+
+        public Database Db { get; set; }
 
         /// <summary>
         /// The changes feed mode being used to listen to the database
@@ -68,9 +72,20 @@ namespace Couchbase.Lite.Listener
         public bool ChangesIncludeConflicts { get; set; }
 
         /// <summary>
+        /// The options for retrieving data from the DB
+        /// </summary>
+        public DocumentContentOptions ContentOptions { get; set; }
+
+        /// <summary>
         /// The delegate to filter the changes being written
         /// </summary>
         public FilterDelegate ChangesFilter { get; set; }
+
+        /// <summary>
+        /// The parameters used in the change filter
+        /// </summary>
+        /// <value>The filter parameters.</value>
+        public IDictionary<string, object> FilterParams { get; set; }
 
         //ICouchbaseResponseState
         public CouchbaseLiteResponse Response { get; set; }
@@ -115,8 +130,8 @@ namespace Couchbase.Lite.Listener
             }
 
             IsAsync = true;
-            _db = db;
-            _db.Changed += DatabaseChanged;
+            Db = db;
+            Db.Changed += DatabaseChanged;
         }
 
         /// <summary>
@@ -156,7 +171,7 @@ namespace Couchbase.Lite.Listener
         {
             foreach (var change in args.Changes) {
                 var rev = change.AddedRevision;
-                var winningRev = change.WinningRevision;
+                var winningRev = change.WinningRevisionId;
 
                 if (!ChangesIncludeConflicts) {
                     if (winningRev == null) {
@@ -169,12 +184,12 @@ namespace Couchbase.Lite.Listener
                         // This isn't correct internally (this is an old rev so it has an older sequence)
                         // but consumers of the _changes feed don't care about the internal state.
                         if (ChangesIncludeDocs) {
-                            _db.LoadRevisionBody(rev, DocumentContentOptions.None);
+                            Db.LoadRevisionBody(rev);
                         }
                     }
                 }
 
-                if (!_db.RunFilter(ChangesFilter, null, rev)) {
+                if (!Db.RunFilter(ChangesFilter, FilterParams, rev)) {
                     continue;
                 }
 
@@ -199,13 +214,13 @@ namespace Couchbase.Lite.Listener
         // Tear down this object because an error occurred
         private void Terminate()
         {
-            if (_db == null) {
+            if (Db == null) {
                 return;
             }
 
-            _db.Changed -= DatabaseChanged;
+            Db.Changed -= DatabaseChanged;
             CouchbaseLiteRouter.ResponseFinished(this);
-            _db = null;
+            Db = null;
 
             if (_heartbeatTimer != null) {
                 _heartbeatTimer.Dispose();
@@ -217,4 +232,3 @@ namespace Couchbase.Lite.Listener
 
     }
 }
-

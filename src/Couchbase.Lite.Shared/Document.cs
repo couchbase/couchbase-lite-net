@@ -58,11 +58,11 @@ namespace Couchbase.Lite {
     /// <summary>
     /// A Couchbase Lite Document.
     /// </summary>
-    public sealed class Document {
+    public sealed class Document {
 
         SavedRevision currentRevision;
-            
-    #region Constructors
+
+        #region Constructors
 
         /// <summary>Constructor</summary>
         /// <param name="database">The document's owning database</param>
@@ -73,9 +73,9 @@ namespace Couchbase.Lite {
             Id = documentId;
         }
 
-    #endregion
-    
-    #region Instance Members
+        #endregion
+
+        #region Instance Members
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Database"/> that owns this <see cref="Couchbase.Lite.Document"/>.
@@ -93,7 +93,7 @@ namespace Couchbase.Lite {
         /// Gets if the <see cref="Couchbase.Lite.Document"/> is deleted.
         /// </summary>
         /// <value><c>true</c> if deleted; otherwise, <c>false</c>.</value>
-        public Boolean Deleted { get { return CurrentRevision == null && LeafRevisions.Any (); } }
+        public Boolean Deleted { get { return currentRevision == null && LeafRevisions.Any (); } }
 
         /// <summary>
         /// If known, gets the Id of the current <see cref="Couchbase.Lite.Revision"/>, otherwise null.
@@ -104,7 +104,7 @@ namespace Couchbase.Lite {
                 var cr = CurrentRevision;
                 return cr == null 
                     ? null
-                    : cr.Id;
+                        : cr.Id;
             }
         }
 
@@ -114,10 +114,10 @@ namespace Couchbase.Lite {
         /// <value>The current/latest <see cref="Couchbase.Lite.Revision"/>.</value>
         public SavedRevision CurrentRevision { 
             get {
-                if (currentRevision == null) 
-                {
+                if (currentRevision == null) {
                     currentRevision = GetRevisionWithId(null);
                 }
+
                 return currentRevision;
             }
         }
@@ -138,7 +138,7 @@ namespace Couchbase.Lite {
             get {
                 if (CurrentRevision == null)
                 {
-                    Log.W(Database.Tag, "get_RevisionHistory called but no CurrentRevision");
+                    Log.W(Database.TAG, "get_RevisionHistory called but no CurrentRevision");
                     return null;
                 }
                 return CurrentRevision.RevisionHistory;
@@ -249,8 +249,7 @@ namespace Couchbase.Lite {
             if (CurrentRevision != null && id.Equals(CurrentRevision.Id))
                 return CurrentRevision;
 
-            var contentOptions = DocumentContentOptions.None;
-            var revisionInternal = Database.GetDocumentWithIDAndRev(Id, id, contentOptions);
+            var revisionInternal = Database.GetDocument(Id, id, true);
 
             var revision = GetRevisionFromRev(revisionInternal);
             return revision;
@@ -384,18 +383,23 @@ namespace Couchbase.Lite {
         }
         private EventHandler<DocumentChangeEventArgs> _change;
 
-    #endregion
+        #endregion
 
 
-    #region Non-public Members
+        #region Non-public Members
+
+        internal void ForgetCurrentRevision()
+        {
+            currentRevision = null;
+        }
 
         private SavedRevision GetRevisionWithId(String revId)
         {
-            if (!StringEx.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id))
-            {
+            if (!StringEx.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id)) {
                 return currentRevision;
             }
-            return GetRevisionFromRev(Database.GetDocumentWithIDAndRev(Id, revId, DocumentContentOptions.None));
+
+            return GetRevisionFromRev(Database.GetDocument(Id, revId, true));
         }
 
         internal void LoadCurrentRevisionFrom(QueryRow row)
@@ -421,53 +425,33 @@ namespace Couchbase.Lite {
         {
             return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.Id) > 0);
         }
-            
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       
         internal SavedRevision PutProperties(IDictionary<String, Object> properties, String prevID, Boolean allowConflict)
         {
-            string newId = null;
-            if (properties != null && properties.ContainsKey("_id"))
-            {
-                newId = (string)properties.Get("_id");
-            }
-            if (newId != null && !newId.Equals(Id, StringComparison.InvariantCultureIgnoreCase))
-            {
-                Log.W(Database.Tag, String.Format("Trying to put wrong _id to this: {0} properties: {1}", this, properties)); // TODO: Make sure all string formats use .NET codes, and not Java.
+            string newId = properties == null ? null : properties.GetCast<string>("_id");
+            if (newId != null && !newId.Equals(Id, StringComparison.InvariantCultureIgnoreCase))  {
+                Log.W(Database.TAG, String.Format("Trying to put wrong _id to this: {0} properties: {1}", this, properties)); // TODO: Make sure all string formats use .NET codes, and not Java.
             }
 
             // Process _attachments dict, converting CBLAttachments to dicts:
             IDictionary<string, object> attachments = null;
-            if (properties != null && properties.ContainsKey("_attachments"))
-            {
+            if (properties != null && properties.ContainsKey("_attachments")) {
                 attachments = properties.Get("_attachments").AsDictionary<string,object>();
             }
-            if (attachments != null && attachments.Count > 0)
-            {
+
+            if (attachments != null && attachments.Count > 0) {
                 var updatedAttachments = Attachment.InstallAttachmentBodies(attachments, Database);
                 properties["_attachments"] = updatedAttachments;
             }
 
-            var hasTrueDeletedProperty = false;
-            if (properties != null)
-            {
-                hasTrueDeletedProperty = properties.Get("_deleted") != null && ((bool)properties.Get("_deleted"));
+            Status status = new Status();
+            var newRev = Database.PutDocument(Id, properties, prevID, allowConflict, status);
+            if (newRev == null) {
+                throw new CouchbaseLiteException(status.Code);
             }
 
-            var deleted = (properties == null) || hasTrueDeletedProperty;
-            var rev = new RevisionInternal(Id, null, deleted);
-            if (deleted)
-                rev.SetJson(Encoding.UTF8.GetBytes("{}"));
-            if (properties != null)
-            {
-                rev.SetProperties(properties);
-            }
-
-            var newRev = Database.PutRevision(rev, prevID, allowConflict);
-            if (newRev == null)
-            {
-                return null;
-            }
-            return new SavedRevision(this, newRev);
+            return GetRevisionFromRev(newRev);
         }
 
         /// <summary>
@@ -483,7 +467,7 @@ namespace Couchbase.Lite {
         internal IList<SavedRevision> GetLeafRevisions(bool includeDeleted)
         {
             var result = new List<SavedRevision>();
-            var revs = Database.GetAllRevisionsOfDocumentID(Id, true);
+            var revs = Database.GetAllDocumentRevisions(Id, true);
             foreach (RevisionInternal rev in revs)
             {
                 // add it to result, unless we are not supposed to include deleted and it's deleted
@@ -501,32 +485,34 @@ namespace Couchbase.Lite {
 
         internal SavedRevision GetRevisionFromRev(RevisionInternal internalRevision)
         {
-            if (internalRevision == null) return null;
+            if (internalRevision == null) {
+                return null;
+            }
 
-            if (currentRevision != null && internalRevision.GetRevId().Equals(CurrentRevision.Id))
-            {
+            if (currentRevision != null && internalRevision.GetRevId().Equals(CurrentRevision.Id)) {
                 return currentRevision;
             }
-            else
-            {
+            else {
                 return new SavedRevision(this, internalRevision);
             }
         }
 
         internal void RevisionAdded(DocumentChange documentChange, bool notify)
         {
-            var rev = documentChange.WinningRevision;
-            if (rev == null)
-            {
+            var revId = documentChange.WinningRevisionId;
+            if (revId == null) {
                 return;
             }
 
             // current revision didn't change
-            if (currentRevision != null && !rev.GetRevId().Equals(currentRevision.Id))
+            if (currentRevision != null && !revId.Equals(currentRevision.Id))
             {
-                currentRevision = rev.IsDeleted() 
-                    ? null 
-                    : new SavedRevision(this, rev);
+                var rev = documentChange.WinningRevisionIfKnown;
+                if (rev == null || rev.IsDeleted()) {
+                    currentRevision = null;
+                } else if (!rev.IsDeleted()) {
+                    currentRevision = new SavedRevision(this, rev);
+                }
             }
 
             if (!notify) {
@@ -543,9 +529,9 @@ namespace Couchbase.Lite {
                 changeEvent(this, args);
         }
 
-    #endregion
-    
-    #region Delegates
+        #endregion
+
+        #region Delegates
 
         /// <summary>
         /// A delegate that can be used to update a <see cref="Couchbase.Lite.Document"/>.
@@ -558,34 +544,33 @@ namespace Couchbase.Lite {
         /// </returns>
         public delegate Boolean UpdateDelegate(UnsavedRevision revision);
 
-    #endregion
-    
-    #region EventArgs Subclasses
+        #endregion
+
+        #region EventArgs Subclasses
         /// <summary>
         /// The type of event raised when a <see cref="Couchbase.Lite.Document"/> changes. 
         /// This event is not raised in response to local <see cref="Couchbase.Lite.Document"/> changes.
         ///</summary>
         public class DocumentChangeEventArgs : EventArgs {
 
-            //Properties
+            //Properties
             /// <summary>
             /// Gets the <see cref="Couchbase.Lite.Document"/> that raised the event.
             /// </summary>
             /// <value>The <see cref="Couchbase.Lite.Document"/> that raised the event</value>
-            public Document Source { get; internal set; }
+            public Document Source { get; internal set; }
 
             /// <summary>
             /// Gets the details of the change.
             /// </summary>
             /// <value>The details of the change.</value>
-            public DocumentChange Change { get; internal set; }
+            public DocumentChange Change { get; internal set; }
 
         }
 
-    #endregion
-    
-    }
+        #endregion
+
+    }
 
 
 }
-

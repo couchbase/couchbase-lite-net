@@ -48,29 +48,50 @@ using System.Net;
 using System.IO;
 using Sharpen;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Store;
+using System.Diagnostics;
 
 namespace Couchbase.Lite 
 {
     /// <summary>
     /// A result row for a Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/>.
     /// </summary>
-    public sealed class QueryRow 
+    public sealed class QueryRow 
     {
 
-    #region Constructors
+        #region Constants
 
-        internal QueryRow(string documentId, long sequence, object key, object value, IDictionary<String, Object> documentProperties)
+        private const string TAG = "QueryRow";
+
+        #endregion
+
+        #region Variables
+
+        private RevisionInternal _documentRevision;
+        private object _parsedKey, _parsedValue;
+        private View _view;
+
+        #endregion
+
+        #region Constructors
+
+        internal QueryRow(string documentId, long sequence, object key, object value, RevisionInternal revision, View view)
         {
+            // Don't initialize _database yet. I might be instantiated on a background thread (if the
+            // query is async) which has a different CBLDatabase instance than the original caller.
+            // Instead, the database property will be filled in when I'm added to a CBLQueryEnumerator.
             SourceDocumentId = documentId;
             SequenceNumber = sequence;
-            Key = key;
-            Value = value;
-            DocumentProperties = documentProperties;
+            _key = key;
+            _value = value;
+            _documentRevision = revision;
+            _view = view;
         }
 
-    #endregion
+        #endregion
 
-    #region Instance Members
+        #region Instance Members
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.QueryRow"/>'s <see cref="Couchbase.Lite.View"/>.
@@ -84,10 +105,10 @@ namespace Couchbase.Lite
         /// <value>The <see cref="Couchbase.Lite.Document"/> associated with the <see cref="Couchbase.Lite.QueryRow"/>'s <see cref="Couchbase.Lite.View"/>.</value>
         public Document Document { 
             get         {
-                if (DocumentId == null)
-                {
+                if (DocumentId == null || Database == null) {
                     return null;
                 }
+
                 var document = Database.GetDocument(DocumentId);
                 document.LoadCurrentRevisionFrom(this);
                 return document;
@@ -99,13 +120,61 @@ namespace Couchbase.Lite
         /// Gets the <see cref="Couchbase.Lite.QueryRow"/>'s key.
         /// </summary>
         /// <value>The <see cref="Couchbase.Lite.QueryRow"/>'s key.</value>
-        public Object Key { get; private set; }
+        public object Key 
+        { 
+            get {
+                var key = _parsedKey;
+                if (key == null) {
+                    key = _key;
+                    var keyData = key as IEnumerable<byte>;
+                    if (keyData != null) {
+                        key = Manager.GetObjectMapper().ReadValue<object>(keyData);
+                        _parsedKey = key;
+                    }
+                }
+
+                return key;
+            }
+        }
+        private object _key;
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.QueryRow"/>'s value.
         /// </summary>
         /// <value>Rhe <see cref="Couchbase.Lite.QueryRow"/>'s value.</value>
-        public Object Value { get; private set; }
+        public object Value 
+        { 
+            get {
+                var value = _parsedValue;
+                if (value == null) {
+                    value = _value;
+                    var valueData = value as IEnumerable<byte>;
+                    if (valueData != null) {
+                        // _value may start out as unparsed Collatable data
+                        if (View.RowValueIsEntireDoc(valueData)) {
+                            // Value is a placeholder ("*") denoting that the map function emitted "doc" as
+                            // the value. So load the body of the revision now:
+                            if (_documentRevision != null) {
+                                value = _documentRevision.GetProperties();
+                            } else {
+                                Debug.Assert(SequenceNumber != 0);
+                                value = _view.DocumentProperties(SourceDocumentId, SequenceNumber);
+                                if (value == null) {
+                                    Log.W(TAG, "Couldn't load doc for row value");
+                                }
+                            }
+                        } else {
+                            value = View.ParseRowValue<object>(valueData);
+                        }
+                    }
+
+                    _parsedValue = value;
+                }
+
+                return value;
+            }
+        }
+        private object _value;
 
         /// <summary>
         /// Gets the Id of the associated <see cref="Couchbase.Lite.Document"/>.
@@ -113,18 +182,19 @@ namespace Couchbase.Lite
         /// <value>The Id of the associated <see cref="Couchbase.Lite.Document"/>.</value>
         public String DocumentId {
             get {
-                // _documentProperties may have been 'redirected' from a different document
-                if (DocumentProperties == null) return SourceDocumentId;
+                // Get the doc id from either the embedded document contents, or the '_id' value key.
+                // Failing that, there's no document linking, so use the regular old SourceDocumentId
+                if (_documentRevision != null) {
+                    return _documentRevision.GetDocId();
+                }
 
-                var id = DocumentProperties.Get("_id");
-                if (id != null && id is string)
-                {
-                    return (string)id;
+                var valueDic = Value as IDictionary<string, object>;
+                if (valueDic != null) {
+                    var docId = valueDic.GetCast<string>("_id");
+                    return docId ?? SourceDocumentId;
                 }
-                else
-                {
-                    return SourceDocumentId;
-                }
+
+                return SourceDocumentId;
             }
         }
 
@@ -148,23 +218,18 @@ namespace Couchbase.Lite
         /// <value>The Id of the associated <see cref="Couchbase.Lite.Revision"/>.</value>
         public String DocumentRevisionId {
             get {
-                string rev = null;
-                if (DocumentProperties != null && DocumentProperties.ContainsKey("_rev"))
-                {
-                    rev = (string)DocumentProperties.Get("_rev");
+                // Get the revision id from either the embedded document contents,
+                // or the '_rev' or 'rev' value key:
+                if (_documentRevision != null) {
+                    return _documentRevision.GetRevId();
                 }
-                if (rev == null)
-                {
-                    if (Value is IDictionary)
-                    {
-                        var mapValue = (IDictionary<string, object>)Value;
-                        rev = (string)mapValue.Get("_rev");
-                        if (rev == null)
-                        {
-                            rev = (string)mapValue.Get("rev");
-                        }
-                    }
+
+                var value = Value as IDictionary<string, object>;
+                var rev = value == null ? null : value.GetCast<string>("_rev");
+                if (value != null && rev == null) {
+                    rev = value.GetCast<string>("rev");
                 }
+
                 return rev;
             }
         }
@@ -173,7 +238,11 @@ namespace Couchbase.Lite
         /// Gets the properties of the associated <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <value>The properties of the associated <see cref="Couchbase.Lite.Document"/>.</value>
-        public IDictionary<String, Object> DocumentProperties { get; private set; }
+        public IDictionary<String, Object> DocumentProperties { 
+            get {
+                return _documentRevision != null ? _documentRevision.GetProperties() : null;
+            }
+        }
 
         /// <summary>
         /// Gets the sequence number of the associated <see cref="Couchbase.Lite.Revision"/>.
@@ -194,21 +263,14 @@ namespace Couchbase.Lite
         public IEnumerable<SavedRevision> GetConflictingRevisions()
         {
             var doc = Database.GetDocument(SourceDocumentId);
-            var valueTmp = (IDictionary<string, object>)Value;
-
-            var conflicts = (IList<string>)valueTmp["_conflicts"];
-            if (conflicts == null)
-            {
-                conflicts = new List<string>();
+            var value = Value as IDictionary<string, object>;
+            if (value == null) {
+                return null;
             }
 
-            var conflictingRevisions = new List<SavedRevision>();
-            foreach (var conflictRevisionId in conflicts)
-            {
-                var revision = doc.GetRevision(conflictRevisionId);
-                conflictingRevisions.AddItem(revision);
-            }
-            return conflictingRevisions;
+            var conflicts = value.GetCast<IList<string>>("_conflicts", new List<string>());
+            return from revID in conflicts
+                select doc.GetRevision(revID);
         }
 
         /// <summary>
@@ -247,31 +309,27 @@ namespace Couchbase.Lite
         /// </remarks>
         public override bool Equals(object obj)
         {
-            if (obj == this)
-            {
+            if (obj == this) {
                 return true;
             }
-            if (!(obj is QueryRow))
-            {
+
+            var other = obj as QueryRow;
+            if (other == null) {
                 return false;
             }
 
-            var other = (QueryRow)obj;
             var documentPropertiesEqual = Misc.IsEqual(DocumentProperties, other.DocumentProperties);
 
-            if (Database == other.Database && 
-                Misc.IsEqual(Key, other.Key) && 
-                Misc.IsEqual(SourceDocumentId, other.SourceDocumentId) && 
-                documentPropertiesEqual)
-            {
+            if (Database == other.Database &&
+                Misc.IsEqual(Key, other.Key) &&
+                Misc.IsEqual(SourceDocumentId, other.SourceDocumentId) &&
+                documentPropertiesEqual) {
                 // If values were emitted, compare them. Otherwise we have nothing to go on so check
                 // if _anything_ about the doc has changed (i.e. the sequences are different.)
-                if (Value != null || other.Value != null)
-                {
+                if (Value != null || other.Value != null) {
                     return Value.Equals(other.Value);
                 }
-                else
-                {
+                else {
                     return SequenceNumber == other.SequenceNumber;
                 }
             }
@@ -297,8 +355,8 @@ namespace Couchbase.Lite
             return AsJSONDictionary().ToString();
         }
 
-    #endregion
+        #endregion
 
-    }
+    }
 
 }

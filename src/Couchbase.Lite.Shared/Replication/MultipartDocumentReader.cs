@@ -224,7 +224,7 @@ namespace Couchbase.Lite.Support
                     {
                         var msg = String.Format("Attachment '{0}' sent inline (len={1}).  Large attachments "
                             + "should be sent in MIME parts for reduced memory overhead.", attachmentName);
-                        Log.W(Database.Tag, msg);
+                        Log.W(Database.TAG, msg);
                     }
                 }
             }
@@ -248,7 +248,7 @@ namespace Couchbase.Lite.Support
             }
             else
             {
-                curAttachment = database.GetAttachmentWriter();
+                curAttachment = database.AttachmentWriter;
                 var contentDisposition = headers.Get("Content-Disposition");
                 if (contentDisposition != null && contentDisposition.StartsWith("attachment; filename="))
                 {

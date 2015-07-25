@@ -85,24 +85,24 @@ namespace Couchbase.Lite {
     /// </summary>
     [Serializable]
     public enum IndexUpdateMode {
-            /// <summary>
-            /// If needed, update the index before running the <see cref="Couchbase.Lite.Query"/> (default). 
-            /// This guarantees up-to-date results at the expense of a potential delay in receiving results.
-            /// </summary>
-            Before,
-            /// <summary>
-            /// Never update the index when running a <see cref="Couchbase.Lite.Query"/>. 
-            /// This guarantees receiving results the fastest at the expense of potentially out-of-date results.
-            /// </summary>
-            Never,
-            /// <summary>
-            /// If needed, update the index asynchronously after running the <see cref="Couchbase.Lite.Query"/>. 
-            /// This guarantees receiving results the fastest, at the expense of potentially out-of-date results, 
-            /// and that subsequent Queries will return more accurate results.
-            /// </summary>
-            After
+        /// <summary>
+        /// If needed, update the index before running the <see cref="Couchbase.Lite.Query"/> (default). 
+        /// This guarantees up-to-date results at the expense of a potential delay in receiving results.
+        /// </summary>
+        Before,
+        /// <summary>
+        /// Never update the index when running a <see cref="Couchbase.Lite.Query"/>. 
+        /// This guarantees receiving results the fastest at the expense of potentially out-of-date results.
+        /// </summary>
+        Never,
+        /// <summary>
+        /// If needed, update the index asynchronously after running the <see cref="Couchbase.Lite.Query"/>. 
+        /// This guarantees receiving results the fastest, at the expense of potentially out-of-date results, 
+        /// and that subsequent Queries will return more accurate results.
+        /// </summary>
+        After
     }
-            
+
     /// <summary>
     /// Options for specifying the mode that an all documents query should run in
     /// </summary>
@@ -124,13 +124,18 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Include *only* conflicted revisions in the results
         /// </summary>
-        OnlyConflicts
+        OnlyConflicts,
+
+        /// <summary>
+        /// Order by sequence number (i.e. chronologically)
+        /// </summary>
+        BySequence
     }
 
     /// <summary>
     /// A Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/>.
     /// </summary>
-    public class Query : IDisposable
+    public class Query : IDisposable
     {
 
         #region Constants
@@ -347,7 +352,7 @@ namespace Couchbase.Lite {
 
         #endregion
 
-        #region Constructors
+        #region Constructors
 
         // null view for _all_docs query
         internal Query(Database database, View view)
@@ -366,7 +371,7 @@ namespace Couchbase.Lite {
 
         /// <summary>Constructor</summary>
         internal Query(Database database, MapDelegate mapFunction)
-        : this(database, database.MakeAnonymousView())
+            : this(database, database.MakeAnonymousView())
         {
             TemporaryView = true;
             View.SetMap(mapFunction, string.Empty);
@@ -374,7 +379,7 @@ namespace Couchbase.Lite {
 
         /// <summary>Constructor</summary>
         internal Query(Database database, Query query) 
-        : this(database, query.View)
+            : this(database, query.View)
         {
             Limit = query.Limit;
             Skip = query.Skip;
@@ -395,7 +400,7 @@ namespace Couchbase.Lite {
 
 
         #endregion
-       
+
 
         #region Public Methods
 
@@ -407,30 +412,27 @@ namespace Couchbase.Lite {
         /// </exception>
         public virtual QueryEnumerator Run() 
         {
-            if (!Database.Open())
-            {
+            if (!Database.Open()) {
                 throw new CouchbaseLiteException("The database has been closed.");
             }
 
-            var outSequence = new List<long>();
+            ValueTypePtr<long> outSequence = 0;
             var viewName = (View != null) ? View.Name : null;
             var queryOptions = QueryOptions;
 
             IEnumerable<QueryRow> rows = null;
             var success = Database.RunInTransaction(()=>
             {
-                rows = Database.QueryViewNamed (viewName, queryOptions, outSequence);
-                
-                LastSequence = outSequence[0];
-                
+                rows = Database.QueryViewNamed (viewName, queryOptions, 0, outSequence);
+                LastSequence = outSequence;
                 return true;
             });
 
-            if (!success)
-            {
+            if (!success) {
                 throw new CouchbaseLiteException("Failed to query view named " + viewName, StatusCode.DbError);
             }
-            return new QueryEnumerator(Database, rows, outSequence[0]);
+
+            return new QueryEnumerator(Database, rows, outSequence);
         }
 
         /// <summary>
@@ -443,23 +445,23 @@ namespace Couchbase.Lite {
         public Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> run, CancellationToken token) 
         {
             return Database.Manager.RunAsync(run, token)
-                    .ContinueWith(runTask=> // Raise the query's Completed event.
+                .ContinueWith(runTask=> // Raise the query's Completed event.
+                {
+                    var error = runTask.Exception;
+
+                    var completed = _completed;
+                    if (completed != null)
                     {
-                        var error = runTask.Exception;
+                        var args = new QueryCompletedEventArgs(runTask.Result, error);
+                        completed(this, args);
+                    }
 
-                        var completed = _completed;
-                        if (completed != null)
-                        {
-                            var args = new QueryCompletedEventArgs(runTask.Result, error);
-                            completed(this, args);
-                        }
-
-                        if (error != null) {
-                            Log.E(TAG, "Exception caught in runAsyncInternal", error);
-                            throw error; // Rethrow innner exceptions.
-                        }
-                        return runTask.Result; // Give additional continuation functions access to the results task.
-                    }, Database.Manager.CapturedContext.Scheduler);
+                    if (error != null) {
+                        Log.E(TAG, "Exception caught in runAsyncInternal", error);
+                        throw error; // Rethrow innner exceptions.
+                    }
+                    return runTask.Result; // Give additional continuation functions access to the results task.
+                }, Database.Manager.CapturedContext.Scheduler);
         }
 
         /// <summary>
@@ -502,9 +504,8 @@ namespace Couchbase.Lite {
             if (TemporaryView)
                 View.Delete();
         }
-    
-        #pragma warning restore 1591
-        #endregion    
-    }
-}
 
+        #pragma warning restore 1591
+        #endregion    
+    }
+}

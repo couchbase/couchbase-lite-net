@@ -58,6 +58,11 @@ namespace Couchbase.Lite
         Unknown = -1,
 
         /// <summary>
+        /// For internal use
+        /// </summary>
+        Reserved = 0,
+
+        /// <summary>
         /// Successful completion (HTTP compliant)
         /// </summary>
         Ok = 200,

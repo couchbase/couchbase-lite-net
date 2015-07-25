@@ -208,6 +208,46 @@ namespace Couchbase.Lite
             return theProperties.Get(key);
         }
 
+        /// <summary>
+        /// Gets the cast property for the given key, or uses the default value if not found
+        /// </summary>
+        /// <returns>The property for key, cast to T</returns>
+        /// <param name="key">The key to search for</param>
+        /// <param name="defaultVal">The value to use if the key is not found</param>
+        /// <typeparam name="T">The type to cast to</typeparam>
+        public T GetPropertyForKey<T>(string key, T defaultVal = default(T))
+        {
+            IDictionary<string, object> theProperties = GetProperties();
+            if (theProperties == null) {
+                return defaultVal;
+            }
+
+            return theProperties.GetCast<T>(key, defaultVal);
+        }
+
+        /// <summary>
+        /// Tries the get property for key and cast it to T
+        /// </summary>
+        /// <returns><c>true</c>, if the property was found and cast, <c>false</c> otherwise.</returns>
+        /// <param name="key">The key to search for</param>
+        /// <param name="val">The cast value, if successful</param>
+        /// <typeparam name="T">The type to cast to</typeparam>
+        public bool TryGetPropertyForKey<T>(string key, out T val)
+        {
+            val = default(T);
+            IDictionary<string, object> theProperties = GetProperties();
+            if (theProperties == null) {
+                return false;
+            }
+
+            object valueObj;
+            if (!theProperties.TryGetValue(key, out valueObj)) {
+                return false;
+            }
+
+            return ExtensionMethods.TryCast<T>(valueObj, out val);
+        }
+
         #endregion
 
         #region Private Methods
@@ -225,13 +265,13 @@ namespace Couchbase.Lite
                 throw new InvalidDataException("The array or dictionary stored is corrupt", e);
             }
         }
-          
+
         // Attempt to deserialize /json
         private void LazyLoadObjectFromJson()
         {
             if (_json == null) {
                 throw new InvalidOperationException("Both object and json are null for this body: "
-                + this);
+                    + this);
             }
 
             try {

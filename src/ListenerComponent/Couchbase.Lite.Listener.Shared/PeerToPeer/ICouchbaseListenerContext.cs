@@ -2,7 +2,7 @@
 //  ICouchbaseListenerContext.cs
 //
 //  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
+//      Jim Borden  <jim.borden@couchbase.com>
 //
 //  Copyright (c) 2015 Couchbase, Inc All rights reserved.
 //
@@ -23,6 +23,7 @@ using System.Collections.Specialized;
 using System.IO;
 
 using Couchbase.Lite.Replicator;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Listener
 {
@@ -140,6 +141,12 @@ namespace Couchbase.Lite.Listener
         string GetQueryParam(string key);
 
         /// <summary>
+        /// Returns all of the query parameters
+        /// </summary>
+        /// <returns>The query parameters of the URL.</returns>
+        IDictionary<string, object> GetQueryParams();
+
+        /// <summary>
         /// Inserts the given string into the Etag header of the response, and checks to see if
         /// the request has the etag in the If-None-Match header
         /// </summary>
@@ -178,4 +185,3 @@ namespace Couchbase.Lite.Listener
 
     }
 }
-

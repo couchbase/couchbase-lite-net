@@ -94,8 +94,6 @@ namespace Couchbase.Lite
             var result = true;
             try
             {
-                Log.I(Tag, "Sqlite Version: {0}".Fmt(raw.sqlite3_libversion()));
-                
                 shouldCommit = false;
                 const int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(writer_flags, out _writeConnection);

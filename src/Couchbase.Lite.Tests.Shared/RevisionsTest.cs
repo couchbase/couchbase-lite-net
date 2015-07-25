@@ -60,46 +60,34 @@ namespace Couchbase.Lite
         [Test]
         public void TestParseRevID()
         {
-            int num;
-            string suffix;
+            var parsed = RevisionInternal.ParseRevId("1-utiopturoewpt");
+            Assert.AreEqual(1, parsed.Item1);
+            Assert.AreEqual("utiopturoewpt", parsed.Item2);
 
-            num = Database.ParseRevIDNumber("1-utiopturoewpt");
-            Assert.AreEqual(1, num);
-            suffix = Database.ParseRevIDSuffix("1-utiopturoewpt");
-            Assert.AreEqual("utiopturoewpt", suffix);
+            parsed = RevisionInternal.ParseRevId("321-fdjfdsj-e");
+            Assert.AreEqual(321, parsed.Item1);
+            Assert.AreEqual("fdjfdsj-e", parsed.Item2);
 
-            num = Database.ParseRevIDNumber("321-fdjfdsj-e");
-            Assert.AreEqual(321, num);
-            suffix = Database.ParseRevIDSuffix("321-fdjfdsj-e");
-            Assert.AreEqual("fdjfdsj-e", suffix);
+            parsed = RevisionInternal.ParseRevId("0-fdjfdsj-e");
+            Assert.IsTrue(parsed.Item1 == 0 && parsed.Item2 == "fdjfdsj-e");
+            parsed = RevisionInternal.ParseRevId("-4-fdjfdsj-e");
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId("5_fdjfdsj-e");
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId(" 5-fdjfdsj-e");
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId("7 -foo");
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId("7-");
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId("7");
 
-            num = Database.ParseRevIDNumber("0-fdjfdsj-e");
-            suffix = Database.ParseRevIDSuffix("0-fdjfdsj-e");
-            Assert.IsTrue(num == 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("-4-fdjfdsj-e");
-            suffix = Database.ParseRevIDSuffix("-4-fdjfdsj-e");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("5_fdjfdsj-e");
-            suffix = Database.ParseRevIDSuffix("5_fdjfdsj-e");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber(" 5-fdjfdsj-e");
-            suffix = Database.ParseRevIDSuffix(" 5-fdjfdsj-e");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("7 -foo");
-            suffix = Database.ParseRevIDSuffix("7 -foo");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("7-");
-            suffix = Database.ParseRevIDSuffix("7-");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("7");
-            suffix = Database.ParseRevIDSuffix("7");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("eiuwtiu");
-            suffix = Database.ParseRevIDSuffix("eiuwtiu");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber(string.Empty);
-            suffix = Database.ParseRevIDSuffix(string.Empty);
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId("eiuwtiu");
+
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId(string.Empty);
+            Assert.IsTrue(parsed.Item1 < 0);
         }
 
         [Test]
@@ -149,18 +137,18 @@ namespace Couchbase.Lite
             var expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["start"] = 4;
             expectedHistoryDict["ids"] = expectedSuffixes;
-            
+
             var historyDict = Database.MakeRevisionHistoryDict(revs);
             Assert.AreEqual(expectedHistoryDict, historyDict);
-            
+
             revs = new List<RevisionInternal>();
             revs.AddItem(Mkrev("4-jkl"));
             revs.AddItem(Mkrev("2-def"));
-            
+
             expectedSuffixes = new List<string>();
             expectedSuffixes.AddItem("4-jkl");
             expectedSuffixes.AddItem("2-def");
-            
+
             expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["ids"] = expectedSuffixes;
             historyDict = Database.MakeRevisionHistoryDict(revs);
@@ -169,15 +157,15 @@ namespace Couchbase.Lite
             revs = new List<RevisionInternal>();
             revs.AddItem(Mkrev("12345"));
             revs.AddItem(Mkrev("6789"));
-            
+
             expectedSuffixes = new List<string>();
             expectedSuffixes.AddItem("12345");
             expectedSuffixes.AddItem("6789");
-            
+
             expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["ids"] = expectedSuffixes;
             historyDict = Database.MakeRevisionHistoryDict(revs);
-            
+
             Assert.AreEqual(expectedHistoryDict, historyDict);
         }
 
@@ -197,7 +185,7 @@ namespace Couchbase.Lite
             var rev9b = CreateRevisionWithRandomProps(rev8b, true);
             var rev10b = CreateRevisionWithRandomProps(rev9b, true);
 
-            var revFound = database.GetDocumentWithIDAndRev(doc.Id, null, DocumentContentOptions.None);
+            var revFound = database.GetDocument(doc.Id, null, true);
             Assert.AreEqual(rev10b.Id, revFound.GetRevId());
         }
 
@@ -214,7 +202,7 @@ namespace Couchbase.Lite
             // rev3b should be picked as the winner since it has a longer branch
             var expectedWinner = rev3b;
 
-            var revFound = database.GetDocumentWithIDAndRev(doc.Id, null, DocumentContentOptions.None);
+            var revFound = database.GetDocument(doc.Id, null, true);
             Assert.AreEqual(expectedWinner.Id, revFound.GetRevId());
         }
 
@@ -234,7 +222,7 @@ namespace Couchbase.Lite
                 expectedWinner = rev2b;
             }
 
-            var revFound = database.GetDocumentWithIDAndRev(doc.Id, null, DocumentContentOptions.None);
+            var revFound = database.GetDocument(doc.Id, null, true);
             Assert.AreEqual(expectedWinner.Id, revFound.GetRevId());
         }
 
@@ -355,5 +343,45 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, doc.ConflictingRevisions.Count());
             Assert.AreEqual(2, doc.GetLeafRevisions(true).Count);
         }
+
+        [Test]
+        [Description("Handle the case where _deleted is not a bool.  See: https://github.com/couchbase/couchbase-lite-net/issues/414")]
+        public void TestRevisionWithNull()
+        {
+
+            RevisionInternal revisionWitDeletedNull  = new RevisionInternal(new Dictionary<string, Object>
+            {
+                {"_id", Guid.NewGuid().ToString()},
+                {"_rev", "1-23243234"},
+                {"_deleted", null}
+            });
+
+            RevisionInternal revisionWithDeletedFalse = new RevisionInternal(new Dictionary<string, Object>
+            {
+                {"_id", Guid.NewGuid().ToString()},
+                {"_rev", "1-23243234"},
+                {"_deleted", false}
+            });
+
+            RevisionInternal revisionWithDeletedTrue = new RevisionInternal(new Dictionary<string, Object>
+            {
+                {"_id", Guid.NewGuid().ToString()},
+                {"_rev", "1-23243234"},
+                {"_deleted", true}
+            });
+
+            RevisionInternal revisionWithDeletedString = new RevisionInternal(new Dictionary<string, Object>
+            {
+                {"_id", Guid.NewGuid().ToString()},
+                {"_rev", "1-23243234"},
+                {"_deleted", "foo"}
+            });
+
+            Assert.IsFalse(revisionWitDeletedNull.IsDeleted());
+            Assert.IsFalse(revisionWithDeletedFalse.IsDeleted());
+            Assert.IsFalse(revisionWithDeletedString.IsDeleted());
+            Assert.IsTrue(revisionWithDeletedTrue.IsDeleted());
+        }
+
     }
 }

@@ -113,7 +113,7 @@ namespace Couchbase.Lite
                 {
                     try
                     {
-                        InternalRevision = Database.LoadRevisionBody(InternalRevision, DocumentContentOptions.None);
+                        InternalRevision = Database.LoadRevisionBody(InternalRevision);
                         return new SavedRevision(Database, InternalRevision);
                     }
                     catch (CouchbaseLiteException e)

@@ -56,7 +56,7 @@ namespace Couchbase.Lite
     /// </summary>
     public class UnsavedRevision : Revision, IDisposable {
 
-    #region Non-public Members
+        #region Non-public Members
         IDictionary<String, Object> properties;
 
         String ParentRevisionID { get; set; }
@@ -89,9 +89,9 @@ namespace Couchbase.Lite
         }
 
 
-    #endregion
+        #endregion
 
-    #region Constructors
+        #region Constructors
         internal UnsavedRevision(Document document, SavedRevision parentRevision): base(document)
         {
             if (parentRevision == null)
@@ -124,9 +124,9 @@ namespace Couchbase.Lite
             }
         }
 
-    #endregion
+        #endregion
 
-    #region Instance Members
+        #region Instance Members
         /// <summary>
         /// Gets or sets if the <see cref="Couchbase.Lite.Revision"/> marks the deletion of its <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
@@ -139,12 +139,10 @@ namespace Couchbase.Lite
                 return base.IsDeletion;
             }
             set {
-                if (value)
-                {
+                if (value) {
                     properties["_deleted"] = true;
                 }
-                else
-                {
+                else {
                     properties.Remove("_deleted");
                 }
             }
@@ -158,7 +156,7 @@ namespace Couchbase.Lite
             get {
                 return String.IsNullOrEmpty(ParentId) 
                     ? null 
-                    : Document.GetRevision(ParentId);
+                        : Document.GetRevision(ParentId);
             }
         }
 
@@ -225,14 +223,14 @@ namespace Couchbase.Lite
             newProps.PutAll(userProperties);
 
             foreach (string key in Properties.Keys)
+            {
+                if (key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        newProps.Put(key, properties.Get(key));
-                    }
+                    newProps.Put(key, properties.Get(key));
                 }
-                // Preserve metadata properties
-                properties = newProps;
+            }
+            // Preserve metadata properties
+            properties = newProps;
         }
 
         /// <summary>
@@ -274,7 +272,7 @@ namespace Couchbase.Lite
         public void SetAttachment(String name, String contentType, IEnumerable<Byte> content) {
             var attachment = new Attachment(new MemoryStream(content.ToArray()), contentType);
             AddAttachment(attachment, name);
-            
+
         }
 
         /// <summary>
@@ -316,7 +314,7 @@ namespace Couchbase.Lite
 
                 SetAttachment(name, contentType, inputBytes);
             } catch (IOException e) {
-                Log.E(Database.Tag, "Error opening stream for url: {0}", contentUrl);
+                Log.E(Database.TAG, "Error opening stream for url: {0}", contentUrl);
                 throw new Exception(String.Format("Error opening stream for url: {0}", contentUrl), e);
             }
         }
@@ -338,7 +336,7 @@ namespace Couchbase.Lite
             AddAttachment(null, name);
         }
 
-    #endregion
+        #endregion
 
         #region IDisposable
 
@@ -366,7 +364,7 @@ namespace Couchbase.Lite
         }
 
         #endregion
-    
-    }
+
+    }
 
 }

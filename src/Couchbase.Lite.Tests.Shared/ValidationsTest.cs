@@ -103,17 +103,9 @@ namespace Couchbase.Lite
             Sharpen.Collections.Remove(props, "towel");
             rev.SetProperties(props);
             validationCalled = false;
-            bool gotExpectedError = false;
-            try
-            {
-                rev = database.PutRevision(rev, rev.GetRevId(), false, status);
-            }
-            catch (CouchbaseLiteException e)
-            {
-                gotExpectedError = (e.CBLStatus.Code == StatusCode.Forbidden);
-            }
+            rev = database.PutRevision(rev, rev.GetRevId(), false, status);
             Assert.IsTrue(validationCalled);
-            Assert.IsTrue(gotExpectedError);
+            Assert.AreEqual(StatusCode.Forbidden, status.Code);
 
             // POST an invalid new document:
             props = new Dictionary<string, object>();
@@ -121,17 +113,9 @@ namespace Couchbase.Lite
             props["poetry"] = true;
             rev = new RevisionInternal(props);
             validationCalled = false;
-            gotExpectedError = false;
-            try
-            {
-                rev = database.PutRevision(rev, null, false, status);
-            }
-            catch (CouchbaseLiteException e)
-            {
-                gotExpectedError = (e.CBLStatus.Code == StatusCode.Forbidden);
-            }
+            rev = database.PutRevision(rev, null, false, status);
             Assert.IsTrue(validationCalled);
-            Assert.IsTrue(gotExpectedError);
+            Assert.AreEqual(StatusCode.Forbidden, status.Code);
 
             // PUT a valid new document with an ID:
             props = new Dictionary<string, object>();
@@ -157,17 +141,9 @@ namespace Couchbase.Lite
             props["name"] = "Pot of Petunias";
             rev = new RevisionInternal(props);
             validationCalled = false;
-            gotExpectedError = false;
-            try
-            {
-                rev = database.PutRevision(rev, null, false, status);
-            }
-            catch (CouchbaseLiteException e)
-            {
-                gotExpectedError = (e.CBLStatus.Code == StatusCode.Forbidden);
-            }
+            rev = database.PutRevision(rev, null, false, status);
             Assert.IsTrue(validationCalled);
-            Assert.IsTrue(gotExpectedError);
+            Assert.AreEqual(StatusCode.Forbidden, status.Code);
         }
     }
 }

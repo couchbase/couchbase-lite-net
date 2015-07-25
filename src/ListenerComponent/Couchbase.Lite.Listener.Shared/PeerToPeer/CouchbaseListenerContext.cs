@@ -2,7 +2,7 @@
 //  CouchbaseListenerContext.cs
 //
 //  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
+//      Jim Borden  <jim.borden@couchbase.com>
 //
 //  Copyright (c) 2015 Couchbase, Inc All rights reserved.
 //
@@ -336,6 +336,8 @@ namespace Couchbase.Lite.Listener
 
         public abstract string GetQueryParam(string key);
 
+        public abstract IDictionary<string, object> GetQueryParams();
+
         public abstract bool CacheWithEtag(string etag);
 
         #endregion
@@ -363,4 +365,3 @@ namespace Couchbase.Lite.Listener
         #endregion
     }
 }
-

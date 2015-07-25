@@ -198,7 +198,7 @@ namespace Couchbase.Lite.Db
 
                         Log.D(TAG, "Upgrading doc {0} history {1}", rev, Manager.GetObjectMapper().WriteValueAsString(history));
                         try {
-                            _db.ForceInsert(rev, history, null, status);
+                            _db.ForceInsert(rev, history, null);
                         } catch (CouchbaseLiteException e) {
                             status = e.CBLStatus;
                         }

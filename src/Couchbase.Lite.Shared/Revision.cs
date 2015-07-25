@@ -47,16 +47,20 @@ using System.Collections.Generic;
 using System.Net;
 using System.IO;
 using Sharpen;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite 
 {
+
+    internal delegate bool RevisionFilter(RevisionInternal rev);
+
     /// <summary>
     /// A Couchbase Lite Document Revision.
     /// </summary>
-    public abstract class Revision 
+    public abstract class Revision 
     {
-    
-    #region Constructors
+
+        #region Constructors
 
         /// <summary>
         /// Convenience constructor
@@ -72,9 +76,9 @@ namespace Couchbase.Lite
             Document = document;
         }
 
-    #endregion
+        #endregion
 
-    #region Non-public Members
+        #region Non-public Members
 
         internal virtual Int64 Sequence { get; private set; }
 
@@ -84,9 +88,9 @@ namespace Couchbase.Lite
         }
 
 
-    #endregion
+        #endregion
 
-    #region Instance Members
+        #region Instance Members
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Document"/> that this <see cref="Couchbase.Lite.Revision"/> belongs to.
         /// </summary>
@@ -158,13 +162,12 @@ namespace Couchbase.Lite
         public virtual IDictionary<String, Object> UserProperties { 
             get {
                 var result = new Dictionary<String, Object>();
-                foreach (string key in Properties.Keys)
-                {
-                    if (!key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase))
-                    {
+                foreach (string key in Properties.Keys) {
+                    if (!key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase)) {
                         result.Put(key, Properties.Get(key));
                     }
                 }
+
                 return result;
             }
         }
@@ -248,9 +251,9 @@ namespace Couchbase.Lite
             return new Attachment(this, name, attachmentMetadata);
         }
 
-    #endregion
-    
-    #region Operator/Object Overloads
+        #endregion
+
+        #region Operator/Object Overloads
 
         /// <summary>
         /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="Couchbase.Lite.Revision"/>.
@@ -291,7 +294,6 @@ namespace Couchbase.Lite
             return "{" + Document.Id + " #" + Id + (IsDeletion ? "DEL" : String.Empty) + "}";
         }
 
-    #endregion
-    }
+        #endregion
+    }
 }
-

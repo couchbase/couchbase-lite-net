@@ -68,7 +68,7 @@ namespace Couchbase.Lite
 
         public const string FacebookAppId = "78255794086";
 
-         ObjectWriter mapper = new ObjectWriter();
+        ObjectWriter mapper = new ObjectWriter();
 
         protected Manager manager = null;
 
@@ -368,7 +368,7 @@ namespace Couchbase.Lite
         public virtual IDictionary<string, object> GetReplicationAuthParsedJson()
         {
             var authJson = "{\n" + "    \"facebook\" : {\n" + "        \"email\" : \"jchris@couchbase.com\"\n"
-                 + "     }\n" + "   }\n";
+                + "     }\n" + "   }\n";
             mapper = new ObjectWriter();
             var authProperties = mapper.ReadValue<Dictionary<string, object>>(authJson);
             return authProperties;
@@ -414,9 +414,11 @@ namespace Couchbase.Lite
         {
             return database.RunAsync(db => 
             {
-                db.BeginTransaction();
-                LiteTestCase.CreateDocuments(db, n);
-                db.EndTransaction(true);
+                database.RunInTransaction(() => 
+                {
+                    LiteTestCase.CreateDocuments(db, n);
+                    return true;
+                });
             });
         }
 
@@ -486,7 +488,7 @@ namespace Couchbase.Lite
 
             return doc;
         }          
-            
+
         public void StopReplication(Replication replication)
         {
             var replicationDoneSignal = new CountdownEvent(1);
@@ -551,76 +553,6 @@ namespace Couchbase.Lite
                 {
                     Assert.AreEqual(obj1, obj2);
                 }
-            }
-        }
-
-        /// <exception cref="System.Exception"></exception>
-        public void DumpTableMaps()
-        {
-            var cursor = database.StorageEngine.RawQuery("SELECT * FROM maps", null);
-            if (cursor == null) {
-                throw new Exception("RawQuery failed!");
-            }
-
-            while (cursor.MoveToNext())
-            {
-                var viewId = cursor.GetInt(0);
-                var sequence = cursor.GetInt(1);
-                var key = cursor.GetBlob(2);
-                string keyStr = null;
-
-                if (key != null)
-                {
-                    keyStr = Encoding.UTF8.GetString(key);
-                }
-
-                var value = cursor.GetBlob(3);
-                string valueStr = null;
-                if (value != null)
-                {
-                    valueStr = Encoding.UTF8.GetString(value);
-                }
-
-                Log.D(
-                    Tag,
-                    "Maps row viewId: {0} seq: {1}, key: {2}, val: {3}"
-                    .Fmt(viewId, sequence, keyStr, valueStr)
-                );
-            }
-        }
-
-        /// <exception cref="System.Exception"></exception>
-        public void DumpTableRevs()
-        {
-            var cursor = database.StorageEngine.RawQuery("SELECT * FROM revs", null);
-            if (cursor == null) {
-                throw new Exception("RawQuery failed!");
-            }
-
-            while (cursor.MoveToNext())
-            {
-                var sequence = cursor.GetInt(0);
-                var doc_id = cursor.GetInt(1);
-                var revid = cursor.GetBlob(2);
-                string revIdStr = null;
-
-                if (revid != null)
-                {
-                    revIdStr = Encoding.UTF8.GetString(revid);
-                }
-
-                var parent = cursor.GetInt(3);
-                var current = cursor.GetInt(4);
-                var deleted = cursor.GetInt(5);
-
-                Log.D(
-                    Tag, 
-                    "Revs row seq: {0} doc_id: {1}, " +
-                    "revIdStr: {2}, " +
-                    "parent: {3}, " +
-                    "current: {4}, " +
-                    "deleted: {5}".Fmt(sequence, doc_id, revIdStr, parent, current, deleted)
-                );
             }
         }
 

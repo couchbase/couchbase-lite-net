@@ -798,7 +798,7 @@ namespace Couchbase.Lite
                     }
                 }
             } catch (Exception e) {
-                Log.E(Database.Tag, "Exception getting status from " + item, e);
+                Log.E(Database.TAG, "Exception getting status from " + item, e);
             }
 
             return new Status(StatusCode.Ok);
@@ -1618,12 +1618,10 @@ namespace Couchbase.Lite
             if (_savingCheckpoint) {
                 // If a save is already in progress, don't do anything. (The completion block will trigger
                 // another save after the first one finishes.)
-                _overdueForSave = true;
-                return;
+                Task.Delay(500).ContinueWith(t => SaveLastSequence(completionHandler));
             }
 
             lastSequenceChanged = false;
-            _overdueForSave = false;
 
             Log.D(TAG, "saveLastSequence() called. lastSequence: " + LastSequence);
 
@@ -1686,9 +1684,7 @@ namespace Couchbase.Lite
                     LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
                 }
 
-                if (_overdueForSave) {
-                    SaveLastSequence (completionHandler);
-                } else if (completionHandler != null) {
+                if (completionHandler != null) {
                     completionHandler ();
                 }
             });
@@ -1733,12 +1729,12 @@ namespace Couchbase.Lite
 
             SendAsyncRequest(HttpMethod.Get, "/_local/" + RemoteCheckpointDocID(), null, (result, e) =>
             {
+                _savingCheckpoint = false;
+
                 if (LocalDatabase == null) {
                     Log.W(TAG, "db == null while refreshing remote checkpoint.  aborting");
                     return;
                 }
-
-                _savingCheckpoint = false;
 
                 if (e != null && GetStatusFromError(e) != StatusCode.NotFound) {
                     Log.E(TAG, "Error refreshing remote checkpoint", e);
