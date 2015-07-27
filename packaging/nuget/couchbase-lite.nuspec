@@ -4,7 +4,7 @@
     <id>Couchbase.Lite </id>
     <title>Couchbase Lite</title>
     <version>1.1.0</version>
-    <authors>Zachary Gramana</authors>
+    <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
@@ -12,21 +12,66 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
+      Couchbase Lite for .NET 1.1 packs in a number of significant enhancements, including:
+
+      * Self-hosted HTTP REST endpoint. The Couchbase Lite HttpListener now enables your apps to self host it's own REST API, providing a great way to serve data and files to HTTP clients and HTML/JavaScript apps, provide a mechanism for language interop, simple filesharing, or even interprocess communication.
+
+      * Peer-to-peer sync! With the introduction of Couchbase Lite's self-hosting capability, we've enabled two or more apps using Couchbase Lite to replicate with each other--without any other network infrastructure. We've also included support for the most popular way of discovering peers: Bonjour/DNS-SD.
+
+      * Overhauled the internal storage code which now implements the single-writer/multiple-reader pattern in order to achieve better peformance and stability.
+
+      Note:Couchbase Lite 1.1 has a new optimized database schema which is not backwards compatible with 1.0.4 and earlier release. Once automatically migrated to the Couchbase Lite 1.1.0 format, your application’s .cblite database files are no longer readable by earlier versions. This would only impact developers attempting to share a database among multiple apps running different versions of Couchbase Lite, or Couchbase Lite downgrade scenarios.
+
+      Read the [complete 1.1 release notes](http://developer.couchbase.com/mobile/develop/references/couchbase-lite/release-notes/Dot-Net/index.html#1.1.0) on our mobile developer portal.
+
+      Features and Improvements
+
+      #425 Add NSFileProtection support for Xamarin.iOS
+      #409 Add migration support for iOS 1.1 SQLite db schema
+      #405 Add in replication optimization from iOS version
+      #392 Make Database.close() method public (API Change)
+      #387 Indexing scales poorly, due to suboptimal SQL DELETE query
+      #380 Add HttpListener implementation
+      #348 Refactor StorageEngine to segregate reads and writes
+      #83 Add Router support
+
+      Bug fixes
+
+      #423 RemoteCheckpointDocID not using custom channel sets when computing checkpoint
+      #421 Pull sync not working after upgrade from 1.04 to 1.1-pre2 in C# service
+      #406 VS can not load sample
+      #397 Setting Pusher.DocIds does not filter which docs are actually pushed
+      #396 In Owin, getting "Unable to create a storage engine, fatal error" message
+      #388 Updating a document using Update() unexpectedly results in a conflict
+      #379 ToLiveQuery() doesn't preserve query's attributes
+      #372 NullReferenceException when trying to call SetCookie on a Replication object from a C# console application
+      #358 Changes performed offline don't sync when going online.
+      #335 Intermittent deadlock during perf test
+      #319 Not all new documents get queued for pushing to the server sometimes
+      #257 Database.RunInTransaction() saves data when the delegate returns false.
+      #196 Add no_attachments column support to Database.UpdateAttachments
     </releaseNotes>
     <copyright>Copyright 2014, 2015</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <dependency id="SQLitePCL.raw" version="0.8.0" />
-      <dependency id="SQLitePCL.ugly" version="0.8.0" />
-      <dependency id="Newtonsoft.Json" version="6.0.4" />
-      <dependency id="SharpZipLib.Portable" version="0.86.0.0002" />
+      <group targetFramework="MonoAndroid">
+        <dependency id="Newtonsoft.Json" version="6.0.4" />
+        <dependency id="SQLitePCL.raw" version="0.8.0" />
+        <dependency id="SQLitePCL.ugly" version="0.8.0" />
+        <dependency id="SharpZipLib.Portable" version="0.86.0.0002" />
+      </group>
+      <group>
+        <dependency id="Newtonsoft.Json" version="6.0.8" />
+        <dependency id="SQLitePCL.raw" version="0.8.0" />
+        <dependency id="SQLitePCL.ugly" version="0.8.0" />
+        <dependency id="SharpZipLib.Portable" version="0.86.0.0002" />
+      </group>
     </dependencies>
   </metadata>
   <files>
-    <file target="lib/net35" src="src/Couchbase.Lite.Net35/bin/Release/Couchbase.Lite.*" />
     <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />
     <file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.*" />
-    <file target="lib/xamarinios10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />
+    <file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />
   </files>
 </package>

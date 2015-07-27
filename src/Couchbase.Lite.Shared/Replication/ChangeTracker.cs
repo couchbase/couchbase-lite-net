@@ -46,16 +46,15 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Text;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -74,7 +73,7 @@ namespace Couchbase.Lite.Replicator
     {
         const String Tag = "ChangeTracker";
 
-        const Int32 LongPollModeLimit = 50;
+        const Int32 LongPollModeLimit = 5000;
 
         private Int32 _heartbeatMilliseconds = 300000;
 
@@ -92,9 +91,7 @@ namespace Couchbase.Lite.Replicator
 
         private DateTime _startTime;
 
-//        private Task runTask;
-
-//        Task changesRequestTask;
+        private ManualResetEventSlim _pauseWait = new ManualResetEventSlim(true);
 
         private readonly object stopMutex = new object();
 
@@ -113,6 +110,22 @@ namespace Couchbase.Lite.Replicator
         private CancellationTokenSource tokenSource;
 
         CancellationTokenSource changesFeedRequestTokenSource;
+
+        public bool Paused
+        {
+            get { return !_pauseWait.IsSet; }
+            set
+            {
+                if(value != Paused) {
+                    if(value) {
+                        _pauseWait.Reset();
+                    } else {
+                        _pauseWait.Set();
+                    }
+                }
+            }
+        }
+
 
         /// <summary>Set Authenticator for BASIC Authentication</summary>
         public IAuthenticator Authenticator { get; set; }
@@ -161,7 +174,7 @@ namespace Couchbase.Lite.Replicator
                     int pathLastSlashPos = result.LastIndexOf('/');
                     if (pathLastSlashPos > 0)
                     {
-                        result = Sharpen.Runtime.Substring(result, pathLastSlashPos);
+                        result = result.Substring(pathLastSlashPos);
                     }
                 }
             }
@@ -311,6 +324,11 @@ namespace Couchbase.Lite.Replicator
                 HttpClient httpClient = null;
                 try {
                     httpClient = clientCopy.GetHttpClient(mode == ChangeTrackerMode.LongPoll);
+                    var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+                    if(challengeResponseAuth != null) {
+                        challengeResponseAuth.PrepareWithRequest(Request);
+                    }
+             
                     var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
                     if (authHeader != null)
                     {
@@ -351,11 +369,11 @@ namespace Couchbase.Lite.Replicator
                         Log.D(Tag, "Finished processing changes feed.");
                     } 
                     catch (Exception ex) {
-                        var e = ex.InnerException ?? ex;
                         // Swallow TaskCancelledExceptions, which will always happen
                         // if either errorHandler or successHandler don't need to fire.
-                        if (!(e is OperationCanceledException))
+                        if (!(ex is OperationCanceledException) && !(ex.InnerException is OperationCanceledException)) {
                             throw ex;
+                        }
                     } 
                     finally 
                     {
@@ -423,11 +441,6 @@ namespace Couchbase.Lite.Replicator
                     {
                         httpClient.Dispose();
                     }
-
-                    if (mode == ChangeTrackerMode.OneShot)
-                    {
-                        Stop();
-                    }
                 }
             }
         }
@@ -455,47 +468,21 @@ namespace Couchbase.Lite.Replicator
             {
                 case ChangeTrackerMode.LongPoll:
                     {
-                        if (response.Content == null) {
-                            throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
-                        }
+                    if (response.Content == null) {
+                        throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
+                    }
 
-                        var stream = response.Content.ReadAsStreamAsync().Result;
-                        var outString = new StringBuilder();
-                        using (var sr = new StreamReader(stream)) {
-                            string line;
-                            while ((line = sr.ReadLine()) != null) {
-                                outString.AppendLine(line);
-                            }
-                        }
-
-                        var content = outString.ToString();
-                        Log.D(Tag, "Received long poll response: {0}", content);
+                    var stream = response.Content.ReadAsStreamAsync().Result;
+                        bool beforeFirstItem = true;
                         bool responseOK = false;
-                        try
-                        {
-                            var fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content) ?? new Dictionary<string, object>();
-                            responseOK = ReceivedPollResponse(fullBody);
-                        } 
-                        catch (CouchbaseLiteException ex)
-                        {
-                            if (ex.Code != StatusCode.BadJson) {
-                                throw ex;
-                            }
-
-                            const string timeoutContent = "{\"results\":[";
-                            if (!content.Trim().Equals(timeoutContent))
-                                throw ex;
-                            Log.V(Tag, "Timeout while waiting for changes.");
-
+                        using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(stream)) {
+                            responseOK = ReceivedPollResponse(jsonReader, ref beforeFirstItem);
                         }
 
-                        if (responseOK)
-                        {
+                        if (responseOK) {
                             Log.V(Tag, "Starting new longpoll");
                             backoff.ResetBackoff();
-                        }
-                        else
-                        {
+                        } else {
                             backoff.SleepAppropriateAmountOfTime();
                             var elapsed = DateTime.Now - _startTime;
                             Log.W(Tag, "Longpoll connection closed (by proxy?) after {0} sec", elapsed.TotalSeconds);
@@ -512,71 +499,74 @@ namespace Couchbase.Lite.Replicator
                             }
                         }
 
-
                     }
                     break;
                 default:
                     {
-                        var content = response.Content.ReadAsByteArrayAsync().Result;
-                        var results = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(content.AsEnumerable());
-                        Log.D(Tag, "Received results from changes feed: {0}", results);
-                        var resultsValue = results["results"] as JArray;
-                        foreach (var item in resultsValue) {
-                            IDictionary<String, Object> change = null;
-                            try {
-                                change = item.ToObject<IDictionary<String, Object>>();
-                            }
-                            catch (Exception) {
-                                Log.E(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
-                            }
-                            if (!ReceivedChange(change)) {
-                                Log.W(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
-                            }
+                        var content = response.Content.ReadAsStreamAsync().Result;
+                        using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(content)) {
+                            bool timedOut = false;
+                            ReceivedPollResponse(jsonReader, ref timedOut);
                         }
-                    
-                        // As ReceivedChange() dispatches the change event to its client via WorkExecutor,
-                        // to avoid the Stop() to be called before the client is done handling the change event,    
-                        // we need to setup the Stop() call with the WorkExecutor as well 
-                        // (Assuming that the WorkExecutor is a single thread executor).
-
+                               
                         WorkExecutor.StartNew(Stop);
                     }
                     break;
             }
+
+            backoff.ResetBackoff();
         }
 
         public bool ReceivedChange(IDictionary<string, object> change)
         {
             var seq = change.Get("seq");
-            if (seq == null)
-            {
+            if (seq == null) {
                 return false;
             }
 
             //pass the change to the client on the thread that created this change tracker
-            if (client != null)
-            {
+            if (client != null) {
                 Log.D(Tag, "changed tracker posting change");
                 client.ChangeTrackerReceivedChange(change);
             }
+
             lastSequenceID = seq;
             return true;
         }
 
-        public bool ReceivedPollResponse(IDictionary<string, object> response)
+        public bool ReceivedPollResponse(IJsonSerializer jsonReader, ref bool timedOut)
         {
-            var changes = response.Get("results").AsList<IDictionary<string, object>>();
-            if (changes == null)
-            {
-                return false;
-            }
-            foreach (var change in changes)
-            {
-                if (! ReceivedChange(change))
-                {
-                    return false;
+            bool started = false;
+            timedOut = true;
+            while (jsonReader.Read()) {
+                _pauseWait.Wait();
+                if (jsonReader.CurrentToken == JsonToken.StartArray) {
+                    started = true;
+                } else if (jsonReader.CurrentToken == JsonToken.EndArray) {
+                    started = false;
+                } else if (started) {
+                    IDictionary<string, object> change;
+                    try {
+                        change = jsonReader.DeserializeNextObject();
+                    } catch(Exception e) {
+                        var ex = e as CouchbaseLiteException;
+                        if (ex == null || ex.Code != StatusCode.BadJson) {
+                            Log.E(Tag, "Failure during change tracker JSON parsing", e);
+                            throw;
+                        }
+                            
+                        return false;
+                    }
+
+                    if (!ReceivedChange(change)) {
+                        Log.W(Tag,  String.Format("Received unparseable change line from server: {0}", change));
+                        return false;
+                    }
+
+                    timedOut = false;
                 }
             }
+
             return true;
         }
 
@@ -723,13 +713,6 @@ namespace Couchbase.Lite.Replicator
             if (mode == ChangeTrackerMode.LongPoll)
             {
                 bodyParams["limit"] = LongPollModeLimit;
-            }
-
-            if (docIDs != null && docIDs.Count > 0)
-            {
-                filterName = "_doc_ids";
-                filterParams = new Dictionary<String, Object>();
-                filterParams["doc_ids"] = docIDs;
             }
 
             if (filterName != null)

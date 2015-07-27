@@ -118,16 +118,15 @@ namespace Couchbase.Lite
             database.ForceInsert(other, otherHistory, null);
             
             // Fetch one of those phantom revisions with no body:
-            var rev2 = database.GetDocumentWithIDAndRev(rev.GetDocId(), "2-too", 
-                DocumentContentOptions.None);
-            Assert.AreEqual(rev.GetDocId(), rev2.GetDocId());
-            Assert.AreEqual("2-too", rev2.GetRevId());
-            
+            var rev2 = database.GetDocument(rev.GetDocId(), "2-too", 
+                true);
+            Assert.IsNull(rev2);
+
             // Make sure no duplicate rows were inserted for the common revisions:
-            Assert.AreEqual(8, database.GetLastSequenceNumber());
+            Assert.AreEqual(8, database.LastSequenceNumber);
             // Make sure the revision with the higher revID wins the conflict:
-            var current = database.GetDocumentWithIDAndRev(rev.GetDocId(), null, 
-                DocumentContentOptions.None);
+            var current = database.GetDocument(rev.GetDocId(), null, 
+                true);
             Assert.AreEqual(conflict, current);
             
             // Get the _changes feed and verify only the winner is in it:
@@ -136,14 +135,18 @@ namespace Couchbase.Lite
             var expectedChanges = new RevisionList();
             expectedChanges.AddItem(conflict);
             expectedChanges.AddItem(other);
-            Assert.AreEqual(changes, expectedChanges);
+            Assert.AreEqual(expectedChanges, changes);
             options.SetIncludeConflicts(true);
             changes = database.ChangesSince(0, options, null, null);
             expectedChanges = new RevisionList();
             expectedChanges.AddItem(rev);
             expectedChanges.AddItem(conflict);
             expectedChanges.AddItem(other);
-            Assert.AreEqual(changes, expectedChanges);
+            var expectedChangesAlt = new RevisionList();
+            expectedChangesAlt.AddItem(conflict);
+            expectedChangesAlt.AddItem(rev);
+            expectedChangesAlt.AddItem(other);
+            Assert.IsTrue(expectedChanges.SequenceEqual(changes) || expectedChangesAlt.SequenceEqual(changes));
         }
 
         [Test]
@@ -263,12 +266,12 @@ namespace Couchbase.Lite
 
         private void VerifyHistory(Database db, RevisionInternal rev, IList<string> history)
         {
-            var gotRev = db.GetDocumentWithIDAndRev(rev.GetDocId(), null, 
-                DocumentContentOptions.None);
+            var gotRev = db.GetDocument(rev.GetDocId(), null, 
+                true);
             Assert.AreEqual(rev, gotRev);
             AssertPropertiesAreEqual(rev.GetProperties(), gotRev.GetProperties());
 
-            var revHistory = db.GetRevisionHistory(gotRev);
+            var revHistory = db.Storage.GetRevisionHistory(gotRev, null);
             Assert.AreEqual(history.Count, revHistory.Count);
             
             for (int i = 0; i < history.Count; i++)

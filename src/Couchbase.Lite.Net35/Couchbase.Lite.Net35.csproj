@@ -1,11 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <UsingTask AssemblyFile="$(ProjectDir)..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll" TaskName="MSBuild.Community.Tasks.Git.GitVersion" Condition=" false AND !$(DefineConstants.Contains('OFFICIAL')) " />
-  <Target Condition=" false AND !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
-    <GitVersion LocalPath="$(ProjectDir)">
-      <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
-    </GitVersion>
-    <Exec Command="echo $(CommitHash) &gt; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
+  <PropertyGroup>
+    <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
+    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' ">
+    </MonoPrefix>
+  </PropertyGroup>
+  <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
+    <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
   </Target>
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -19,7 +20,6 @@
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
-    <UseMSBuildEngine>False</UseMSBuildEngine>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
@@ -60,14 +60,11 @@
     <Reference Include="ugly_net35">
       <HintPath>vendor\SQLitePCL\ugly_net35.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Scripting.Core">
-      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Microsoft.Scripting.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>vendor\ICSharpCode\ICSharpCode.SharpZipLib.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
@@ -86,10 +83,9 @@
     <Compile Include="EnumEx.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
-      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
-      <Name>System.Threading.Tasks.Net35</Name>
-    </ProjectReference>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
       <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
       <Name>Rackspace.Threading.net35-client</Name>
@@ -98,8 +94,13 @@
       <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
       <Name>System.Net.Http-net_4_5</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <ProjectReference Include="vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
+      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
+      <Name>System.Threading.Tasks.Net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="vendor\Stateless\Stateless\Stateless.csproj">
+      <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
+      <Name>Stateless</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

@@ -46,13 +46,15 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+
+using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using ModernHttpClient;
 
 #if NET_3_5
 using System.Net.Couchbase;
+using CredentialCache = System.Net.CredentialCache;
 #else
 using System.Net;
 #endif
@@ -124,8 +126,6 @@ namespace Couchbase.Lite.Support
                     return false;
                 }
             };
-
-            BuildHandlerPipeline(false);
         }
 
         /// <summary>
@@ -135,14 +135,12 @@ namespace Couchbase.Lite.Support
         {
             var handler = new HttpClientHandler {
                 CookieContainer = cookieStore,
-                UseDefaultCredentials = true,
-                UseCookies = true,
+                UseCookies = true
             };
 
-            // var authHandler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
-            var authHandler = new NativeMessageHandler (false, false, new NativeCookieHandler ());
+            Handler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
 
-            var retryHandler = new TransientErrorRetryHandler(authHandler);
+            var retryHandler = new TransientErrorRetryHandler(Handler);
 
             return retryHandler;
         }
@@ -163,7 +161,7 @@ namespace Couchbase.Lite.Support
             {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
                 if (!success)
-                    Util.Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
+                    Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
             }
 
             return client;

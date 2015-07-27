@@ -71,32 +71,11 @@ using System;
 
 namespace Sharpen
 {
-    internal class VirtualMachineError : Error
-    {
-    }
-
-    internal class StackOverflowError : VirtualMachineError
-    {
-        public StackOverflowError ()
-        {
-        }
-    }
-
-    internal class BrokenBarrierException : Exception
-    {
-    }
-
-    internal class BufferUnderflowException : Exception
-    {
-    }
 
     internal class CharacterCodingException : Exception
     {
     }
-
-    internal class DataFormatException : Exception
-    {
-    }
+       
 
     internal class EOFException : Exception
     {
@@ -109,39 +88,9 @@ namespace Sharpen
         }
     }
 
-    internal class Error : Exception
-    {
-        public Error ()
-        {
-        }
-
-        public Error (Exception ex) : base("Runtime Exception", ex)
-        {
-        }
-
-        public Error (string msg) : base(msg)
-        {
-        }
-
-        public Error (string msg, Exception ex) : base(msg, ex)
-        {
-        }
-    }
-
     internal class ExecutionException : Exception
     {
         public ExecutionException (Exception inner): base ("Execution failed", inner)
-        {
-        }
-    }
-
-    internal class InstantiationException : Exception
-    {
-    }
-
-    internal class InterruptedIOException : Exception
-    {
-        public InterruptedIOException (string msg) : base(msg)
         {
         }
     }
@@ -160,21 +109,6 @@ namespace Sharpen
 
     internal class NoSuchMethodException : Exception
     {
-    }
-
-    internal class OverlappingFileLockException : Exception
-    {
-    }
-
-    internal class ParseException : Exception
-    {
-        public ParseException ()
-        {
-        }
-
-        public ParseException (string msg, int errorOffset) : base(string.Format ("Msg: msg. Error Offset: {1}", msg, errorOffset))
-        { 
-        }
     }
 
     internal class RuntimeException : Exception
@@ -196,51 +130,9 @@ namespace Sharpen
         }
     }
 
-    internal class StringIndexOutOfBoundsException : Exception
-    {
-    }
-
-    internal class UnknownHostException : Exception
-    {
-    }
-
     internal class UnsupportedEncodingException : Exception
     {
     }
-
-    internal class URISyntaxException : Exception
-    {
-        public URISyntaxException (string s, string msg) : base(s + " " + msg)
-        {
-        }
-    }
-
-    internal class ZipException : Exception
-    {
-    }
-
-    internal class GitException : Exception
-    {
-    }
-    
-    class ConnectException: Exception
-    {
-        public ConnectException (string msg): base (msg)
-        {
-        }
-    }
-    
-    class KeyManagementException: Exception
-    {
-    }
-    
-    class IllegalCharsetNameException: Exception
-    {
-        public IllegalCharsetNameException (string msg): base (msg)
-        {
-        }
-    }
-    
     class UnsupportedCharsetException: Exception
     {
         public UnsupportedCharsetException (string msg): base (msg)

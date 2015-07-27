@@ -47,7 +47,7 @@ using System.Text;
 
 using Sharpen;
 
-namespace Couchbase.Lite.Storage
+namespace Couchbase.Lite.Store
 {
 
     /// <summary>
@@ -123,7 +123,7 @@ namespace Couchbase.Lite.Storage
 
         /// <summary>Adds all values from the passed in ContentValues.</summary>
         /// <param name="other">the ContentValues from which to copy</param>
-        public void PutAll(Couchbase.Lite.Storage.ContentValues other)
+        public void PutAll(ContentValues other)
         {
             mValues.PutAll(other.mValues);
         }
@@ -358,11 +358,11 @@ namespace Couchbase.Lite.Storage
         #region Overrides
 
         /// <summary>
-        /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="Couchbase.Lite.Storage.ContentValues"/>.
+        /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="Couchbase.Lite.Store.ContentValues"/>.
         /// </summary>
-        /// <param name="obj">The <see cref="System.Object"/> to compare with the current <see cref="Couchbase.Lite.Storage.ContentValues"/>.</param>
+        /// <param name="obj">The <see cref="System.Object"/> to compare with the current <see cref="Couchbase.Lite.Store.ContentValues"/>.</param>
         /// <returns><c>true</c> if the specified <see cref="System.Object"/> is equal to the current
-        /// <see cref="Couchbase.Lite.Storage.ContentValues"/>; otherwise, <c>false</c>.</returns>
+        /// <see cref="Couchbase.Lite.Store.ContentValues"/>; otherwise, <c>false</c>.</returns>
         public override bool Equals(object obj)
         {
             if (!(obj is ContentValues))
@@ -373,7 +373,7 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>
-        /// Serves as a hash function for a <see cref="Couchbase.Lite.Storage.ContentValues"/> object.
+        /// Serves as a hash function for a <see cref="Couchbase.Lite.Store.ContentValues"/> object.
         /// </summary>
         /// <returns>A hash code for this instance that is suitable for use in hashing algorithms and data structures such as a
         /// hash table.</returns>

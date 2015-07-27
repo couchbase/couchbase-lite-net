@@ -63,6 +63,8 @@ namespace Couchbase.Lite.Replicator
     ///     </remarks>
     internal class PulledRevision : RevisionInternal
     {
+        public bool IsConflicted { get; set; }
+
         public PulledRevision(Body body) : base(body)
         {
         }

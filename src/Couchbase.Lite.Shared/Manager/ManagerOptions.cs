@@ -56,13 +56,16 @@ namespace Couchbase.Lite
         /// transient network errors.
         /// </summary>
         /// <value>The max retries.</value>
-        internal int MaxRetries { get; private set; }
+        public int MaxRetries { get; set; }
 
         /// <summary>
         /// Gets the default option flags.
         /// </summary>
         /// <value>The default option flags.</value>
         public static ManagerOptions Default { get; private set; }
+
+        //Make public in the future
+        internal static IJsonSerializer SerializationEngine { get; set; }
 
         #if __IOS__
 
@@ -79,6 +82,11 @@ namespace Couchbase.Lite
         /// Provides configuration settings.
         /// </summary>
         public ManagerOptions()
+        {
+            RestoreDefaults();
+        }
+
+        internal void RestoreDefaults()
         {
             MaxRetries = 10;
 
@@ -103,9 +111,13 @@ namespace Couchbase.Lite
                 CallbackScheduler =  scheduler ?? TaskScheduler.Current ?? TaskScheduler.Default;
             }
             #endif
+
+            SerializationEngine = new NewtonsoftJsonSerializer();
         }
 
+        //TODO: Honor this
         /// <summary>Gets or sets, whether changes to the database are disallowed.</summary>
+        /// <remarks>Not currently enforced</remarks>
         public Boolean ReadOnly { get; set; }
 
         /// <summary>

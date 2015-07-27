@@ -174,6 +174,22 @@ namespace Couchbase.Lite
                 { "_rev", revIDs[1] },
                 { "message", "hello" }
             });
+
+            SendBody("POST", String.Format("/{0}", database.Name), new Body(new Dictionary<string, object> {
+                { "foo", "bar" }
+            }), HttpStatusCode.Created, null);
+
+            SendBody("POST", String.Format("/{0}", database.Name), new Body(new Dictionary<string, object> {
+                { "_id", "specified-id" },
+                { "foo", "bar" }
+            }), HttpStatusCode.Created, null);
+            var rev = _lastResponse.Headers["Etag"].Trim('"');
+
+            SendBody("POST", String.Format("/{0}", database.Name), new Body(new Dictionary<string, object> {
+                { "_id", "specified-id" },
+                { "_rev", rev },
+                { "foo", "bar2" }
+            }), HttpStatusCode.Created, null);
         }
 
         [Test]
@@ -428,7 +444,7 @@ namespace Couchbase.Lite
             });
 
             // Check if the current last sequence indexed has been changed:
-            Thread.Sleep(5000);
+            Thread.Sleep(8000);
             Assert.IsTrue(prevSequenceIndexed < view.LastSequenceIndexed);
 
             // Confirm the result with stale = ok:
@@ -604,7 +620,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(405, response.GetCast<long>("status"));
             Assert.AreEqual("method_not_allowed", response.GetCast<string>("error"));
 
-            endpoint = String.Format("/{0}/_session", database.Name);
+            endpoint = String.Format("/{0}/_session!", database.Name);
             response = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.NotFound, null);
             Assert.AreEqual(404, response.GetCast<long>("status"));
             Assert.AreEqual("not_found", response.GetCast<string>("error"));
@@ -1014,18 +1030,15 @@ namespace Couchbase.Lite
             });
 
             // Update the document but not the attachments:
-            //FIXME.JHB: iOS doesn't need the revpos property present here
             var attachmentsDict = new Dictionary<string, object> {
                 { "attach", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "stub", true },
-                        { "revpos", 1L }
+                        { "stub", true }
                     }
                 },
                 { "path/to/attachment", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "stub", true },
-                        { "revpos", 1L }
+                        { "stub", true }
                     }
                 },
             };
@@ -1287,6 +1300,35 @@ namespace Couchbase.Lite
             Assert.IsTrue(calledOnAccessCheck);
         }
 
+        [Test]
+        public void TestAuthentication()
+        {
+            _listener.Stop();
+            _listener = new CouchbaseLiteTcpListener(manager, 59840, CouchbaseLiteTcpOptions.AllowBasicAuth);
+            _listener.Start();
+            var basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:borden"));
+            _listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
+            SendRequest("GET", "/", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
+            });
+
+            basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:bogus"));
+            SendRequest("GET", "/", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+            });
+
+            SendRequest("GET", "/", null, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+            });
+
+            _listener.Stop();
+            _listener = new CouchbaseLiteTcpListener(manager, 59840);
+            _listener.Start();
+        }
+
         [TestFixtureSetUp]
         protected void OneTimeSetUp()
         {
@@ -1326,6 +1368,7 @@ namespace Couchbase.Lite
             StopDatabase();
             _minHeartbeat = _savedMinHeartbeat;
             _listener._router.OnAccessCheck = null;
+            _listener.SetPasswords(new Dictionary<string, string>());
         }
 
         private void ReopenDatabase()
@@ -1538,13 +1581,13 @@ namespace Couchbase.Lite
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
             }), HttpStatusCode.Created, null);
-            var revId2 = result.GetCast<string>("rev");
+            var revId3 = result.GetCast<string>("rev");
 
             endpoint = endpoint.Replace("doc3", "doc2");
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
             }), HttpStatusCode.Created, null);
-            var revId3 = result.GetCast<string>("rev");
+            var revId2 = result.GetCast<string>("rev");
 
             endpoint = String.Format("/{0}/_all_docs", database.Name);
             result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);

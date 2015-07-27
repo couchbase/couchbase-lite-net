@@ -106,8 +106,8 @@ namespace Couchbase.Lite.Util
                     if (separator == end) {
                         return string.Empty;
                     } else {
-                        string encodedValue = Sharpen.Runtime.Substring(query, separator + 1, end);
-                        return Decode(encodedValue, true, Sharpen.Extensions.GetEncoding(Utf8Encoding));
+                        string encodedValue = query.Substring(separator + 1, end - separator + 1);
+                        return Decode(encodedValue, true, Encoding.UTF8);
                     }
                 }
                 // Move start to end of name.
@@ -175,7 +175,7 @@ namespace Couchbase.Lite.Util
                 }
                 // Convert the substring to bytes and encode the bytes as
                 // '%'-escaped octets.
-                string toEncode = Sharpen.Runtime.Substring(s, current, nextAllowed);
+                string toEncode = s.Substring(current, nextAllowed - current);
                 byte[] bytes = Sharpen.Runtime.GetBytesForString(toEncode, Utf8Encoding).ToArray();
                 int bytesLength = bytes.Length;
                 for (int i = 0; i < bytesLength; i++) {
@@ -197,7 +197,7 @@ namespace Couchbase.Lite.Util
             }
 
             StringBuilder result = new StringBuilder(s.Length);
-            ByteArrayOutputStream @out = new ByteArrayOutputStream();
+            MemoryStream @out = new MemoryStream();
             for (int i = 0; i < s.Length;) {
                 char c = s[i];
                 if (c == '%') {
@@ -208,13 +208,12 @@ namespace Couchbase.Lite.Util
                         int d1 = HexToInt(s[i + 1]);
                         int d2 = HexToInt(s[i + 2]);
                         if (d1 == -1 || d2 == -1) {
-                            throw new ArgumentException("Invalid % sequence " + Sharpen.Runtime.Substring(s, 
-                                i, i + 3) + " at " + i);
+                            throw new ArgumentException("Invalid % sequence " + s.Substring(i, 3) + " at " + i);
                         }
-                        @out.Write(unchecked((byte)((d1 << 4) + d2)));
+                        @out.WriteByte(unchecked((byte)((d1 << 4) + d2)));
                         i += 3;
                     } while (i < s.Length && s[i] == '%');
-                    result.Append(charset.GetString(@out.ToByteArray()));
+                    result.Append(charset.GetString(@out.ToArray()));
                     @out.Reset();
                 }
                 else {

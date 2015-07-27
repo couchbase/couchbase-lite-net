@@ -80,7 +80,7 @@ namespace Couchbase.Lite
             try {
                 md = MessageDigest.GetInstance("SHA-1");
             } catch (NoSuchAlgorithmException) {
-                Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
+                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
 
@@ -97,23 +97,23 @@ namespace Couchbase.Lite
             try {
                 md = MessageDigest.GetInstance("SHA-1");
             } catch (NoSuchAlgorithmException) {
-                Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
+                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
 
             byte[] sha1hash = new byte[40];
             try {
-                var fis = new FileInputStream(file);
+                var fis = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 byte[] buffer = new byte[65536];
-                int lenRead = fis.Read(buffer);
+                int lenRead = fis.Read(buffer, 0, buffer.Length);
                 while (lenRead > 0)
                 {
                     md.Update(buffer, 0, lenRead);
-                    lenRead = fis.Read(buffer);
+                    lenRead = fis.Read(buffer, 0, buffer.Length);
                 }
                 fis.Close();
             } catch (IOException) {
-                Log.E(Database.Tag, "Error readin tmp file to compute key");
+                Log.E(Database.TAG, "Error readin tmp file to compute key");
             }
 
             sha1hash = md.Digest();
@@ -140,8 +140,7 @@ namespace Couchbase.Lite
             }
 
             //trim off extension
-            string rest = Sharpen.Runtime.Substring(filename, path.Length + 1, filename.Length
-                 - FileExtension.Length);
+            string rest = filename.Substring(path.Length + 1, filename.Length - FileExtension.Length - (path.Length + 1));
             outKey.Bytes = BlobKey.ConvertFromHex(rest);
             return true;
         }
@@ -158,7 +157,7 @@ namespace Couchbase.Lite
             try {
                 result = GetBytesFromFile(file);
             } catch (IOException e) {
-                Log.E(Database.Tag, "Error reading file", e);
+                Log.E(Database.TAG, "Error reading file", e);
             }
             return result;
         }
@@ -166,18 +165,18 @@ namespace Couchbase.Lite
         public Stream BlobStreamForKey(BlobKey key)
         {
             var keyPath = PathForKey(key);
-            Log.D(Database.Tag, "Blob Path : " + keyPath);
+            Log.D(Database.TAG, "Blob Path : " + keyPath);
             var file = new FilePath(keyPath);
             if (file.CanRead()) {
                 try {
                     return new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
                 }
                 catch (FileNotFoundException e) {
-                    Log.E(Database.Tag, "Unexpected file not found in blob store", e);
+                    Log.E(Database.TAG, "Unexpected file not found in blob store", e);
                     return null;
                 }
                 catch (Exception e) {
-                    Log.E(Database.Tag, "Cannot new FileStream", e);
+                    Log.E(Database.TAG, "Cannot new FileStream", e);
                 }
             }
 
@@ -200,7 +199,7 @@ namespace Couchbase.Lite
                 inputStream.Close();
                 fos.Close();
             } catch (IOException e) {
-                Log.E(Database.Tag, "Error writing blog to tmp file", e);
+                Log.E(Database.TAG, "Error writing blog to tmp file", e);
                 outKey = null;
                 return false;
             }
@@ -235,10 +234,10 @@ namespace Couchbase.Lite
                 fos = new FileOutputStream(file);
                 fos.Write(data);
             } catch (FileNotFoundException e) {
-                Log.E(Database.Tag, "Error opening file for output", e);
+                Log.E(Database.TAG, "Error opening file for output", e);
                 return false;
             }  catch (IOException ioe) {
-                Log.E(Database.Tag, "Error writing to file", ioe);
+                Log.E(Database.TAG, "Error writing to file", ioe);
                 return false;
             } finally {
                 if (fos != null) {
@@ -256,7 +255,7 @@ namespace Couchbase.Lite
         /// <exception cref="System.IO.IOException"></exception>
         private static byte[] GetBytesFromFile(FilePath file)
         {
-            InputStream @is = new FileInputStream(file);
+            InputStream @is = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             // Get the size of the file
             long length = file.Length();
             // Create the byte array to hold the data
@@ -316,21 +315,20 @@ namespace Couchbase.Lite
             return total;
         }
 
-        public int DeleteBlobsExceptWithKeys(IList<BlobKey> keysToKeep)
+        public int DeleteBlobsExceptWithKeys(ICollection<BlobKey> keysToKeep)
         {
             int numDeleted = 0;
             FilePath file = new FilePath(path);
             FilePath[] contents = file.ListFiles();
             foreach (FilePath attachment in contents) {
                 BlobKey attachmentKey = new BlobKey();
-                GetKeyForFilename(attachmentKey, attachment.GetPath());
-                if (!keysToKeep.Contains(attachmentKey)) {
+                if (GetKeyForFilename(attachmentKey, attachment.GetPath()) && !keysToKeep.Contains(attachmentKey)) {
                     bool result = attachment.Delete();
                     if (result) {
                         ++numDeleted;
                     }
                     else {
-                        Log.E(Database.Tag, "Error deleting attachment");
+                        Log.E(Database.TAG, "Error deleting attachment");
                     }
                 }
             }
@@ -350,8 +348,8 @@ namespace Couchbase.Lite
             var file = new FilePath(path);
             if (file.CanRead()) {
                 try {
-                    var raf = new RandomAccessFile(file, "r");
-                    magic = raf.Read() & unchecked((0xff)) | ((raf.Read() << 8) & unchecked((0xff00)));
+                    var raf = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    magic = raf.ReadByte() & unchecked((0xff)) | ((raf.ReadByte() << 8) & unchecked((0xff00)));
                     raf.Close();
                 }
                 catch (Exception e) {

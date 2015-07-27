@@ -1,4 +1,4 @@
-﻿//
+//
 // MockHttpClientFactory.cs
 //
 // Author:
@@ -46,6 +46,8 @@ using System.IO;
 using System.Net.Http;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Auth;
+using Couchbase.Lite.Replicator;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -71,14 +73,14 @@ namespace Couchbase.Lite.Tests
 
         public IDictionary<string, string> Headers { get; set; }
 
-        public MockHttpClientFactory() : this (null) { }
+        public MockHttpClientFactory(bool defaultFail = true) : this (null, defaultFail) { }
 
-        public MockHttpClientFactory(DirectoryInfo cookieStoreDirectory)
+        public MockHttpClientFactory(DirectoryInfo cookieStoreDirectory, bool defaultFail = true)
         {
-            cookieStore = new CookieStore(cookieStore != null 
+            cookieStore = new CookieStore(cookieStoreDirectory != null 
                 ? cookieStoreDirectory.FullName
                 : null);
-            HttpHandler = new MockHttpRequestHandler();
+            HttpHandler = new MockHttpRequestHandler(defaultFail);
             HttpHandler.CookieContainer = cookieStore;
             HttpHandler.UseCookies = true;
 

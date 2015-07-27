@@ -31,30 +31,37 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System.Net" />
     <Reference Include="System.Net.Http" />
+    <Reference Include="Jint">
+      <HintPath>..\..\packages\Jint.2.4.0\lib\portable-net40+sl50+win+wpa81+wp80\Jint.dll</HintPath>
+    </Reference>
     <Reference Include="SQLitePCL.raw">
-      <HintPath>..\packages\SQLitePCL.raw_basic.0.7.1\lib\net45\SQLitePCL.raw.dll</HintPath>
+      <HintPath>..\..\packages\SQLitePCL.raw.0.8.0\lib\net45\SQLitePCL.raw.dll</HintPath>
     </Reference>
     <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\packages\SQLitePCL.ugly.0.7.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <HintPath>..\..\packages\SQLitePCL.ugly.0.8.0\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
     </Reference>
-    <Reference Include="Jint">
-      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Jint.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Scripting.Core">
-      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Microsoft.Scripting.Core.dll</HintPath>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
   </ItemGroup>
-  <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
+  <Import Project="..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\..\packages\SQLitePCL.raw.0.8.0\build\net45\SQLitePCL.raw.targets" Condition="Exists('..\..\packages\SQLitePCL.raw.0.8.0\build\net45\SQLitePCL.raw.targets')" />
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj">
+      <Project>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</Project>
+      <Name>Couchbase.Lite.Net45</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

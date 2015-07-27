@@ -44,6 +44,8 @@ namespace Couchbase.Lite.Unity
             //affect the footprint
             var dummy = new List<KeyValuePair<string, Document>>();
             var dummy2 = new SplitOrderedList<string, KeyValuePair<string, string>>(new GenericEqualityComparer<string>());
+            var dummy3 = new SplitOrderedList<string, ConcurrentDictionary<string, object>>(new GenericEqualityComparer<string>());
+            var dummy4 = new SplitOrderedList<string, KeyValuePair<string, ConcurrentDictionary<string, ConcurrentDictionary<string, object>>>>(new GenericEqualityComparer<string>());
         }
     }
 }

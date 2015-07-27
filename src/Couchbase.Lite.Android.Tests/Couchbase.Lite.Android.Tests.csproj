@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -72,12 +72,16 @@
   <Import Project="$(MSBuildExtensionsPath)\Novell\Novell.MonoDroid.CSharp.targets" />
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite.Android\Couchbase.Lite.Android.csproj">
-      <Project>{5615E423-D0FD-4F99-A99C-061679615CEE}</Project>
+      <Project>{5615e423-d0fd-4f99-a99c-061679615cee}</Project>
       <Name>Couchbase.Lite.Android</Name>
     </ProjectReference>
     <ProjectReference Include="..\ListenerComponent\Couchbase.Lite.Listener.Android\Couchbase.Lite.Listener.Android.csproj">
       <Project>{6B64CBD5-8D13-4E88-861D-DBBB87254BBC}</Project>
       <Name>Couchbase.Lite.Listener.Android</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Android\Couchbase.Lite.Listener.Bonjour.Android.csproj">
+      <Project>{4549834B-28B6-4A54-A3EC-978D0E582444}</Project>
+      <Name>Couchbase.Lite.Listener.Bonjour.Android</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

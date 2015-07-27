@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Threading;
 using NUnit.Framework;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite
 {
@@ -11,7 +12,12 @@ namespace Couchbase.Lite
         [Description("If the delegate returns true, the transaction should be committed.")]
         public void TestRunInTransactionCommits()
         {
-            var storageEngine = database.StorageEngine;
+            var sqliteStorage = database.Storage as SqliteCouchStore;
+            if (sqliteStorage == null) {
+                Assert.Inconclusive("This test is only valid on a SQLite store");
+            }
+
+            var storageEngine = sqliteStorage.StorageEngine;
 
             storageEngine.ExecSQL("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
 
@@ -30,7 +36,12 @@ namespace Couchbase.Lite
         [Description("If the delegate returns false, the transaction should be rolledback.")]
         public void TestRunInTransactionRollsback()
         {
-            var storageEngine = database.StorageEngine;
+            var sqliteStorage = database.Storage as SqliteCouchStore;
+            if (sqliteStorage == null) {
+                Assert.Inconclusive("This test is only valid on a SQLite store");
+            }
+
+            var storageEngine = sqliteStorage.StorageEngine;
 
             storageEngine.ExecSQL("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
 

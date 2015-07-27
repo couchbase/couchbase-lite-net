@@ -50,6 +50,23 @@ namespace Couchbase.Lite
 {
     public class DocumentTest : LiteTestCase
     {
+
+        [Test] // #447
+        public void TestDocumentArraysMaintainOrder()
+        {
+            List<int> dateArray = new List<int> { 2015, 6, 14, 1, 10, 0 };
+            var props = new Dictionary<string, object> {
+                { "starttime", dateArray }
+            };
+
+            var doc = database.CreateDocument();
+            var docId = doc.Id;
+            doc.PutProperties(props);
+
+            var doc2 = database.GetExistingDocument(docId);
+            Assert.AreEqual(dateArray, doc2.UserProperties["starttime"].AsList<int>());
+        }
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
         public void TestNewDocumentHasCurrentRevision()  {
@@ -194,24 +211,24 @@ namespace Couchbase.Lite
             var properties = new Dictionary<string, object>();
             properties["foo"] = "foo";
             properties["bar"] = false;
+            properties["_id"] = document.Id;
             document.PutProperties(properties);
+            properties["_rev"] = document.CurrentRevisionId;
             Assert.IsNotNull(document.CurrentRevision);
 
-            var deleted = false;
-
             var revisionInternal = new RevisionInternal(
-                document.Id, document.CurrentRevisionId, deleted);
+                document.Id, document.CurrentRevisionId, false);
 
-            var contentOptions = DocumentContentOptions.IncludeAttachments | DocumentContentOptions.BigAttachmentsFollow;
-
-            database.LoadRevisionBody(revisionInternal, contentOptions);
+            database.LoadRevisionBody(revisionInternal);
+            Assert.AreEqual(properties, revisionInternal.GetProperties());
+            revisionInternal.SetBody(null);
 
             // now lets purge the document, and then try to load the revision body again
             document.Purge();
 
             var gotExpectedException = false;
             try {
-                database.LoadRevisionBody(revisionInternal, contentOptions);
+                database.LoadRevisionBody(revisionInternal);
             } catch (CouchbaseLiteException e) {
                 gotExpectedException |= 
                     e.CBLStatus.Code == StatusCode.NotFound;

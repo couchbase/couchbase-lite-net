@@ -55,6 +55,7 @@ using NUnit.Framework;
 using Couchbase.Lite.Tests;
 using System.Collections;
 using System.Threading;
+using Couchbase.Lite.Auth;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -324,7 +325,7 @@ namespace Couchbase.Lite
         {
             Uri testUrl = GetReplicationURL();
             var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, true, null);
-            Assert.AreEqual("_changes?feed=longpoll&limit=50&heartbeat=300000&style=all_docs&since=0", changeTracker.GetChangesFeedPath());
+            Assert.AreEqual("_changes?feed=longpoll&limit=5000&heartbeat=300000&style=all_docs&since=0", changeTracker.GetChangesFeedPath());
         }
             
         [Test]
@@ -342,7 +343,7 @@ namespace Couchbase.Lite
 
             // set filter map
             changeTracker.SetFilterParams(filterMap);
-            Assert.AreEqual("_changes?feed=longpoll&limit=50&heartbeat=300000&since=0&filter=filter&param=value", 
+            Assert.AreEqual("_changes?feed=longpoll&limit=5000&heartbeat=300000&since=0&filter=filter&param=value", 
                 changeTracker.GetChangesFeedPath());
         }
 
@@ -405,7 +406,7 @@ namespace Couchbase.Lite
 
             var docIdsJson = "[\"doc1\",\"doc2\"]";
             var docIdsEncoded = Uri.EscapeUriString(docIdsJson);
-            var expectedFeedPath = string.Format("_changes?feed=longpoll&limit=50&heartbeat=300000&since=0&filter=_doc_ids&doc_ids={0}", 
+            var expectedFeedPath = string.Format("_changes?feed=longpoll&limit=5000&heartbeat=300000&since=0&filter=_doc_ids&doc_ids={0}", 
                 docIdsEncoded);
             string changesFeedPath = changeTracker.GetChangesFeedPath();
             Assert.AreEqual(expectedFeedPath, changesFeedPath);

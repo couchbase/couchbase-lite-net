@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>{8555F0B6-3F1A-4C80-8CCB-3EED653D6242}</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Couchbase.Lite.Listener.Bonjour.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\BrowseService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\Native.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\RegisterService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\Service.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceBrowser.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceClass.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceError.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceErrorException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceFlags.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceParams.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceRef.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\TxtRecord.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\TxtRecordEnumerator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Couchbase.Lite.Listener.Bonjour.dll.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

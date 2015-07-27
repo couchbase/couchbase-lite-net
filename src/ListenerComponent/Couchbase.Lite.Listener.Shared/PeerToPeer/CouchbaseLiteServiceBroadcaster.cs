@@ -21,7 +21,6 @@
 using System;
 
 using Mono.Zeroconf;
-using Mono.Zeroconf.Providers.Bonjour;
 
 namespace Couchbase.Lite.Listener
 {
@@ -79,32 +78,6 @@ namespace Couchbase.Lite.Listener
 
         #region Constructors
 
-        #if __ANDROID__
-        /// <summary>
-        /// This is needed to start the /system/bin/mdnsd service on Android
-        /// (can't find another way to start it)
-        /// </summary>
-        static CouchbaseLiteServiceBroadcaster() {
-            global::Android.App.Application.Context.GetSystemService("servicediscovery");
-        }
-        #elif __UNITY_ANDROID__
-        static CouchbaseLiteServiceBroadcaster() {
-            UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
-            var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
-            if (context == null) {
-                c.Dispose();
-                throw new Exception("Failed to get context");
-            }
-
-            var arg = new UnityEngine.AndroidJavaObject("java.lang.String", "servicediscovery");
-            context.Call<UnityEngine.AndroidJavaObject>("getSystemService", arg);
-
-            context.Dispose();
-            arg.Dispose();
-            c.Dispose();
-        }
-        #endif
-
         /// <summary>
         /// Creates a new broadcaster class with the given IRegisterService
         /// (or Bonjour if null)
@@ -114,12 +87,19 @@ namespace Couchbase.Lite.Listener
         /// the port that the listener is using)</param>
         public CouchbaseLiteServiceBroadcaster(IRegisterService registerService, ushort port)
         {
-            _registerService = registerService ?? new RegisterService() {
-                Name = "CouchbaseLite_" + Environment.MachineName,
-                RegType = "_http._tcp.",
-                AddressProtocol = AddressProtocol.IPv4 //Needed for Linux compat (libnss_mdns)
-            };
+            if (registerService == null) {
+                throw new ArgumentNullException("registerService");
+            }
 
+            if (registerService.Name == null) {
+                registerService.Name = "CouchbaseLite_" + Environment.MachineName;   
+            }
+
+            if (registerService.RegType == null) {
+                registerService.RegType = "_http._tcp";
+            }
+
+            _registerService = registerService;
             _registerService.Port = port;
         }
 

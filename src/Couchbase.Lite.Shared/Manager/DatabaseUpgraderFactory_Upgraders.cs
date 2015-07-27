@@ -196,9 +196,9 @@ namespace Couchbase.Lite.Db
                             parentSeq = (long)ancestor[1];
                         }
 
-                        Log.D(TAG, "Upgrading doc {0} history {1}", rev, history);
+                        Log.D(TAG, "Upgrading doc {0} history {1}", rev, Manager.GetObjectMapper().WriteValueAsString(history));
                         try {
-                            _db.ForceInsert(rev, history, null, status);
+                            _db.ForceInsert(rev, history, null);
                         } catch (CouchbaseLiteException e) {
                             status = e.CBLStatus;
                         }
@@ -379,7 +379,7 @@ namespace Couchbase.Lite.Db
 
             private Status MoveAttachmentsDir()
             {
-                var oldAttachmentsPath = Path.ChangeExtension(_db.Path, null) + Path.DirectorySeparatorChar + "attachments";
+                var oldAttachmentsPath = Path.Combine(Path.ChangeExtension(_db.Path, null), "attachments");
                 var newAttachmentsPath = _db.AttachmentStorePath;
                 if (oldAttachmentsPath.Equals(newAttachmentsPath)) {
                     Log.D(TAG, "Skip moving the attachments folder as no path change ('{0}' vs '{1}').", oldAttachmentsPath, newAttachmentsPath);
@@ -481,13 +481,45 @@ namespace Couchbase.Lite.Db
 
                 raw.sqlite3_create_collation(_sqlite, "JSON", raw.SQLITE_UTF8, CollateRevIDs);
                 sqlite3_stmt stmt = null;
-                var status = PrepareSQL(ref stmt, "CREATE TABLE IF NOT EXISTS maps( " +
-                    "view_id INTEGER NOT NULL REFERENCES views(view_id) ON DELETE CASCADE, " +
-                    "sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE, " +
-                    "key TEXT NOT NULL COLLATE JSON, " +
-                    "value TEXT)");
+                var status = PrepareSQL(ref stmt, "SELECT name FROM sqlite_master WHERE type='table' AND name='maps'");
 
                 err = raw.sqlite3_step(stmt);
+                if (err == raw.SQLITE_ROW) {
+                    sqlite3_stmt stmt2 = null;
+                    status = PrepareSQL(ref stmt2, "SELECT * FROM maps");
+                    while ((err = raw.sqlite3_step(stmt2)) == raw.SQLITE_ROW) {
+                        int viewId = raw.sqlite3_column_int(stmt2, 0);
+                        sqlite3_stmt stmt3 = null;
+                        status = PrepareSQL(ref stmt3, "CREATE TABLE IF NOT EXISTS maps_" + viewId + 
+                            " (sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE," +
+                            "key TEXT NOT NULL COLLATE JSON," +
+                            "value TEXT," +
+                            "fulltext_id INTEGER, " +
+                            "bbox_id INTEGER, " +
+                            "geokey BLOB)");
+                        raw.sqlite3_step(stmt3);
+                        raw.sqlite3_finalize(stmt3);
+                        stmt3 = null;
+
+                        var sequence = raw.sqlite3_column_int64(stmt2, 1);
+                        var key = raw.sqlite3_column_text(stmt2, 2);
+                        var value = raw.sqlite3_column_text(stmt2, 3);
+
+                        var insertSql = String.Format("INSERT INTO maps_{0} (sequence, key, value) VALUES ({1}, {2}, {3}",
+                                            viewId, sequence, key, value);
+                        
+                        status = PrepareSQL(ref stmt3, insertSql);
+                        raw.sqlite3_step(stmt3);
+                        raw.sqlite3_finalize(stmt3);
+                    }
+
+                    raw.sqlite3_finalize(stmt2);
+                    stmt2 = null;
+                    status = PrepareSQL(ref stmt2, "DROP TABLE maps");
+                    raw.sqlite3_step(stmt2);
+                    raw.sqlite3_finalize(stmt2);
+                }
+
                 raw.sqlite3_finalize(stmt);
                 raw.sqlite3_close(_sqlite);
                 if (err != raw.SQLITE_DONE) {
@@ -538,6 +570,7 @@ namespace Couchbase.Lite.Db
                 _db.RunInTransaction(() =>
                 {
                     int transactionErr;
+                    int count = 0;
                     while(raw.SQLITE_ROW == (transactionErr = raw.sqlite3_step(docQuery))) {
                         long docNumericID = raw.sqlite3_column_int64(docQuery, 0);
                         string docID = raw.sqlite3_column_text(docQuery, 1);
@@ -545,6 +578,10 @@ namespace Couchbase.Lite.Db
                         if(transactionStatus.IsError) {
                             status = transactionStatus;
                             return false;
+                        }
+                        
+                        if((++count % 1000) == 0) {
+                            Log.I(TAG, "Migrated {0} documents", count);
                         }
                     }
 

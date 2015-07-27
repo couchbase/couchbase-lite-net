@@ -116,8 +116,16 @@ namespace Couchbase.Lite.Replicator
             try
             {
                 httpClient = clientFactory.GetHttpClient(false);
+                var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+                if (challengeResponseAuth != null) {
+                    var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                    if (authHandler != null) {
+                        authHandler.Authenticator = challengeResponseAuth;
+                    }
 
-                //var manager = httpClient.GetConnectionManager();
+                    challengeResponseAuth.PrepareWithRequest(requestMessage);
+                }
+                   
                 var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
                 if (authHeader != null)
                 {

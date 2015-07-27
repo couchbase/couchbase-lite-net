@@ -30,6 +30,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Net;
 
 
 namespace Couchbase.Lite.Listener
@@ -271,7 +272,7 @@ namespace Couchbase.Lite.Listener
                     if(t.IsCompleted && t.Result) {
                         TryClose();
                     } else {
-                        Log.E(TAG, "Multipart async write did not finish properly");
+                        Log.I(TAG, "Multipart async write did not finish properly");
                     }
                 });
                 syncWrite = false;
@@ -293,7 +294,7 @@ namespace Couchbase.Lite.Listener
         public bool WriteData(IEnumerable<byte> data, bool finished)
         {
             if (!Chunked) {
-                Log.E(TAG, "Attempt to send streaming data when not in chunked mode");
+                Log.W(TAG, "Attempt to send streaming data when not in chunked mode");
                 return false;
             }
 
@@ -318,7 +319,7 @@ namespace Couchbase.Lite.Listener
         public bool SendContinuousLine(IDictionary<string, object> changesDict, ChangesFeedMode mode)
         {
             if (!Chunked) {
-                Log.E(TAG, "Attempt to send streaming data when not in chunked mode");
+                Log.W(TAG, "Attempt to send streaming data when not in chunked mode");
                 return false;
             }
 
@@ -514,7 +515,10 @@ namespace Couchbase.Lite.Listener
                 _responseWriter.OutputStream.Flush();
                 return true;
             } catch(IOException) {
-                Log.E(TAG, "Error writing to HTTP response stream");
+                Log.W(TAG, "Error writing to HTTP response stream");
+                return false;
+            } catch(HttpListenerException) {
+                Log.W(TAG, "Error writing to HTTP response stream");
                 return false;
             } catch(ObjectDisposedException) {
                 Log.I(TAG, "Data written after disposal"); // This is normal for hanging connections who write until the client disconnects

@@ -45,6 +45,8 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Sharpen;
 using System.Net.Http;
+using System;
+using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -53,5 +55,8 @@ namespace Couchbase.Lite.Replicator
         HttpClient GetHttpClient(bool longPoll);
         void ChangeTrackerReceivedChange(IDictionary<string, object> change);
         void ChangeTrackerStopped(ChangeTracker tracker);
+
+        //TODO: Socket and web socket
+        //void ChangeTrackerFinished(ChangeTracker tracker);
     }
 }

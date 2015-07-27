@@ -21,7 +21,9 @@
 //
 using System;
 using Couchbase.Lite;
-using Couchbase.Lite.PeerToPeer;
+using Couchbase.Lite.Listener;
+using Couchbase.Lite.Listener.Tcp;
+using System.Collections.Generic;
 
 namespace Listener
 {
@@ -30,7 +32,8 @@ namespace Listener
         private const int port = 59840;
         public static void Main(string[] args)
         {
-            CouchbaseLiteServiceListener listener = new CouchbaseLiteServiceListener(Manager.SharedInstance, port);
+            CouchbaseLiteServiceListener listener = new CouchbaseLiteTcpListener(Manager.SharedInstance, port);
+            listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
             listener.Start();
 
             Console.ReadKey(true);

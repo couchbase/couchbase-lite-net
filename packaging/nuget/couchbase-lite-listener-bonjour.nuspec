@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>Couchbase.Lite.Listener.Bonjour</id>
+    <title>Couchbase Lite - Bonjour P2P Discovery Service</title>
+    <version>1.1.0</version>
+    <authors>Jim Borden, Zachary Gramana</authors>
+    <owners>Couchbase</owners>
+    <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/couchbaselabs/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Enables Bonjour/DNS-SD Discovery for Peer-to-Peer Couchbase Lite applications.</description>
+    <releaseNotes>
+      During the developer preview this bundled directly into our HttpListener assembly.
+      We moved it to this new package so that those not using Bonjour could have smaller
+      assemblies. This also lets us update our Bonjour support without having to bump
+      the Listener version.
+
+      By adding this one package, you'll also get the Listener and core Couchbase Lite packages.
+    </releaseNotes>
+    <copyright>Copyright 2015</copyright>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database bonjour dns-sd p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>
+    <language>en-US</language>
+    <dependencies>
+      <dependency id="Couchbase.Lite" version="1.1.0" />
+      <dependency id="Couchbase.Lite.Listener" version="1.1.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file target="lib/net45" src="src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net45/bin/Release/Couchbase.Lite.Listener.Bonjour.*" />
+    <file target="lib/MonoAndroid" src="src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Android/bin/Release/Couchbase.Lite.Listener.Bonjour.*" />
+    <file target="lib/Xamarin.iOS10" src="src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.iOS/bin/Release/Couchbase.Lite.Listener.Bonjour.*" />
+  </files>
+</package>

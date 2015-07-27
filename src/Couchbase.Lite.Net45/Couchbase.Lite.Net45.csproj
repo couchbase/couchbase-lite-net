@@ -1,11 +1,14 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <UsingTask AssemblyFile="$(ProjectDir)..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll" TaskName="MSBuild.Community.Tasks.Git.GitVersion" Condition=" false AND !$(DefineConstants.Contains('OFFICIAL')) " />
-  <Target Condition=" false AND !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
-    <GitVersion LocalPath="$(ProjectDir)">
-      <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
-    </GitVersion>
-    <Exec Command="echo $(CommitHash) &gt; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
+  <PropertyGroup>
+    <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
+    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' ">
+    </MonoPrefix>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+  </PropertyGroup>
+  <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
+    <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
   </Target>
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -20,7 +23,6 @@
     <NuGetPackageImportStamp>dfc8a845</NuGetPackageImportStamp>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <ReleaseVersion>1.1</ReleaseVersion>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -28,7 +30,7 @@
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;VERBOSE</DefineConstants>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -65,6 +67,9 @@
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib.Portable">
       <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0002\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
+    </Reference>
+    <Reference Include="Stateless">
+      <HintPath>..\packages\Stateless.2.5.21.0\lib\portable-net40+sl50+win+wp80\Stateless.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

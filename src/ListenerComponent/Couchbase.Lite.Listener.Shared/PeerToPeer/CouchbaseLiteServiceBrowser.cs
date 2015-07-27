@@ -23,7 +23,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Mono.Zeroconf;
-using Mono.Zeroconf.Providers.Bonjour;
 
 namespace Couchbase.Lite.Listener
 {
@@ -55,7 +54,12 @@ namespace Couchbase.Lite.Listener
         /// <summary>
         /// An event raised when a new service is discovered and resolved
         /// </summary>
-        public event ServiceResolvedEventHandler ServiceResolved;
+        public event ServiceResolvedEventHandler ServiceResolved
+        {
+            add { _serviceResolved = (ServiceResolvedEventHandler)Delegate.Combine(_serviceResolved, value); }
+            remove { _serviceResolved = (ServiceResolvedEventHandler)Delegate.Remove(_serviceResolved, value); }
+        }
+        private event ServiceResolvedEventHandler _serviceResolved;
 
         /// <summary>
         /// An event raised when an existing service is destroyed
@@ -69,32 +73,6 @@ namespace Couchbase.Lite.Listener
 
         #region Constructors
 
-        #if __ANDROID__ && !__UNITY__
-        /// <summary>
-        /// This is needed to start the /system/bin/mdnsd service on Android
-        /// (can't find another way to start it)
-        /// </summary>
-        static CouchbaseLiteServiceBrowser() {
-            global::Android.App.Application.Context.GetSystemService("servicediscovery");
-        }
-        #elif __UNITY_ANDROID__
-        static CouchbaseLiteServiceBrowser() {
-            UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
-            var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
-            if (context == null) {
-                c.Dispose();
-                throw new Exception("Failed to get context");
-            }
-
-            var arg = new UnityEngine.AndroidJavaObject("java.lang.String", "servicediscovery");
-            context.Call<UnityEngine.AndroidJavaObject>("getSystemService", arg);
-
-            context.Dispose();
-            arg.Dispose();
-            c.Dispose();
-        }
-        #endif
-
         /// <summary>
         /// Creates a new browser with the specified browsing service
         /// (or Bonjour if null is passed)
@@ -102,12 +80,16 @@ namespace Couchbase.Lite.Listener
         /// <param name="browser">The service that will perform the browsing</param>
         public CouchbaseLiteServiceBrowser(IServiceBrowser browser)
         {
-            _browser = browser ?? new ServiceBrowser();
+            if (browser == null) {
+                throw new ArgumentNullException("browser");
+            }
+
+            _browser = browser;
             _browser.ServiceAdded += (o, args) =>
             {
                 args.Service.Resolved += (_, __) => {
-                    if(ServiceResolved != null) {
-                        ServiceResolved(this, new ServiceResolvedEventArgs(args.Service));
+                    if(_serviceResolved != null) {
+                        _serviceResolved(this, new ServiceResolvedEventArgs(args.Service));
                     }
                 };
 

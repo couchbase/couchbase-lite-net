@@ -118,32 +118,7 @@ namespace Couchbase.Lite.Replicator
                     RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, request)), response);
                     return;
                 }
-            }
-            catch (AggregateException e)
-            {
-                var err = e.InnerException;
-                Log.E(Tag, "Unhandled Exception", err);
-                error = err;
-                RespondWithResult(fullBody, err, response);
-                return;
-            }
-            catch (IOException e)
-            {
-                Log.E(Tag, "IO Exception", e);
-                error = e;
-                RespondWithResult(fullBody, e, response);
-                return;
-            }
-            catch (Exception e)
-            {
-                Log.E(Tag, "ExecuteRequest Exception: ", e);
-                error = e;
-                RespondWithResult(fullBody, e, response);
-                return;
-            }
 
-            try
-            {
                 Log.D(Tag + ".ExecuteRequest", "Sending request: {0}", request);
                 var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
                 var responseTask = httpClient.SendAsync(request, requestTokenSource.Token);
@@ -155,27 +130,12 @@ namespace Couchbase.Lite.Replicator
                 requestTokenSource.Dispose();
                 response = responseTask.Result;
             }
-            catch (AggregateException e)
-            {
-                var err = e.InnerException;
-                Log.E(Tag, "Unhandled Exception: {0}, {1}", TaskScheduler.Current, Description());
-                Log.E(Tag, "Unhandled Exception at Line 129 or 130", err);
-                error = err;
-                RespondWithResult(fullBody, err, response);
-                return;
-            }
-            catch (IOException e)
-            {
-                Log.E(Tag, "IO Exception", e);
-                error = e;
-                RespondWithResult(fullBody, e, response);
-                return;
-            }
             catch (Exception e)
             {
-                Log.E(Tag, "ExecuteRequest Exception: ", e);
-                error = e;
-                RespondWithResult(fullBody, e, response);
+                var err = (e is AggregateException) ? ((AggregateException)e).InnerException : e;
+                Log.E(Tag, "Unhandled Exception", err);
+                error = err;
+                RespondWithResult(fullBody, err, response);
                 return;
             }
 
@@ -339,13 +299,8 @@ namespace Couchbase.Lite.Replicator
         {
             Func<RevisionInternal, IDictionary<String, Object>> invoke = source =>
             {
-                var hasAttachment = false;
-                var attsSince = database.GetPossibleAncestorRevisionIDs(source, Puller.MaxNumberOfAttsSince, ref hasAttachment);
+                var attsSince = database.Storage.GetPossibleAncestors(source, Puller.MAX_ATTS_SINCE, true);
 
-                if (!hasAttachment || attsSince.Count == 0) 
-                {
-                    attsSince = null;
-                }
 
                 var mapped = new Dictionary<string, object> ();
                 mapped.Put ("id", source.GetDocId ());

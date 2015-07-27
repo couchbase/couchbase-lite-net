@@ -45,6 +45,7 @@ using System.Net.Http;
 using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Auth;
 
 #if NET_3_5
 using System.Net.Couchbase;

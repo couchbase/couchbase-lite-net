@@ -165,7 +165,7 @@ namespace Couchbase.Lite
                 }
                 catch (IOException e)
                 {
-                    Log.W(Database.Tag, "Exception closing input stream", e);
+                    Log.W(Database.TAG, "Exception closing input stream", e);
                 }
             }
         }
@@ -179,7 +179,7 @@ namespace Couchbase.Lite
             }
             catch (IOException e)
             {
-                Log.W(Database.Tag, "Exception closing output stream", e);
+                Log.W(Database.TAG, "Exception closing output stream", e);
             }
             blobKey = new BlobKey(sha1Digest.Digest());
             md5DigestResult = md5Digest.Digest();
@@ -194,7 +194,7 @@ namespace Couchbase.Lite
             }
             catch (IOException e)
             {
-                Log.W(Database.Tag, "Exception closing output stream", e);
+                Log.W(Database.TAG, "Exception closing output stream", e);
             }
             tempFile.Delete();
         }

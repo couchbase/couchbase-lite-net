@@ -41,87 +41,128 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite 
 {
+
     internal class ObjectWriter 
     {
-        static readonly JsonSerializerSettings settings = new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
 
-        readonly Boolean prettyPrintJson;
+        #region Variables
+
+        private readonly bool _prettyPrintJson;
+
+        #endregion
+
+        #region Constructors
 
         public ObjectWriter() : this(false) { }
 
-        public ObjectWriter(Boolean prettyPrintJson)
+        public ObjectWriter(bool prettyPrintJson)
         {
-            this.prettyPrintJson = prettyPrintJson;
+            _prettyPrintJson = prettyPrintJson;
         }
+
+        #endregion
+
+        #region Public Methods
 
         public ObjectWriter WriterWithDefaultPrettyPrinter()
         {
             return new ObjectWriter(true); // Currently doesn't do anything, but could use something like http://www.limilabs.com/blog/json-net-formatter in the future.
         }
 
-        public IEnumerable<Byte> WriteValueAsBytes<T> (T item)
+        public IJsonSerializer StartIncrementalParse(Stream json)
         {
-            var json = WriteValueAsString<T>(item);
+            var serializer = ManagerOptions.SerializationEngine.DeepClone();
+            serializer.StartIncrementalParse(json);
+            return serializer;
+        }
+
+        public IEnumerable<Byte> WriteValueAsBytes<T> (T item, bool canonical = false)
+        {
+            var json = WriteValueAsString<T>(item, canonical);
             return Encoding.UTF8.GetBytes(json);
         }
 
-        public string WriteValueAsString<T> (T item)
+        public string WriteValueAsString<T> (T item, bool canonical = false)
         {
-            return JsonConvert.SerializeObject(item, prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
-        }
-
-        public T ReadValue<T> (String json)
-        {
-            T item;
-            try {
-                item = JsonConvert.DeserializeObject<T>(json);
-            } catch(JsonException e) {
-                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+            if (!canonical) {
+                return ManagerOptions.SerializationEngine.SerializeObject(item, _prettyPrintJson);
             }
 
-            return item;
+            var newItem = MakeCanonical(item);
+            return ManagerOptions.SerializationEngine.SerializeObject(newItem, _prettyPrintJson);
         }
 
-        public T ReadValue<T> (IEnumerable<Byte> json)
+        public T ReadValue<T> (string json)
+        {
+            return ManagerOptions.SerializationEngine.DeserializeObject<T>(json);
+        }
+
+        public T ReadValue<T> (IEnumerable<byte> json)
         {
             using (var jsonStream = new MemoryStream(json.ToArray())) 
-            using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
             {
-                var serializer = new JsonSerializer();
-                T item;
-                try {
-                    item = serializer.Deserialize<T>(jsonReader);
-                } catch (JsonException e) {
-                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
-                }
-
-                return item;
+                return ReadValue<T>(jsonStream);
             }
         }
 
         public T ReadValue<T> (Stream jsonStream)
         {
-            using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
-            {
-                var serializer = new JsonSerializer();
-                T item;
-                try {
-                    item = serializer.Deserialize<T>(jsonReader);
-                } catch (JsonException e) {
-                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
+            return ManagerOptions.SerializationEngine.Deserialize<T>(jsonStream);
+        }
+
+        public IDictionary<K, V> ConvertToDictionary<K, V>(object obj)
+        {
+            return ManagerOptions.SerializationEngine.ConvertToDictionary<K, V>(obj) ?? obj as IDictionary<K,V>;
+        }
+
+        public IList<T> ConvertToList<T>(object obj)
+        {
+            return ManagerOptions.SerializationEngine.ConvertToList<T>(obj) ?? obj as IList<T>;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private static object MakeCanonical(object input)
+        {
+            if (input == null) {
+                return null;
+            }
+
+            var t = input.GetType();
+            if (t.GetInterface(typeof(IDictionary<,>).FullName) != null) {
+                var sorted = new SortedDictionary<object, object>();
+                var method = t.GetMethod("GetEnumerator");
+                var e = (IEnumerator)method.Invoke(input, null);
+                PropertyInfo keyProp = null, valueProp = null;
+                while(e.MoveNext()) {
+                    if(keyProp == null) {
+                        keyProp = e.Current.GetType().GetProperty("Key");
+                        valueProp = e.Current.GetType().GetProperty("Value");
+                    }
+
+                    var key = keyProp.GetValue(e.Current, null);
+                    var value = valueProp.GetValue(e.Current, null);
+                    sorted[key] = MakeCanonical(value);
                 }
 
-                return item;
+                return sorted;
             }
+
+            return input;
         }
+
+        #endregion
     }
 }
 

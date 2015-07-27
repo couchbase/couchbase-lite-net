@@ -59,6 +59,7 @@ namespace Couchbase.Lite.Listener
         private static readonly RouteCollection _Post =
             new RouteCollection(new Dictionary<string, RestMethod> {
                 { "/_replicate", ServerMethods.ManageReplicationSession },
+                { "/{[^_].*}/_revs_diff", DatabaseMethods.RevsDiff },
                 { "/{[^_].*}/_all_docs", DatabaseMethods.GetAllSpecifiedDocuments },
                 { "/{[^_].*}/_bulk_docs", DatabaseMethods.ProcessDocumentChangeOperations },
                 { "/{[^_].*}/_compact", DatabaseMethods.Compact },
@@ -119,6 +120,7 @@ namespace Couchbase.Lite.Listener
         /// request</param>
         public void HandleRequest(ICouchbaseListenerContext context)
         {
+            Log.V(TAG, "Processing {0} request to {1}", context.Method, context.RequestUrl.AbsoluteUri);
             var method = context.Method;
 
             if (OnAccessCheck != null) {

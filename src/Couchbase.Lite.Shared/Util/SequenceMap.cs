@@ -42,6 +42,7 @@
 
 using System.Collections.Generic;
 using Sharpen;
+using System.Threading;
 
 namespace Couchbase.Lite.Support
 {
@@ -59,11 +60,16 @@ namespace Couchbase.Lite.Support
 
         private long lastSequence;
 
-        private IList<string> values;
+        private readonly IList<string> values;
 
         private long firstValueSequence;
 
-        private object locker = new object ();
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+
+        public int Count
+        {
+            get { return sequences.Count; }
+        }
 
         public SequenceMap()
         {
@@ -84,30 +90,28 @@ namespace Couchbase.Lite.Support
         /// </remarks>
         public long AddValue(string value)
         {
-            lock (locker)
-            {
-                sequences.AddItem(++lastSequence);
-                values.AddItem(value);
-                return lastSequence;
-            }
+            _lock.EnterWriteLock();
+            sequences.AddItem(++lastSequence);
+            values.AddItem(value);
+            _lock.ExitWriteLock();
+            return lastSequence;
         }
 
         /// <summary>Removes a sequence and its associated value.</summary>
         /// <remarks>Removes a sequence and its associated value.</remarks>
         public void RemoveSequence(long sequence)
         {
-            lock (locker)
-            {
-                sequences.Remove(sequence);
-            }
+            _lock.EnterWriteLock();
+            sequences.Remove(sequence);
+            _lock.ExitWriteLock();
         }
 
         public bool IsEmpty()
         {
-            lock (locker)
-            {
-                return sequences.IsEmpty();
-            }
+            _lock.EnterReadLock();
+            var retVal = sequences.IsEmpty();
+            _lock.ExitReadLock();
+            return retVal;
         }
 
         /// <summary>Returns the maximum consecutively-removed sequence number.</summary>
@@ -117,34 +121,43 @@ namespace Couchbase.Lite.Support
         /// </remarks>
         public long GetCheckpointedSequence()
         {
-            lock (locker)
-            {
-                long sequence = lastSequence;
-                if (!sequences.IsEmpty())
-                {
-                    sequence = sequences.First() - 1;
-                }
-                if (sequence > firstValueSequence)
-                {
-                    // Garbage-collect inaccessible values:
-                    int numToRemove = (int)(sequence - firstValueSequence);
-                    for (int i = 0; i < numToRemove; i++)
-                    {
-                        values.Remove(0);
-                    }
-                    firstValueSequence += numToRemove;
-                }
-                return sequence;
+            var tookLock = false;
+            if (!_lock.IsUpgradeableReadLockHeld) {
+                _lock.EnterUpgradeableReadLock();
+                tookLock = true;
             }
+
+            long sequence = lastSequence;
+            if (!sequences.IsEmpty()) {
+                sequence = sequences.First() - 1;
+            }
+
+            if (sequence > firstValueSequence) {
+                _lock.EnterWriteLock();
+                // Garbage-collect inaccessible values:
+                int numToRemove = (int)(sequence - firstValueSequence);
+                for (int i = 0; i < numToRemove; i++) {
+                    values.Remove(0);
+                }
+                firstValueSequence += numToRemove;
+                _lock.ExitWriteLock();
+            }
+
+            if (tookLock) {
+                _lock.ExitUpgradeableReadLock();
+            }
+
+            return sequence;
         }
 
         /// <summary>Returns the value associated with the checkpointedSequence.</summary>
         public string GetCheckpointedValue()
         {
-            lock (locker) {
-                int index = (int)(GetCheckpointedSequence () - firstValueSequence);
-                return (index >= 0) ? values [index] : null;
-            }
+            _lock.EnterUpgradeableReadLock();
+            int index = (int)(GetCheckpointedSequence () - firstValueSequence);
+            var retVal = (index >= 0) ? values [index] : null;
+            _lock.ExitUpgradeableReadLock();
+            return retVal;
         }
     }
 }

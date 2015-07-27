@@ -1,11 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <UsingTask AssemblyFile="$(ProjectDir)..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll" TaskName="MSBuild.Community.Tasks.Git.GitVersion" Condition=" false AND !$(DefineConstants.Contains('OFFICIAL')) " />
-  <Target Condition=" false AND !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
-    <GitVersion LocalPath="$(ProjectDir)">
-      <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
-    </GitVersion>
-    <Exec Command="echo $(CommitHash) &gt; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
+  <PropertyGroup>
+    <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
+    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' ">
+    </MonoPrefix>
+  </PropertyGroup>
+  <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
+    <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
   </Target>
   <PropertyGroup>
     <UnityDllLocation Condition=" '$(OS)' != 'Windows_NT' ">/Applications/Unity/Unity.app/Contents/Frameworks/Managed/UnityEngine.dll</UnityDllLocation>
@@ -66,12 +67,9 @@
     <Reference Include="SQLitePCL.raw">
       <HintPath>..\Couchbase.Lite.Net35\vendor\SQLitePCL\SQLitePCL.raw.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\Couchbase.Lite.Net35\vendor\JSON.NET\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System.Data" />
     <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>..\Couchbase.Lite.Net35\vendor\ICSharpCode\ICSharpCode.SharpZipLib.dll</HintPath>
+      <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -88,27 +86,7 @@
       <Link>StringEx.cs</Link>
     </Compile>
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
-      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
-      <Name>System.Threading.Tasks.Net35</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
-      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
-      <Name>System.Net.Http-net_4_5</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
-      <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
-      <Name>Rackspace.Threading.net35-client</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Target Name="SetAssemblyVersion" Condition=" '$(SetAssemblyVersionEnabled)' == 'true' " BeforeTargets="PrepareForBuild">
-    <GitVersion LocalPath="$(SolutionDir)">
-      <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
-    </GitVersion>
-    <Exec Command="echo $(CommitHash) &gt; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
-  </Target>
   <Target Name="CopyUnityDll" BeforeTargets="PrepareForBuild">
     <Message Text="Copying UnityEngine.dll to project" />
     <Error Condition=" !Exists('$(ProjectDir)vendor\Unity\UnityEngine.dll') AND !Exists('$(UnityDllLocation)') " Text="UnityEngine.dll not found in the default location ($(UnityDllLocation)).  Please copy it to src/Couchbase.Lite.Unity/vendor/Unity" />
@@ -121,4 +99,29 @@
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
+  <ItemGroup>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
+      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
+      <Name>System.Net.Http-net_4_5</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
+      <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
+      <Name>Rackspace.Threading.net35-client</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
+      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
+      <Name>System.Threading.Tasks.Net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Stateless\Stateless\Stateless.csproj">
+      <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
+      <Name>Stateless</Name>
+    </ProjectReference>
+    <ProjectReference Include="vendor\JSON.NET\Src\Newtonsoft.Json\Newtonsoft.Json.Net35.csproj">
+      <Project>{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}</Project>
+      <Name>Newtonsoft.Json.Net35</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>

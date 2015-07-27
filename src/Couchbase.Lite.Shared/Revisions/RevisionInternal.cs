@@ -45,6 +45,12 @@ using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Sharpen;
+using System.Text;
+using System.Linq;
+
+#if !NET_3_5
+using StringEx = System.String;
+#endif
 
 namespace Couchbase.Lite.Internal
 {
@@ -56,36 +62,40 @@ namespace Couchbase.Lite.Internal
     /// </remarks>
     internal class RevisionInternal
     {
-        private string docId;
 
-        private string revId;
+        #region Variables
 
-        private bool deleted;
+        private readonly string _docId;
+        private readonly string _revId;
+        private bool _deleted;
+        private bool _missing;
+        private Body _body;
+        private long _sequence;
 
-        private bool missing;
+        #endregion
 
-        private Body body;
-
-        private long sequence;
-
-        //private Database database;
+        #region Constructors
 
         internal RevisionInternal(String docId, String revId, Boolean deleted)
         {
             // TODO: get rid of this field!
-            this.docId = docId;
-            this.revId = revId;
-            this.deleted = deleted;
+            this._docId = docId;
+            this._revId = revId;
+            this._deleted = deleted;
         }
 
         internal RevisionInternal(Body body)
             : this(body.GetPropertyForKey<string>("_id"), body.GetPropertyForKey<string>("_rev"), body.GetPropertyForKey<bool>("_deleted"))
         {
-            this.body = body;
+            this._body = body;
         }
 
         internal RevisionInternal(IDictionary<String, Object> properties)
             : this(new Body(properties)) { }
+
+        #endregion
+
+        #region Methods
 
         public static bool IsValid(Body body)
         {
@@ -93,32 +103,89 @@ namespace Couchbase.Lite.Internal
             (body.GetPropertyForKey("_rev") == null && body.GetPropertyForKey("_deleted") == null);
         }
 
+        internal static Tuple<int, string> ParseRevId(string revId)
+        {
+            if (revId == null || revId.Contains(" ")) {
+                return Tuple.Create(-1, string.Empty); 
+            }
+
+            int dashPos = revId.IndexOf("-", StringComparison.InvariantCulture);
+            if (dashPos == -1) {
+                return Tuple.Create(-1, string.Empty);
+            }
+
+            var genStr = revId.Substring(0, dashPos);
+            int generation;
+            if (!int.TryParse(genStr, out generation)) {
+                return Tuple.Create(-1, string.Empty);
+            }
+
+            var suffix = revId.Substring(dashPos + 1);
+            if (suffix.Length == 0) {
+                return Tuple.Create(-1, string.Empty);
+            }
+
+            return Tuple.Create(generation, suffix);
+        }
+
         internal IDictionary<String, Object> GetProperties()
         {
             IDictionary<string, object> result = null;
-            if (body != null)
-            {
+            if (_body != null) {
                 IDictionary<string, object> prop;
-                try
-                {
-                    prop = body.GetProperties();
-                }
-                catch (InvalidOperationException)
-                {
+                try {
+                    prop = _body.GetProperties();
+                } catch (InvalidOperationException) {
                     // handle when both object and json are null for this body
                     return null;
                 }
-                if (result == null)
-                {
+
+                if (result == null) {
                     result = new Dictionary<string, object>();
                 }
                 result.PutAll(prop);
+
+                if (_docId != null) {
+                    result["_id"] = _docId;
+                }
+
+                if (_revId != null) {
+                    result["_rev"] = _revId;
+                }
+
+                if (_deleted) {
+                    result["_deleted"] = true;
+                }
             }
             return result;
         }
 
+        internal RevisionInternal CopyWithoutBody()
+        {
+            if (_body == null) {
+                return this;
+            }
+
+            var rev = new RevisionInternal(_docId, _revId, _deleted);
+            rev.SetSequence(_sequence);
+            rev.SetMissing(_missing);
+            return rev;
+        }
+
         internal object GetPropertyForKey(string key)
         {
+            if (key == "_id") {
+                return _docId;
+            }
+
+            if (key == "_rev") {
+                return _revId;
+            }
+
+            if (key == "_deleted") {
+                return _deleted ? (object)true : null;
+            }
+
             var prop = GetProperties();
             if (prop == null)
             {
@@ -129,41 +196,22 @@ namespace Couchbase.Lite.Internal
 
         internal void SetProperties(IDictionary<string, object> properties)
         {
-            body = new Body(properties);
+            _body = new Body(properties);
         }
 
         internal IEnumerable<Byte> GetJson()
         {
             IEnumerable<Byte> result = null;
-            if (body != null)
+            if (_body != null)
             {
-                result = body.AsJson();
+                result = _body.AsJson();
             }
             return result;
         }
 
         internal void SetJson(IEnumerable<Byte> json)
         {
-            body = new Body(json);
-        }
-
-        public override bool Equals(object o)
-        {
-            var result = false;
-            if (o is RevisionInternal)
-            {
-                RevisionInternal other = (RevisionInternal)o;
-                if (docId.Equals(other.docId) && revId.Equals(other.revId))
-                {
-                    result = true;
-                }
-            }
-            return result;
-        }
-
-        public override int GetHashCode()
-        {
-            return docId.GetHashCode() ^ revId.GetHashCode();
+            _body = new Body(json);
         }
 
         internal IDictionary<string, object> GetAttachments()
@@ -178,60 +226,67 @@ namespace Couchbase.Lite.Internal
 
         internal string GetDocId()
         {
-            return docId;
-        }
-
-        internal void SetDocId(string docId)
-        {
-            this.docId = docId;
+            return _docId;
         }
 
         internal string GetRevId()
         {
-            return revId;
-        }
-
-        internal void SetRevId(string revId)
-        {
-            this.revId = revId;
+            return _revId;
         }
 
         internal bool IsDeleted()
         {
-            return deleted;
+            return _deleted;
         }
 
         internal void SetDeleted(bool deleted)
         {
-            this.deleted = deleted;
+            this._deleted = deleted;
         }
 
         internal Body GetBody()
         {
-            return body;
+            if (_body == null) {
+                return _body;
+            }
+
+            var props = _body.GetProperties();
+            if (_docId != null) {
+                props["_id"] = _docId;
+            }
+
+            if (_revId != null) {
+                props["_rev"] = _revId;
+            }
+
+            if (_deleted) {
+                props["_deleted"] = true;
+            }
+
+            return new Body(props);
         }
 
         internal void SetBody(Body body)
         {
-            this.body = body;
+            this._body = body;
         }
 
         internal Boolean IsMissing()
         {
-            return missing;
+            return _missing;
         }
 
         internal void SetMissing(Boolean isMissing)
         {
-            missing = isMissing;
+            _missing = isMissing;
         }
 
         internal RevisionInternal CopyWithDocID(String docId, String revId)
         {
             System.Diagnostics.Debug.Assert((docId != null));
-            System.Diagnostics.Debug.Assert(((this.docId == null) || (this.docId.Equals(docId))));
+            System.Diagnostics.Debug.Assert(((this._docId == null) || (this._docId.Equals(docId))));
 
-            var result = new RevisionInternal(docId, revId, deleted);
+            var result = new RevisionInternal(docId, revId, _deleted);
             var unmodifiableProperties = GetProperties();
             var properties = new Dictionary<string, object>();
             if (unmodifiableProperties != null)
@@ -246,17 +301,17 @@ namespace Couchbase.Lite.Internal
 
         internal void SetSequence(long sequence)
         {
-            this.sequence = sequence;
+            this._sequence = sequence;
         }
 
         internal long GetSequence()
         {
-            return sequence;
+            return _sequence;
         }
 
         public override string ToString()
         {
-            return "{" + this.docId + " #" + this.revId + (deleted ? "DEL" : string.Empty) + "}";
+            return "{" + this._docId + " #" + this._revId + (_deleted ? "DEL" : string.Empty) + "}";
         }
 
         /// <summary>Generation number: 1 for a new document, 2 for the 2nd revision, ...</summary>
@@ -266,7 +321,7 @@ namespace Couchbase.Lite.Internal
         /// </remarks>
         internal int GetGeneration()
         {
-            return GenerationFromRevID(revId);
+            return GenerationFromRevID(_revId);
         }
 
         internal static int GenerationFromRevID(string revID)
@@ -335,7 +390,7 @@ namespace Couchbase.Lite.Internal
                 if (rev1Hash != null && rev2Hash != null)
                 {
                     // compare suffixes if possible
-                    return Sharpen.Runtime.CompareOrdinal(rev1Hash, rev2Hash);
+                    return String.CompareOrdinal(rev1Hash, rev2Hash);
                 }
                 else
                 {
@@ -401,6 +456,29 @@ namespace Couchbase.Lite.Internal
 
             return false;
         }
+
+        #endregion
+
+        #region Overrides
+
+        public override bool Equals(object o)
+        {
+            var other = o as RevisionInternal;
+            bool result = false;
+            if (other != null) {
+                if (_docId.Equals(other._docId) && _revId.Equals(other._revId)) {
+                    result = true;
+                }
+            }
+            return result;
+        }
+
+        public override int GetHashCode()
+        {
+            return _docId.GetHashCode() ^ _revId.GetHashCode();
+        }
+
+        #endregion
 
     }
 }
