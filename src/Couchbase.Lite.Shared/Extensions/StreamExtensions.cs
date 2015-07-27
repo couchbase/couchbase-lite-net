@@ -55,7 +55,7 @@ namespace Couchbase.Lite {
         /// </remarks>
         /// <param name="stream">Stream.</param>
         public static void Reset(this Stream stream) {
-            if (stream.CanSeek)
+            if (stream != null && stream.CanSeek)
                 stream.Seek(0, SeekOrigin.Begin);
         }
     }

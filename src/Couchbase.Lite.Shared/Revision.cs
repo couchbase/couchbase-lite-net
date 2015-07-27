@@ -47,6 +47,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.IO;
 using Sharpen;
+using Couchbase.Lite.Replicator;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite 
 {
@@ -246,6 +248,57 @@ namespace Couchbase.Lite
             }
             var attachmentMetadata = attachmentsMetadata.Get(name).AsDictionary<string,Object>();
             return new Attachment(this, name, attachmentMetadata);
+        }
+
+        /// <summary>
+        /// Returns the <see cref="Task"/> with the specified name if it exists, otherwise null.
+        /// If a local copy of the attachment is not available, it will then attempt to download the attachment from the server
+        /// </summary>
+        /// <returns>The <see cref="Task"/> with the specified name if it exists, otherwise null.</returns>
+        /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to return.</param>
+        /// <param name="replicator">The puller to use when downloading attachments</param>
+        public Task<Attachment> GetDeferedAttachment (String name, Replication replicator)
+        {
+            return Task.Run(() => {
+                var att = GetAttachment (name);
+                if (att == null) {
+                    return null;
+                }
+
+                if (att.ContentStream != null) {
+                    return att;
+                }
+
+                if (replicator is Puller ==  false) {
+                    return att;
+                }
+
+                Puller puller = (Puller)replicator;
+                Couchbase.Lite.Internal.AttachmentRequest req = new Couchbase.Lite.Internal.AttachmentRequest();
+                req.attachment = att;
+                req.completeEvent = new System.Threading.ManualResetEvent(false);
+
+                MemoryStream stream = new MemoryStream();
+                req.progress = (buffer, bytesRead, complete, e) => {
+                    if (stream != null && e == null && bytesRead > 0)
+                    {
+                        stream.Write(buffer, 0, bytesRead);
+                    }
+                    else if (e != null)
+                    {
+                        stream = null;
+                    }
+                };
+
+                puller.QueueRemoteAttachment(req);
+                puller.PullRemoteRevisions();
+
+                req.completeEvent.WaitOne();
+
+                att.Body = stream;
+
+                return att;
+            });
         }
 
     #endregion

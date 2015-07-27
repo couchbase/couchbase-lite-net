@@ -69,7 +69,7 @@ namespace Couchbase.Lite.Replicator
 
         /// <exception cref="System.Exception"></exception>
         public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
-            : base(workExecutor, clientFactory, "POST", new Uri(AppendRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true")), HelperMethod(revs, database), database, requestHeaders, tokenSource)
+            : base(workExecutor, clientFactory, "POST", new Uri(AppendRelativeURLString(dbURL, string.Format("/_bulk_get?revs=true&attachments={0}", ManagerOptions.Default.DownloadAttachmentsOnSync.ToString().ToLower()))), HelperMethod(revs, database), database, requestHeaders, tokenSource)
         { }
 
         public override void Run()

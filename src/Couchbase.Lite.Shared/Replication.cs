@@ -1357,6 +1357,84 @@ namespace Couchbase.Lite
                 }, CancellationTokenSource.Token);
         }
 
+        internal void SendAsyncAttachmentRequest(HttpMethod method, String relativePath,
+                                                 RemoteRequestProgress progressHandler)
+        {
+            Uri url = null;
+            try
+            {
+                var urlStr = BuildRelativeURLString(relativePath);
+                url = new Uri(urlStr);
+            }
+            catch (UriFormatException e)
+            {
+                throw new ArgumentException("Invalid URI format.", e);
+            }
+
+            var message = new HttpRequestMessage(method, url);
+            message.Headers.Add("Accept", "*/*");
+
+            var client = clientFactory.GetHttpClient(false);
+
+            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
+            if (authHeader != null)
+            {
+                client.DefaultRequestHeaders.Authorization = authHeader;
+            }
+
+            client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
+                .ContinueWith(response=> {
+                        if (response.Status != TaskStatus.RanToCompletion)
+                        {
+                            Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
+                            return null;
+                        }
+                        if ((Int32)response.Result.StatusCode > 300) {
+                            LastError = new HttpResponseException(response.Result.StatusCode);
+                            Log.E(Tag, "Server returned HTTP Error", LastError);
+                            return null;
+                        }
+                        return response.Result.Content.ReadAsStreamAsync();
+                }, CancellationTokenSource.Token)
+                .ContinueWith(response=> {
+                    byte[] responseBuffer = new byte[4096];
+                    try
+                    {
+                        var hasEmptyResult = response.Result == null;
+                        if (response.Status != TaskStatus.RanToCompletion) {
+                            Log.E (Tag, "SendAsyncRequest did not run to completion.", response.Exception);
+                        } else if (hasEmptyResult) {
+                            Log.E (Tag, "Server returned an empty response.", response.Exception ?? LastError);
+                        }
+
+                        Stream stream = response.Result.Result;
+                        int read = 0;
+                        do
+                        {
+                            stream.ReadAsync(responseBuffer, 0, responseBuffer.Length)
+                                    .ContinueWith(r => {
+                                        if (r.Status != TaskStatus.RanToCompletion) {
+                                            Log.E (Tag, "SendAsyncRequest ReadAsync did not run to completion.", r.Exception);
+                                        }
+
+                                        read = r.Result;
+                                        progressHandler(responseBuffer, read, read == 0, r.Exception);
+                                    }, CancellationTokenSource.Token).Wait();
+                        }
+                        while(read != 0);
+                    }
+                    catch(Exception ex)
+                    {
+                        Log.E (Tag, "SendAsyncAttachmentRequest response did not run to completion.", ex);
+                        progressHandler(responseBuffer, 0, true, ex);
+                    }
+                    finally
+                    {
+                        client.Dispose();
+                    }
+                }, CancellationTokenSource.Token);
+        }
+
         internal void UpdateServerType(HttpResponseMessage response)
         {
             var server = response.Headers.Server;

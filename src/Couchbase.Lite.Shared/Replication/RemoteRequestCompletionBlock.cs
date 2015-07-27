@@ -41,13 +41,20 @@
 //
 
 using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Support
 {
-    
     /// <summary>
     /// The signature for a method that can be called upon the receipt of
     /// a reponse from a remote request
     /// </summary>
     public delegate void RemoteRequestCompletionBlock(object result, Exception e);
+
+    /// <summary>
+    /// The signature for a method that can be called upon the receipt of
+    /// a reponse from a remote request
+    /// </summary>
+    public delegate void RemoteRequestProgress(byte[] data, int bytesRead, bool complete, Exception e);
 }

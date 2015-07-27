@@ -49,6 +49,7 @@ using System.Security.Cryptography.X509Certificates;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using ModernHttpClient;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -138,7 +139,8 @@ namespace Couchbase.Lite.Support
                 UseCookies = true,
             };
 
-            var authHandler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
+            // var authHandler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
+            var authHandler = new NativeMessageHandler (false, false, new NativeCookieHandler ());
 
             var retryHandler = new TransientErrorRetryHandler(authHandler);
 
