@@ -497,7 +497,8 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevs)) {
-                    dst["_revisions"] = db.Storage.GetRevisionHistory(rev, null);
+                    var revs = db.GetRevisionHistory(rev, null);
+                    dst["_revisions"] = Database.MakeRevisionHistoryDict(revs);
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevsInfo)) {
