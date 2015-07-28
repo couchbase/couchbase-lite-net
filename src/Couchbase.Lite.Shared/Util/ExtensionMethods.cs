@@ -300,6 +300,12 @@ namespace Couchbase.Lite
             }
         }
 
+        public static IEnumerable<FileInfo> EnumerateFiles(this DirectoryInfo info) {
+            foreach (var file in info.GetFiles()) {
+                yield return file;
+            }
+        }
+
         public static Task<HttpListenerContext> GetContextAsync(this HttpListener listener)
         {
             return Task.Factory.FromAsync<HttpListenerContext>(listener.BeginGetContext, listener.EndGetContext, null);

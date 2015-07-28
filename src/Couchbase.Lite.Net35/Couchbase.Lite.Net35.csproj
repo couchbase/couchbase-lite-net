@@ -64,9 +64,6 @@
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="Stateless">
-      <HintPath>..\packages\Stateless.2.5.21.0\lib\Stateless.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
@@ -98,6 +95,10 @@
     <ProjectReference Include="vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
       <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
       <Name>System.Threading.Tasks.Net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="vendor\Stateless\Stateless\Stateless.csproj">
+      <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
+      <Name>Stateless</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>
