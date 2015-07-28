@@ -2,7 +2,7 @@
 //  UnityMainThreadScheduler.cs
 //
 //  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
+//      Jim Borden  <jim.borden@couchbase.com>
 //
 //  Copyright (c) 2015 Couchbase, Inc All rights reserved.
 //
@@ -54,6 +54,8 @@ namespace Couchbase.Lite.Unity
 
         #region Properties
 
+        public static string PersistentDataPath { get; private set; }
+
         /// <summary>
         /// The task scheduler for scheduling actions to run on the Unity3D
         /// main thread
@@ -65,7 +67,7 @@ namespace Couchbase.Lite.Unity
                 if (_taskScheduler == null)
                 {
                     Debug.LogError("UnityMainThreadScheduler must be initialized from the main thread by attaching it on" +
-                                   "to an object in the scene");
+                        "to an object in the scene");
                     throw new InvalidOperationException();
                 }
 
@@ -91,7 +93,7 @@ namespace Couchbase.Lite.Unity
                 if (_taskScheduler == null)
                 {
                     Debug.LogError("UnityMainThreadScheduler must be initialized from the main thread by attaching it on" +
-                                   "to an object in the scene");
+                        "to an object in the scene");
                     throw new InvalidOperationException();
                 }
 
@@ -113,6 +115,7 @@ namespace Couchbase.Lite.Unity
             }
 
             _taskScheduler = new SingleThreadScheduler(Thread.CurrentThread, _jobQueue);
+            PersistentDataPath = Application.persistentDataPath;
         }
 
         void FixedUpdate()

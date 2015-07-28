@@ -49,10 +49,10 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
-      <Project>{443e1bee-43b3-45a1-acea-f7ba71bdaab1}</Project>
+      <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
       <Name>Couchbase.Lite.iOS</Name>
-      <IsAppExtension>false</IsAppExtension>
-      <IsWatchApp>false</IsWatchApp>
+      <IsAppExtension>False</IsAppExtension>
+      <IsWatchApp>False</IsWatchApp>
     </ProjectReference>
   </ItemGroup>
 </Project>

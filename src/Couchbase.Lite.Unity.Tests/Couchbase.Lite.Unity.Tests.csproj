@@ -69,23 +69,23 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
-      <Project>{52ca4a3b-f296-4489-b5f0-ad375d039b35}</Project>
+      <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
       <Name>Rackspace.Threading.net35-client</Name>
     </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
-      <Project>{dcb5d745-525c-46a1-bfc0-e12f87ab6165}</Project>
+      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
       <Name>System.Threading.Tasks.Net35</Name>
     </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
-      <Project>{9862694d-e4fa-418b-8692-a0280feddf36}</Project>
+      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
       <Name>System.Net.Http-net_4_5</Name>
     </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Unity\Couchbase.Lite.Unity.csproj">
-      <Project>{5831782e-a661-4bd0-8d3b-813b963e7b82}</Project>
+      <Project>{5831782E-A661-4BD0-8D3B-813B963E7B82}</Project>
       <Name>Couchbase.Lite.Unity</Name>
     </ProjectReference>
     <ProjectReference Include="..\ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Unity\Couchbase.Lite.Listener.Bonjour.Unity.csproj">
-      <Project>{5c23b1d6-96b2-45f6-8c06-b49faffc97b1}</Project>
+      <Project>{5C23B1D6-96B2-45F6-8C06-B49FAFFC97B1}</Project>
       <Name>Couchbase.Lite.Listener.Bonjour.Unity</Name>
     </ProjectReference>
     <ProjectReference Include="..\ListenerComponent\Couchbase.Lite.Listener.Unity\Couchbase.Lite.Listener.Unity.csproj">

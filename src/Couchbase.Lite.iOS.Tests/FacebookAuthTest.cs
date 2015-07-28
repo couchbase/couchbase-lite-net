@@ -116,7 +116,7 @@ namespace Couchbase.Lite
                 var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(30);
                 while (DateTime.UtcNow < timeout)
                 {
-                    if (!replicator.active)
+                    if (!replicator.IsRunning)
                     {
                         break;
                     }
