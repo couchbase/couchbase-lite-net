@@ -54,12 +54,6 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
-    <Reference Include="SQLitePCL.raw">
-      <HintPath>vendor\SQLitePCL\SQLitePCL.raw.dll</HintPath>
-    </Reference>
-    <Reference Include="ugly_net35">
-      <HintPath>vendor\SQLitePCL\ugly_net35.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -69,7 +63,7 @@
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <Import Project="vendor/SQLitePCL/sqliteraw.targets" />
+  <Import Project="vendor/SQLitePCL/bld/sqliteraw.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -101,6 +95,14 @@
     <ProjectReference Include="vendor\Stateless\Stateless\Stateless.csproj">
       <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
       <Name>Stateless</Name>
+    </ProjectReference>
+    <ProjectReference Include="vendor\SQLitePCL\bld\ugly_net35.csproj">
+      <Project>{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}</Project>
+      <Name>ugly_net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="vendor\SQLitePCL\bld\platform.net35.pinvoke_sqlite3.anycpu.csproj">
+      <Project>{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}</Project>
+      <Name>platform.net35.pinvoke_sqlite3.anycpu</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>
