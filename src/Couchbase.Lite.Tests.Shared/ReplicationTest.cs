@@ -62,6 +62,7 @@ using Couchbase.Lite.Tests;
 using Newtonsoft.Json.Linq;
 using System.Threading;
 using Couchbase.Lite.Listener.Tcp;
+using System.Text.RegularExpressions;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -195,17 +196,17 @@ namespace Couchbase.Lite
             return json.AsDictionary<string, object>();
         }
 
-        private void CreatePullAndTest(int docCount, Action<Replication> tester)
+        private void CreatePullAndTest(int docCount, RemoteDatabase db, Action<Replication> tester)
         {
             for (int i = 0; i < docCount; i++)
             {
                 var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
                 var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
 
-                AddDocWithId(docId, null);
+                db.AddDocument(docId, null);
             }
 
-            var pull = database.CreatePullReplication(GetReplicationURL());
+            var pull = database.CreatePullReplication(db.RemoteUri);
             RunReplication(pull);
 
             Log.D("TestPullManyDocuments", "Document count at end {0}", database.DocumentCount);
@@ -220,91 +221,95 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
-            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-            var doc2Id = string.Format("doc2-{0}", docIdTimestamp);           
-            AddDocWithId(doc1Id, "attachment.png");
-            AddDocWithId(doc2Id, "attachment2.png");
 
-            var pull = database.CreatePullReplication(GetReplicationURL());
-            List<ReplicationStatus> statusHistory = new List<ReplicationStatus>();
+            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+            using (var remoteDb = sg.CreateDatabase("test_pulled_changed")) {
+                var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+                var doc2Id = string.Format("doc2-{0}", docIdTimestamp);           
+                remoteDb.AddDocument(doc1Id, "attachment.png");
+                remoteDb.AddDocument(doc2Id, "attachment2.png");
 
-            pull.Changed += (sender, e) => 
-            {
-                statusHistory.Add(e.Source.Status);
-                if(e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
-                    Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                List<ReplicationStatus> statusHistory = new List<ReplicationStatus>();
+
+                pull.Changed += (sender, e) =>
+                {
+                    statusHistory.Add(e.Source.Status);
+                    if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
+                        Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                    }
+
+                    if (e.Source.Status == ReplicationStatus.Stopped) {
+                        Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
+                        Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                    }
+                };
+
+                RunReplication(pull);
+
+                foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                    Assert.AreEqual(ReplicationStatus.Active, status);
                 }
 
-                if(e.Source.Status == ReplicationStatus.Stopped) {
-                    Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
-                    Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[statusHistory.Count - 1]);
+
+                doc1Id = string.Format("doc3-{0}", docIdTimestamp);
+                doc2Id = string.Format("doc4-{0}", docIdTimestamp);           
+                remoteDb.AddDocument(doc1Id, "attachment.png");
+                remoteDb.AddDocument(doc2Id, "attachment2.png");
+                pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull.Continuous = true;
+                statusHistory.Clear();
+                var doneEvent = new ManualResetEventSlim();
+
+                pull.Changed += (sender, e) =>
+                {
+                    statusHistory.Add(e.Source.Status);
+                    if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
+                        Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                    }
+
+                    if (e.Source.Status == ReplicationStatus.Idle) {
+                        Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
+                        Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                        doneEvent.Set();
+                    } else if (e.Source.Status == ReplicationStatus.Stopped) {
+                        doneEvent.Set();
+                    }
+                };
+
+                pull.Start();
+                Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+                Assert.IsNull(pull.LastError);
+                foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                    Assert.AreEqual(ReplicationStatus.Active, status);
                 }
-            };
 
-            RunReplication(pull);
+                Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
+                doneEvent.Reset();
 
-            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
-                Assert.AreEqual(ReplicationStatus.Active, status);
+                statusHistory.Clear();
+                doc1Id = string.Format("doc5-{0}", docIdTimestamp);         
+                remoteDb.AddDocument(doc1Id, "attachment.png");
+
+                Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+                Assert.IsNull(pull.LastError);
+                foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                    Assert.AreEqual(ReplicationStatus.Active, status);
+                }
+
+                Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
+                doneEvent.Reset();
+                statusHistory.Clear();
+                pull.Stop();
+                Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+                Assert.IsNull(pull.LastError);
+
+                Assert.AreEqual(2, statusHistory.Count);
+                Assert.AreEqual(ReplicationStatus.Active, statusHistory.First());
+                Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[1]);
             }
-
-            Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[statusHistory.Count - 1]);
-
-            doc1Id = string.Format("doc3-{0}", docIdTimestamp);
-            doc2Id = string.Format("doc4-{0}", docIdTimestamp);           
-            AddDocWithId(doc1Id, "attachment.png");
-            AddDocWithId(doc2Id, "attachment2.png");
-            pull = database.CreatePullReplication(GetReplicationURL());
-            pull.Continuous = true;
-            statusHistory.Clear();
-            var doneEvent = new ManualResetEventSlim();
-
-            pull.Changed += (sender, e) => 
-            {
-                statusHistory.Add(e.Source.Status);
-                if(e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
-                    Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
-                }
-
-                if(e.Source.Status == ReplicationStatus.Idle) {
-                    Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
-                    Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
-                    doneEvent.Set();
-                } else if(e.Source.Status == ReplicationStatus.Stopped) {
-                    doneEvent.Set();
-                }
-            };
-
-            pull.Start();
-            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
-            Assert.IsNull(pull.LastError);
-            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
-                Assert.AreEqual(ReplicationStatus.Active, status);
-            }
-
-            Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
-            doneEvent.Reset();
-
-            statusHistory.Clear();
-            doc1Id = string.Format("doc5-{0}", docIdTimestamp);         
-            AddDocWithId(doc1Id, "attachment.png");
-
-            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
-            Assert.IsNull(pull.LastError);
-            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
-                Assert.AreEqual(ReplicationStatus.Active, status);
-            }
-
-            Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
-            doneEvent.Reset();
-            statusHistory.Clear();
-            pull.Stop();
-            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
-            Assert.IsNull(pull.LastError);
-
-            Assert.AreEqual(2, statusHistory.Count);
-            Assert.AreEqual(ReplicationStatus.Active, statusHistory.First());
-            Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[1]);
         }
 
         [Test]
@@ -1002,34 +1007,6 @@ namespace Couchbase.Lite
             }
 
             return docBody;
-        }
-
-        private void PerformWithoutGuestAccess(Action action)
-        {
-            if(action == null) {
-                return;
-            }
-
-            var adminURL = GetReplicationAdminURL();
-            adminURL = adminURL.AppendPath("_user/GUEST");
-            var request = WebRequest.CreateHttp(adminURL);
-            request.Method = "PUT";
-            var data = Manager.GetObjectMapper().WriteValueAsBytes(new Dictionary<string, object> { { "disabled", true } }).ToArray();
-            request.GetRequestStream().Write(data, 0, data.Length);
-            request.GetResponse();
-
-            try {
-                action();
-            } finally {
-                request = WebRequest.CreateHttp(adminURL);
-                request.Method = "PUT";
-                data = Manager.GetObjectMapper().WriteValueAsBytes(new Dictionary<string, object> { 
-                    { "disabled", false },
-                    { "admin_channels", new List<object> { "*" }}
-                }).ToArray();
-                request.GetRequestStream().Write(data, 0, data.Length);
-                request.GetResponse();
-            }
         }
 
         /// <exception cref="System.IO.IOException"></exception>
@@ -2348,84 +2325,86 @@ namespace Couchbase.Lite
 
             // Create remote docs.
             const int docsToCreate = 50;
-            var docList = new HashSet<string>();
-            for (int i = 0; i < docsToCreate; i++)
-            {
-                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
-                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
 
-                Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
-                AddDocWithId(docId, "attachment.png");
-                docList.Add(docId);
-            }
+            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+            using (var remoteDb = sg.CreateDatabase("test_concurrent_push_pull")) {
+                var docList = new HashSet<string>();
+                for (int i = 0; i < docsToCreate; i++) {
+                    var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                    var docId = string.Format("doc{0}-{1}", i, docIdTimestamp);
 
-            // Create local docs
-            for (int i = 0; i < docsToCreate; i++)
-            {
-                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
-                var docId = string.Format("doc{0}-{1}", i, docIdTimestamp);
-
-                var docBody = GetDocWithId(docId, "attachment.png");
-                var doc = database.CreateDocument();
-                doc.PutProperties(docBody);
-                Log.D(Tag, "Adding " + doc.Id + " to database.");  
-                docList.Add(doc.Id);
-            }
-
-            var mre = new CountdownEvent(docsToCreate * 2);
-            var puller = database.CreatePullReplication(GetReplicationURL());
-            puller.Changed += (sender, e) => {
-                Log.D(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
-                if (puller.Status != ReplicationStatus.Stopped)
-                    return;
-                Log.D(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
-            };
-            int numDocsBeforePull = database.DocumentCount;
-            View view = database.GetView("testPullerWithLiveQueryView");
-            view.SetMapReduce((document, emitter) => {
-                if (document.Get ("_id") != null) {
-                    emitter (document.Get ("_id"), null);
+                    Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
+                    remoteDb.AddDocument(docId, "attachment.png");
+                    docList.Add(docId);
                 }
-            }, null, "1");
 
-            LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
-            int numTimesCalled = 0;
-            allDocsLiveQuery.Changed += (sender, e) => {
-                if (e.Error != null)
+                // Create local docs
+                for (int i = 0; i < docsToCreate; i++) {
+                    var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                    var docId = string.Format("doc{0}-{1}", i, docIdTimestamp);
+
+                    var docBody = GetDocWithId(docId, "attachment.png");
+                    var doc = database.CreateDocument();
+                    doc.PutProperties(docBody);
+                    Log.D(Tag, "Adding " + doc.Id + " to database.");  
+                    docList.Add(doc.Id);
+                }
+
+                var mre = new CountdownEvent(docsToCreate * 2);
+                var puller = database.CreatePullReplication(GetReplicationURL());
+                puller.Changed += (sender, e) =>
                 {
-                    throw new RuntimeException(e.Error);
-                }
-                if (numTimesCalled++ > 0 && e.Rows.Count > 0)
+                    Log.D(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
+                    if (puller.Status != ReplicationStatus.Stopped)
+                        return;
+                    Log.D(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
+                };
+                int numDocsBeforePull = database.DocumentCount;
+                View view = database.GetView("testPullerWithLiveQueryView");
+                view.SetMapReduce((document, emitter) =>
                 {
-                    Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
-                }
-                Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
-                foreach(var row in e.Rows) {
-                    if(docList.Contains(row.DocumentId))
-                    {
-                        mre.Signal();
-                        docList.Remove(row.DocumentId);
+                    if (document.Get("_id") != null) {
+                        emitter(document.Get("_id"), null);
                     }
-                }
+                }, null, "1");
 
-                Log.D(Tag, "Remaining docs to be found: {0}", mre.CurrentCount);
-            };
+                LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
+                int numTimesCalled = 0;
+                allDocsLiveQuery.Changed += (sender, e) =>
+                {
+                    if (e.Error != null) {
+                        throw new RuntimeException(e.Error);
+                    }
+                    if (numTimesCalled++ > 0 && e.Rows.Count > 0) {
+                        Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
+                    }
+                    Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
+                    foreach (var row in e.Rows) {
+                        if (docList.Contains(row.DocumentId)) {
+                            mre.Signal();
+                            docList.Remove(row.DocumentId);
+                        }
+                    }
 
-            // the first time this is called back, the rows will be empty.
-            // but on subsequent times we should expect to get a non empty
-            // row set.
-            allDocsLiveQuery.Start();
-            puller.Start();
+                    Log.D(Tag, "Remaining docs to be found: {0}", mre.CurrentCount);
+                };
 
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            pusher.Start ();
+                // the first time this is called back, the rows will be empty.
+                // but on subsequent times we should expect to get a non empty
+                // row set.
+                allDocsLiveQuery.Start();
+                puller.Start();
+
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Start();
 
 
-            pusher.Stop();
-            puller.Stop();
-            allDocsLiveQuery.Stop();   
+                pusher.Stop();
+                puller.Stop();
+                allDocsLiveQuery.Stop();  
 
-            Thread.Sleep(1000);
+                Thread.Sleep(1000);
+            }
         }
 
         [Test, Category("issue348")]
@@ -2510,75 +2489,71 @@ namespace Couchbase.Lite
         [Test]
         public void TestPullReplicationWithUsername()
         {
-            PerformWithoutGuestAccess(() =>
-            {
-                var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
-                var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-                var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+            sg.DisableGuestAccess();
+            try {
+                using(var remoteDb = new RemoteDatabase(sg, "db")) {
+                    var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                    var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+                    var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 
-                Log.D(Tag, "Adding " + doc1Id + " directly to sync gateway");
-                AddDocWithId(doc1Id, "attachment.png");
+                    remoteDb.AddDocument(doc1Id, "attachment.png");
+                    remoteDb.AddDocument(doc2Id, "attachment2.png");
 
-                Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
-                AddDocWithId(doc2Id, "attachment2.png");
+                    var repl = database.CreatePullReplication(remoteDb.RemoteUri);
+                    repl.Authenticator = new BasicAuthenticator("jim", "borden");
+                    var wait = new CountdownEvent(1);
+                    repl.Changed += (sender, e) =>
+                    {
+                        if(wait.CurrentCount == 0) {
+                            return;
+                        }
 
-                var remote = GetReplicationURL();
-                var repl = database.CreatePullReplication(remote);
-                repl.Authenticator = new BasicAuthenticator("jim", "borden");
-                //repl.Continuous = true;
-                var wait = new CountdownEvent(1);
-                repl.Changed += (sender, e) =>
-                {
-                    if(wait.CurrentCount == 0) {
-                        return;
-                    }
+                        Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
+                        if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
+                            e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
+                            wait.Signal();
+                        }
+                    };
+                    repl.Start();
 
-                    Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
-                    if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
-                        e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
-                        wait.Signal();
-                    }
-                };
-                repl.Start();
+                    Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
+                    Assert.IsNotNull(database.GetExistingDocument(doc1Id), "Didn't get doc1 from puller");
+                    Assert.IsNotNull(database.GetExistingDocument(doc2Id), "Didn't get doc2 from puller");
+                    Assert.IsNull(repl.LastError);
+                    repl.Stop();
 
-                Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
-                Assert.IsNotNull(database.GetExistingDocument(doc1Id), "Didn't get doc1 from puller");
-                Assert.IsNotNull(database.GetExistingDocument(doc2Id), "Didn't get doc2 from puller");
-                Assert.IsNull(repl.LastError);
-                repl.Stop();
+                    docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                    doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+                    doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+                    remoteDb.AddDocument(doc1Id, "attachment.png");
+                    remoteDb.AddDocument(doc2Id, "attachment2.png");
 
-                docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
-                doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-                doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+                    repl = database.CreatePullReplication(remoteDb.RemoteUri);
+                    repl.Changed += (sender, e) =>
+                    {
+                        if(wait.CurrentCount == 0) {
+                            return;
+                        }
 
-                Log.D(Tag, "Adding " + doc1Id + " directly to sync gateway");
-                AddDocWithId(doc1Id, "attachment.png");
+                        Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
+                        if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
+                            e.Source.CompletedChangesCount == e.Source.ChangesCount) {
+                            wait.Signal();
+                        }
+                    };
 
-                Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
-                AddDocWithId(doc2Id, "attachment2.png");
-
-                repl = database.CreatePullReplication(GetReplicationURL());
-                repl.Changed += (sender, e) =>
-                {
-                    if(wait.CurrentCount == 0) {
-                        return;
-                    }
-
-                    Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
-                    if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
-                        e.Source.CompletedChangesCount == e.Source.ChangesCount) {
-                        wait.Signal();
-                    }
-                };
-
-                repl.Authenticator = new BasicAuthenticator("jim", "bogus");
-                wait.Reset(1);
-                repl.Start();
-                Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
-                Assert.IsNull(database.GetExistingDocument(doc1Id), "Got rogue doc1 from puller");
-                Assert.IsNull(database.GetExistingDocument(doc2Id), "Got rogue doc2 from puller");
-                repl.Stop();
-            });
+                    repl.Authenticator = new BasicAuthenticator("jim", "bogus");
+                    wait.Reset(1);
+                    repl.Start();
+                    Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
+                    Assert.IsNull(database.GetExistingDocument(doc1Id), "Got rogue doc1 from puller");
+                    Assert.IsNull(database.GetExistingDocument(doc2Id), "Got rogue doc2 from puller");
+                    repl.Stop();
+                }
+            } finally {
+                sg.RestoreGuestAccess();
+            }
         }
 
         [Test]
@@ -2640,8 +2615,6 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var initialRowCount = SyncGatewayRowCount();
-
             var fakeFactory = new MockHttpClientFactory(false);
             FlowControl flow = new FlowControl(new FlowItem[]
             {
@@ -2660,7 +2633,11 @@ namespace Couchbase.Lite
             manager.DefaultHttpClientFactory = fakeFactory;
             ManagerOptions.Default.RequestTimeout = TimeSpan.FromSeconds(5);
 
-            CreatePullAndTest(20, (repl) => Assert.IsTrue(database.DocumentCount - initialRowCount == 20, "Didn't recover from the error"));
+            const string name = "test_transient_exception_recover";
+            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+            using (var remoteDb = sg.CreateDatabase(name)) {
+                CreatePullAndTest(20, remoteDb, (repl) => Assert.AreEqual(20, database.DocumentCount, "Didn't recover from the error"));
+            }
         }
 
         [Test]
@@ -2670,8 +2647,6 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-
-            var initialRowCount = SyncGatewayRowCount();
 
             var fakeFactory = new MockHttpClientFactory(false);
             FlowControl flow = new FlowControl(new FlowItem[]
@@ -2684,7 +2659,11 @@ namespace Couchbase.Lite
             manager.DefaultHttpClientFactory = fakeFactory;
             ManagerOptions.Default.RequestTimeout = TimeSpan.FromSeconds(5);
 
-            CreatePullAndTest(20, (repl) => Assert.IsTrue(database.DocumentCount - initialRowCount < 20, "Somehow got all the docs"));
+            const string name = "test_permanent_exception_surrender";
+            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+            using (var remoteDb = sg.CreateDatabase(name)) {
+                CreatePullAndTest(20, remoteDb, repl => Assert.AreEqual(0, database.DocumentCount, "Somehow got all the docs"));
+            }
         }
 
         [Test]
@@ -2696,34 +2675,59 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var fakeFactory = new MockHttpClientFactory(false);
-            fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) =>
-            {
-                var str = request.Content.ReadAsStringAsync().Result;
-                if(str.IndexOf("doc2") != -1) {
-                    Log.D(Tag, "Rejecting this bulk get because it looks like the first batch");
-                    throw new OperationCanceledException();
-                }
+            const string name = "test_failed_bulk";
+            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+            string firstBulkGet = null;
+            using(var remoteDb = sg.CreateDatabase(name)) {
+                var fakeFactory = new MockHttpClientFactory(false);
+                fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) =>
+                {
+                    var str = request.Content.ReadAsStringAsync().Result;
+                    if (firstBulkGet == null || firstBulkGet.Equals(str)) {
+                        Log.D(Tag, "Rejecting this bulk get because it looks like the first batch");
+                        firstBulkGet = str;
+                        throw new OperationCanceledException();
+                    }
 
-                Log.D(Tag, "Letting this bulk get through");
-                return new RequestCorrectHttpMessage();
-            });
-            manager.DefaultHttpClientFactory = fakeFactory;
-            Manager.DefaultOptions.MaxRevsToGetInBulk = 10;
-            Manager.DefaultOptions.MaxOpenHttpConnections = 8;
-            Manager.DefaultOptions.RequestTimeout = TimeSpan.FromSeconds(5);
+                    Log.D(Tag, "Letting this bulk get through");
+                    return new RequestCorrectHttpMessage();
+                });
 
-            CreatePullAndTest((int)(Manager.DefaultOptions.MaxRevsToGetInBulk * 1.5), repl => {
-                Log.D(Tag, "Document count increased to {0} with last sequence '{1}'", database.DocumentCount, repl.LastSequence);
-                Assert.IsTrue(database.DocumentCount > 0, "Didn't get docs from second bulk get batch");
-                Assert.AreEqual("0", repl.LastSequence, "LastSequence was advanced");
-            });
+                int gotSequence = 0;
+                fakeFactory.HttpHandler.SetResponder("doc", request =>
+                {
+                    Regex r = new Regex("doc[0-9]+");
+                    var m = r.Match(request.RequestUri.PathAndQuery);
+                    if(m.Success) {
+                        var str = m.Captures[0].Value;
+                        var converted = Int32.Parse(str.Substring(3)) + 3;
+                        if(gotSequence == 0 || converted - gotSequence == 1) {
+                            gotSequence = converted;
+                        }
+                    }
 
-            fakeFactory.HttpHandler.ClearResponders();
-            var pull = database.CreatePullReplication(GetReplicationURL());
-            RunReplication(pull);
-            Assert.AreEqual(pull.ChangesCount, pull.CompletedChangesCount);
-            Assert.AreNotEqual(pull.LastSequence, "0");
+                    return new RequestCorrectHttpMessage();
+                });
+                
+                manager.DefaultHttpClientFactory = fakeFactory;
+                Manager.DefaultOptions.MaxRevsToGetInBulk = 10;
+                Manager.DefaultOptions.MaxOpenHttpConnections = 8;
+                Manager.DefaultOptions.RequestTimeout = TimeSpan.FromSeconds(5);
+
+                CreatePullAndTest((int)(Manager.DefaultOptions.MaxRevsToGetInBulk * 1.5), remoteDb, repl =>
+                {
+                    Log.D(Tag, "Document count increased to {0} with last sequence '{1}'", database.DocumentCount, repl.LastSequence);
+                    Assert.IsTrue(database.DocumentCount > 0, "Didn't get docs from second bulk get batch");
+                    Assert.AreEqual(gotSequence, Int32.Parse(repl.LastSequence), "LastSequence was advanced");
+                });
+
+                fakeFactory.HttpHandler.ClearResponders();
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                RunReplication(pull);
+                Assert.AreEqual(pull.ChangesCount, pull.CompletedChangesCount);
+                Assert.AreNotEqual(pull.LastSequence, "0");
+            }
         }
+
     }
 }
