@@ -73,6 +73,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
         }
         private event RegisterServiceEventHandler _response;
 
+        public event EventHandler<ServiceErrorEventArgs> Error;
+
         #if __ANDROID__
         /// <summary>
         /// This is needed to start the /system/bin/mdnsd service on Android
@@ -190,7 +192,9 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 register_reply_handler, GCHandle.ToIntPtr(_self));
 
             if(error != ServiceError.NoError) {
-                throw new ServiceErrorException(error);
+                Error(this, new ServiceErrorEventArgs("ProcessRegister", error));
+                sd_ref.Deallocate();
+                return;
             }
 
             sd_ref.Process();

@@ -109,6 +109,7 @@ namespace Couchbase.Lite
         {
             base.TearDown();
 
+            _listener.Stop();
             _port++;
         }
 

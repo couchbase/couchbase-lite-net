@@ -48,16 +48,26 @@ namespace Mono.Zeroconf.Providers.Bonjour
         public void Deallocate()
         {
             Native.DNSServiceRefDeallocate(Raw);
+            raw = IntPtr.Zero;
         }
 
         public ServiceError ProcessSingle()
         {
+            var localRaw = Raw;
+            if (localRaw == IntPtr.Zero) {
+                return ServiceError.Invalid;
+            }
+
             return Native.DNSServiceProcessResult(Raw);
         }
  
         public ServiceError ProcessSingle(TimeSpan timeout)
         {
             var localRaw = Raw;
+            if (localRaw == IntPtr.Zero) {
+                return ServiceError.Invalid;
+            }
+
             var t = Task.Factory.StartNew<ServiceError>(() => Native.DNSServiceProcessResult(localRaw));
             if (t.Wait(timeout)) {
                 return t.Result;
