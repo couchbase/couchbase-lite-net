@@ -235,6 +235,12 @@ namespace Couchbase.Lite
         public abstract bool IsPull { get; }
 
         /// <summary>
+        /// Gets whether the <see cref="Couchbase.Lite.Replication"/> pulls from,
+        /// as opposed to pushes to, the target.
+        /// </summary>
+        public abstract bool IsAttachmentPull { get; }
+
+        /// <summary>
         /// Gets or sets whether the target <see cref="Couchbase.Lite.Database"/> should be created
         /// if it doesn't already exist. This only has an effect if the target supports it.
         /// </summary>
@@ -1387,15 +1393,8 @@ namespace Couchbase.Lite
                         int read = 0;
                         do
                         {
-                            stream.ReadAsync(responseBuffer, 0, responseBuffer.Length)
-                                    .ContinueWith(r => {
-                                        if (r.Status != TaskStatus.RanToCompletion) {
-                                            Log.E (TAG, "SendAsyncRequest ReadAsync did not run to completion.", r.Exception);
-                                        }
-
-                                        read = r.Result;
-                                        progressHandler(responseBuffer, read, read == 0, r.Exception);
-                                    }, CancellationTokenSource.Token).Wait();
+                            read = stream.Read(responseBuffer, 0, responseBuffer.Length);
+                            progressHandler(responseBuffer, read, read == 0, null);
                         }
                         while(read != 0);
                     }

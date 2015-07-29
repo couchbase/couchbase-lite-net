@@ -84,7 +84,6 @@ namespace Couchbase.Lite.Replicator
         private IList<RevisionInternal> _revsToPull;
         private IList<RevisionInternal> _deletedRevsToPull;
         private IList<RevisionInternal> _bulkRevsToPull;
-        private IList<AttachmentRequest> _attachmentsToPull;
         private ChangeTracker _changeTracker;
         private SequenceMap _pendingSequences;
         private volatile int _httpConnectionCount;
@@ -196,7 +195,6 @@ namespace Couchbase.Lite.Replicator
                 _revsToPull = null;
                 _deletedRevsToPull = null;
                 _bulkRevsToPull = null;
-                _attachmentsToPull = null;
             }
 
             if (_downloadsToInsert != null) {
@@ -250,27 +248,16 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        /// <summary>Add an attachment to the appropriate queue to individually GET</summary>
-        public void QueueRemoteAttachment (AttachmentRequest att)
-        {
-            if (_attachmentsToPull == null)
-            {
-                _attachmentsToPull = new List<AttachmentRequest> (100);
-            }
-            _attachmentsToPull.AddItem (att);
-        }
-
         /// <summary>
         /// Start up some HTTP GETs, within our limit on the maximum simultaneous number
         /// The entire method is not synchronized, only the portion pulling work off the list
         /// Important to not hold the synchronized block while we do network access
         /// </summary>
-        public void PullRemoteRevisions()
+        private void PullRemoteRevisions()
         {
             //find the work to be done in a synchronized block
             var workToStartNow = new List<RevisionInternal>();
             var bulkWorkToStartNow = new List<RevisionInternal>();
-            var attachmentsToStartNow = new List<AttachmentRequest>();
             lock (_locker)
             {
                 while (LocalDatabase != null && _httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections)
@@ -287,34 +274,23 @@ namespace Couchbase.Lite.Replicator
                         nBulk = 0;
                     }
 
-                    if (nBulk > 0)
-                    {
+                    if (nBulk > 0) {
                         // Prefer to pull bulk revisions:
                         var range = new Couchbase.Lite.Util.ArraySegment<RevisionInternal>(_bulkRevsToPull.ToArray(), 0, nBulk);
                         bulkWorkToStartNow.AddRange(range);
                         _bulkRevsToPull.RemoveAll(range);
-                    }
-                    else if (_revsToPull != null && _revsToPull.Count > 0)
-                    {
+                    } else {
                         // Prefer to pull an existing revision over a deleted one:
-                        workToStartNow.AddItem(_revsToPull[0]);
-                        _revsToPull.Remove(0);
-                    }
-                    else if (_attachmentsToPull != null && _attachmentsToPull.Count > 0)
-                    {
-                        // prefer to pull an attachment over a deleted revision
-                        attachmentsToStartNow.AddItem(_attachmentsToPull[0]);
-                        _attachmentsToPull.Remove(0);
-                    }
-                    else
-                    {
-                        if (_deletedRevsToPull == null || _deletedRevsToPull.Count == 0)
-                        {
-                            break;
+                        IList<RevisionInternal> queue = _revsToPull;
+                        if (queue == null || queue.Count == 0) {
+                            queue = _deletedRevsToPull;
+                            if (queue == null || queue.Count == 0) {
+                                break; // both queues are empty
+                            }
                         }
 
-                        workToStartNow.AddItem(_deletedRevsToPull[0]);
-                        _deletedRevsToPull.Remove(0);
+                        workToStartNow.AddItem(queue[0]);
+                        queue.Remove(0);
                     }
                 }
             }
@@ -326,11 +302,6 @@ namespace Couchbase.Lite.Replicator
 
             foreach (var rev in workToStartNow) {
                 PullRemoteRevision(rev);
-            }
-
-            foreach (var att in attachmentsToStartNow)
-            {
-                PullRemoteAttachment(att);
             }
         }
 
@@ -577,7 +548,7 @@ namespace Couchbase.Lite.Replicator
             // Construct a query. We want the revision history, and the bodies of attachments that have
             // been added since the latest revisions we have locally.
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
-            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.GetDocId()) + "?rev=" + Uri.EscapeUriString(rev.GetRevId()) + string.Format("&revs=true&attachments={0}", ManagerOptions.Default.DownloadAttachmentsOnSync.ToString().ToLower()));
+            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.GetDocId()) + "?rev=" + Uri.EscapeUriString(rev.GetRevId()) + "&revs=true&attachments=true");
             var tmp = LocalDatabase.Storage.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
             var knownRevs = tmp == null ? null : tmp.ToList();
             if (knownRevs == null) {
@@ -624,73 +595,6 @@ namespace Couchbase.Lite.Replicator
                 // are still revisions waiting to be pulled:
                 --_httpConnectionCount;
                 PullRemoteRevisions ();
-            });
-        }
-
-        /// <summary>Fetches an attechment from the remote db
-        ///     </summary>
-        /// <remarks>
-        /// Fetches an attechment from the remote db.
-        /// </remarks>
-        internal void PullRemoteAttachment (AttachmentRequest req)
-        {
-            //Log.D (Tag, "PullRemoteAttachment with rev: {0}, att: {1}", req.rev, req.att.Name);
-
-            _httpConnectionCount++;
-
-            // Construct a query. We want the revision history, and the bodies of attachments that have
-            // been added since the latest revisions we have locally.
-            // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
-            var path = new StringBuilder("/" + Uri.EscapeUriString(req.attachment.Revision.Document.Id) + "/" + req.attachment.Name + "?rev=" + Uri.EscapeUriString(req.attachment.Revision.Id));
-
-            //create a final version of this variable for the log statement inside
-            //FIXME find a way to avoid this
-            var pathInside = path.ToString();
-
-            var blobWriter = LocalDatabase.AttachmentWriter;
-
-            SendAsyncAttachmentRequest(HttpMethod.Get, pathInside, (buffer, bytesRead, complete, e) =>
-            {
-                // OK, now we've got the response revision:
-                Log.D (TAG, "PullRemoteAttachment progress for rev: " + req.attachment.Revision);
-
-                if (buffer != null && e == null && bytesRead > 0)
-                {
-                    Log.V(TAG, string.Format("read {0} bytes", bytesRead));
-                    blobWriter.AppendData(buffer.SubList(0, bytesRead));
-                }
-                else if (e != null)
-                {
-                    Log.E (TAG, "Error pulling remote attachment", e);
-                    LastError = e;
-                    complete = true;
-                }
-
-                if (req.progress != null)
-                {
-                    req.progress(buffer, bytesRead, complete, e);
-                }
-
-                if (complete == true)
-                {
-                    if (e == null)
-                    {
-                        blobWriter.Finish();
-                        blobWriter.Install();
-                    }
-
-                    Log.D (TAG, "PullRemoteAttachment.onCompletion() calling AsyncTaskFinished()");
-
-                    if (req.completeEvent != null)
-                    {
-                        req.completeEvent.Set();
-                    }
-
-                    // Note that we've finished this task; then start another one if there
-                    // are still revisions waiting to be pulled:
-                    --_httpConnectionCount;
-                    PullRemoteRevisions ();
-               }
             });
         }
 
@@ -772,6 +676,8 @@ namespace Couchbase.Lite.Replicator
         public override bool CreateTarget { get { return false; } set { return; /* No-op intended. Only used in Pusher. */ } }
 
         public override bool IsPull { get { return true; } }
+
+        public override bool IsAttachmentPull { get { return true; } }
 
         public override IEnumerable<string> DocIds { get; set; }
 
