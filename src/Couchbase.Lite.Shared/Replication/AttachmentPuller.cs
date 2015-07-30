@@ -106,7 +106,7 @@ namespace Couchbase.Lite.Replicator
         /// </remarks>
         internal void PullRemoteAttachment (AttachmentRequest req)
         {
-            //Log.D (Tag, "PullRemoteAttachment with rev: {0}, att: {1}", req.rev, req.att.Name);
+            Log.D (TAG, "PullRemoteAttachment with rev: {0}, att: {1}", req.attachment.Revision, req.attachment.Name);
 
             _httpConnectionCount++;
 
@@ -124,53 +124,60 @@ namespace Couchbase.Lite.Replicator
 
             SendAsyncAttachmentRequest(HttpMethod.Get, pathInside, (buffer, bytesRead, complete, e) =>
             {
-				try
+                try
                 {
-                // OK, now we've got the response revision:
-                Log.D (TAG, "PullRemoteAttachment progress for rev: " + req.attachment.Revision);
+                    // OK, now we've got the response revision:
+                    Log.D (TAG, "PullRemoteAttachment progress for rev: " + req.attachment.Revision);
 
-                if (buffer != null && e == null && bytesRead > 0)
-                {
-                    Log.V(TAG, string.Format("read {0} bytes", bytesRead));
-                    blobWriter.AppendData(buffer.SubList(0, bytesRead));
-                }
-                else if (e != null)
-                {
-                    Log.E (TAG, "Error pulling remote attachment", e);
-                    LastError = e;
-                    complete = true;
-                }
-
-                if (req.progress != null)
-                {
-                    req.progress(buffer, bytesRead, complete, e);
-                }
-
-                if (complete == true)
-                {
-                    if (e == null)
+                    if (buffer != null && e == null && bytesRead > 0)
                     {
-                        blobWriter.Finish();
-                        blobWriter.Install();
+                        Log.V(TAG, string.Format("read {0} bytes", bytesRead));
+                        if (bytesRead != buffer.Length)
+                        {
+                            blobWriter.AppendData(buffer.SubList(0, bytesRead));
+                        }
+                        else
+                        {
+                            blobWriter.AppendData(buffer);
+                        }
+                    }
+                    else if (e != null)
+                    {
+                        Log.E (TAG, "Error pulling remote attachment", e);
+                        LastError = e;
+                        complete = true;
                     }
 
-                    Log.D (TAG, "PullRemoteAttachment.onCompletion() calling AsyncTaskFinished()");
-
-                    if (req.completeEvent != null)
+                    if (req.progress != null)
                     {
-                        req.completeEvent.Set();
+                        req.progress(buffer, bytesRead, complete, e);
                     }
 
-                    // Note that we've finished this task; then start another one if there
-                    // are still revisions waiting to be pulled:
-                    --_httpConnectionCount;
-                    PullRemoteAttachments ();
-               }
-               }
-					catch(Exception ex)
-{
-						Log.E(TAG,"SendAsyncAttachmentRequest: ",ex);
-}
+                    if (complete == true)
+                    {
+                        if (e == null)
+                        {
+                            blobWriter.Finish();
+                            blobWriter.Install();
+                        }
+
+                        Log.D (TAG, "PullRemoteAttachment complete");
+
+                        if (req.completeEvent != null)
+                        {
+                            req.completeEvent.Set();
+                        }
+
+                        // Note that we've finished this task; then start another one if there
+                        // are still revisions waiting to be pulled:
+                        --_httpConnectionCount;
+                        PullRemoteAttachments ();
+                    }
+                }
+                catch(Exception ex)
+                {
+                    Log.E(TAG,"SendAsyncAttachmentRequest: ",ex);
+                }
             });
         }
 
@@ -215,11 +222,6 @@ namespace Couchbase.Lite.Replicator
 
         internal override void ProcessInbox(RevisionList inbox)
         {
-            if (Status == ReplicationStatus.Offline) {
-                Log.D(TAG, "Offline, so skipping inbox process");
-                return;
-            }
-
             PullRemoteAttachments();
         }
 

@@ -67,6 +67,14 @@ namespace Couchbase.Lite.Support
         HttpClient GetHttpClient(bool chunkedMode);
 
         /// <summary>
+        /// Gets the HttpClient object for use in replication
+        /// </summary>
+        /// <param name="chunkedMode">A flag for chunked mode (i.e. the connection stays open for heartbeat, etc)</param>
+        /// <param name="retry">A flag to enable/disable the retry handler</param>
+        /// <returns>The http client.</returns>
+        HttpClient GetHttpClient(bool chunkedMode, bool retry);
+
+        /// <summary>
         /// Gets or sets the headers used by default in the HttpClient
         /// </summary>
         /// <value>The headers.</value>

@@ -262,7 +262,7 @@ namespace Couchbase.Lite
         /// <param name="replicator">The puller to use when downloading attachments</param>
         public Task<Attachment> GetDeferedAttachment (String name, Replication replicator)
         {
-            return Task.Run(() => {
+            var task = new Task<Attachment>(() => {
                 var att = GetAttachment (name);
                 if (att == null) {
                     return null;
@@ -302,7 +302,10 @@ namespace Couchbase.Lite
                 att.Body = stream;
 
                 return att;
-            });
+            }, TaskCreationOptions.LongRunning);
+
+            task.Start();
+            return task;
         }
 
     #endregion

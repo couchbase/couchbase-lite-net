@@ -1339,75 +1339,80 @@ namespace Couchbase.Lite
             }
         }
 
-        internal void SendAsyncAttachmentRequest(HttpMethod method, String relativePath,
-                                                 RemoteRequestProgress progressHandler)
+        internal void SendAsyncAttachmentRequest (HttpMethod method, String relativePath,
+                                                        RemoteRequestProgress progressHandler)
         {
             Uri url = null;
-            try
-            {
-                var urlStr = BuildRelativeURLString(relativePath);
-                url = new Uri(urlStr);
-            }
-            catch (UriFormatException e)
-            {
-                throw new ArgumentException("Invalid URI format.", e);
+            try {
+                var urlStr = BuildRelativeURLString (relativePath);
+                url = new Uri (urlStr);
+            } catch (UriFormatException e) {
+                throw new ArgumentException ("Invalid URI format.", e);
             }
 
-            var message = new HttpRequestMessage(method, url);
-            message.Headers.Add("Accept", "*/*");
+            var message = new HttpRequestMessage (method, url);
+            message.Headers.Add ("Accept", "*/*");
 
-            var client = clientFactory.GetHttpClient(false);
+            var client = clientFactory.GetHttpClient (false, false);
+            client.Timeout = TimeSpan.FromSeconds(30);
 
-            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
-            if (authHeader != null)
-            {
+            var authHeader = AuthUtils.GetAuthenticationHeaderValue (Authenticator, message.RequestUri);
+            if (authHeader != null) {
                 client.DefaultRequestHeaders.Authorization = authHeader;
             }
 
-            client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
-                .ContinueWith(response=> {
-                        if (response.Status != TaskStatus.RanToCompletion)
-                        {
-                            Log.E(TAG, "SendAsyncRequest did not run to completion.", response.Exception);
+            try {
+                Log.D(TAG, "pulling attachment: " + relativePath);
+                var responseTask = client.SendAsync (message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token);
+
+                responseTask.ContinueWith (response => {
+                    Log.D(TAG, "pulling attachment response: " + relativePath);
+                    try
+                    {
+                        if (response.Status != TaskStatus.RanToCompletion) {
+                            Log.E (TAG, "SendAsyncRequest did not run to completion.");
                             return null;
                         }
                         if ((Int32)response.Result.StatusCode > 300) {
-                            LastError = new HttpResponseException(response.Result.StatusCode);
-                            Log.E(TAG, "Server returned HTTP Error", LastError);
+                            LastError = new HttpResponseException (response.Result.StatusCode);
+                            Log.E (TAG, "Server returned HTTP Error", LastError);
                             return null;
                         }
-                        return response.Result.Content.ReadAsStreamAsync();
-                }, CancellationTokenSource.Token)
-                .ContinueWith(response=> {
-                    byte[] responseBuffer = new byte[4096];
-                    try
+                        return response.Result.Content.ReadAsStreamAsync ();
+                    }
+                    catch(Exception e)
                     {
+                        Log.E(TAG, "client.SendAsync execption: ", e);
+                        return null;
+                    }
+                }, CancellationTokenSource.Token, TaskContinuationOptions.LongRunning, WorkExecutor.Scheduler)
+                .ContinueWith (response => {
+                    byte[] responseBuffer = new byte[4096];
+                    try {
                         var hasEmptyResult = response.Result == null;
                         if (response.Status != TaskStatus.RanToCompletion) {
-                            Log.E (TAG, "SendAsyncRequest did not run to completion.", response.Exception);
+                            throw new CouchbaseLiteException("SendAsyncRequest did not run to completion");
                         } else if (hasEmptyResult) {
-                            Log.E (TAG, "Server returned an empty response.", response.Exception ?? LastError);
+                            throw new CouchbaseLiteException("Empty result");
                         }
 
                         Stream stream = response.Result.Result;
-                        int read = 0;
-                        do
-                        {
-                            read = stream.Read(responseBuffer, 0, responseBuffer.Length);
-                            progressHandler(responseBuffer, read, read == 0, null);
-                        }
-                        while(read != 0);
+                        int byteRead = 0;
+                        do {
+                            byteRead = stream.Read (responseBuffer, 0, responseBuffer.Length);
+                            progressHandler (responseBuffer, byteRead, byteRead == 0, null);
+                        } while(byteRead != 0);
+                    } catch (Exception ex) {
+                        progressHandler (responseBuffer, 0, true, ex);
+                    } finally {
+                        client.Dispose ();
                     }
-                    catch(Exception ex)
-                    {
-                        Log.E (TAG, "SendAsyncAttachmentRequest response did not run to completion.", ex);
-                        progressHandler(responseBuffer, 0, true, ex);
-                    }
-                    finally
-                    {
-                        client.Dispose();
-                    }
-                }, CancellationTokenSource.Token);
+                }, CancellationTokenSource.Token, TaskContinuationOptions.LongRunning, WorkExecutor.Scheduler);
+
+            } catch (Exception e) {
+                Log.E (TAG, "SendAsyncAttachmentRequest response did not run to completion.", e);
+                progressHandler (new byte[1], 0, true, e);
+            }
         }
 
         internal void SendAsyncMultipartRequest(HttpMethod method, String relativePath, MultipartContent multiPartEntity, RemoteRequestCompletionBlock completionHandler)
