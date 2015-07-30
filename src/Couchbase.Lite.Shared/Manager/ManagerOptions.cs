@@ -90,7 +90,11 @@ namespace Couchbase.Lite
         {
             MaxRetries = 10;
 
+            #if __IOS__
+            MaxOpenHttpConnections = 8;
+            #else
             MaxOpenHttpConnections = 16;
+            #endif
 
             MaxRevsToGetInBulk = 50;
 
