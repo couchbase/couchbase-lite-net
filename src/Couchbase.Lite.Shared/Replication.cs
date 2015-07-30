@@ -207,6 +207,7 @@ namespace Couchbase.Lite
         private string _remoteCheckpointDocID;
         private CancellationTokenSource _retryIfReadyTokenSource;
         private Task _retryIfReadyTask;
+        private HttpClient _httpClient;
 
         #endregion
 
@@ -480,11 +481,6 @@ namespace Couchbase.Lite
 
                     if (!lastSequenceChanged) {
                         lastSequenceChanged = true;
-
-                        Task.Delay(SAVE_LAST_SEQUENCE_DELAY).ContinueWith(task =>
-                        {
-                            SaveLastSequence(null);
-                        });
                     }
                 }
             }
@@ -898,6 +894,8 @@ namespace Couchbase.Lite
                 FireTrigger(ReplicationTrigger.GoOffline);
             }
 
+
+
             if(!LocalDatabase.AddReplication(this) || !LocalDatabase.AddActiveReplication(this)) {
                 Log.W(TAG, "Replication did not start");
                 return;
@@ -910,6 +908,9 @@ namespace Couchbase.Lite
             Log.V(TAG, "STARTING ...");
             LastSequence = null;
 
+            if (_httpClient == null) {
+                _httpClient = ClientFactory.GetHttpClient(false);
+            }
             CheckSession();
 
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
@@ -1081,6 +1082,9 @@ namespace Couchbase.Lite
                 }
 
                 ClearDbRef ();
+                _httpClient.CancelPendingRequests();
+                _httpClient.Dispose();
+                _httpClient = null;
             });
         }
 
@@ -1115,11 +1119,16 @@ namespace Couchbase.Lite
 
         internal void SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
         {
+            if (_httpClient == null) {
+                Log.I(TAG, "Replication stopped, ignoring request");
+                return;
+            }
+
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
-            var client = clientFactory.GetHttpClient(false);
+
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = clientFactory.Handler as DefaultAuthHandler;
@@ -1132,7 +1141,7 @@ namespace Couchbase.Lite
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null) {
-                client.DefaultRequestHeaders.Authorization = authHeader;
+                _httpClient.DefaultRequestHeaders.Authorization = authHeader;
             }
 
             if (body != null) {
@@ -1147,9 +1156,11 @@ namespace Couchbase.Lite
                 : CancellationTokenSource.Token;
 
             Log.D(TAG, "Sending async {0} request to: {1}", method, url);
-            var t = client.SendAsync(message, token) .ContinueWith(response =>
+            if (_httpClient == null) {
+                Log.E(TAG, "NULL CLIENT {0}: {1}", message, Environment.StackTrace);
+            }
+            var t = _httpClient.SendAsync(message, token) .ContinueWith(response =>
             {
-                try {
                     lock(_requests) {
                         _requests.Remove(message);
                     }
@@ -1208,9 +1219,7 @@ namespace Couchbase.Lite
                     }
 
                     return result;
-                } finally {
-                    client.Dispose();
-                }
+                
             }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             lock(_requests) {

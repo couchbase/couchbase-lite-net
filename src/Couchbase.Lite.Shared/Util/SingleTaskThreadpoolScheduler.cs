@@ -33,6 +33,10 @@ namespace Couchbase.Lite.Util
                 var thread = new Thread((t)=>
                 {
                     try {
+                        if(((Task)t).Status >= TaskStatus.Running) {
+                            return;
+                        }
+
                         var success = TryExecuteTask((Task)t);
                         if (!success)
                             throw new InvalidOperationException("A spawned task failed to run correctly.");

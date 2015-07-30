@@ -76,7 +76,10 @@ namespace Couchbase.Lite
 {
     public class ReplicationTest : LiteTestCase
     {
-        const string Tag = "ReplicationTest";
+        private const string Tag = "ReplicationTest";
+        private const string TEMP_DB_NAME = "testing_tmp";
+        private SyncGateway _sg;
+        private int _dbCounter = 0;
 
         private class ReplicationIdleObserver 
         {
@@ -110,9 +113,9 @@ namespace Couchbase.Lite
             }
         }
 
-        private void WorkaroundSyncGatewayRaceCondition() 
+        private string TempDbName()
         {
-            System.Threading.Thread.Sleep(2 * 100);
+            return TEMP_DB_NAME + _dbCounter++;
         }
 
         private void PutReplicationOffline(Replication replication)
@@ -134,56 +137,6 @@ namespace Couchbase.Lite
         private Boolean IsSyncGateway(Uri remote) 
         {
             return (remote.Port == 4984 || remote.Port == 4985);
-        }
-
-        private void VerifyRemoteDocExists(Uri remote, string docId)
-        {
-            var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
-            var pathToDoc = new Uri(replicationUrlTrailing, docId);
-            Log.D(Tag, "Send http request to " + pathToDoc);
-
-            var httpRequestDoneSignal = new CountDownLatch(1);
-            Task.Factory.StartNew(() =>
-            {
-                var httpclient = new HttpClient();
-                HttpResponseMessage response;
-                string responseString = null;
-                try
-                {
-                    var responseTask = httpclient.GetAsync(pathToDoc.ToString());
-                    responseTask.Wait(TimeSpan.FromSeconds(1));
-                    response = responseTask.Result;
-                    var statusLine = response.StatusCode;
-                    Assert.IsTrue(statusLine == HttpStatusCode.OK);
-                    if (statusLine == HttpStatusCode.OK)
-                    {
-                        var responseStringTask = response.Content.ReadAsStringAsync();
-                        responseStringTask.Wait(TimeSpan.FromSeconds(10));
-                        responseString = responseStringTask.Result;
-                        Assert.IsTrue(responseString.Contains(docId));
-                        Log.D(ReplicationTest.Tag, "result: " + responseString);
-                    }
-                    else
-                    {
-                        var statusReason = response.ReasonPhrase;
-                        response.Dispose();
-                        throw new IOException(statusReason);
-                    }
-                }
-                catch (ProtocolViolationException e)
-                {
-                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                }
-                catch (IOException e)
-                {
-                    Assert.IsNull(e, "Got IOException: " + e.Message);
-                }
-
-                httpRequestDoneSignal.CountDown();
-            });
-
-            var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(30));
-            Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
         }
 
         private IDictionary<string, object> GetRemoteDoc(Uri remote, string checkpointId)
@@ -213,6 +166,13 @@ namespace Couchbase.Lite
             tester(pull);
         }
 
+        protected override void SetUp()
+        {
+            base.SetUp();
+
+            _sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+        }
+
         [Test]
         public void TestPullerChangedEvent()
         {
@@ -222,8 +182,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
-            using (var remoteDb = sg.CreateDatabase("test_pulled_changed")) {
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
                 var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
                 var doc2Id = string.Format("doc2-{0}", docIdTimestamp);           
@@ -320,171 +279,144 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
+                
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                CreateDocuments(database, 2);
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                List<ReplicationStatus> statusHistory = new List<ReplicationStatus>();
 
-            CreateDocuments(database, 2);
-            var push = database.CreatePushReplication(GetReplicationURL());
-            List<ReplicationStatus> statusHistory = new List<ReplicationStatus>();
+                push.Changed += (sender, e) =>
+                {
+                    statusHistory.Add(e.Source.Status);
+                    if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
+                        Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                    }
 
-            push.Changed += (sender, e) => 
-            {
-                statusHistory.Add(e.Source.Status);
-                if(e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
-                    Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                    if (e.Source.Status == ReplicationStatus.Stopped) {
+                        Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
+                        Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                    }
+                };
+
+                RunReplication(push);
+
+                Assert.IsNull(push.LastError);
+                foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                    Assert.AreEqual(ReplicationStatus.Active, status);
                 }
 
-                if(e.Source.Status == ReplicationStatus.Stopped) {
-                    Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
-                    Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[statusHistory.Count - 1]);
+
+                CreateDocuments(database, 2);
+                push = database.CreatePushReplication(remoteDb.RemoteUri);
+                push.Continuous = true;
+                statusHistory.Clear();
+                var doneEvent = new ManualResetEventSlim();
+
+                push.Changed += (sender, e) =>
+                {
+                    statusHistory.Add(e.Source.Status);
+                    if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
+                        Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                    }
+
+                    if (e.Source.Status == ReplicationStatus.Idle) {
+                        Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
+                        Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                        doneEvent.Set();
+                    } else if (e.Source.Status == ReplicationStatus.Stopped) {
+                        doneEvent.Set();
+                    }
+                };
+
+                push.Start();
+                Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+                Assert.IsNull(push.LastError);
+                foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                    Assert.AreEqual(ReplicationStatus.Active, status);
                 }
-            };
 
-            RunReplication(push);
+                Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
+                doneEvent.Reset();
 
-            Assert.IsNull(push.LastError);
-            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
-                Assert.AreEqual(ReplicationStatus.Active, status);
+                statusHistory.Clear();
+                CreateDocuments(database, 1);
+
+                Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+                Assert.IsNull(push.LastError);
+                foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
+                    Assert.AreEqual(ReplicationStatus.Active, status);
+                }
+
+                Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
+
+                doneEvent.Reset();
+                statusHistory.Clear();
+                push.Stop();
+                Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+                Assert.IsNull(push.LastError);
+
+                Assert.AreEqual(2, statusHistory.Count);
+                Assert.AreEqual(ReplicationStatus.Active, statusHistory.First());
+                Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[1]);
             }
-
-            Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[statusHistory.Count - 1]);
-
-            CreateDocuments(database, 2);
-            push = database.CreatePushReplication(GetReplicationURL());
-            push.Continuous = true;
-            statusHistory.Clear();
-            var doneEvent = new ManualResetEventSlim();
-
-            push.Changed += (sender, e) => 
-            {
-                statusHistory.Add(e.Source.Status);
-                if(e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
-                    Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
-                }
-
-                if(e.Source.Status == ReplicationStatus.Idle) {
-                    Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
-                    Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
-                    doneEvent.Set();
-                } else if(e.Source.Status == ReplicationStatus.Stopped) {
-                    doneEvent.Set();
-                }
-            };
-
-            push.Start();
-            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
-            Assert.IsNull(push.LastError);
-            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
-                Assert.AreEqual(ReplicationStatus.Active, status);
-            }
-
-            Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
-            doneEvent.Reset();
-
-            statusHistory.Clear();
-            CreateDocuments(database, 1);
-
-            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
-            Assert.IsNull(push.LastError);
-            foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
-                Assert.AreEqual(ReplicationStatus.Active, status);
-            }
-
-            Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
-
-            doneEvent.Reset();
-            statusHistory.Clear();
-            push.Stop();
-            Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
-            Assert.IsNull(push.LastError);
-
-            Assert.AreEqual(2, statusHistory.Count);
-            Assert.AreEqual(ReplicationStatus.Active, statusHistory.First());
-            Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[1]);
         }
 
         [Test] // Issue #449
         public void TestPushAttachmentToCouchDB()
         {
-            const string dbName = "db";
-            var dbUri = new Uri("http://localhost:5984/" + dbName);
+            var couchDb = new CouchDB(GetReplicationProtocol(), GetReplicationServer());
+            using (var remoteDb = couchDb.CreateDatabase(TempDbName())) {
 
-            try {
-                HttpWebRequest.Create(dbUri).GetResponse();
-            } catch(Exception) {
-                Assert.Inconclusive("Apache CouchDB not running");
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                CreateDocuments(database, 2);
+                var attachDoc = database.CreateDocument();
+                var newRev = attachDoc.CreateRevision();
+                var newProps = newRev.UserProperties;
+                newProps["foo"] = "bar";
+                newRev.SetUserProperties(newProps);
+                var attachmentStream = GetAsset("attachment.png");
+                newRev.SetAttachment("attachment.png", "image/png", attachmentStream);
+                newRev.Save();
+
+                RunReplication(push);
+                Assert.AreEqual(3, push.ChangesCount);
+                Assert.AreEqual(3, push.CompletedChangesCount);
+                attachDoc = database.GetExistingDocument(attachDoc.Id);
+                attachDoc.Update(rev =>
+                {
+                    var props = rev.UserProperties;
+                    props["extraminutes"] = "5";
+                    rev.SetUserProperties(props);
+                    return true;
+                });
+
+                push = database.CreatePushReplication(push.RemoteUrl);
+                RunReplication(push);
+
+                database.Close();
+                database = EnsureEmptyDatabase(database.Name);
+                var pull = database.CreatePullReplication(push.RemoteUrl);
+                RunReplication(pull);
+                Assert.AreEqual(3, database.DocumentCount);
+                attachDoc = database.GetExistingDocument(attachDoc.Id);
+                Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
+                Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
+                attachDoc.Update(rev =>
+                {
+                    var props = rev.UserProperties;
+                    props["extraminutes"] = "10";
+                    rev.SetUserProperties(props);
+                    return true;
+                });
+
+                push = database.CreatePushReplication(pull.RemoteUrl);
+                RunReplication(push);
+                Assert.IsNull(push.LastError);
+                Assert.AreEqual(1, push.ChangesCount);
+                Assert.AreEqual(1, push.CompletedChangesCount);
+                Assert.AreEqual(3, database.DocumentCount);
             }
-
-
-            var  deleteRequest = HttpWebRequest.Create(dbUri);
-            deleteRequest.Method = "DELETE";
-            try {
-                var response = (HttpWebResponse)deleteRequest.GetResponse();
-                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            } catch(WebException ex) {
-                if (ex.Status == WebExceptionStatus.ProtocolError) {
-                    var response = ex.Response as HttpWebResponse;
-                    if (response != null) {
-                        Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
-                    } else {
-                        Assert.Fail("Error from CouchDB: {0}", response.StatusCode);
-                    }
-                } else {
-                    Assert.Fail("Error from CouchDB: {0}", ex);
-                }
-            }
-
-            var putRequest = HttpWebRequest.Create(dbUri);
-            putRequest.Method = "PUT";
-            var putResponse = (HttpWebResponse)putRequest.GetResponse();
-            Assert.AreEqual(HttpStatusCode.Created, putResponse.StatusCode);
-
-            var push = database.CreatePushReplication(dbUri);
-            CreateDocuments(database, 2);
-            var attachDoc = database.CreateDocument();
-            var newRev = attachDoc.CreateRevision();
-            var newProps = newRev.UserProperties;
-            newProps["foo"] = "bar";
-            newRev.SetUserProperties(newProps);
-            var attachmentStream = GetAsset("attachment.png");
-            newRev.SetAttachment("attachment.png", "image/png", attachmentStream);
-            newRev.Save();
-
-            RunReplication(push);
-            Assert.AreEqual(3, push.ChangesCount);
-            Assert.AreEqual(3, push.CompletedChangesCount);
-            attachDoc = database.GetExistingDocument(attachDoc.Id);
-            attachDoc.Update(rev =>
-            {
-                var props = rev.UserProperties;
-                props["extraminutes"] = "5";
-                rev.SetUserProperties(props);
-                return true;
-            });
-
-            push = database.CreatePushReplication(push.RemoteUrl);
-            RunReplication(push);
-
-            database.Close();
-            database = EnsureEmptyDatabase(database.Name);
-            var pull = database.CreatePullReplication(push.RemoteUrl);
-            RunReplication(pull);
-            Assert.AreEqual(3, database.DocumentCount);
-            attachDoc = database.GetExistingDocument(attachDoc.Id);
-            Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
-            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
-            attachDoc.Update(rev =>
-            {
-                var props = rev.UserProperties;
-                props["extraminutes"] = "10";
-                rev.SetUserProperties(props);
-                return true;
-            });
-
-            push = database.CreatePushReplication(pull.RemoteUrl);
-            RunReplication(push);
-            Assert.IsNull(push.LastError);
-            Assert.AreEqual(1, push.ChangesCount);
-            Assert.AreEqual(1, push.CompletedChangesCount);
-            Assert.AreEqual(3, database.DocumentCount);
         }
 
         // Reproduces issue #167
@@ -498,6 +430,7 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
+
             var numBulkDocRequests = 0;
             HttpRequestMessage lastBulkDocsRequest = null;
 
@@ -510,90 +443,89 @@ namespace Couchbase.Lite
             );
             Assert.IsNotNull(doc);
 
-            var remote = GetReplicationURL();
-            var factory = new MockHttpClientFactory();
-            factory.HttpHandler.ClearResponders();
-            factory.HttpHandler.AddResponderRevDiffsAllMissing();
-            factory.HttpHandler.AddResponderFakeLocalDocumentUpdate404();
-            factory.HttpHandler.AddResponderFakeBulkDocs();
-            manager.DefaultHttpClientFactory = factory;
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var remote = remoteDb.RemoteUri;
+                var factory = new MockHttpClientFactory();
+                factory.HttpHandler.ClearResponders();
+                factory.HttpHandler.AddResponderRevDiffsAllMissing();
+                factory.HttpHandler.AddResponderFakeLocalDocumentUpdate404();
+                factory.HttpHandler.AddResponderFakeBulkDocs();
+                manager.DefaultHttpClientFactory = factory;
 
-            var pusher = database.CreatePushReplication(remote);
+                var pusher = database.CreatePushReplication(remote);
 
-            var replicationCaughtUpSignal = new CountdownEvent(1);
-            pusher.Changed += (sender, e) => 
-            {
-                var changesCount = e.Source.ChangesCount;
-                var completedChangesCount = e.Source.CompletedChangesCount;
-                var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
-                Log.D(Tag, msg);
-                if (changesCount == completedChangesCount 
+                var replicationCaughtUpSignal = new CountdownEvent(1);
+                pusher.Changed += (sender, e) =>
+                {
+                    var changesCount = e.Source.ChangesCount;
+                    var completedChangesCount = e.Source.CompletedChangesCount;
+                    var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
+                    Log.D(Tag, msg);
+                    if (changesCount == completedChangesCount
                     && changesCount != 0
-                    && replicationCaughtUpSignal.CurrentCount > 0)
-                {
-                    replicationCaughtUpSignal.Signal();
+                    && replicationCaughtUpSignal.CurrentCount > 0) {
+                        replicationCaughtUpSignal.Signal();
+                    }
+                };
+                pusher.Start();
+
+                // wait until that doc is pushed
+                var didNotTimeOut = replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(15));
+                Assert.IsTrue(didNotTimeOut);
+
+                // at this point, we should have captured exactly 1 bulk docs request
+                numBulkDocRequests = 0;
+
+                var handler = factory.HttpHandler;
+
+                foreach (var capturedRequest in handler.CapturedRequests) {
+                    if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal)) {
+                        lastBulkDocsRequest = capturedRequest;
+                        numBulkDocRequests++;
+                    }
                 }
-            };
-            pusher.Start();
 
-            // wait until that doc is pushed
-            var didNotTimeOut = replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(15));
-            Assert.IsTrue(didNotTimeOut);
+                Assert.AreEqual(1, numBulkDocRequests);
 
-            // at this point, we should have captured exactly 1 bulk docs request
-            numBulkDocRequests = 0;
+                // that bulk docs request should have the "start" key under its _revisions
+                var jsonMap = MockHttpRequestHandler.GetJsonMapFromRequest(lastBulkDocsRequest);
+                var docs = (jsonMap.Get("docs")).AsList<IDictionary<string,object>>();
+                var onlyDoc = docs[0];
+                var revisions = onlyDoc.Get("_revisions").AsDictionary<string,object>();
+                Assert.IsTrue(revisions.ContainsKey("start"));
 
-            var handler = factory.HttpHandler;
+                // Reset for the next attempt.
+                handler.ClearCapturedRequests();
 
-            foreach (var capturedRequest in handler.CapturedRequests)
-            {
-                if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal))
-                {
-                    lastBulkDocsRequest = capturedRequest;
-                    numBulkDocRequests++;
+                // now add a new revision, which will trigger the pusher to try to push it
+                var properties = new Dictionary<string, object>();
+                properties.Put("testName2", "update doc");
+
+                var unsavedRevision = doc.CreateRevision();
+                unsavedRevision.SetUserProperties(properties);
+                unsavedRevision.Save();
+
+                // but then immediately purge it
+                doc.Purge();
+                pusher.Start();
+
+                // wait for a while to give the replicator a chance to push it
+                // (it should not actually push anything)
+                Thread.Sleep(5 * 1000);
+
+                // we should not have gotten any more _bulk_docs requests, because
+                // the replicator should not have pushed anything else.
+                // (in the case of the bug, it was trying to push the purged revision)
+                numBulkDocRequests = 0;
+                foreach (var capturedRequest in handler.CapturedRequests) {
+                    if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal)) {
+                        numBulkDocRequests++;
+                    }
                 }
+
+                Assert.AreEqual(0, numBulkDocRequests);
+                pusher.Stop();
             }
-
-            Assert.AreEqual(1, numBulkDocRequests);
-
-            // that bulk docs request should have the "start" key under its _revisions
-            var jsonMap = MockHttpRequestHandler.GetJsonMapFromRequest(lastBulkDocsRequest);
-            var docs = ((JArray)jsonMap.Get("docs")).ToObject<IList<IDictionary<string,object>>>();
-            var onlyDoc = docs[0];
-            var revisions = ((JObject)onlyDoc.Get("_revisions")).ToObject<IDictionary<string,object>>();
-            Assert.IsTrue(revisions.ContainsKey("start"));
-
-            // Reset for the next attempt.
-            handler.ClearCapturedRequests();
-
-            // now add a new revision, which will trigger the pusher to try to push it
-            var properties = new Dictionary<string, object>();
-            properties.Put("testName2", "update doc");
-
-            var unsavedRevision = doc.CreateRevision();
-            unsavedRevision.SetUserProperties(properties);
-            unsavedRevision.Save();
-
-            // but then immediately purge it
-            doc.Purge();
-            pusher.Start();
-
-            // wait for a while to give the replicator a chance to push it
-            // (it should not actually push anything)
-            Thread.Sleep(5 * 1000);
-
-            // we should not have gotten any more _bulk_docs requests, because
-            // the replicator should not have pushed anything else.
-            // (in the case of the bug, it was trying to push the purged revision)
-            numBulkDocRequests = 0;
-            foreach (var capturedRequest in handler.CapturedRequests) {
-                if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal)) {
-                    numBulkDocRequests++;
-                }
-            }
-
-            Assert.AreEqual(0, numBulkDocRequests);
-            pusher.Stop();
         }
 
 
@@ -606,112 +538,112 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var remote = GetReplicationURL();
-            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 
-            // Create some documents:
-            var documentProperties = new Dictionary<string, object>();
-            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-            documentProperties["_id"] = doc1Id;
-            documentProperties["foo"] = 1;
-            documentProperties["bar"] = false;
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var remote = remoteDb.RemoteUri;
+                var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 
-            var body = new Body(documentProperties);
-            var rev1 = new RevisionInternal(body);
-            var status = new Status();
-            rev1 = database.PutRevision(rev1, null, false, status);
-            Assert.AreEqual(StatusCode.Created, status.Code);
+                // Create some documents:
+                var documentProperties = new Dictionary<string, object>();
+                var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+                documentProperties["_id"] = doc1Id;
+                documentProperties["foo"] = 1;
+                documentProperties["bar"] = false;
 
-            documentProperties.Put("_rev", rev1.GetRevId());
-            documentProperties["UPDATED"] = true;
-            database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false, status);
-            Assert.AreEqual(StatusCode.Created, status.Code);
+                var body = new Body(documentProperties);
+                var rev1 = new RevisionInternal(body);
+                var status = new Status();
+                rev1 = database.PutRevision(rev1, null, false, status);
+                Assert.AreEqual(StatusCode.Created, status.Code);
 
-            documentProperties = new Dictionary<string, object>();
-            var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
-            documentProperties["_id"] = doc2Id;
-            documentProperties["baz"] = 666;
-            documentProperties["fnord"] = true;
+                documentProperties.Put("_rev", rev1.GetRevId());
+                documentProperties["UPDATED"] = true;
+                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false, status);
+                Assert.AreEqual(StatusCode.Created, status.Code);
 
-            database.PutRevision(new RevisionInternal(documentProperties), null, false, status);
-            Assert.AreEqual(StatusCode.Created, status.Code);
+                documentProperties = new Dictionary<string, object>();
+                var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+                documentProperties["_id"] = doc2Id;
+                documentProperties["baz"] = 666;
+                documentProperties["fnord"] = true;
 
-            var doc2 = database.GetDocument(doc2Id);
-            var doc2UnsavedRev = doc2.CreateRevision();
-            var attachmentStream = GetAsset("attachment.png");
-            doc2UnsavedRev.SetAttachment("attachment_testPusher.png", "image/png", attachmentStream);
-            var doc2Rev = doc2UnsavedRev.Save();
-            doc2UnsavedRev.Dispose();
-            attachmentStream.Dispose();
+                database.PutRevision(new RevisionInternal(documentProperties), null, false, status);
+                Assert.AreEqual(StatusCode.Created, status.Code);
 
-            Assert.IsNotNull(doc2Rev);
+                var doc2 = database.GetDocument(doc2Id);
+                var doc2UnsavedRev = doc2.CreateRevision();
+                var attachmentStream = GetAsset("attachment.png");
+                doc2UnsavedRev.SetAttachment("attachment_testPusher.png", "image/png", attachmentStream);
+                var doc2Rev = doc2UnsavedRev.Save();
+                doc2UnsavedRev.Dispose();
+                attachmentStream.Dispose();
 
-            const bool continuous = false;
-            var repl = database.CreatePushReplication(remote);
-            repl.Continuous = continuous;
-            if (!IsSyncGateway(remote)) {
-                repl.CreateTarget = true;
+                Assert.IsNotNull(doc2Rev);
+
+                const bool continuous = false;
+                var repl = database.CreatePushReplication(remote);
+                repl.Continuous = continuous;
+                if (!IsSyncGateway(remote)) {
+                    repl.CreateTarget = true;
+                }
+
+                // Check the replication's properties:
+                Assert.AreEqual(database, repl.LocalDatabase);
+                Assert.AreEqual(remote, repl.RemoteUrl);
+                Assert.IsFalse(repl.IsPull);
+                Assert.IsFalse(repl.Continuous);
+                Assert.IsNull(repl.Filter);
+                Assert.IsNull(repl.FilterParams);
+                Assert.IsNull(repl.DocIds);
+                // TODO: CAssertNil(r1.headers); still not null!
+                // Check that the replication hasn't started running:
+                Assert.IsFalse(repl.IsRunning);
+                Assert.AreEqual(ReplicationStatus.Stopped, repl.Status);
+                Assert.AreEqual(0, repl.CompletedChangesCount);
+                Assert.AreEqual(0, repl.ChangesCount);
+                Assert.IsNull(repl.LastError);
+
+                RunReplication(repl);
+
+                // TODO: Verify the foloowing 2 asserts. ChangesCount and CompletedChangesCount
+                // should already be reset when the replicator stopped.
+                Assert.IsNull(repl.LastError);
+                Assert.IsTrue(repl.ChangesCount >= 2);
+                Assert.IsTrue(repl.CompletedChangesCount >= 2);
+
+
+                remoteDb.VerifyDocumentExists(doc1Id);
+
+                // Add doc3
+                documentProperties = new Dictionary<string, object>();
+                var doc3Id = string.Format("doc3-{0}", docIdTimestamp);
+                var doc3 = database.GetDocument(doc3Id);
+                documentProperties["bat"] = 677;
+                doc3.PutProperties(documentProperties);
+
+                // re-run push replication
+                var repl2 = database.CreatePushReplication(remote);
+                repl2.Continuous = continuous;
+                if (!IsSyncGateway(remote)) {
+                    repl2.CreateTarget = true;
+                }
+
+                var repl2CheckedpointId = repl2.RemoteCheckpointDocID();
+
+                RunReplication(repl2);
+
+                Assert.IsNull(repl2.LastError);
+
+                // make sure trhe doc has been added
+                remoteDb.VerifyDocumentExists(doc3Id);
+
+                Assert.AreEqual(repl2.LastSequence, database.LastSequenceWithCheckpointId(repl2CheckedpointId));
+
+                System.Threading.Thread.Sleep(2000);
+                var json = GetRemoteDoc(remote, repl2CheckedpointId);
+                var remoteLastSequence = (string)json["lastSequence"];
+                Assert.AreEqual(repl2.LastSequence, remoteLastSequence);
             }
-
-            // Check the replication's properties:
-            Assert.AreEqual(database, repl.LocalDatabase);
-            Assert.AreEqual(remote, repl.RemoteUrl);
-            Assert.IsFalse(repl.IsPull);
-            Assert.IsFalse(repl.Continuous);
-            Assert.IsNull(repl.Filter);
-            Assert.IsNull(repl.FilterParams);
-            Assert.IsNull(repl.DocIds);
-            // TODO: CAssertNil(r1.headers); still not null!
-            // Check that the replication hasn't started running:
-            Assert.IsFalse(repl.IsRunning);
-            Assert.AreEqual(ReplicationStatus.Stopped, repl.Status);
-            Assert.AreEqual(0, repl.CompletedChangesCount);
-            Assert.AreEqual(0, repl.ChangesCount);
-            Assert.IsNull(repl.LastError);
-
-            RunReplication(repl);
-
-            // TODO: Verify the foloowing 2 asserts. ChangesCount and CompletedChangesCount
-            // should already be reset when the replicator stopped.
-            Assert.IsNull(repl.LastError);
-            Assert.IsTrue(repl.ChangesCount >= 2);
-            Assert.IsTrue(repl.CompletedChangesCount >= 2);
-
-
-            VerifyRemoteDocExists(remote, doc1Id);
-
-            // Add doc3
-            documentProperties = new Dictionary<string, object>();
-            var doc3Id = string.Format("doc3-{0}", docIdTimestamp);
-            var doc3 = database.GetDocument(doc3Id);
-            documentProperties["bat"] = 677;
-            doc3.PutProperties(documentProperties);
-
-            // re-run push replication
-            var repl2 = database.CreatePushReplication(remote);
-            repl2.Continuous = continuous;
-            if (!IsSyncGateway(remote))
-            {
-                repl2.CreateTarget = true;
-            }
-
-            var repl2CheckedpointId = repl2.RemoteCheckpointDocID();
-
-            RunReplication(repl2);
-
-            Assert.IsNull(repl2.LastError);
-
-            // make sure trhe doc has been added
-            VerifyRemoteDocExists(remote, doc3Id);
-
-            Assert.AreEqual(repl2.LastSequence, database.LastSequenceWithCheckpointId(repl2CheckedpointId));
-
-            System.Threading.Thread.Sleep(2000);
-            var json = GetRemoteDoc(remote, repl2CheckedpointId);
-            var remoteLastSequence = (string)json["lastSequence"];
-            Assert.AreEqual(repl2.LastSequence, remoteLastSequence);
-
-            Log.D(Tag, "testPusher() finished");
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -723,176 +655,125 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var remote = GetReplicationURL();
-            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 
-            // Create some documentsConvert
-            var documentProperties = new Dictionary<string, object>();
-            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-            documentProperties["_id"] = doc1Id;
-            documentProperties["foo"] = 1;
-            documentProperties["bar"] = false;
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var remote = remoteDb.RemoteUri;
+                var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 
-            var body = new Body(documentProperties);
-            var rev1 = new RevisionInternal(body);
-            var status = new Status();
-            rev1 = database.PutRevision(rev1, null, false, status);
-            Assert.AreEqual(StatusCode.Created, status.Code);
+                // Create some documentsConvert
+                var documentProperties = new Dictionary<string, object>();
+                var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+                documentProperties["_id"] = doc1Id;
+                documentProperties["foo"] = 1;
+                documentProperties["bar"] = false;
 
-            documentProperties["_rev"] = rev1.GetRevId();
-            documentProperties["UPDATED"] = true;
-            documentProperties["_deleted"] = true;
-            database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false, status);
-            Assert.IsTrue((int)status.Code >= 200 && (int)status.Code < 300);
+                var body = new Body(documentProperties);
+                var rev1 = new RevisionInternal(body);
+                var status = new Status();
+                rev1 = database.PutRevision(rev1, null, false, status);
+                Assert.AreEqual(StatusCode.Created, status.Code);
 
-            var repl = database.CreatePushReplication(remote);
-            if (!IsSyncGateway(remote)) {
-                ((Pusher)repl).CreateTarget = true;
-            }
+                documentProperties["_rev"] = rev1.GetRevId();
+                documentProperties["UPDATED"] = true;
+                documentProperties["_deleted"] = true;
+                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false, status);
+                Assert.IsTrue((int)status.Code >= 200 && (int)status.Code < 300);
 
-            RunReplication(repl);
+                var repl = database.CreatePushReplication(remote);
+                if (!IsSyncGateway(remote)) {
+                    ((Pusher)repl).CreateTarget = true;
+                }
 
-            Assert.IsNull(repl.LastError);
+                RunReplication(repl);
 
-            // make sure doc1 is deleted
-            var replicationUrlTrailing = new Uri(string.Format ("{0}/", remote));
-            var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
-            Log.D(Tag, "Send http request to " + pathToDoc);
-            var httpRequestDoneSignal = new CountDownLatch(1);
-            var httpclient = new HttpClient();
-            try
-            {
-                var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
-                var statusLine = getDocResponse.StatusCode;
-                Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
-                Assert.AreEqual(Couchbase.Lite.StatusCode.NotFound, statusLine.GetStatusCode());                        
+                Assert.IsNull(repl.LastError);
+
+                // make sure doc1 is deleted
+                var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
+                var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
+                Log.D(Tag, "Send http request to " + pathToDoc);
+                var httpRequestDoneSignal = new CountDownLatch(1);
+                var httpclient = new HttpClient();
+                try {
+                    var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
+                    var statusLine = getDocResponse.StatusCode;
+                    Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
+                    Assert.AreEqual(Couchbase.Lite.StatusCode.NotFound, statusLine.GetStatusCode());                        
+                }
+                catch (ProtocolViolationException e) {
+                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+                }
+                catch (IOException e) {
+                    Assert.IsNull(e, "Got IOException: " + e.Message);
+                }
+                finally {
+                    httpRequestDoneSignal.CountDown();
+                }
+                Log.D(Tag, "Waiting for http request to finish");
+                try {
+                    httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+                    Log.D(Tag, "http request finished");
+                }
+                catch (Exception e) {
+                    Runtime.PrintStackTrace(e);
+                }
             }
-            catch (ProtocolViolationException e)
-            {
-                Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-            }
-            catch (IOException e)
-            {
-                Assert.IsNull(e, "Got IOException: " + e.Message);
-            }
-            finally
-            {
-                httpRequestDoneSignal.CountDown();
-            }
-            Log.D(Tag, "Waiting for http request to finish");
-            try
-            {
-                httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
-                Log.D(Tag, "http request finished");
-            }
-            catch (Exception e)
-            {
-                Runtime.PrintStackTrace(e);
-            }
-            Log.D(Tag, "testPusherDeletedDoc() finished");
         }
 
         [Test]
         public void TestUpdateToServerSavesAttachment()
         {
-            try {
-                HttpWebRequest.Create("http://localhost:5984/").GetResponse();
-            } catch(Exception) {
-                Assert.Inconclusive("Apache CouchDB not running");
+            var couchDb = new CouchDB(GetReplicationProtocol(), GetReplicationServer());
+            using (var remoteDb = couchDb.CreateDatabase(TempDbName())) {
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull.Continuous = true;
+                pull.Start();
+
+                var docName = "doc" + Convert.ToString(DateTime.UtcNow.ToMillisecondsSinceEpoch());
+                var endpoint = remoteDb.RemoteUri.AppendPath(docName);
+                var docContent = Encoding.UTF8.GetBytes("{\"foo\":false}");
+                var putRequest = HttpWebRequest.Create(endpoint);
+                putRequest.Method = "PUT";
+                putRequest.ContentType = "application/json";
+                putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+                var response = (HttpWebResponse)putRequest.GetResponse();
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+
+                var attachmentStream = (InputStream)GetAsset("attachment.png");
+                var baos = new MemoryStream();
+                attachmentStream.Wrapped.CopyTo(baos);
+                attachmentStream.Dispose();
+                endpoint = endpoint.AppendPath("attachment?rev=1-1153b140e4c8674e2e6425c94de860a0");
+                docContent = baos.ToArray();
+
+                putRequest = HttpWebRequest.Create(endpoint);
+                putRequest.Method = "PUT";
+                putRequest.ContentType = "image/png";
+                putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+                response = (HttpWebResponse)putRequest.GetResponse();
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+                endpoint = remoteDb.RemoteUri.AppendPath(docName + "?rev=2-bb71ce0da1de19f848177525c4ae5a8b");
+                docContent = Encoding.UTF8.GetBytes("{\"foo\":true,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}");
+                putRequest = HttpWebRequest.Create(endpoint);
+                putRequest.Method = "PUT";
+                putRequest.ContentType = "application/json";
+                putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+                response = (HttpWebResponse)putRequest.GetResponse();
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+                Thread.Sleep(1000);
+                while (pull.Status == ReplicationStatus.Active) {
+                    Thread.Sleep(500);
+                }
+
+                Assert.IsNull(pull.LastError);
+                Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
+                var doc = database.GetExistingDocument(docName);
+                Assert.IsNotNull(doc);
+                Assert.IsNotNull(doc.CurrentRevision.Attachments);
             }
-
-            var pull = database.CreatePullReplication(new Uri("http://localhost:5984/db"));
-            pull.Continuous = true;
-            pull.Start();
-
-            var docName = "doc" + Convert.ToString(DateTime.UtcNow.ToMillisecondsSinceEpoch());
-            var endpoint = "http://localhost:5984/db/" + docName;
-            var docContent = Encoding.UTF8.GetBytes("{\"foo\":false}");
-            var putRequest = HttpWebRequest.Create(endpoint);
-            putRequest.Method = "PUT";
-            putRequest.ContentType = "application/json";
-            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
-            var response = (HttpWebResponse)putRequest.GetResponse();
-            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-
-
-            var attachmentStream = (InputStream)GetAsset("attachment.png");
-            var baos = new MemoryStream();
-            attachmentStream.Wrapped.CopyTo(baos);
-            attachmentStream.Dispose();
-            endpoint = "http://localhost:5984/db/" + docName + "/attachment?rev=1-1153b140e4c8674e2e6425c94de860a0";
-            docContent = baos.ToArray();
-
-            putRequest = HttpWebRequest.Create(endpoint);
-            putRequest.Method = "PUT";
-            putRequest.ContentType = "image/png";
-            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
-            response = (HttpWebResponse)putRequest.GetResponse();
-            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-
-            endpoint = "http://localhost:5984/db/" + docName + "?rev=2-bb71ce0da1de19f848177525c4ae5a8b";
-            docContent = Encoding.UTF8.GetBytes("{\"foo\":true,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}");
-            putRequest = HttpWebRequest.Create(endpoint);
-            putRequest.Method = "PUT";
-            putRequest.ContentType = "application/json";
-            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
-            response = (HttpWebResponse)putRequest.GetResponse();
-            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-
-            Thread.Sleep(1000);
-            while (pull.Status == ReplicationStatus.Active) {
-                Thread.Sleep(500);
-            }
-
-            Assert.IsNull(pull.LastError);
-            Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
-            var doc = database.GetExistingDocument(docName);
-            Assert.IsNotNull(doc);
-            Assert.IsNotNull(doc.CurrentRevision.Attachments);
-        }
-
-        /// <exception cref="System.Exception"></exception>
-        [Test]
-        public void TestPuller()
-        {
-            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
-            {
-                Assert.Inconclusive("Replication tests disabled.");
-                return;
-            }
-            /*var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
-            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-            var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
-
-            Log.D(Tag, "Adding " + doc1Id + " directly to sync gateway");           
-            AddDocWithId(doc1Id, "attachment.png");
-
-            Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
-            AddDocWithId(doc2Id, "attachment2.png");*/
-
-            Manager.DefaultOptions.MaxOpenHttpConnections = 4;
-            Manager.DefaultOptions.RequestTimeout = TimeSpan.FromSeconds(20);
-            Manager.DefaultOptions.MaxRetries = 2;
-            DoPullReplication();
-            Assert.IsNotNull(database);
-
-            /*Log.D(Tag, "Fetching doc1 via id: " + doc1Id);
-            var doc1 = database.GetExistingDocument(doc1Id);
-            Log.D(Tag, "doc1" + doc1);
-            Assert.IsNotNull(doc1);
-            Assert.IsNotNull(doc1.CurrentRevisionId);
-            Assert.IsTrue(doc1.CurrentRevisionId.StartsWith("1-", StringComparison.Ordinal));
-            Assert.IsNotNull(doc1.Properties);
-            Assert.AreEqual(1, doc1.GetProperty("foo"));
-
-            Log.D(Tag, "Fetching doc2 via id: " + doc2Id);
-            var doc2 = database.GetExistingDocument(doc2Id);
-            Assert.IsNotNull(doc2);
-            Assert.IsNotNull(doc2.CurrentRevisionId);
-            Assert.IsTrue(doc2.CurrentRevisionId.StartsWith("1-", StringComparison.Ordinal));
-            Assert.IsNotNull(doc2.Properties);
-            Assert.AreEqual(1, doc2.GetProperty("foo"));
-            Log.D(Tag, "testPuller() finished");*/
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -907,62 +788,51 @@ namespace Couchbase.Lite
             // Even though this test is passed, there is a runtime exception
             // thrown regarding the replication's number of changes count versus
             // number of completed changes count. Investigation is required.
-            Log.D(Database.TAG, "testPullerWithLiveQuery");
             string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
             string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 
-            AddDocWithId(doc1Id, "attachment2.png");
-            AddDocWithId(doc2Id, "attachment2.png");
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.AddDocument(doc1Id, "attachment2.png");
+                remoteDb.AddDocument(doc2Id, "attachment2.png");
 
-            int numDocsBeforePull = database.DocumentCount;
-            View view = database.GetView("testPullerWithLiveQueryView");
-            view.SetMapReduce((document, emitter) => {
-                if (document.Get ("_id") != null) {
-                    emitter (document.Get ("_id"), null);
-                }
-            }, null, "1");
-
-            LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
-            allDocsLiveQuery.Changed += (sender, e) => {
-                int numTimesCalled = 0;
-                if (e.Error != null)
+                View view = database.GetView("testPullerWithLiveQueryView");
+                view.SetMapReduce((document, emitter) =>
                 {
-                    throw new RuntimeException(e.Error);
-                }
-                if (numTimesCalled++ > 0)
+                    if (document.Get("_id") != null) {
+                        emitter(document.Get("_id"), null);
+                    }
+                }, null, "1");
+
+                LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
+                allDocsLiveQuery.Changed += (sender, e) =>
                 {
-                    NUnit.Framework.Assert.IsTrue(e.Rows.Count > numDocsBeforePull);
-                }
-                Log.D(Database.TAG, "rows " + e.Rows);
-            };
+                    int numTimesCalled = 0;
+                    if (e.Error != null) {
+                        throw new RuntimeException(e.Error);
+                    }
+                    if (numTimesCalled++ > 0) {
+                        Assert.IsTrue(e.Rows.Count > 0);
+                    }
+                    Log.D(Database.TAG, "rows " + e.Rows);
+                };
 
-            // the first time this is called back, the rows will be empty.
-            // but on subsequent times we should expect to get a non empty
-            // row set.
-            allDocsLiveQuery.Start();
-            DoPullReplication();
-            allDocsLiveQuery.Stop();
+                // the first time this is called back, the rows will be empty.
+                // but on subsequent times we should expect to get a non empty
+                // row set.
+                allDocsLiveQuery.Start();
+                var remote = remoteDb.RemoteUri;
+                var repl = database.CreatePullReplication(remote);
+                repl.Continuous = false;
+                RunReplication(repl);
+                Assert.IsNull(repl.LastError);
 
-            Thread.Sleep(2000);
-        }
+                allDocsLiveQuery.Stop();
 
-        private void DoPullReplication()
-        {
-            var remote = GetReplicationURL();
-            var repl = database.CreatePullReplication(remote);
-            repl.Continuous = false;
-            RunReplication(repl);
-            Assert.IsNull(repl.LastError);
-        }
+                Thread.Sleep(2000);
+            }
 
-        private long SyncGatewayRowCount() 
-        {
-            WebRequest countRequest = WebRequest.Create(GetReplicationURL().AppendPath("_all_docs"));
-            HttpWebResponse response = (HttpWebResponse)countRequest.GetResponse();
-            Stream data = response.GetResponseStream();
-            var responseData = Manager.GetObjectMapper().ReadValue<IDictionary<string,object>>(data);
-            return (long)responseData["total_rows"];  
+            Thread.Sleep(1000);
         }
 
         /// <exception cref="System.IO.IOException"></exception>
@@ -1009,63 +879,6 @@ namespace Couchbase.Lite
             return docBody;
         }
 
-        /// <exception cref="System.IO.IOException"></exception>
-        private void AddDocWithId(string docId, string attachmentName)
-        {
-            string docJson;
-            if (attachmentName != null)
-            {
-                // add attachment to document
-                var attachmentStream = (InputStream)GetAsset(attachmentName);
-                var baos = new MemoryStream();
-                attachmentStream.Wrapped.CopyTo(baos);
-                attachmentStream.Dispose();
-                var attachmentBase64 = Convert.ToBase64String(baos.ToArray());
-                baos.Dispose();
-                docJson = String.Format("{{\"foo\":1,\"bar\":false, \"_attachments\": {{ \"i_use_couchdb.png\": {{ \"content_type\": \"image/png\", \"data\": \"{0}\" }} }} }}", attachmentBase64);
-            }
-            else
-            {
-                docJson = @"{""foo"":1,""bar"":false}";
-            }
-
-            // push a document to server
-            var replicationUrlTrailingDoc1 = new Uri(string.Format("{0}/{1}", GetReplicationURL(), docId));
-            var pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
-            Log.D(Tag, "Send http request to " + pathToDoc1);
-            HttpClient httpclient = null;
-            try
-            {
-                var handler = new HttpClientHandler { Credentials = new NetworkCredential("jim", "borden") };
-                handler.PreAuthenticate = true;
-                httpclient = new HttpClient(handler, true);
-
-                HttpResponseMessage response;
-                var request = new HttpRequestMessage();
-                request.Headers.Add("Accept", "*/*");
-
-                var postTask = httpclient.PutAsync(pathToDoc1.AbsoluteUri, new StringContent(docJson, Encoding.UTF8, "application/json"));
-                response = postTask.Result;
-                var statusLine = response.StatusCode;
-                Log.D(ReplicationTest.Tag, "Got response: " + statusLine);
-                Assert.IsTrue(statusLine == HttpStatusCode.Created);
-            }
-            catch (ProtocolViolationException e)
-            {
-                Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-            }
-            catch (IOException e)
-            {
-                Assert.IsNull(e, "Got IOException: " + e.Message);
-            }
-            finally
-            {
-                httpclient.Dispose();
-            }
-
-            WorkaroundSyncGatewayRaceCondition();
-        }
-
         /// <exception cref="System.Exception"></exception>
         [Test]
         public void TestGetReplicator()
@@ -1075,39 +888,42 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var replicationUrl = GetReplicationURL();
-            var replicator = database.CreatePullReplication(replicationUrl);
-            Assert.IsNotNull(replicator);
-            Assert.IsTrue(replicator.IsPull);
-            Assert.IsFalse(replicator.Continuous);
-            Assert.IsFalse(replicator.IsRunning);
 
-            ReplicationStatus lastStatus = replicator.Status;
-            var mre = new ManualResetEventSlim();
-            replicator.Changed += (sender, e) => 
-            {
-                if(lastStatus != e.Source.Status) {
-                    lastStatus = e.Source.Status;
-                    mre.Set();
-                }
-            };
-            replicator.Start();
-            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)), "Timed out waiting for replicator to start");
-            Assert.IsTrue(replicator.IsRunning);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var replicationUrl = remoteDb.RemoteUri;
+                var replicator = database.CreatePullReplication(replicationUrl);
+                Assert.IsNotNull(replicator);
+                Assert.IsTrue(replicator.IsPull);
+                Assert.IsFalse(replicator.Continuous);
+                Assert.IsFalse(replicator.IsRunning);
 
-            var activeReplicators = new Replication[database.ActiveReplicators.Count];
-            database.ActiveReplicators.CopyTo(activeReplicators, 0);
-            Assert.AreEqual(1, activeReplicators.Length);
-            Assert.AreEqual(replicator, activeReplicators [0]);
+                ReplicationStatus lastStatus = replicator.Status;
+                var mre = new ManualResetEventSlim();
+                replicator.Changed += (sender, e) =>
+                {
+                    if (lastStatus != e.Source.Status) {
+                        lastStatus = e.Source.Status;
+                        mre.Set();
+                    }
+                };
+                replicator.Start();
+                Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)), "Timed out waiting for replicator to start");
+                Assert.IsTrue(replicator.IsRunning);
 
-            replicator.Stop();
+                var activeReplicators = new Replication[database.ActiveReplicators.Count];
+                database.ActiveReplicators.CopyTo(activeReplicators, 0);
+                Assert.AreEqual(1, activeReplicators.Length);
+                Assert.AreEqual(replicator, activeReplicators[0]);
 
-            mre.Reset();
-            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)), "Timed out waiting for replicator to stop");
-            Assert.IsFalse(replicator.IsRunning);
-            activeReplicators = new Replication[database.ActiveReplicators.Count];
-            database.ActiveReplicators.CopyTo(activeReplicators, 0);
-            Assert.AreEqual(0, activeReplicators.Length);
+                replicator.Stop();
+
+                mre.Reset();
+                Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)), "Timed out waiting for replicator to stop");
+                Assert.IsFalse(replicator.IsRunning);
+                activeReplicators = new Replication[database.ActiveReplicators.Count];
+                database.ActiveReplicators.CopyTo(activeReplicators, 0);
+                Assert.AreEqual(0, activeReplicators.Length);
+            }
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -1119,18 +935,20 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var email = "jchris@couchbase.com";
-            var accessToken = "fake_access_token";
-            var remoteUrl = GetReplicationURL().ToString();
-            FacebookAuthorizer.RegisterAccessToken(accessToken, email, remoteUrl);
 
-            var url = GetReplicationURLWithoutCredentials();
-            Replication replicator = database.CreatePushReplication(url);
-            replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator (accessToken);
+            const string email = "jchris@couchbase.com";
+            const string accessToken = "fake_access_token";
 
-            Assert.IsNotNull(replicator);
-            Assert.IsNotNull(replicator.Authenticator);
-            Assert.IsTrue(replicator.Authenticator is TokenAuthenticator);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var remoteUrl = remoteDb.RemoteUri.ToString();
+                FacebookAuthorizer.RegisterAccessToken(accessToken, email, remoteUrl);
+                Replication replicator = database.CreatePushReplication(remoteDb.RemoteUri);
+                replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(accessToken);
+
+                Assert.IsNotNull(replicator);
+                Assert.IsNotNull(replicator.Authenticator);
+                Assert.IsTrue(replicator.Authenticator is TokenAuthenticator);
+            }
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -1142,6 +960,7 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
+
             var mockHttpClientFactory = new MockHttpClientFactory();
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
@@ -1170,17 +989,20 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var email = "jchris@couchbase.com";
-            var accessToken = "fake_access_token";
-            var remoteUrl = GetReplicationURL().ToString();
-            FacebookAuthorizer.RegisterAccessToken(accessToken, email, remoteUrl);
 
-            var replicator = database.CreatePullReplication(GetReplicationURL());
-            replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator (accessToken);
+            const string email = "jchris@couchbase.com";
+            const string accessToken = "fake_access_token";
 
-            RunReplication(replicator);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var remoteUrl = remoteDb.RemoteUri.ToString();
+                FacebookAuthorizer.RegisterAccessToken(accessToken, email, remoteUrl);
+                var replicator = database.CreatePullReplication(remoteDb.RemoteUri);
+                replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(accessToken);
 
-            Assert.IsNotNull(replicator.LastError);
+                RunReplication(replicator);
+
+                Assert.IsNotNull(replicator.LastError);
+            }
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -1192,16 +1014,19 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var remote = GetReplicationURL();
-            var repl = database.CreatePullReplication(remote);
-            repl.Continuous = true;
-            repl.Start();
 
-            //Some platforms will fire an intial GoOnline event because of network status
-            //change registration, so get that out of the way first
-            Thread.Sleep(1000);
-            PutReplicationOffline(repl);
-            Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var remote = remoteDb.RemoteUri;
+                var repl = database.CreatePullReplication(remote);
+                repl.Continuous = true;
+                repl.Start();
+
+                //Some platforms will fire an intial GoOnline event because of network status
+                //change registration, so get that out of the way first
+                Thread.Sleep(1000);
+                PutReplicationOffline(repl);
+                Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
+            }
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -1261,7 +1086,8 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var remote = GetReplicationURL();
+
+            var remote = new Uri("http://couchbase.com/no_such_db");
             var replicator = database.CreatePullReplication(remote);
 
             var channels = new List<string>();
@@ -1283,6 +1109,7 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
+
             var fakeRemoteURL = new Uri("http://couchbase.com/no_such_db");
             var r1 = database.CreatePullReplication(fakeRemoteURL);
 
@@ -1324,33 +1151,35 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
+
             var mockHttpClientFactory = new MockHttpClientFactory();
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
             var mockHttpHandler = mockHttpClientFactory.HttpHandler;
             mockHttpHandler.AddResponderThrowExceptionAllRequests();
 
-            var remote = GetReplicationURL();
-            var puller = database.CreatePullReplication(remote);
-            var headers = new Dictionary<string, string>();
-            headers["foo"] = "bar";
-            puller.Headers = headers;
-            RunReplication(puller);
-            Assert.IsNotNull(puller.LastError);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var remote = remoteDb.RemoteUri;
+                var puller = database.CreatePullReplication(remote);
+                var headers = new Dictionary<string, string>();
+                headers["foo"] = "bar";
+                puller.Headers = headers;
+                RunReplication(puller);
+                Assert.IsNotNull(puller.LastError);
 
-            var foundFooHeader = false;
-            var requests = mockHttpHandler.CapturedRequests;
+                var foundFooHeader = false;
+                var requests = mockHttpHandler.CapturedRequests;
 
-            foreach (var request in requests)
-            {
-                var requestHeaders = request.Headers.GetValues("foo");
-                foreach (var requestHeader in requestHeaders)
-                {
-                    foundFooHeader = true;
-                    Assert.AreEqual("bar", requestHeader);
+                foreach (var request in requests) {
+                    var requestHeaders = request.Headers.GetValues("foo");
+                    foreach (var requestHeader in requestHeaders) {
+                        foundFooHeader = true;
+                        Assert.AreEqual("bar", requestHeader);
+                    }
                 }
+                Assert.IsTrue(foundFooHeader);
+                Thread.Sleep(1000);
             }
-            Assert.IsTrue(foundFooHeader);
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -1362,6 +1191,7 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
+
             var httpClientFactory = new MockHttpClientFactory();
             var httpHandler = httpClientFactory.HttpHandler; 
             httpHandler.AddResponderRevDiffsAllMissing();
@@ -1380,28 +1210,28 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(rev2b.Id, doc.CurrentRevisionId);
 
-            // sync with remote DB -- should push both leaf revisions
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            RunReplication(pusher);
-            Assert.IsNull(pusher.LastError);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                // sync with remote DB -- should push both leaf revisions
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+                Assert.IsNull(pusher.LastError);
 
-            var foundRevsDiff = false;
-            var capturedRequests = httpHandler.CapturedRequests;
-            foreach (var httpRequest in capturedRequests) 
-            {
-                var uriString = httpRequest.RequestUri.ToString();
-                if (uriString.EndsWith("_revs_diff", StringComparison.Ordinal))
-                {
-                    foundRevsDiff = true;
-                    var jsonMap = MockHttpRequestHandler.GetJsonMapFromRequest(httpRequest);
-                    var revisionIds = ((JArray)jsonMap.Get(doc.Id)).Values<string>().ToList();
-                    Assert.AreEqual(2, revisionIds.Count);
-                    Assert.IsTrue(revisionIds.Contains(rev4a.Id));
-                    Assert.IsTrue(revisionIds.Contains(rev2b.Id));
+                var foundRevsDiff = false;
+                var capturedRequests = httpHandler.CapturedRequests;
+                foreach (var httpRequest in capturedRequests) {
+                    var uriString = httpRequest.RequestUri.ToString();
+                    if (uriString.EndsWith("_revs_diff", StringComparison.Ordinal)) {
+                        foundRevsDiff = true;
+                        var jsonMap = MockHttpRequestHandler.GetJsonMapFromRequest(httpRequest);
+                        var revisionIds = ((JArray)jsonMap.Get(doc.Id)).Values<string>().ToList();
+                        Assert.AreEqual(2, revisionIds.Count);
+                        Assert.IsTrue(revisionIds.Contains(rev4a.Id));
+                        Assert.IsTrue(revisionIds.Contains(rev2b.Id));
+                    }
                 }
-            }
 
-            Assert.IsTrue(foundRevsDiff);
+                Assert.IsTrue(foundRevsDiff);
+            }
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -1428,55 +1258,56 @@ namespace Couchbase.Lite
             Assert.IsTrue(rows.Aggregate(false, (found, row) => found |= row.Document.Id.Equals(doc.Id)));
 
             // Push the conflicts to the remote DB.
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            RunReplication(pusher);
-            Assert.IsNull(pusher.LastError);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+                Assert.IsNull(pusher.LastError);
 
-            var rev3aBody = new JObject();
-            rev3aBody.Put("_id", doc.Id);
-            rev3aBody.Put("_rev", rev2a.Id);
+                var rev3aBody = new JObject();
+                rev3aBody.Put("_id", doc.Id);
+                rev3aBody.Put("_rev", rev2a.Id);
 
-            // Then, delete rev 2b.
-            var rev3bBody = new JObject();
-            rev3bBody.Put("_id", doc.Id);
-            rev3bBody.Put("_rev", rev2b.Id);
-            rev3bBody.Put("_deleted", true);
+                // Then, delete rev 2b.
+                var rev3bBody = new JObject();
+                rev3bBody.Put("_id", doc.Id);
+                rev3bBody.Put("_rev", rev2b.Id);
+                rev3bBody.Put("_deleted", true);
 
-            // Combine into one _bulk_docs request.
-            var requestBody = new JObject();
-            var docs = new JArray { rev3aBody, rev3bBody};
-            requestBody.Put("docs", docs);
+                // Combine into one _bulk_docs request.
+                var requestBody = new JObject();
+                var docs = new JArray { rev3aBody, rev3bBody };
+                requestBody.Put("docs", docs);
 
-            // Make the _bulk_docs request.
-            var client = new HttpClient();
-            var bulkDocsUrl = GetReplicationURL () + "/_bulk_docs";
-            var request = new HttpRequestMessage(HttpMethod.Post, bulkDocsUrl);
-            //request.Headers.Add("Accept", "*/*");
-            request.Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");
+                // Make the _bulk_docs request.
+                var client = new HttpClient();
+                var bulkDocsUrl = remoteDb.RemoteUri.ToString() + "/_bulk_docs";
+                var request = new HttpRequestMessage(HttpMethod.Post, bulkDocsUrl);
+                //request.Headers.Add("Accept", "*/*");
+                request.Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");
 
-            var response = client.SendAsync(request).Result;
-            // Check the response to make sure everything worked as it should.
-            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+                var response = client.SendAsync(request).Result;
+                // Check the response to make sure everything worked as it should.
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
-            var rawResponse = response.Content.ReadAsStringAsync().Result;
-            var resultArray = Manager.GetObjectMapper().ReadValue<JArray>(rawResponse);
-            Assert.AreEqual(2, resultArray.Count);
+                var rawResponse = response.Content.ReadAsStringAsync().Result;
+                var resultArray = Manager.GetObjectMapper().ReadValue<JArray>(rawResponse);
+                Assert.AreEqual(2, resultArray.Count);
 
-            foreach (var value in resultArray.Values<JObject>())
-            {
-                var err = (string)value["error"];
-                Assert.IsNull(err);
+                foreach (var value in resultArray.Values<JObject>()) {
+                    var err = (string)value["error"];
+                    Assert.IsNull(err);
+                }
+
+                Thread.Sleep(200);
+
+                // Pull the remote changes.
+                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
+                RunReplication(puller);
+                Assert.IsNull(puller.LastError);
+
+                // Make sure the conflict was resolved locally.
+                Assert.AreEqual(1, doc.ConflictingRevisions.Count());
             }
-
-            WorkaroundSyncGatewayRaceCondition();
-
-            // Pull the remote changes.
-            var puller = database.CreatePullReplication(GetReplicationURL());
-            RunReplication(puller);
-            Assert.IsNull(puller.LastError);
-
-            // Make sure the conflict was resolved locally.
-            Assert.AreEqual(1, doc.ConflictingRevisions.Count());
         }
 
         [Test]
@@ -1488,43 +1319,45 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var replicationUrl = GetReplicationURL();
-            var puller = database.CreatePullReplication(replicationUrl);
-            var cookieContainer = puller.CookieContainer;
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var replicationUrl = remoteDb.RemoteUri;
+                var puller = database.CreatePullReplication(replicationUrl);
+                var cookieContainer = puller.CookieContainer;
 
-            // Set
-            var name = "foo";
-            var value = "bar";
-            var isSecure = false;
-            var httpOnly = false;
-            var domain = replicationUrl.Host;
-            var path = replicationUrl.PathAndQuery;
-            var expires = DateTime.Now.Add(TimeSpan.FromDays(1));
-            puller.SetCookie(name, value, path, expires, isSecure, httpOnly);
+                // Set
+                var name = "foo";
+                var value = "bar";
+                var isSecure = false;
+                var httpOnly = false;
+                var domain = replicationUrl.Host;
+                var path = replicationUrl.PathAndQuery;
+                var expires = DateTime.Now.Add(TimeSpan.FromDays(1));
+                puller.SetCookie(name, value, path, expires, isSecure, httpOnly);
 
-            var cookies = cookieContainer.GetCookies(replicationUrl);
-            Assert.AreEqual(1, cookies.Count);
-            var cookie = cookies[0];
-            Assert.AreEqual(name, cookie.Name);
-            Assert.AreEqual(value, cookie.Value);
-            Assert.AreEqual(domain, cookie.Domain);
-            Assert.AreEqual(path, cookie.Path);
-            Assert.AreEqual(expires, cookie.Expires);
-            Assert.AreEqual(isSecure, cookie.Secure);
-            Assert.AreEqual(httpOnly, cookie.HttpOnly);
+                var cookies = cookieContainer.GetCookies(replicationUrl);
+                Assert.AreEqual(1, cookies.Count);
+                var cookie = cookies[0];
+                Assert.AreEqual(name, cookie.Name);
+                Assert.AreEqual(value, cookie.Value);
+                Assert.AreEqual(domain, cookie.Domain);
+                Assert.AreEqual(path, cookie.Path);
+                Assert.AreEqual(expires, cookie.Expires);
+                Assert.AreEqual(isSecure, cookie.Secure);
+                Assert.AreEqual(httpOnly, cookie.HttpOnly);
 
-            puller = database.CreatePullReplication(replicationUrl);
-            cookieContainer = puller.CookieContainer;
+                puller = database.CreatePullReplication(replicationUrl);
+                cookieContainer = puller.CookieContainer;
 
-            var name2 = "foo2";
-            puller.SetCookie(name2, value, path, expires, isSecure, httpOnly);
-            cookies = cookieContainer.GetCookies(replicationUrl);
-            Assert.AreEqual(2, cookies.Count);
+                var name2 = "foo2";
+                puller.SetCookie(name2, value, path, expires, isSecure, httpOnly);
+                cookies = cookieContainer.GetCookies(replicationUrl);
+                Assert.AreEqual(2, cookies.Count);
 
-            // Delete
-            puller.DeleteCookie(name2);
-            Assert.AreEqual(1, cookieContainer.GetCookies(replicationUrl).Count);
-            Assert.AreEqual(name, cookieContainer.GetCookies(replicationUrl)[0].Name);
+                // Delete
+                puller.DeleteCookie(name2);
+                Assert.AreEqual(1, cookieContainer.GetCookies(replicationUrl).Count);
+                Assert.AreEqual(name, cookieContainer.GetCookies(replicationUrl)[0].Name);
+            }
         }
 
         [Test]
@@ -1608,7 +1441,8 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var replicator = database.CreatePushReplication(GetReplicationURL());
+
+            var replicator = database.CreatePushReplication(new Uri("http://fake.test-url.com:4984/fake/"));
             Assert.IsFalse(replicator.CheckServerCompatVersion("0.01"));
 
             replicator.ServerType = "Couchbase Sync Gateway/1.00";
@@ -1624,11 +1458,12 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            var ids = new JArray();
+
+            var ids = new List<string>();
             ids.Add("second");
             ids.Add("first");
 
-            var revDict = new JObject();
+            var revDict = new Dictionary<string, object>();
             revDict["ids"] = ids;
             revDict["start"] = 2;
 
@@ -1636,10 +1471,10 @@ namespace Couchbase.Lite
             properties["_revisions"] = revDict;
 
             var rev = new RevisionInternal(properties);
-            Assert.AreEqual(Pusher.FindCommonAncestor(rev, new  List<string>()), 0);
-            Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-nope"}).ToList()), 0);
-            Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-first"}).ToList()), 1);
-            Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "2-second", "1-first"}).ToList()), 2);
+            Assert.AreEqual(0, Pusher.FindCommonAncestor(rev, new List<string>()));
+            Assert.AreEqual(0, Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-nope"}).ToList()));
+            Assert.AreEqual(1, Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-first"}).ToList()));
+            Assert.AreEqual(2, Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "2-second", "1-first"}).ToList()));
         }
 
         [Test]
@@ -1652,31 +1487,34 @@ namespace Couchbase.Lite
             }
 
             var countdown = new CountdownEvent(1);
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            int changesCount = 0;
-            pusher.Changed += (sender, e) => 
-            {
-                if(e.Source.ChangesCount > 0 && countdown.CurrentCount > 0) {
-                    changesCount = e.Source.ChangesCount;
-                    countdown.Signal();
-                }
-            };
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                int changesCount = 0;
+                pusher.Changed += (sender, e) =>
+                {
+                    if (e.Source.ChangesCount > 0 && countdown.CurrentCount > 0) {
+                        changesCount = e.Source.ChangesCount;
+                        countdown.Signal();
+                    }
+                };
 
 
-            var doc1 = database.CreateDocument();
-            doc1.PutProperties(new Dictionary<string, object> {
-                { "doc1", "Foo" }
-            });
-            pusher.DocIds = new List<string> { doc1.GetProperty("_id") as string };
+                var doc1 = database.CreateDocument();
+                doc1.PutProperties(new Dictionary<string, object> {
+                    { "doc1", "Foo" }
+                });
+                pusher.DocIds = new List<string> { doc1.GetProperty("_id") as string };
 
-            var doc2 = database.CreateDocument();
-            doc2.PutProperties(new Dictionary<string, object> {
-                { "doc2", "Foo" }
-            });
+                var doc2 = database.CreateDocument();
+                doc2.PutProperties(new Dictionary<string, object> {
+                    { "doc2", "Foo" }
+                });
 
-            pusher.Start();
-            Assert.IsTrue(countdown.Wait(TimeSpan.FromSeconds(10)), "Replication timed out");
-            Assert.AreEqual(1, changesCount);
+                pusher.Start();
+                Assert.IsTrue(countdown.Wait(TimeSpan.FromSeconds(10)), "Replication timed out");
+                Assert.AreEqual(1, changesCount);
+            }
         }
 
         [Test]
@@ -1689,53 +1527,52 @@ namespace Couchbase.Lite
             }
             var numDocs = 100;
 
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            pusher.Continuous = true;
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Continuous = true;
 
-            var changesCount = 0;
-            var completedChangesCount = 0;
-            var replicationCaughtUpSignal = new CountdownEvent(1);
-            pusher.Changed += (sender, e) => 
-            {
-                changesCount = e.Source.ChangesCount;
-                completedChangesCount = e.Source.CompletedChangesCount;
-                var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
-                Log.D(Tag, msg);
-                if (changesCount == completedChangesCount 
+                var changesCount = 0;
+                var completedChangesCount = 0;
+                var replicationCaughtUpSignal = new CountdownEvent(1);
+                pusher.Changed += (sender, e) =>
+                {
+                    changesCount = e.Source.ChangesCount;
+                    completedChangesCount = e.Source.CompletedChangesCount;
+                    var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
+                    Log.D(Tag, msg);
+                    if (changesCount == completedChangesCount
                     && changesCount == numDocs
-                    && replicationCaughtUpSignal.CurrentCount > 0)
-                {
-                    replicationCaughtUpSignal.Signal();
-                }
-            };
-            pusher.Start();
-
-            for (var i = 0; i < numDocs; i++)
-            {
-                var properties = new Dictionary<string, object>() 
-                {
-                    {"type", "session"},
-                    {"id", "session-" + i},
-                    {"title", "title" + i},
-                    {"speaker", "TBD"},
-                    {"time", "2014-10-07T16:20:00"},
-                    {"Track", "Case Study"}
+                    && replicationCaughtUpSignal.CurrentCount > 0) {
+                        replicationCaughtUpSignal.Signal();
+                    }
                 };
+                pusher.Start();
 
-                var doc = database.CreateDocument();
-                var rev = doc.PutProperties(properties);
-                Assert.IsNotNull(rev);
+                for (var i = 0; i < numDocs; i++) {
+                    var properties = new Dictionary<string, object>() {
+                        { "type", "session" },
+                        { "id", "session-" + i },
+                        { "title", "title" + i },
+                        { "speaker", "TBD" },
+                        { "time", "2014-10-07T16:20:00" },
+                        { "Track", "Case Study" }
+                    };
+
+                    var doc = database.CreateDocument();
+                    var rev = doc.PutProperties(properties);
+                    Assert.IsNotNull(rev);
+                }
+
+                replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(8));
+                Assert.AreEqual(numDocs, completedChangesCount);
+
+                // Workaroud: sleep to ensure that all of the pending replication tasks 
+                // (e.g. saving checkpoint) are all drained to prevent accessing to 
+                // the database after the manager is closed during the test tearing 
+                // down state.
+                Log.V(Tag, "Wait for a few seconds to ensure all pending replication tasks are drained ...");
+                Thread.Sleep(3000);
             }
-
-            replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(8));
-            Assert.AreEqual(numDocs, completedChangesCount);
-
-            // Workaroud: sleep to ensure that all of the pending replication tasks 
-            // (e.g. saving checkpoint) are all drained to prevent accessing to 
-            // the database after the manager is closed during the test tearing 
-            // down state.
-            Log.V(Tag, "Wait for a few seconds to ensure all pending replication tasks are drained ...");
-            Thread.Sleep(3000);
         }
 
         [Test]
@@ -1758,57 +1595,59 @@ namespace Couchbase.Lite
             var httpClientFactory = new MockHttpClientFactory();
             manager.DefaultHttpClientFactory = httpClientFactory;
 
-            var firstPusher = database.CreatePushReplication(GetReplicationURL());
-            firstPusher.Continuous = true;
-            var checkpointId = firstPusher.RemoteCheckpointDocID();
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var firstPusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                firstPusher.Continuous = true;
+                var checkpointId = firstPusher.RemoteCheckpointDocID();
 
-            var httpHandler = httpClientFactory.HttpHandler; 
-            MockHttpRequestHandler.HttpResponseDelegate localResponder = (request) =>
-            {
-                var id = String.Format("_local/{0}", checkpointId);
-                var json = "{" + String.Format("\"id\":\"{0}\",\"ok\":true,\"rev\":\"0-2\"", id) + "}";
-                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.Created, "OK", json);
-            };
-            httpHandler.SetResponder("_local", localResponder);
+                var httpHandler = httpClientFactory.HttpHandler; 
+                MockHttpRequestHandler.HttpResponseDelegate localResponder = (request) =>
+                {
+                    var id = String.Format("_local/{0}", checkpointId);
+                    var json = "{" + String.Format("\"id\":\"{0}\",\"ok\":true,\"rev\":\"0-2\"", id) + "}";
+                    return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.Created, "OK", json);
+                };
+                httpHandler.SetResponder("_local", localResponder);
 
-            var replicationIdleSignal = new CountdownEvent(1);
-            var replicationIdleObserver = new ReplicationIdleObserver(replicationIdleSignal);
-            firstPusher.Changed += replicationIdleObserver.Changed;
-            firstPusher.Start();
+                var replicationIdleSignal = new CountdownEvent(1);
+                var replicationIdleObserver = new ReplicationIdleObserver(replicationIdleSignal);
+                firstPusher.Changed += replicationIdleObserver.Changed;
+                firstPusher.Start();
 
-            var success = replicationIdleSignal.Wait(TimeSpan.FromSeconds(30));
-            Assert.IsTrue(success);
-            StopReplication(firstPusher);
+                var success = replicationIdleSignal.Wait(TimeSpan.FromSeconds(30));
+                Assert.IsTrue(success);
+                StopReplication(firstPusher);
 
-            // the last sequence should be "1" at this point.  we will use this later
-            var lastSequence = database.LastSequenceWithCheckpointId(checkpointId);
-            Assert.AreEqual("1", lastSequence);
+                // the last sequence should be "1" at this point.  we will use this later
+                var lastSequence = database.LastSequenceWithCheckpointId(checkpointId);
+                Assert.AreEqual("1", lastSequence);
 
-            // start a second continuous replication
-            var secondPusher = database.CreatePushReplication(GetReplicationURL());
-            secondPusher.Continuous = true;
-            var secondPusherCheckpointId = secondPusher.RemoteCheckpointDocID();
-            Assert.AreEqual(checkpointId, secondPusherCheckpointId);
+                // start a second continuous replication
+                var secondPusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                secondPusher.Continuous = true;
+                var secondPusherCheckpointId = secondPusher.RemoteCheckpointDocID();
+                Assert.AreEqual(checkpointId, secondPusherCheckpointId);
 
-            // when this goes to fetch the checkpoint, return the last sequence from the previous replication
-            localResponder = (request) =>
-            {
-                var id = String.Format("_local/{0}", secondPusherCheckpointId);
-                var json = String.Format("{{\"id\":\"{0}\",\"ok\":true,\"rev\":\"0-2\",\"lastSequence\":\"{1}\"}}", id, lastSequence);
-                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.Created, "OK", json);
-            };
-            httpHandler.SetResponder("_local", localResponder);
+                // when this goes to fetch the checkpoint, return the last sequence from the previous replication
+                localResponder = (request) =>
+                {
+                    var id = String.Format("_local/{0}", secondPusherCheckpointId);
+                    var json = String.Format("{{\"id\":\"{0}\",\"ok\":true,\"rev\":\"0-2\",\"lastSequence\":\"{1}\"}}", id, lastSequence);
+                    return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.Created, "OK", json);
+                };
+                httpHandler.SetResponder("_local", localResponder);
 
-            // start second replication
-            replicationIdleSignal = new CountdownEvent(1);
-            replicationIdleObserver = new ReplicationIdleObserver(replicationIdleSignal);
-            secondPusher.Changed += replicationIdleObserver.Changed;
-            secondPusher.Start();
+                // start second replication
+                replicationIdleSignal = new CountdownEvent(1);
+                replicationIdleObserver = new ReplicationIdleObserver(replicationIdleSignal);
+                secondPusher.Changed += replicationIdleObserver.Changed;
+                secondPusher.Start();
 
-            // wait until we get an IDLE event
-            success = replicationIdleSignal.Wait(TimeSpan.FromSeconds(30));
-            Assert.IsTrue(success);
-            StopReplication(secondPusher);
+                // wait until we get an IDLE event
+                success = replicationIdleSignal.Wait(TimeSpan.FromSeconds(30));
+                Assert.IsTrue(success);
+                StopReplication(secondPusher);
+            }
         }
 
         /**
@@ -1830,18 +1669,20 @@ namespace Couchbase.Lite
             var httpHandler = httpClientFactory.HttpHandler; 
             httpHandler.AddResponderThrowExceptionAllRequests();
 
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            pusher.Continuous = true;
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Continuous = true;
 
-            var signal = new CountdownEvent(1);
-            var observer = new ReplicationErrorObserver(signal);
-            pusher.Changed += observer.Changed;
-            pusher.Start();
+                var signal = new CountdownEvent(1);
+                var observer = new ReplicationErrorObserver(signal);
+                pusher.Changed += observer.Changed;
+                pusher.Start();
 
-            var success = signal.Wait(TimeSpan.FromSeconds(30));
-            Assert.IsTrue(success);
+                var success = signal.Wait(TimeSpan.FromSeconds(30));
+                Assert.IsTrue(success);
 
-            pusher.Stop();
+                pusher.Stop();
+            }
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -1854,54 +1695,54 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var remote = GetReplicationURL();
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var remote = remoteDb.RemoteUri;
 
-            var pusher = database.CreatePushReplication(remote);
-            pusher.Continuous = true;
-            pusher.Start ();
+                var pusher = database.CreatePushReplication(remote);
+                pusher.Continuous = true;
+                pusher.Start();
 
-            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
-            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+                var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
 
-            var document = database.GetDocument (doc1Id);
-            var values =  new Dictionary<string,object> 
-            {
-                {"type" , "attachment_test"},
-            };
+                var document = database.GetDocument(doc1Id);
+                var values = new Dictionary<string,object> {
+                    { "type" , "attachment_test" },
+                };
 
-            document.PutProperties (values);
+                document.PutProperties(values);
 
-            long expectedLength = 0;
-            document.Update((r) => 
-            {
-                var attachmentStream = (InputStream)GetAsset("attachment2.png");
-                var memoryStream = new MemoryStream();
-                attachmentStream.Wrapped.CopyTo(memoryStream);
-                expectedLength = memoryStream.Length;
+                long expectedLength = 0;
+                document.Update((r) =>
+                {
+                    var attachmentStream = (InputStream)GetAsset("attachment2.png");
+                    var memoryStream = new MemoryStream();
+                    attachmentStream.Wrapped.CopyTo(memoryStream);
+                    expectedLength = memoryStream.Length;
 
-                r.SetAttachment ("content", "application/octet-stream", memoryStream.ToArray());
-                return true;
-            });
+                    r.SetAttachment("content", "application/octet-stream", memoryStream.ToArray());
+                    return true;
+                });
 
-            // Make sure it has time to push the document
-            System.Threading.Thread.Sleep (5000);
+                // Make sure it has time to push the document
+                Thread.Sleep(5000);
 
-            // make sure the doc has been added
-            VerifyRemoteDocExists(remote, doc1Id);
+                // make sure the doc has been added
+                remoteDb.VerifyDocumentExists(doc1Id);
 
-            System.Threading.Thread.Sleep(2000);
-            var json = GetRemoteDocById(remote, doc1Id);
+                Thread.Sleep(2000);
+                var json = GetRemoteDocById(remote, doc1Id);
 
-            var attachments = json ["_attachments"].AsDictionary<string,object> ();
-            var content = attachments ["content"].AsDictionary<string,object> ();
-            var lengthAsStr = content ["length"];
-            var length = Convert.ToInt64 (lengthAsStr);
-            Assert.AreEqual(expectedLength, length);
+                var attachments = json["_attachments"].AsDictionary<string,object>();
+                var content = attachments["content"].AsDictionary<string,object>();
+                var lengthAsStr = content["length"];
+                var length = Convert.ToInt64(lengthAsStr);
+                Assert.AreEqual(expectedLength, length);
 
-            Log.D(Tag, "TestContinuousPusherWithAttachment() finished");
+                Log.D(Tag, "TestContinuousPusherWithAttachment() finished");
 
-            pusher.Stop ();
-            Thread.Sleep(500);
+                StopReplication(pusher);
+            }
         }  
 
         private IDictionary<string, object> GetRemoteDocById(Uri remote, string docId)
@@ -1923,10 +1764,10 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var pullerNoFilter = database.CreatePullReplication(GetReplicationURL());
+            var pullerNoFilter = database.CreatePullReplication(new Uri("http://fake.test-url.com:4984/fake/"));
             var noFilterCheckpointDocId = pullerNoFilter.RemoteCheckpointDocID();
 
-            var pullerWithFilter1 = database.CreatePullReplication(GetReplicationURL());
+            var pullerWithFilter1 = database.CreatePullReplication(new Uri("http://fake.test-url.com:4984/fake/"));
             pullerWithFilter1.Filter = "foo/bar";
             pullerWithFilter1.DocIds = new List<string>() 
             { 
@@ -1940,7 +1781,7 @@ namespace Couchbase.Lite
             var withFilterCheckpointDocId = pullerWithFilter1.RemoteCheckpointDocID();
             Assert.IsFalse(withFilterCheckpointDocId.Equals(noFilterCheckpointDocId));
 
-            var pullerWithFilter2 = database.CreatePullReplication(GetReplicationURL());
+            var pullerWithFilter2 = database.CreatePullReplication(new Uri("http://fake.test-url.com:4984/fake/"));
             pullerWithFilter2.Filter = "foo/bar";
             pullerWithFilter2.DocIds = new List<string>() 
             { 
@@ -1981,27 +1822,27 @@ namespace Couchbase.Lite
             httpHandler.AddResponderFakeLocalDocumentUpdate404();
             manager.DefaultHttpClientFactory = httpClientFactory;
 
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            RunReplication(pusher);
-            Assert.IsNull(pusher.LastError);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+                Assert.IsNull(pusher.LastError);
 
-            var numDocsSent = 0;
+                var numDocsSent = 0;
 
-            // Verify that only INBOX_SIZE documents are included in any given bulk post request
-            var capturedRequests = httpHandler.CapturedRequests;
-            foreach (var request in capturedRequests)
-            {
-                if (request.Method == HttpMethod.Post && 
-                    request.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal))
-                {
-                    var bytes = request.Content.ReadAsByteArrayAsync().Result;
-                    var body = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(bytes.AsEnumerable());
-                    var docs = (JArray)body["docs"];
-                    numDocsSent += docs.Count;
+                // Verify that only INBOX_SIZE documents are included in any given bulk post request
+                var capturedRequests = httpHandler.CapturedRequests;
+                foreach (var request in capturedRequests) {
+                    if (request.Method == HttpMethod.Post &&
+                    request.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal)) {
+                        var bytes = request.Content.ReadAsByteArrayAsync().Result;
+                        var body = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(bytes.AsEnumerable());
+                        var docs = (JArray)body["docs"];
+                        numDocsSent += docs.Count;
+                    }
                 }
-            }
 
-            Assert.AreEqual(numDocsToSend, numDocsSent);
+                Assert.AreEqual(numDocsToSend, numDocsSent);
+            }
         }
 
         private void RunPushReplicationWithTransientError(Int32 errorCode, string statusMessage, Boolean expectError) 
@@ -2037,40 +1878,38 @@ namespace Couchbase.Lite
             // Create a replication observer to wait until replication finishes
             var replicationDoneSignal = new CountdownEvent(1);
             var replicationFinishedObserver = new ReplicationObserver(replicationDoneSignal);
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            pusher.Changed += replicationFinishedObserver.Changed;
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Changed += replicationFinishedObserver.Changed;
 
-            // save the checkpoint id for later usage
-            var checkpointId = pusher.RemoteCheckpointDocID();
+                // save the checkpoint id for later usage
+                var checkpointId = pusher.RemoteCheckpointDocID();
 
-            // kick off the replication
-            pusher.Start();
+                // kick off the replication
+                pusher.Start();
 
-            // wait for it to finish
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(30));
-            Assert.IsTrue(success);
+                // wait for it to finish
+                var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(30));
+                Assert.IsTrue(success);
 
-            if (expectError)
-            {
-                Assert.IsNotNull(pusher.LastError);
-            }
-            else
-            {
-                Assert.IsNull(pusher.LastError);
-            }
+                if (expectError) {
+                    Assert.IsNotNull(pusher.LastError);
+                }
+                else {
+                    Assert.IsNull(pusher.LastError);
+                }
 
-            // workaround for the fact that the replicationDoneSignal.Await() call could unblock before all
-            // the statements in Replication.Stopped() have even had a chance to execute.
-            Thread.Sleep(500);
+                // workaround for the fact that the replicationDoneSignal.Await() call could unblock before all
+                // the statements in Replication.Stopped() have even had a chance to execute.
+                Thread.Sleep(500);
 
-            var localLastSequence = database.LastSequenceWithCheckpointId(checkpointId);
-            if (expectError)
-            {
-                Assert.Null(localLastSequence);
-            }
-            else
-            {
-                Assert.IsNotNull(localLastSequence);
+                var localLastSequence = database.LastSequenceWithCheckpointId(checkpointId);
+                if (expectError) {
+                    Assert.Null(localLastSequence);
+                }
+                else {
+                    Assert.IsNotNull(localLastSequence);
+                }
             }
         }
 
@@ -2144,43 +1983,42 @@ namespace Couchbase.Lite
             });
             manager.DefaultHttpClientFactory = httpClientFactory;
 
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            RunReplication(pusher);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
 
-            httpHandler.ClearCapturedRequests();
+                httpHandler.ClearCapturedRequests();
 
-            var oldDoc = database.GetDocument(doc.Id);
-            var unsavedRev = oldDoc.CreateRevision();
-            var props = new Dictionary<string, object>(oldDoc.UserProperties);
-            props["dynamic"] = Convert.ToInt64(oldDoc.Properties["dynamic"]) + 1;
-            unsavedRev.SetProperties(props);
-            var savedRev = unsavedRev.Save();
-            httpHandler.SetResponder(doc.Id, (request) => 
-            {
-                var content = new Dictionary<string, object>()
+                var oldDoc = database.GetDocument(doc.Id);
+                var unsavedRev = oldDoc.CreateRevision();
+                var props = new Dictionary<string, object>(oldDoc.UserProperties);
+                props["dynamic"] = Convert.ToInt64(oldDoc.Properties["dynamic"]) + 1;
+                unsavedRev.SetProperties(props);
+                var savedRev = unsavedRev.Save();
+                httpHandler.SetResponder(doc.Id, (request) =>
                 {
-                    {"id", doc.Id},
-                    {"ok", true},
-                    {"rev", savedRev.Id}
-                };
-                return MockHttpRequestHandler.GenerateHttpResponseMessage(content);
-            });
+                    var content = new Dictionary<string, object>() {
+                        { "id", doc.Id },
+                        { "ok", true },
+                        { "rev", savedRev.Id }
+                    };
+                    return MockHttpRequestHandler.GenerateHttpResponseMessage(content);
+                });
 
-            httpHandler.SetResponder("_revs_diff", (request) => 
-            {
-                var json = String.Format("{{\"{0}\":{{\"missing\":[\"{1}\"],\"possible_ancestors\":[\"{2},{3}\"]}}}}", doc.Id, savedRev.Id, rev1.Id, rev2.Id);
-                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.OK, "OK", json);
-            });
-
-            pusher = database.CreatePushReplication(GetReplicationURL());
-            RunReplication(pusher);
-
-            foreach (var request in httpHandler.CapturedRequests)
-            {
-                if (request.Method == HttpMethod.Put)
+                httpHandler.SetResponder("_revs_diff", (request) =>
                 {
-                    var isMultipartContent = (request.Content is MultipartContent);
-                    Assert.IsFalse(isMultipartContent);
+                    var json = String.Format("{{\"{0}\":{{\"missing\":[\"{1}\"],\"possible_ancestors\":[\"{2},{3}\"]}}}}", doc.Id, savedRev.Id, rev1.Id, rev2.Id);
+                    return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.OK, "OK", json);
+                });
+
+                pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+
+                foreach (var request in httpHandler.CapturedRequests) {
+                    if (request.Method == HttpMethod.Put) {
+                        var isMultipartContent = (request.Content is MultipartContent);
+                        Assert.IsFalse(isMultipartContent);
+                    }
                 }
             }
         }
@@ -2247,24 +2085,22 @@ namespace Couchbase.Lite
             httpHandler.SetResponder(doc.Id, chainResponder);
             manager.DefaultHttpClientFactory = httpClientFactory;
 
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            RunReplication(pusher);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
 
-            var count = 0;
-            foreach (var request in httpHandler.CapturedRequests)
-            {
-                if (request.Method == HttpMethod.Put)
-                {
-                    var isMultipartContent = (request.Content is MultipartContent);
-                    if (count == 0)
-                    {
-                        Assert.IsTrue(isMultipartContent);
+                var count = 0;
+                foreach (var request in httpHandler.CapturedRequests) {
+                    if (request.Method == HttpMethod.Put) {
+                        var isMultipartContent = (request.Content is MultipartContent);
+                        if (count == 0) {
+                            Assert.IsTrue(isMultipartContent);
+                        }
+                        else {
+                            Assert.IsFalse(isMultipartContent);
+                        }
+                        count++;
                     }
-                    else
-                    {
-                        Assert.IsFalse(isMultipartContent);
-                    }
-                    count++;
                 }
             }
         }
@@ -2295,23 +2131,27 @@ namespace Couchbase.Lite
             var attachment = rev.GetAttachment("photo");
             var attachmentLength = attachment.Length;
 
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            RunReplication(pusher);
-            pusher.Stop();
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
 
-            StopDatabase();
-            StartDatabase();
+                //In release mode this actually goes so fast that sync gateway doesn't
+                //have time to store the document before we try to pull it
+                Thread.Sleep(500);
 
-            var puller = database.CreatePullReplication(GetReplicationURL());
-            RunReplication(puller);
+                var db = manager.GetDatabase("tmp");
 
-            doc = database.GetExistingDocument(docId);
-            Assert.IsNotNull(doc);
+                var puller = db.CreatePullReplication(remoteDb.RemoteUri);
+                RunReplication(puller);
 
-            attachment = doc.CurrentRevision.GetAttachment("photo");
-            Assert.IsNotNull(attachment);
-            Assert.AreEqual(attachmentLength, attachment.Length);
-            Assert.IsNotNull(attachment.Content);
+                doc = db.GetExistingDocument(docId);
+                Assert.IsNotNull(doc);
+
+                attachment = doc.CurrentRevision.GetAttachment("photo");
+                Assert.IsNotNull(attachment);
+                Assert.AreEqual(attachmentLength, attachment.Length);
+                Assert.IsNotNull(attachment.Content);
+            }
         }
 
         [Test, Category("issue348")]
@@ -2326,17 +2166,8 @@ namespace Couchbase.Lite
             // Create remote docs.
             const int docsToCreate = 50;
 
-            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
-            using (var remoteDb = sg.CreateDatabase("test_concurrent_push_pull")) {
-                var docList = new HashSet<string>();
-                for (int i = 0; i < docsToCreate; i++) {
-                    var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
-                    var docId = string.Format("doc{0}-{1}", i, docIdTimestamp);
-
-                    Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
-                    remoteDb.AddDocument(docId, "attachment.png");
-                    docList.Add(docId);
-                }
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var docList = remoteDb.AddDocuments(docsToCreate);
 
                 // Create local docs
                 for (int i = 0; i < docsToCreate; i++) {
@@ -2346,12 +2177,82 @@ namespace Couchbase.Lite
                     var docBody = GetDocWithId(docId, "attachment.png");
                     var doc = database.CreateDocument();
                     doc.PutProperties(docBody);
-                    Log.D(Tag, "Adding " + doc.Id + " to database.");  
                     docList.Add(doc.Id);
                 }
 
                 var mre = new CountdownEvent(docsToCreate * 2);
-                var puller = database.CreatePullReplication(GetReplicationURL());
+                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
+                puller.Changed += (sender, e) =>
+                {
+                    Log.D(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
+                    if (puller.Status != ReplicationStatus.Stopped)
+                        return;
+                    Log.D(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
+                };
+                int numDocsBeforePull = database.DocumentCount;
+                View view = database.GetView("testPullerWithLiveQueryView");
+                view.SetMapReduce((document, emitter) =>
+                {
+                    if (document.Get("_id") != null) {
+                        emitter(document.Get("_id"), null);
+                    }
+                }, null, "1");
+
+                LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
+                int numTimesCalled = 0;
+                allDocsLiveQuery.Changed += (sender, e) =>
+                {
+                    if (e.Error != null) {
+                        throw new RuntimeException(e.Error);
+                    }
+                    if (numTimesCalled++ > 0 && e.Rows.Count > 0) {
+                        Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
+                    }
+                    Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
+                    foreach (var row in e.Rows) {
+                        if (docList.Contains(row.DocumentId)) {
+                            mre.Signal();
+                            docList.Remove(row.DocumentId);
+                        }
+                    }
+
+                    Log.D(Tag, "Remaining docs to be found: {0}", mre.CurrentCount);
+                };
+
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Start();
+
+                // the first time this is called back, the rows will be empty.
+                // but on subsequent times we should expect to get a non empty
+                // row set.
+                allDocsLiveQuery.Start();
+                puller.Start();
+
+                Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(60)), "Replication Timeout");
+
+                StopReplication(pusher);
+                StopReplication(puller);
+                allDocsLiveQuery.Stop();  
+            }
+        }
+
+        [Test, Category("issue348")]
+        public void TestPushPullAndLiveQueryWithFilledDatabase()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            const int docsToCreate = 50;
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var docList = remoteDb.AddDocuments(docsToCreate);
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Start();
+
+                var mre = new CountdownEvent(docsToCreate);
+                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
                 puller.Changed += (sender, e) =>
                 {
                     Log.D(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
@@ -2395,177 +2296,90 @@ namespace Couchbase.Lite
                 allDocsLiveQuery.Start();
                 puller.Start();
 
-                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
-                pusher.Start();
+                Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(60)), "Replication Timeout");
 
-
-                pusher.Stop();
-                puller.Stop();
-                allDocsLiveQuery.Stop();  
-
-                Thread.Sleep(1000);
+                StopReplication(pusher);
+                StopReplication(puller);
+                allDocsLiveQuery.Stop(); 
             }
-        }
-
-        [Test, Category("issue348")]
-        public void TestPushPullAndLiveQueryWithFilledDatabase()
-        {
-            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
-            {
-                Assert.Inconclusive("Replication tests disabled.");
-                return;
-            }
-
-            const int docsToCreate = 50;
-            HashSet<string> docList = new HashSet<string>();
-            for (int i = 0; i < docsToCreate; i++)
-            {
-                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
-                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
-
-                Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
-                AddDocWithId(docId, "attachment.png");
-                docList.Add(docId);
-            }
-
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            pusher.Start ();
-
-            var docsBefore = database.DocumentCount;
-            var mre = new CountdownEvent(docsToCreate);
-            var puller = database.CreatePullReplication(GetReplicationURL());
-            puller.Changed += (sender, e) => {
-                Log.D(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
-                if (puller.Status != ReplicationStatus.Stopped)
-                    return;
-                Log.D(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
-            };
-            int numDocsBeforePull = database.DocumentCount;
-            View view = database.GetView("testPullerWithLiveQueryView");
-            view.SetMapReduce((document, emitter) => {
-                if (document.Get ("_id") != null) {
-                    emitter (document.Get ("_id"), null);
-                }
-            }, null, "1");
-
-            LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
-            int numTimesCalled = 0;
-            allDocsLiveQuery.Changed += (sender, e) => {
-                if (e.Error != null)
-                {
-                    throw new RuntimeException(e.Error);
-                }
-                if (numTimesCalled++ > 0 && e.Rows.Count > 0)
-                {
-                    Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
-                }
-                Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
-                foreach(var row in e.Rows) {
-                    if(docList.Contains(row.DocumentId))
-                    {
-                        mre.Signal();
-                        docList.Remove(row.DocumentId);
-                    }
-                }
-
-                Log.D(Tag, "Remaining docs to be found: {0}", mre.CurrentCount);
-            };
-
-            // the first time this is called back, the rows will be empty.
-            // but on subsequent times we should expect to get a non empty
-            // row set.
-            allDocsLiveQuery.Start();
-            puller.Start();
-
-            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(60)), "Replication Timeout");
-
-            pusher.Stop();
-            puller.Stop();  
-            allDocsLiveQuery.Stop(); 
-
-            Thread.Sleep(500);
         }
 
         [Test]
         public void TestPullReplicationWithUsername()
         {
-            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
-            sg.DisableGuestAccess();
-            try {
-                using(var remoteDb = new RemoteDatabase(sg, "db")) {
-                    var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
-                    var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-                    var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.DisableGuestAccess();
+                var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+                var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 
-                    remoteDb.AddDocument(doc1Id, "attachment.png");
-                    remoteDb.AddDocument(doc2Id, "attachment2.png");
+                remoteDb.AddDocument(doc1Id, "attachment.png");
+                remoteDb.AddDocument(doc2Id, "attachment2.png");
 
-                    var repl = database.CreatePullReplication(remoteDb.RemoteUri);
-                    repl.Authenticator = new BasicAuthenticator("jim", "borden");
-                    var wait = new CountdownEvent(1);
-                    repl.Changed += (sender, e) =>
-                    {
-                        if(wait.CurrentCount == 0) {
-                            return;
-                        }
+                var repl = database.CreatePullReplication(remoteDb.RemoteUri);
+                repl.Authenticator = new BasicAuthenticator("jim", "borden");
+                var wait = new CountdownEvent(1);
+                repl.Changed += (sender, e) =>
+                {
+                    if(wait.CurrentCount == 0) {
+                        return;
+                    }
 
-                        Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
-                        if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
-                            e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
-                            wait.Signal();
-                        }
-                    };
-                    repl.Start();
+                    Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
+                    if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
+                        e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
+                        wait.Signal();
+                    }
+                };
+                repl.Start();
 
-                    Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
-                    Assert.IsNotNull(database.GetExistingDocument(doc1Id), "Didn't get doc1 from puller");
-                    Assert.IsNotNull(database.GetExistingDocument(doc2Id), "Didn't get doc2 from puller");
-                    Assert.IsNull(repl.LastError);
-                    repl.Stop();
+                Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
+                Assert.IsNotNull(database.GetExistingDocument(doc1Id), "Didn't get doc1 from puller");
+                Assert.IsNotNull(database.GetExistingDocument(doc2Id), "Didn't get doc2 from puller");
+                Assert.IsNull(repl.LastError);
+                repl.Stop();
 
-                    docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
-                    doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-                    doc2Id = string.Format("doc2-{0}", docIdTimestamp);
-                    remoteDb.AddDocument(doc1Id, "attachment.png");
-                    remoteDb.AddDocument(doc2Id, "attachment2.png");
+                docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+                doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+                remoteDb.AddDocument(doc1Id, "attachment.png");
+                remoteDb.AddDocument(doc2Id, "attachment2.png");
 
-                    repl = database.CreatePullReplication(remoteDb.RemoteUri);
-                    repl.Changed += (sender, e) =>
-                    {
-                        if(wait.CurrentCount == 0) {
-                            return;
-                        }
+                repl = database.CreatePullReplication(remoteDb.RemoteUri);
+                repl.Changed += (sender, e) =>
+                {
+                    if(wait.CurrentCount == 0) {
+                        return;
+                    }
 
-                        Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
-                        if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
-                            e.Source.CompletedChangesCount == e.Source.ChangesCount) {
-                            wait.Signal();
-                        }
-                    };
+                    Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
+                    if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
+                        e.Source.CompletedChangesCount == e.Source.ChangesCount) {
+                        wait.Signal();
+                    }
+                };
 
-                    repl.Authenticator = new BasicAuthenticator("jim", "bogus");
-                    wait.Reset(1);
-                    repl.Start();
-                    Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
-                    Assert.IsNull(database.GetExistingDocument(doc1Id), "Got rogue doc1 from puller");
-                    Assert.IsNull(database.GetExistingDocument(doc2Id), "Got rogue doc2 from puller");
-                    repl.Stop();
-                }
-            } finally {
-                sg.RestoreGuestAccess();
+                repl.Authenticator = new BasicAuthenticator("jim", "bogus");
+                wait.Reset(1);
+                repl.Start();
+                Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
+                Assert.IsNull(database.GetExistingDocument(doc1Id), "Got rogue doc1 from puller");
+                Assert.IsNull(database.GetExistingDocument(doc2Id), "Got rogue doc2 from puller");
+                repl.Stop();
             }
+            
         }
 
         [Test]
         public void TestReplicationCheckpointUniqueness()
         {
-            var repl1 = database.CreatePullReplication(GetReplicationURL());
-            var repl2 = database.CreatePullReplication(GetReplicationURL());
+            var repl1 = database.CreatePullReplication(new Uri("http://fake.test-url.com:4984/fake/"));
+            var repl2 = database.CreatePullReplication(new Uri("http://fake.test-url.com:4984/fake/"));
 
             Assert.AreEqual(repl1.RemoteCheckpointDocID(), repl2.RemoteCheckpointDocID());
 
-            repl1 = database.CreatePullReplication(GetReplicationURL());
-            repl2 = database.CreatePullReplication(GetReplicationURL());
+            repl1 = database.CreatePullReplication(new Uri("http://fake.test-url.com:4984/fake/"));
+            repl2 = database.CreatePullReplication(new Uri("http://fake.test-url.com:4984/fake/"));
             repl1.Channels = new List<string> { "A" };
             repl2.Channels = new List<string> { "A", "B" };
 
@@ -2598,13 +2412,15 @@ namespace Couchbase.Lite
                 return true;
             });
 
-            var push = database.CreatePushReplication(GetReplicationURL());
-            push.Filter = "issue-398";
-            push.FilterParams = new Dictionary<string, object>() { { "issue-398", "finished" } };
-            push.Start();
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                push.Filter = "issue-398";
+                push.FilterParams = new Dictionary<string, object> { { "issue-398", "finished" } };
+                push.Start();
 
-            mre.Wait();
-            Assert.AreEqual(push.FilterParams, gotParams);
+                mre.Wait();
+                Assert.AreEqual(push.FilterParams, gotParams);
+            }
         }
 
         [Test]
@@ -2633,9 +2449,7 @@ namespace Couchbase.Lite
             manager.DefaultHttpClientFactory = fakeFactory;
             ManagerOptions.Default.RequestTimeout = TimeSpan.FromSeconds(5);
 
-            const string name = "test_transient_exception_recover";
-            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
-            using (var remoteDb = sg.CreateDatabase(name)) {
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 CreatePullAndTest(20, remoteDb, (repl) => Assert.AreEqual(20, database.DocumentCount, "Didn't recover from the error"));
             }
         }
@@ -2659,10 +2473,8 @@ namespace Couchbase.Lite
             manager.DefaultHttpClientFactory = fakeFactory;
             ManagerOptions.Default.RequestTimeout = TimeSpan.FromSeconds(5);
 
-            const string name = "test_permanent_exception_surrender";
-            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
-            using (var remoteDb = sg.CreateDatabase(name)) {
-                CreatePullAndTest(20, remoteDb, repl => Assert.AreEqual(0, database.DocumentCount, "Somehow got all the docs"));
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                CreatePullAndTest(20, remoteDb, repl => Assert.IsTrue(database.DocumentCount < 20, "Somehow got all the docs"));
             }
         }
 
@@ -2675,10 +2487,8 @@ namespace Couchbase.Lite
                 return;
             }
 
-            const string name = "test_failed_bulk";
-            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
             string firstBulkGet = null;
-            using(var remoteDb = sg.CreateDatabase(name)) {
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var fakeFactory = new MockHttpClientFactory(false);
                 fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) =>
                 {

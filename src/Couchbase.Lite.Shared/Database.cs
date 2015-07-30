@@ -1238,7 +1238,7 @@ PRAGMA user_version = 3;";
                     try {
                         StorageEngine.ExecSQL(statement);
                     } catch(Exception e) {
-                        Log.E(TAG, String.Format("Error running statement", statement), e);
+                        Log.E(TAG, String.Format("Error running statement {0}", statement), e);
                         return false;
                     }
 

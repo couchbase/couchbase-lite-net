@@ -91,7 +91,7 @@ namespace Couchbase.Lite.Replicator
                 var mre = new ManualResetEvent(false);
                 response.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
                 if (!mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true)) {
-                    Log.E("DefaultAuthHandler", "mre.WaitOne timed out");
+                    Log.E("DefaultAuthHandler", "mre.WaitOne timed out: {0}", Environment.StackTrace);
                 }
             }
 

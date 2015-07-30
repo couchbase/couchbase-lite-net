@@ -491,16 +491,20 @@ namespace Couchbase.Lite
 
         public void StopReplication(Replication replication)
         {
+            if (replication.Status == ReplicationStatus.Stopped) {
+                return;
+            }
+
             var replicationDoneSignal = new CountdownEvent(1);
             var replicationStoppedObserver = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += replicationStoppedObserver.Changed;
             replication.Stop();
 
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(30));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
 
             // give a little padding to give it a chance to save a checkpoint
-            System.Threading.Thread.Sleep(2 * 1000);
+            Thread.Sleep(2 * 1000);
         }
 
         protected void AssertEnumerablesAreEqual(
