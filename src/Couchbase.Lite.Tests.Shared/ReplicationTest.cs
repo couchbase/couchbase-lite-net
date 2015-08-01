@@ -79,7 +79,7 @@ namespace Couchbase.Lite
         private const string Tag = "ReplicationTest";
         private const string TEMP_DB_NAME = "testing_tmp";
         private SyncGateway _sg;
-        private int _dbCounter = 0;
+        private static int _dbCounter = 0;
 
         private class ReplicationIdleObserver 
         {
