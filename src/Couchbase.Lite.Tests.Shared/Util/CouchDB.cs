@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Tests
             var dbUri = _regularUri.AppendPath(name);
 
             try {
-                HttpWebRequest.Create(dbUri).GetResponse();
+                HttpWebRequest.Create(_regularUri).GetResponse();
             } catch(Exception) {
                 Assert.Inconclusive("Apache CouchDB not running");
             }
