@@ -32,7 +32,7 @@
     <DebugSymbols>True</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>bin\Debug\Assets\Plugins\</OutputPath>
     <DefineConstants>DEBUG;TRACE;__UNITY__;NET_3_5;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -44,7 +44,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>True</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>bin\Release\Assets\Plugins\</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DebugType>pdbonly</DebugType>
@@ -117,6 +117,7 @@
     <ProjectReference Include="vendor\SQLitePCL\platform.unity.standalone.csproj">
       <Project>{0E3578A2-D15E-4183-8F0F-638EC8D437B8}</Project>
       <Name>platform.unity.standalone</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\SQLitePCL\bld\ugly_net35.csproj">
       <Project>{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}</Project>
