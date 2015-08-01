@@ -188,24 +188,22 @@ namespace Couchbase.Lite
                 var pull = database.CreatePullReplication(remoteDb.RemoteUri);
                 List<ReplicationStatus> statusHistory = new List<ReplicationStatus>();
 
-                bool finalStatusReached = false;
                 pull.Changed += (sender, e) =>
                 {
                     statusHistory.Add(e.Source.Status);
                     if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
                         Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
-                        Assert.IsFalse(finalStatusReached, "Improper sequence order");
-                    }
-
-                    if (e.Source.Status == ReplicationStatus.Stopped) {
-                        Assert.IsFalse(finalStatusReached, "Too many stops");
-                        finalStatusReached = true;
-                        Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
-                        Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
-                    }
+                    } 
                 };
 
                 RunReplication(pull);
+                for (int i = 0; i < statusHistory.Count; i++) {
+                    if (i == statusHistory.Count - 1) {
+                        Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[i]);
+                    } else {
+                        Assert.AreEqual(ReplicationStatus.Active, statusHistory[i]);
+                    }
+                }
 
                 doc1Id = string.Format("doc3-{0}", docIdTimestamp);
                 doc2Id = string.Format("doc4-{0}", docIdTimestamp);           
@@ -216,20 +214,14 @@ namespace Couchbase.Lite
                 statusHistory.Clear();
                 var doneEvent = new ManualResetEventSlim();
 
-                finalStatusReached = false;
                 pull.Changed += (sender, e) =>
                 {
                     statusHistory.Add(e.Source.Status);
                     if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
                         Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
-                        Assert.IsFalse(finalStatusReached, "Improper status sequence");
                     } 
 
                     if (e.Source.Status == ReplicationStatus.Idle) {
-                        Assert.IsFalse(finalStatusReached, "Multiple idles");
-                        finalStatusReached = true;
-                        Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
-                        Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
                         doneEvent.Set();
                     }
                 };
@@ -239,8 +231,15 @@ namespace Couchbase.Lite
                 Assert.IsNull(pull.LastError);
                 doneEvent.Reset();
 
+                for (int i = 0; i < statusHistory.Count; i++) {
+                    if (i == statusHistory.Count - 1) {
+                        Assert.AreEqual(ReplicationStatus.Idle, statusHistory[i]);
+                    } else {
+                        Assert.AreEqual(ReplicationStatus.Active, statusHistory[i]);
+                    }
+                }
+
                 statusHistory.Clear();
-                finalStatusReached = false;
                 doc1Id = string.Format("doc5-{0}", docIdTimestamp);         
                 remoteDb.AddDocument(doc1Id, "attachment.png");
 
@@ -248,12 +247,10 @@ namespace Couchbase.Lite
                 Assert.IsNull(pull.LastError);
                 doneEvent.Reset();
                 statusHistory.Clear();
-                finalStatusReached = false;
                 StopReplication(pull);
 
-                Assert.AreEqual(2, statusHistory.Count);
                 Assert.AreEqual(ReplicationStatus.Active, statusHistory.First());
-                Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[1]);
+                Assert.AreEqual(ReplicationStatus.Stopped, statusHistory.Last());
             }
         }
 

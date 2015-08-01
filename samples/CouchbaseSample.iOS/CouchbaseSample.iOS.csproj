@@ -167,4 +167,10 @@
     </MonoDevelop>
   </ProjectExtensions>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
+      <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
+      <Name>Couchbase.Lite.iOS</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>
