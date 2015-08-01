@@ -87,13 +87,13 @@ namespace Couchbase.Lite.Replicator
 
         protected override HttpResponseMessage ProcessResponse(HttpResponseMessage response, CancellationToken cancellationToken)
         {
-            if (response.Content != null && !_chunkedMode) {
+            /*if (response.Content != null && !_chunkedMode) {
                 var mre = new ManualResetEvent(false);
                 response.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
                 if (!mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true)) {
                     Log.E("DefaultAuthHandler", "mre.WaitOne timed out: {0}", Environment.StackTrace);
                 }
-            }
+            }*/
 
             if (Authenticator != null && response.StatusCode == HttpStatusCode.Unauthorized 
                 && !response.RequestMessage.Headers.Contains("Authorization")) {

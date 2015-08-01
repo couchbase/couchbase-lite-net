@@ -199,7 +199,6 @@ namespace Couchbase.Lite
         protected internal string sessionID;
 
         private bool _savingCheckpoint;
-        private bool _overdueForSave;
         private IDictionary<string, object> _remoteCheckpoint;
         private bool _continuous;
         private int _revisionsFailed;
@@ -1081,10 +1080,10 @@ namespace Couchbase.Lite
                     LocalDatabase.ForgetReplication(this);
                 }
 
-                ClearDbRef ();
                 _httpClient.CancelPendingRequests();
                 _httpClient.Dispose();
                 _httpClient = null;
+                ClearDbRef ();
             });
         }
 
@@ -1677,7 +1676,6 @@ namespace Couchbase.Lite
                     switch (GetStatusFromError(e)) {
                         case StatusCode.NotFound:
                             _remoteCheckpoint = null;
-                            _overdueForSave = true;
                             break;
                         case StatusCode.Conflict:
                             RefreshRemoteCheckpointDoc();
@@ -1795,8 +1793,6 @@ namespace Couchbase.Lite
             {
                 LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
             }
-
-            LocalDatabase = null;
         }
 
         private void CheckSessionAtPath(string sessionPath)
@@ -1963,6 +1959,7 @@ namespace Couchbase.Lite
 
             // Ensure callback runs on captured context, which should be the UI thread.
             var stackTrace = Environment.StackTrace;
+
             LocalDatabase.Manager.CapturedContext.StartNew(() =>
             {
                 evt(this, args);

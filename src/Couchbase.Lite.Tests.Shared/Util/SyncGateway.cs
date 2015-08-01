@@ -134,10 +134,10 @@ namespace Couchbase.Lite.Tests
             request.GetResponse();
         }
 
-        public HashSet<string> AddDocuments(int count)
+        public HashSet<string> AddDocuments(int count, bool withAttachment)
         {
             var docList = new HashSet<string>();
-            var json = CreateDocumentJson("attachment.png").Substring(1);
+            var json = CreateDocumentJson(withAttachment ? "attachment.png" : null).Substring(1);
             var beginning = Encoding.UTF8.GetBytes(@"{""docs"":[");
 
             var request = WebRequest.CreateHttp(_remoteUri.AppendPath("_bulk_docs"));
