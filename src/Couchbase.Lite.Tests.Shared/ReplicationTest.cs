@@ -107,7 +107,7 @@ namespace Couchbase.Lite
 
             public void Changed(object sender, ReplicationChangeEventArgs args) {
                 var replicator = args.Source;
-                if (replicator.LastError != null) {
+                if (replicator.LastError != null && doneSignal.CurrentCount > 0) {
                     doneSignal.Signal();
                 }
             }
@@ -143,21 +143,17 @@ namespace Couchbase.Lite
         {
             var url = new Uri(string.Format("{0}/_local/{1}", remote, checkpointId));
             var request = new HttpRequestMessage(HttpMethod.Get, url);
-            var response = new HttpClient().SendAsync(request).Result;
-            var result = response.Content.ReadAsStringAsync().Result;
-            var json = Manager.GetObjectMapper().ReadValue<JObject>(result);
-            return json.AsDictionary<string, object>();
+            using(var client = new HttpClient()) {
+                var response = client.SendAsync(request).Result;
+                var result = response.Content.ReadAsStringAsync().Result;
+                var json = Manager.GetObjectMapper().ReadValue<JObject>(result);
+                return json.AsDictionary<string, object>();
+            }
         }
 
         private void CreatePullAndTest(int docCount, RemoteDatabase db, Action<Replication> tester)
         {
-            for (int i = 0; i < docCount; i++)
-            {
-                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
-                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
-
-                db.AddDocument(docId, null);
-            }
+            db.AddDocuments(20, false);
 
             var pull = database.CreatePullReplication(db.RemoteUri);
             RunReplication(pull);
@@ -192,26 +188,24 @@ namespace Couchbase.Lite
                 var pull = database.CreatePullReplication(remoteDb.RemoteUri);
                 List<ReplicationStatus> statusHistory = new List<ReplicationStatus>();
 
+                bool finalStatusReached = false;
                 pull.Changed += (sender, e) =>
                 {
                     statusHistory.Add(e.Source.Status);
                     if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
                         Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                        Assert.IsFalse(finalStatusReached, "Improper sequence order");
                     }
 
                     if (e.Source.Status == ReplicationStatus.Stopped) {
+                        Assert.IsFalse(finalStatusReached, "Too many stops");
+                        finalStatusReached = true;
                         Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
                         Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
                     }
                 };
 
                 RunReplication(pull);
-
-                foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
-                    Assert.AreEqual(ReplicationStatus.Active, status);
-                }
-
-                Assert.AreEqual(ReplicationStatus.Stopped, statusHistory[statusHistory.Count - 1]);
 
                 doc1Id = string.Format("doc3-{0}", docIdTimestamp);
                 doc2Id = string.Format("doc4-{0}", docIdTimestamp);           
@@ -222,18 +216,20 @@ namespace Couchbase.Lite
                 statusHistory.Clear();
                 var doneEvent = new ManualResetEventSlim();
 
+                finalStatusReached = false;
                 pull.Changed += (sender, e) =>
                 {
                     statusHistory.Add(e.Source.Status);
                     if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
                         Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
-                    }
+                        Assert.IsFalse(finalStatusReached, "Improper status sequence");
+                    } 
 
                     if (e.Source.Status == ReplicationStatus.Idle) {
+                        Assert.IsFalse(finalStatusReached, "Multiple idles");
+                        finalStatusReached = true;
                         Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
                         Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
-                        doneEvent.Set();
-                    } else if (e.Source.Status == ReplicationStatus.Stopped) {
                         doneEvent.Set();
                     }
                 };
@@ -241,29 +237,19 @@ namespace Couchbase.Lite
                 pull.Start();
                 Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
                 Assert.IsNull(pull.LastError);
-                foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
-                    Assert.AreEqual(ReplicationStatus.Active, status);
-                }
-
-                Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
                 doneEvent.Reset();
 
                 statusHistory.Clear();
+                finalStatusReached = false;
                 doc1Id = string.Format("doc5-{0}", docIdTimestamp);         
                 remoteDb.AddDocument(doc1Id, "attachment.png");
 
                 Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
                 Assert.IsNull(pull.LastError);
-                foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
-                    Assert.AreEqual(ReplicationStatus.Active, status);
-                }
-
-                Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
                 doneEvent.Reset();
                 statusHistory.Clear();
-                pull.Stop();
-                Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
-                Assert.IsNull(pull.LastError);
+                finalStatusReached = false;
+                StopReplication(pull);
 
                 Assert.AreEqual(2, statusHistory.Count);
                 Assert.AreEqual(ReplicationStatus.Active, statusHistory.First());
@@ -352,9 +338,7 @@ namespace Couchbase.Lite
 
                 doneEvent.Reset();
                 statusHistory.Clear();
-                push.Stop();
-                Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
-                Assert.IsNull(push.LastError);
+                StopReplication(push);
 
                 Assert.AreEqual(2, statusHistory.Count);
                 Assert.AreEqual(ReplicationStatus.Active, statusHistory.First());
@@ -693,29 +677,30 @@ namespace Couchbase.Lite
                 var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
                 Log.D(Tag, "Send http request to " + pathToDoc);
                 var httpRequestDoneSignal = new CountDownLatch(1);
-                var httpclient = new HttpClient();
-                try {
-                    var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
-                    var statusLine = getDocResponse.StatusCode;
-                    Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
-                    Assert.AreEqual(Couchbase.Lite.StatusCode.NotFound, statusLine.GetStatusCode());                        
-                }
-                catch (ProtocolViolationException e) {
-                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                }
-                catch (IOException e) {
-                    Assert.IsNull(e, "Got IOException: " + e.Message);
-                }
-                finally {
-                    httpRequestDoneSignal.CountDown();
-                }
-                Log.D(Tag, "Waiting for http request to finish");
-                try {
-                    httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
-                    Log.D(Tag, "http request finished");
-                }
-                catch (Exception e) {
-                    Runtime.PrintStackTrace(e);
+                using (var httpclient = new HttpClient()) {
+                    try {
+                        var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
+                        var statusLine = getDocResponse.StatusCode;
+                        Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
+                        Assert.AreEqual(Couchbase.Lite.StatusCode.NotFound, statusLine.GetStatusCode());                        
+                    }
+                    catch (ProtocolViolationException e) {
+                        Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+                    }
+                    catch (IOException e) {
+                        Assert.IsNull(e, "Got IOException: " + e.Message);
+                    }
+                    finally {
+                        httpRequestDoneSignal.CountDown();
+                    }
+                    Log.D(Tag, "Waiting for http request to finish");
+                    try {
+                        httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+                        Log.D(Tag, "http request finished");
+                    }
+                    catch (Exception e) {
+                        Runtime.PrintStackTrace(e);
+                    }
                 }
             }
         }
@@ -773,6 +758,8 @@ namespace Couchbase.Lite
                 var doc = database.GetExistingDocument(docName);
                 Assert.IsNotNull(doc);
                 Assert.IsNotNull(doc.CurrentRevision.Attachments);
+
+                StopReplication(pull);
             }
         }
 
@@ -1026,6 +1013,8 @@ namespace Couchbase.Lite
                 Thread.Sleep(1000);
                 PutReplicationOffline(repl);
                 Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
+
+                StopReplication(repl);
             }
         }
 
@@ -1279,34 +1268,35 @@ namespace Couchbase.Lite
                 requestBody.Put("docs", docs);
 
                 // Make the _bulk_docs request.
-                var client = new HttpClient();
-                var bulkDocsUrl = remoteDb.RemoteUri.ToString() + "/_bulk_docs";
-                var request = new HttpRequestMessage(HttpMethod.Post, bulkDocsUrl);
-                //request.Headers.Add("Accept", "*/*");
-                request.Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");
+                using (var client = new HttpClient()) {
+                    var bulkDocsUrl = remoteDb.RemoteUri + "/_bulk_docs";
+                    var request = new HttpRequestMessage(HttpMethod.Post, bulkDocsUrl);
+                    //request.Headers.Add("Accept", "*/*");
+                    request.Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");
 
-                var response = client.SendAsync(request).Result;
-                // Check the response to make sure everything worked as it should.
-                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+                    var response = client.SendAsync(request).Result;
+                    // Check the response to make sure everything worked as it should.
+                    Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
-                var rawResponse = response.Content.ReadAsStringAsync().Result;
-                var resultArray = Manager.GetObjectMapper().ReadValue<JArray>(rawResponse);
-                Assert.AreEqual(2, resultArray.Count);
+                    var rawResponse = response.Content.ReadAsStringAsync().Result;
+                    var resultArray = Manager.GetObjectMapper().ReadValue<JArray>(rawResponse);
+                    Assert.AreEqual(2, resultArray.Count);
 
-                foreach (var value in resultArray.Values<JObject>()) {
-                    var err = (string)value["error"];
-                    Assert.IsNull(err);
+                    foreach (var value in resultArray.Values<JObject>()) {
+                        var err = (string)value["error"];
+                        Assert.IsNull(err);
+                    }
+
+                    Thread.Sleep(200);
+
+                    // Pull the remote changes.
+                    var puller = database.CreatePullReplication(remoteDb.RemoteUri);
+                    RunReplication(puller);
+                    Assert.IsNull(puller.LastError);
+
+                    // Make sure the conflict was resolved locally.
+                    Assert.AreEqual(1, doc.ConflictingRevisions.Count());
                 }
-
-                Thread.Sleep(200);
-
-                // Pull the remote changes.
-                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
-                RunReplication(puller);
-                Assert.IsNull(puller.LastError);
-
-                // Make sure the conflict was resolved locally.
-                Assert.AreEqual(1, doc.ConflictingRevisions.Count());
             }
         }
 
@@ -1571,7 +1561,7 @@ namespace Couchbase.Lite
                 // the database after the manager is closed during the test tearing 
                 // down state.
                 Log.V(Tag, "Wait for a few seconds to ensure all pending replication tasks are drained ...");
-                Thread.Sleep(3000);
+                StopReplication(pusher);
             }
         }
 
@@ -1681,7 +1671,7 @@ namespace Couchbase.Lite
                 var success = signal.Wait(TimeSpan.FromSeconds(30));
                 Assert.IsTrue(success);
 
-                pusher.Stop();
+                StopReplication(pusher);
             }
         }
 
@@ -1750,10 +1740,12 @@ namespace Couchbase.Lite
             var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
             var pathToDoc = new Uri(replicationUrlTrailing, docId);
             var request = new HttpRequestMessage(HttpMethod.Get, pathToDoc);
-            var response = new HttpClient().SendAsync(request).Result;
-            var result = response.Content.ReadAsStringAsync().Result;
-            var json = Manager.GetObjectMapper().ReadValue<JObject>(result);
-            return json.AsDictionary<string, object>();
+            using(var client = new HttpClient()) {
+                var response = client.SendAsync(request).Result;
+                var result = response.Content.ReadAsStringAsync().Result;
+                var json = Manager.GetObjectMapper().ReadValue<JObject>(result);
+                return json.AsDictionary<string, object>();
+            }
         }
 
         [Test]
@@ -2167,7 +2159,7 @@ namespace Couchbase.Lite
             const int docsToCreate = 50;
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
-                var docList = remoteDb.AddDocuments(docsToCreate);
+                var docList = remoteDb.AddDocuments(docsToCreate, true);
 
                 // Create local docs
                 for (int i = 0; i < docsToCreate; i++) {
@@ -2247,7 +2239,7 @@ namespace Couchbase.Lite
 
             const int docsToCreate = 50;
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
-                var docList = remoteDb.AddDocuments(docsToCreate);
+                var docList = remoteDb.AddDocuments(docsToCreate, true);
                 var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
                 pusher.Start();
 

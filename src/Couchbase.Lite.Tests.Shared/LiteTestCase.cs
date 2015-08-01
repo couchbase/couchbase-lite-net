@@ -496,7 +496,7 @@ namespace Couchbase.Lite
             }
 
             var replicationDoneSignal = new CountdownEvent(1);
-            var replicationStoppedObserver = new ReplicationObserver(replicationDoneSignal);
+            var replicationStoppedObserver = new ReplicationStoppedObserver(replicationDoneSignal);
             replication.Changed += replicationStoppedObserver.Changed;
             replication.Stop();
 
@@ -575,19 +575,19 @@ namespace Couchbase.Lite
 
     internal class ReplicationStoppedObserver
     {
-        private readonly CountDownLatch doneSignal;
+        private readonly CountdownEvent doneSignal;
 
-        public ReplicationStoppedObserver(CountDownLatch doneSignal)
+        public ReplicationStoppedObserver(CountdownEvent doneSignal)
         {
             this.doneSignal = doneSignal;
         }
 
-        public void Changed(ReplicationChangeEventArgs args)
+        public void Changed(object sender, ReplicationChangeEventArgs args)
         {
             var replicator = args.Source;
             if (replicator.Status == ReplicationStatus.Stopped)
             {
-                doneSignal.CountDown();
+                doneSignal.Signal();
             }
         }
     }
