@@ -437,10 +437,12 @@ namespace Couchbase.Lite.Replicator
                 }
                 finally
                 {
-                    if (httpClient != null)
+                    WorkExecutor.StartNew(() =>
                     {
-                        httpClient.Dispose();
-                    }
+                        if (httpClient != null) {
+                            httpClient.Dispose();
+                        }
+                    });
                 }
             }
         }
@@ -495,7 +497,7 @@ namespace Couchbase.Lite.Replicator
                                 backoff.ResetBackoff();
                             } else {
                                 Log.W(Tag, "Change tracker calling stop");
-                                Stop();
+                                WorkExecutor.StartNew(Stop);
                             }
                         }
 
@@ -509,7 +511,7 @@ namespace Couchbase.Lite.Replicator
                             ReceivedPollResponse(jsonReader, ref timedOut);
                         }
                                
-                        WorkExecutor.StartNew(Stop);
+                        WorkExecutor.StartNew(Stopped);
                     }
                     break;
             }

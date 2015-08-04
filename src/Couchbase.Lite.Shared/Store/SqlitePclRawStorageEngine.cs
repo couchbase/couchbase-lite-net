@@ -469,7 +469,12 @@ namespace Couchbase.Lite
                 }
                 return lastInsertedId;
             });
-            return t.Result;
+
+            var r = t.ConfigureAwait(false).GetAwaiter().GetResult();
+            if (t.Exception != null)
+                throw t.Exception;
+
+            return r;
         }
 
         public int Update(String table, ContentValues values, String whereClause, params String[] whereArgs)
@@ -507,9 +512,10 @@ namespace Couchbase.Lite
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
 
             //doesn't look good
-            var r = t.GetAwaiter().GetResult();
+            var r = t.ConfigureAwait(false).GetAwaiter().GetResult();
             if (t.Exception != null)
                 throw t.Exception;
+            
             return r;
         }
 

@@ -1,4 +1,4 @@
-﻿//
+//
 //  SyncGateway.cs
 //
 //  Author:
@@ -30,6 +30,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Net.Http.Headers;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -42,7 +43,6 @@ namespace Couchbase.Lite.Tests
     public sealed class RemoteDatabase : IDisposable
     {
         private const string Tag = "RemoteDatabase";
-        private readonly IRemoteEndpoint _parent;
         private readonly Uri _adminRemoteUri;
         private readonly Uri _remoteUri;
         private readonly HttpClient _httpClient;
@@ -53,15 +53,76 @@ namespace Couchbase.Lite.Tests
             get { return _remoteUri; }
         }
 
-        internal RemoteDatabase(IRemoteEndpoint parent, string name)
+        internal RemoteDatabase(RemoteEndpoint parent, string name, string username = null, string password = null)
         {
-            _parent = parent;
             _adminRemoteUri = parent.AdminUri.AppendPath(name);
             _remoteUri = parent.RegularUri.AppendPath(name);
-            var handler = new HttpClientHandler { Credentials = new NetworkCredential("jim", "borden") };
-            handler.PreAuthenticate = true;
+
+            var handler = new HttpClientHandler();
+            if (!String.IsNullOrEmpty(username) && !String.IsNullOrEmpty(password)) {
+                handler.Credentials = new NetworkCredential(username, password);
+                handler.PreAuthenticate = true;
+            }
+
             _httpClient = new HttpClient(handler, true);
             Name = name;
+        }
+
+        public void Create()
+        {
+            var putRequest = new HttpRequestMessage(HttpMethod.Put, _adminRemoteUri + "/");
+
+            putRequest.Content = new StringContent(@"{""server"":""walrus:"",
+                 ""users"": {
+                    ""GUEST"": {""disabled"": false, ""admin_channels"": [""*""]},
+                    ""jim"" : { ""password"": ""borden"", ""admin_channels"": [""*""]}
+                  },
+                 ""bucket"":""" + Name + @""",
+                 ""sync"":""function(doc) {channel(doc.channels);}""}");
+
+            putRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+            try {
+                var putResponse = _httpClient.SendAsync(putRequest).Result;
+                Assert.AreEqual(HttpStatusCode.Created, putResponse.StatusCode);
+            } catch(WebException ex) {
+                if (ex.Status == WebExceptionStatus.ProtocolError) {
+                    var response = ex.Response as HttpWebResponse;
+                    if (response != null) {
+                        Assert.AreEqual(HttpStatusCode.PreconditionFailed, response.StatusCode);
+                    } else {
+                        Assert.Fail("Error from remote: {0}", response.StatusCode);
+                    }
+                } else {
+                    Assert.Fail("Error from remote: {0}", ex);
+                }
+            }
+
+            Thread.Sleep(500);
+        }
+
+        public void Delete()
+        {
+            Task.Delay(1000).ContinueWith(t =>
+            {
+                var server = _adminRemoteUri;
+                var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, server);
+                try {
+                    var response = _httpClient.SendAsync(deleteRequest).Result;
+                    Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                } catch (WebException ex) {
+                    if (ex.Status == WebExceptionStatus.ProtocolError) {
+                        var response = ex.Response as HttpWebResponse;
+                        if (response != null) {
+                            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+                        } else {
+                            Assert.Fail("Error from remote: {0}", response.StatusCode);
+                        }
+                    } else {
+                        Assert.Fail("Error from remote: {0}", ex);
+                    }
+                }
+            });
         }
 
         public void VerifyDocumentExists(string docId) 
@@ -114,24 +175,23 @@ namespace Couchbase.Lite.Tests
         public void DisableGuestAccess()
         {
             var url = _adminRemoteUri.AppendPath("_user/GUEST");
-            var request = WebRequest.CreateHttp(url);
-            request.Method = "PUT";
+            var request = new HttpRequestMessage(HttpMethod.Put, url);
             var data = Manager.GetObjectMapper().WriteValueAsBytes(new Dictionary<string, object> { { "disabled", true } }).ToArray();
-            request.GetRequestStream().Write(data, 0, data.Length);
-            request.GetResponse();
+            request.Content = new ByteArrayContent(data);
+            _httpClient.SendAsync(request).Wait();
         }
 
         public void RestoreGuestAccess()
         {
             var url = _adminRemoteUri.AppendPath("_user/GUEST");
-            var request = WebRequest.CreateHttp(url);
-            request.Method = "PUT";
+            var request = new HttpRequestMessage(HttpMethod.Put, url);
+
             var data = Manager.GetObjectMapper().WriteValueAsBytes(new Dictionary<string, object> { 
                 { "disabled", false },
                 { "admin_channels", new List<object> { "*" }}
             }).ToArray();
-            request.GetRequestStream().Write(data, 0, data.Length);
-            request.GetResponse();
+            request.Content = new ByteArrayContent(data);
+            _httpClient.SendAsync(request).Wait();
         }
 
         public HashSet<string> AddDocuments(int count, bool withAttachment)
@@ -140,10 +200,10 @@ namespace Couchbase.Lite.Tests
             var json = CreateDocumentJson(withAttachment ? "attachment.png" : null).Substring(1);
             var beginning = Encoding.UTF8.GetBytes(@"{""docs"":[");
 
-            var request = WebRequest.CreateHttp(_remoteUri.AppendPath("_bulk_docs"));
-            request.Method = "POST";
-            var requestStream = request.GetRequestStream();
-            requestStream.Write(beginning, 0, beginning.Length);
+            var request = new HttpRequestMessage(HttpMethod.Post, _remoteUri.AppendPath("_bulk_docs"));
+            var stream = new MemoryStream();
+            request.Content = new StreamContent(stream);
+            stream.Write(beginning, 0, beginning.Length);
 
             for (int i = 0; i < count; i++) {
                 var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
@@ -158,11 +218,13 @@ namespace Couchbase.Lite.Tests
                 }
 
                 var jsonBytes = Encoding.UTF8.GetBytes(nextJson);
-                requestStream.Write(jsonBytes, 0, jsonBytes.Length);
+                stream.Write(jsonBytes, 0, jsonBytes.Length);
             }
                 
-            var response = request.GetResponse();
-            Assert.AreEqual(HttpStatusCode.Created, ((HttpWebResponse)response).StatusCode);
+            stream.Seek(0, SeekOrigin.Begin);
+            var response = _httpClient.SendAsync(request).Result;
+            stream.Dispose();
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
             return docList;
         }
@@ -234,95 +296,18 @@ namespace Couchbase.Lite.Tests
         public void Dispose()
         {
             _httpClient.Dispose();
-            _parent.DeleteDatabase(this);
+            Delete();
         }
     }
 
-    public sealed class SyncGateway : IRemoteEndpoint
+    public sealed class SyncGateway : RemoteEndpoint
     {
-        private readonly Uri _regularUri;
-        private readonly Uri _adminUri;
+        public SyncGateway(string protocol, string server) : base(protocol, server, 4984, 4985) {}
+    }
 
-        public Uri RegularUri
-        {
-            get { return _regularUri; }
-        }
-
-        public Uri AdminUri
-        {
-            get { return _adminUri; }
-        }
-
-        public SyncGateway(string protocol, string server)
-        {
-            var builder = new UriBuilder();
-            builder.Scheme = protocol;
-            builder.Host = server;
-            builder.Port = 4984;
-            _regularUri = builder.Uri;
-
-            builder.Port = 4985;
-            _adminUri = builder.Uri;
-        }
-
-        public RemoteDatabase CreateDatabase(string name)
-        {
-            var server = _adminUri.AppendPath(name);
-            var putRequest = WebRequest.CreateHttp(server);
-            putRequest.Method = "PUT";
-            putRequest.ContentType = "application/json";
-            var body = Encoding.UTF8.GetBytes(@"{""server"":""walrus:"",
-                 ""users"": {
-                    ""GUEST"": {""disabled"": false, ""admin_channels"": [""*""]},
-                    ""jim"" : { ""password"": ""borden"", ""admin_channels"": [""*""]}
-                  },
-                 ""bucket"":""" + name + @""",
-                 ""sync"":""function(doc) {channel(doc.channels);}""}");
-            putRequest.GetRequestStream().Write(body, 0, body.Length);
-
-            try {
-                var putResponse = (HttpWebResponse)putRequest.GetResponse();
-                Assert.AreEqual(HttpStatusCode.Created, putResponse.StatusCode);
-            } catch(WebException ex) {
-                if (ex.Status == WebExceptionStatus.ProtocolError) {
-                    var response = ex.Response as HttpWebResponse;
-                    if (response != null) {
-                        Assert.AreEqual(HttpStatusCode.PreconditionFailed, response.StatusCode);
-                    } else {
-                        Assert.Fail("Error from Sync Gateway: {0}", response.StatusCode);
-                    }
-                } else {
-                    Assert.Fail("Error from Sync Gateway: {0}", ex);
-                }
-            }
-
-            return new RemoteDatabase(this, name);
-        }
-
-        public void DeleteDatabase(RemoteDatabase db)
-        {
-            Task.Delay(1000).ContinueWith(t =>
-            {
-                var server = _adminUri.AppendPath(db.Name);
-                var deleteRequest = WebRequest.CreateHttp(server);
-                deleteRequest.Method = "DELETE";
-                try {
-                    var response = (HttpWebResponse)deleteRequest.GetResponse();
-                    Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-                } catch (WebException ex) {
-                    if (ex.Status == WebExceptionStatus.ProtocolError) {
-                        var response = ex.Response as HttpWebResponse;
-                        if (response != null) {
-                            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
-                        } else {
-                            Assert.Fail("Error from Sync Gateway: {0}", response.StatusCode);
-                        }
-                    } else {
-                        Assert.Fail("Error from Sync Gateway: {0}", ex);
-                    }
-                }
-            });
-        }
+    public sealed class CouchDB : RemoteEndpoint
+    {
+        public CouchDB(string protocol, string server) : base(protocol, server, 5984, 5984) {}
     }
 }
 

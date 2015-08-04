@@ -1626,12 +1626,10 @@ namespace Couchbase.Lite
             if (_savingCheckpoint) {
                 // If a save is already in progress, don't do anything. (The completion block will trigger
                 // another save after the first one finishes.)
-                _overdueForSave = true;
-                return;
+                Task.Delay(500).ContinueWith(t => SaveLastSequence(completionHandler));
             }
 
             lastSequenceChanged = false;
-            _overdueForSave = false;
 
             Log.D(TAG, "saveLastSequence() called. lastSequence: " + LastSequence);
 
@@ -1693,9 +1691,7 @@ namespace Couchbase.Lite
                     LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
                 }
 
-                if (_overdueForSave) {
-                    SaveLastSequence (completionHandler);
-                } else if (completionHandler != null) {
+                if (completionHandler != null) {
                     completionHandler ();
                 }
             });
