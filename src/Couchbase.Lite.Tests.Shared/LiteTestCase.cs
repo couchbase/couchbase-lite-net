@@ -585,7 +585,7 @@ namespace Couchbase.Lite
         public void Changed(object sender, ReplicationChangeEventArgs args)
         {
             var replicator = args.Source;
-            if (replicator.Status == ReplicationStatus.Stopped)
+            if (replicator.Status == ReplicationStatus.Stopped && doneSignal.CurrentCount > 0)
             {
                 doneSignal.Signal();
             }

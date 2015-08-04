@@ -63,6 +63,7 @@ using Newtonsoft.Json.Linq;
 using System.Threading;
 using Couchbase.Lite.Listener.Tcp;
 using System.Text.RegularExpressions;
+using System.Net.Http.Headers;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -80,6 +81,7 @@ namespace Couchbase.Lite
         private const string TEMP_DB_NAME = "testing_tmp";
         private SyncGateway _sg;
         private static int _dbCounter = 0;
+        private HttpClient _httpClient = new HttpClient();
 
         private class ReplicationIdleObserver 
         {
@@ -714,11 +716,10 @@ namespace Couchbase.Lite
                 var docName = "doc" + Convert.ToString(DateTime.UtcNow.ToMillisecondsSinceEpoch());
                 var endpoint = remoteDb.RemoteUri.AppendPath(docName);
                 var docContent = Encoding.UTF8.GetBytes("{\"foo\":false}");
-                var putRequest = HttpWebRequest.Create(endpoint);
-                putRequest.Method = "PUT";
-                putRequest.ContentType = "application/json";
-                putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
-                var response = (HttpWebResponse)putRequest.GetResponse();
+                var putRequest = new HttpRequestMessage(HttpMethod.Put, endpoint);
+                putRequest.Content = new StringContent("{\"foo\":false}");
+                putRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                var response = _httpClient.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
 
@@ -728,21 +729,20 @@ namespace Couchbase.Lite
                 attachmentStream.Dispose();
                 endpoint = endpoint.AppendPath("attachment?rev=1-1153b140e4c8674e2e6425c94de860a0");
                 docContent = baos.ToArray();
+                baos.Dispose();
 
-                putRequest = HttpWebRequest.Create(endpoint);
-                putRequest.Method = "PUT";
-                putRequest.ContentType = "image/png";
-                putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
-                response = (HttpWebResponse)putRequest.GetResponse();
+                putRequest = new HttpRequestMessage(HttpMethod.Put, endpoint);
+                putRequest.Content = new ByteArrayContent(docContent);
+                putRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+                response = _httpClient.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
                 endpoint = remoteDb.RemoteUri.AppendPath(docName + "?rev=2-bb71ce0da1de19f848177525c4ae5a8b");
-                docContent = Encoding.UTF8.GetBytes("{\"foo\":true,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}");
-                putRequest = HttpWebRequest.Create(endpoint);
-                putRequest.Method = "PUT";
-                putRequest.ContentType = "application/json";
-                putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
-                response = (HttpWebResponse)putRequest.GetResponse();
+                const string docContentStr = "{\"foo\":true,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}";
+                putRequest = new HttpRequestMessage(HttpMethod.Put, endpoint);
+                putRequest.Content = new StringContent(docContentStr);
+                putRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                response = _httpClient.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
                 Thread.Sleep(1000);

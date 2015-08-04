@@ -49,8 +49,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\FlowControl.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\RequestCorrectHttpMessage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SyncGateway.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\CouchDB.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\IRemoteEndpoint.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\RemoteEndpoint.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Performance\" />
