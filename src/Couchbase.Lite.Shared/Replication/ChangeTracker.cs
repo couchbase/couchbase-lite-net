@@ -509,7 +509,7 @@ namespace Couchbase.Lite.Replicator
                             ReceivedPollResponse(jsonReader, ref timedOut);
                         }
                                
-                        WorkExecutor.StartNew(Stop);
+                        Stop(); //WorkExecutor.StartNew(Stop);
                     }
                     break;
             }

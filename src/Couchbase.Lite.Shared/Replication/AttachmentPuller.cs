@@ -33,6 +33,7 @@ namespace Couchbase.Lite.Replicator
         #region Variables
 
         private IList<AttachmentRequest> _attachmentsToPull;
+        private Dictionary<String, AttachmentRequest> _requestLookup;
         private volatile int _httpConnectionCount;
         private readonly object _locker = new object ();
 
@@ -61,13 +62,33 @@ namespace Couchbase.Lite.Replicator
         }
 
         /// <summary>Add an attachment to the appropriate queue to individually GET</summary>
-        public void QueueRemoteAttachment (AttachmentRequest att)
+        public AttachmentRequest QueueRemoteAttachment(Attachment att)
         {
-            lock (_locker) {
-                if (_attachmentsToPull == null) {
-                    _attachmentsToPull = new List<AttachmentRequest> (100);
+            string digest = att.Metadata.Get("digest").ToString();
+
+            lock(_locker)
+            {
+                if(_attachmentsToPull == null)
+                {
+                    _attachmentsToPull = new List<AttachmentRequest>(100);
                 }
-                _attachmentsToPull.AddItem (att);
+
+                if(_requestLookup == null)
+                {
+                    _requestLookup = new Dictionary<string, AttachmentRequest>();
+                }
+
+                if(_requestLookup.ContainsKey(digest))
+                {
+                    return _requestLookup.Get(digest);
+                }
+
+                AttachmentRequest req = new AttachmentRequest(att);
+
+                _requestLookup.Add(digest, req);
+                _attachmentsToPull.AddItem (req);
+
+                return req;
             }
         }
 
@@ -77,18 +98,18 @@ namespace Couchbase.Lite.Replicator
         /// Important to not hold the synchronized block while we do network access
         /// </summary>
         public void PullRemoteAttachments ()
-		{
-			//find the work to be done in a synchronized block
-			var attachmentsToStartNow = new List<AttachmentRequest> ();
-			lock (_locker) {
-				while (LocalDatabase != null && _httpConnectionCount + attachmentsToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections) {
-					if (_attachmentsToPull != null && _attachmentsToPull.Count > 0) {
-						// prefer to pull an attachment over a deleted revision
-						attachmentsToStartNow.AddItem (_attachmentsToPull [0]);
-						_attachmentsToPull.Remove (0);
-					} else {
-						break;
-					}
+        {
+            //find the work to be done in a synchronized block
+            var attachmentsToStartNow = new List<AttachmentRequest> ();
+            lock (_locker) {
+                while (LocalDatabase != null && _httpConnectionCount + attachmentsToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections) {
+                    if (_attachmentsToPull != null && _attachmentsToPull.Count > 0) {
+                        // prefer to pull an attachment over a deleted revision
+                        attachmentsToStartNow.AddItem (_attachmentsToPull [0]);
+                        _attachmentsToPull.Remove (0);
+                    } else {
+                     break;
+                    }
                 }
             }
 
@@ -140,6 +161,8 @@ namespace Couchbase.Lite.Replicator
                         {
                             blobWriter.AppendData(buffer);
                         }
+
+                        req.AppendData(buffer, bytesRead);
                     }
                     else if (e != null)
                     {
@@ -161,12 +184,15 @@ namespace Couchbase.Lite.Replicator
                             blobWriter.Install();
                         }
 
+                        string digest = req.attachment.Metadata.Get("digest").ToString();
+                        lock(_locker)
+                        {
+                            _requestLookup.Remove(digest);
+                        }
+
                         Log.D (TAG, "PullRemoteAttachment complete");
 
-                        if (req.completeEvent != null)
-                        {
-                            req.completeEvent.Set();
-                        }
+                        req.SetComplete();
 
                         // Note that we've finished this task; then start another one if there
                         // are still revisions waiting to be pulled:

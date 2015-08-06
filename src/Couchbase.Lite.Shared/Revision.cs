@@ -277,29 +277,15 @@ namespace Couchbase.Lite
                 }
 
                 var puller = (AttachmentPuller)replicator;
-                Couchbase.Lite.Internal.AttachmentRequest req = new Couchbase.Lite.Internal.AttachmentRequest();
-                req.attachment = att;
-                req.completeEvent = new System.Threading.ManualResetEvent(false);
 
-                MemoryStream stream = new MemoryStream();
-                req.progress = (buffer, bytesRead, complete, e) => {
-                    if (stream != null && e == null && bytesRead > 0)
-                    {
-                        stream.Write(buffer, 0, bytesRead);
-                    }
-                    else if (e != null)
-                    {
-                        stream = null;
-                    }
-                };
+                var req = puller.QueueRemoteAttachment(att);
 
-                puller.QueueRemoteAttachment(req);
                 RevisionInternal revInt = new RevisionInternal(att.Revision.Document.Id, att.Document.CurrentRevision.Id, false);
                 puller.AddToInbox(revInt); // to trigger the batcher thread
 
-                req.completeEvent.WaitOne();
+                req.WaitForComple();
 
-                att.Body = stream;
+                att.Body = req.GetStream();
 
                 return att;
             }, TaskCreationOptions.LongRunning);
