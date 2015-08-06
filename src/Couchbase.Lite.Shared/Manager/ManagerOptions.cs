@@ -100,6 +100,8 @@ namespace Couchbase.Lite
 
             RequestTimeout = TimeSpan.FromSeconds(90);
 
+            DownloadAttachmentsOnSync = true;
+
             #if __UNITY__
             CallbackScheduler = Couchbase.Lite.Unity.UnityMainThreadScheduler.TaskScheduler;
             #else
@@ -145,5 +147,11 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>Max revs to get in bulk download</value>
         public int MaxRevsToGetInBulk { get; set; }
+
+        /// <summary>
+        /// Get or sets a flag to indicated when to request attachments
+        /// </summary>
+        /// <value>true - download attachments with documents, false - defer attachment downloading until later</value>
+        public bool DownloadAttachmentsOnSync { get; set; }
     }
 }

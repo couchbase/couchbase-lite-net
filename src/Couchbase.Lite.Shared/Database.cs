@@ -631,6 +631,17 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Creates a new <see cref="Couchbase.Lite.Replication"/> that will pull attachments from the source <see cref="Couchbase.Lite.Database"/> at the given url.
+        /// </summary>
+        /// <returns>A new <see cref="Couchbase.Lite.Replication"/> that will pull attachments from the source Database at the given url.</returns>
+        /// <param name="url">The url of the source Database.</param>
+        public Replication CreateAttachmentReplication(Uri url)
+        {
+            var scheduler = new SingleTaskThreadpoolScheduler();
+            return new AttachmentPuller(this, url, false, new TaskFactory(scheduler));
+        }
+
+        /// <summary>
         /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
         /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Database"/>.</returns>
@@ -702,7 +713,8 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException(StatusCode.BadId);
             }
 
-            if (inRev.GetAttachments() != null) {
+            // skip processing attachments at this time if they are defered
+            if (ManagerOptions.Default.DownloadAttachmentsOnSync == true && inRev.GetAttachments() != null) {
                 var updatedRev = inRev.CopyWithDocID(inRev.GetDocId(), inRev.GetRevId());
                 string prevRevID = revHistory.Count >= 2 ? revHistory[1] : null;
                 Status status = new Status();

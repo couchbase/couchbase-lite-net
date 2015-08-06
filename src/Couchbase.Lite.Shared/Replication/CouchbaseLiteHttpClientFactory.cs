@@ -131,7 +131,7 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        internal HttpMessageHandler BuildHandlerPipeline (bool chunkedMode)
+        internal HttpMessageHandler BuildHandlerPipeline (bool chunkedMode, bool retry)
         {
             var handler = new HttpClientHandler {
                 CookieContainer = cookieStore,
@@ -140,14 +140,28 @@ namespace Couchbase.Lite.Support
 
             Handler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
 
+            if (retry == false) {
+                return Handler;
+            }
+
             var retryHandler = new TransientErrorRetryHandler(Handler);
 
             return retryHandler;
         }
 
+        internal void SetDefaultHeaders(HttpClient client)
+        {
+            foreach(var header in Headers)
+            {
+                var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
+                if (!success)
+                    Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
+            }
+        }
+
         public HttpClient GetHttpClient(bool chunkedMode)
         {
-            var authHandler = BuildHandlerPipeline(chunkedMode);
+            var authHandler = BuildHandlerPipeline(chunkedMode, false);
 
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 
@@ -157,12 +171,24 @@ namespace Couchbase.Lite.Support
                 Timeout = ManagerOptions.Default.RequestTimeout
             };
 
-            foreach(var header in Headers)
+            SetDefaultHeaders(client);
+
+            return client;
+        }
+
+        public HttpClient GetHttpClient(bool chunkedMode, bool retry)
+        {
+            var authHandler = BuildHandlerPipeline(chunkedMode, retry);
+
+            // As the handler will not be shared, client.Dispose() needs to be
+            // called once the operation is done to release the unmanaged resources
+            // and disposes of the managed resources.
+            var client =  new HttpClient(authHandler, true)
             {
-                var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
-                if (!success)
-                    Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
-            }
+                Timeout = ManagerOptions.Default.RequestTimeout
+            };
+
+            SetDefaultHeaders(client);
 
             return client;
         }

@@ -43,6 +43,10 @@ namespace Couchbase.Lite
 
         public bool CanReach(string remoteUri)
         {
+            if (remoteUri [remoteUri.Length - 1] != '/') {
+                remoteUri += "/";
+            }
+
             HttpWebRequest request = WebRequest.CreateHttp(remoteUri);
             request.AllowWriteStreamBuffering = true;
             request.Timeout = 5000;

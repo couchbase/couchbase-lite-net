@@ -47,6 +47,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.IO;
 using Sharpen;
+using Couchbase.Lite.Replicator;
+using System.Threading.Tasks;
 using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite 
@@ -249,6 +251,47 @@ namespace Couchbase.Lite
             }
             var attachmentMetadata = attachmentsMetadata.Get(name).AsDictionary<string,Object>();
             return new Attachment(this, name, attachmentMetadata);
+        }
+
+        /// <summary>
+        /// Returns the <see cref="Task"/> with the specified name if it exists, otherwise null.
+        /// If a local copy of the attachment is not available, it will then attempt to download the attachment from the server
+        /// </summary>
+        /// <returns>The <see cref="Task"/> with the specified name if it exists, otherwise null.</returns>
+        /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to return.</param>
+        /// <param name="replicator">The puller to use when downloading attachments</param>
+        public Task<Attachment> GetDeferedAttachment (String name, Replication replicator)
+        {
+            var task = new Task<Attachment>(() => {
+                var att = GetAttachment (name);
+                if (att == null) {
+                    return null;
+                }
+
+                if (att.ContentStream != null) {
+                    return att;
+                }
+
+                if (replicator.IsAttachmentPull ==  false) {
+                    return att;
+                }
+
+                var puller = (AttachmentPuller)replicator;
+
+                var req = puller.QueueRemoteAttachment(att);
+
+                RevisionInternal revInt = new RevisionInternal(att.Revision.Document.Id, att.Document.CurrentRevision.Id, false);
+                puller.AddToInbox(revInt); // to trigger the batcher thread
+
+                req.WaitForComple();
+
+                att.Body = req.GetStream();
+
+                return att;
+            }, TaskCreationOptions.LongRunning);
+
+            task.Start();
+            return task;
         }
 
     #endregion
