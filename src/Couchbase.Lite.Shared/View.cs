@@ -93,7 +93,13 @@ namespace Couchbase.Lite {
 
         #region Variables
 
-        internal event TypedEventHandler<View, EventArgs> Changed;
+        private TypedEventHandler<View, EventArgs> _changed;
+        internal event TypedEventHandler<View, EventArgs> Changed
+        {
+            add { _changed = (TypedEventHandler<View, EventArgs>)Delegate.Combine(_changed, value); }
+            remove { _changed = (TypedEventHandler<View, EventArgs>)Delegate.Remove(_changed, value); }
+        }
+
         private ConcurrentQueue<UpdateJob> _updateQueue = new ConcurrentQueue<UpdateJob>();
         private string _emitSql;
         private ViewCollation _collation;
@@ -281,8 +287,8 @@ namespace Couchbase.Lite {
 
             if (changed) {
                 SetVersion(version);
-                if (Changed != null) {
-                    Changed(this, null);
+                if (_changed != null) {
+                    _changed(this, null);
                 }
             }
 
@@ -324,7 +330,6 @@ namespace Couchbase.Lite {
         }
 
         #endregion
-
 
         #region Internal Methods
 

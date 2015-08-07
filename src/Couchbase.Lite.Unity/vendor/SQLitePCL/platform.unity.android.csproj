@@ -18,14 +18,14 @@
     <Optimize>false</Optimize>
     <OutputPath>..\..\bin\Debug\Assets\Plugins\Android</OutputPath>
     <DefineConstants>DEBUG;__MOBILE__;__ANDROID__;PINVOKE_FROM_SQLITE3_SO;OLD_REFLECTION;</DefineConstants>
-    <IntermediateOutputPath>debug\obj\pcl\net45\pinvoke_sqlite3\anycpu\</IntermediateOutputPath>
+    <IntermediateOutputPath>$(ProjectDir)obj\debug\android</IntermediateOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\bin\Release\Assets\Plugins\Android</OutputPath>
     <DefineConstants>__MOBILE__;__ANDROID__;PINVOKE_FROM_SQLITE3_SO;OLD_REFLECTION;</DefineConstants>
-    <IntermediateOutputPath>release\obj\pcl\net45\pinvoke_sqlite3\anycpu\</IntermediateOutputPath>
+    <IntermediateOutputPath>$(ProjectDir)obj\release\android</IntermediateOutputPath>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>

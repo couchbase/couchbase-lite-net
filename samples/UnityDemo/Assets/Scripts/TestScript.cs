@@ -31,7 +31,7 @@ public class TestScript : MonoBehaviour {
 	public string replicationUrl;
 
 	void Start() {
-		Log.SetLogger(new UnityLogger());
+		Log.SetLogger(new UnityLogger(SourceLevels.All));
 
 		var path = Application.persistentDataPath;
 		Log.D (TAG, "Database path: " + path);
@@ -42,8 +42,6 @@ public class TestScript : MonoBehaviour {
 		CreateGameObjectsView ();
 		CreateCounterView ();
 		StartReplication ();
-
-		Log.D (TAG, "Finished Init");
 	}
 
 	void CreateGameObjectsView ()

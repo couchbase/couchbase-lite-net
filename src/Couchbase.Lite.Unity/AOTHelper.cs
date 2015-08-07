@@ -24,6 +24,11 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 using Sharpen;
+using System;
+using Newtonsoft.Json.Serialization;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Collections.Generic.Couchbase;
 
 namespace Couchbase.Lite.Unity
 {
@@ -44,6 +49,12 @@ namespace Couchbase.Lite.Unity
             //affect the footprint
             var dummy = new List<KeyValuePair<string, Document>>();
             var dummy2 = new SplitOrderedList<string, KeyValuePair<string, string>>(new GenericEqualityComparer<string>());
+            var dummy3 = new SplitOrderedList<string, KeyValuePair<string, ConcurrentDictionary<string, object>>>(new GenericEqualityComparer<string>());
+            var dummy4 = new SplitOrderedList<string, KeyValuePair<string, ConcurrentDictionary<string, ConcurrentDictionary<string, object>>>>(new GenericEqualityComparer<string>());
+            var dummy5 = new SplitOrderedList<string, KeyValuePair<string, object>>(new GenericEqualityComparer<string>());
+            var dummy6 = new Dictionary<DefaultSerializationBinder.TypeNameKey, Type>(new DefaultComparer<DefaultSerializationBinder.TypeNameKey>());
+            var dummy7 = new SplitOrderedList<HttpRequestMessage, KeyValuePair<HttpRequestMessage, Task>>(new DefaultComparer<HttpRequestMessage>());
+            var dummy8 = new Dictionary<ResolverContractKey, JsonContract>(new System.Collections.Generic.Couchbase.GenericEqualityComparer<ResolverContractKey>());
         }
     }
 }
