@@ -11,6 +11,8 @@ using System.IO;
 using System.Threading.Tasks;
 using Couchbase.Lite.Unity;
 using System.Diagnostics;
+using System.Net.Http;
+using System.Net.Http.Headers;
 
 public class TestScript : MonoBehaviour {
 	Database _db;
@@ -36,12 +38,27 @@ public class TestScript : MonoBehaviour {
 		var path = Application.persistentDataPath;
 		Log.D (TAG, "Database path: " + path);
 
-		_manager = new Manager (new DirectoryInfo (Application.persistentDataPath), new ManagerOptions { CallbackScheduler = UnityMainThreadScheduler.TaskScheduler } );
+		_manager = Manager.SharedInstance;
 		_db = _manager.GetDatabase ("unity_test");
 
-		CreateGameObjectsView ();
-		CreateCounterView ();
-		StartReplication ();
+		//CreateGameObjectsView ();
+		//CreateCounterView ();
+		//StartReplication ();
+
+		var thread = new Thread(() => {
+			using (HttpClient client = new HttpClient ()) {
+				var msg = new HttpRequestMessage (HttpMethod.Post, replicationUrl + "/_changes");
+				msg.Content = new StringContent (@"{""since"":0}");
+				msg.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+				var info = client.SendAsync (msg);
+				var cont = info.ContinueWith (t => {
+					Log.I ("", t.Result.Content.ReadAsStringAsync ().Result);
+				});
+				cont.Wait ();
+				Log.I ("", "Finished");
+			}
+		});
+		thread.Start();
 	}
 
 	void CreateGameObjectsView ()
@@ -90,10 +107,10 @@ public class TestScript : MonoBehaviour {
 		}
 
 		_puller = _db.CreatePullReplication (new Uri(replicationUrl));
-		_puller.Continuous = true;
+		/*_puller.Continuous = true;
 		_puller.Changed += (sender, e) => {
 			Log.D (TAG, "Puller: " + _puller.LastError == null ? "Okay" : _puller.LastError.Message);
-		};
+		};*/
 
 		_pusher = _db.CreatePushReplication (new Uri(replicationUrl));
 		_pusher.Continuous = true;
@@ -101,7 +118,7 @@ public class TestScript : MonoBehaviour {
 			Log.D (TAG, "Pusher: " + _pusher.LastError == null ? "Okay" : _pusher.LastError.Message);
 		};
 
-		_pusher.Start ();
+		//_pusher.Start ();
 		_puller.Start ();
 
 		Log.D (TAG, "Started replication with " + replicationUrl);

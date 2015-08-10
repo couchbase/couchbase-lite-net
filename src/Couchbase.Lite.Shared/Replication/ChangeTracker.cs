@@ -323,8 +323,7 @@ namespace Couchbase.Lite.Replicator
 
                 HttpClient httpClient = null;
                 try {
-                    //httpClient = clientCopy.GetHttpClient(mode == ChangeTrackerMode.LongPoll);
-                    httpClient = new HttpClient();
+                    httpClient = clientCopy.GetHttpClient(mode == ChangeTrackerMode.LongPoll);
                     var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
                     if(challengeResponseAuth != null) {
                         challengeResponseAuth.PrepareWithRequest(Request);
@@ -348,15 +347,14 @@ namespace Couchbase.Lite.Replicator
                     successHandler = info.ContinueWith(
                         ChangeFeedResponseHandler, 
                         changesFeedRequestTokenSource.Token, 
-                        TaskContinuationOptions.LongRunning, 
+                        TaskContinuationOptions.LongRunning,
                         WorkExecutor.Scheduler
                     );
 
                     try 
                     {
-                        var mre = new ManualResetEvent(false);
-                        successHandler.ContinueWith(t => mre.Set());
-                        mre.WaitOne();
+                        Log.D(Tag, "Waiting for changes feed to finish...");
+                        successHandler.Wait();
                         Log.D(Tag, "Finished processing changes feed.");
                     } 
                     catch (Exception ex) {
@@ -418,12 +416,9 @@ namespace Couchbase.Lite.Replicator
                 }
                 finally
                 {
-                    WorkExecutor.StartNew(() =>
-                    {
-                        if (httpClient != null) {
-                            httpClient.Dispose();
-                        }
-                    });
+                    if (httpClient != null) {
+                        httpClient.Dispose();
+                    }
                 }
             }
         }
@@ -495,8 +490,7 @@ namespace Couchbase.Lite.Replicator
                                     Log.V(Tag, "    Starting new longpoll");
                                     backoff.ResetBackoff();
                                 } else {
-                                    Log.W(Tag, "Change tracker calling stop");
-                                    WorkExecutor.StartNew(Stop);
+                                    Log.W(Tag, "Change tracker calling stop"); WorkExecutor.StartNew(Stop);
                                 }
                             }
 
@@ -504,13 +498,15 @@ namespace Couchbase.Lite.Replicator
                         break;
                     default:
                         {
+                            Log.D(Tag, "Getting stream from change tracker response");
                             Stream content = response.Content.ReadAsStreamAsync().Result;
+                            Log.D(Tag, "Got stream from change tracker response");
                             using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(content)) {
                                 bool timedOut = false;
                                 ReceivedPollResponse(jsonReader, ref timedOut);
                             }
                                    
-                            WorkExecutor.StartNew(Stopped);
+                            Stopped();
                         }
                         break;
                 }
