@@ -45,7 +45,7 @@ namespace Couchbase.Lite
         {
             HttpWebRequest request = WebRequest.CreateHttp(remoteUri);
             request.AllowWriteStreamBuffering = true;
-            request.Timeout = 5000;
+            request.Timeout = 10000;
             request.Method = "GET";
 
             try {

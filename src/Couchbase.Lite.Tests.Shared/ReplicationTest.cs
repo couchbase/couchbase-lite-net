@@ -192,8 +192,8 @@ namespace Couchbase.Lite
 
                 pull.Changed += (sender, e) =>
                 {
-                    statusHistory.Add(e.Source.Status);
-                    if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
+                    statusHistory.Add(e.Status);
+                    if (e.ChangesCount > 0 && e.CompletedChangesCount != e.ChangesCount) {
                         Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
                     } 
                 };
@@ -214,24 +214,23 @@ namespace Couchbase.Lite
                 pull = database.CreatePullReplication(remoteDb.RemoteUri);
                 pull.Continuous = true;
                 statusHistory.Clear();
-                var doneEvent = new ManualResetEventSlim();
+                var doneEvent = new AutoResetEvent(false);
 
                 pull.Changed += (sender, e) =>
                 {
-                    statusHistory.Add(e.Source.Status);
-                    if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
-                        Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                    statusHistory.Add(e.Status);
+                    if (e.ChangesCount > 0 && e.CompletedChangesCount != e.ChangesCount) {
+                        Assert.AreEqual(ReplicationStatus.Active, e.Status);
                     } 
 
-                    if (e.Source.Status == ReplicationStatus.Idle) {
+                    if (e.Status == ReplicationStatus.Idle) {
                         doneEvent.Set();
                     }
                 };
 
                 pull.Start();
-                Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+                Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(60)));
                 Assert.IsNull(pull.LastError);
-                doneEvent.Reset();
 
                 for (int i = 0; i < statusHistory.Count; i++) {
                     if (i == statusHistory.Count - 1) {
@@ -245,9 +244,8 @@ namespace Couchbase.Lite
                 doc1Id = string.Format("doc5-{0}", docIdTimestamp);         
                 remoteDb.AddDocument(doc1Id, "attachment.png");
 
-                Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
+                Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(60)));
                 Assert.IsNull(pull.LastError);
-                doneEvent.Reset();
                 statusHistory.Clear();
                 StopReplication(pull);
 
@@ -272,18 +270,19 @@ namespace Couchbase.Lite
 
                 push.Changed += (sender, e) =>
                 {
-                    statusHistory.Add(e.Source.Status);
-                    if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
-                        Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                    statusHistory.Add(e.Status);
+                    if (e.ChangesCount > 0 && e.CompletedChangesCount != e.ChangesCount) {
+                        Assert.AreEqual(ReplicationStatus.Active, e.Status);
                     }
 
-                    if (e.Source.Status == ReplicationStatus.Stopped) {
-                        Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
-                        Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                    if (e.Status == ReplicationStatus.Stopped) {
+                        Assert.AreNotEqual(0, e.CompletedChangesCount);
+                        Assert.AreEqual(e.ChangesCount, e.CompletedChangesCount);
                     }
                 };
 
                 RunReplication(push);
+                Thread.Sleep(1000);
 
                 Assert.IsNull(push.LastError);
                 foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
@@ -300,16 +299,16 @@ namespace Couchbase.Lite
 
                 push.Changed += (sender, e) =>
                 {
-                    statusHistory.Add(e.Source.Status);
-                    if (e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount != e.Source.ChangesCount) {
-                        Assert.AreEqual(ReplicationStatus.Active, e.Source.Status);
+                    statusHistory.Add(e.Status);
+                    if (e.ChangesCount > 0 && e.CompletedChangesCount != e.ChangesCount) {
+                        Assert.AreEqual(ReplicationStatus.Active, e.Status);
                     }
 
-                    if (e.Source.Status == ReplicationStatus.Idle) {
-                        Assert.AreNotEqual(0, e.Source.CompletedChangesCount);
-                        Assert.AreEqual(e.Source.ChangesCount, e.Source.CompletedChangesCount);
+                    if (e.Status == ReplicationStatus.Idle) {
+                        Assert.AreNotEqual(0, e.CompletedChangesCount);
+                        Assert.AreEqual(e.ChangesCount, e.CompletedChangesCount);
                         doneEvent.Set();
-                    } else if (e.Source.Status == ReplicationStatus.Stopped) {
+                    } else if (e.Status == ReplicationStatus.Stopped) {
                         doneEvent.Set();
                     }
                 };
@@ -1523,8 +1522,8 @@ namespace Couchbase.Lite
                 var replicationCaughtUpSignal = new CountdownEvent(1);
                 pusher.Changed += (sender, e) =>
                 {
-                    changesCount = e.Source.ChangesCount;
-                    completedChangesCount = e.Source.CompletedChangesCount;
+                    changesCount = e.ChangesCount;
+                    completedChangesCount = e.CompletedChangesCount;
                     var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
                     Log.D(Tag, msg);
                     if (changesCount == completedChangesCount
@@ -1550,7 +1549,7 @@ namespace Couchbase.Lite
                     Assert.IsNotNull(rev);
                 }
 
-                replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(8));
+                Assert.IsTrue(replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(80)));
                 Assert.AreEqual(numDocs, completedChangesCount);
 
                 // Workaroud: sleep to ensure that all of the pending replication tasks 

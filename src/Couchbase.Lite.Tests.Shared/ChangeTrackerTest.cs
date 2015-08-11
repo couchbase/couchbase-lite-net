@@ -219,7 +219,7 @@ namespace Couchbase.Lite
             changeTracker.Start();
 
             // sleep for a few seconds
-            Thread.Sleep(15 * 1000);
+            Thread.Sleep(10 * 1000);
 
             // make sure we got less than 10 requests in those 10 seconds (if it was hammering, we'd get a lot more)
             var handler = client.HttpRequestHandler;
@@ -240,7 +240,7 @@ namespace Couchbase.Lite
 
             // assert that the delta is high, because at this point the change tracker should
             // be hammering away
-            Assert.IsTrue((after - before) > 25);
+            Assert.IsTrue((after - before) > 25, "{0} <= 25", (after - before));
 
             // the backoff numAttempts should have been reset to 0
             Assert.IsTrue(changeTracker.backoff.NumAttempts == 0);
@@ -325,7 +325,7 @@ namespace Couchbase.Lite
         {
             Uri testUrl = GetReplicationURL();
             var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, true, null);
-            Assert.AreEqual("_changes?feed=longpoll&limit=5000&heartbeat=300000&style=all_docs&since=0", changeTracker.GetChangesFeedPath());
+            Assert.AreEqual("_changes?feed=longpoll&limit=500&heartbeat=300000&style=all_docs&since=0", changeTracker.GetChangesFeedPath());
         }
             
         [Test]
@@ -343,7 +343,7 @@ namespace Couchbase.Lite
 
             // set filter map
             changeTracker.SetFilterParams(filterMap);
-            Assert.AreEqual("_changes?feed=longpoll&limit=5000&heartbeat=300000&since=0&filter=filter&param=value", 
+            Assert.AreEqual("_changes?feed=longpoll&limit=500&heartbeat=300000&since=0&filter=filter&param=value", 
                 changeTracker.GetChangesFeedPath());
         }
 
@@ -406,7 +406,7 @@ namespace Couchbase.Lite
 
             var docIdsJson = "[\"doc1\",\"doc2\"]";
             var docIdsEncoded = Uri.EscapeUriString(docIdsJson);
-            var expectedFeedPath = string.Format("_changes?feed=longpoll&limit=5000&heartbeat=300000&since=0&filter=_doc_ids&doc_ids={0}", 
+            var expectedFeedPath = string.Format("_changes?feed=longpoll&limit=500&heartbeat=300000&since=0&filter=_doc_ids&doc_ids={0}", 
                 docIdsEncoded);
             string changesFeedPath = changeTracker.GetChangesFeedPath();
             Assert.AreEqual(expectedFeedPath, changesFeedPath);

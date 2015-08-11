@@ -19,6 +19,9 @@
 //  limitations under the License.
 //
 using System;
+using System.Net.Http;
+using System.Net;
+using NUnit.Framework;
 
 namespace Couchbase.Lite.Tests
 {
@@ -26,6 +29,8 @@ namespace Couchbase.Lite.Tests
     {
         private readonly Uri _regularUri;
         private readonly Uri _adminUri;
+
+        protected abstract string Type { get; }
 
         public Uri RegularUri
         {
@@ -47,6 +52,20 @@ namespace Couchbase.Lite.Tests
 
             builder.Port = adminPort;
             _adminUri = builder.Uri;
+
+            using (var httpClient = new HttpClient()) {
+                try {
+                    var request = new HttpRequestMessage(HttpMethod.Get, _adminUri + "/");
+                    var response = httpClient.SendAsync(request).Result;
+                    request = new HttpRequestMessage(HttpMethod.Get, _regularUri + "/");
+                    response = httpClient.SendAsync(request).Result;
+                } catch(AggregateException e) {
+                    var ex = e.InnerException as WebException;
+                    if (ex != null && ex.Status == WebExceptionStatus.ConnectFailure) {
+                        Assert.Inconclusive("Failed to get connection to {0}", Type);
+                    }
+                }
+            }
         }
 
         public virtual RemoteDatabase CreateDatabase(string name)
