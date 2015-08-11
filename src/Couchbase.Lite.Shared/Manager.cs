@@ -157,10 +157,10 @@ namespace Couchbase.Lite
                 defaultDirectory = new DirectoryInfo(defaultDirectoryPath);
             }
 
-            #if !OFFICIAL
+
             string gitVersion= String.Empty;
             using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly()
-                .GetManifestResourceStream("version")) {
+            .GetManifestResourceStream("version")) {
                 if(stream != null) {
                     using (StreamReader reader = new StreamReader(stream))
                     {
@@ -171,11 +171,10 @@ namespace Couchbase.Lite
                 }
             }
 
+            #if !OFFICIAL
             VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
-            #elif __UNITY__
-            VersionString = "1.0";
             #else
-            VersionString = "1.1";
+            VersionString = String.Format("1.1.1-pre1 ({0})", gitVersion.TrimEnd());
             #endif
         }
 

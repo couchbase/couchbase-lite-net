@@ -302,8 +302,7 @@ namespace Couchbase.Lite.Tests
 
         public void Dispose()
         {
-            Delete();
-            _httpClient.Dispose();
+            Delete().ContinueWith(t => _httpClient.Dispose());
         }
     }
 
