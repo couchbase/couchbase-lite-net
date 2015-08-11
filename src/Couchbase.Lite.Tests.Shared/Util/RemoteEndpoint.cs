@@ -23,6 +23,10 @@ using System.Net.Http;
 using System.Net;
 using NUnit.Framework;
 
+#if NET_3_5
+using WebException = System.Net.Couchbase.WebException;
+#endif
+
 namespace Couchbase.Lite.Tests
 {
     public abstract class RemoteEndpoint
