@@ -303,7 +303,9 @@ namespace Couchbase.Lite.Replicator
         {
             Log.D(Tag + ".RespondWithREsult", "Firing Completed event.");
             OnEvent(_complete, result, error);
-            response.Dispose();
+            if (response != null) {
+                response.Dispose();
+            }
         }
     }
 }
