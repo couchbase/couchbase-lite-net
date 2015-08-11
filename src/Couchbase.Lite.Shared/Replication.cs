@@ -186,7 +186,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// The list of currently active HTTP messages
         /// </summary>
-        protected readonly IDictionary<HttpRequestMessage, Task> _requests;
+        protected readonly ConcurrentDictionary<HttpRequestMessage, Task> _requests;
 
         /// <summary>
         /// Whether or not the LastSequence property has changed
@@ -1158,11 +1158,11 @@ namespace Couchbase.Lite
             if (_httpClient == null) {
                 Log.E(TAG, "NULL CLIENT {0}: {1}", message, Environment.StackTrace);
             }
+                
             var t = _httpClient.SendAsync(message, token) .ContinueWith(response =>
             {
-                    lock(_requests) {
-                        _requests.Remove(message);
-                    }
+                Task dummy;
+                _requests.TryRemove(message, out dummy);
 
                     HttpResponseMessage result = null;
                     Exception error = null;
@@ -1217,13 +1217,13 @@ namespace Couchbase.Lite
                         completionHandler(fullBody, error);
                     }
 
-                    return result;
+                if(result != null) {
+                    result.Dispose();
+                }
                 
             }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
-            lock(_requests) {
-                _requests[message] = t;
-            }
+            _requests.AddOrUpdate(message, k => t, (k, v) => t);
         }
 
         internal void SendAsyncMultipartDownloaderRequest(HttpMethod method, string relativePath, object body, Database db, RemoteRequestCompletionBlock onCompletion)
@@ -1334,6 +1334,7 @@ namespace Couchbase.Lite
                         error = e;
                     } finally {
                         client.Dispose();
+                        responseMessage.Result.Dispose();
                     }
                 }), WorkExecutor.Scheduler);
             } catch (UriFormatException e) {
@@ -1974,14 +1975,45 @@ namespace Couchbase.Lite
     {
         private readonly Replication _source;
         private readonly ReplicationStateTransition _transition;
+        private readonly int _changesCount;
+        private readonly int _completedChangesCount;
+        private readonly ReplicationStatus _status;
 
         /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.
+        /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.  Do not
+        /// rely on this variable for the current state of the replicator as it may have changed
+        /// between the time the args were created and the time that the event was raised.
+        /// Instead use the various other properties.
         /// </summary>
-        /// <value>The <see cref="Couchbase.Lite.Replication"/> that raised the event.</value>
         public Replication Source 
         {
             get { return _source; }
+        }
+
+        /// <summary>
+        /// Gets the number of changes scheduled for the replication at the
+        /// time the event was created.
+        /// </summary>
+        public int ChangesCount
+        {
+            get { return _changesCount; }
+        }
+
+        /// <summary>
+        /// Gets the number of changes completed by the replication at the
+        /// time the event was created.
+        /// </summary>
+        public int CompletedChangesCount
+        {
+            get { return _completedChangesCount; }
+        }
+
+        /// <summary>
+        /// Gets the status of the replication at the time the event was created
+        /// </summary>
+        public ReplicationStatus Status
+        {
+            get { return _status; }
         }
 
         /// <summary>
@@ -2002,6 +2034,9 @@ namespace Couchbase.Lite
         {
             _source = sender;
             _transition = transition;
+            _changesCount = sender.ChangesCount;
+            _completedChangesCount = sender.CompletedChangesCount;
+            _status = sender.Status;
         }
     }
 

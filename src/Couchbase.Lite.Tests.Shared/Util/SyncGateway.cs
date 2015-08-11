@@ -84,12 +84,19 @@ namespace Couchbase.Lite.Tests
 
             try {
                 var putResponse = _httpClient.SendAsync(putRequest).Result;
-                Assert.AreEqual(HttpStatusCode.Created, putResponse.StatusCode);
+                if(putResponse.StatusCode != HttpStatusCode.PreconditionFailed) {
+                    Assert.AreEqual(HttpStatusCode.Created, putResponse.StatusCode);
+                } else {
+                    Delete().ContinueWith(t => Create()).Wait();
+                    return;
+                }
             } catch(WebException ex) {
                 if (ex.Status == WebExceptionStatus.ProtocolError) {
                     var response = ex.Response as HttpWebResponse;
                     if (response != null) {
                         Assert.AreEqual(HttpStatusCode.PreconditionFailed, response.StatusCode);
+                        Delete().ContinueWith(t => Create()).Wait();
+                        return;
                     } else {
                         Assert.Fail("Error from remote: {0}", response.StatusCode);
                     }
@@ -101,9 +108,9 @@ namespace Couchbase.Lite.Tests
             Thread.Sleep(500);
         }
 
-        public void Delete()
+        public Task Delete()
         {
-            Task.Delay(1000).ContinueWith(t =>
+            return Task.Delay(1000).ContinueWith(t =>
             {
                 var server = _adminRemoteUri;
                 var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, server);
@@ -295,18 +302,34 @@ namespace Couchbase.Lite.Tests
 
         public void Dispose()
         {
-            _httpClient.Dispose();
             Delete();
+            _httpClient.Dispose();
         }
     }
 
     public sealed class SyncGateway : RemoteEndpoint
     {
+        protected override string Type
+        {
+            get
+            {
+                return "SyncGateway";
+            }
+        }
+
         public SyncGateway(string protocol, string server) : base(protocol, server, 4984, 4985) {}
     }
 
     public sealed class CouchDB : RemoteEndpoint
     {
+        protected override string Type
+        {
+            get
+            {
+                return "CouchDB";
+            }
+        }
+
         public CouchDB(string protocol, string server) : base(protocol, server, 5984, 5984) {}
     }
 }

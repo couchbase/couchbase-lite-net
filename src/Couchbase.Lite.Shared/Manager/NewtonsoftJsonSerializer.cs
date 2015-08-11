@@ -105,7 +105,11 @@ namespace Couchbase.Lite
 
         public bool Read()
         {
-            return _textReader != null && _textReader.Read();
+            try {
+                return _textReader != null && _textReader.Read();
+            } catch (Exception e) {
+                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+            }
         }
 
         public IDictionary<string, object> DeserializeNextObject()

@@ -49,6 +49,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
+using System.Collections.Concurrent;
 
 namespace Couchbase.Lite.Tests
 {
@@ -65,7 +66,7 @@ namespace Couchbase.Lite.Tests
         public MockHttpRequestHandler(bool defaultFail = true)
         {
             responders = new Dictionary<string, HttpResponseDelegate>();
-            CapturedRequests = new List<HttpRequestMessage>();
+            CapturedRequests = new ConcurrentBag<HttpRequestMessage>();
             if(defaultFail)
                 AddDefaultResponders();
 
@@ -126,7 +127,7 @@ namespace Couchbase.Lite.Tests
 
         public void ClearCapturedRequests() 
         {
-            capturedRequests.Clear();
+            capturedRequests = new ConcurrentBag<HttpRequestMessage>();
         }
 
         public void AddDefaultResponders()
@@ -199,15 +200,15 @@ namespace Couchbase.Lite.Tests
 
         private IDictionary <string, HttpResponseDelegate> responders;
 
-        private IList <HttpRequestMessage> capturedRequests;
+        private ConcurrentBag <HttpRequestMessage> capturedRequests;
 
-        internal IList<HttpRequestMessage> CapturedRequests
+        internal ConcurrentBag<HttpRequestMessage> CapturedRequests
         {
             private set { 
                 capturedRequests = value; 
             }
             get {
-                var snapshot = new List<HttpRequestMessage>(capturedRequests);
+                var snapshot = new ConcurrentBag<HttpRequestMessage>(capturedRequests);
                 return snapshot;
             }
         }

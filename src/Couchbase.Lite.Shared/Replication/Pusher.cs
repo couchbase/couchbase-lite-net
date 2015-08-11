@@ -614,6 +614,17 @@ namespace Couchbase.Lite.Replicator
                 lastSequenceLong = long.Parse(LastSequence);
             }
 
+            // Now listen for future changes (in continuous mode):
+            // Note:  This needs to happen before adding the observer
+            // or else there is a race condition.  
+            // A document could be added between the call to
+            // ChangesSince and adding the observer, which would result
+            // in a document being skipped
+            if (Continuous) {
+                _observing = true;
+                LocalDatabase.Changed += OnChanged;
+            } 
+
             var options = new ChangesOptions();
             options.SetIncludeConflicts(true);
             var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, _filter, FilterParams);
@@ -622,10 +633,7 @@ namespace Couchbase.Lite.Replicator
                 Batcher.Flush();
             }
 
-            // Now listen for future changes (in continuous mode):
             if (Continuous) {
-                _observing = true;
-                LocalDatabase.Changed += OnChanged;
                 if (changes.Count == 0) {
                     FireTrigger(ReplicationTrigger.WaitingForChanges);
                 }

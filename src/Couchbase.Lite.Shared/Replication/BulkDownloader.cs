@@ -70,35 +70,7 @@ namespace Couchbase.Lite.Replicator
         /// <exception cref="System.Exception"></exception>
         public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
             : base(workExecutor, clientFactory, "POST", new Uri(AppendRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true")), HelperMethod(revs, database), database, requestHeaders, tokenSource)
-        { }
-
-        public override void Run()
         {
-            HttpClient httpClient = null;
-            try 
-            {
-                httpClient = clientFactory.GetHttpClient(false);
-                requestMessage.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("multipart/related"));
-
-                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
-                if (authHeader != null)
-                {
-                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
-                }
-
-                //TODO: implement gzip support for server response see issue #172
-                //request.addHeader("X-Accept-Part-Encoding", "gzip");
-                AddRequestHeaders(requestMessage);
-                SetBody(requestMessage);
-                ExecuteRequest(httpClient, requestMessage);
-            }
-            finally
-            {
-                if (httpClient != null) 
-                {
-                    httpClient.Dispose();
-                }
-            }
         }
 
         private string Description()
@@ -106,108 +78,81 @@ namespace Couchbase.Lite.Replicator
             return this.GetType().FullName + "[" + url.AbsolutePath + "]";
         }
 
-        protected override internal void ExecuteRequest(HttpClient httpClient, HttpRequestMessage request)
+        protected override internal Task ExecuteRequest(HttpClient httpClient, HttpRequestMessage request)
         {
             object fullBody = null;
             Exception error = null;
             HttpResponseMessage response = null;
-            try
+            if (_tokenSource.IsCancellationRequested)
             {
-                if (_tokenSource.IsCancellationRequested)
-                {
-                    RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, request)), response);
+                RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, request)), response);
+                var tcs = new TaskCompletionSource<bool>();
+                tcs.SetCanceled();
+                return tcs.Task;
+            }
+
+            Log.D(Tag + ".ExecuteRequest", "Sending request: {0}", request);
+            var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
+            var retVal = httpClient.SendAsync(request, requestTokenSource.Token);
+            retVal.ConfigureAwait(false).GetAwaiter().OnCompleted(() => {
+                requestTokenSource.Dispose();
+                try {
+                    response = retVal.Result;
+                } catch(Exception e) {
+                    var err = (e is AggregateException) ? e.InnerException : e;
+                    Log.E(Tag, "Unhandled Exception", err);
+                    error = err;
+                    RespondWithResult(fullBody, err, response);
                     return;
                 }
 
-                Log.D(Tag + ".ExecuteRequest", "Sending request: {0}", request);
-                var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
-                var responseTask = httpClient.SendAsync(request, requestTokenSource.Token);
-                if (!responseTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, requestTokenSource.Token))
+                try
                 {
-                    Log.E(Tag, "Response task timed out: {0}, {1}, {2}", responseTask, TaskScheduler.Current, Description());
-                    throw new HttpResponseException(HttpStatusCode.RequestTimeout);
-                }
-                requestTokenSource.Dispose();
-                response = responseTask.Result;
-            }
-            catch (Exception e)
-            {
-                var err = (e is AggregateException) ? ((AggregateException)e).InnerException : e;
-                Log.E(Tag, "Unhandled Exception", err);
-                error = err;
-                RespondWithResult(fullBody, err, response);
-                return;
-            }
-
-            try
-            {
-                if (response == null)
-                {
-                    Log.E(Tag, "Didn't get response for {0}", request);
-
-                    error = new HttpRequestException();
-                    RespondWithResult(fullBody, error, response);
-                }
-                else if (!response.IsSuccessStatusCode)
-                {
-                    HttpStatusCode status = response.StatusCode;
-
-                    Log.E(Tag, "Got error status: {0} for {1}.  Reason: {2}", status.GetStatusCode(), request, response.ReasonPhrase);
-                    error = new HttpResponseException(status);
-
-                    RespondWithResult(fullBody, error, response);
-                }
-                else
-                {
-                    Log.D(Tag, "Processing response: {0}", response);
-                    var entity = response.Content;
-                    var contentTypeHeader = entity.Headers.ContentType;
-                    Stream inputStream = null;
-                    if (contentTypeHeader != null && contentTypeHeader.ToString().Contains("multipart/"))
+                    if (response == null)
                     {
-                        Log.V(Tag, "contentTypeHeader = {0}", contentTypeHeader.ToString());
-                        try
-                        {
-                            _topReader = new MultipartReader(contentTypeHeader.ToString(), this);
-                            inputStream = entity.ReadAsStreamAsync().Result;
-                            const int bufLen = 1024;
-                            var buffer = new byte[bufLen];
-                            var numBytesRead = 0;
-                            while ((numBytesRead = inputStream.Read(buffer, 0, bufLen)) > 0)
-                            {
-                                if (numBytesRead != bufLen)
-                                {
-                                    var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<byte>(buffer, 0, numBytesRead).ToArray();
-                                    _topReader.AppendData(bufferToAppend);
-                                }
-                                else
-                                {
-                                    _topReader.AppendData(buffer);
-                                }
-                            }
-                            _topReader.Finished();
-                            RespondWithResult(fullBody, error, response);
-                        }
-                        finally
-                        {
-                            try
-                            {
-                                inputStream.Close();
-                            }
-                            catch (IOException)
-                            {
-                            }
-                        }
+                        Log.E(Tag, "Didn't get response for {0}", request);
+
+                        error = new HttpRequestException();
+                        RespondWithResult(fullBody, error, response);
+                    }
+                    else if (!response.IsSuccessStatusCode)
+                    {
+                        HttpStatusCode status = response.StatusCode;
+
+                        Log.E(Tag, "Got error status: {0} for {1}.  Reason: {2}", status.GetStatusCode(), request, response.ReasonPhrase);
+                        error = new HttpResponseException(status);
+
+                        RespondWithResult(fullBody, error, response);
                     }
                     else
                     {
-                        Log.V(Tag, "contentTypeHeader is not multipart = {0}", contentTypeHeader.ToString());
-                        if (entity != null)
+                        Log.D(Tag, "Processing response: {0}", response);
+                        var entity = response.Content;
+                        var contentTypeHeader = entity.Headers.ContentType;
+                        Stream inputStream = null;
+                        if (contentTypeHeader != null && contentTypeHeader.ToString().Contains("multipart/"))
                         {
+                            Log.V(Tag, "contentTypeHeader = {0}", contentTypeHeader.ToString());
                             try
                             {
+                                _topReader = new MultipartReader(contentTypeHeader.ToString(), this);
                                 inputStream = entity.ReadAsStreamAsync().Result;
-                                fullBody = Manager.GetObjectMapper().ReadValue<object>(inputStream);
+                                const int bufLen = 1024;
+                                var buffer = new byte[bufLen];
+                                var numBytesRead = 0;
+                                while ((numBytesRead = inputStream.Read(buffer, 0, bufLen)) > 0)
+                                {
+                                    if (numBytesRead != bufLen)
+                                    {
+                                        var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<byte>(buffer, 0, numBytesRead).ToArray();
+                                        _topReader.AppendData(bufferToAppend);
+                                    }
+                                    else
+                                    {
+                                        _topReader.AppendData(buffer);
+                                    }
+                                }
+                                _topReader.Finished();
                                 RespondWithResult(fullBody, error, response);
                             }
                             finally
@@ -221,28 +166,56 @@ namespace Couchbase.Lite.Replicator
                                 }
                             }
                         }
+                        else
+                        {
+                            Log.V(Tag, "contentTypeHeader is not multipart = {0}", contentTypeHeader.ToString());
+                            if (entity != null)
+                            {
+                                try
+                                {
+                                    inputStream = entity.ReadAsStreamAsync().Result;
+                                    fullBody = Manager.GetObjectMapper().ReadValue<object>(inputStream);
+                                    RespondWithResult(fullBody, error, response);
+                                }
+                                finally
+                                {
+                                    try
+                                    {
+                                        inputStream.Close();
+                                    }
+                                    catch (IOException)
+                                    {
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-            }
-            catch (AggregateException e)
-            {
-                var err = e.InnerException;
-                Log.E(Tag, "Unhandled Exception", err);
-                error = err;
-                RespondWithResult(fullBody, err, response);
-            }
-            catch (IOException e)
-            {
-                Log.E(Tag, "IO Exception", e);
-                error = e;
-                RespondWithResult(fullBody, e, response);
-            }
-            catch (Exception e)
-            {
-                Log.E(Tag, "ExecuteRequest Exception: ", e);
-                error = e;
-                RespondWithResult(fullBody, e, response);
-            }
+                catch (AggregateException e)
+                {
+                    var err = e.InnerException;
+                    Log.E(Tag, "Unhandled Exception", err);
+                    error = err;
+                    RespondWithResult(fullBody, err, response);
+                }
+                catch (IOException e)
+                {
+                    Log.E(Tag, "IO Exception", e);
+                    error = e;
+                    RespondWithResult(fullBody, e, response);
+                }
+                catch (Exception e)
+                {
+                    Log.E(Tag, "ExecuteRequest Exception: ", e);
+                    error = e;
+                    RespondWithResult(fullBody, e, response);
+                }
+                finally {
+                    response.Dispose();
+                }
+            });
+
+            return retVal;
         }
 
         /// <summary>This method is called when a part's headers have been parsed, before its data is parsed.
