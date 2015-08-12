@@ -219,11 +219,7 @@ namespace Couchbase.Lite
                 pull.Changed += (sender, e) =>
                 {
                     statusHistory.Add(e.Status);
-                    if (e.ChangesCount > 0 && e.CompletedChangesCount != e.ChangesCount) {
-                        Assert.AreEqual(ReplicationStatus.Active, e.Status);
-                    } 
-
-                    if (e.Status == ReplicationStatus.Idle) {
+                    if (e.Status == ReplicationStatus.Idle && e.ChangesCount == e.CompletedChangesCount) {
                         doneEvent.Set();
                     }
                 };
@@ -236,7 +232,7 @@ namespace Couchbase.Lite
                     if (i == statusHistory.Count - 1) {
                         Assert.AreEqual(ReplicationStatus.Idle, statusHistory[i]);
                     } else {
-                        Assert.AreEqual(ReplicationStatus.Active, statusHistory[i]);
+                        Assert.IsTrue(statusHistory[i] == ReplicationStatus.Active | statusHistory[i] == ReplicationStatus.Idle);
                     }
                 }
 
@@ -2519,6 +2515,7 @@ namespace Couchbase.Lite
                     Assert.AreEqual(gotSequence, Int32.Parse(repl.LastSequence), "LastSequence was advanced");
                 });
 
+                Thread.Sleep(500);
                 fakeFactory.HttpHandler.ClearResponders();
                 var pull = database.CreatePullReplication(remoteDb.RemoteUri);
                 RunReplication(pull);
