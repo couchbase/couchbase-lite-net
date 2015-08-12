@@ -230,7 +230,7 @@ namespace Couchbase.Lite.Listener
                     }
 
                     var history = Database.ParseCouchDBRevisionHistory(body.GetProperties());
-                    Status status = new Status();
+                    Status status = new Status(StatusCode.Ok);
                     try {
                         db.ForceInsert(rev, history, null);
                     } catch(CouchbaseLiteException e) {

@@ -903,6 +903,7 @@ namespace Couchbase.Lite
                 mre.Reset();
                 Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)), "Timed out waiting for replicator to stop");
                 Assert.IsFalse(replicator.IsRunning);
+                Thread.Sleep(500);
                 activeReplicators = new Replication[database.ActiveReplicators.Count];
                 database.ActiveReplicators.CopyTo(activeReplicators, 0);
                 Assert.AreEqual(0, activeReplicators.Length);

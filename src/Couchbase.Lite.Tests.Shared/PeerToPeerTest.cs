@@ -37,14 +37,14 @@ namespace Couchbase.Lite
     {
         private const string TAG = "PeerToPeerTest";
         private const string LISTENER_DB_NAME = "listy";
-        private const int DOCUMENT_COUNT = 100;
+        private const int DOCUMENT_COUNT = 50;
         private const int MIN_ATTACHMENT_LENGTH = 4000;
         private const int MAX_ATTACHMENT_LENGTH = 100000;
 
         private Database _listenerDB;
         private CouchbaseLiteTcpListener _listener;
         private Uri _listenerDBUri;
-        private ushort _port = 60010;
+        private ushort _port = 59840;
         private Random _rng = new Random(DateTime.Now.Millisecond);
 
         [Test]
@@ -110,7 +110,6 @@ namespace Couchbase.Lite
             base.TearDown();
 
             _listener.Stop();
-            _port++;
         }
 
         [Test]
