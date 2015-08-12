@@ -24,6 +24,7 @@ using System.Linq;
 using System.Net.Http;
 
 using Sharpen;
+using System.Threading;
 
 namespace Couchbase.Lite.Auth
 {
@@ -108,7 +109,7 @@ namespace Couchbase.Lite.Auth
                     return null;
                 }
 
-                _components["nc"] = (++_nc).ToString();
+                _components["nc"] = Interlocked.Increment(ref _nc).ToString();
                 var response = DigestCalculator.Calculate(_components);
                 return String.Format("username=\"{0}\", realm=\"{1}\", nonce=\"{2}\", uri=\"{3}\", " +
                     "qop={4}, nc={5}, cnonce=\"{6}\", response=\"{7}\", opaque=\"0\"", _username,
