@@ -65,7 +65,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var replicator = args.Source;
+            var replicator = args;
             Log.D(Tag, replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
 
             if (replicator.CompletedChangesCount < 0) {
@@ -88,7 +88,7 @@ namespace Couchbase.Lite
                 throw new Exception(msgStr);
             }
 
-            if (!replicator.IsRunning ) {
+            if (args.Status == ReplicationStatus.Idle || args.Status == ReplicationStatus.Stopped ) {
                 this.replicationFinished = true;
                 string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
                 Log.D(Tag, msg);
@@ -96,7 +96,7 @@ namespace Couchbase.Lite
                     doneSignal.Signal();
                 }
 
-                replicator.Changed -= Changed;
+                args.Source.Changed -= Changed;
             } else {
                 string msg = string.Format("ReplicationFinishedObserver.changed called, but replicator still running, so ignore it");
                 Log.D(Tag, msg);

@@ -17,7 +17,7 @@
     <TestProjectType>UnitTest</TestProjectType>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <NuGetPackageImportStamp>eb5a90f2</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>901215be</NuGetPackageImportStamp>
     <ReleaseVersion>1.1</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -28,6 +28,7 @@
     <DefineConstants>DEBUG;TRACE;VERBOSE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>True</Optimize>
@@ -43,12 +44,8 @@
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="SQLitePCL.raw, Version=0.8.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SQLitePCL.raw.0.8.1\lib\net45\SQLitePCL.raw.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SQLitePCL.ugly.0.8.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+    <Reference Include="nunit.framework, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -57,9 +54,6 @@
     <Reference Include="System.Web" />
     <Reference Include="System.Net.Http.WebRequest" />
     <Reference Include="System.Net.Http" />
-    <Reference Include="nunit.framework">
-      <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
-    </Reference>
     <Reference Include="ICSharpCode.SharpZipLib.Portable">
       <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0002\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
     </Reference>
@@ -79,7 +73,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\attachment.blob" />
     <EmbeddedResource Include="Assets\withattachments.cblite" />
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
       <Link>Assets\ios104.zip</Link>
     </EmbeddedResource>
@@ -123,7 +119,6 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
-    <Error Condition="!Exists('..\packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets'))" />
   </Target>
   <Import Project="..\packages\SQLitePCL.raw.0.8.0\build\net45\SQLitePCL.raw.targets" Condition="Exists('..\packages\SQLitePCL.raw.0.8.0\build\net45\SQLitePCL.raw.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
@@ -157,5 +152,4 @@
     <EmbeddedResource Include="Assets\performance-test.json" />
     <EmbeddedResource Include="Assets\test.properties" />
   </ItemGroup>
-  <Import Project="..\packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets" Condition="Exists('..\packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets')" />
 </Project>
