@@ -130,7 +130,7 @@ namespace Couchbase.Lite.Support
         {
             FileInfo info;
             try {
-                info = new FileInfo(fileUrl.AbsolutePath);
+                info = new FileInfo(Uri.UnescapeDataString(fileUrl.AbsolutePath));
             } catch(Exception) {
                 return false;
             }
