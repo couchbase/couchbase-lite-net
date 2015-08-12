@@ -41,13 +41,14 @@
 //
 
 using System;
+using System.Collections.Concurrent;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
-using System.Net;
-using System.Linq;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -60,6 +61,7 @@ namespace Couchbase.Lite.Replicator
         private bool _chunkedMode = false;
         private object _locker = new object();
         private readonly CookieStore _cookieStore;
+        private readonly ConcurrentDictionary<HttpResponseMessage, int> _retryMessages = new ConcurrentDictionary<HttpResponseMessage,int>();
 
         #endregion
 
@@ -85,29 +87,32 @@ namespace Couchbase.Lite.Replicator
 
         protected override HttpResponseMessage ProcessResponse(HttpResponseMessage response, CancellationToken cancellationToken)
         {
-            /*if (response.Content != null && !_chunkedMode) {
-                var mre = new ManualResetEvent(false);
-                response.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
-                if (!mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true)) {
-                    Log.E("DefaultAuthHandler", "mre.WaitOne timed out: {0}", Environment.StackTrace);
-                }
-            }*/
+            int retryCount;
+            do {
+                if (Authenticator != null && response.StatusCode == HttpStatusCode.Unauthorized) {
+                    retryCount = _retryMessages.GetOrAdd(response, 0);
+                    if(retryCount >= 5) {
+                        // Multiple concurrent requests means that the Nc can sometimes get out of order
+                        // so try again, but within reason.
+                        break;
+                    }
 
-            if (Authenticator != null && response.StatusCode == HttpStatusCode.Unauthorized 
-                && !response.RequestMessage.Headers.Contains("Authorization")) {
-                //Challenge received for the first time
-                var newRequest = new HttpRequestMessage(response.RequestMessage.Method, response.RequestMessage.RequestUri);
-                foreach (var header in response.RequestMessage.Headers) {
-                    newRequest.Headers.Add(header.Key, header.Value);
-                }
+                    _retryMessages.TryUpdate(response, retryCount + 1, retryCount);
+                    var newRequest = new HttpRequestMessage(response.RequestMessage.Method, response.RequestMessage.RequestUri);
+                    foreach (var header in response.RequestMessage.Headers) {
+                        if(header.Key != "Authorization") {
+                            newRequest.Headers.Add(header.Key, header.Value);
+                        }
+                    }
 
-                newRequest.Content = response.RequestMessage.Content;
-                var challengeResponse = Authenticator.ResponseFromChallenge(response);
-                if (challengeResponse != null) {
-                    newRequest.Headers.Add("Authorization", challengeResponse);
-                    return ProcessResponse(SendAsync(newRequest, cancellationToken).Result, cancellationToken);
+                    newRequest.Content = response.RequestMessage.Content;
+                    var challengeResponse = Authenticator.ResponseFromChallenge(response);
+                    if (challengeResponse != null) {
+                        newRequest.Headers.Add("Authorization", challengeResponse);
+                        return ProcessResponse(SendAsync(newRequest, cancellationToken).Result, cancellationToken);
+                    }
                 }
-            }
+            }  while(false);
 
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie) {
@@ -116,18 +121,12 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
+            _retryMessages.TryRemove(response, out retryCount);
             return response;
         }
 
-        /// <exception cref="System.IO.IOException"></exception>
         protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            /*if (request.Content != null) {
-                var mre = new ManualResetEvent(false);
-                request.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
-                mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
-            }*/
-
             return request;
         }
 

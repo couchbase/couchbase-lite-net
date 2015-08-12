@@ -18,7 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-//#define USE_AUTH
+#define USE_AUTH
 
 using System;
 using System.Collections.Generic;
@@ -195,7 +195,8 @@ namespace Couchbase.Lite
         private void VerifyDocs(Database db, bool withAttachments)
         {
             for (int i = 1; i <= DOCUMENT_COUNT; i++) {
-                var doc = db.GetDocument(String.Format("doc-{0}", i));
+                var doc = db.GetExistingDocument(String.Format("doc-{0}", i));
+                Assert.IsNotNull(doc);
                 Assert.AreEqual(i, doc.UserProperties["index"]);
                 Assert.AreEqual(false, doc.UserProperties["bar"]);
                 if (withAttachments) {

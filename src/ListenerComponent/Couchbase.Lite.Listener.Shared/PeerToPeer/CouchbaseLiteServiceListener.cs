@@ -227,7 +227,7 @@ namespace Couchbase.Lite.Listener
                 keepGoing = func(next);
             }
 
-            Marshal.ZeroFreeGlobalAllocUnicode(marshaled);
+            Marshal.ZeroFreeGlobalAllocAnsi(marshaled);
             return true;
         }
 

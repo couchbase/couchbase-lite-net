@@ -380,6 +380,7 @@ namespace Couchbase.Lite
                     Log.E(TAG, " Progress: set error = ", value);
                     _lastError = value;
                     NotifyChangeListeners();
+
                 }
             }
         }
@@ -1161,8 +1162,7 @@ namespace Couchbase.Lite
                 
             var t = _httpClient.SendAsync(message, token) .ContinueWith(response =>
             {
-                Task dummy;
-                _requests.TryRemove(message, out dummy);
+                
 
                     HttpResponseMessage result = null;
                     Exception error = null;
@@ -1220,7 +1220,9 @@ namespace Couchbase.Lite
                 if(result != null) {
                     result.Dispose();
                 }
-                
+
+                Task dummy;
+                _requests.TryRemove(message, out dummy);
             }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             _requests.AddOrUpdate(message, k => t, (k, v) => t);
@@ -1369,7 +1371,7 @@ namespace Couchbase.Lite
                 client.DefaultRequestHeaders.Authorization = authHeader;
             }
 
-            client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(response=> 
+            var t = client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(response=> 
             {
                 multiPartEntity.Dispose();
                 if (response.Status != TaskStatus.RanToCompletion)
@@ -1405,9 +1407,12 @@ namespace Couchbase.Lite
                         completionHandler (fullBody, response.Exception);
                     }
                 } finally {
+                    Task dummy;
+                    _requests.TryRemove(message, out dummy);
                     client.Dispose();
                 }
             }, CancellationTokenSource.Token);
+            _requests.TryAdd(message, t);
         }
 
         // Pusher overrides this to implement the .createTarget option
@@ -1859,6 +1864,7 @@ namespace Couchbase.Lite
 
             // ignored transitions
             _stateMachine.Configure(ReplicationState.Running).Ignore(ReplicationTrigger.Start);
+            _stateMachine.Configure(ReplicationState.Initial).Ignore(ReplicationTrigger.StopGraceful);
             _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.StopGraceful);
             _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.StopGraceful);
             _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.StopImmediate);

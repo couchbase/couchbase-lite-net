@@ -268,7 +268,7 @@ namespace Couchbase.Lite.Support
 
             var fileUri = input as Uri;
             if (fileUri != null && fileUri.IsFile) {
-                return new FileStream(fileUri.AbsolutePath, FileMode.Open, FileAccess.Read);
+                return new FileStream(Uri.UnescapeDataString(fileUri.AbsolutePath), FileMode.Open, FileAccess.Read);
             }
 
             var stream = input as Stream;

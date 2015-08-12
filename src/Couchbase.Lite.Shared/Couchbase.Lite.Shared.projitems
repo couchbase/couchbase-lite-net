@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
@@ -26,7 +26,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Documents\IValidationContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\ValidationContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\CouchbaseLiteException.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Extensions\SqliteExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\StreamExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\ManagerOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Properties\AssemblyInfo.cs" />
