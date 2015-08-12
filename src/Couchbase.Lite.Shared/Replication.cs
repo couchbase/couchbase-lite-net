@@ -1236,7 +1236,6 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                var client = clientFactory.GetHttpClient(false);
                 var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
                 if (challengeResponseAuth != null) {
                     var authHandler = clientFactory.Handler as DefaultAuthHandler;
@@ -1249,10 +1248,10 @@ namespace Couchbase.Lite
 
                 var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
                 if (authHeader != null) {
-                    client.DefaultRequestHeaders.Authorization = authHeader;
+                    _httpClient.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
+                _httpClient.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -1333,7 +1332,6 @@ namespace Couchbase.Lite
                         Log.E(TAG, "IO Exception", e);
                         error = e;
                     } finally {
-                        client.Dispose();
                         responseMessage.Result.Dispose();
                     }
                 }), WorkExecutor.Scheduler);
@@ -1357,6 +1355,14 @@ namespace Couchbase.Lite
             message.Headers.Add("Accept", "*/*");
 
             var client = clientFactory.GetHttpClient(false);
+            var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+            if(challengeResponseAuth != null) {
+                var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                if(authHandler != null) {
+                    authHandler.Authenticator = challengeResponseAuth;
+                }
+                challengeResponseAuth.PrepareWithRequest(message);
+            }
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null) {
