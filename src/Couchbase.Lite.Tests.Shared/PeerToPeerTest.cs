@@ -136,6 +136,7 @@ namespace Couchbase.Lite
             CreateDocs(database, true);
             var repl = CreateReplication(database, true);
             RunReplication(repl);
+            Assert.IsNull(repl.LastError, "Error during replication");
             VerifyDocs(_listenerDB, true);
         }
 
@@ -145,6 +146,7 @@ namespace Couchbase.Lite
             CreateDocs(_listenerDB, true);
             var repl = CreateReplication(database, false);
             RunReplication(repl);
+            Assert.IsNull(repl.LastError, "Error during replication");
             VerifyDocs(database, true);
         }
 

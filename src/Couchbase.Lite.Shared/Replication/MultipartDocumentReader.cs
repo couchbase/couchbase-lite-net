@@ -174,7 +174,7 @@ namespace Couchbase.Lite.Support
                         var actualDigest = writer.SHA1DigestString();
                         if (digest != null && !digest.Equals(actualDigest) && !digest.Equals(writer.MD5DigestString()))
                         {
-                            var errMsg = String.Format("Attachment '{0}' has incorrect MD5 digest ({1}; should be either {2} or {3})", attachmentName, digest, actualDigest, writer.MD5DigestString());
+                            var errMsg = String.Format("Attachment '{0}' has incorrect digest ({1}; should be either {2} or {3})", attachmentName, digest, actualDigest, writer.MD5DigestString());
                             throw new InvalidOperationException(errMsg);
                         }
 

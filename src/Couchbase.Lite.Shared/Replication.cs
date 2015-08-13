@@ -206,7 +206,6 @@ namespace Couchbase.Lite
         private string _remoteCheckpointDocID;
         private CancellationTokenSource _retryIfReadyTokenSource;
         private Task _retryIfReadyTask;
-        private HttpClient _httpClient;
 
         #endregion
 
@@ -908,9 +907,6 @@ namespace Couchbase.Lite
             Log.V(TAG, "STARTING ...");
             LastSequence = null;
 
-            if (_httpClient == null) {
-                _httpClient = ClientFactory.GetHttpClient(false);
-            }
             CheckSession();
 
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
@@ -1081,9 +1077,6 @@ namespace Couchbase.Lite
                     LocalDatabase.ForgetReplication(this);
                 }
 
-                _httpClient.CancelPendingRequests();
-                _httpClient.Dispose();
-                _httpClient = null;
                 ClearDbRef ();
             });
         }
@@ -1119,16 +1112,12 @@ namespace Couchbase.Lite
 
         internal void SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
         {
-            if (_httpClient == null) {
-                Log.I(TAG, "Replication stopped, ignoring request");
-                return;
-            }
-
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
 
+            var client = clientFactory.GetHttpClient(false);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = clientFactory.Handler as DefaultAuthHandler;
@@ -1141,7 +1130,7 @@ namespace Couchbase.Lite
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null) {
-                _httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                client.DefaultRequestHeaders.Authorization = authHeader;
             }
 
             if (body != null) {
@@ -1156,60 +1145,56 @@ namespace Couchbase.Lite
                 : CancellationTokenSource.Token;
 
             Log.D(TAG, "Sending async {0} request to: {1}", method, url);
-            if (_httpClient == null) {
-                Log.E(TAG, "NULL CLIENT {0}: {1}", message, Environment.StackTrace);
-            }
-                
-            var t = _httpClient.SendAsync(message, token) .ContinueWith(response =>
+            var t = client.SendAsync(message, token) .ContinueWith(response =>
             {
-                
+                try {
 
                     HttpResponseMessage result = null;
                     Exception error = null;
-                    if (!response.IsFaulted && !response.IsCanceled) {
+                    if(!response.IsFaulted && !response.IsCanceled) {
                         result = response.Result;
                         UpdateServerType(result);
                     } else if(response.IsFaulted) {
                         error = response.Exception.InnerException;
                         Log.E(TAG, "Http Message failed to send: {0}", message);
                         Log.E(TAG, "Http exception", response.Exception.InnerException);
-                        if (message.Content != null) {
+                        if(message.Content != null) {
                             Log.E(TAG, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
                         }
                     }
 
-                    if (completionHandler != null) {
+                    if(completionHandler != null) {
                         object fullBody = null;
 
                         try {
-                            if (response.Status != TaskStatus.RanToCompletion) {
+                            if(response.Status != TaskStatus.RanToCompletion) {
                                 Log.D(TAG, "SendAsyncRequest did not run to completion.", response.Exception);
                             }
 
                             if(response.IsCanceled) {
                                 error = new Exception("SendAsyncRequest Task has been canceled.");
-                            } else  {
+                            } else {
                                 error = error is AggregateException
                                     ? response.Exception.Flatten()
                                     : response.Exception;
                             }
 
-                            if (error == null) {
-                                if (!result.IsSuccessStatusCode) {
+                            if(error == null) {
+                                if(!result.IsSuccessStatusCode) {
                                     result = response.Result;
                                     error = new HttpResponseException(result.StatusCode);
                                 }
                             }
 
-                            if (error == null) {
+                            if(error == null) {
                                 var content = result.Content;
-                                if (content != null) {
+                                if(content != null) {
                                     fullBody = mapper.ReadValue<object>(content.ReadAsStreamAsync().Result);
                                 }
 
                                 error = null;
                             }
-                        } catch (Exception e) {
+                        } catch(Exception e) {
                             error = e;
                             Log.E(TAG, "SendAsyncRequest has an error occurred.", e);
                         }
@@ -1217,12 +1202,14 @@ namespace Couchbase.Lite
                         completionHandler(fullBody, error);
                     }
 
-                if(result != null) {
-                    result.Dispose();
+                    if(result != null) {
+                        result.Dispose();
+                    }
+                } finally {
+                    Task dummy;
+                    _requests.TryRemove(message, out dummy);
+                    client.Dispose();
                 }
-
-                Task dummy;
-                _requests.TryRemove(message, out dummy);
             }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             _requests.AddOrUpdate(message, k => t, (k, v) => t);
@@ -1238,6 +1225,7 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
+                var client = clientFactory.GetHttpClient(false);
                 var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
                 if (challengeResponseAuth != null) {
                     var authHandler = clientFactory.Handler as DefaultAuthHandler;
@@ -1250,10 +1238,10 @@ namespace Couchbase.Lite
 
                 var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
                 if (authHeader != null) {
-                    _httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                    client.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                _httpClient.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
+                client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -1334,6 +1322,7 @@ namespace Couchbase.Lite
                         Log.E(TAG, "IO Exception", e);
                         error = e;
                     } finally {
+                        client.Dispose();
                         responseMessage.Result.Dispose();
                     }
                 }), WorkExecutor.Scheduler);
