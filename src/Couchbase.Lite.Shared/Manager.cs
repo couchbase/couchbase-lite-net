@@ -174,6 +174,11 @@ namespace Couchbase.Lite
             #if !OFFICIAL
             VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
             #else
+            var colonPos = gitVersion.IndexOf(':');
+            if(colonPos != -1) {
+                gitVersion = gitVersion.Substring(colonPos + 2);
+            }
+
             VersionString = String.Format("1.1.1-pre1 ({0})", gitVersion.TrimEnd());
             #endif
         }

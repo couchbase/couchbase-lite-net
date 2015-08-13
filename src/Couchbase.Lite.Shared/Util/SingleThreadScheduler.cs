@@ -67,12 +67,18 @@ namespace Couchbase.Lite.Util
                 _mre.Wait();
                 Drain();
             }
+
+            Log.D(Tag, "SingleThreadScheduler finished");
         }
 
         private void Drain() 
         {
             Task nextTask;
             lock (_jobQueue) {
+                if (_jobQueue.Count == 0) {
+                    return;
+                }
+
                 nextTask = _jobQueue.First.Value;
                 _jobQueue.RemoveFirst();
                 if (_jobQueue.Count == 0) {
@@ -97,7 +103,13 @@ namespace Couchbase.Lite.Util
                     items = _jobQueue.ToArray();
                 }
 
-                Task.WaitAll(items);
+                if (items.Length == 0) {
+                    _mre.Set();
+                } else {
+                    Task.WaitAll(items);
+                }
+
+                _mre.Dispose();
             }
         }
 

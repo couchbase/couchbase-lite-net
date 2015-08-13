@@ -28,11 +28,11 @@ using System.Threading;
 
 namespace Couchbase.Lite.Auth
 {
-
+    //TODO: Make this public in 1.2
     /// <summary>
     /// An authenticator for performing HTTP Digest authentication (RFC 2617)
     /// </summary>
-    public sealed class DigestAuthenticator : IChallengeResponseAuthenticator
+    internal sealed class DigestAuthenticator : IChallengeResponseAuthenticator
     {
 
         #region Variables

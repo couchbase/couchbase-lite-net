@@ -165,6 +165,10 @@ namespace Couchbase.Lite.Support
             _output = output;
             Opened();
 
+            if (_mre == null) {
+                _mre = new ManualResetEventSlim();
+            }
+
             var tcs = new TaskCompletionSource<bool>();
             ThreadPool.RegisterWaitForSingleObject(_mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
                 null, TimeSpan.FromSeconds(30), true);
@@ -255,6 +259,7 @@ namespace Couchbase.Lite.Support
                 _currentInput.CopyToAsync(_output).ContinueWith(t => StartWriting());
             } else {
                 _mre.Set();
+                _mre.Dispose();
                 _mre = null;
             }
         }
