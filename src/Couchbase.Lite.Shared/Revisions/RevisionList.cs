@@ -41,6 +41,8 @@
 //
 
 using System.Collections.Generic;
+using System.Linq;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Sharpen;
@@ -55,7 +57,7 @@ namespace Couchbase.Lite
         {
         }
 
-        public RevisionList(IList<RevisionInternal> list) : base(list)
+        public RevisionList(IList<RevisionInternal> list) : base(list.Distinct())
         {
         }
 

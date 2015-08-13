@@ -324,7 +324,7 @@ namespace Couchbase.Lite.Replicator
 
                         var content = new StreamContent(inputStream);
                         content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") {
-                            FileName = Path.GetFileName(blobStore.PathForKey(blobKey))
+                            FileName = attachmentKey
                         };
                         content.Headers.ContentType = new MediaTypeHeaderValue(contentType ?? "application/octet-stream");
 

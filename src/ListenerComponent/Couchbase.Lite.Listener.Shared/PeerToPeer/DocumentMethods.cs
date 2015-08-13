@@ -25,6 +25,7 @@ using System.Net.Http;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -477,7 +478,8 @@ namespace Couchbase.Lite.Listener
                 reader.AppendData(context.BodyStream.ReadAllBytes());
                 try {
                     reader.Finish();
-                } catch(InvalidOperationException) {
+                } catch(InvalidOperationException e) {
+                    Log.E(TAG, "Exception trying to read data from multipart upload", e);
                     return context.CreateResponse(StatusCode.BadRequest);
                 }
 
