@@ -18,7 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#define USE_AUTH
+//#define USE_AUTH
 
 using System;
 using System.Collections.Generic;
