@@ -92,6 +92,18 @@ namespace Couchbase.Lite.Replicator
 
         #endregion
 
+        #region Properties
+
+        protected override bool IsSafeToStop
+        {
+            get
+            {
+                return Batcher.Count() == 0 && (Continuous || _changeTracker != null && !_changeTracker.IsRunning);
+            }
+        }
+
+        #endregion
+
         #region Constructors
 
         internal Puller(Database db, Uri remote, bool continuous, TaskFactory workExecutor)
@@ -116,7 +128,11 @@ namespace Couchbase.Lite.Replicator
             }
 
             if(_changeTracker != null) {
+#if __IOS__ || __ANDROID__ || UNITY
                 _changeTracker.Paused = pending >= 200;
+#else
+                _changeTracker.Paused = pending >= 2000;
+#endif
             }
         }
 
@@ -806,7 +822,7 @@ namespace Couchbase.Lite.Replicator
                 ManagerOptions.Default.MaxOpenHttpConnections, ManagerOptions.Default.MaxRevsToGetInBulk));
 
             if (_downloadsToInsert == null) {
-                const int capacity = 200;
+                const int capacity = INBOX_CAPACITY * 2;
                 const int delay = 1000;
                 _downloadsToInsert = new Batcher<RevisionInternal>(WorkExecutor, capacity, delay, InsertDownloads);
             }

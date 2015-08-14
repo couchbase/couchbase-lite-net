@@ -588,7 +588,7 @@ namespace Couchbase.Lite
                     next.Dispose();
                 } 
                 db.close();
-                Log.W(Tag, "db connection {0} closed", db);
+                Log.I(Tag, "db connection {0} closed", db);
             }
             catch (KeyNotFoundException ex)
             {

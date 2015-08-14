@@ -179,7 +179,7 @@ namespace Couchbase.Lite
                 gitVersion = gitVersion.Substring(colonPos + 2);
             }
 
-            VersionString = String.Format("1.1.1-pre1 ({0})", gitVersion.TrimEnd());
+            VersionString = String.Format("1.1.1 ({0})", gitVersion.TrimEnd());
             #endif
         }
 

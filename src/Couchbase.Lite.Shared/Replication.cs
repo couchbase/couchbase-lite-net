@@ -206,6 +206,7 @@ namespace Couchbase.Lite
         private string _remoteCheckpointDocID;
         private CancellationTokenSource _retryIfReadyTokenSource;
         private Task _retryIfReadyTask;
+        private Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
 
         #endregion
 
@@ -467,6 +468,11 @@ namespace Couchbase.Lite
             }
         }
 
+        protected virtual bool IsSafeToStop
+        {
+            get { return true; }
+        }
+
         /// <summary>
         /// Gets or sets the last sequence that this replication processed from its source database
         /// </summary>
@@ -630,7 +636,10 @@ namespace Couchbase.Lite
             {
                 try {
                     Log.V(TAG, "*** BEGIN ProcessInbox ({0} sequences)", inbox.Count);
-                    FireTrigger(ReplicationTrigger.Resume);
+                    if(Continuous) {
+                        FireTrigger(ReplicationTrigger.Resume);
+                    }
+
                     ProcessInbox (new RevisionList(inbox));
 
                     Log.V(TAG, "*** END ProcessInbox (lastSequence={0})", LastSequence);
@@ -1001,8 +1010,12 @@ namespace Couchbase.Lite
             var newCount = Interlocked.Add(ref _completedChangesCount, value);
             Log.V(TAG, "<<<Updated completedChanges count to {0}", _completedChangesCount);
             NotifyChangeListeners();
-            if (Continuous && newCount == _changesCount) {
-                FireTrigger(ReplicationTrigger.WaitingForChanges);
+            if (newCount == _changesCount && IsSafeToStop) {
+                if(Continuous) {
+                    FireTrigger(ReplicationTrigger.WaitingForChanges);
+                } else {
+                    FireTrigger(ReplicationTrigger.StopGraceful);
+                }
             }
         }
 
@@ -1020,7 +1033,10 @@ namespace Couchbase.Lite
             Log.V(TAG, ">>>Updating changesCount from {0} by {1}", _changesCount, value);
             Interlocked.Add(ref _changesCount, value);
             Log.V(TAG, "<<<Updated changesCount to {0}", _changesCount);
-            FireTrigger(ReplicationTrigger.Resume);
+            if(Continuous) {
+                FireTrigger(ReplicationTrigger.Resume);
+            }
+
             NotifyChangeListeners();
         }
 
@@ -1958,9 +1974,17 @@ namespace Couchbase.Lite
             // Ensure callback runs on captured context, which should be the UI thread.
             var stackTrace = Environment.StackTrace;
 
+            lock(_eventQueue) {
+                _eventQueue.Enqueue(args);
+            }
+
             LocalDatabase.Manager.CapturedContext.StartNew(() =>
             {
-                evt(this, args);
+                lock(_eventQueue) { 
+                    while(_eventQueue.Count > 0) {
+                        evt(this, _eventQueue.Dequeue());
+                    }
+                }
             });
         }
 

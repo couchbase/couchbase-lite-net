@@ -232,7 +232,7 @@ namespace Couchbase.Lite
                     if (i == statusHistory.Count - 1) {
                         Assert.AreEqual(ReplicationStatus.Idle, statusHistory[i]);
                     } else {
-                        Assert.IsTrue(statusHistory[i] == ReplicationStatus.Active | statusHistory[i] == ReplicationStatus.Idle);
+                        Assert.IsTrue(statusHistory[i] == ReplicationStatus.Active || statusHistory[i] == ReplicationStatus.Idle);
                     }
                 }
 
@@ -296,15 +296,7 @@ namespace Couchbase.Lite
                 push.Changed += (sender, e) =>
                 {
                     statusHistory.Add(e.Status);
-                    if (e.ChangesCount > 0 && e.CompletedChangesCount != e.ChangesCount) {
-                        Assert.AreEqual(ReplicationStatus.Active, e.Status);
-                    }
-
-                    if (e.Status == ReplicationStatus.Idle) {
-                        Assert.AreNotEqual(0, e.CompletedChangesCount);
-                        Assert.AreEqual(e.ChangesCount, e.CompletedChangesCount);
-                        doneEvent.Set();
-                    } else if (e.Status == ReplicationStatus.Stopped) {
+                    if(e.Status == ReplicationStatus.Idle && e.ChangesCount == e.CompletedChangesCount) {
                         doneEvent.Set();
                     }
                 };
@@ -325,7 +317,7 @@ namespace Couchbase.Lite
                 Assert.IsTrue(doneEvent.Wait(TimeSpan.FromSeconds(60)));
                 Assert.IsNull(push.LastError);
                 foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
-                    Assert.AreEqual(ReplicationStatus.Active, status);
+                    Assert.IsTrue(status == ReplicationStatus.Active || status == ReplicationStatus.Idle);
                 }
 
                 Assert.AreEqual(ReplicationStatus.Idle, statusHistory[statusHistory.Count - 1]);
