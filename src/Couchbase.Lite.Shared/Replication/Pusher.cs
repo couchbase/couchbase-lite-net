@@ -48,6 +48,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
@@ -79,6 +80,18 @@ namespace Couchbase.Lite.Replicator
         private FilterDelegate _filter;
         private SortedDictionary<long, int> _pendingSequences;
         private long _maxPendingSequence;
+
+        #endregion
+
+        #region Properties
+
+        protected override bool IsSafeToStop
+        {
+            get
+            {
+                return Batcher.Count() == 0;
+            }
+        }
 
         #endregion
 
@@ -221,8 +234,6 @@ namespace Couchbase.Lite.Replicator
 
             Log.V(TAG, string.Format("{0}: POSTing " + numDocsToSend + " revisions to _bulk_docs: {1}", this, docsToSend));
 
-            SafeAddToChangesCount(numDocsToSend);
-
             var bulkDocsBody = new Dictionary<string, object>();
             bulkDocsBody["docs"] = docsToSend;
             bulkDocsBody["new_edits"] = false;
@@ -341,8 +352,6 @@ namespace Couchbase.Lite.Replicator
 
             // TODO: need to throttle these requests
             Log.D(TAG, "Uploading multipart request.  Revision: " + revision);
-
-            SafeAddToChangesCount(1);
 
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
             {
@@ -512,7 +521,9 @@ namespace Couchbase.Lite.Replicator
                     FireTrigger(ReplicationTrigger.WaitingForChanges);
                 }
             } else {
-                FireTrigger(ReplicationTrigger.StopGraceful);
+                if(changes.Count == 0) {
+                    FireTrigger(ReplicationTrigger.StopGraceful);
+                }
             }
         }
 
@@ -555,6 +566,12 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
+            if(_requests.Count > ManagerOptions.Default.MaxOpenHttpConnections) {
+                Task.Delay(1000).ContinueWith(t => ProcessInbox(inbox), CancellationToken.None, TaskContinuationOptions.None, WorkExecutor.Scheduler);
+                return;
+            }
+
+            SafeAddToChangesCount(inbox.Count);
             // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
             // <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
             var diffs = new Dictionary<String, IList<String>>();
@@ -593,12 +610,14 @@ namespace Couchbase.Lite.Replicator
                                 IDictionary<string, object> properties = null;
                                 var revResults = results.Get(rev.GetDocId()).AsDictionary<string, object>(); 
                                 if (revResults == null) {
+                                    SafeIncrementCompletedChangesCount();
                                     continue;
                                 }
 
                                 var revs = revResults.Get("missing").AsList<string>();
                                 if (revs == null || !revs.Any( id => id.Equals(rev.GetRevId(), StringComparison.OrdinalIgnoreCase))) {
                                     RemovePending(rev);
+                                    SafeIncrementCompletedChangesCount();
                                     continue;
                                 }
 
@@ -664,6 +683,8 @@ namespace Couchbase.Lite.Replicator
                             foreach (var revisionInternal in inbox) {
                                 RemovePending(revisionInternal);
                             }
+
+                            SafeAddToCompletedChangesCount(inbox.Count);
                         }
                     }
                 } catch (Exception ex) {

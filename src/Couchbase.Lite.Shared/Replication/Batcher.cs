@@ -207,6 +207,10 @@ namespace Couchbase.Lite.Support
         /// <returns>The delay o use.</returns>
         internal int DelayToUse()
         {
+            if(_inbox.Count > _capacity) {
+                return 0;
+            }
+
             var delta = (int)(DateTime.UtcNow - _lastProcessedTime).TotalMilliseconds;
             var delayToUse = delta >= _delay
                 ? 0
