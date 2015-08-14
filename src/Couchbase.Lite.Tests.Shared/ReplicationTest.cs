@@ -172,6 +172,31 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestConcurrentPullers()
+        {
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.AddDocuments(100, false);
+
+                var pull1 = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull1.Continuous = true;
+
+                var pull2 = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull2.Continuous = false;
+
+                pull1.Start();
+                try {
+                    RunReplication(pull2);
+                    Assert.IsNull(pull1.LastError);
+                    Assert.IsNull(pull2.LastError);
+
+                    Assert.AreEqual(100, database.DocumentCount);
+                } finally {
+                    StopReplication(pull1);
+                }
+            }
+        }
+
+        [Test]
         public void TestPullerChangedEvent()
         {
             if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
