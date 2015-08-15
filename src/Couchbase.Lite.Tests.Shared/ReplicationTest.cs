@@ -456,7 +456,7 @@ namespace Couchbase.Lite
                     var completedChangesCount = e.Source.CompletedChangesCount;
                     var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
                     Log.D(Tag, msg);
-                    if (changesCount == completedChangesCount
+                    if (changesCount > 0 && changesCount == completedChangesCount
                     && replicationCaughtUpSignal.CurrentCount > 0) {
                         replicationCaughtUpSignal.Signal();
                     }
