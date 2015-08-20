@@ -48,12 +48,13 @@ namespace Couchbase.Lite.Internal
             _logic = logic;
             _args = args;
             LastSequences = lastSequences.ToArray();
+            _task = new Task<Status>(() => _logic(_args.ToList()));
         }
 
         public void Run()
         {
-            if (_task == null) {
-                _task = Task.Factory.StartNew<Status>(() => _logic(_args.ToList()));
+            if (_task.Status <= TaskStatus.Running) {
+                _task.Start();
                 _task.ContinueWith(t =>
                 {
                     if(Finished != null) {
