@@ -25,6 +25,7 @@ using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Util;
+using System.Linq;
 
 namespace Couchbase.Lite
 {
@@ -139,7 +140,7 @@ namespace Couchbase.Lite
             }
 
             var jObj = obj as JArray;
-            return jObj == null ? null : jObj.ToObject<IList<T>>();
+            return jObj == null ? null : jObj.Select(x => x.ToObject<T>()).ToList();
         }
 
         public IJsonSerializer DeepClone()
