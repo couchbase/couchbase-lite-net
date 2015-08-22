@@ -54,6 +54,7 @@ using Couchbase.Lite.Store;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Collections.Concurrent;
 
 
 #if !NET_3_5
@@ -257,7 +258,7 @@ namespace Couchbase.Lite
         internal IList<Replication>                     ActiveReplicators { get; set; }
         internal IList<Replication>                     AllReplicators { get; set; }
         internal LruCache<String, Document>             DocumentCache { get; set; }
-        internal IDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
+        internal ConcurrentDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
         internal long StartTime { get; private set; }
         internal BlobStoreWriter AttachmentWriter { get { return new BlobStoreWriter(Attachments); } }
 
@@ -296,7 +297,7 @@ namespace Couchbase.Lite
             Name = name ?? FileDirUtils.GetDatabaseNameFromPath(path);
             Manager = manager;
             DocumentCache = new LruCache<string, Document>(MAX_DOC_CACHE_SIZE);
-            UnsavedRevisionDocumentCache = new Dictionary<string, WeakReference>();
+            UnsavedRevisionDocumentCache = new ConcurrentDictionary<string, WeakReference>();
  
             // FIXME: Not portable to WinRT/WP8.
             ActiveReplicators = new List<Replication>();
@@ -1030,7 +1031,8 @@ namespace Couchbase.Lite
         internal void RemoveDocumentFromCache(Document document)
         {
             DocumentCache.Remove(document.Id);
-            UnsavedRevisionDocumentCache.Remove(document.Id);
+            var dummy = default(WeakReference);
+            UnsavedRevisionDocumentCache.TryRemove(document.Id, out dummy);
         }
 
         internal string PrivateUUID ()
@@ -1219,7 +1221,8 @@ namespace Couchbase.Lite
             if (putRev != null) {
                 Log.D(TAG, "--> created {0}", putRev);
                 if (!string.IsNullOrEmpty(docId)) {
-                    UnsavedRevisionDocumentCache.Remove(docId);
+                    var dummy = default(WeakReference);
+                    UnsavedRevisionDocumentCache.TryRemove(docId, out dummy);
                 }
             }
 
@@ -2141,8 +2144,9 @@ namespace Couchbase.Lite
                 return null;
             }
 
-            var unsavedDoc = UnsavedRevisionDocumentCache.Get(docId);
-            var doc = unsavedDoc != null 
+            var unsavedDoc = default(WeakReference);
+            var success = UnsavedRevisionDocumentCache.TryGetValue(docId, out unsavedDoc);
+            var doc = success
                 ? (Document)unsavedDoc.Target 
                 : DocumentCache.Get(docId);
 
@@ -2164,7 +2168,7 @@ namespace Couchbase.Lite
             }
 
             DocumentCache[docId] = doc;
-            UnsavedRevisionDocumentCache[docId] = new WeakReference(doc);
+            UnsavedRevisionDocumentCache.TryAdd(docId, new WeakReference(doc));
             return doc;
         }
 

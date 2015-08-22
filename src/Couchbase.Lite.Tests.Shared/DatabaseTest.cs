@@ -50,12 +50,34 @@ using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Store;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
     public class DatabaseTest : LiteTestCase
     {
         const String TooLongName = "a11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110";
+
+        #if !NET_3_5
+        [Test]
+        public void TestParallelLibrary()
+        {
+            const int docCount = 200;
+
+            Parallel.Invoke(() => {
+                Parallel.For(0, docCount, i =>
+                {
+                    Assert.DoesNotThrow(() => database.GetExistingDocument(i.ToString()));
+                });
+            }, () => {
+                Parallel.For(0, docCount, i =>
+                {
+                    Assert.DoesNotThrow(() => database.GetExistingDocument(i.ToString()));
+                });
+            });
+        }
+
+        #endif
 
         [Test]
         public void TestValidDatabaseNames([Values("foo", "try1", "foo-bar", "goofball99", TooLongName)] String testName)
@@ -233,7 +255,8 @@ namespace Couchbase.Lite
 
             Assert.IsNull(database.DocumentCache.Get(document.Id));
 
-            var cachedDocument = database.UnsavedRevisionDocumentCache.Get(document.Id);
+            var cachedDocument = default(WeakReference);
+            database.UnsavedRevisionDocumentCache.TryGetValue(document.Id, out cachedDocument);
             Assert.IsTrue(cachedDocument.Target == document);
 
             var checkedDocument = database.GetDocument(document.Id);
@@ -249,7 +272,8 @@ namespace Couchbase.Lite
             properties.Add("test", "test");
             document.PutProperties(properties);
 
-            var cachedDocument = database.UnsavedRevisionDocumentCache.Get(document.Id);
+            var cachedDocument = default(WeakReference);
+            database.UnsavedRevisionDocumentCache.TryGetValue(document.Id, out cachedDocument);
             Assert.IsNull(cachedDocument);
 
             var checkedDocument = database.GetDocument(document.Id);
