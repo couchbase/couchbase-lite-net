@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Internal
         public void Run()
         {
             if (_task.Status <= TaskStatus.Running) {
-                _task.Start();
+                _task.Start(TaskScheduler.Default);
                 _task.ContinueWith(t =>
                 {
                     if(Finished != null) {
