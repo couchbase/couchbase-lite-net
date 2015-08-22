@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -143,7 +144,7 @@ namespace Couchbase.Lite
             }
 
             var jObj = obj as JArray;
-            return jObj == null ? null : jObj.ToObject<IList<T>>();
+            return jObj == null ? null : jObj.Select(x => x.ToObject<T>()).ToList();
         }
 
         public IJsonSerializer DeepClone()
@@ -158,7 +159,9 @@ namespace Couchbase.Lite
 
         public void Dispose()
         {
-            ((IDisposable)_textReader).Dispose();
+            if (_textReader != null) {
+                ((IDisposable)_textReader).Dispose();
+            }
         }
 
         #pragma warning restore 1591
