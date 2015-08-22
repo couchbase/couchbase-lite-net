@@ -704,9 +704,8 @@ namespace Couchbase.Lite
 
             if (inRev.GetAttachments() != null) {
                 var updatedRev = inRev.CopyWithDocID(inRev.GetDocId(), inRev.GetRevId());
-                string prevRevID = revHistory.Count >= 2 ? revHistory[1] : null;
                 Status status = new Status();
-                if (!ProcessAttachmentsForRevision(updatedRev, prevRevID, status)) {
+                if (!ProcessAttachmentsForRevision(updatedRev, revHistory.Skip(1).Take(revHistory.Count-1).ToList(), status)) {
                     throw new CouchbaseLiteException(status.Code);
                 }
 
@@ -1186,7 +1185,7 @@ namespace Couchbase.Lite
             if (properties != null && properties.Get("_attachments").AsDictionary<string, object>() != null) {
                 var tmpRev = new RevisionInternal(docId, prevRevId, deleting);
                 tmpRev.SetProperties(properties);
-                if (!ProcessAttachmentsForRevision(tmpRev, prevRevId, resultStatus)) {
+                if (!ProcessAttachmentsForRevision(tmpRev, prevRevId == null ? null : new List<string> { prevRevId }, resultStatus)) {
                     return null;
                 }
 
@@ -1557,7 +1556,7 @@ namespace Couchbase.Lite
             });
         }
 
-        internal bool ProcessAttachmentsForRevision(RevisionInternal rev, string prevRevId, Status status)
+        internal bool ProcessAttachmentsForRevision(RevisionInternal rev, IList<string> ancestry, Status status)
         {
             if (status == null) {
                 status = new Status();
@@ -1577,6 +1576,7 @@ namespace Couchbase.Lite
                 return true;
             }
 
+            var prevRevId = ancestry != null && ancestry.Count > 0 ? ancestry[0] : null;
             int generation = RevisionInternal.GenerationFromRevID(prevRevId) + 1;
             IDictionary<string, object> parentAttachments = null;
             return rev.MutateAttachments((name, attachInfo) =>
@@ -1607,12 +1607,22 @@ namespace Couchbase.Lite
                     if(parentAttachments == null && prevRevId != null) {
                         parentAttachments = GetAttachmentsFromDoc(rev.GetDocId(), prevRevId, status);
                         if(parentAttachments == null) {
-                            if(status.Code == StatusCode.Ok || status.Code == StatusCode.NotFound) {
-                                status.Code = StatusCode.BadAttachment;
+                            if(Attachments.HasBlobForKey(attachment.BlobKey)) {
+                                // Parent revision's body isn't known (we are probably pulling a rev along
+                                // with its entire history) but it's OK, we have the attachment already
+                                status.Code = StatusCode.Ok;
+                                return attachInfo;
                             }
 
-                            return null;
+                            var ancestorAttachment = FindAttachment(name, attachment.RevPos, rev.GetDocId(), ancestry);
+                            if(ancestorAttachment != null) {
+                                status.Code = StatusCode.Ok;
+                                return ancestorAttachment;
+                            }
                         }
+
+                        status.Code = StatusCode.BadAttachment;
+                        return null;
                     }
 
                     var parentAttachment = parentAttachments == null ? null : parentAttachments.Get(name).AsDictionary<string, object>();
@@ -1636,6 +1646,31 @@ namespace Couchbase.Lite
                 Debug.Assert(attachment.IsValid);
                 return attachment.AsStubDictionary();
             });
+        }
+
+        internal IDictionary<string, object> FindAttachment(string name, int revPos, string docId, IList<string> ancestry)
+        {
+            if (ancestry == null) {
+                return null;
+            }
+
+            for (var i = ancestry.Count - 1; i >= 0; i--) {
+                var revID = ancestry[i];
+                if (RevisionInternal.GenerationFromRevID(revID) >= revPos) {
+                    var status = new Status();
+                    var attachments = GetAttachmentsFromDoc(docId, revID, status);
+                    if (attachments == null) {
+                        continue;
+                    }
+
+                    var attachment = attachments.Get(name).AsDictionary<string, object>();
+                    if (attachment != null) {
+                        return attachment;
+                    }
+                }
+            }
+
+            return null;
         }
 
         internal IDictionary<string, object> GetAttachmentsFromDoc(string docId, string revId, Status status)

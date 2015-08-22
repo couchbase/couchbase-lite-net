@@ -68,6 +68,86 @@ namespace Couchbase.Lite
         public const string Tag = "Attachments";
 
         [Test]
+        public void TestFollowWithRevPos()
+        {
+            var attachInfo = new Dictionary<string, object> {
+                { "content_type", "text/plain" },
+                { "digest", "md5-DaUdFsLh8FKLbcBIDlU57g==" },
+                { "follows", true },
+                { "length", 51200 },
+                { "revpos", 2 }
+            };
+
+            var attachment = default(AttachmentInternal);
+            Assert.DoesNotThrow(() => attachment = new AttachmentInternal("attachment", attachInfo));
+            var stub = attachment.AsStubDictionary();
+
+            var expected = new Dictionary<string, object> {
+                { "content_type", "text/plain" },
+                { "digest", "sha1-AAAAAAAAAAAAAAAAAAAAAAAAAAA=" },
+                { "stub", true },
+                { "length", 51200 },
+                { "revpos", 2 }
+            };
+
+            AssertDictionariesAreEqual(expected, stub);
+        }
+
+        [Test]
+        public void TestIntermediateDeletedRevs()
+        {
+            // Put a revision that includes an _attachments dict:
+            var attach1 = Encoding.UTF8.GetBytes("This is the body of attach1");
+            var base64 = Convert.ToBase64String(attach1);
+
+            var attachDict = new Dictionary<string, object> { 
+                { "attach", new Dictionary<string, object> { 
+                        { "content_type", "text/plain"},
+                        { "data", base64 }
+                    }
+                }
+            };
+
+            IDictionary<string, object> props = new Dictionary<string, object> {
+                { "_id", "X" },
+                { "_attachments", attachDict }
+            };
+
+            var status = new Status();
+            var rev1 = default(RevisionInternal);
+            Assert.DoesNotThrow(() => rev1 = database.PutRevision(new RevisionInternal(props), null, false, status));
+            Assert.AreEqual(StatusCode.Created, status.Code);
+            Assert.AreEqual(1L, rev1.GetAttachments().GetCast<IDictionary<string, object>>("attach").GetCast<long>("revpos"));
+
+            props = new Dictionary<string, object> {
+                { "_id", rev1.GetDocId() },
+                { "_deleted", true }
+            };
+
+            var rev2 = default(RevisionInternal);
+            Assert.DoesNotThrow(() => rev2 = database.PutRevision(new RevisionInternal(props), rev1.GetRevId(), status));
+            Assert.AreEqual(StatusCode.Ok, status.Code);
+            Assert.IsTrue(rev2.IsDeleted());
+
+            // Insert a revision several generations advanced but which hasn't changed the attachment:
+            var rev3 = rev1.CopyWithDocID(rev1.GetDocId(), "3-3333");
+            props = rev3.GetProperties();
+            props["foo"] = "bar";
+            rev3.SetProperties(props);
+            rev3.MutateAttachments((name, att) =>
+            {
+                var nuAtt = new Dictionary<string, object>(att);
+                nuAtt.Remove("data");
+                nuAtt["stub"] = true;
+                nuAtt["digest"] = "md5-deadbeef";
+                return nuAtt;
+            });
+
+            var history = new List<string> { rev3.GetRevId(), rev2.GetRevId(), rev1.GetRevId() };
+            Assert.DoesNotThrow(() => database.ForceInsert(rev3, history, null));
+        }
+
+        [Test]
         public void TestUpgradeMD5()
         {
             var store = database.Storage as SqliteCouchStore;

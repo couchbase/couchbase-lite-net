@@ -121,6 +121,11 @@ namespace Couchbase.Lite
             return result;
         }
 
+        public bool HasBlobForKey(BlobKey key)
+        {
+            return File.Exists(PathForKey(key));
+        }
+
         public string PathForKey(BlobKey key)
         {
             return path + FilePath.separator + key + FileExtension;
