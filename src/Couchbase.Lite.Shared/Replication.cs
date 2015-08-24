@@ -616,11 +616,11 @@ namespace Couchbase.Lite
                     Authenticator = authorizer;
                 }
 
-                var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter);
+                var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QUERY_PARAMETER);
 
                 if (facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken))
                 {
-                    var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameterEmail);
+                    var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QUERY_PARAMETER_EMAIL);
                     var authorizer = new FacebookAuthorizer(email);
                     Uri remoteWithQueryRemoved = null;
 
@@ -633,7 +633,7 @@ namespace Couchbase.Lite
                         throw new ArgumentException("Invalid URI format.", "remote", e);
                     }
 
-                    FacebookAuthorizer.RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved.ToString());
+                    FacebookAuthorizer.RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved);
 
                     Authenticator = authorizer;
                 }

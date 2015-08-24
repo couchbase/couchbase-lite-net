@@ -1032,7 +1032,7 @@ namespace Couchbase.Lite
             const string accessToken = "fake_access_token";
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
-                var remoteUrl = remoteDb.RemoteUri.ToString();
+                var remoteUrl = remoteDb.RemoteUri;
                 FacebookAuthorizer.RegisterAccessToken(accessToken, email, remoteUrl);
                 Replication replicator = database.CreatePushReplication(remoteDb.RemoteUri);
                 replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(accessToken);
@@ -1086,7 +1086,7 @@ namespace Couchbase.Lite
             const string accessToken = "fake_access_token";
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
-                var remoteUrl = remoteDb.RemoteUri.ToString();
+                var remoteUrl = remoteDb.RemoteUri;
                 FacebookAuthorizer.RegisterAccessToken(accessToken, email, remoteUrl);
                 var replicator = database.CreatePullReplication(remoteDb.RemoteUri);
                 replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(accessToken);
