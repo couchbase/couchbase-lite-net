@@ -1022,21 +1022,28 @@ PRAGMA user_version = 3;";
                 }
 
                 if(!isNewDoc) {
-                    RevisionList localRevsList = GetAllDocumentRevisions(docId, docNumericId, false);
-                    if(localRevsList == null) {
-                        return new Status(StatusCode.DbError);
-                    }
+                    var innerStatus = new Status();
+                    RevisionList localRevsList = GetAllDocumentRevisions(docId, docNumericId, false, innerStatus);
+                    if(localRevsList != null) {
+                        localRevs = new Dictionary<string, RevisionInternal>(localRevsList.Count);
+                        foreach(var localRev in localRevsList) {
+                            localRevs[localRev.GetRevId()] = localRev;
+                        }
 
-                    localRevs = new Dictionary<string, RevisionInternal>(localRevsList.Count);
-                    foreach(var localRev in localRevsList) {
-                        localRevs[localRev.GetRevId()] = localRev;
-                    }
-
-                    // Look up which rev is the winner, before this insertion
-                    try {
-                        oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, inConflict);
-                    } catch(CouchbaseLiteException e) {
-                        return e.CBLStatus;
+                        // Look up which rev is the winner, before this insertion
+                        try {
+                            oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, inConflict);
+                        } catch(CouchbaseLiteException e) {
+                            return e.CBLStatus;
+                        }
+                    } else if(innerStatus.Code != StatusCode.NotFound) {
+                        // Don't stop on a not found, because it is not critical.  This can happen
+                        // when two pullers are pulling the same data at the same time.  One will
+                        // insert JUST the document (not the revisions yet), and then yield to the
+                        // other which will see the document and assume revisions are there which aren't.
+                        // In that case, we'd like to continue and insert the missing revisions instead of
+                        // erroring out
+                        return innerStatus;
                     }
                 }
 
@@ -3516,8 +3523,12 @@ PRAGMA user_version = 3;";
             return status;
         }
 
-        private RevisionList GetAllDocumentRevisions(string docId, long docNumericId, bool onlyCurrent)
+        private RevisionList GetAllDocumentRevisions(string docId, long docNumericId, bool onlyCurrent, Status status = null)
         {
+            if (status == null) {
+                status = new Status();
+            }
+
             string sql;
             if (onlyCurrent) {
                 sql = "SELECT sequence, revid, deleted FROM revs " +
@@ -3528,7 +3539,7 @@ PRAGMA user_version = 3;";
             }
 
             var revs = new RevisionList();
-            var status = TryQuery(c =>
+            status = TryQuery(c =>
             {
                 var rev = new RevisionInternal(docId, c.GetString(1), c.GetInt(2) != 0);
                 rev.SetSequence(c.GetLong(0));
@@ -3536,6 +3547,10 @@ PRAGMA user_version = 3;";
 
                 return true;
             }, true, sql, docNumericId);
+
+            if (status.IsError) {
+                Log.W(TAG, "GetAllDocumentRevisions() failed {0}", status.Code);
+            }
 
             return status.IsError ? null : revs;
         }
