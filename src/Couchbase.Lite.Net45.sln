@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Listener.Bon
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Listener.Bonjour.Shared", "ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.shproj", "{8555F0B6-3F1A-4C80-8CCB-3EED653D6242}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Broadcaster", "ListenerComponent\Bonjour\Broadcaster\Broadcaster.csproj", "{BC186419-C361-4082-8893-00CC38BCD3BA}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Listener", "ListenerComponent\ListenerConsole\Listener.csproj", "{A31A98F1-8B95-479A-8E88-C770DDDB0292}"
 EndProject
 Global
@@ -45,6 +47,10 @@ Global
 		{A31A98F1-8B95-479A-8E88-C770DDDB0292}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A31A98F1-8B95-479A-8E88-C770DDDB0292}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A31A98F1-8B95-479A-8E88-C770DDDB0292}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC186419-C361-4082-8893-00CC38BCD3BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC186419-C361-4082-8893-00CC38BCD3BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC186419-C361-4082-8893-00CC38BCD3BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC186419-C361-4082-8893-00CC38BCD3BA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -63,6 +69,7 @@ Global
 		{A31A98F1-8B95-479A-8E88-C770DDDB0292} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{8BFA15B7-957D-4AD1-9019-9DF98F1EE9EB} = {27CD854D-D0A5-4EA0-A997-04CE8EDD5095}
 		{8555F0B6-3F1A-4C80-8CCB-3EED653D6242} = {27CD854D-D0A5-4EA0-A997-04CE8EDD5095}
+		{BC186419-C361-4082-8893-00CC38BCD3BA} = {27CD854D-D0A5-4EA0-A997-04CE8EDD5095}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

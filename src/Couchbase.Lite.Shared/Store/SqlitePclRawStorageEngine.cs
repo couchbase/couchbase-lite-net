@@ -83,6 +83,8 @@ namespace Couchbase.Lite
 
         #region implemented abstract members of SQLiteStorageEngine
 
+        public int LastErrorCode { get; private set; }
+
         public bool Open(String path)
         {
             if (IsOpen)
@@ -112,8 +114,8 @@ namespace Couchbase.Lite
 
         void OpenSqliteConnection(int flags, out sqlite3 db)
         {
-            var status = raw.sqlite3_open_v2(Path, out db, flags, null);
-            if (status != raw.SQLITE_OK)
+            LastErrorCode = raw.sqlite3_open_v2(Path, out db, flags, null);
+            if (LastErrorCode != raw.SQLITE_OK)
             {
                 Path = null;
                 var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(Path);
@@ -147,10 +149,10 @@ namespace Couchbase.Lite
             var result = -1;
             try
             {
-                var commandResult = raw.sqlite3_step(statement);
-                if (commandResult != raw.SQLITE_ERROR)
+                LastErrorCode = raw.sqlite3_step(statement);
+                if (LastErrorCode != raw.SQLITE_ERROR)
                 {
-                    Debug.Assert(commandResult == raw.SQLITE_ROW);
+                    Debug.Assert(LastErrorCode == raw.SQLITE_ROW);
                     result = raw.sqlite3_column_int(statement, 0);
                 }
             }
@@ -175,16 +177,16 @@ namespace Couchbase.Lite
             {
                 sqlite3_stmt statement = BuildCommand(_writeConnection, commandText, null);
 
-                if (raw.sqlite3_bind_int(statement, 1, version) == raw.SQLITE_ERROR)
+                if ((LastErrorCode = raw.sqlite3_bind_int(statement, 1, version)) == raw.SQLITE_ERROR)
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
 
-                int result;
                 try {
-                    result = statement.step();
-                    if (result != SQLiteResult.OK)
+                    LastErrorCode = statement.step();
+                    if (LastErrorCode != SQLiteResult.OK)
                         throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
                 } catch (Exception e) {
                     Log.E(Tag, "Error getting user version", e);
+                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
                 } finally {
                     statement.Dispose();
                 }
@@ -222,6 +224,7 @@ namespace Couchbase.Lite
                             statement.step_done();
                         }
                     } catch (Exception e) {
+                        LastErrorCode = raw.sqlite3_errcode(_writeConnection);
                         Log.E(Tag, "Error BeginTransaction", e);
                     }
                 });
@@ -260,6 +263,7 @@ namespace Couchbase.Lite
                         }
                     }
                 } catch (Exception e) {
+                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
                     Log.E(Tag, "Error EndTransaction", e);
                 }
             });
@@ -287,13 +291,14 @@ namespace Couchbase.Lite
                 try
                 {
                     command = BuildCommand(_writeConnection, sql, paramArgs);
-                    var result = command.step();
-                    if (result == SQLiteResult.ERROR)
+                    LastErrorCode = command.step();
+                    if (LastErrorCode == SQLiteResult.ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
                 }
                 catch (ugly.sqlite3_exception e)
                 {
                     Log.E(Tag, "Error {0}, {1} executing sql '{2}'".Fmt(e.errcode, _writeConnection.extended_errcode(), sql), e);
+                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
                     throw;
                 }
                 finally
@@ -366,6 +371,7 @@ namespace Couchbase.Lite
                     {
                         command.Dispose();
                     }
+                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
                     Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
                     throw;
                 }
@@ -406,6 +412,7 @@ namespace Couchbase.Lite
                     ? String.Empty 
                     : String.Join (",", paramArgs.ToStringArray ());
                     Log.E (Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt (sql, args, _readConnection.errmsg ()), e);
+                    LastErrorCode = raw.sqlite3_errcode(_readConnection);
                     throw;
                 }
                 return cursor;
@@ -435,11 +442,10 @@ namespace Couchbase.Lite
 
                 try
                 {
-                    int result;
 
-                    result = command.step();
+                    LastErrorCode = command.step();
                     command.Dispose();
-                    if (result == SQLiteResult.ERROR)
+                    if (LastErrorCode == SQLiteResult.ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
 
                     int changes = _writeConnection.changes();
@@ -461,6 +467,7 @@ namespace Couchbase.Lite
                 catch (Exception ex)
                 {
                     Log.E(Tag, "Error inserting into table " + table, ex);
+                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
                     throw;
                 }
                 return lastInsertedId;
@@ -484,13 +491,14 @@ namespace Couchbase.Lite
                 var command = GetUpdateCommand(table, values, whereClause, whereArgs);
                 try
                 {
-                    var result = command.step();
-                    if (result == SQLiteResult.ERROR)
+                    LastErrorCode = command.step();
+                    if (LastErrorCode == SQLiteResult.ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection),
                             StatusCode.DbError);
                 }
                 catch (ugly.sqlite3_exception ex)
                 {
+                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
                     var msg = raw.sqlite3_extended_errcode(_writeConnection).ToString();
                     Log.E(Tag, "Error {0}: \"{1}\" while updating table {2}\r\n{3}", ex.errcode, msg, table, ex);
                 }
@@ -538,6 +546,7 @@ namespace Couchbase.Lite
                 }
                 catch (Exception ex)
                 {
+                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
                     Log.E(Tag, "Error {0} when deleting from table {1}".Fmt(_writeConnection.extended_errcode(), table), ex);
                     throw;
                 }
