@@ -163,6 +163,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ReplicationStateTransition.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\SharedState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View\UpdateJob.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)View\LazyJsonArray.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

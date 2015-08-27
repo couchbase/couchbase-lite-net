@@ -54,6 +54,7 @@ using System.Diagnostics;
 using Couchbase.Lite.Storage;
 using System.Collections;
 using System.Text;
+using Couchbase.Lite.Views;
 
 namespace Couchbase.Lite {
 
@@ -1098,8 +1099,11 @@ namespace Couchbase.Lite {
                 return null;
             }
 
+            var lazyKeys = new LazyJsonArray(keysToReduce);
+            var lazyVals = new LazyJsonArray(valuesToReduce);
+
             try {
-                object result = reduce(keysToReduce, valuesToReduce, false);
+                object result = reduce(lazyKeys, lazyVals, false);
                 if(result != null) {
                     return result;
                 }

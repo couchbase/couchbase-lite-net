@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Linq;
 using Couchbase.Lite.iOS;
 using Couchbase.Lite;
-using System.Json;
 using Newtonsoft.Json.Linq;
 
 namespace CouchbaseSample
@@ -103,7 +102,7 @@ namespace CouchbaseSample
           cell.TextLabel.Font = UIFont.FromName ("Helvetica", 18f);
           cell.TextLabel.BackgroundColor = UIColor.Clear;
 
-            var props = (JObject)row.Value;
+            var props = (IDictionary<string, object>)row.Value;
             var isChecked = (bool)props[RootViewController.CheckboxPropertyName];
 //          props.TryGetValue (RootViewController.CheckboxPropertyName, out isChecked);
           cell.TextLabel.TextColor = (bool)isChecked ? UIColor.Gray : UIColor.Black;

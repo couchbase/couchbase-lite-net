@@ -61,6 +61,21 @@ namespace Couchbase.Lite
         public const string Tag = "Views";
 
         [Test]
+        public void TestReduceBlockDeserialized()
+        {
+            var view = database.GetView("vu");
+            var passed = true;
+            view.SetMapReduce((doc, emit) => emit(doc["_id"], doc),
+                (k, v, r) => {
+                passed = passed && !(k.ElementAt(0) is IEnumerable<byte>);
+                return 0;
+            }, "0.1");
+            CreateDocuments(database, 10);
+            view.CreateQuery().Run();
+            Assert.IsTrue(passed);
+        }
+
+        [Test]
         public void TestViewValueIsEntireDoc()
         {
             var view = database.GetView("vu");
