@@ -4,6 +4,7 @@
     <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
     <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' ">
     </MonoPrefix>
+    <NuGetPackageImportStamp>b5e035f4</NuGetPackageImportStamp>
   </PropertyGroup>
   <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
@@ -52,6 +53,10 @@
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\SQLitePCL.ugly.0.8.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Mono.Android" />
@@ -63,9 +68,6 @@
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\packages\SQLitePCL.ugly.0.8.2\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib.Portable">
       <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0003\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid+Xamarin.iOS10\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
@@ -84,5 +86,11 @@
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Novell\Novell.MonoDroid.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\packages\SQLitePCL.raw.0.8.2\build\MonoAndroid\SQLitePCL.raw.targets" Condition="Exists('..\packages\SQLitePCL.raw.0.8.2\build\MonoAndroid\SQLitePCL.raw.targets')" />
+  <Import Project="..\packages\SQLitePCL.raw.0.8.1\build\MonoAndroid\SQLitePCL.raw.targets" Condition="Exists('..\packages\SQLitePCL.raw.0.8.1\build\MonoAndroid\SQLitePCL.raw.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\SQLitePCL.raw.0.8.1\build\MonoAndroid\SQLitePCL.raw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.raw.0.8.1\build\MonoAndroid\SQLitePCL.raw.targets'))" />
+  </Target>
 </Project>

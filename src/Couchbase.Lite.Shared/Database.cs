@@ -219,6 +219,9 @@ namespace Couchbase.Lite
         /// <value>The filter compiler object.</value>
         public static IFilterCompiler FilterCompiler { get; set; }
 
+        /// <summary>
+        /// Gets whether or not the database is currently in the middle of a transaction
+        /// </summary>
         public bool InTransaction
         { 
             get {
@@ -557,7 +560,7 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Sets the contents of the local <see cref="Couchbase.Lite.Document" /> with the given id.  If <param name="properties"/> is null, the 
+        /// Sets the contents of the local <see cref="Couchbase.Lite.Document" /> with the given id.  If properties is null, the 
         /// <see cref="Couchbase.Lite.Document" /> is deleted.
         /// </summary>
         /// <param name="id">The id of the local document whos contents to set.</param>
@@ -747,6 +750,12 @@ namespace Couchbase.Lite
                 new Status(StatusCode.Ok) : new Status(StatusCode.Reserved)).Code == StatusCode.Ok;
         }
 
+        /// <summary>
+        /// Deletes the specified revisions of the specified documents immediately without replicating
+        /// </summary>
+        /// <param name="docsToRev">A dictionary of document IDs to lists of revision IDs, or the * character
+        /// to indicate all revisions</param>
+        /// <returns>A dictionary containing the revisions IDs that were successfully purged</returns>
         public IDictionary<string, object> PurgeRevisions(IDictionary<string, IList<string>> docsToRev)
         {
             // <http://wiki.apache.org/couchdb/Purge_Documents>

@@ -158,7 +158,6 @@ namespace Couchbase.Lite
             return false;
         }
 
-        /// <exception cref="Couchbase.Lite.Store.SQLException"></exception>
         public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
         {
             byte[] result = null;

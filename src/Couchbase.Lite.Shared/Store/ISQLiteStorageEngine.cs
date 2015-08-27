@@ -52,6 +52,11 @@ namespace Couchbase.Lite.Storage
     /// </summary>
     public interface ISQLiteStorageEngine
     {
+
+        /// <summary>
+        /// Gets the last error code encountered by SQLite (note
+        /// that this does not always indicate an error)
+        /// </summary>
         int LastErrorCode { get; }
 
         /// <summary>
