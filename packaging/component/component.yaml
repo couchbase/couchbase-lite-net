@@ -8,32 +8,17 @@ icons:
 publisher-url: http://www.couchbase.com
 source-url: https://github.com/couchbase/couchbase-lite-net
 documentation-url: http://developer.couchbase.com/mobile/develop/guides/couchbase-lite/native-api/index.html
-build:
-  -
-    path: ../../src/Couchbase.Lite.iOS/Couchbase.Lite.iOS.csproj
-    configuration: Release|iPhone
-  -
-    path: ../../src/Couchbase.Lite.Android/Couchbase.Lite.Android.csproj
-    configuration: Release|AnyCPU
 packages:
-  "":
-    - Couchbase.Lite, Version=1.1.0
-libraries:
-  ios-unified:
-     - ../../src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll
-     - ../../src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll.mdb
-     - ../../src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.xml
-  android:
-     - ../../src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll
-     - ../../src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll.mdb
-     - ../../src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.xml
+  "mobile":
+    - Couchbase.Lite, Version=1.1.1
 summary: A lightweight, document-oriented (NoSQL), syncable database engine.
 details: Details.md
 screenshots:
   - screenshots/screenshot1.png
 getting-started: GettingStarted.md
-version: "1.1.0"
+version: "1.1.1"
 skip_docs: true
+no_build: true
 is_shell: true
 samples:
   iOS Sample: ../../samples/CouchbaseSample.iOS/CouchbaseSample.iOS.sln

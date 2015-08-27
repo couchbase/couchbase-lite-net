@@ -95,7 +95,7 @@ Global
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
-		version = 1.1
+		version = 1.1.1
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{5615e423-d0fd-4f99-a99c-061679615cee}*SharedItemsImports = 4

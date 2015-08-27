@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package >
+<package>
   <metadata>
     <id>Couchbase.Lite.Listener</id>
     <title>Couchbase Lite - HTTP Listener</title>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,23 +12,34 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Provides Couchbase Lite with a self-hosted REST API.</description>
     <releaseNotes>
-      Enables:
+      Couchbase Lite for .NET 1.1.1 is a maintanence release on 1.1.0 and contains a number of fixes and enh
+      For a full list please refer to https://github.com/couchbase/couchbase-lite-net/releases/tag/1.1.1
+
+      This package enables:
         * Interprocess communication via HTTP.
         * Peer-to-Peer Sync.
         * Integration with apps deployed inside web containers.
         * Integration with other HTTP-capable languages and services.
+
+      On top of Couchbase Lite for .NET
     </releaseNotes>
     <copyright>Copyright 2015</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <dependency id="Couchbase.Lite" version="1.1.0" />
-      <dependency id="Jint" version="2.4.0" />
+      <group targetFramework="net35">
+        <dependency id="Couchbase.Lite" version="1.1.1" />
+      </group>
+      <group>
+        <dependency id="Couchbase.Lite" version="1.1.1" />
+        <dependency id="Jint" version="2.4.0" />
+      </group>
     </dependencies>
   </metadata>
   <files>
     <file target="lib/net45" src="src/ListenerComponent/Couchbase.Lite.Listener.Net45/bin/Release/Couchbase.Lite.Listener.*" />
     <file target="lib/MonoAndroid" src="src/ListenerComponent/Couchbase.Lite.Listener.Android/bin/Release/Couchbase.Lite.Listener.*" />
     <file target="lib/xamarinios10" src="src/ListenerComponent/Couchbase.Lite.Listener.iOS/bin/Release/Couchbase.Lite.Listener.*" />
+    <file target="lib/net35" src="src/ListenerComponent/Couchbase.Lite.Listener.Net35/bin/Nuget/*" />
   </files>
 </package>

@@ -13,8 +13,8 @@
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidUseLatestPlatformSdk>True</AndroidUseLatestPlatformSdk>
     <AssemblyName>Couchbase.Lite.Listener</AssemblyName>
-    <ReleaseVersion>1.1</ReleaseVersion>
-    <TargetFrameworkVersion>v5.0</TargetFrameworkVersion>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
+    <TargetFrameworkVersion>v5.1</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
