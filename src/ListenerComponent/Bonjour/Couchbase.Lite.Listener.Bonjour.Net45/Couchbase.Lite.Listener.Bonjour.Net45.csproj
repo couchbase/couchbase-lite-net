@@ -7,7 +7,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Listener.Bonjour.Net45</RootNamespace>
     <AssemblyName>Couchbase.Lite.Listener.Bonjour</AssemblyName>
-    <ReleaseVersion>1.1</ReleaseVersion>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

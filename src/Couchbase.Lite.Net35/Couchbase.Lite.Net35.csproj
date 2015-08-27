@@ -16,7 +16,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite</RootNamespace>
     <AssemblyName>Couchbase.Lite</AssemblyName>
-    <ReleaseVersion>1.1</ReleaseVersion>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
