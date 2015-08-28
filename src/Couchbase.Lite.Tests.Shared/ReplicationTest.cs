@@ -629,6 +629,8 @@ namespace Couchbase.Lite
 
                 Assert.IsNull(repl2.LastError);
 
+                Thread.Sleep(1000);
+
                 // make sure trhe doc has been added
                 remoteDb.VerifyDocumentExists(doc3Id);
 
