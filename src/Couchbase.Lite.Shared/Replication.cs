@@ -467,7 +467,11 @@ namespace Couchbase.Lite
                 };
             }
         }
-
+       
+        /// <summary>
+        /// Returns whether or not the replication may be stopped at 
+        /// the point of time in question
+        /// </summary>
         protected virtual bool IsSafeToStop
         {
             get { return true; }

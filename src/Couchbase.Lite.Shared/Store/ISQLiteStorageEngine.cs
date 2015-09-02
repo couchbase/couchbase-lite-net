@@ -42,8 +42,6 @@
 
 using System;
 
-using Couchbase.Lite.Storage;
-
 namespace Couchbase.Lite.Store
 {
 
@@ -52,6 +50,11 @@ namespace Couchbase.Lite.Store
     /// </summary>
     public interface ISQLiteStorageEngine
     {
+
+        /// <summary>
+        /// Gets the last error code encountered by SQLite (note
+        /// that this does not always indicate an error)
+        /// </summary>
         int LastErrorCode { get; }
 
         /// <summary>
