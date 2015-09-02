@@ -50,45 +50,47 @@ namespace Couchbase.Lite.Store
         private const string LOCAL_CHECKPOINT_DOC_ID = "CBL_LocalCheckpoint";
         private const string TAG = "SqliteCouchStore";
 
-        private const string SCHEMA = @"
-CREATE TABLE docs ( 
-  doc_id INTEGER PRIMARY KEY, 
-  docid TEXT UNIQUE NOT NULL); 
-CREATE INDEX docs_docid ON docs(docid); 
-CREATE TABLE revs ( 
-  sequence INTEGER PRIMARY KEY AUTOINCREMENT, 
-  doc_id INTEGER NOT NULL REFERENCES docs(doc_id) ON DELETE CASCADE, 
-  revid TEXT NOT NULL COLLATE REVID, 
-  parent INTEGER REFERENCES revs(sequence) ON DELETE SET NULL, 
-  current BOOLEAN, 
-  deleted BOOLEAN DEFAULT 0, 
-  json BLOB); 
-CREATE INDEX revs_by_id ON revs(revid, doc_id); 
-CREATE INDEX revs_current ON revs(doc_id, current); 
-CREATE INDEX revs_parent ON revs(parent); 
-CREATE TABLE localdocs ( 
-  docid TEXT UNIQUE NOT NULL, 
-  revid TEXT NOT NULL COLLATE REVID, 
-  json BLOB); 
-CREATE INDEX localdocs_by_docid ON localdocs(docid); 
-CREATE TABLE views ( 
-  view_id INTEGER PRIMARY KEY, 
-  name TEXT UNIQUE NOT NULL,
-  version TEXT, 
-  lastsequence INTEGER DEFAULT 0); 
-CREATE INDEX views_by_name ON views(name); 
-CREATE TABLE maps ( 
-  view_id INTEGER NOT NULL REFERENCES views(view_id) ON DELETE CASCADE, 
-  sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE, 
-  key TEXT NOT NULL COLLATE JSON, 
-  value TEXT); 
-CREATE INDEX maps_keys on maps(view_id, key COLLATE JSON); 
-CREATE TABLE replicators ( 
-  remote TEXT NOT NULL, 
-  push BOOLEAN, 
-  last_sequence TEXT, 
-  UNIQUE (remote, push)); 
-PRAGMA user_version = 3;";
+        private const string SCHEMA = 
+            // docs            
+            "CREATE TABLE docs ( " +
+            "        doc_id INTEGER PRIMARY KEY, " +
+            "        docid TEXT UNIQUE NOT NULL); " +
+            "    CREATE INDEX docs_docid ON docs(docid); " +
+            // revs
+            "    CREATE TABLE revs ( " +
+            "        sequence INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "        doc_id INTEGER NOT NULL REFERENCES docs(doc_id) ON DELETE CASCADE, " +
+            "        revid TEXT NOT NULL COLLATE REVID, " +
+            "        parent INTEGER REFERENCES revs(sequence) ON DELETE SET NULL, " +
+            "        current BOOLEAN, " +
+            "        deleted BOOLEAN DEFAULT 0, " +
+            "        json BLOB, " +
+            "        no_attachments BOOLEAN, " +
+            "        UNIQUE (doc_id, revid)); " +
+            "    CREATE INDEX revs_parent ON revs(parent); " +
+            "    CREATE INDEX revs_by_docid_revid ON revs(doc_id, revid desc, current, deleted); " +
+            "    CREATE INDEX revs_current ON revs(doc_id, current desc, deleted, revid desc); " +
+            // localdocs
+            "    CREATE TABLE localdocs ( " +
+            "        docid TEXT UNIQUE NOT NULL, " +
+            "        revid TEXT NOT NULL COLLATE REVID, " +
+            "        json BLOB); " +
+            "    CREATE INDEX localdocs_by_docid ON localdocs(docid); " +
+            // views
+            "    CREATE TABLE views ( " +
+            "        view_id INTEGER PRIMARY KEY, " +
+            "        name TEXT UNIQUE NOT NULL," +
+            "        version TEXT, " +
+            "        lastsequence INTEGER DEFAULT 0," +
+            "        total_docs INTEGER DEFAULT -1); " +
+            "    CREATE INDEX views_by_name ON views(name); " +
+            // info
+            "    CREATE TABLE info (" +
+            "        key TEXT PRIMARY KEY," +
+            "        value TEXT);" +
+            // version
+            "    PRAGMA user_version = 17";
+        
 
         private static readonly HashSet<string> SPECIAL_KEYS_TO_REMOVE = new HashSet<string> {
             "_id", "_rev", "_deleted", "_revisions", "_revs_info", "_conflicts", "_deleted_conflicts",
@@ -138,6 +140,38 @@ PRAGMA user_version = 3;";
         { 
             get {
                 return _transactionCount > 0;
+            }
+        }
+
+        internal Status LastDbStatus
+        {
+            get
+            {
+                switch (StorageEngine.LastErrorCode) {
+                    case raw.SQLITE_OK:
+                    case raw.SQLITE_ROW:
+                    case raw.SQLITE_DONE:
+                        return new Status(StatusCode.Ok);
+                    case raw.SQLITE_BUSY:
+                    case raw.SQLITE_LOCKED:
+                        return new Status(StatusCode.DbBusy);
+                    case raw.SQLITE_CORRUPT:
+                        return new Status(StatusCode.CorruptError);
+                    case raw.SQLITE_NOTADB:
+                        return new Status(StatusCode.Unauthorized);
+                    default:
+                        Log.I(TAG, "Other LastErrorCode {0}", StorageEngine.LastErrorCode);
+                        return new Status(StatusCode.DbError);
+                }
+            }
+        }
+
+        internal Status LastDbError
+        {
+            get
+            {
+                var status = LastDbStatus;
+                return (status.Code == StatusCode.Ok) ? new Status(StatusCode.DbError) : status;
             }
         }
 
@@ -421,163 +455,15 @@ PRAGMA user_version = 3;";
                 return false;
             }
 
-            if (dbVersion < 1) {
-                // First-time initialization:
-                // (Note: Declaring revs.sequence as AUTOINCREMENT means the values will always be
-                // monotonically increasing, never reused. See <http://www.sqlite.org/autoinc.html>)
-                if (!RunStatements(SCHEMA)) {
-                    StorageEngine.Close();
-                    return false;
-                }
-
-                dbVersion = 3;
-            }
-
-            if (dbVersion < 3)
-            {
-                var upgradeSql = "CREATE TABLE localdocs ( " + "docid TEXT UNIQUE NOT NULL, " 
-                    + "revid TEXT NOT NULL, " + "json BLOB); " + "CREATE INDEX localdocs_by_docid ON localdocs(docid); "
-                    + "PRAGMA user_version = 3";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 3;
-            }
-
-            if (dbVersion < 4)
-            {
-                var upgradeSql = "CREATE TABLE info ( " + "key TEXT PRIMARY KEY, " + "value TEXT); "
-                    + "INSERT INTO INFO (key, value) VALUES ('privateUUID', '" + Misc.CreateGUID(
-                    ) + "'); " + "INSERT INTO INFO (key, value) VALUES ('publicUUID',  '" + Misc.CreateGUID
-                    () + "'); " + "PRAGMA user_version = 4";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 4;
-            }
-
-            if (dbVersion < 6)
-            {
-                // Version 6: enable Write-Ahead Log (WAL) <http://sqlite.org/wal.html>
-                // Not supported on Android, require SQLite 3.7.0
-                //String upgradeSql  = "PRAGMA journal_mode=WAL; " +
-                var upgradeSql = "PRAGMA user_version = 6";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 6;
-            }
-            if (dbVersion < 7)
-            {
-                // Version 7: enable full-text search
-                // Note: Apple's SQLite build does not support the icu or unicode61 tokenizers :(
-                // OPT: Could add compress/decompress functions to make stored content smaller
-                // Not supported on Android
-                //String upgradeSql = "CREATE VIRTUAL TABLE fulltext USING fts4(content, tokenize=unicodesn); " +
-                //"ALTER TABLE maps ADD COLUMN fulltext_id INTEGER; " +
-                //"CREATE INDEX IF NOT EXISTS maps_by_fulltext ON maps(fulltext_id); " +
-                //"CREATE TRIGGER del_fulltext DELETE ON maps WHEN old.fulltext_id not null " +
-                //"BEGIN DELETE FROM fulltext WHERE rowid=old.fulltext_id| END; " +
-                var upgradeSql = "PRAGMA user_version = 7";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 7;
-            }
-            // (Version 8 was an older version of the geo index)
-            if (dbVersion < 9)
-            {
-                // Version 9: Add geo-query index
-                //String upgradeSql = "CREATE VIRTUAL TABLE bboxes USING rtree(rowid, x0, x1, y0, y1); " +
-                //"ALTER TABLE maps ADD COLUMN bbox_id INTEGER; " +
-                //"ALTER TABLE maps ADD COLUMN geokey BLOB; " +
-                //"CREATE TRIGGER del_bbox DELETE ON maps WHEN old.bbox_id not null " +
-                //"BEGIN DELETE FROM bboxes WHERE rowid=old.bbox_id| END; " +
-                var upgradeSql = "PRAGMA user_version = 9";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 9;
-            }
-            if (dbVersion < 10)
-            {
-                // Version 10: Add rev flag for whether it has an attachment
-                var upgradeSql = "ALTER TABLE revs ADD COLUMN no_attachments BOOLEAN; " + "PRAGMA user_version = 10";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 10;
-            }
-
-            if (dbVersion < 13) {
-                // Version 13: Add rows to track number of rows in the views
-                const string upgradeSql = "ALTER TABLE views ADD COLUMN total_docs INTEGER DEFAULT -1; " +
-                    "PRAGMA user_version = 13";
-                if (!RunStatements(upgradeSql)) {
-                    return false;
-                }
-
-                dbVersion = 13;
-            }
-
-            // (Version 11 used to create the index revs_cur_deleted, which is obsoleted in version 16)
-
-            if (dbVersion < 14)
-            {
-                // Version 14: Add index for getting a document with doc and rev id
-                var upgradeSql = "CREATE INDEX IF NOT EXISTS revs_by_docid_revid ON revs(doc_id, revid desc, current, deleted); " +
-                    "PRAGMA user_version = 14";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 14;
-            }
-            if (dbVersion < 15)
-            {
-                // Version 15: Add sequence index on maps and attachments for revs(sequence) on DELETE CASCADE
-                var upgradeSql = "CREATE INDEX maps_sequence ON maps(sequence);  " +
-                    "PRAGMA user_version = 15";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 15;
-            }
-            if (dbVersion < 16)
-            {
-                // Version 16: Fix the very suboptimal index revs_cur_deleted.
-                // The new revs_current is an optimal index for finding the winning revision of a doc.
-                var upgradeSql = "DROP INDEX IF EXISTS revs_current; " +
-                    "DROP INDEX IF EXISTS revs_cur_deleted; " +
-                    "CREATE INDEX revs_current ON revs(doc_id, current desc, deleted, revid desc); " +
-                    "PRAGMA user_version = 16";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 16;
-            }
             if (dbVersion < 17) {
-                var upgradeSql = "CREATE INDEX maps_view_sequence ON maps(view_id, sequence);" +
-                    "PRAGMA user_version = 17";
+                if (!isNew) {
+                    Log.W(TAG, "Database version ({0}) is older than I know how to work with",
+                        dbVersion);
+                    StorageEngine.Close();
+                    return false;
+                }
 
-                if (!RunStatements(upgradeSql)) {
+                if (!RunStatements(SCHEMA)) {
                     StorageEngine.Close();
                     return false;
                 }
@@ -915,7 +801,7 @@ PRAGMA user_version = 3;";
             }
 
             var revs = new RevisionList();
-            status = TryQuery(c =>
+            var innerStatus = TryQuery(c =>
             {
                 var rev = new RevisionInternal(docId, c.GetString(1), c.GetInt(2) != 0);
                 rev.SetSequence(c.GetLong(0));
@@ -924,6 +810,7 @@ PRAGMA user_version = 3;";
                 return true;
             }, true, sql, docNumericId);
 
+            status.Code = innerStatus.Code;
             if (status.IsError) {
                 Log.W(TAG, "GetAllDocumentRevisions() failed {0}", status.Code);
             }
@@ -1852,7 +1739,11 @@ PRAGMA user_version = 3;";
 
                 var sequence = InsertRevision(newRev, docNumericId, parentSequence, true, hasAttachments, json, docType);
                 if(sequence == 0L) {
-                    //FIXME: This could mean that a duplicate has been encountered
+                    if(StorageEngine.LastErrorCode != raw.SQLITE_CONSTRAINT) {
+                        return LastDbError;
+                    }
+
+                    Log.I(TAG, "Duplicate rev insertion {0} / {1}", docId, newRevId);
                     newRev.SetBody(null);
                 }
 
@@ -1990,9 +1881,14 @@ PRAGMA user_version = 3;";
 
                         // Insert it:
                         sequence = InsertRevision(newRev, docNumericId, sequence, current, newRev.GetAttachments() != null, json, docType);
-                        if(sequence <= 0) {
-                            return new Status(StatusCode.DbError);
+                        if(sequence == 0) {
+                            if(StorageEngine.LastErrorCode != raw.SQLITE_CONSTRAINT) {
+                                return new Status(StatusCode.DbError);
+                            } else {
+                                sequence = GetSequenceOfDocument(docNumericId, newRev.GetRevId(), false);
+                            }
                         }
+
                     }
                 }
 

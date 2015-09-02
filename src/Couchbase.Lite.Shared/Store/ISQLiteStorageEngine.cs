@@ -52,6 +52,7 @@ namespace Couchbase.Lite.Store
     /// </summary>
     public interface ISQLiteStorageEngine
     {
+        int LastErrorCode { get; }
 
         /// <summary>
         /// Opens the database

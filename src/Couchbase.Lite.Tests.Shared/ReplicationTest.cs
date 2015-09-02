@@ -1204,7 +1204,9 @@ namespace Couchbase.Lite
 
             // delete the branch we've been using, then create a new one to replace it
             var rev4a = rev3a.DeleteDocument();
-            var rev2b = rev1a.CreateRevision().Save(true);
+            var unsaved = rev1a.CreateRevision();
+            unsaved.SetUserProperties(new Dictionary<string, object> { { "foo", "bar" } });
+            var rev2b = unsaved.Save(true);
 
             Assert.AreEqual(rev2b.Id, doc.CurrentRevisionId);
 
