@@ -323,7 +323,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(view.IsStale);
             view.UpdateIndex();
 
-            IList<IDictionary<string, object>> dumpResult = view.Dump().ToList();
+            IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
             Log.V(Tag, "View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"one\"", dumpResult[0]["key"]);
@@ -366,7 +366,7 @@ namespace Couchbase.Lite
             // Reindex again:
             Assert.IsTrue(view.IsStale);
             view.UpdateIndex();
-            dumpResult = view.Dump().ToList();
+            dumpResult = view.Storage.Dump().ToList();
             Log.V(Tag, "View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"one\"", dumpResult[2]["key"]);
@@ -699,7 +699,7 @@ namespace Couchbase.Lite
 
             view.UpdateIndex();
 
-            IList<IDictionary<string, object>> dumpResult = view.Dump().ToList();
+            IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
             Log.V(Tag, "View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"App\"", dumpResult[0]["key"]);

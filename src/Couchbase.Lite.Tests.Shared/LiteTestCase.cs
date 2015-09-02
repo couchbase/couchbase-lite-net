@@ -66,7 +66,7 @@ namespace Couchbase.Lite
     {
         private const string Tag = "LiteTestCase";
 
-        public const string FacebookAppId = "78255794086";
+        public const string FacebookAppId = "127107807637855";
 
          ObjectWriter mapper = new ObjectWriter();
 
