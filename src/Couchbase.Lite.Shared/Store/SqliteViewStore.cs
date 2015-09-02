@@ -28,6 +28,7 @@ using Couchbase.Lite.Internal;
 using Sharpen;
 using System.Collections;
 using SQLitePCL;
+using Couchbase.Lite.Views;
 
 namespace Couchbase.Lite.Store
 {
@@ -308,8 +309,11 @@ namespace Couchbase.Lite.Store
                 return null;
             }
 
+            var lazyKeys = new LazyJsonArray(keysToReduce);
+            var lazyVals = new LazyJsonArray(valuesToReduce);
+
             try {
-                object result = reduce(keysToReduce, valuesToReduce, false);
+                object result = reduce(lazyKeys, lazyVals, false);
                 if(result != null) {
                     return result;
                 }

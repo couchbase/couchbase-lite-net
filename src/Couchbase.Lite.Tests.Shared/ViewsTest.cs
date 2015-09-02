@@ -61,6 +61,21 @@ namespace Couchbase.Lite
         public const string Tag = "Views";
 
         [Test]
+        public void TestReduceBlockDeserialized()
+        {
+            var view = database.GetView("vu");
+            var passed = true;
+            view.SetMapReduce((doc, emit) => emit(doc["_id"], doc),
+                (k, v, r) => {
+                passed = passed && !(k.ElementAt(0) is IEnumerable<byte>);
+                return 0;
+            }, "0.1");
+            CreateDocuments(database, 10);
+            view.CreateQuery().Run();
+            Assert.IsTrue(passed);
+        }
+
+        [Test]
         public void TestViewValueIsEntireDoc()
         {
             var view = database.GetView("vu");
@@ -253,14 +268,14 @@ namespace Couchbase.Lite
         {
             var view = db.GetView("aview");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
+            {
+                Assert.IsNotNull(document["_id"]);
+                Assert.IsNotNull(document["_rev"]);
+                if (document["key"] != null)
                 {
-                    Assert.IsNotNull(document["_id"]);
-                    Assert.IsNotNull(document["_rev"]);
-                    if (document["key"] != null)
-                    {
-                        emitter(document["key"], null);
-                    }
-                }, null, "1");
+                    emitter(document["key"], null);
+                }
+            }, null, "1");
             return view;
         }
 
@@ -308,7 +323,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(view.IsStale);
             view.UpdateIndex();
 
-            IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
+            IList<IDictionary<string, object>> dumpResult = view.Dump().ToList();
             Log.V(Tag, "View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"one\"", dumpResult[0]["key"]);
@@ -351,7 +366,7 @@ namespace Couchbase.Lite
             // Reindex again:
             Assert.IsTrue(view.IsStale);
             view.UpdateIndex();
-            dumpResult = view.Storage.Dump().ToList();
+            dumpResult = view.Dump().ToList();
             Log.V(Tag, "View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"one\"", dumpResult[2]["key"]);
@@ -633,7 +648,7 @@ namespace Couchbase.Lite
             expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2], expectedRowBase[3], expectedConflict1,
                 expectedRowBase[4]
             };
-                
+
             Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
 
             // Get _only_ conflicts:
@@ -684,7 +699,7 @@ namespace Couchbase.Lite
 
             view.UpdateIndex();
 
-            IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
+            IList<IDictionary<string, object>> dumpResult = view.Dump().ToList();
             Log.V(Tag, "View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"App\"", dumpResult[0]["key"]);
@@ -795,13 +810,13 @@ namespace Couchbase.Lite
             View view = database.GetView("grouper");
             view.SetMapReduce((document, emitter) =>
             {
-                    IList<object> key = new List<object>();
-                    key.AddItem(document["artist"]);
-                    key.AddItem(document["album"]);
-                    key.AddItem(document["track"]);
-                    emitter(key, document["time"]);
+                IList<object> key = new List<object>();
+                key.AddItem(document["artist"]);
+                key.AddItem(document["album"]);
+                key.AddItem(document["track"]);
+                emitter(key, document["time"]);
             }, BuiltinReduceFunctions.Sum, "1");
-                
+
             view.UpdateIndex();
             QueryOptions options = new QueryOptions();
             options.Reduce = true;
@@ -1047,7 +1062,7 @@ namespace Couchbase.Lite
 
             View view = database.GetView("default/names");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter) => 
-            emitter(document["name"], null), null, "1.0");
+                emitter(document["name"], null), null, "1.0");
 
             QueryOptions options = new QueryOptions();
             IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
@@ -1117,7 +1132,7 @@ namespace Couchbase.Lite
 
             View view = database.GetView("default/names");
             view.SetMapReduce((document, emitter) => 
-            emitter(document["name"], null), null, "1.0");
+                emitter(document["name"], null), null, "1.0");
 
             view.Collation = ViewCollation.Raw;
 
@@ -1350,7 +1365,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, rows.Count());
             Assert.AreEqual(33547239, rows.GetRow(0).Key);
         }
-            
+
         [Test]
         public void TestViewQueryStartKeyDocID()
         {
