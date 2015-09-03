@@ -69,6 +69,8 @@ namespace Couchbase.Lite.Store
         /// </summary>
         bool AutoCompact { get; set; }
 
+        bool IsOpen { get; }
+
         #endregion
 
         #region Database Attributes & Operations

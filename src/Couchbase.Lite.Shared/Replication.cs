@@ -895,7 +895,7 @@ namespace Couchbase.Lite
         protected virtual void StartInternal()
         {
             Log.V(TAG, "Replication Start");
-            if (!LocalDatabase.Open()) {
+            if (!LocalDatabase.Storage.IsOpen) {
                 // Race condition: db closed before replication starts
                 Log.W(TAG, "Not starting replication because db.isOpen() returned false.");
                 FireTrigger(ReplicationTrigger.StopImmediate);
@@ -1101,12 +1101,12 @@ namespace Couchbase.Lite
             });
         }
 
-        internal void SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
+        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
         {
             try {
                 var urlStr = BuildRelativeURLString(relativePath);
                 var url = new Uri(urlStr);
-                SendAsyncRequest(method, url, body, completionHandler, requestTokenSource);
+                return SendAsyncRequest(method, url, body, completionHandler, requestTokenSource);
             } catch (UriFormatException e) {
                 Log.E(TAG, "Malformed URL for async request", e);
                 throw;
@@ -1130,7 +1130,7 @@ namespace Couchbase.Lite
             return remoteUrlString + relativePath;
         }
 
-        internal void SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
+        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
         {
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
@@ -1233,6 +1233,7 @@ namespace Couchbase.Lite
             }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             _requests.AddOrUpdate(message, k => t, (k, v) => t);
+            return message;
         }
 
         internal void SendAsyncMultipartDownloaderRequest(HttpMethod method, string relativePath, object body, Database db, RemoteRequestCompletionBlock onCompletion)
@@ -1553,10 +1554,9 @@ namespace Couchbase.Lite
         internal void DatabaseClosing()
         {
             lastSequenceChanged = true; // force save the sequence
-            SaveLastSequence (() => {
-                Stop ();
-                ClearDbRef ();
-            });
+            SaveLastSequence(null);
+            Stop();
+            ClearDbRef();
         }
 
         internal void AddToInbox(RevisionInternal rev)
@@ -1667,26 +1667,17 @@ namespace Couchbase.Lite
             }
 
             _savingCheckpoint = true;
-            SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => 
+            var message = SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => 
             {
                 _savingCheckpoint = false;
                 if (e != null) {
-                    Log.V (TAG, "Unable to save remote checkpoint", e);
+                    Log.V(TAG, "Unable to save remote checkpoint", e);
                 }
 
-                if (LocalDatabase == null) {
-                    Log.W(TAG, "Database is null, ignoring remote checkpoint response");
+                if (LocalDatabase == null || !LocalDatabase.Storage.IsOpen) {
+                    Log.W(TAG, "Database is null or closed, ignoring remote checkpoint response");
                     if (completionHandler != null) {
-                        completionHandler ();
-                    }
-                    return;
-                }
-
-                if (!LocalDatabase.Open()) {
-                    Log.W(TAG, "Database is closed, ignoring remote checkpoint response");
-                    if (completionHandler != null)
-                    {
-                        completionHandler ();
+                        completionHandler();
                     }
                     return;
                 }
@@ -1705,17 +1696,21 @@ namespace Couchbase.Lite
                             break;
                     }
                 } else {
-                    Log.D(TAG, "Save checkpoint response: " + result.ToString());
+                    Log.D(TAG, "Save checkpoint response: " + result);
                     var response = result.AsDictionary<string, object>();
                     body.Put ("_rev", response.Get ("rev"));
                     _remoteCheckpoint = body;
-                    LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
+                    LocalDatabase.SetLastSequence(LastSequence, remoteCheckpointDocID);
                 }
 
                 if (completionHandler != null) {
                     completionHandler ();
                 }
             });
+
+            // This request should not be canceled when the replication is told to stop:
+            Task dummy;
+            _requests.TryRemove(message, out dummy);
         }
 
         private void AddRequestHeaders(HttpRequestMessage request)
@@ -1805,11 +1800,14 @@ namespace Couchbase.Lite
 
         private void ClearDbRef()
         {
-            Log.D(TAG, "ClearDbRef...");
-            if (LocalDatabase != null && _savingCheckpoint && LastSequence != null)
-            {
-                LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
+            // If we're in the middle of saving the checkpoint and waiting for a response, by the time the
+            // response arrives _db will be nil, so there won't be any way to save the checkpoint locally.
+            // To avoid that, pre-emptively save the local checkpoint now.
+            if (LocalDatabase != null && _savingCheckpoint && LastSequence != null) {
+                LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID());
             }
+
+            LocalDatabase = null;
         }
 
         private void CheckSessionAtPath(string sessionPath)
@@ -1982,14 +1980,16 @@ namespace Couchbase.Lite
                 _eventQueue.Enqueue(args);
             }
 
-            LocalDatabase.Manager.CapturedContext.StartNew(() =>
-            {
-                lock(_eventQueue) { 
-                    while(_eventQueue.Count > 0) {
-                        evt(this, _eventQueue.Dequeue());
+            if (LocalDatabase != null) {
+                LocalDatabase.Manager.CapturedContext.StartNew(() =>
+                {
+                    lock (_eventQueue) { 
+                        while (_eventQueue.Count > 0) {
+                            evt(this, _eventQueue.Dequeue());
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
         #endregion

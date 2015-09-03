@@ -24,12 +24,19 @@ using System.Collections.Concurrent;
 using DbDict = System.Collections.Concurrent.ConcurrentDictionary<string, System.Collections.Concurrent.ConcurrentDictionary<string, object>>;
 
 using Couchbase.Lite;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal
 {
     // Container for shared state between Database instances that represent the same database file. API is thread-safe.
     internal sealed class SharedState
     {
+
+        #region Constants
+
+        private const string TAG = "SharedState";
+
+        #endregion
 
         #region Variables
 
@@ -85,12 +92,19 @@ namespace Couchbase.Lite.Internal
         {
             lock(_locker) {
                 int val;
-                if (_openDatabaseNames.TryGetValue(db.Name, out val) && val == 1) {
-                    DbDict dummy;
-                    _databases.TryRemove(db.Name, out dummy);
+                bool found = _openDatabaseNames.TryGetValue(db.Name, out val);
+                if (!found) {
+                    Log.W(TAG, "Attempting to call SharedState.Close() on a non-existent database");
+                    return;
                 }
 
-                _openDatabaseNames.AddOrUpdate(db.Name, k => 1, (k, v) => v - 1);
+                if (val <= 1) {
+                    DbDict dummy;
+                    _databases.TryRemove(db.Name, out dummy);
+                    _openDatabaseNames.TryRemove(db.Name, out val);
+                } else {
+                    _openDatabaseNames.TryUpdate(db.Name, val - 1, val);
+                }
             }
         }
 

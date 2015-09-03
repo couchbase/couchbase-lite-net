@@ -339,7 +339,6 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException("The database was open, and could not be closed", StatusCode.InternalServerError);
             }
 
-            Manager.ForgetDatabase(this);
             if (!Exists()) {
                 return;
             }
@@ -774,7 +773,7 @@ namespace Couchbase.Lite
             return string.Format("_local/{0}", documentId);
         }
 
-        internal bool SetLastSequence(string lastSequence, string checkpointId, bool push)
+        internal bool SetLastSequence(string lastSequence, string checkpointId)
         {
             if (Storage == null) {
                 return false;
