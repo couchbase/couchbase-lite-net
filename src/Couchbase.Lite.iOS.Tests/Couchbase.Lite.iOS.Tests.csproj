@@ -28,6 +28,7 @@
     <MtouchI18n>
     </MtouchI18n>
     <MtouchArch>i386</MtouchArch>
+    <MtouchUseRefCounting>true</MtouchUseRefCounting>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhoneSimulator' ">
     <DebugType>pdbonly</DebugType>
