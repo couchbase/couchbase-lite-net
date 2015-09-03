@@ -108,7 +108,6 @@ namespace Couchbase.Lite.Store
         private static readonly int _SqliteVersion;
 
         private string _path;
-        private bool _isOpen;
         private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
 
@@ -117,6 +116,14 @@ namespace Couchbase.Lite.Store
         #region Properties
 
         public ISQLiteStorageEngine StorageEngine { get; private set; }
+
+        public bool IsOpen
+        { 
+            get
+            {
+                return StorageEngine != null && StorageEngine.IsOpen;
+            }
+        }
 
         public ICouchStoreDelegate Delegate { get; set; }
         public int MaxRevTreeDepth { get; set; }
@@ -419,7 +426,7 @@ namespace Couchbase.Lite.Store
 
         private bool Open()
         {
-            if (_isOpen) {
+            if (IsOpen) {
                 return true;
             }
 
@@ -496,8 +503,6 @@ namespace Couchbase.Lite.Store
             if (!isNew) {
                 OptimizeSQLIndexes();
             }
-
-            _isOpen = true;
 
             return true;
         }

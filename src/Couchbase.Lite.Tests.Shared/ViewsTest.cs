@@ -53,6 +53,9 @@ using Sharpen;
 using Newtonsoft.Json.Linq;
 using System.Threading;
 using Couchbase.Lite.Views;
+using Couchbase.Lite.Tests;
+using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace Couchbase.Lite
 {
@@ -60,19 +63,86 @@ namespace Couchbase.Lite
     {
         public const string Tag = "Views";
 
-        [Test]
-        public void TestReduceBlockDeserialized()
+        private Replication pull;
+        private LiveQuery query;
+
+        [Test] 
+        public void TestIssue490()
         {
-            var view = database.GetView("vu");
-            var passed = true;
-            view.SetMapReduce((doc, emit) => emit(doc["_id"], doc),
-                (k, v, r) => {
-                passed = passed && !(k.ElementAt(0) is IEnumerable<byte>);
-                return 0;
-            }, "0.1");
-            CreateDocuments(database, 10);
-            view.CreateQuery().Run();
-            Assert.IsTrue(passed);
+            var sg = new CouchDB("http", GetReplicationServer());
+            using (var remoteDb = sg.CreateDatabase("issue490")) {
+
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                CreateFilteredDocuments(database, 30);
+                CreateNonFilteredDocuments (database, 10);
+                RunReplication(push);
+                Assert.IsTrue(push.ChangesCount==40);
+                Assert.IsTrue(push.CompletedChangesCount==40);
+
+                Assert.IsNull(push.LastError);
+                Assert.AreEqual(40, database.DocumentCount);
+
+                for (int i = 0; i <= 5; i++) {
+                    pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                    pull.Continuous = true;
+                    pull.Start ();
+                    Task.Delay (1000).Wait();
+                    CallToView ();
+                    Task.Delay (2000).Wait();
+                    RecreateDatabase ();
+                }
+            }
+
+        }
+
+        private void RecreateDatabase ()
+        {
+            query.Stop ();
+            pull.Stop ();
+            //database.Manager.ForgetDatabase(database);
+            database.Delete ();
+            database = Manager.SharedInstance.GetDatabase ("test");
+        }
+
+        private void CallToView ()
+        {
+            var the_view = database.GetView ("testView");
+            the_view.SetMap (delegate(IDictionary<string, object> document, EmitDelegate emit) {
+                try{
+                    emit (null, document);
+                } catch(Exception ex){
+                    Debug.WriteLine(ex);
+                }
+            }, "0.1.2");
+            query = the_view.CreateQuery ().ToLiveQuery();
+            query.Changed += delegate(object sender, QueryChangeEventArgs e) {
+                Debug.WriteLine("changed!");
+            };
+            query.Start ();
+        }
+
+        private void CreateNonFilteredDocuments(Database db, int n)
+        {
+            //TODO should be changed to use db.runInTransaction
+            for (int i = 0; i < n; i++)
+            {
+                IDictionary<string, object> properties = new Dictionary<string, object>();
+                properties.Add("testName", "unimportant");
+                properties.Add("sequence", i);
+                CreateDocumentWithProperties(db, properties);
+            }
+        }
+
+        private void CreateFilteredDocuments(Database db, int n)
+        {
+            //TODO should be changed to use db.runInTransaction
+            for (int i = 0; i < n; i++)
+            {
+                IDictionary<string, object> properties = new Dictionary<string, object>();
+                properties.Add("testName", "important");
+                properties.Add("sequence", i);
+                CreateDocumentWithProperties(db, properties);
+            }
         }
 
         [Test]
@@ -268,14 +338,14 @@ namespace Couchbase.Lite
         {
             var view = db.GetView("aview");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
-            {
-                Assert.IsNotNull(document["_id"]);
-                Assert.IsNotNull(document["_rev"]);
-                if (document["key"] != null)
                 {
-                    emitter(document["key"], null);
-                }
-            }, null, "1");
+                    Assert.IsNotNull(document["_id"]);
+                    Assert.IsNotNull(document["_rev"]);
+                    if (document["key"] != null)
+                    {
+                        emitter(document["key"], null);
+                    }
+                }, null, "1");
             return view;
         }
 
@@ -648,7 +718,7 @@ namespace Couchbase.Lite
             expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2], expectedRowBase[3], expectedConflict1,
                 expectedRowBase[4]
             };
-
+                
             Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
 
             // Get _only_ conflicts:
@@ -810,13 +880,13 @@ namespace Couchbase.Lite
             View view = database.GetView("grouper");
             view.SetMapReduce((document, emitter) =>
             {
-                IList<object> key = new List<object>();
-                key.AddItem(document["artist"]);
-                key.AddItem(document["album"]);
-                key.AddItem(document["track"]);
-                emitter(key, document["time"]);
+                    IList<object> key = new List<object>();
+                    key.AddItem(document["artist"]);
+                    key.AddItem(document["album"]);
+                    key.AddItem(document["track"]);
+                    emitter(key, document["time"]);
             }, BuiltinReduceFunctions.Sum, "1");
-
+                
             view.UpdateIndex();
             QueryOptions options = new QueryOptions();
             options.Reduce = true;
@@ -1062,7 +1132,7 @@ namespace Couchbase.Lite
 
             View view = database.GetView("default/names");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter) => 
-                emitter(document["name"], null), null, "1.0");
+            emitter(document["name"], null), null, "1.0");
 
             QueryOptions options = new QueryOptions();
             IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
@@ -1132,7 +1202,7 @@ namespace Couchbase.Lite
 
             View view = database.GetView("default/names");
             view.SetMapReduce((document, emitter) => 
-                emitter(document["name"], null), null, "1.0");
+            emitter(document["name"], null), null, "1.0");
 
             view.Collation = ViewCollation.Raw;
 
@@ -1365,7 +1435,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, rows.Count());
             Assert.AreEqual(33547239, rows.GetRow(0).Key);
         }
-
+            
         [Test]
         public void TestViewQueryStartKeyDocID()
         {

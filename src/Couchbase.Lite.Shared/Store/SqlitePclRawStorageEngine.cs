@@ -586,17 +586,21 @@ namespace Couchbase.Lite
             {
                 return;
             }
+
+            var dbCopy = db;
+            db = null;
+
             try
             {
                 // Close any open statements, otherwise the
                 // sqlite connection won't actually close.
                 sqlite3_stmt next = null;
-                while ((next = db.next_stmt(next))!= null)
+                while ((next = dbCopy.next_stmt(next))!= null)
                 {
                     next.Dispose();
                 } 
-                db.close();
-                Log.I(Tag, "db connection {0} closed", db);
+                dbCopy.close();
+                Log.I(Tag, "db connection {0} closed", dbCopy);
             }
             catch (KeyNotFoundException ex)
             {
@@ -609,21 +613,17 @@ namespace Couchbase.Lite
                 Log.E(Tag, "Retrying database close.", ex);
                 // Assuming a basic retry fixes this.
                 Thread.Sleep(5000);
-                db.close();
+                dbCopy.close();
             }
             GC.Collect();
             GC.WaitForPendingFinalizers();
             try
             {
-                db.Dispose();
+                dbCopy.Dispose();
             }
             catch (Exception ex)
             {
                 Log.E(Tag, "Error while closing database.", ex);
-            }
-            finally
-            {                
-                db = null;
             }
         }
 
@@ -632,30 +632,30 @@ namespace Couchbase.Lite
         #region Non-public Members
         private sqlite3_stmt BuildCommand(sqlite3 db, string sql, object[] paramArgs)
         {
+            if (db == null) {
+                throw new ArgumentNullException("db");
+            }
+
             sqlite3_stmt command = null;
             try
             {
-                if (!IsOpen)
-                {
-                    if(Open(Path) == false)
-                    {
+                if (!IsOpen) {
+                    if(!Open(Path)) {
                         throw new CouchbaseLiteException("Failed to Open " + Path, StatusCode.DbError);
                     }
                 }
 
-                int err = raw.SQLITE_OK;
-
                 lock(Cursor.StmtDisposeLock)
                 {
-                    err = raw.sqlite3_prepare_v2(db, sql, out command);
+                    LastErrorCode = raw.sqlite3_prepare_v2(db, sql, out command);
                 }
 
-                if (err != raw.SQLITE_OK || command == null)
+                if (LastErrorCode != raw.SQLITE_OK || command == null)
                 {
-                    Log.E(Tag, "sqlite3_prepare_v2: " + err);
+                    Log.E(Tag, "sqlite3_prepare_v2: " + LastErrorCode);
                 }
 
-                if (paramArgs != null && paramArgs.Length > 0 && command != null && err != raw.SQLITE_ERROR)
+                if (paramArgs != null && paramArgs.Length > 0 && command != null && LastErrorCode != raw.SQLITE_ERROR)
                 {
                     command.bind(paramArgs);
                 }
@@ -665,6 +665,7 @@ namespace Couchbase.Lite
                 Log.E(Tag, "Error when build a sql " + sql + " with params " + paramArgs, e);
                 throw;
             }
+
             return command;
         }
 
