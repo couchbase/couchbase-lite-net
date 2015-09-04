@@ -128,6 +128,14 @@ namespace Couchbase.Lite
 
     #endregion
 
+    [DictionaryContract(OptionalKeys=new object[] { 
+        ReplicationOptionsDictionary.REMOTE_UUID_KEY, typeof(string) 
+    })]
+    public sealed class ReplicationOptionsDictionary : ContractedDictionary
+    {
+        public const string REMOTE_UUID_KEY = "remoteUUID";
+    }
+
     /// <summary>
     /// A Couchbase Lite pull or push <see cref="Couchbase.Lite.Replication"/>
     /// between a local and a remote <see cref="Couchbase.Lite.Database"/>.
@@ -467,6 +475,8 @@ namespace Couchbase.Lite
                 };
             }
         }
+
+        public ReplicationOptionsDictionary Options { get; set; }
        
         /// <summary>
         /// Returns whether or not the replication may be stopped at 
@@ -587,6 +597,7 @@ namespace Couchbase.Lite
             WorkExecutor = workExecutor;
             CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
+            Options = new ReplicationOptionsDictionary();
             RequestHeaders = new Dictionary<String, Object>();
             _requests = new ConcurrentDictionary<HttpRequestMessage, Task>();
 
@@ -1078,6 +1089,13 @@ namespace Couchbase.Lite
 
         internal abstract void ProcessInbox(RevisionList inbox);
 
+        internal bool HasSameSettingsAs(Replication other)
+        {
+            return LocalDatabase == other.LocalDatabase &&
+            IsPull == other.IsPull &&
+            RemoteCheckpointDocID("").Equals(other.RemoteCheckpointDocID(""));
+        }
+
         internal virtual void Stopping()
         {
             Log.V(TAG, "Stopping");
@@ -1433,58 +1451,66 @@ namespace Couchbase.Lite
         /// Its ID is based on the local database ID (the private one, to make the result unguessable)
         /// and the remote database's URL.
         /// </remarks>
+        internal string RemoteCheckpointDocID(string localUUID)
+        {
+            if (LocalDatabase == null) {
+                return null;
+            }
+
+            // canonicalization: make sure it produces the same checkpoint id regardless of
+            // ordering of filterparams / docids
+            IDictionary<String, Object> filterParamsCanonical = null;
+            if (FilterParams != null) {
+                filterParamsCanonical = new SortedDictionary<String, Object>(FilterParams);
+            }
+
+            List<String> docIdsSorted = null;
+            if (DocIds != null) {
+                docIdsSorted = new List<String>(DocIds);
+                docIdsSorted.Sort();
+            }
+
+            // use a treemap rather than a dictionary for purposes of canonicalization
+            var spec = new SortedDictionary<String, Object>();
+            spec.Put("localUUID", localUUID);
+            spec.Put("push", !IsPull);
+            spec.Put("continuous", Continuous);
+
+            if (Filter != null) {
+                spec.Put("filter", Filter);
+            }
+            if (filterParamsCanonical != null) {
+                spec.Put("filterParams", filterParamsCanonical);
+            }
+            if (docIdsSorted != null) {
+                spec.Put("docids", docIdsSorted);
+            }
+
+            string remoteUUID;
+            var hasValue = Options.TryGetValue<string>(ReplicationOptionsDictionary.REMOTE_UUID_KEY, out remoteUUID);
+            if (hasValue) {
+                spec["remoteURL"] = remoteUUID;
+            } else {
+                spec["remoteURL"] = RemoteUrl.AbsoluteUri;
+            }
+
+            IEnumerable<byte> inputBytes = null;
+            try {
+                inputBytes = Manager.GetObjectMapper().WriteValueAsBytes(spec);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            return Misc.HexSHA1Digest(inputBytes);
+        }
+
         internal string RemoteCheckpointDocID()
         {
-            if (_remoteCheckpointDocID != null) {
-                return _remoteCheckpointDocID;
-            } else {
-                // TODO: Needs to be consistent with -hasSameSettingsAs: --
-                // TODO: If a.remoteCheckpointID == b.remoteCheckpointID then [a hasSameSettingsAs: b]
-
-                if (LocalDatabase == null) {
-                    return null;
-                }
-
-                // canonicalization: make sure it produces the same checkpoint id regardless of
-                // ordering of filterparams / docids
-                IDictionary<String, Object> filterParamsCanonical = null;
-                if (FilterParams != null) {
-                    filterParamsCanonical = new SortedDictionary<String, Object>(FilterParams);
-                }
-
-                List<String> docIdsSorted = null;
-                if (DocIds != null) {
-                    docIdsSorted = new List<String>(DocIds);
-                    docIdsSorted.Sort();
-                }
-
-                // use a treemap rather than a dictionary for purposes of canonicalization
-                var spec = new SortedDictionary<String, Object>();
-                spec.Put("localUUID", LocalDatabase.PrivateUUID());
-                spec.Put("remoteURL", RemoteUrl.AbsoluteUri);
-                spec.Put("push", !IsPull);
-                spec.Put("continuous", Continuous);
-
-                if (Filter != null) {
-                    spec.Put("filter", Filter);
-                }
-                if (filterParamsCanonical != null) {
-                    spec.Put("filterParams", filterParamsCanonical);
-                }
-                if (docIdsSorted != null) {
-                    spec.Put("docids", docIdsSorted);
-                }
-
-                IEnumerable<byte> inputBytes = null;
-                try {
-                    inputBytes = Manager.GetObjectMapper().WriteValueAsBytes(spec);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-
-                _remoteCheckpointDocID = Misc.HexSHA1Digest(inputBytes);
-                return _remoteCheckpointDocID;
+            if (_remoteCheckpointDocID == null) {
+                _remoteCheckpointDocID = RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
             }
+
+            return _remoteCheckpointDocID;
         }
 
         internal RevisionInternal TransformRevision(RevisionInternal rev)

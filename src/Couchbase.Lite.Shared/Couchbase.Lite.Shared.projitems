@@ -171,6 +171,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Query\IQueryRowStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqliteCouchStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqliteViewStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ContractedDictionary.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
