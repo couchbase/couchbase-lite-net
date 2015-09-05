@@ -172,6 +172,29 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestRemoteUUID()
+        {
+            var r1 = database.CreatePullReplication(new Uri("http://alice.local:55555/db"));
+            r1.Options[ReplicationOptionsDictionary.REMOTE_UUID_KEY] = "cafebabe";
+            var check1 = r1.RemoteCheckpointDocID();
+
+            var r2 = database.CreatePullReplication(new Uri("http://alice.local:44444/db"));
+            r2.Options = r1.Options;
+            var check2 = r2.RemoteCheckpointDocID();
+
+            Assert.AreEqual(check1, check2);
+            Assert.IsTrue(r1.HasSameSettingsAs(r2));
+
+            var r3 = database.CreatePullReplication(r2.RemoteUrl);
+            r3.Options = r1.Options;
+            r3.Filter = "Melitta";
+            var check3 = r3.RemoteCheckpointDocID();
+
+            Assert.AreNotEqual(check2, check3);
+            Assert.IsFalse(r3.HasSameSettingsAs(r2));
+        }
+
+        [Test]
         public void TestConcurrentPullers()
         {
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
