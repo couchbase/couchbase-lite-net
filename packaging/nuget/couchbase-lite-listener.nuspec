@@ -28,10 +28,10 @@
     <language>en-US</language>
     <dependencies>
       <group targetFramework="net35">
-        <dependency id="Couchbase.Lite" version="1.1.1" />
+        <dependency id="Couchbase.Lite" version="1.1.1.1" />
       </group>
       <group>
-        <dependency id="Couchbase.Lite" version="1.1.1" />
+        <dependency id="Couchbase.Lite" version="1.1.1.1" />
         <dependency id="Jint" version="2.4.0" />
       </group>
     </dependencies>

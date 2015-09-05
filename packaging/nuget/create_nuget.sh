@@ -1,4 +1,34 @@
-#!/bin/sh
+#/bin/sh
+
+rm -rf ../../src/Couchbase.Lite.Net45/bin
+rm -rf ../../src/Couchbase.Lite.Net45/obj
+rm -rf ../../src/Couchbase.Lite.Net35/bin
+rm -rf ../../src/Couchbase.Lite.Net35/obj
+rm -rf ../../src/Couchbase.Lite.iOS/bin
+rm -rf ../../src/Couchbase.Lite.iOS/obj
+rm -rf ../../src/Couchbase.Lite.Android/bin
+rm -rf ../../src/Couchbase.Lite.Android/obj
+rm -rf ../../src/ListenerComponent/Couchbase.Lite.Listener.Net35/bin
+rm -rf ../../src/ListenerComponent/Couchbase.Lite.Listener.Net35/obj
+rm -rf ../../src/ListenerComponent/Couchbase.Lite.Listener.Net45/bin
+rm -rf ../../src/ListenerComponent/Couchbase.Lite.Listener.Net45/obj
+rm -rf ../../src/ListenerComponent/Couchbase.Lite.Listener.iOS/bin
+rm -rf ../../src/ListenerComponent/Couchbase.Lite.Listener.iOS/obj
+rm -rf ../../src/ListenerComponent/Couchbase.Lite.Listener.Android/bin
+rm -rf ../../src/ListenerComponent/Couchbase.Lite.Listener.Android/obj
+rm -rf ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net35/bin
+rm -rf ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net35/obj
+rm -rf ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net45/bin
+rm -rf ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net45/obj
+rm -rf ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.iOS/bin
+rm -rf ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.iOS/obj
+rm -rf ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Android/bin
+rm -rf ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Android/obj
+
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Net35.sln
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Net45.sln
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.iOS.sln
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Android.sln
 
 LITE_NUGET_DIR="../../src/Couchbase.Lite.Net35/bin/Nuget/"
 LITE_RELEASE_DIR="../../src/Couchbase.Lite.Net35/bin/Release"
