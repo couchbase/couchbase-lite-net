@@ -81,6 +81,7 @@ namespace Couchbase.Lite
         private const int NOTIFY_CHANGES_LIMIT = 5000;
         private const int MAX_DOC_CACHE_SIZE = 50;
         private const int DEFAULT_MAX_REVS = 20;
+        private const string LOCAL_CHECKPOINT_DOC_ID = "CBL_LocalCheckpoint";
 
         #endregion
 
@@ -534,6 +535,10 @@ namespace Couchbase.Lite
         /// <param name="status">The result of the operation</param>
         public FilterDelegate GetFilter(String name, Status status = null) 
         { 
+            if (name == null) {
+                return null;
+            }
+
             FilterDelegate result = null;
             if (!Shared.TryGetValue("filter", name, Name, out result)) {
                 result = null;
@@ -649,7 +654,21 @@ namespace Couchbase.Lite
 
     #endregion
 
-    #region Internal Methods
+        #region Internal Methods
+
+        internal RevisionList UnpushedRevisionsSince(string sequence, FilterDelegate filter, IDictionary<string, object> filterParams)
+        {
+            // Include conflicts so all conflicting revisions are replicated too
+            var options = ChangesOptions.Default();
+            options.SetIncludeConflicts(true);
+
+            return ChangesSince(Int64.Parse(sequence ?? "0"), options, filter, filterParams);
+        }
+
+        internal IDictionary<string, object> GetLocalCheckpointDoc()
+        {
+            return GetExistingLocalDocument(LOCAL_CHECKPOINT_DOC_ID);
+        }
 
         internal object GetDesignDocFunction(string fnName, string key, out string language)
         {

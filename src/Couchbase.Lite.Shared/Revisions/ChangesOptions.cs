@@ -42,12 +42,14 @@
 
 using Couchbase.Lite;
 using Sharpen;
+using System;
 
 namespace Couchbase.Lite
 {
     /// <summary>Options for _changes feed</summary>
     internal class ChangesOptions
     {
+        
         private int limit = int.MaxValue;
 
         private DocumentContentOptions contentOptions;
@@ -59,6 +61,17 @@ namespace Couchbase.Lite
         private bool sortBySequence = true;
 
         public bool Descending { get; set; }
+
+        public static ChangesOptions Default()
+        {
+            return new ChangesOptions {
+                limit = Int32.MaxValue,
+                includeDocs = false,
+                includeConflicts = false,
+                sortBySequence = true,
+                Descending = false
+            };
+        }
 
         public virtual int GetLimit()
         {

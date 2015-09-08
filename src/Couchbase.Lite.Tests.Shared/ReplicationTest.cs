@@ -172,6 +172,77 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestPendingDocumentIDs()
+        {
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var repl = database.CreatePushReplication(remoteDb.RemoteUri);
+                Assert.IsNotNull(repl.GetPendingDocumentIDs());
+                Assert.AreEqual(0, repl.GetPendingDocumentIDs().Count);
+
+                database.RunInTransaction(() =>
+                {
+                    for(int i = 1; i <= 10; i++) {
+                        var doc = database.GetDocument(String.Format("doc-{0}", i));
+                        Assert.DoesNotThrow(() => {
+                            doc.PutProperties(new Dictionary<string, object> {
+                                { "index", i },
+                                { "bar", false }
+                            });
+                        });
+                    }
+
+                    return true;
+                });
+
+                Assert.AreEqual(10, repl.GetPendingDocumentIDs().Count);
+                Assert.IsTrue(repl.IsDocumentPending(database.GetDocument("doc-1")));
+
+                repl.Start();
+                Assert.AreEqual(10, repl.GetPendingDocumentIDs().Count);
+                Assert.IsTrue(repl.IsDocumentPending(database.GetDocument("doc-1")));
+
+                RunReplication(repl);
+                Assert.IsNotNull(repl.GetPendingDocumentIDs());
+                Assert.AreEqual(0, repl.GetPendingDocumentIDs().Count);
+                Assert.IsFalse(repl.IsDocumentPending(database.GetDocument("doc-1")));
+
+                database.RunInTransaction(() =>
+                {
+                    for(int i = 11; i <= 20; i++) {
+                        var doc = database.GetDocument(String.Format("doc-{0}", i));
+                        Assert.DoesNotThrow(() => {
+                            doc.PutProperties(new Dictionary<string, object> {
+                                { "index", i },
+                                { "bar", false }
+                            });
+                        });
+                    }
+
+                    return true;
+                });
+
+                repl = database.CreatePushReplication(remoteDb.RemoteUri);
+                Assert.AreEqual(10, repl.GetPendingDocumentIDs().Count);
+                Assert.IsTrue(repl.IsDocumentPending(database.GetDocument("doc-11")));
+                Assert.IsFalse(repl.IsDocumentPending(database.GetDocument("doc-1")));
+
+                repl.Start();
+                Assert.AreEqual(10, repl.GetPendingDocumentIDs().Count);
+                Assert.IsTrue(repl.IsDocumentPending(database.GetDocument("doc-11")));
+                Assert.IsFalse(repl.IsDocumentPending(database.GetDocument("doc-1")));
+
+                repl = database.CreatePullReplication(remoteDb.RemoteUri);
+                Assert.IsNull(repl.GetPendingDocumentIDs());
+
+                repl.Start();
+                Assert.IsNull(repl.GetPendingDocumentIDs());
+
+                RunReplication(repl);
+                Assert.IsNull(repl.GetPendingDocumentIDs());
+            }
+        }
+
+        [Test]
         public void TestRemoteUUID()
         {
             var r1 = database.CreatePullReplication(new Uri("http://alice.local:55555/db"));

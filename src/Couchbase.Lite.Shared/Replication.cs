@@ -153,6 +153,7 @@ namespace Couchbase.Lite
         private const int RETRY_DELAY = 60; // Seconds
         private const int SAVE_LAST_SEQUENCE_DELAY = 2; //Seconds
         private const string TAG = "Replication";
+        private const string LOCAL_CHECKPOINT_LOCAL_UUID_KEY = "localUUID";
 
         #endregion
 
@@ -214,7 +215,8 @@ namespace Couchbase.Lite
         private string _remoteCheckpointDocID;
         private CancellationTokenSource _retryIfReadyTokenSource;
         private Task _retryIfReadyTask;
-        private Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
+        private readonly Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
+        private HashSet<string> _pendingDocumentIDs;
 
         #endregion
 
@@ -492,11 +494,11 @@ namespace Couchbase.Lite
         /// </summary>
         protected internal string LastSequence
         {
-            get { return lastSequence; }
+            get { return _lastSequence; }
             set {
-                if (value != null && !value.Equals(lastSequence)) {
-                    Log.V(TAG, "Setting LastSequence to " + value + " from( " + lastSequence + ")");
-                    lastSequence = value;
+                if (value != null && !value.Equals(_lastSequence)) {
+                    Log.V(TAG, "Setting LastSequence to " + value + " from( " + _lastSequence + ")");
+                    _lastSequence = value;
 
                     if (!lastSequenceChanged) {
                         lastSequenceChanged = true;
@@ -504,7 +506,7 @@ namespace Couchbase.Lite
                 }
             }
         }
-        private String lastSequence = "0";
+        private string _lastSequence = "0";
 
         /// <summary>
         /// Gets or sets the client factory used to create HttpClient objects 
@@ -688,6 +690,41 @@ namespace Couchbase.Lite
         public virtual void Stop()
         {
             FireTrigger(ReplicationTrigger.StopGraceful);
+        }
+
+        public ICollection<string> GetPendingDocumentIDs()
+        {
+            if (IsPull || (_stateMachine.State > ReplicationState.Initial && _pendingDocumentIDs != null)) {
+                return _pendingDocumentIDs;
+            }
+
+            var lastSequence = LastSequence;
+            if (lastSequence == null || lastSequence == "0") {
+                var checkpointID = RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
+                lastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointID);
+                if (lastSequence == null) {
+                    var doc = LocalDatabase.GetLocalCheckpointDoc();
+                    var importedUUID = doc == null ? null : doc.GetCast<string>(LOCAL_CHECKPOINT_LOCAL_UUID_KEY);
+                    if (importedUUID != null) {
+                        checkpointID = RemoteCheckpointDocID(importedUUID);
+                        lastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointID);
+                    }
+                }
+            }
+
+            var revs = LocalDatabase.UnpushedRevisionsSince(lastSequence, LocalDatabase.GetFilter(Filter), FilterParams);
+            if (revs != null) {
+                _pendingDocumentIDs = new HashSet<string>(revs.GetAllDocIds());
+                return _pendingDocumentIDs;
+            }
+
+            Log.W(TAG, "Error getting unpushed revisions");
+            return null;
+        }
+
+        public bool IsDocumentPending(Document doc)
+        {
+            return doc != null && GetPendingDocumentIDs().Contains(doc.Id);
         }
 
         /// <summary>
@@ -1992,6 +2029,7 @@ namespace Couchbase.Lite
                 CompletedChangesCount, ChangesCount,
                 _stateMachine.State, Batcher == null ? 0 : Batcher.Count(), _requests.Count);
 
+            _pendingDocumentIDs = null;
             var evt = _changed;
             if (evt == null) {
                 return;
