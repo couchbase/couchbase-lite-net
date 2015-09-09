@@ -48,15 +48,13 @@ namespace Couchbase.Lite
 
             var uri = new Uri (remoteUri);
             var credentials = uri.UserInfo;
-            if (credentials != null)
-            {
+            if (credentials != null) {
                 remoteUri = string.Format ("{0}://{1}{2}", uri.Scheme, uri.Authority, uri.PathAndQuery);
                 request = WebRequest.CreateHttp (remoteUri);
                 request.Headers.Add ("Authorization", "Basic " + Convert.ToBase64String (Encoding.UTF8.GetBytes (credentials)));
                 request.PreAuthenticate = true;
             }
-            else
-            {
+            else {
                 request = WebRequest.CreateHttp (remoteUri);
             }
 
