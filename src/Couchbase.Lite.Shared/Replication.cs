@@ -943,8 +943,7 @@ namespace Couchbase.Lite
         protected virtual void StartInternal()
         {
             Log.V(TAG, "Replication Start");
-            if (LocalDatabase == null)
-            {
+            if (LocalDatabase == null) {
                 Log.W(TAG, "Not starting replication because LocalDatabase is null.");
                 FireTrigger(ReplicationTrigger.StopImmediate);
                 return;
