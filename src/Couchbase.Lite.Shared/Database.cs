@@ -88,6 +88,12 @@ namespace Couchbase.Lite
 
         #region Variables
 
+        #if MOCK_ENCRYPTION
+        public static bool EnableMockEncryption;
+        #else
+        public const bool EnableMockEncryption = false;
+        #endif
+
         /// <summary>
         /// Each database can have an associated PersistentCookieStore,
         /// where the persistent cookie store uses the database to store
@@ -2033,10 +2039,14 @@ namespace Couchbase.Lite
             return success;
         }
 
-        internal bool Open()
+        internal bool Open(Status status = null)
         {
             if (_isOpen) {
                 return true;
+            }
+
+            if (status == null) {
+                status = new Status();
             }
 
             Log.D(TAG, "Opening {0}", Name);
@@ -2047,7 +2057,7 @@ namespace Couchbase.Lite
             Storage.Delegate = this;
 
             Log.D(TAG, "Using {0} for db at {1}", Storage.GetType(), Path);
-            if (!Storage.Open(Path, Manager)) {
+            if (!Storage.Open(Path, Manager, status)) {
                 return false;
             }
 
@@ -2074,6 +2084,7 @@ namespace Couchbase.Lite
                 Attachments = new BlobStore(attachmentsPath);
             } catch(Exception e) {
                 Log.W(TAG, String.Format("Couldn't open attachment store at {0}", attachmentsPath), e);
+                status.Code = StatusCode.Exception;
                 Storage.Close();
                 Storage = null;
                 return false;
@@ -2296,7 +2307,8 @@ namespace Couchbase.Lite
         public SymmetricKey EncryptionKey
         {
             get {
-                throw new NotImplementedException();
+                SymmetricKey retVal;
+                return Manager.Shared.TryGetValue("encryptionKey", "", Name, out retVal) ? retVal : null;
             }
         }
 

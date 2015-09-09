@@ -107,6 +107,10 @@ namespace Couchbase.Lite.Store
 
         private static readonly int _SqliteVersion;
 
+        #if MOCK_ENCRYPTION
+        private bool ENABLE_MOCK_ENCRYPTION = false;
+        #endif
+
         private string _path;
         private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
@@ -424,25 +428,30 @@ namespace Couchbase.Lite.Store
 
         #region Private Methods
 
-        private bool Open()
+        private bool Open(Status status)
         {
             if (IsOpen) {
                 return true;
+            }
+
+            if (status == null) {
+                status = new Status();
             }
 
             // Create the storage engine.
             StorageEngine = SQLiteStorageEngineFactory.CreateStorageEngine();
 
             // Try to open the storage engine and stop if we fail.
-            if (StorageEngine == null || !StorageEngine.Open(_path)) {
+            if (StorageEngine == null || !StorageEngine.Open(_path, Delegate.EncryptionKey, status)) {
                 var msg = "Unable to create a storage engine, fatal error";
                 Log.E(TAG, msg);
-                throw new CouchbaseLiteException(msg);
+                return false;
             }
 
             // Stuff we need to initialize every time the sqliteDb opens:
             if (!RunStatements("PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL;")) {
                 Log.E(TAG, "Error turning on foreign keys");
+                status.Code = StatusCode.DbError;
                 return false;
             }
 
@@ -451,6 +460,7 @@ namespace Couchbase.Lite.Store
             bool isNew = dbVersion == 0;
             if (isNew && !RunStatements("BEGIN TRANSACTION")) {
                 StorageEngine.Close();
+                status.Code = StatusCode.DbError;
                 return false;
             }
 
@@ -458,6 +468,7 @@ namespace Couchbase.Lite.Store
             if (dbVersion >= 200)
             {
                 Log.E(TAG, "Database: Database version (" + dbVersion + ") is newer than I know how to work with");
+                status.Code = StatusCode.DbError;
                 StorageEngine.Close();
                 return false;
             }
@@ -466,12 +477,14 @@ namespace Couchbase.Lite.Store
                 if (!isNew) {
                     Log.W(TAG, "Database version ({0}) is older than I know how to work with",
                         dbVersion);
+                    status.Code = StatusCode.DbError;
                     StorageEngine.Close();
                     return false;
                 }
 
                 if (!RunStatements(SCHEMA)) {
                     StorageEngine.Close();
+                    status.Code = StatusCode.DbError;
                     return false;
                 }
                 dbVersion = 17;
@@ -481,6 +494,7 @@ namespace Couchbase.Lite.Store
                     "PRAGMA user_version = 18";
 
                 if (!RunStatements(upgradeSql)) {
+                    status.Code = StatusCode.DbError;
                     StorageEngine.Close();
                     return false;
                 }
@@ -489,6 +503,7 @@ namespace Couchbase.Lite.Store
             if (dbVersion < 101) {
                 const string upgradeSql = "PRAGMA user_version = 101";
                 if (!RunStatements(upgradeSql)) {
+                    status.Code = StatusCode.DbError;
                     StorageEngine.Close();
                     return false;
                 }
@@ -496,6 +511,7 @@ namespace Couchbase.Lite.Store
             }
 
             if (isNew && !RunStatements("END TRANSACTION")) {
+                status.Code = StatusCode.DbError;
                 StorageEngine.Close();
                 return false;
             }
@@ -904,10 +920,10 @@ namespace Couchbase.Lite.Store
             return File.Exists(path);
         }
 
-        public bool Open(string path, Manager manager)
+        public bool Open(string path, Manager manager, Status status = null)
         {
             _path = path;
-            return Open();
+            return Open(status);
         }
 
         public void Close()

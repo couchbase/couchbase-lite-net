@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Store
         /// which contains attachments; don't mess with that..</param>
         /// <param name="manager">The owning Manager; this is provided so the storage can examine its
         ///properties.</param>
-        bool Open(string directory, Manager manager);
+        bool Open(string directory, Manager manager, Status status = null);
 
         /// <summary>
         /// Closes storage before it's deallocated. 
