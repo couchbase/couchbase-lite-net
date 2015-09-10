@@ -201,7 +201,7 @@ namespace Couchbase.Lite
                 var val = raw.sqlite3_compileoption_get(i);
                 while (val != null)
                 {
-                    Log.V(Tag, "Sqlite Config: {0}".Fmt(val));
+                    Log.V(TAG, "Sqlite Config: {0}".Fmt(val));
                     val = raw.sqlite3_compileoption_get(++i);
                 }
 #endif
