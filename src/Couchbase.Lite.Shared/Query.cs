@@ -172,12 +172,8 @@ namespace Couchbase.Lite {
 
         /// <summary>
         /// Gets or sets the maximum number of rows to return. 
-        /// The default value is 0, meaning 'unlimited'.
+        /// The default value is int.MaxValue, meaning 'unlimited'.
         /// </summary>
-        /// <value>
-        /// The maximum number of rows to return. 
-        /// The default value is 0, meaning 'unlimited'
-        /// </value>
         public int Limit { get; set; }
 
         /// <summary>
