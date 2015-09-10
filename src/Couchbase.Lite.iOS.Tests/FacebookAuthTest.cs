@@ -49,6 +49,7 @@ using Accounts;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Tests;
 
 
 namespace Couchbase.Lite
@@ -60,77 +61,65 @@ namespace Couchbase.Lite
         [Test]
         public void TestFacebookAuth()
         {
-            var doneEvent = new ManualResetEvent(false);
+            var sg = new SyncGateway("http", GetReplicationServer());
+            using (var remoteDb = sg.CreateDatabase("facebook")) {
+                remoteDb.DisableGuestAccess();
+                var doneEvent = new ManualResetEvent(false);
 
-            var accountStore = new ACAccountStore();
-            var accountType = accountStore.FindAccountType(ACAccountType.Facebook);
+                var accountStore = new ACAccountStore();
+                var accountType = accountStore.FindAccountType(ACAccountType.Facebook);
 
-            var options = new AccountStoreOptions();
-            options.FacebookAppId = FacebookAppId;
-            options.SetPermissions(ACFacebookAudience.Friends, new [] { "email" });
+                var options = new AccountStoreOptions();
+                options.FacebookAppId = FacebookAppId;
+                options.SetPermissions(ACFacebookAudience.Friends, new [] { "email" });
 
-            var success = true;
-            ACAccount account = null;
-            accountStore.RequestAccess(accountType, options, (result, error) => 
-            {
-                success = result;
-                if (success)
+                var success = true;
+                ACAccount account = null;
+                accountStore.RequestAccess(accountType, options, (result, error) =>
                 {
-                    var accounts = accountStore.FindAccounts(accountType);
-                    account = accounts != null && accounts.Length > 0 ? accounts[0] : null;
-                }
-                else
-                {
-                    Log.W(Tag, "Facebook Login needed. Go to Settings > Facebook and login.");
-                    Log.E(Tag, "Facebook Request Access Error : " + error);
-                }
-                doneEvent.Set();
-            });
-
-            doneEvent.WaitOne(TimeSpan.FromSeconds(30));
-
-            Assert.IsTrue(success);
-            Assert.IsNotNull(account);
-
-            var token = account.Credential.OAuthToken;
-            Assert.IsNotNull(token);
-            Assert.IsTrue(token.Length > 0);
-
-            var url = GetReplicationURLWithoutCredentials();
-
-            var cookieStore = new CookieStore();
-            var httpClientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
-            manager.DefaultHttpClientFactory = httpClientFactory;
-            Replication replicator = database.CreatePushReplication(url);
-            replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(token);
-
-            Assert.IsNotNull(replicator);
-            Assert.IsNotNull(replicator.Authenticator);
-            Assert.IsTrue(replicator.Authenticator is TokenAuthenticator);
-
-            replicator.Start();
-
-            doneEvent.Reset();
-            Task.Factory.StartNew(()=>
-            {
-                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-                while (DateTime.UtcNow < timeout)
-                {
-                    if (!replicator.IsRunning)
-                    {
-                        break;
+                    success = result;
+                    if (success) {
+                        var accounts = accountStore.FindAccounts(accountType);
+                        account = accounts != null && accounts.Length > 0 ? accounts[0] : null;
                     }
-                    System.Threading.Thread.Sleep(TimeSpan.FromMilliseconds(10));
-                }
-                doneEvent.Set();
-            });
-            doneEvent.WaitOne(TimeSpan.FromSeconds(35));
+                    else {
+                        Log.W(Tag, "Facebook Login needed. Go to Settings > Facebook and login.");
+                        Log.E(Tag, "Facebook Request Access Error : " + error);
+                    }
+                    doneEvent.Set();
+                });
 
-            var urlStr = url.ToString();
-            urlStr = urlStr.EndsWith("/") ? urlStr : urlStr + "/";
-            var cookies = httpClientFactory.GetCookieContainer().GetCookies(new Uri(urlStr));
-            Assert.IsTrue(cookies.Count == 1);
-            Assert.AreEqual("SyncGatewaySession", cookies[0].Name);
+                doneEvent.WaitOne(TimeSpan.FromSeconds(30));
+
+                Assert.IsTrue(success);
+                Assert.IsNotNull(account);
+
+                var token = account.Credential.OAuthToken;
+                Assert.IsNotNull(token);
+                Assert.IsTrue(token.Length > 0);
+
+                var url = remoteDb.RemoteUri;
+
+                var cookieStore = new CookieStore(manager.Directory);
+                var httpClientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
+                manager.DefaultHttpClientFactory = httpClientFactory;
+                Replication replicator = database.CreatePushReplication(url);
+                replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(token);
+
+                Assert.IsNotNull(replicator);
+                Assert.IsNotNull(replicator.Authenticator);
+                Assert.IsTrue(replicator.Authenticator is TokenAuthenticator);
+
+                CreateDocuments(database, 20);
+
+                RunReplication(replicator);
+
+                var urlStr = url.ToString();
+                urlStr = urlStr.EndsWith("/") ? urlStr : urlStr + "/";
+                //var cookies = httpClientFactory.GetCookieContainer().GetCookies(new Uri(urlStr));
+                //Assert.IsTrue(cookies.Count == 1);
+                //Assert.AreEqual("SyncGatewaySession", cookies[0].Name);
+            }
         }
     }
 }

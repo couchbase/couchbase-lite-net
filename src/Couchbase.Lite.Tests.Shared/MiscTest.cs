@@ -48,12 +48,34 @@ using Sharpen;
 using Couchbase.Lite.Util;
 using System.Net.Http;
 using System.Collections.Generic;
+using System;
+using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite
 {
-    public class MiscTest
+    public class MiscTest : LiteTestCase
     {
         const string Tag = "MiscTest";
+
+        [Test]
+        public void TestFacebookAuthorizer()
+        {
+            const string token = "pyrzqxgl";
+            var site = new Uri("https://example.com/database");
+            const string email = "jimbo@example.com";
+
+            // Register and retrieve the sample token:
+            var auth = new FacebookAuthorizer(email);
+            Assert.IsTrue(FacebookAuthorizer.RegisterAccessToken(token, email, site));
+            var gotToken = auth.TokenForSite(site);
+            Assert.AreEqual(token, gotToken);
+
+            // Register and retrieve the sample token:
+            gotToken = auth.TokenForSite(new Uri("HttpS://example.com:443/some/other/path"));
+            Assert.AreEqual(token, gotToken);
+            Assert.AreEqual(new Dictionary<string, string> { { "access_token", token } }, 
+                auth.LoginParametersForSite(site));
+        }
 
         [Test]
         public void TestUnquoteString()

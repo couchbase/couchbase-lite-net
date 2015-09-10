@@ -116,8 +116,13 @@ namespace Couchbase.Lite.Replicator
 
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie) {
-                lock (_locker) {
-                    _cookieStore.Save();
+                var cookie = default(Cookie);
+                if(CookieParser.TryParse(response.Headers.GetValues("Set-Cookie").ElementAt(0), response.RequestMessage.RequestUri.Host,
+                    out cookie)) {
+                    lock (_locker) {
+                        _cookieStore.Add(cookie);
+                        _cookieStore.Save();
+                    }
                 }
             }
 

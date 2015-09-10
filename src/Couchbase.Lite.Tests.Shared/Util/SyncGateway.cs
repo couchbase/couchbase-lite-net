@@ -77,6 +77,9 @@ namespace Couchbase.Lite.Tests
                     ""GUEST"": {""disabled"": false, ""admin_channels"": [""*""]},
                     ""jim"" : { ""password"": ""borden"", ""admin_channels"": [""*""]}
                   },
+                 ""facebook"": {
+                    ""register"": true
+                 },
                  ""bucket"":""" + Name + @""",
                  ""sync"":""function(doc) {channel(doc.channels);}""}");
 
