@@ -107,8 +107,11 @@ namespace Couchbase.Lite
                 }
 
                 // http://sqlcipher.net/sqlcipher-api/#key
-                var sql = String.Format("PRAGMA key = \"x'%@'\"", encryptionKey.HexData);
-                if (ExecSQL(sql) == 0) {
+                var sql = String.Format("PRAGMA key = \"x'{0}'\"", encryptionKey.HexData);
+                try {
+                    ExecSQL(sql, _writeConnection);
+                    ExecSQL(sql, _readConnection);
+                } catch(Exception) {
                     Log.W(TAG, "'pragma key' failed (SQLite error {0})", LastErrorCode);
                     status.Code = StatusCode.DbError;
                     return false;
@@ -116,24 +119,16 @@ namespace Couchbase.Lite
             }
 
             // Verify that encryption key is correct (or db is unencrypted, if no key given):
-            int count;
-            using (var c = RawQuery("SELECT count(*) FROM sqlite_master")) {
-                c.MoveToNext();
-                count = c.GetInt(0);
-            }
-
-            if (count == 0) {
-                var err = LastErrorCode;
-                if (err != 0) {
-                    if (err == raw.SQLITE_NOTADB) {
-                        status.Code = StatusCode.Unauthorized;
-                    } else {
-                        status.Code = StatusCode.DbError;
-                    }
-
-                    Log.W(TAG, "database is unreadable (err {0})", err);
-                    return false;
+            var result = raw.sqlite3_exec(_readConnection, "SELECT count(*) FROM sqlite_master");
+            if (result != raw.SQLITE_OK) {
+                if (result == raw.SQLITE_NOTADB) {
+                    status.Code = StatusCode.Unauthorized;
+                } else {
+                    status.Code = StatusCode.DbError;
                 }
+
+                Log.W(TAG, "database is unreadable (err {0})", result);
+                return false;
             }
 
             return true;
@@ -367,57 +362,7 @@ namespace Couchbase.Lite
         /// <param name="paramArgs">Parameter arguments.</param>
         public int ExecSQL(String sql, params Object[] paramArgs)
         {  
-            var t = Factory.StartNew(()=>
-            {
-                sqlite3_stmt command = null;
-                    
-                try
-                {
-                    command = BuildCommand(_writeConnection, sql, paramArgs);
-                    LastErrorCode = command.step();
-                    if (LastErrorCode == SQLiteResult.ERROR)
-                        throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
-                }
-                catch (ugly.sqlite3_exception e)
-                {
-                    Log.E(TAG, "Error {0}, {1} executing sql '{2}'".Fmt(e.errcode, _writeConnection.extended_errcode(), sql), e);
-                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
-                    throw;
-                }
-                finally
-                {
-                    if(command != null)
-                    {
-                        command.Dispose();
-                    }
-                }
-            }, _cts.Token);
-
-            try
-            {
-                //FIXME.JHB:  This wait should be optional (API change)
-                t.Wait(30000, _cts.Token);
-            }
-            catch (AggregateException ex)
-            {
-                throw ex.InnerException;
-            }
-            catch (OperationCanceledException)
-            {
-                //Closing the storage engine will cause the factory to stop processing, but still
-                //accept new jobs into the scheduler.  If execution has gotten here, it means that
-                //ExecSQL was called after Close, and the job will be ignored.  Might consider
-                //subclassing the factory to avoid this awkward behavior
-                Log.D(TAG, "StorageEngine closed, canceling operation");
-                return 0;
-            }
-
-            if (t.Status != TaskStatus.RanToCompletion) {
-                Log.E(TAG, "ExecSQL timed out waiting for Task #{0}", t.Id);
-                throw new CouchbaseLiteException("ExecSQL timed out", StatusCode.InternalServerError);
-            }
-
-            return _writeConnection.changes();
+            return ExecSQL(sql, _writeConnection, paramArgs);
         }
 
         /// <summary>
@@ -896,6 +841,61 @@ namespace Couchbase.Lite
             command = BuildCommand(_writeConnection, builder.ToString(), whereArgs);
 
             return command;
+        }
+
+        private int ExecSQL(string sql, sqlite3 db, params object[] paramArgs)
+        {
+            var t = Factory.StartNew(()=>
+            {
+                sqlite3_stmt command = null;
+
+                try
+                {
+                    command = BuildCommand(db, sql, paramArgs);
+                    LastErrorCode = command.step();
+                    if (LastErrorCode == SQLiteResult.ERROR)
+                        throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
+                }
+                catch (ugly.sqlite3_exception e)
+                {
+                    Log.E(TAG, "Error {0}, {1} executing sql '{2}'".Fmt(e.errcode, db.extended_errcode(), sql), e);
+                    LastErrorCode = e.errcode;
+                    throw;
+                }
+                finally
+                {
+                    if(command != null)
+                    {
+                        command.Dispose();
+                    }
+                }
+            }, _cts.Token);
+
+            try
+            {
+                //FIXME.JHB:  This wait should be optional (API change)
+                t.Wait(30000, _cts.Token);
+            }
+            catch (AggregateException ex)
+            {
+                throw ex.InnerException;
+            }
+            catch (OperationCanceledException)
+            {
+                //Closing the storage engine will cause the factory to stop processing, but still
+                //accept new jobs into the scheduler.  If execution has gotten here, it means that
+                //ExecSQL was called after Close, and the job will be ignored.  Might consider
+                //subclassing the factory to avoid this awkward behavior
+                Log.D(TAG, "StorageEngine closed, canceling operation");
+                return 0;
+            }
+
+            if (t.Status != TaskStatus.RanToCompletion) {
+                Log.E(TAG, "ExecSQL timed out waiting for Task #{0}", t.Id);
+                throw new CouchbaseLiteException("ExecSQL timed out", StatusCode.InternalServerError);
+            }
+
+            return db.changes();
         }
 
         #endregion

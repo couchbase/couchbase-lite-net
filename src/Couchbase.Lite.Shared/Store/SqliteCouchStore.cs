@@ -450,7 +450,7 @@ namespace Couchbase.Lite.Store
 
             // Stuff we need to initialize every time the sqliteDb opens:
             if (!RunStatements("PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL;")) {
-                Log.E(TAG, "Error turning on foreign keys");
+                Log.E(TAG, "Error setting pragmas");
                 status.Code = StatusCode.DbError;
                 return false;
             }

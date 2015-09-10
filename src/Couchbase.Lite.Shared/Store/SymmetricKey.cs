@@ -97,7 +97,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         public string HexData { 
             get {
-                return BitConverter.ToString(KeyData);
+                return BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
             }
         }
 
