@@ -585,6 +585,56 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, liveQuery.Rows.Count);
         }
 
+        [Test]
+        public void TestAllDocsLiveQuery()
+        {
+            var query = database.CreateAllDocumentsQuery().ToLiveQuery();
+            query.Start();
+            var docs = PutDocs(database);
+            var expectedRowBase = new List<IDictionary<string, object>>(docs.Count);
+            foreach (RevisionInternal rev in docs)
+            {
+                expectedRowBase.Add(new Dictionary<string, object> {
+                    { "id", rev.GetDocId() },
+                    { "key", rev.GetDocId() },
+                    { "value", new Dictionary<string, object> {
+                            { "rev", rev.GetRevId() }
+                        }
+                    }
+                });
+            }
+
+            var mre = new AutoResetEvent(false);
+
+            query.Changed += (sender, e) => {
+                if(e.Rows.Count < expectedRowBase.Count) {
+                    return;
+                }
+
+                AssertEnumerablesAreEqual(expectedRowBase, e.Rows);
+                mre.Set();
+            };
+
+            Assert.IsTrue(mre.WaitOne(TimeSpan.FromSeconds(30)), "Live query timed out");
+
+            expectedRowBase.Add(new Dictionary<string, object> {
+                { "id", "66666" },
+                { "key", "66666" },
+                { "value", new Dictionary<string, object> {
+                        { "rev", "1-abcdef" }
+                    }
+                }
+            });
+
+            var dict6 = new Dictionary<string, object>();
+            dict6["_id"] = "66666";
+            dict6["_rev"] = "1-adcdef";
+            dict6["key"] = "six";
+            PutDoc(database, dict6);
+
+            Assert.IsTrue(mre.WaitOne(TimeSpan.FromSeconds(30)), "Live query timed out");
+        }
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
         public void TestAllDocsQuery()

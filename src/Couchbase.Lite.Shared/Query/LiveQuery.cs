@@ -344,10 +344,7 @@ namespace Couchbase.Lite
                     return;
                 }
             }
-
-            if (View == null) {
-                throw new CouchbaseLiteException("Cannot start LiveQuery when view is null");
-            }
+				
 
             if (!_runningState) {
                 Log.W(TAG, "update() called, but running state == false.  Ignoring.");
