@@ -50,6 +50,10 @@ using System.Threading;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 
+#if NET_3_5
+using Cookie = System.Net.Couchbase.Cookie;
+#endif
+
 namespace Couchbase.Lite.Replicator
 {
 

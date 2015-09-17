@@ -25,6 +25,8 @@ using System.Globalization;
 
 #if !NET_3_5
 using StringEx = System.String;
+#else
+using Cookie = System.Net.Couchbase.Cookie;
 #endif
 
 namespace Couchbase.Lite.Util
