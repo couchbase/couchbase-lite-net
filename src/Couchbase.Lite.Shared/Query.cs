@@ -480,10 +480,6 @@ namespace Couchbase.Lite {
         /// <returns>The live query.</returns>
         public LiveQuery ToLiveQuery() 
         {
-            if (View == null)
-            {
-                throw new CouchbaseLiteException("Cannot convert a Query to LiveQuery if the view is null");
-            }
             return new LiveQuery(this);
         }
 
