@@ -26,6 +26,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Util;
+using System.Linq;
 
 namespace Couchbase.Lite
 {

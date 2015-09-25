@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using Couchbase.Lite.Util;
 
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Unity
 {
@@ -48,7 +49,7 @@ namespace Couchbase.Lite.Unity
     {
         #region Private Variables
 
-        private static readonly BlockingCollection<Task> _jobQueue = new BlockingCollection<Task>();
+        private static readonly LinkedList<Task> _jobQueue = new LinkedList<Task>();
 
         #endregion
 
@@ -120,10 +121,15 @@ namespace Couchbase.Lite.Unity
 
         void FixedUpdate()
         {
-            Task nextTask;
-            bool gotTask = _jobQueue.TryTake(out nextTask);
-            if (gotTask && nextTask.Status == TaskStatus.WaitingToRun)
-            {
+            Task nextTask = null;
+            lock (_jobQueue) {
+                if (_jobQueue.Count > 0) {
+                    nextTask = _jobQueue.First.Value;
+                    _jobQueue.RemoveFirst();
+                }
+            }
+
+            if (nextTask != null && nextTask.Status == TaskStatus.WaitingToRun) {
                 _taskScheduler.TryExecuteTaskHack(nextTask);
             }
         }

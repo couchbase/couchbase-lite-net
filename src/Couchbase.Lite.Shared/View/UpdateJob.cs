@@ -41,7 +41,12 @@ namespace Couchbase.Lite.Internal
             }
         }
 
-        public event EventHandler Finished;
+        private EventHandler _finished;
+        public event EventHandler Finished
+        {
+            add { _finished = (EventHandler)Delegate.Combine(_finished, value); }
+            remove { _finished = (EventHandler)Delegate.Remove(_finished, value); }
+        }
 
         public UpdateJob(Func<IList<View>, Status> logic, IEnumerable<View> args, IEnumerable<long> lastSequences)
         {
@@ -56,8 +61,8 @@ namespace Couchbase.Lite.Internal
                 _task = Task.Factory.StartNew<Status>(() => _logic(_args.ToList()));
                 _task.ContinueWith(t =>
                 {
-                    if(Finished != null) {
-                        Finished(this, null);
+                    if(_finished != null) {
+                        _finished(this, null);
                     }
                 });
             }

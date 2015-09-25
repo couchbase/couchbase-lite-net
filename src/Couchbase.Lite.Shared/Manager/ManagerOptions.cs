@@ -43,6 +43,12 @@
 using System;
 using System.Threading.Tasks;
 
+#if NET_3_5
+using System.Net.Couchbase;
+#else
+using System.Net;
+#endif
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -90,7 +96,7 @@ namespace Couchbase.Lite
         {
             MaxRetries = 10;
 
-            #if __IOS__
+            #if __IOS__ || __ANDROID__
             MaxOpenHttpConnections = 8;
             #else
             MaxOpenHttpConnections = 16;
@@ -102,6 +108,10 @@ namespace Couchbase.Lite
 
             #if __UNITY__
             CallbackScheduler = Couchbase.Lite.Unity.UnityMainThreadScheduler.TaskScheduler;
+            if(UnityEngine.Application.platform == UnityEngine.RuntimePlatform.IPhonePlayer ||
+                UnityEngine.Application.platform == UnityEngine.RuntimePlatform.Android) {
+                MaxOpenHttpConnections = 8;
+            }
             #else
             TaskScheduler scheduler = null;
             try {
@@ -114,6 +124,7 @@ namespace Couchbase.Lite
             }
             #endif
 
+            ServicePointManager.DefaultConnectionLimit = MaxOpenHttpConnections * 2;
             SerializationEngine = new NewtonsoftJsonSerializer();
         }
 

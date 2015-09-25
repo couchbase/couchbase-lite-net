@@ -88,7 +88,7 @@ namespace Couchbase.Lite.Replicator
         private SequenceMap _pendingSequences;
         private volatile int _httpConnectionCount;
         private readonly object _locker = new object ();
-        private List<Task> _pendingBulkDownloads = new List<Task>();
+        private HashSet<Task> _pendingBulkDownloads = new HashSet<Task>();
 
         #endregion
 
@@ -391,7 +391,7 @@ namespace Couchbase.Lite.Replicator
 
             dl.Authenticator = Authenticator;
             var t = WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler);
-            t.ConfigureAwait(false).GetAwaiter().OnCompleted(() => _pendingBulkDownloads.Remove(t));
+            t.ContinueWith(t1 => _pendingBulkDownloads.Remove(t));
             _pendingBulkDownloads.Add(t);
         }
 

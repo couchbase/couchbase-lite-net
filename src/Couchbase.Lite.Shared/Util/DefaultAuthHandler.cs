@@ -59,7 +59,6 @@ namespace Couchbase.Lite.Replicator
 
         private bool _chunkedMode = false;
         private object _locker = new object();
-        private readonly HttpClientHandler _context;
         private readonly CookieStore _cookieStore;
 
         #endregion
@@ -76,9 +75,8 @@ namespace Couchbase.Lite.Replicator
         public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore, bool chunkedMode)
         {
             _chunkedMode = chunkedMode;
-            _context = context;
             _cookieStore = cookieStore;
-            InnerHandler = _context;
+            InnerHandler = context;
         }
 
         #endregion
@@ -124,11 +122,11 @@ namespace Couchbase.Lite.Replicator
         /// <exception cref="System.IO.IOException"></exception>
         protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (request.Content != null) {
+            /*if (request.Content != null) {
                 var mre = new ManualResetEvent(false);
                 request.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
                 mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
-            }
+            }*/
 
             return request;
         }

@@ -466,11 +466,7 @@ namespace Couchbase.Lite
                 return lastInsertedId;
             });
 
-            var r = t.ConfigureAwait(false).GetAwaiter().GetResult();
-            if (t.Exception != null)
-                throw t.Exception;
-
-            return r;
+            return t.Result;
         }
 
         public int Update(String table, ContentValues values, String whereClause, params String[] whereArgs)
@@ -507,12 +503,7 @@ namespace Couchbase.Lite
 
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
 
-            //doesn't look good
-            var r = t.ConfigureAwait(false).GetAwaiter().GetResult();
-            if (t.Exception != null)
-                throw t.Exception;
-            
-            return r;
+            return t.Result;
         }
 
         public int Delete(String table, String whereClause, params String[] whereArgs)
@@ -549,14 +540,7 @@ namespace Couchbase.Lite
             });
 
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.GetAwaiter().GetResult();
-            if (t.Exception != null) 
-            {
-                //this is bad: should not arbitrarily crash the app
-                throw t.Exception;
-            }
-                
-            return r;
+            return t.Result;
         }
 
         public void Close()
