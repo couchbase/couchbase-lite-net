@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 
 #if __ANDROID__
 using Android.App;
@@ -43,7 +44,20 @@ namespace Couchbase.Lite
 
         public bool CanReach(string remoteUri)
         {
-            HttpWebRequest request = WebRequest.CreateHttp(remoteUri);
+            HttpWebRequest request;
+
+            var uri = new Uri (remoteUri);
+            var credentials = uri.UserInfo;
+            if (credentials != null) {
+                remoteUri = string.Format ("{0}://{1}{2}", uri.Scheme, uri.Authority, uri.PathAndQuery);
+                request = WebRequest.CreateHttp (remoteUri);
+                request.Headers.Add ("Authorization", "Basic " + Convert.ToBase64String (Encoding.UTF8.GetBytes (credentials)));
+                request.PreAuthenticate = true;
+            }
+            else {
+                request = WebRequest.CreateHttp (remoteUri);
+            }
+
             request.AllowWriteStreamBuffering = true;
             request.Timeout = 10000;
             request.Method = "GET";
