@@ -46,6 +46,7 @@ using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
 using Sharpen;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite
 {
@@ -56,21 +57,42 @@ namespace Couchbase.Lite
     /// </remarks>
     internal class BlobStore
     {
+        private const string ENCRYPTION_MARKER_FILENAME = "_encryption";
+        private const string ENCRYPTION_ALGORITHM = "AES";
+        private const string TAG = "BlobStore";
+
         public static string FileExtension = ".blob";
 
         public static string TmpFileExtension = ".blobtmp";
 
         public static string TmpFilePrefix = "tmp";
 
-        private readonly string path;
+        private readonly string _path;
 
-        public BlobStore(string path)
+        public SymmetricKey EncryptionKey { get; private set; }
+
+        public BlobStore(string path, SymmetricKey encryptionKey)
         {
-            this.path = path;
+            if (path == null) {
+                throw new ArgumentNullException("path");
+            }
+
+            _path = path;
+            EncryptionKey = encryptionKey;
             FilePath directory = new FilePath(path);
-            directory.Mkdirs();
-            if (!directory.IsDirectory()) {
-                throw new InvalidOperationException(string.Format("Unable to create directory for: {0}", directory));
+            if (directory.Exists() && directory.IsDirectory()) {
+                // Existing blob-store.
+                VerifyExistingStore();
+            } else {
+                // New blob store; create directory:
+                directory.Mkdirs();
+                if (!directory.IsDirectory()) {
+                    throw new InvalidOperationException(string.Format("Unable to create directory for: {0}", directory));
+                }
+
+                if (encryptionKey != null) {
+                    MarkEncrypted(true);
+                }
             }
         }
 
@@ -128,7 +150,7 @@ namespace Couchbase.Lite
 
         public string PathForKey(BlobKey key)
         {
-            return path + FilePath.separator + key + FileExtension;
+            return _path + FilePath.separator + key + FileExtension;
         }
 
         public long GetSizeOfBlob(BlobKey key)
@@ -145,7 +167,7 @@ namespace Couchbase.Lite
             }
 
             //trim off extension
-            string rest = filename.Substring(path.Length + 1, filename.Length - FileExtension.Length - (path.Length + 1));
+            string rest = filename.Substring(_path.Length + 1, filename.Length - FileExtension.Length - (_path.Length + 1));
             outKey.Bytes = BlobKey.ConvertFromHex(rest);
             return true;
         }
@@ -192,7 +214,7 @@ namespace Couchbase.Lite
         {
             FilePath tmp = null;
             try {
-                tmp = FilePath.CreateTempFile(TmpFilePrefix, TmpFileExtension, new FilePath(this.path));
+                tmp = FilePath.CreateTempFile(TmpFilePrefix, TmpFileExtension, new FilePath(this._path));
                 FileOutputStream fos = new FileOutputStream(tmp);
                 byte[] buffer = new byte[65536];
                 int lenRead = ((InputStream)inputStream).Read(buffer);
@@ -286,7 +308,7 @@ namespace Couchbase.Lite
         public ICollection<BlobKey> AllKeys()
         {
             ICollection<BlobKey> result = new HashSet<BlobKey>();
-            FilePath file = new FilePath(path);
+            FilePath file = new FilePath(_path);
             FilePath[] contents = file.ListFiles();
             foreach (FilePath attachment in contents) {
                 if (attachment.IsDirectory()) {
@@ -303,7 +325,7 @@ namespace Couchbase.Lite
 
         public int Count()
         {
-            FilePath file = new FilePath(path);
+            FilePath file = new FilePath(_path);
             FilePath[] contents = file.ListFiles();
             return contents.Length;
         }
@@ -311,7 +333,7 @@ namespace Couchbase.Lite
         public long TotalDataSize()
         {
             long total = 0;
-            FilePath file = new FilePath(path);
+            FilePath file = new FilePath(_path);
             FilePath[] contents = file.ListFiles();
             foreach (FilePath attachment in contents) {
                 total += attachment.Length();
@@ -323,7 +345,7 @@ namespace Couchbase.Lite
         public int DeleteBlobsExceptWithKeys(ICollection<BlobKey> keysToKeep)
         {
             int numDeleted = 0;
-            FilePath file = new FilePath(path);
+            FilePath file = new FilePath(_path);
             FilePath[] contents = file.ListFiles();
             foreach (FilePath attachment in contents) {
                 BlobKey attachmentKey = new BlobKey();
@@ -367,7 +389,7 @@ namespace Couchbase.Lite
 
         public FileInfo TempDir()
         {
-            FilePath directory = new FilePath(path);
+            FilePath directory = new FilePath(_path);
             FilePath tempDirectory = new FilePath(directory, "temp_attachments");
             tempDirectory.Mkdirs();
             if (!tempDirectory.IsDirectory()) {
@@ -376,6 +398,62 @@ namespace Couchbase.Lite
             }
 
             return tempDirectory;
+        }
+
+        internal void MarkEncrypted(bool encrypted)
+        {
+            var encMarkerPath = Path.Combine(_path, ENCRYPTION_MARKER_FILENAME);
+            if (encrypted) {
+                try {
+                    File.WriteAllText(encMarkerPath, ENCRYPTION_ALGORITHM);
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException("Error enabling attachment encryption", e) { Code = StatusCode.Exception };
+                }
+            } else {
+                try {
+                    File.Delete(encMarkerPath);
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException("Error disabling attachment encryption", e) { Code = StatusCode.Exception };
+                }
+            }
+        }
+
+        private void VerifyExistingStore()
+        {
+            var markerPath = Path.Combine(_path, ENCRYPTION_MARKER_FILENAME);
+            var fileExists = File.Exists(markerPath);
+            var encryptionAlg = default(string);
+            try {
+                encryptionAlg = fileExists ? File.ReadAllText(markerPath) : null;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException("Error verifying BlobStore", e) { Code = StatusCode.Exception };
+            }
+
+            if (encryptionAlg != null) {
+                // "_encryption" file is present, so make sure we support its format & have a key:
+                if (EncryptionKey == null) {
+                    throw new CouchbaseLiteException("Opening encrypted blob-store without providing a key", StatusCode.Unauthorized);
+                } else if (ENCRYPTION_ALGORITHM != encryptionAlg) {
+                    throw new CouchbaseLiteException("Blob-store uses unrecognized encryption '{0}'", encryptionAlg) {
+                        Code = StatusCode.Unauthorized
+                    };
+                }
+            } else if (!fileExists) {
+                // No "_encryption" file was found, so on-disk store isn't encrypted:
+                var encryptionKey = EncryptionKey;
+                if (encryptionKey != null) {
+                    // This store was created before the db encryption fix, so its files are not
+                    // encrypted, even though they should be. Remedy that:
+                    Log.I(TAG, "**** BlobStore should be encrypted; fixing it now...");
+                    EncryptionKey = null;
+                    ChangeEncryptionKey(encryptionKey);
+                }
+            }
+        }
+
+        private void ChangeEncryptionKey(SymmetricKey newKey)
+        {
+            //TODO: Implement
         }
     }
 }

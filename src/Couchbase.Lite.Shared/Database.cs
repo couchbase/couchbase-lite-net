@@ -330,7 +330,10 @@ namespace Couchbase.Lite
             try {
                 Storage.Compact();
             } catch(CouchbaseLiteException) {
-                return false;
+                Log.W(TAG, "Error during compaction");
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException("Error during compaction", e) { Code = StatusCode.Exception };
             }
 
             return GarbageCollectAttachments();
@@ -343,8 +346,8 @@ namespace Couchbase.Lite
         /// Thrown if an issue occurs while deleting the <see cref="Couchbase.Lite.Database" /></exception>
         public void Delete()
         {
-            if (_isOpen && !Close()) {
-                throw new CouchbaseLiteException("The database was open, and could not be closed", StatusCode.InternalServerError);
+            if (_isOpen) {
+                Close();
             }
 
             if (!Exists()) {
@@ -1995,58 +1998,55 @@ namespace Couchbase.Lite
 
         internal String AttachmentStorePath 
         {
-            get 
-            {
+            get {
                 return System.IO.Path.ChangeExtension(Path, null) + " attachments";
             }
         }
 
-        internal bool Close()
+        internal void Close()
         {
-            var success = true;
-            if (_isOpen) {
-                Log.D("Closing database at {0}", Path);
-                if (_views != null) {
-                    foreach (var view in _views) {
-                        view.Value.Close();
-                    }
+            if (!_isOpen) {
+                return;
+            }
+
+            Log.D("Closing database at {0}", Path);
+            if (_views != null) {
+                foreach (var view in _views) {
+                    view.Value.Close();
+                }
+            }
+
+            if (ActiveReplicators != null) {
+                var activeReplicatorCopy = new Replication[ActiveReplicators.Count];
+                ActiveReplicators.CopyTo(activeReplicatorCopy, 0);
+                foreach (var repl in activeReplicatorCopy) {
+                    repl.DatabaseClosing();
                 }
 
-                if (ActiveReplicators != null) {
-                    var activeReplicatorCopy = new Replication[ActiveReplicators.Count];
-                    ActiveReplicators.CopyTo(activeReplicatorCopy, 0);
-                    foreach (var repl in activeReplicatorCopy) {
-                        repl.DatabaseClosing();
-                    }
+                ActiveReplicators = null;
+            }
 
-                    ActiveReplicators = null;
-                }
-
-                try {
-                    Storage.Close();
-                } catch(Exception) {
-                    success = false;
-                }
-
+            try {
+                Storage.Close();
+            } catch(CouchbaseLiteException) {
+                Log.E(TAG, "Error closing database");
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException("Unknown error closing database", e) { Code = StatusCode.Exception };
+            } finally {
                 Storage = null;
 
                 _isOpen = false;
                 UnsavedRevisionDocumentCache.Clear();
                 DocumentCache = new LruCache<string, Document>(DocumentCache.MaxSize);
+                Manager.ForgetDatabase(this);
             }
-
-            Manager.ForgetDatabase(this);
-            return success;
         }
 
-        internal bool Open(Status status = null)
+        internal void Open()
         {
             if (_isOpen) {
-                return true;
-            }
-
-            if (status == null) {
-                status = new Status();
+                return;
             }
 
             Log.D(TAG, "Opening {0}", Name);
@@ -2056,9 +2056,25 @@ namespace Couchbase.Lite
             Storage = new SqliteCouchStore();
             Storage.Delegate = this;
 
+            var encryptionKey = default(SymmetricKey);
+            var gotKey = Manager.Shared.TryGetValue("encryptionKey", "", Name, out encryptionKey);
+            if (gotKey) {
+                Storage.SetEncryptionKey(encryptionKey);
+            }
+
             Log.D(TAG, "Using {0} for db at {1}", Storage.GetType(), Path);
-            if (!Storage.Open(Path, Manager, status)) {
-                return false;
+            try {
+                Storage.Open(Path, Manager);
+
+                // HACK: Needed to overcome the read connection not getting the write connection
+                // changes until after the schema is written
+                Storage.Close();
+                Storage.Open(Path, Manager);
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Error creating storage engine");
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException("Unknown exception creating storage engine", e) { Code = StatusCode.Exception };
             }
 
             Storage.AutoCompact = AUTO_COMPACT;
@@ -2081,17 +2097,20 @@ namespace Couchbase.Lite
             string attachmentsPath = AttachmentStorePath;
 
             try {
-                Attachments = new BlobStore(attachmentsPath);
-            } catch(Exception e) {
-                Log.W(TAG, String.Format("Couldn't open attachment store at {0}", attachmentsPath), e);
-                status.Code = StatusCode.Exception;
+                Attachments = new BlobStore(attachmentsPath, encryptionKey);
+            } catch(CouchbaseLiteException) {
+                Log.E(TAG, "Error creating blob store at {0}", attachmentsPath);
                 Storage.Close();
                 Storage = null;
-                return false;
+                throw;
+            } catch(Exception e) {
+                Storage.Close();
+                Storage = null;
+                throw new CouchbaseLiteException(String.Format("Unknown error creating blob store at {0}", attachmentsPath),
+                    e) { Code = StatusCode.Exception };
             }
            
             _isOpen = true;
-            return true;
         }
 
 
@@ -2195,8 +2214,12 @@ namespace Couchbase.Lite
         /// </remarks>
         public void Dispose()
         {
-            if (_isOpen && !Close()) {
-                Log.E(TAG, "Error disposing database (possibly already disposed?)");
+            if (_isOpen) {
+                try {
+                    Close();
+                } catch(Exception) {
+                    Log.E(TAG, "Error disposing database (possibly already disposed?)");
+                }
             }
         }
     
@@ -2302,14 +2325,6 @@ namespace Couchbase.Lite
             var digestAsHex = BitConverter.ToString(md5DigestResult).Replace("-", String.Empty);
             int generationIncremented = generation + 1;
             return string.Format("{0}-{1}", generationIncremented, digestAsHex).ToLower();
-        }
-
-        public SymmetricKey EncryptionKey
-        {
-            get {
-                SymmetricKey retVal;
-                return Manager.Shared.TryGetValue("encryptionKey", "", Name, out retVal) ? retVal : null;
-            }
         }
 
         #pragma warning restore 1591

@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Store
         /// which contains attachments; don't mess with that..</param>
         /// <param name="manager">The owning Manager; this is provided so the storage can examine its
         ///properties.</param>
-        bool Open(string directory, Manager manager, Status status = null);
+        void Open(string directory, Manager manager);
 
         /// <summary>
         /// Closes storage before it's deallocated. 
@@ -113,6 +113,11 @@ namespace Couchbase.Lite.Store
         /// Any exception raised by the block will be caught and treated as Exception.
         /// </summary>
         Status RunInTransaction(Func<Status> block);
+
+        /// <summary>
+        /// Registers the encryption key of the database file. Must be called before opening the db.
+        /// </summary>
+        void SetEncryptionKey(SymmetricKey key);
 
         #endregion
 

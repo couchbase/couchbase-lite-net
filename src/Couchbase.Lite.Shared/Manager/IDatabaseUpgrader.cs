@@ -30,7 +30,7 @@ namespace Couchbase.Lite.Db
 
         bool CanRemoveOldAttachmentsDir { get; set; }
 
-        Status Import();
+        void Import();
 
         void Backout();
     }

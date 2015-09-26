@@ -514,8 +514,9 @@ namespace Couchbase.Lite.Listener
             }
 
             if (open) {
-                bool opened = db.Open();
-                if (!opened) {
+                try {
+                    db.Open();
+                } catch(Exception) {
                     return context.CreateResponse(StatusCode.DbError);
                 }
             }

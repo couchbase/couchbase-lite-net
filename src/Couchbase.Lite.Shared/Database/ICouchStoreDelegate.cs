@@ -26,14 +26,8 @@ namespace Couchbase.Lite.Store
     /// <summary>
     /// Delegate of a ICouchStore instance. Database implements this.
     /// </summary>
-    public interface ICouchStoreDelegate
+    internal interface ICouchStoreDelegate
     {
-
-        /// <summary>
-        /// Optional encryption key registered with this database.
-        /// </summary>
-        /// <value>The encryption key.</value>
-        SymmetricKey EncryptionKey { get; }
 
         /// <summary>
         /// Called whenever the outermost transaction completes.

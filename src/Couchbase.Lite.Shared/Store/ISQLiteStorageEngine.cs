@@ -62,7 +62,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         /// <param name="path">The path where the database exists</param>
         /// <param name="encryptionKey">A key for encrypting the database</param>
-        bool Open(String path, SymmetricKey encryptionKey = null, Status status = null);
+        bool Open(String path, SymmetricKey encryptionKey = null);
 
         /// <summary>
         /// Gets the user version of the database

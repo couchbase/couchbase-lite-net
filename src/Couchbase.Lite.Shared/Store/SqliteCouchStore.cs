@@ -114,6 +114,7 @@ namespace Couchbase.Lite.Store
         private string _path;
         private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
+        private SymmetricKey _encryptionKey;
 
         #endregion
 
@@ -225,7 +226,7 @@ namespace Couchbase.Lite.Store
             }
         }
 
-        public bool RunStatements(string sqlStatements)
+        public void RunStatements(string sqlStatements)
         {
             foreach (var quotedStatement in sqlStatements.Split(';')) {
                 var statement = quotedStatement.Replace('|', ';');
@@ -243,15 +244,15 @@ namespace Couchbase.Lite.Store
                 if (!StringEx.IsNullOrWhiteSpace(statement)) {
                     try {
                         StorageEngine.ExecSQL(statement);
+                    } catch(CouchbaseLiteException) {
+                        Log.E(TAG, "Error running statement '{0}'", statement);
+                        throw;
                     } catch(Exception e) {
-                        Log.E(TAG, String.Format("Error running statement", statement), e);
-                        return false;
+                        throw new CouchbaseLiteException(String.Format("Error running statement '{0}'", statement), e) { Code = StatusCode.DbError };
                     }
 
                 }
             }
-
-            return true;
         }
 
         public IDictionary<string, object> GetDocumentProperties(IEnumerable<byte> json, string docId, string revId, bool deleted, long sequence)
@@ -329,7 +330,7 @@ namespace Couchbase.Lite.Store
                 }
 
                 return retVal;
-            } catch(SQLException e) {
+            } catch(Exception e) {
                 Log.E(TAG, "Error executing SQL query", e);
             } finally {
                 if (c != null) {
@@ -428,99 +429,74 @@ namespace Couchbase.Lite.Store
 
         #region Private Methods
 
-        private bool Open(Status status)
+        private void Open()
         {
             if (IsOpen) {
-                return true;
-            }
-
-            if (status == null) {
-                status = new Status();
+                return;
             }
 
             // Create the storage engine.
             StorageEngine = SQLiteStorageEngineFactory.CreateStorageEngine();
 
             // Try to open the storage engine and stop if we fail.
-            if (StorageEngine == null || !StorageEngine.Open(_path, Delegate.EncryptionKey, status)) {
-                var msg = "Unable to create a storage engine, fatal error";
-                Log.E(TAG, msg);
-                return false;
+            if (StorageEngine == null || !StorageEngine.Open(_path, _encryptionKey)) {
+                throw new CouchbaseLiteException("Unable to create a storage engine", StatusCode.DbError);
             }
 
             // Stuff we need to initialize every time the sqliteDb opens:
-            if (!RunStatements("PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL;")) {
-                Log.E(TAG, "Error setting pragmas");
-                status.Code = StatusCode.DbError;
-                return false;
-            }
+            try {
+                RunStatements("PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL;");
 
-            // Check the user_version number we last stored in the sqliteDb:
-            var dbVersion = StorageEngine.GetVersion();
-            bool isNew = dbVersion == 0;
-            if (isNew && !RunStatements("BEGIN TRANSACTION")) {
-                StorageEngine.Close();
-                status.Code = StatusCode.DbError;
-                return false;
-            }
+                // Check the user_version number we last stored in the sqliteDb:
+                var dbVersion = StorageEngine.GetVersion();
+                bool isNew = dbVersion == 0;
+                if (isNew) {
+                    RunStatements("BEGIN TRANSACTION");
+                }
 
-            // Incompatible version changes increment the hundreds' place:
-            if (dbVersion >= 200)
-            {
-                Log.E(TAG, "Database: Database version (" + dbVersion + ") is newer than I know how to work with");
-                status.Code = StatusCode.DbError;
-                StorageEngine.Close();
-                return false;
-            }
+                // Incompatible version changes increment the hundreds' place:
+                if (dbVersion >= 200) {
+                    throw new CouchbaseLiteException("Database version (" + dbVersion + ") is newer than I know how to work with", StatusCode.DbError);
+                }
 
-            if (dbVersion < 17) {
+                if (dbVersion < 17) {
+                    if (!isNew) {
+                        throw new CouchbaseLiteException("Database version ({0}) is older " +
+                            "than I know how to work with", dbVersion) { Code = StatusCode.DbError };
+                    }
+
+                    RunStatements(SCHEMA);
+                    dbVersion = 17;
+                }
+
+                if (dbVersion < 18) {
+                    const string upgradeSql = "ALTER TABLE revs ADD COLUMN doc_type TEXT;" +
+                        "PRAGMA user_version = 18";
+
+                    RunStatements(upgradeSql);
+                    dbVersion = 18;
+                }
+
+                if (dbVersion < 101) {
+                    const string upgradeSql = "PRAGMA user_version = 101";
+                    RunStatements(upgradeSql);
+                    dbVersion = 101;
+                }
+
+                if (isNew) {
+                    RunStatements("END TRANSACTION");
+                }
+
                 if (!isNew) {
-                    Log.W(TAG, "Database version ({0}) is older than I know how to work with",
-                        dbVersion);
-                    status.Code = StatusCode.DbError;
-                    StorageEngine.Close();
-                    return false;
+                    OptimizeSQLIndexes();
                 }
-
-                if (!RunStatements(SCHEMA)) {
-                    StorageEngine.Close();
-                    status.Code = StatusCode.DbError;
-                    return false;
-                }
-                dbVersion = 17;
-            }
-            if (dbVersion < 18) {
-                const string upgradeSql = "ALTER TABLE revs ADD COLUMN doc_type TEXT;" +
-                    "PRAGMA user_version = 18";
-
-                if (!RunStatements(upgradeSql)) {
-                    status.Code = StatusCode.DbError;
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 18;
-            }
-            if (dbVersion < 101) {
-                const string upgradeSql = "PRAGMA user_version = 101";
-                if (!RunStatements(upgradeSql)) {
-                    status.Code = StatusCode.DbError;
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 101;
-            }
-
-            if (isNew && !RunStatements("END TRANSACTION")) {
-                status.Code = StatusCode.DbError;
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Error initializing the SQLite storage engine");
                 StorageEngine.Close();
-                return false;
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException("Unknown error initializing SQLite storage engine", e) { Code = StatusCode.Exception };
             }
-
-            if (!isNew) {
-                OptimizeSQLIndexes();
-            }
-
-            return true;
         }
 
         internal int PruneRevsToMaxDepth(int maxDepth)
@@ -920,10 +896,10 @@ namespace Couchbase.Lite.Store
             return File.Exists(path);
         }
 
-        public bool Open(string path, Manager manager, Status status = null)
+        public void Open(string path, Manager manager)
         {
             _path = path;
-            return Open(status);
+            Open();
         }
 
         public void Close()
@@ -971,9 +947,11 @@ namespace Couchbase.Lite.Store
                 args["doc_type"] = null;
                 args["no_attachments"] = 1;
                 StorageEngine.Update("revs", args, "current=0", null);
-            } catch (SQLException e) {
-                Log.E(TAG, "Error compacting", e);
-                throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Error compacting old JSON");
+                throw;
+            } catch (Exception e) {
+                throw new CouchbaseLiteException(e, StatusCode.DbError);
             }
 
             Log.V(TAG, "Deleting old attachments...");
@@ -983,9 +961,11 @@ namespace Couchbase.Lite.Store
                 StorageEngine.ExecSQL("PRAGMA wal_checkpoint(RESTART)");
                 Log.V(TAG, "Vacuuming SQLite sqliteDb...");
                 StorageEngine.ExecSQL("VACUUM");
-            } catch (SQLException e) {
-                Log.E(TAG, "Error vacuuming sqliteDb", e);
-                throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Error vacuuming Sqlite DB");
+                throw;
+            } catch (Exception e) {
+                throw new CouchbaseLiteException("Error vacuuming Sqlite DB", e) { Code = StatusCode.DbError };
             }
         }
 
@@ -1024,6 +1004,11 @@ namespace Couchbase.Lite.Store
             } while(status.Code == StatusCode.DbBusy);
 
             return status;
+        }
+
+        public void SetEncryptionKey(SymmetricKey key)
+        {
+            _encryptionKey = key;
         }
 
         public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status status = null)
@@ -1397,7 +1382,7 @@ namespace Couchbase.Lite.Store
                 return true;
             }, false, "SELECT json FROM revs WHERE no_attachments != 1");
 
-            return status.IsError ? null : allKeys;
+            return status.IsError && status.Code != StatusCode.NotFound ? null : allKeys;
         }
 
         public IEnumerable<QueryRow> GetAllDocs(QueryOptions options)

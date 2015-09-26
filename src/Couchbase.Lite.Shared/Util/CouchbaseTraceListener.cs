@@ -46,6 +46,7 @@
 #endif
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
@@ -126,6 +127,15 @@ namespace Couchbase.Lite.Util
             Console.Out.Write(Environment.NewLine);
             #endif
         }
+
+        private static readonly Dictionary<SourceLevels, ConsoleColor> _LevelColors = new Dictionary<SourceLevels, ConsoleColor> {
+            { SourceLevels.Verbose, ConsoleColor.Gray },
+            { SourceLevels.ActivityTracing, ConsoleColor.Black },
+            { SourceLevels.Information, ConsoleColor.Blue },
+            { SourceLevels.Warning, ConsoleColor.Yellow },
+            { SourceLevels.Error, ConsoleColor.Red }
+        };
+
     #endif
         public void WriteLine(SourceLevels level, string message, string category)
         {
@@ -144,8 +154,11 @@ namespace Couchbase.Lite.Util
             Debugger.Log((int)Level, null, message);
             #endif
             #if __CONSOLE__
+            var color = Console.ForegroundColor;
+            Console.ForegroundColor = _LevelColors[Level];
             Console.Out.Write(message);
             Console.Out.Flush();
+            Console.ForegroundColor = color;
             #endif
         }
         
@@ -160,11 +173,14 @@ namespace Couchbase.Lite.Util
             Debugger.Log((int)Level, category, message + Environment.NewLine);
             #endif
             #if __CONSOLE__
+            var color = Console.ForegroundColor;
+            Console.ForegroundColor = _LevelColors[Level];
             Console.Out.Write(category);
             Console.Out.Write(": ");
             Console.Out.Write(message);
             Console.Out.Write(Environment.NewLine);
             Console.Out.Flush();
+            Console.ForegroundColor = color;
             #endif
             WriteOptionalTraceInfo();
         }      
@@ -195,10 +211,13 @@ namespace Couchbase.Lite.Util
             Debugger.Log((int)Level, category, message);
             #endif
             #if __CONSOLE__
+            var color = Console.ForegroundColor;
+            Console.ForegroundColor = _LevelColors[Level];
             Console.Out.Write(category);
             Console.Out.Write(": ");
             Console.Out.Write(message);
             Console.Out.Flush();
+            Console.ForegroundColor = color;
             #endif
         }
 
@@ -213,8 +232,11 @@ namespace Couchbase.Lite.Util
             Debugger.Log((int)SourceLevels.Critical, Category, message + Environment.NewLine);
             #endif
             #if __CONSOLE__
+            var color = Console.ForegroundColor;
+            Console.ForegroundColor = _LevelColors[SourceLevels.Error];
             Console.Out.Write(message);
             Console.Out.Write(Environment.NewLine);
+            Console.ForegroundColor = color;
             #endif
             WriteOptionalTraceInfo();
         }

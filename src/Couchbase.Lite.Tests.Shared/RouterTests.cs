@@ -1376,7 +1376,7 @@ namespace Couchbase.Lite
             Log.D(TAG, "----- CLOSING DB -----");
             Assert.IsNotNull(database);
             var dbName = database.Name;
-            Assert.IsTrue(database.Close(), "Couldn't close DB");
+            Assert.DoesNotThrow(database.Close, "Couldn't close DB");
             database = null;
 
             Log.D(TAG, "----- REOPENING DB -----");

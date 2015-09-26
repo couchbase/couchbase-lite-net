@@ -32,6 +32,14 @@ using Rackspace.Threading;
 namespace Couchbase.Lite.Store
 {
     /// <summary>
+    /// Type of block returned by SymmetricKey.CreateEncryptor.
+    /// This block can be called repeatedly with input data and returns additional output data.
+    /// At EOF, the block should be called with a null parameter, and
+    /// it will return the remaining encrypted data from its buffer.
+    /// </summary>
+    public delegate byte[] CryptorBlock(byte[] input);
+
+    /// <summary>
     /// Basic AES encryption. Uses a 256-bit (32-byte) key.
     /// </summary>
     public sealed class SymmetricKey 
@@ -59,13 +67,7 @@ namespace Couchbase.Lite.Store
         private const string DEFAULT_SALT = "Salty McNaCl";
         private const int DEFAULT_PBKDF_ROUNDS = 64000;
 
-        /// <summary>
-        /// Type of block returned by SymmetricKey.CreateEncryptor.
-        /// This block can be called repeatedly with input data and returns additional output data.
-        /// At EOF, the block should be called with a null parameter, and
-        /// it will return the remaining encrypted data from its buffer.
-        /// </summary>
-        public delegate byte[] CryptorBlock(byte[] input);
+
 
         #endregion
 

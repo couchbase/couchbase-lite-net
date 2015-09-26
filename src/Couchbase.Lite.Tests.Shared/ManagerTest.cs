@@ -76,7 +76,7 @@ namespace Couchbase.Lite
             List<string> databaseNames = manager.AllDatabaseNames.ToList();
 
             Assert.IsTrue(!databaseNames.Contains("foo"));
-            Assert.IsTrue(db.Open());
+            Assert.DoesNotThrow(db.Open);
             Assert.IsTrue(db.Exists());
             
             databaseNames = manager.AllDatabaseNames.ToList();

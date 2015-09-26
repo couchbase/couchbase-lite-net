@@ -86,24 +86,19 @@ namespace Couchbase.Lite
 
         public int LastErrorCode { get; private set; }
 
-        public bool Decrypt(SymmetricKey encryptionKey, Status status = null)
+        // Returns true on success, false if encryption key is wrong, throws exception for other cases
+        public bool Decrypt(SymmetricKey encryptionKey)
         {
-            if (status == null) {
-                status = new Status();
-            }
-
             var hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
             #if MOCK_ENCRYPTION
             if(!hasRealEncryption && Database.EnableMockEncryption) {
-                return MockDecrypt(encryptionKey, status);
+                return MockDecrypt(encryptionKey);
             }
             #endif
 
             if (encryptionKey != null) {
                 if (!hasRealEncryption) {
-                    Log.W(TAG, "Encryption not available (app not built with SQLCipher)");
-                    status.Code = StatusCode.NotImplemented;
-                    return false;
+                    throw new CouchbaseLiteException("Encryption not available (app not built with SQLCipher)", StatusCode.NotImplemented);
                 }
 
                 // http://sqlcipher.net/sqlcipher-api/#key
@@ -111,10 +106,11 @@ namespace Couchbase.Lite
                 try {
                     ExecSQL(sql, _writeConnection);
                     ExecSQL(sql, _readConnection);
-                } catch(Exception) {
-                    Log.W(TAG, "'pragma key' failed (SQLite error {0})", LastErrorCode);
-                    status.Code = StatusCode.DbError;
-                    return false;
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Decryption operation failed");
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException("Decryption operation failed", e);
                 }
             }
 
@@ -122,20 +118,17 @@ namespace Couchbase.Lite
             var result = raw.sqlite3_exec(_readConnection, "SELECT count(*) FROM sqlite_master");
             if (result != raw.SQLITE_OK) {
                 if (result == raw.SQLITE_NOTADB) {
-                    status.Code = StatusCode.Unauthorized;
+                    return false;
                 } else {
-                    status.Code = StatusCode.DbError;
+                    throw new CouchbaseLiteException(String.Format("Cannot read from database ({0})", result), StatusCode.DbError);
                 }
-
-                Log.W(TAG, "database is unreadable (err {0})", result);
-                return false;
             }
 
             return true;
         }
 
         #if MOCK_ENCRYPTION
-        public bool MockDecrypt(SymmetricKey encryptionKey, Status status = null)
+        public bool MockDecrypt(SymmetricKey encryptionKey)
         {
             var givenKeyData = encryptionKey != null ? encryptionKey.KeyData : new byte[0];
             var keyPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path), "mock_key");
@@ -144,7 +137,6 @@ namespace Couchbase.Lite
             } else {
                 var actualKeyData = File.ReadAllBytes(keyPath);
                 if (!givenKeyData.SequenceEqual(actualKeyData)) {
-                    status.Code = StatusCode.Unauthorized;
                     return false;
                 }
             }
@@ -153,7 +145,7 @@ namespace Couchbase.Lite
         }
         #endif
 
-        public bool Open(String path, SymmetricKey encryptionKey = null, Status status = null)
+        public bool Open(String path, SymmetricKey encryptionKey = null)
         {
             if (IsOpen)
                 return true;
@@ -161,9 +153,7 @@ namespace Couchbase.Lite
             Path = path;
             Factory = new TaskFactory(new SingleThreadScheduler());
 
-            var result = true;
-            try
-            {
+            try {
                 Log.I(TAG, "Sqlite Version: {0}".Fmt(raw.sqlite3_libversion()));
                 
                 shouldCommit = false;
@@ -173,29 +163,28 @@ namespace Couchbase.Lite
                 const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(reader_flags, encryptionKey, out _readConnection);
 
-                if (!Decrypt(encryptionKey, status)) {
-                    result = false;
+                if (!Decrypt(encryptionKey)) {
+                    throw new CouchbaseLiteException(StatusCode.Unauthorized);
                 }
-            }
-            catch (Exception ex)
-            {
-                Log.E(TAG, "Error opening the Sqlite connection using connection String: {0}".Fmt(path), ex);
-                status.Code = StatusCode.Exception;
-                result = false;
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Error opening SQLite storage engine");
+                throw;
+            } catch (Exception ex) {
+                throw new CouchbaseLiteException("Failed to open SQLite storage engine", ex) { Code = StatusCode.Exception };
             }
 
-            return result;
+            return true;
         }
 
         void OpenSqliteConnection(int flags, SymmetricKey encryptionKey, out sqlite3 db)
         {
             LastErrorCode = raw.sqlite3_open_v2(Path, out db, flags, null);
-            if (LastErrorCode != raw.SQLITE_OK)
-            {
+            if (LastErrorCode != raw.SQLITE_OK) {
                 Path = null;
-                var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(Path);
+                var errMessage = "Failed to open SQLite storage engine at path {0}".Fmt(Path);
                 throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
             }
+
 #if !__ANDROID__ && !NET_3_5 && VERBOSE
                 var i = 0;
                 var val = raw.sqlite3_compileoption_get(i);
@@ -214,7 +203,7 @@ namespace Couchbase.Lite
             raw.sqlite3_create_collation(db, "REVID", null, CouchbaseSqliteRevIdCollationFunction.Compare);
         }
 
-        public Int32 GetVersion()
+        public int GetVersion()
         {
             const string commandText = "PRAGMA user_version;";
             sqlite3_stmt statement;
@@ -225,31 +214,25 @@ namespace Couchbase.Lite
             statement = BuildCommand (_writeConnection, commandText, null);
 
             var result = -1;
-            try
-            {
+            try {
                 LastErrorCode = raw.sqlite3_step(statement);
-                if (LastErrorCode != raw.SQLITE_ERROR)
-                {
+                if (LastErrorCode != raw.SQLITE_ERROR) {
                     Debug.Assert(LastErrorCode == raw.SQLITE_ROW);
                     result = raw.sqlite3_column_int(statement, 0);
                 }
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 Log.E(TAG, "Error getting user version", e);
-            }
-            finally
-            {
+            } finally {
                 statement.Dispose();
             }
 
             return result;
         }
 
-        public void SetVersion(Int32 version)
+        public void SetVersion(int version)
         {
             var errMessage = "Unable to set version to {0}".Fmt(version);
-            var commandText = "PRAGMA user_version = ?";
+            const string commandText = "PRAGMA user_version = ?";
 
             Factory.StartNew(() =>
             {
@@ -666,9 +649,7 @@ namespace Couchbase.Lite
             try
             {
                 if (!IsOpen) {
-                    if(!Open(Path)) {
-                        throw new CouchbaseLiteException("Failed to Open " + Path, StatusCode.DbError);
-                    }
+                    Open(Path);
                 }
 
                 lock(Cursor.StmtDisposeLock)
@@ -849,23 +830,18 @@ namespace Couchbase.Lite
             {
                 sqlite3_stmt command = null;
 
-                try
-                {
+                try {
                     command = BuildCommand(db, sql, paramArgs);
                     LastErrorCode = command.step();
-                    if (LastErrorCode == SQLiteResult.ERROR)
-                        throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
-                }
-                catch (ugly.sqlite3_exception e)
-                {
+                    if (LastErrorCode == SQLiteResult.ERROR) {
+                        throw new CouchbaseLiteException("SQLite error: " + raw.sqlite3_errmsg(db), StatusCode.DbError);
+                    }
+                } catch (ugly.sqlite3_exception e) {
                     Log.E(TAG, "Error {0}, {1} executing sql '{2}'".Fmt(e.errcode, db.extended_errcode(), sql), e);
                     LastErrorCode = e.errcode;
-                    throw;
-                }
-                finally
-                {
-                    if(command != null)
-                    {
+                    throw new CouchbaseLiteException(String.Format("Error executing sql '{0}'", sql), e) { Code = StatusCode.DbError };
+                } finally {
+                    if(command != null) {
                         command.Dispose();
                     }
                 }
