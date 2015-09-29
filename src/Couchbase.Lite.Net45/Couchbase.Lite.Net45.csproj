@@ -55,10 +55,6 @@
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SQLitePCL.raw, Version=0.8.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Couchbase.Lite.Shared\vendor\sqlcipher\Windows\SQLitePCL.raw.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net" />
@@ -72,9 +68,6 @@
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\Couchbase.Lite.Shared\vendor\sqlcipher\SQLitePCL.ugly.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -92,4 +85,14 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
   </Target>
+  <ItemGroup>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
+      <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
+      <Name>ugly_profile78</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net45.pinvoke_packaged_sqlcipher.anycpu.csproj">
+      <Project>{8E62D3FC-CE27-427F-A060-F86DA48142F8}</Project>
+      <Name>platform.net45.pinvoke_packaged_sqlcipher.anycpu</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>
