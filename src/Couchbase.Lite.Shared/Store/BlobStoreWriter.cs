@@ -48,6 +48,7 @@ using Sharpen;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Lite.Store;
+using System.Security.Cryptography;
 
 namespace Couchbase.Lite
 {
@@ -78,11 +79,9 @@ namespace Couchbase.Lite
 
         private MessageDigest md5Digest;
 
-        private BufferedOutputStream outStream;
+        private Stream outStream;
 
         private FilePath tempFile;
-
-        private CryptorBlock _encryptor;
 
         public string FilePath
         {
@@ -111,11 +110,6 @@ namespace Couchbase.Lite
             {
                 throw new InvalidOperationException("Unable to open temporary file.", e);
             }
-
-            var encryptionKey = store.EncryptionKey;
-            if (encryptionKey != null) {
-                _encryptor = encryptionKey.CreateEncryptor();
-            }
         }
 
         /// <exception cref="System.IO.FileNotFoundException"></exception>
@@ -125,7 +119,12 @@ namespace Couchbase.Lite
             string filename = string.Format("{0}.blobtmp", uuid);
             FilePath tempDir = store.TempDir();
             tempFile = new FilePath(tempDir, filename);
-            outStream = new BufferedOutputStream(new FileOutputStream(tempFile));
+            if (store.EncryptionKey == null) {
+                outStream = new BufferedStream(File.Open (tempFile.GetAbsolutePath(), FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite));
+            } else {
+                outStream = store.EncryptionKey.CreateStream(
+                    new BufferedStream(File.Open(tempFile.GetAbsolutePath(), FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)));
+            }
         }
 
         /// <summary>Appends data to the blob.</summary>
@@ -137,12 +136,8 @@ namespace Couchbase.Lite
             sha1Digest.Update(dataVector);
             md5Digest.Update(dataVector);
 
-            if (_encryptor != null) {
-                dataVector = _encryptor(dataVector);
-            }
-
             try {
-                outStream.Write(dataVector);
+                outStream.Write(dataVector, 0, dataVector.Length);
             } catch (IOException e) {
                 throw new CouchbaseLiteException("Unable to write to stream.", e) { Code = StatusCode.Exception };
             }
@@ -150,7 +145,7 @@ namespace Couchbase.Lite
 
         internal void Read(InputStream inputStream)
         {
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[16384];
             int len;
             length = 0;
             try
@@ -158,11 +153,8 @@ namespace Couchbase.Lite
                 while ((len = inputStream.Read(buffer)) != -1)
                 {
                     var dataToWrite = buffer;
-                    if(_encryptor != null) {
-                        dataToWrite = _encryptor(buffer);
-                    }
 
-                    outStream.Write(dataToWrite, 0, dataToWrite.Length);
+                    outStream.Write(dataToWrite, 0, len);
                     sha1Digest.Update(buffer, 0, len);
                     md5Digest.Update(buffer, 0, len);
                     length += len;
@@ -189,11 +181,7 @@ namespace Couchbase.Lite
         public void Finish()
         {
             try {
-                if(_encryptor != null) {
-                    outStream.Write(_encryptor(null));
-                    _encryptor = null;
-                }
-
+                outStream.Flush();
                 outStream.Close();
             } catch (IOException e) {
                 Log.W(Database.TAG, "Exception closing output stream", e);
@@ -213,7 +201,6 @@ namespace Couchbase.Lite
             }
 
             tempFile.Delete();
-            _encryptor = null;
         }
 
         /// <summary>Installs a finished blob into the store.</summary>

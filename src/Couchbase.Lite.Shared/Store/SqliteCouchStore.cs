@@ -1011,6 +1011,80 @@ namespace Couchbase.Lite.Store
             _encryptionKey = key;
         }
 
+        public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
+        {
+            // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export
+            var hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
+            if (!hasRealEncryption) {
+                #if MOCK_ENCRYPTION
+                if (!Database.EnableMockEncryption)
+                #endif
+                    return null;
+            }
+
+            var action = new AtomicAction();
+            var dbWasClosed = false;
+            var tempPath = default(string);
+            #if MOCK_ENCRYPTION
+            if (!hasRealEncryption) {
+                var givenKeyData = newKey != null ? newKey.KeyData : new byte[0];
+                var oldKeyPath = Path.Combine(Path.GetDirectoryName(_path), "mock_key");
+                var newKeyPath = Path.Combine(Path.GetDirectoryName(_path), "mock_new_key");
+                File.WriteAllBytes(newKeyPath, givenKeyData);
+                action.AddLogic(AtomicAction.MoveFile(oldKeyPath, newKeyPath));
+            } else
+            #endif
+            {
+                // Make a path for a temporary database file:
+                tempPath = Path.Combine(Path.GetTempPath(), Misc.CreateGUID());
+                action.AddLogic(null, () => File.Delete(tempPath), null);
+
+                // Create & attach a temporary database encrypted with the new key:
+                action.AddLogic(() =>
+                {
+                    var keyStr = newKey != null ? newKey.HexData : String.Empty;
+                    var sql = String.Format("ATTACH DATABASE ? AS rekeyed_db KEY \"x'{0}'\"", keyStr);
+                    StorageEngine.ExecSQL(sql, tempPath);
+                }, () =>
+                {
+                    if(dbWasClosed) {
+                        return;
+                    }
+
+                    StorageEngine.ExecSQL("DETACH DATABASE rekeyed_db");
+                });
+
+                // Export the current database's contents to the new one:
+                action.AddLogic(() => 
+                {
+                    StorageEngine.ExecSQL("SELECT sqlcipher_export('rekeyed_db')");
+                    var version = QueryOrDefault<int>(c => c.GetInt(0), false, 0, "PRAGMA user_version");
+                    StorageEngine.ExecSQL(String.Format("PRAGMA rekeyed_db.user_version = {0}", version));
+                }, null, null);
+            }
+
+            // Close the database (and re-open it on cleanup):
+            action.AddLogic(() =>
+            {
+                StorageEngine.Close();
+                dbWasClosed = true;
+            }, () =>
+            {
+                Open();
+            }, () =>
+            {
+                SetEncryptionKey(newKey);
+                Open();
+            });
+
+            // Overwrite the old db file with the new one:
+            if (hasRealEncryption) {
+                action.AddLogic(AtomicAction.MoveFile(tempPath, _path));
+            }
+
+            return action;
+        }
+
         public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status status = null)
         {
             if (status == null) {

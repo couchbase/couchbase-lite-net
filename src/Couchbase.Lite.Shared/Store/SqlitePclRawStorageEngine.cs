@@ -636,6 +636,8 @@ namespace Couchbase.Lite
             }
         }
 
+
+
         #endregion
 
         #region Non-public Members
@@ -837,7 +839,7 @@ namespace Couchbase.Lite
                         throw new CouchbaseLiteException("SQLite error: " + raw.sqlite3_errmsg(db), StatusCode.DbError);
                     }
                 } catch (ugly.sqlite3_exception e) {
-                    Log.E(TAG, "Error {0}, {1} executing sql '{2}'".Fmt(e.errcode, db.extended_errcode(), sql), e);
+                    Log.E(TAG, "Error {0}, {1} ({2}) executing sql '{3}'".Fmt(e.errcode, db.extended_errcode(), raw.sqlite3_errmsg(db), sql), e);
                     LastErrorCode = e.errcode;
                     throw new CouchbaseLiteException(String.Format("Error executing sql '{0}'", sql), e) { Code = StatusCode.DbError };
                 } finally {

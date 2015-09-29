@@ -48,7 +48,7 @@ namespace Couchbase.Lite.Store
     /// <summary>
     /// An interface for describing an object that can interface with a SQLite database
     /// </summary>
-    public interface ISQLiteStorageEngine
+    internal interface ISQLiteStorageEngine
     {
 
         /// <summary>

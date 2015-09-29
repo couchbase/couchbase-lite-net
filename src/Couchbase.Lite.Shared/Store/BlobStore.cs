@@ -174,40 +174,29 @@ namespace Couchbase.Lite
 
         public byte[] BlobForKey(BlobKey key)
         {
+            using (var blobStream = BlobStreamForKey(key)) {
+                return blobStream.ReadAllBytes();
+            }
+        }
+
+        public Stream BlobStreamForKey(BlobKey key)
+        {
             if (key == null) {
                 return null;
             }
 
             string keyPath = PathForKey(key);
-            FilePath file = new FilePath(keyPath);
-            byte[] result = null;
+            var fileStream = default(Stream);
             try {
-                result = GetBytesFromFile(file);
+                fileStream = File.Open(keyPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                if(EncryptionKey != null) {
+                    fileStream = EncryptionKey.DecryptStream(fileStream);
+                }
             } catch (IOException e) {
                 Log.E(Database.TAG, "Error reading file", e);
             }
-            return result;
-        }
 
-        public Stream BlobStreamForKey(BlobKey key)
-        {
-            var keyPath = PathForKey(key);
-            Log.D(Database.TAG, "Blob Path : " + keyPath);
-            var file = new FilePath(keyPath);
-            if (file.CanRead()) {
-                try {
-                    return new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
-                }
-                catch (FileNotFoundException e) {
-                    Log.E(Database.TAG, "Unexpected file not found in blob store", e);
-                    return null;
-                }
-                catch (Exception e) {
-                    Log.E(Database.TAG, "Cannot new FileStream", e);
-                }
-            }
-
-            return null;
+            return fileStream;
         }
 
         public bool StoreBlobStream(Stream inputStream, out BlobKey outKey)
@@ -277,32 +266,6 @@ namespace Couchbase.Lite
             }
             // ignore
             return true;
-        }
-
-        /// <exception cref="System.IO.IOException"></exception>
-        private static byte[] GetBytesFromFile(FilePath file)
-        {
-            InputStream @is = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            // Get the size of the file
-            long length = file.Length();
-            // Create the byte array to hold the data
-            byte[] bytes = new byte[(int)length];
-            // Read in the bytes
-            int offset = 0;
-            int numRead = 0;
-            while (offset < bytes.Length && (numRead = @is.Read(bytes, offset, bytes.Length -
-                   offset)) >= 0) {
-                offset += numRead;
-            }
-
-            // Ensure all the bytes have been read in
-            if (offset < bytes.Length) {
-                throw new IOException("Could not completely read file " + file.GetName());
-            }
-
-            // Close the input stream and return bytes
-            @is.Close();
-            return bytes;
         }
 
         public ICollection<BlobKey> AllKeys()
@@ -400,6 +363,91 @@ namespace Couchbase.Lite
             return tempDirectory;
         }
 
+        public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
+        {
+            var action = new AtomicAction();
+
+            // Find all the blob files:
+            var blobs = default(string[]);
+            var oldKey = EncryptionKey;
+            blobs = Directory.GetFiles(_path, "*" + FileExtension);
+            if (blobs.Length == 0) {
+                // No blobs, so nothing to encrypt. Just add/remove the encryption marker file:
+                action.AddLogic(() =>
+                {
+                    Log.D(TAG, "{0} {1}", (newKey != null) ? "encrypting" : "decrypting", _path);
+                    Log.D(TAG, "    No blobs to copy; done.");
+                    EncryptionKey = newKey;
+                    MarkEncrypted(newKey != null);
+                }, () =>
+                {
+                    EncryptionKey = oldKey;
+                    MarkEncrypted(oldKey != null);
+                }, null);
+                return action;
+            }
+
+            // Create a new directory for the new blob store. Have to do this now, before starting the
+            // action, because farther down we create an action to move it...
+            var tempPath = Path.Combine(Path.GetTempPath(), String.Format("CouchbaseLite-Temp-{0}", Misc.CreateGUID()));
+            action.AddLogic(() => 
+            {
+                Log.D(TAG, "{0} {1}", (newKey != null) ? "encrypting" : "decrypting", _path);
+                Directory.CreateDirectory(tempPath);
+            }, () => Directory.Delete(tempPath, true), null);
+
+            var tempStore = default(BlobStore);
+            action.AddLogic(() =>
+            {
+                tempStore = new BlobStore(tempPath, newKey);
+                tempStore.MarkEncrypted(true);
+            }, null, null);
+
+            // Copy each of my blobs into the new store (which will update its encryption):
+            action.AddLogic(() =>
+            {
+                foreach(var blobName in blobs) {
+                    // Copy file by reading with old key and writing with new one:
+                    Log.D(TAG, "    Copying {0}", blobName);
+                    Stream readStream = File.Open(blobName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    if(EncryptionKey != null) {
+                        readStream = EncryptionKey.DecryptStream(readStream);
+                    }
+
+                    var writer = new BlobStoreWriter(tempStore);
+                    try {
+                        writer.Read(readStream);
+                        writer.Finish();
+                        writer.Install();
+                    } catch(Exception) {
+                        writer.Cancel();
+                        throw;
+                    } finally {
+                        readStream.Dispose();
+                    }
+                }
+            }, null, null);
+
+            // Replace the attachment dir with the new one:
+            action.AddLogic(AtomicAction.MoveDirectory(tempPath, _path));
+
+            // Finally update EncryptionKey:
+            action.AddLogic(() =>
+            {
+                EncryptionKey = newKey;
+            }, () =>
+            {
+                EncryptionKey = oldKey;
+            }, null);
+
+            return action;
+        }
+
+        public void ChangeEncryptionKey(SymmetricKey newKey)
+        {
+            ActionToChangeEncryptionKey(newKey).Run();
+        }
+
         internal void MarkEncrypted(bool encrypted)
         {
             var encMarkerPath = Path.Combine(_path, ENCRYPTION_MARKER_FILENAME);
@@ -451,9 +499,6 @@ namespace Couchbase.Lite
             }
         }
 
-        private void ChangeEncryptionKey(SymmetricKey newKey)
-        {
-            //TODO: Implement
-        }
+
     }
 }

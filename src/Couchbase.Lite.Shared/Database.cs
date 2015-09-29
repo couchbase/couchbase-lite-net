@@ -316,7 +316,6 @@ namespace Couchbase.Lite
 
         #endregion
 
-    
         #region Public Methods
 
         /// <summary>
@@ -662,6 +661,23 @@ namespace Couchbase.Lite
         }
         private EventHandler<DatabaseChangeEventArgs> _changed;
 
+        public void ChangeEncryptionKey(object newKeyOrPassword)
+        {
+            var newKey = default(SymmetricKey);
+            if (newKeyOrPassword != null) {
+                try {
+                    newKey = SymmetricKey.Create(newKeyOrPassword);
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(e, StatusCode.BadRequest);
+                }
+            }
+
+            var action = Storage.ActionToChangeEncryptionKey(newKey);
+            action.AddLogic(Attachments.ActionToChangeEncryptionKey(newKey));
+            action.AddLogic(() => Manager.RegisterEncryptionKey(newKeyOrPassword, Name), null, null);
+            action.Run();
+        }
+
     #endregion
 
         #region Internal Methods
@@ -820,52 +836,37 @@ namespace Couchbase.Lite
             return Storage.GetInfo(CheckpointInfoKey(checkpointId));
         }
  
-        internal IEnumerable<QueryRow> QueryViewNamed(String viewName, QueryOptions options, long ifChangedSince, ValueTypePtr<long> outLastSequence, Status outStatus = null)
+        internal IEnumerable<QueryRow> QueryViewNamed(String viewName, QueryOptions options, long ifChangedSince, ValueTypePtr<long> outLastSequence)
         {
-            if (outStatus == null) {
-                outStatus = new Status();
-            }
-
             IEnumerable<QueryRow> iterator = null;
-            Status status = null;
             long lastIndexedSequence = 0, lastChangedSequence = 0;
-            do {
-                if(viewName != null) {
-                    var view = GetView(viewName);
-                    if(view == null) {
-                        outStatus.Code = StatusCode.NotFound;
-                        break;
+            if(viewName != null) {
+                var view = GetView(viewName);
+                if(view == null) {
+                    throw new CouchbaseLiteException(StatusCode.NotFound);
+                }
+
+                lastIndexedSequence = view.LastSequenceIndexed;
+                if(options.Stale == IndexUpdateMode.Before || lastIndexedSequence <= 0) {
+                    var status = view.UpdateIndex();
+                    if(status.IsError) {
+                        Log.W(TAG, "Failed to update index: {0}", status.Code);
+                        throw new CouchbaseLiteException(status.Code);
                     }
 
                     lastIndexedSequence = view.LastSequenceIndexed;
-                    if(options.Stale == IndexUpdateMode.Before || lastIndexedSequence <= 0) {
-                        status = view.UpdateIndex();
-                        if(status.IsError) {
-                            Log.W(TAG, "Failed to update index: {0}", status.Code);
-                            break;
-                        }
-
-                        lastIndexedSequence = view.LastSequenceIndexed;
-                    } else if(options.Stale == IndexUpdateMode.After && lastIndexedSequence <= LastSequenceNumber) {
-                        RunAsync(d => view.UpdateIndex());
-                    }
-
-                    lastChangedSequence = view.LastSequenceChangedAt;
-                    iterator = view.QueryWithOptions(options);
-                } else { // null view means query _all_docs
-                    iterator = GetAllDocs(options);
-                    lastIndexedSequence = lastChangedSequence = LastSequenceNumber;
+                } else if(options.Stale == IndexUpdateMode.After && lastIndexedSequence <= LastSequenceNumber) {
+                    RunAsync(d => view.UpdateIndex());
                 }
 
-                if(lastChangedSequence <= ifChangedSince) {
-                    status = new Status(StatusCode.NotModified);
-                }
-            } while(false); // just to allow 'break' within the block
+                lastChangedSequence = view.LastSequenceChangedAt;
+                iterator = view.QueryWithOptions(options);
+            } else { // null view means query _all_docs
+                iterator = GetAllDocs(options);
+                lastIndexedSequence = lastChangedSequence = LastSequenceNumber;
+            }
 
             outLastSequence.Value = lastIndexedSequence;
-            if (status != null) {
-                outStatus.Code = status.Code;
-            }
 
             return iterator;
         }

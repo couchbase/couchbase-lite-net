@@ -181,6 +181,45 @@ namespace Couchbase.Lite
             Assert.AreNotEqual(raw, body, "Oops, attachment was not encrypted");
         }
 
+        [Test]
+        public void TestRekey()
+        {
+            // First run the encrypted-attachments test to populate the db:
+            TestEncryptedAttachments();
+
+            var seekrit = default(Database);
+            Assert.DoesNotThrow(() => seekrit = manager.GetDatabase("seekrit"),
+                "Failed to create encrypted DB");
+            CreateDocuments(seekrit, 100);
+            var view = seekrit.GetView("vu");
+            view.SetMap((doc, emit) => { if(doc.ContainsKey("sequence")) { emit(doc["sequence"], null); }}, "1");
+            var query = view.CreateQuery();
+            Assert.AreEqual(100, query.Run().Count);
+            Assert.DoesNotThrow(() => seekrit.ChangeEncryptionKey("letmeout"), "Error changing encryption key");
+
+            // Close & reopen seekrit:
+            var dbName = seekrit.Name;
+            Assert.DoesNotThrow(seekrit.Close, "Couldn't close seekrit");
+            seekrit = null;
+            Assert.DoesNotThrow(() => manager.RegisterEncryptionKey("letmeout", "seekrit"));
+            var seekrit2 = default(Database);
+            Assert.DoesNotThrow(() => seekrit2 = manager.GetDatabase(dbName));
+            seekrit = seekrit2;
+
+            // Check the document and its attachment:
+            var savedRev = seekrit.GetDocument("att").CurrentRevision;
+            Assert.IsNotNull(savedRev);
+            var att = savedRev.GetAttachment("att.txt");
+            Assert.IsNotNull(att);
+            var body = Encoding.UTF8.GetBytes("This is a test attachment!");
+            Assert.AreEqual(body, att.Content);
+
+            view = seekrit.GetView("vu");
+            query = view.CreateQuery();
+            // Check that the view survived:
+            Assert.AreEqual(100, query.Run().Count);
+        }
+
         protected override void TearDown()
         {
             base.TearDown();
