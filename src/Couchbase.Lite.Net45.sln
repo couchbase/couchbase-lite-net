@@ -139,6 +139,7 @@ Global
 		{84547E16-A872-418D-82A6-B57ADEE290AE} = {1825B796-D027-42E9-801B-CEAC3EA0F252}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = Couchbase.Lite.Net45.Tests\Couchbase.Lite.Net45.Tests.csproj
 		Policies = $0
 		$0.TextStylePolicy = $1
 		$1.FileWidth = 120

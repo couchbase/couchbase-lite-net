@@ -34,6 +34,7 @@
     <Prefer32Bit>false</Prefer32Bit>
     <DocumentationFile>bin\Debug\Couchbase.Lite.xml</DocumentationFile>
     <AssemblyName>Couchbase.Lite</AssemblyName>
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>True</Optimize>
@@ -45,6 +46,7 @@
     <DebugSymbols>true</DebugSymbols>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <DefineConstants>MOCK_ENCRYPTION;</DefineConstants>
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Prod|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -53,6 +55,7 @@
     <AssemblyName>Couchbase.Lite.Net45</AssemblyName>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -86,13 +89,13 @@
     </PropertyGroup>
   </Target>
   <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
-      <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
-      <Name>ugly_profile78</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net45.pinvoke_packaged_sqlcipher.anycpu.csproj">
       <Project>{8E62D3FC-CE27-427F-A060-F86DA48142F8}</Project>
       <Name>platform.net45.pinvoke_packaged_sqlcipher.anycpu</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
+      <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
+      <Name>ugly_profile78</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>
