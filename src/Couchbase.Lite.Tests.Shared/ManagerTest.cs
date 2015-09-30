@@ -261,5 +261,74 @@ namespace Couchbase.Lite
             Assert.IsNotNull(doc, "Failed to get original document");
             Assert.AreEqual("bar", doc.UserProperties["foo"]);
         }
+
+        [Test]
+        public void TestUpgradeFailure()
+        {
+            var dbPath = Path.Combine(manager.Directory, "corrupt.cblite");
+            using (var assetStream = GetType().GetResourceAsStream("corrupt.cblite")) 
+            using (var outputStream = File.Open(dbPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite)) {
+                assetStream.CopyTo(outputStream);
+            }
+
+            var db = manager.GetDatabaseWithoutOpening("corrupt", false);
+            Assert.IsNotNull(db);
+            var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, dbPath);
+            Assert.IsNotNull(upgrader);
+
+            Assert.IsTrue(upgrader.Import().IsError);
+            upgrader.Backout();
+
+            Assert.IsTrue(File.Exists(dbPath));
+
+            dbPath = Path.Combine(manager.Directory, "noattachments.cblite");
+            var bytes = default(byte[]);
+            using (var assetStream = GetAsset("noattachments.cblite")) 
+            using(var ms = new MemoryStream())
+            using(var outputStream = File.Open(dbPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite)) {
+                assetStream.CopyTo(ms);
+                ms.Seek(0, SeekOrigin.Begin);
+                ms.CopyTo(outputStream);
+                bytes = ms.ToArray();
+            }
+
+            db = manager.GetDatabaseWithoutOpening("noattachments", false);
+            Assert.IsNotNull(db);
+            upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, dbPath);
+            Assert.IsNotNull(upgrader);
+
+            Assert.IsTrue(upgrader.ImportFail().IsError);
+            upgrader.Backout();
+            Assert.IsTrue(File.Exists(dbPath));
+            Assert.AreEqual(bytes, File.ReadAllBytes(dbPath));
+
+            dbPath = Path.Combine(manager.Directory, "withattachments.cblite");
+            using (var dbStream = GetAsset("withattachments.cblite"))
+            using (var destStream = File.OpenWrite(dbPath))
+            using (var ms = new MemoryStream()) {
+                dbStream.CopyTo(ms);
+                ms.Seek(0, SeekOrigin.Begin);
+                ms.CopyTo(destStream);
+                bytes = ms.ToArray();
+            }
+
+            Directory.CreateDirectory(Path.Combine(manager.Directory, "withattachments/attachments"));
+            using (var attStream = GetAsset("attachment.blob"))
+            using (var destStream = File.OpenWrite(Path.Combine(manager.Directory, "withattachments/attachments/356a192b7913b04c54574d18c28d46e6395428ab.blob"))) {
+                attStream.CopyTo(destStream);
+            }
+
+
+            db = manager.GetDatabaseWithoutOpening("withattachments", false);
+            Assert.IsNotNull(db);
+            upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, dbPath);
+            Assert.IsNotNull(upgrader);
+
+            Assert.IsTrue(upgrader.ImportFail().IsError);
+            upgrader.Backout();
+            Assert.IsTrue(File.Exists(dbPath));
+            Assert.AreEqual(bytes, File.ReadAllBytes(dbPath));
+            Assert.IsTrue(File.Exists(Path.Combine(manager.Directory, "withattachments/attachments/356A192B7913B04C54574D18C28D46E6395428AB.blob")));
+        }
     }
 }

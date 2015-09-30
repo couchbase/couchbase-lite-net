@@ -94,6 +94,10 @@
       <Link>Assets\noattachments.cblite</Link>
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.noattachments.cblite</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\corrupt.cblite">
+      <Link>Assets\corrupt.cblite</Link>
+      <LogicalName>corrupt.cblite</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

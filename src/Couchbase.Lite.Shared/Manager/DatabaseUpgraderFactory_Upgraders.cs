@@ -66,6 +66,11 @@ namespace Couchbase.Lite.Db
                 return new Status(StatusCode.Ok);
             }
 
+            public Status ImportFail()
+            {
+                return new Status(StatusCode.CorruptError);
+            }
+
             public void Backout()
             {
                 // no-op
@@ -81,6 +86,7 @@ namespace Couchbase.Lite.Db
             private readonly Database _db;
             private readonly string _path;
             private sqlite3 _sqlite;
+            private bool _oldAttachmentsExisted;
 
             public int NumDocs { get; private set; }
 
@@ -390,6 +396,7 @@ namespace Couchbase.Lite.Db
                     return new Status(StatusCode.Ok);
                 }
 
+                _oldAttachmentsExisted = true;
                 Log.D(TAG, "Moving {0} to {1}", oldAttachmentsPath, newAttachmentsPath);
                 Directory.Delete(newAttachmentsPath, true);
                 Directory.CreateDirectory(newAttachmentsPath);
@@ -467,14 +474,23 @@ namespace Couchbase.Lite.Db
 
             public Status Import()
             {
-                int version = DatabaseUpgraderFactory.SchemaVersion(_path);
+                // Rename the old database file for migration:
+                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffix + "-mgr");
+                if (!MoveSqliteFiles(_path, destPath)) {
+                    Log.W(TAG, "Upgrade failed: Cannot rename the old sqlite files");
+                    MoveSqliteFiles(destPath, _path);
+
+                    return new Status(StatusCode.InternalServerError);
+                }
+
+                int version = DatabaseUpgraderFactory.SchemaVersion(destPath);
                 if (version < 0) {
                     Log.W(TAG, "Upgrade failed: Cannot determine database schema version");
                     return new Status(StatusCode.CorruptError);
                 }
 
                 // Open source (SQLite) database:
-                var err = raw.sqlite3_open_v2(_path, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
+                var err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
                 if (err > 0) {
                     return SqliteErrToStatus(err);
                 }
@@ -527,19 +543,12 @@ namespace Couchbase.Lite.Db
                 }
 
                 if (version >= 101) {
+                    _db.Delete();
+                    MoveSqliteFiles(destPath, _path);
                     return new Status(StatusCode.Ok);
                 }
 
                 Log.D(TAG, "Upgrading database v1.0 ({0}) to v1.1 at {1} ...", version, _path);
-
-                // Rename the old database file for migration:
-                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffix + "-mgr");
-                if (!MoveSqliteFiles(_path, destPath)) {
-                    Log.W(TAG, "Upgrade failed: Cannot rename the old sqlite files");
-                    MoveSqliteFiles(destPath, _path);
-
-                    return new Status(StatusCode.InternalServerError);
-                }
 
                 err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
                 if (err > 0) {
@@ -613,14 +622,38 @@ namespace Couchbase.Lite.Db
                 return status;
             }
 
+            public Status ImportFail()
+            {
+                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffix + "-mgr");
+                MoveSqliteFiles(_path, destPath);
+                _db.Open();
+                var doc = _db.CreateDocument();
+                doc.PutProperties(new Dictionary<string, object> {
+                    { "_id", "evil" },
+                    { "should_exist", false }
+                });
+
+                MoveAttachmentsDir();
+
+                return new Status(StatusCode.CorruptError);
+            }
+
             public void Backout()
             {
+                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffix + "-mgr");
+                if (!File.Exists(destPath)) {
+                    // Upgrader failed to even do the first step, nothing to backout
+                    return;
+                }
+
                 // Move attachments dir back to the old path
                 var newAttachmentsPath = _db.AttachmentStorePath;
-                if (Directory.Exists(newAttachmentsPath)) {
-                    var oldAttachmentsPath = Path.ChangeExtension(_db.Path, null) + Path.PathSeparator + "attachments";
+                if (_oldAttachmentsExisted && Directory.Exists(newAttachmentsPath)) {
+                    var oldAttachmentsPath = Path.ChangeExtension(_db.Path, null) + Path.DirectorySeparatorChar;
                     if (CanRemoveOldAttachmentsDir) {
                         try {
+                            Directory.CreateDirectory(oldAttachmentsPath);
+                            oldAttachmentsPath = Path.Combine(oldAttachmentsPath, "attachments");
                             Directory.Move(newAttachmentsPath, oldAttachmentsPath);
                         } catch(IOException) {
                         }
@@ -628,6 +661,7 @@ namespace Couchbase.Lite.Db
                 }
 
                 _db.Delete();
+                MoveSqliteFiles(destPath, _path);
             }
 
             #endregion

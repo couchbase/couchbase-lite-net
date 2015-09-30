@@ -32,6 +32,8 @@ namespace Couchbase.Lite.Db
 
         Status Import();
 
+        Status ImportFail(); // for testing only
+
         void Backout();
     }
 }
