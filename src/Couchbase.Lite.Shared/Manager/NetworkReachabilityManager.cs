@@ -14,6 +14,7 @@ using Android.App;
 using Android.Net;
 using Android.Content;
 using Android.Webkit;
+using Uri = System.Uri;
 #endif
 
 #if NET_3_5

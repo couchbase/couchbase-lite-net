@@ -33,7 +33,9 @@ namespace Couchbase.Lite
         [Test]
         public void TestUnencryptedDB()
         {
+            #if DEBUG
             Database.EnableMockEncryption = true;
+            #endif
 
             // Create unencrypted DB:
             var seekrit = manager.GetDatabase("seekrit");
@@ -223,7 +225,9 @@ namespace Couchbase.Lite
         protected override void TearDown()
         {
             base.TearDown();
+            #if DEBUG
             Database.EnableMockEncryption = false;
+            #endif
         }
     }
 }
