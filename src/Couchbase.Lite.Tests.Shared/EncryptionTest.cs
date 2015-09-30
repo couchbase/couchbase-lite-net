@@ -33,7 +33,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestUnencryptedDB()
         {
-            #if DEBUG
+            #if ENABLE_MOCK_ENCRYPTION
             Database.EnableMockEncryption = true;
             #endif
 
@@ -222,13 +222,14 @@ namespace Couchbase.Lite
             Assert.AreEqual(100, query.Run().Count);
         }
 
+        #if ENABLE_MOCK_ENCRYPTION
         protected override void TearDown()
         {
             base.TearDown();
-            #if DEBUG
             Database.EnableMockEncryption = false;
-            #endif
+            
         }
+        #endif
     }
 }
 

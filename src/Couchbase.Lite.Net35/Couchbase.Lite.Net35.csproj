@@ -96,11 +96,11 @@
       <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
       <Name>Stateless</Name>
     </ProjectReference>
-    <ProjectReference Include="vendor\SQLitePCL\bld\ugly_net35.csproj">
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_net35.csproj">
       <Project>{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}</Project>
       <Name>ugly_net35</Name>
     </ProjectReference>
-    <ProjectReference Include="vendor\SQLitePCL\bld\platform.net35.pinvoke_sqlite3.anycpu.csproj">
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net35.pinvoke_sqlite3.anycpu.csproj">
       <Project>{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}</Project>
       <Name>platform.net35.pinvoke_sqlite3.anycpu</Name>
     </ProjectReference>

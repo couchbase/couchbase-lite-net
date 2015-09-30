@@ -127,5 +127,9 @@
       <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
       <Name>System.Net.Http-net_4_5</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net35.pinvoke_sqlite3.anycpu.csproj">
+      <Project>{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}</Project>
+      <Name>platform.net35.pinvoke_sqlite3.anycpu</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>
