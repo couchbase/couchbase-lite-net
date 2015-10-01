@@ -457,7 +457,6 @@ namespace Couchbase.Lite
 
 
             UpgradeDatabase(new FileInfo(database.Path));
-            database.Open();
         }
 
         #endregion

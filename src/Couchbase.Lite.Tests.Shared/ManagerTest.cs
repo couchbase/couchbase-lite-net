@@ -191,6 +191,7 @@ namespace Couchbase.Lite
             }, "1");
             result = view.CreateQuery().Run();
             Assert.AreEqual(1, result.Count);
+            db.Dispose();
         }
 
         [Test]
