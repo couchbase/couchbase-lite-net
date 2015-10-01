@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite</id>
     <title>Couchbase Lite</title>
-    <version>1.1.1.1</version>
+    <version>1.1.2.0</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,17 +12,13 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
-      Couchbase Lite for .NET 1.1.1 is a maintanence release on 1.1.0 and contains a number of fixes and enhancements.
-      For a full list please refer to https://github.com/couchbase/couchbase-lite-net/releases/tag/1.1.1
+      Couchbase Lite for .NET 1.1.2 is a bugfix release on 1.1.1 and contains two fixes.
+      For a full list please refer to https://github.com/couchbase/couchbase-lite-net/releases/tag/1.1.1.2
     </releaseNotes>
     <copyright>Copyright 2014, 2015</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <group targetFramework="net35">
-        <dependency id="Newtonsoft.Json" version="7.0.1" />
-        <dependency id="SharpZipLib" version="0.86.0" />
-      </group>
       <group>
         <dependency id="Newtonsoft.Json" version="7.0.1" />
         <dependency id="SQLitePCL.raw" version="0.8.1" />
@@ -36,6 +32,5 @@
     <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />
     <file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.*" />
     <file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />
-    <file target="lib/net35" src="src/Couchbase.Lite.Net35/bin/Nuget/*" />
   </files>
 </package>
