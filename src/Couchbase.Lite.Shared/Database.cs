@@ -2072,6 +2072,7 @@ namespace Couchbase.Lite
                 Storage.Close();
                 Storage.Open(Path, Manager);
             } catch(CouchbaseLiteException) {
+                Storage.Close();
                 Log.W(TAG, "Error creating storage engine");
                 throw;
             } catch(Exception e) {

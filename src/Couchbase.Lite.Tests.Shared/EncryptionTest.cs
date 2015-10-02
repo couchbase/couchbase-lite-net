@@ -117,7 +117,6 @@ namespace Couchbase.Lite
             var e = Assert.Throws<CouchbaseLiteException>(() => seekrit = manager.GetDatabase("seekrit"),
                         "Password opened unencrypted db!");
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
-            seekrit.Dispose();
         }
 
         [Test]
