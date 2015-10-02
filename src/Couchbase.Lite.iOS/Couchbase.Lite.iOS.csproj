@@ -1,9 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
     <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' ">
     </MonoPrefix>
+    <!-- Silly workaround for OS X 10.11 -->
+    <MonoPrefix Condition=" Exists('/Library/Frameworks/Mono.framework/Commands/mono') ">/Library/Frameworks/Mono.framework/Commands/mono </MonoPrefix>
+    <MonoPrefix Condition=" '$(MonoPrefix)' == '' And '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
     <NuGetPackageImportStamp>5ed3d703</NuGetPackageImportStamp>
   </PropertyGroup>
   <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
@@ -88,6 +90,5 @@
     <Compile Include="CouchbaseTableSource.cs" />
     <Compile Include="ReloadEventArgs.cs" />
   </ItemGroup>
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="..\packages\SQLitePCL.raw.0.8.1\build\Xamarin.iOS10\SQLitePCL.raw.targets" Condition="Exists('..\packages\SQLitePCL.raw.0.8.1\build\Xamarin.iOS10\SQLitePCL.raw.targets')" />
 </Project>

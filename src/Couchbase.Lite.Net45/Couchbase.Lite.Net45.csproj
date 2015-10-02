@@ -1,9 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
-    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' ">
-    </MonoPrefix>
+    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' "></MonoPrefix>
+    <!-- Silly workaround for OS X 10.11 -->
+    <MonoPrefix Condition=" Exists('/Library/Frameworks/Mono.framework/Commands/mono') ">/Library/Frameworks/Mono.framework/Commands/mono </MonoPrefix>
+	<MonoPrefix Condition=" '$(MonoPrefix)' == '' And '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
     <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
   <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
@@ -76,12 +77,5 @@
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="..\packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets" Condition="Exists('..\packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets'))" />
-  </Target>
 </Project>
