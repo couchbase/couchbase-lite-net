@@ -84,6 +84,7 @@ namespace Couchbase.Lite
             seekrit = manager.GetDatabase("seekrit");
             Assert.IsNotNull(seekrit, "Failed to reopen encrypted db");
             Assert.AreEqual(1, seekrit.DocumentCount);
+            seekrit.Dispose();
         }
 
         [Test]
@@ -116,6 +117,7 @@ namespace Couchbase.Lite
             var e = Assert.Throws<CouchbaseLiteException>(() => seekrit = manager.GetDatabase("seekrit"),
                         "Password opened unencrypted db!");
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
+            seekrit.Dispose();
         }
 
         [Test]
@@ -181,6 +183,7 @@ namespace Couchbase.Lite
             var raw = File.ReadAllBytes(path);
             Assert.IsNotNull(raw);
             Assert.AreNotEqual(raw, body, "Oops, attachment was not encrypted");
+            seekrit.Dispose();
         }
 
         [Test]
@@ -188,6 +191,7 @@ namespace Couchbase.Lite
         {
             // First run the encrypted-attachments test to populate the db:
             TestEncryptedAttachments();
+            manager.RegisterEncryptionKey("letmein", "seekrit");
 
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.GetDatabase("seekrit"),
@@ -220,6 +224,7 @@ namespace Couchbase.Lite
             query = view.CreateQuery();
             // Check that the view survived:
             Assert.AreEqual(100, query.Run().Count);
+            seekrit.Dispose();
         }
 
         #if ENABLE_MOCK_ENCRYPTION
