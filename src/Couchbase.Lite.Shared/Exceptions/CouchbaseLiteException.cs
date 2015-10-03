@@ -77,7 +77,7 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <param name="innerException">The exception that was caught before the one being made, if applicable</param>
         /// <param name="code">The status code representing the details of the error</param>
-        public CouchbaseLiteException (Exception innerException, StatusCode code) : base(String.Format("Database error: {0}", code), innerException) { Code = code; }
+        public CouchbaseLiteException (Exception innerException, StatusCode code) : base(String.Format("Couchbase Lite error: {0}", code), innerException) { Code = code; }
 
         /// <summary>
         /// Constructor
@@ -90,7 +90,7 @@ namespace Couchbase.Lite {
         /// Constructor
         /// </summary>
         /// <param name="code">The status code representing the details of the error</param>
-        public CouchbaseLiteException (StatusCode code) : base(String.Format("Coucbase Lite error: {0}", code)) { Code = code; }
+        public CouchbaseLiteException (StatusCode code) : base(String.Format("Couchbase Lite error: {0}", code)) { Code = code; }
 
         /// <summary>
         /// Constructor

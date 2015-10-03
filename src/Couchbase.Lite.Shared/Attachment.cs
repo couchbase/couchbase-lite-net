@@ -243,15 +243,19 @@ namespace Couchbase.Lite {
         public IEnumerable<Byte> Content 
         { 
             get {
-                ContentStream.Reset();
-
-                var stream = ContentStream;
-                using (var ms = new MemoryStream()) {
-                    stream.CopyTo(ms);
-                    var bytes = ms.ToArray();
-
-                    return bytes;
+                if (Body != null) {
+                    Body.Reset();
+                    return Body.ReadAllBytes();
                 }
+
+                if (Revision == null)
+                    throw new CouchbaseLiteException("Revision must not be null when retrieving attachment content");
+
+                if (Name == null)
+                    throw new CouchbaseLiteException("Name must not be null when retrieving attachment content");
+
+                var attachment = Revision.Database.AttachmentForDict(Metadata, Name, null);
+                return attachment.Content;
             }
         }
 

@@ -58,6 +58,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using Sharpen;
 using Couchbase.Lite.Internal;
 using System.Diagnostics;
+using Couchbase.Lite.Store;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -314,19 +315,45 @@ namespace Couchbase.Lite
             Log.I(TAG, "Manager is Closed");
         }
 
+        public bool RegisterEncryptionKey(object keyDataOrPassword, string dbName)
+        {
+            var realKey = default(SymmetricKey);
+            if (keyDataOrPassword != null) {
+                var password = keyDataOrPassword as string;
+                if (password != null) {
+                    realKey = new SymmetricKey(password);
+                } else {
+                    var keyData = keyDataOrPassword as IEnumerable<byte>;
+                    Debug.Assert(keyData != null);
+                    try {
+                        realKey = new SymmetricKey(keyData.ToArray());
+                    } catch (ArgumentOutOfRangeException) {
+                        return false;
+                    }
+                }
+            }
+
+            Shared.SetValue("encryptionKey", "", dbName, realKey);
+            return true;
+        }
+
         /// <summary>
         /// Returns the <see cref="Couchbase.Lite.Database"/> with the given name.  If the <see cref="Couchbase.Lite.Database"/> does not already exist, it is created.
         /// </summary>
         /// <returns>The database.</returns>
         /// <param name="name">Name.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while gettings or createing the <see cref="Couchbase.Lite.Database"/>.</exception>
-        public Database GetDatabase(String name) 
+        public Database GetDatabase(String name) 
         {
             var db = GetDatabaseWithoutOpening(name, false);
             if (db != null) {
-                var opened = db.Open();
-                if (!opened) {
-                    return null;
+                try {
+                    db.Open();
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Error opening database");
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException("Unknown error opening database", e) { Code = StatusCode.Exception };
                 }
 
                 Shared.OpenedDatabase(db);
@@ -344,7 +371,15 @@ namespace Couchbase.Lite
         {
             var db = GetDatabaseWithoutOpening(name, true);
             if (db != null) {
-                db.Open();
+                try {
+                    db.Open();
+                } catch(CouchbaseLiteException) {
+                    Log.E(TAG, "Error opening database");
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException("Error opening database", e) { Code = StatusCode.Exception };
+                }
+
                 Shared.OpenedDatabase(db);
             }
 
@@ -498,7 +533,7 @@ namespace Couchbase.Lite
         internal SharedState Shared { get; private set; }
 
         // Instance Methods
-        internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
+        internal Database GetDatabaseWithoutOpening(string name, bool mustExist)
         {
             var db = databases.Get(name);
             if (db == null) {
@@ -517,8 +552,7 @@ namespace Couchbase.Lite
 
                 db = new Database(path, name, this);
                 if (mustExist && !db.Exists()) {
-                    var msg = string.Format("mustExist is true and db ({0}) does not exist", name);
-                    Log.W(Database.TAG, msg);
+                    Log.W(TAG, "mustExist is true and db ({0}) does not exist", name);
                     return null;
                 }
 
@@ -611,9 +645,10 @@ namespace Couchbase.Lite
             db.Dispose();
 
             var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
-            var status = upgrader.Import();
-            if (status.IsError) {
-                Log.W(TAG, "Upgrade failed for {0} (Status {1})", path.Name, status);
+            try {
+                upgrader.Import();
+            } catch(CouchbaseLiteException e) {
+                Log.W(TAG, "Upgrade failed for {0} (Status {1})", path.Name, e.CBLStatus);
                 upgrader.Backout();
                 return;
             }

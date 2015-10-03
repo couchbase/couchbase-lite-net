@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Store
 {
@@ -45,7 +46,7 @@ namespace Couchbase.Lite.Store
         /// which contains attachments; don't mess with that..</param>
         /// <param name="manager">The owning Manager; this is provided so the storage can examine its
         ///properties.</param>
-        bool Open(string directory, Manager manager);
+        void Open(string directory, Manager manager);
 
         /// <summary>
         /// Closes storage before it's deallocated. 
@@ -113,6 +114,19 @@ namespace Couchbase.Lite.Store
         /// Any exception raised by the block will be caught and treated as Exception.
         /// </summary>
         Status RunInTransaction(Func<Status> block);
+
+        /// <summary>
+        /// Registers the encryption key of the database file. Must be called before opening the db.
+        /// </summary>
+        void SetEncryptionKey(SymmetricKey key);
+
+        /// <summary>
+        /// Called when the delegate changes its encryptionKey property. The storage should rewrite its
+        /// files using the new key (which may be nil, meaning no encryption.)
+        /// </summary>
+        /// <returns>The action used to change the encryption key.</returns>
+        /// <param name="newKey">The new key to use</param>
+        AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey);
 
         #endregion
 

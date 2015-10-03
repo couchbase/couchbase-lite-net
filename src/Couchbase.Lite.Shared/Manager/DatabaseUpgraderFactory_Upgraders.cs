@@ -61,9 +61,9 @@ namespace Couchbase.Lite.Db
 
             #region IDatabaseUpgrader
 
-            public Status Import()
+            public void Import()
             {
-                return new Status(StatusCode.Ok);
+                // no-op
             }
 
             public void Backout()
@@ -465,152 +465,161 @@ namespace Couchbase.Lite.Db
 
             #region IDatabaseUpgrader
 
-            public Status Import()
+            public void Import()
             {
-                int version = DatabaseUpgraderFactory.SchemaVersion(_path);
-                if (version < 0) {
-                    Log.W(TAG, "Upgrade failed: Cannot determine database schema version");
-                    return new Status(StatusCode.CorruptError);
-                }
-
-                // Open source (SQLite) database:
-                var err = raw.sqlite3_open_v2(_path, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
-                if (err > 0) {
-                    return SqliteErrToStatus(err);
-                }
-
-                raw.sqlite3_create_collation(_sqlite, "JSON", raw.SQLITE_UTF8, CollateRevIDs);
-                sqlite3_stmt stmt = null;
-                var status = PrepareSQL(ref stmt, "SELECT name FROM sqlite_master WHERE type='table' AND name='maps'");
-
-                err = raw.sqlite3_step(stmt);
-                if (err == raw.SQLITE_ROW) {
-                    sqlite3_stmt stmt2 = null;
-                    status = PrepareSQL(ref stmt2, "SELECT * FROM maps");
-                    while ((err = raw.sqlite3_step(stmt2)) == raw.SQLITE_ROW) {
-                        int viewId = raw.sqlite3_column_int(stmt2, 0);
-                        sqlite3_stmt stmt3 = null;
-                        status = PrepareSQL(ref stmt3, "CREATE TABLE IF NOT EXISTS maps_" + viewId + 
-                            " (sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE," +
-                            "key TEXT NOT NULL COLLATE JSON," +
-                            "value TEXT," +
-                            "fulltext_id INTEGER, " +
-                            "bbox_id INTEGER, " +
-                            "geokey BLOB)");
-                        raw.sqlite3_step(stmt3);
-                        raw.sqlite3_finalize(stmt3);
-                        stmt3 = null;
-
-                        var sequence = raw.sqlite3_column_int64(stmt2, 1);
-                        var key = raw.sqlite3_column_text(stmt2, 2);
-                        var value = raw.sqlite3_column_text(stmt2, 3);
-
-                        var insertSql = String.Format("INSERT INTO maps_{0} (sequence, key, value) VALUES ({1}, {2}, {3}",
-                                            viewId, sequence, key, value);
-                        
-                        status = PrepareSQL(ref stmt3, insertSql);
-                        raw.sqlite3_step(stmt3);
-                        raw.sqlite3_finalize(stmt3);
+                try {
+                    int version = DatabaseUpgraderFactory.SchemaVersion(_path);
+                    if (version < 0) {
+                        throw new CouchbaseLiteException("Cannot determine database schema version", StatusCode.CorruptError);
                     }
 
-                    raw.sqlite3_finalize(stmt2);
-                    stmt2 = null;
-                    status = PrepareSQL(ref stmt2, "DROP TABLE maps");
-                    raw.sqlite3_step(stmt2);
-                    raw.sqlite3_finalize(stmt2);
-                }
-
-                raw.sqlite3_finalize(stmt);
-                raw.sqlite3_close(_sqlite);
-                if (err != raw.SQLITE_DONE) {
-                    return SqliteErrToStatus(err);
-                }
-
-                if (version >= 101) {
-                    return new Status(StatusCode.Ok);
-                }
-
-                Log.D(TAG, "Upgrading database v1.0 ({0}) to v1.1 at {1} ...", version, _path);
-
-                // Rename the old database file for migration:
-                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffix + "-mgr");
-                if (!MoveSqliteFiles(_path, destPath)) {
-                    Log.W(TAG, "Upgrade failed: Cannot rename the old sqlite files");
-                    MoveSqliteFiles(destPath, _path);
-
-                    return new Status(StatusCode.InternalServerError);
-                }
-
-                err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
-                if (err > 0) {
-                    return SqliteErrToStatus(err);
-                }
-
-                raw.sqlite3_create_collation(_sqlite, "REVID", raw.SQLITE_UTF8, CollateRevIDs);
-
-                // Open destination database:
-                if (!_db.Open()) {
-                    Log.W(TAG, "Upgrade failed: Couldn't open new db");
-                    return new Status(StatusCode.DbError);
-                }
-
-                status = MoveAttachmentsDir();
-                if (status.IsError) {
-                    return status;
-                }
-
-                // Upgrade documents:
-                // CREATE TABLE docs (doc_id INTEGER PRIMARY KEY, docid TEXT UNIQUE NOT NULL);
-                sqlite3_stmt docQuery = null;
-                status = PrepareSQL(ref docQuery, "SELECT doc_id, docid FROM docs");
-                if (status.IsError) {
-                    return status;
-                }
-
-                _db.RunInTransaction(() =>
-                {
-                    int transactionErr;
-                    int count = 0;
-                    while(raw.SQLITE_ROW == (transactionErr = raw.sqlite3_step(docQuery))) {
-                        long docNumericID = raw.sqlite3_column_int64(docQuery, 0);
-                        string docID = raw.sqlite3_column_text(docQuery, 1);
-                        Status transactionStatus = ImportDoc(docID, docNumericID);
-                        if(transactionStatus.IsError) {
-                            status = transactionStatus;
-                            return false;
-                        }
-                        
-                        if((++count % 1000) == 0) {
-                            Log.I(TAG, "Migrated {0} documents", count);
-                        }
+                    // Open source (SQLite) database:
+                    var err = raw.sqlite3_open_v2(_path, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
+                    if (err > 0) {
+                        throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
                     }
 
-                    status = SqliteErrToStatus(transactionErr);
-                    return transactionErr == raw.SQLITE_DONE;
-                });
+                    raw.sqlite3_create_collation(_sqlite, "JSON", raw.SQLITE_UTF8, CollateRevIDs);
+                    sqlite3_stmt stmt = null;
+                    var status = PrepareSQL(ref stmt, "SELECT name FROM sqlite_master WHERE type='table' AND name='maps'");
 
-                raw.sqlite3_finalize(docQuery);
-                if (status.IsError) {
-                    return status;
+                    err = raw.sqlite3_step(stmt);
+                    if (err == raw.SQLITE_ROW) {
+                        sqlite3_stmt stmt2 = null;
+                        status = PrepareSQL(ref stmt2, "SELECT * FROM maps");
+                        while ((err = raw.sqlite3_step(stmt2)) == raw.SQLITE_ROW) {
+                            int viewId = raw.sqlite3_column_int(stmt2, 0);
+                            sqlite3_stmt stmt3 = null;
+                            status = PrepareSQL(ref stmt3, "CREATE TABLE IF NOT EXISTS maps_" + viewId + 
+                                " (sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE," +
+                                "key TEXT NOT NULL COLLATE JSON," +
+                                "value TEXT," +
+                                "fulltext_id INTEGER, " +
+                                "bbox_id INTEGER, " +
+                                "geokey BLOB)");
+                            raw.sqlite3_step(stmt3);
+                            raw.sqlite3_finalize(stmt3);
+                            stmt3 = null;
+
+                            var sequence = raw.sqlite3_column_int64(stmt2, 1);
+                            var key = raw.sqlite3_column_text(stmt2, 2);
+                            var value = raw.sqlite3_column_text(stmt2, 3);
+
+                            var insertSql = String.Format("INSERT INTO maps_{0} (sequence, key, value) VALUES ({1}, {2}, {3}",
+                                                viewId, sequence, key, value);
+                            
+                            status = PrepareSQL(ref stmt3, insertSql);
+                            raw.sqlite3_step(stmt3);
+                            raw.sqlite3_finalize(stmt3);
+                        }
+
+                        raw.sqlite3_finalize(stmt2);
+                        stmt2 = null;
+                        status = PrepareSQL(ref stmt2, "DROP TABLE maps");
+                        raw.sqlite3_step(stmt2);
+                        raw.sqlite3_finalize(stmt2);
+                    }
+
+                    raw.sqlite3_finalize(stmt);
+                    raw.sqlite3_close(_sqlite);
+                    if (err != raw.SQLITE_DONE) {
+                        throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
+                    }
+
+                    if (version >= 101) {
+                        return;
+                    }
+
+                    Log.D(TAG, "Upgrading database v1.0 ({0}) to v1.1 at {1} ...", version, _path);
+
+                    // Rename the old database file for migration:
+                    var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffix + "-mgr");
+                    if (!MoveSqliteFiles(_path, destPath)) {
+                        MoveSqliteFiles(destPath, _path);
+
+                        throw new CouchbaseLiteException("Cannot rename the old sqlite files", StatusCode.InternalServerError);
+                    }
+
+                    err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
+                    if (err > 0) {
+                        throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
+                    }
+
+                    raw.sqlite3_create_collation(_sqlite, "REVID", raw.SQLITE_UTF8, CollateRevIDs);
+
+                    // Open destination database:
+                    try {
+                        _db.Open();
+                    } catch(CouchbaseLiteException) {
+                        Log.W(TAG, "Upgrade failed: Couldn't open new db");
+                        throw;
+                    }
+
+                    status = MoveAttachmentsDir();
+                    if (status.IsError) {
+                        throw new CouchbaseLiteException(status.Code);
+                    }
+
+                    // Upgrade documents:
+                    // CREATE TABLE docs (doc_id INTEGER PRIMARY KEY, docid TEXT UNIQUE NOT NULL);
+                    sqlite3_stmt docQuery = null;
+                    status = PrepareSQL(ref docQuery, "SELECT doc_id, docid FROM docs");
+                    if (status.IsError) {
+                        throw new CouchbaseLiteException(status.Code);
+                    }
+
+                    _db.RunInTransaction(() =>
+                    {
+                        int transactionErr;
+                        int count = 0;
+                        while(raw.SQLITE_ROW == (transactionErr = raw.sqlite3_step(docQuery))) {
+                            long docNumericID = raw.sqlite3_column_int64(docQuery, 0);
+                            string docID = raw.sqlite3_column_text(docQuery, 1);
+                            Status transactionStatus = ImportDoc(docID, docNumericID);
+                            if(transactionStatus.IsError) {
+                                status = transactionStatus;
+                                return false;
+                            }
+                            
+                            if((++count % 1000) == 0) {
+                                Log.I(TAG, "Migrated {0} documents", count);
+                            }
+                        }
+
+                        status = SqliteErrToStatus(transactionErr);
+                        return transactionErr == raw.SQLITE_DONE;
+                    });
+
+                    raw.sqlite3_finalize(docQuery);
+                    if (status.IsError) {
+                        throw new CouchbaseLiteException(status.Code);
+                    }
+
+                    status = ImportLocalDocs();
+                    if (status.IsError) {
+                        throw new CouchbaseLiteException(status.Code);
+                    }
+
+                    status = ImportInfo();
+                    if (status.IsError) {
+                        throw new CouchbaseLiteException(status.Code);
+                    }
+
+                    err = raw.sqlite3_close(_sqlite);
+                    _sqlite = null;
+                    File.Delete(destPath);
+                    File.Delete(destPath + "-wal");
+                    File.Delete(destPath + "-shm");
+
+                    if (status.IsError) {
+                        throw new CouchbaseLiteException(status.Code);
+                    }
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Error upgrading database");
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException("Error upgrading database", e) { Code = StatusCode.Exception };
                 }
-
-                status = ImportLocalDocs();
-                if (status.IsError) {
-                    return status;
-                }
-
-                status = ImportInfo();
-                if (status.IsError) {
-                    return status;
-                }
-
-                err = raw.sqlite3_close(_sqlite);
-                _sqlite = null;
-                File.Delete(destPath);
-                File.Delete(destPath + "-wal");
-                File.Delete(destPath + "-shm");
-
-                return status;
             }
 
             public void Backout()

@@ -173,6 +173,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqliteViewStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ContractedDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CookieParser.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\IAtomicAction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\AtomicAction.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{0A88C2A7-7AD8-46F9-9D31-869E3466B791}"
 EndProject
@@ -28,10 +28,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Threading.Tasks.Net3
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stateless", "Couchbase.Lite.Net35\vendor\Stateless\Stateless\Stateless.csproj", "{A15EEC02-60EC-4705-A58B-A6ECD55A9628}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ugly_net35", "Couchbase.Lite.Net35\vendor\SQLitePCL\bld\ugly_net35.csproj", "{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "platform.net35.pinvoke_sqlite3.anycpu", "Couchbase.Lite.Net35\vendor\SQLitePCL\bld\platform.net35.pinvoke_sqlite3.anycpu.csproj", "{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ListenerComponent", "ListenerComponent", "{93A9E803-DBF3-45BE-96FA-87D68422F401}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Listener.Shared", "ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.shproj", "{5AA87149-7173-42A0-8BBC-AC618B404D46}"
@@ -43,6 +39,10 @@ EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Listener.Bonjour.Shared", "ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.shproj", "{8555F0B6-3F1A-4C80-8CCB-3EED653D6242}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Listener.Bonjour.Net35", "ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Net35\Couchbase.Lite.Listener.Bonjour.Net35.csproj", "{ED22FDF0-B378-4950-9E59-681726AC02F6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ugly_net35", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_net35.csproj", "{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "platform.net35.pinvoke_packaged_sqlcipher.anycpu", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net35.pinvoke_packaged_sqlcipher.anycpu.csproj", "{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -98,20 +98,6 @@ Global
 		{A15EEC02-60EC-4705-A58B-A6ECD55A9628}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A15EEC02-60EC-4705-A58B-A6ECD55A9628}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A15EEC02-60EC-4705-A58B-A6ECD55A9628}.Release|anycpu.ActiveCfg = Release|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|anycpu.ActiveCfg = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|anycpu.ActiveCfg = Release|Any CPU
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug|Any CPU.ActiveCfg = debug|Any CPU
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug|Any CPU.Build.0 = debug|Any CPU
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug|anycpu.ActiveCfg = debug|Any CPU
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug|anycpu.Build.0 = debug|Any CPU
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|Any CPU.ActiveCfg = release|Any CPU
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|Any CPU.Build.0 = release|Any CPU
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|anycpu.ActiveCfg = release|Any CPU
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|anycpu.Build.0 = release|Any CPU
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4}.Debug|anycpu.ActiveCfg = Debug|Any CPU
@@ -124,6 +110,22 @@ Global
 		{ED22FDF0-B378-4950-9E59-681726AC02F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED22FDF0-B378-4950-9E59-681726AC02F6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{ED22FDF0-B378-4950-9E59-681726AC02F6}.Release|anycpu.ActiveCfg = Release|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|anycpu.ActiveCfg = Debug|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|anycpu.Build.0 = Debug|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|anycpu.ActiveCfg = Release|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|anycpu.Build.0 = Release|Any CPU
+		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug|Any CPU.ActiveCfg = debug|Any CPU
+		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug|Any CPU.Build.0 = debug|Any CPU
+		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug|anycpu.ActiveCfg = debug|Any CPU
+		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug|anycpu.Build.0 = debug|Any CPU
+		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|Any CPU.ActiveCfg = release|Any CPU
+		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|Any CPU.Build.0 = release|Any CPU
+		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|anycpu.ActiveCfg = release|Any CPU
+		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|anycpu.Build.0 = release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -135,13 +137,13 @@ Global
 		{9862694D-E4FA-418B-8692-A0280FEDDF36} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 		{DCB5D745-525C-46A1-BFC0-E12F87AB6165} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 		{A15EEC02-60EC-4705-A58B-A6ECD55A9628} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 		{5AA87149-7173-42A0-8BBC-AC618B404D46} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{27CD854D-D0A5-4EA0-A997-04CE8EDD5095} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{8555F0B6-3F1A-4C80-8CCB-3EED653D6242} = {27CD854D-D0A5-4EA0-A997-04CE8EDD5095}
 		{ED22FDF0-B378-4950-9E59-681726AC02F6} = {27CD854D-D0A5-4EA0-A997-04CE8EDD5095}
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
+		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

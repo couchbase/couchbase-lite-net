@@ -47,6 +47,8 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Lite.Store;
+using System.Security.Cryptography;
 
 namespace Couchbase.Lite
 {
@@ -77,7 +79,7 @@ namespace Couchbase.Lite
 
         private MessageDigest md5Digest;
 
-        private BufferedOutputStream outStream;
+        private Stream outStream;
 
         private FilePath tempFile;
 
@@ -117,7 +119,12 @@ namespace Couchbase.Lite
             string filename = string.Format("{0}.blobtmp", uuid);
             FilePath tempDir = store.TempDir();
             tempFile = new FilePath(tempDir, filename);
-            outStream = new BufferedOutputStream(new FileOutputStream(tempFile));
+            if (store.EncryptionKey == null) {
+                outStream = new BufferedStream(File.Open (tempFile.GetAbsolutePath(), FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite));
+            } else {
+                outStream = store.EncryptionKey.CreateStream(
+                    new BufferedStream(File.Open(tempFile.GetAbsolutePath(), FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)));
+            }
         }
 
         /// <summary>Appends data to the blob.</summary>
@@ -125,29 +132,29 @@ namespace Couchbase.Lite
         public void AppendData(IEnumerable<Byte> data)
         {
             var dataVector = data.ToArray();
-            try
-            {
-                outStream.Write(dataVector);
-            }
-            catch (IOException e)
-            {
-                throw new RuntimeException("Unable to write to stream.", e);
-            }
             length += dataVector.LongLength;
             sha1Digest.Update(dataVector);
             md5Digest.Update(dataVector);
+
+            try {
+                outStream.Write(dataVector, 0, dataVector.Length);
+            } catch (IOException e) {
+                throw new CouchbaseLiteException("Unable to write to stream.", e) { Code = StatusCode.Exception };
+            }
         }
 
         internal void Read(InputStream inputStream)
         {
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[16384];
             int len;
             length = 0;
             try
             {
                 while ((len = inputStream.Read(buffer)) != -1)
                 {
-                    outStream.Write(buffer, 0, len);
+                    var dataToWrite = buffer;
+
+                    outStream.Write(dataToWrite, 0, len);
                     sha1Digest.Update(buffer, 0, len);
                     md5Digest.Update(buffer, 0, len);
                     length += len;
@@ -173,14 +180,13 @@ namespace Couchbase.Lite
         /// <summary>Call this after all the data has been added.</summary>
         public void Finish()
         {
-            try
-            {
+            try {
+                outStream.Flush();
                 outStream.Close();
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 Log.W(Database.TAG, "Exception closing output stream", e);
             }
+
             blobKey = new BlobKey(sha1Digest.Digest());
             md5DigestResult = md5Digest.Digest();
         }
@@ -188,14 +194,12 @@ namespace Couchbase.Lite
         /// <summary>Call this to cancel before finishing the data.</summary>
         public void Cancel()
         {
-            try
-            {
+            try {
                 outStream.Close();
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 Log.W(Database.TAG, "Exception closing output stream", e);
             }
+
             tempFile.Delete();
         }
 

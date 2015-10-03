@@ -145,17 +145,19 @@ namespace Couchbase.Lite.Store
             return String.Join(", ", names.ToStringArray());
         }
 
-        private bool RunStatements(string sqlStatements)
+        private void RunStatements(string sqlStatements)
         {
             var db = _dbStorage;
-            return db.RunInTransaction(() =>
+            db.RunInTransaction(() =>
             {
-                if(_dbStorage.RunStatements(QueryString(sqlStatements))) {
-                    return new Status(StatusCode.Ok);
+                try {
+                    _dbStorage.RunStatements(QueryString(sqlStatements));
+                } catch(Exception) {
+                    return new Status(StatusCode.DbError);
                 }
 
-                return new Status(StatusCode.DbError);
-            }).IsSuccessful;
+                return new Status(StatusCode.Ok);
+            });
         }
 
         private string QueryString(string statement)
@@ -174,8 +176,15 @@ namespace Couchbase.Lite.Store
                     "bbox_id INTEGER, " +
                     "geokey BLOB)";
 
-            if (!RunStatements(sql)) {
+            try {
+                RunStatements(sql);
+            } catch(CouchbaseLiteException) {
                 Log.W(TAG, "Couldn't create view index `{0}`", Name);
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException(String.Format("Couldn't create view index `{0}`", Name), e) {
+                    Code = StatusCode.Exception
+                };
             }
         }
 
@@ -249,8 +258,15 @@ namespace Couchbase.Lite.Store
             const string sql = "CREATE INDEX IF NOT EXISTS 'maps_#_keys' on 'maps_#'(key COLLATE JSON);" +
                                "CREATE INDEX IF NOT EXISTS 'maps_#_sequence' ON 'maps_#'(sequence)";
 
-            if (!RunStatements(sql)) {
+            try {
+                RunStatements(sql);
+            } catch(CouchbaseLiteException) {
                 Log.W(TAG, "Couldn't create view SQL index `{0}`", Name);
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException(String.Format("Couldn't create view SQL index `{0}`", Name), e) {
+                    Code = StatusCode.Exception
+                };
             }
         }
             
@@ -270,9 +286,15 @@ namespace Couchbase.Lite.Store
             "DELETE ON 'maps_#' WHEN old.bbox_id not null BEGIN " +
             "DELETE FROM bboxes WHERE rowid=old.bbox_id| END";
 
-            if (!RunStatements(sql)) {
+            try {
+                RunStatements(sql);
+            } catch(CouchbaseLiteException) {
                 Log.W(TAG, "Error initializing rtree schema");
-                return false;
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException("Error initializing rtree schema", e) {
+                    Code = StatusCode.Exception
+                };
             }
 
             _initializedRTreeSchema = true;
@@ -505,8 +527,16 @@ namespace Couchbase.Lite.Store
             }
 
             const string sql = "DROP TABLE IF EXISTS 'maps_#';UPDATE views SET lastSequence=0, total_docs=0 WHERE view_id=#";
-            if (!RunStatements(sql)) {
+
+            try {
+                RunStatements(sql);
+            } catch(CouchbaseLiteException) {
                 Log.W(TAG, "Couldn't delete view index `{0}`", Name);
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException(String.Format("Couldn't delete view index `{0}`", Name), e) {
+                    Code = StatusCode.Exception
+                };
             }
         }
 

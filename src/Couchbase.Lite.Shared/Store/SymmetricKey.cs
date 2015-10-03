@@ -32,6 +32,14 @@ using Rackspace.Threading;
 namespace Couchbase.Lite.Store
 {
     /// <summary>
+    /// Type of block returned by SymmetricKey.CreateEncryptor.
+    /// This block can be called repeatedly with input data and returns additional output data.
+    /// At EOF, the block should be called with a null parameter, and
+    /// it will return the remaining encrypted data from its buffer.
+    /// </summary>
+    public delegate byte[] CryptorBlock(byte[] input);
+
+    /// <summary>
     /// Basic AES encryption. Uses a 256-bit (32-byte) key.
     /// </summary>
     public sealed class SymmetricKey 
@@ -59,13 +67,7 @@ namespace Couchbase.Lite.Store
         private const string DEFAULT_SALT = "Salty McNaCl";
         private const int DEFAULT_PBKDF_ROUNDS = 64000;
 
-        /// <summary>
-        /// Type of block returned by SymmetricKey.CreateEncryptor.
-        /// This block can be called repeatedly with input data and returns additional output data.
-        /// At EOF, the block should be called with a null parameter, and
-        /// it will return the remaining encrypted data from its buffer.
-        /// </summary>
-        public delegate byte[] CryptorBlock(byte[] input);
+
 
         #endregion
 
@@ -97,7 +99,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         public string HexData { 
             get {
-                return BitConverter.ToString(KeyData);
+                return BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
             }
         }
 
@@ -163,6 +165,21 @@ namespace Couchbase.Lite.Store
 
         #region Public Methods
 
+        public static SymmetricKey Create(object keyOrPassword)
+        {
+            var password = keyOrPassword as string;
+            if(password != null) {
+                return new SymmetricKey(password);
+            }
+
+            var data = keyOrPassword as IEnumerable<byte>;
+            if (data == null) {
+                throw new InvalidDataException("keyOrPassword must be either string or IEnumerable<byte>");
+            }
+
+            return new SymmetricKey(data.ToArray());
+        }
+
         /// <summary>
         /// Encrypts a data blob.
         /// The output consists of a 16-byte random initialization vector,
@@ -220,11 +237,23 @@ namespace Couchbase.Lite.Store
             return new CryptoStream(stream, _cryptor.CreateDecryptor(), CryptoStreamMode.Read);
         }
 
+        public CryptoStream CreateStream(Stream baseStream)
+        {
+            if (_cryptor == null || baseStream == null) {
+                return null;
+            }
+
+            var retVal = new CryptoStream(baseStream, _cryptor.CreateEncryptor(), CryptoStreamMode.Write);
+            retVal.Write(_cryptor.IV, 0, IV_SIZE);
+            return retVal;
+        }
+
         /// <summary>
         /// Incremental encryption: returns a block that can be called repeatedly with input data and
         /// returns additional output data. At EOF the block should be called with a nil parameter, and
         /// it will return the remaining encrypted data from its buffer. 
         /// </summary>
+        [Obsolete("Replaced with CreateStream method")]
         public CryptorBlock CreateEncryptor()
         {
             _cryptor.GenerateIV();

@@ -408,9 +408,7 @@ namespace Couchbase.Lite {
         /// </exception>
         public virtual QueryEnumerator Run() 
         {
-            if (!Database.Open()) {
-                throw new CouchbaseLiteException("The database has been closed.");
-            }
+            Database.Open();
 
             ValueTypePtr<long> outSequence = 0;
             var viewName = (View != null) ? View.Name : null;

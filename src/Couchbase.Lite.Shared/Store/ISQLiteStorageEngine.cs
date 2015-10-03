@@ -48,7 +48,7 @@ namespace Couchbase.Lite.Store
     /// <summary>
     /// An interface for describing an object that can interface with a SQLite database
     /// </summary>
-    public interface ISQLiteStorageEngine
+    internal interface ISQLiteStorageEngine
     {
 
         /// <summary>
@@ -61,7 +61,8 @@ namespace Couchbase.Lite.Store
         /// Opens the database
         /// </summary>
         /// <param name="path">The path where the database exists</param>
-        bool Open(String path);
+        /// <param name="encryptionKey">A key for encrypting the database</param>
+        bool Open(String path, SymmetricKey encryptionKey = null);
 
         /// <summary>
         /// Gets the user version of the database
