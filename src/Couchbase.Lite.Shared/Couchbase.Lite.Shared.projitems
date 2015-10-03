@@ -175,6 +175,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\CookieParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\IAtomicAction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\AtomicAction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\ForestDBCouchStore.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

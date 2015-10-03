@@ -35,6 +35,7 @@
     <DocumentationFile>bin\Debug\Couchbase.Lite.xml</DocumentationFile>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <LangVersion>5</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>True</Optimize>
@@ -47,6 +48,7 @@
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <DefineConstants>MOCK_ENCRYPTION;</DefineConstants>
     <LangVersion>5</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Prod|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -56,6 +58,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
     <LangVersion>5</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -96,6 +99,10 @@
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
       <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
       <Name>ugly_profile78</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net45\cbforest-sharp.Net45.csproj">
+      <Project>{20839831-948C-42BA-AAF1-75081209E6C5}</Project>
+      <Name>cbforest-sharp.Net45</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

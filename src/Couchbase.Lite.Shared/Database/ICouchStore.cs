@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Store
         /// which contains attachments; don't mess with that..</param>
         /// <param name="manager">The owning Manager; this is provided so the storage can examine its
         ///properties.</param>
-        void Open(string directory, Manager manager);
+        void Open(string directory, Manager manager, bool readOnly);
 
         /// <summary>
         /// Closes storage before it's deallocated. 
@@ -139,8 +139,7 @@ namespace Couchbase.Lite.Store
         /// <param name="docId">The document ID</param>
         /// <param name="revId">The revision ID; may be nil, meaning "the current revision".</param>
         /// <param name="withBody">Whether or not to include the document body</param>
-        /// <param name="status">An object that holds the result of the operation</param> 
-        RevisionInternal GetDocument(string docId, string revId, bool withBody, Status status = null);
+        RevisionInternal GetDocument(string docId, string revId, bool withBody);
 
         /// <summary>
         /// Loads the body of a revision.
