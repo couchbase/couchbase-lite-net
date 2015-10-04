@@ -958,11 +958,12 @@ namespace Couchbase.Lite.Store
             // If given keys, sort the output into that order, and add entries for missing keys:
             if (options.Keys != null) {
                 // Group rows by key:
-                var rowsByKey = new Dictionary<object, List<QueryRow>>();
+                var rowsByKey = new Dictionary<string, List<QueryRow>>();
                 foreach (var row in rows) {
-                    var dictRows = rowsByKey.Get(row.Key);
+                    var key = ToJSONString(row.Key);
+                    var dictRows = rowsByKey.Get(key);
                     if (dictRows == null) {
-                        dictRows = rowsByKey[row.Key] = new List<QueryRow>();
+                        dictRows = rowsByKey[key] = new List<QueryRow>();
                     }
 
                     dictRows.Add(row);
@@ -970,7 +971,7 @@ namespace Couchbase.Lite.Store
 
                 // Now concatenate them in the order the keys are given in options:
                 var sortedRows = new List<QueryRow>();
-                foreach (var key in options.Keys) {
+                foreach (var key in options.Keys.Select(x => ToJSONString(x))) {
                     var dictRows = rowsByKey.Get(key);
                     if (dictRows != null) {
                         sortedRows.AddRange(dictRows);
