@@ -615,6 +615,8 @@ namespace Couchbase.Lite
             return dbName;
         }
 
+
+
         private void UpgradeOldDatabaseFiles(DirectoryInfo dirInfo)
         {
             var extensions = DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES;
@@ -626,6 +628,7 @@ namespace Couchbase.Lite
 
         private void UpgradeDatabase(FileInfo path)
         {
+            #if !NOSQLITE
             var oldFilename = path.FullName;
             var newFilename = Path.ChangeExtension(oldFilename, DatabaseSuffix);
             var newFile = new FileInfo(newFilename);
@@ -654,7 +657,10 @@ namespace Couchbase.Lite
             }
 
             Log.D(TAG, "...Success!");
+            #endif
         }
+
+
 
         internal Replication ReplicationWithProperties(IDictionary<string, object> properties)
         {

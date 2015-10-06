@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Store
         /// <summary>
         /// Stores an arbitrary string under an arbitrary key, persistently.
         /// </summary>
-        Status SetInfo(string key, string info);
+        void SetInfo(string key, string info);
 
         /// <summary>
         /// Returns the value assigned to the given key by SetInfo().
@@ -94,7 +94,7 @@ namespace Couchbase.Lite.Store
         /// <summary>
         /// The last sequence number allocated to a revision.
         /// </summary>
-        Int64 LastSequence { get; }
+        long LastSequence { get; }
 
         /// <summary>
         /// Is a transaction active?
@@ -235,9 +235,8 @@ namespace Couchbase.Lite.Store
         /// <param name="validationBlock">If non-null, this block will be called before the revision is added.
         /// It's given the parent revision, with its properties if available, and can reject
         /// the operation by returning an error status.</param>
-        /// <param name="outStatus">A parameter to hold the result of the operation</param>
         RevisionInternal PutRevision(string docId, string prevRevId, IDictionary<string, object> properties,
-            bool deleting, bool allowConflict, StoreValidation validationBlock, Status outStatus = null);
+            bool deleting, bool allowConflict, StoreValidation validationBlock);
 
         /// <summary>
         /// Inserts an already-existing revision (with its revID), plus its ancestry, into a document.
@@ -253,7 +252,7 @@ namespace Couchbase.Lite.Store
         /// the operation by returning an error status.</param>
         /// <param name="source">The URL of the remote database this was pulled from, or null if it's local.
         /// (This will be used to create the DatabaseChange object sent to the delegate.</param>
-        Status ForceInsert(RevisionInternal rev, IList<string> revHistory, StoreValidation validationBlock, Uri source);
+        void ForceInsert(RevisionInternal rev, IList<string> revHistory, StoreValidation validationBlock, Uri source);
 
         /// <summary>
         /// Purges specific revisions, which deletes them completely from the local database 

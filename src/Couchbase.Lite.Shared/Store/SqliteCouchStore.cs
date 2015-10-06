@@ -18,6 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+#if !NOSQLITE
 using System;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal;
@@ -279,7 +280,7 @@ namespace Couchbase.Lite.Store
             return docProperties;
         }
 
-        public RevisionInternal GetDocument(string docId, long sequence, Status outStatus = null)
+        public RevisionInternal GetDocument(string docId, long sequence)
         {
             RevisionInternal result = null;
             var status = TryQuery(c =>
@@ -292,10 +293,6 @@ namespace Couchbase.Lite.Store
 
                 return false;
             }, false, "SELECT revid, deleted, json FROM revs WHERE sequence=?", sequence);
-
-            if (outStatus != null) {
-                outStatus.Code = status.Code;
-            }
 
             return result;
         }
@@ -782,12 +779,8 @@ namespace Couchbase.Lite.Store
             return revId;
         }
 
-        private RevisionList GetAllDocumentRevisions(string docId, long docNumericId, bool onlyCurrent, Status status = null)
+        private RevisionList GetAllDocumentRevisions(string docId, long docNumericId, bool onlyCurrent)
         {
-            if (status == null) {
-                status = new Status();
-            }
-
             string sql;
             if (onlyCurrent) {
                 sql = "SELECT sequence, revid, deleted FROM revs " +
@@ -806,13 +799,12 @@ namespace Couchbase.Lite.Store
 
                 return true;
             }, true, sql, docNumericId);
-
-            status.Code = innerStatus.Code;
-            if (status.IsError) {
-                Log.W(TAG, "GetAllDocumentRevisions() failed {0}", status.Code);
+                
+            if (innerStatus.IsError) {
+                throw new CouchbaseLiteException("Error getting document revisions", StatusCode.DbError);
             }
 
-            return status.IsError ? null : revs;
+            return revs;
         }
 
         private IDictionary<string, object> StripDocumentJSON(IDictionary<string, object> originalProps)
@@ -896,7 +888,7 @@ namespace Couchbase.Lite.Store
             return File.Exists(path);
         }
 
-        public void Open(string path, Manager manager)
+        public void Open(string path, Manager manager, bool readOnly)
         {
             _path = path;
             Open();
@@ -909,18 +901,20 @@ namespace Couchbase.Lite.Store
             }
         }
 
-        public Status SetInfo(string key, string info)
+        public void SetInfo(string key, string info)
         {
             var vals = new ContentValues(2);
             vals["key"] = key;
             vals["value"] = info;
             try {
                 StorageEngine.InsertWithOnConflict("info", null, vals, ConflictResolutionStrategy.Replace);
-            } catch(Exception) {
-                return new Status(StatusCode.DbError);
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Failed to set info ({0} -> {1})", key, info);
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException(String.Format(
+                    "Error setting info ({0} -> {1})", key, info), e) { Code = StatusCode.Exception }; 
             }
-
-            return new Status(StatusCode.Ok);
         }
 
         public string GetInfo(string key)
@@ -1085,15 +1079,10 @@ namespace Couchbase.Lite.Store
             return action;
         }
 
-        public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status status = null)
+        public RevisionInternal GetDocument(string docId, string revId, bool withBody)
         {
-            if (status == null) {
-                status = new Status();
-            }
-
             long docNumericId = GetDocNumericID(docId);
             if (docNumericId <= 0L) {
-                status.Code = StatusCode.NotFound;
                 return null;
             }
 
@@ -1121,19 +1110,16 @@ namespace Couchbase.Lite.Store
                 if(withBody) {
                     result.SetJson(c.GetBlob(3));
                 }
-
-                status.Code = StatusCode.Ok;
+                    
                 return false;
             }, true, sb.ToString(), docNumericId, revId);
 
             if (transactionStatus.IsError) {
                 if (transactionStatus.Code == StatusCode.NotFound && revId == null) {
-                    status.Code = StatusCode.Deleted;
+                    throw new CouchbaseLiteException(StatusCode.Deleted);
                 } else {
-                    status.Code = transactionStatus.Code;
+                    throw new CouchbaseLiteException(transactionStatus.Code);
                 }
-
-                return null;
             }
 
             return result;
@@ -1668,12 +1654,8 @@ namespace Couchbase.Lite.Store
         }
 
         public RevisionInternal PutRevision(string inDocId, string inPrevRevId, IDictionary<string, object> properties,
-            bool deleting, bool allowConflict, StoreValidation validationBlock, Status outStatus = null)
+            bool deleting, bool allowConflict, StoreValidation validationBlock)
         {
-            if (outStatus == null) {
-                outStatus = new Status();
-            }
-
             IEnumerable<byte> json = null;
             if (properties != null) {
                 try {
@@ -1852,18 +1834,13 @@ namespace Couchbase.Lite.Store
                 return deleting ? new Status(StatusCode.Ok) : new Status(StatusCode.Created);
             });
 
-            outStatus.Code = status.Code;
-            if (outStatus.IsError) {
-                return null;
-            }
-
             //// EPILOGUE: A change notification is sent...
             Delegate.DatabaseStorageChanged(new DocumentChange(newRev, winningRevID, inConflict, null));
 
             return newRev;
         }
 
-        public Status ForceInsert(RevisionInternal inRev, IList<string> revHistory, StoreValidation validationBlock, Uri source)
+        public void ForceInsert(RevisionInternal inRev, IList<string> revHistory, StoreValidation validationBlock, Uri source)
         {
             var rev = inRev.CopyWithDocID(inRev.GetDocId(), inRev.GetRevId());
             rev.SetSequence(0L);
@@ -1884,9 +1861,9 @@ namespace Couchbase.Lite.Store
                 }
 
                 if(!isNewDoc) {
-                    var innerStatus = new Status();
-                    RevisionList localRevsList = GetAllDocumentRevisions(docId, docNumericId, false, innerStatus);
-                    if(localRevsList != null) {
+                    var localRevsList = default(RevisionList);
+                    try {
+                        localRevsList = GetAllDocumentRevisions(docId, docNumericId, false);
                         localRevs = new Dictionary<string, RevisionInternal>(localRevsList.Count);
                         foreach(var localRev in localRevsList) {
                             localRevs[localRev.GetRevId()] = localRev;
@@ -1895,17 +1872,24 @@ namespace Couchbase.Lite.Store
                         // Look up which rev is the winner, before this insertion
                         try {
                             oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, inConflict);
-                        } catch(CouchbaseLiteException e) {
-                            return e.CBLStatus;
+                        } catch(CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to look up winner for {0}", docId);
+                            throw;
+                        } catch(Exception e) {
+                            throw new CouchbaseLiteException(String.Format(
+                                "Error looking up winner for {0}", docId), e) { Code = StatusCode.Exception };
                         }
-                    } else if(innerStatus.Code != StatusCode.NotFound) {
+                    } catch(CouchbaseLiteException e) {
                         // Don't stop on a not found, because it is not critical.  This can happen
                         // when two pullers are pulling the same data at the same time.  One will
                         // insert JUST the document (not the revisions yet), and then yield to the
                         // other which will see the document and assume revisions are there which aren't.
                         // In that case, we'd like to continue and insert the missing revisions instead of
                         // erroring out.  Note that this needs to be changed to a better way.
-                        return innerStatus;
+                        if(e.Code != StatusCode.NotFound) {
+                            Log.W(TAG, "Error getting document revisions for {0}", docId);
+                            throw;
+                        }
                     }
                 }
 
@@ -1999,12 +1983,8 @@ namespace Couchbase.Lite.Store
                 winningRevId = GetWinner(docNumericId, oldWinningRevId, oldWinnerWasDeletion, rev);
                 return new Status(StatusCode.Created);
             });
-
-            if (status.IsSuccessful) {
-                Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId, inConflict, source));
-            }
-
-            return status;
+                
+            Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId, inConflict, source));
         }
 
         public IDictionary<string, object> PurgeRevisions(IDictionary<string, IList<string>> docsToRev)
@@ -2221,4 +2201,4 @@ namespace Couchbase.Lite.Store
         #endregion
     }
 }
-
+#endif

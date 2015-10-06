@@ -46,7 +46,7 @@
     <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
     <AssemblyName>Couchbase.Lite</AssemblyName>
-    <DefineConstants>MOCK_ENCRYPTION;</DefineConstants>
+    <DefineConstants>MOCK_ENCRYPTION;FORESTDB</DefineConstants>
     <LangVersion>5</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -92,15 +92,13 @@
     </PropertyGroup>
   </Target>
   <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net45.pinvoke_packaged_sqlcipher.anycpu.csproj">
-      <Project>{8E62D3FC-CE27-427F-A060-F86DA48142F8}</Project>
-      <Name>platform.net45.pinvoke_packaged_sqlcipher.anycpu</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net45.pinvoke_packaged_sqlcipher.anycpu.csproj" Condition="!$(DefineConstants.Contains('NOSQLITE'))">&gt;
+      <Project>{8E62D3FC-CE27-427F-A060-F86DA48142F8}</Project><Name>platform.net45.pinvoke_packaged_sqlcipher.anycpu</Name></ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj" Condition="!$(DefineConstants.Contains('NOSQLITE'))">
       <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
       <Name>ugly_profile78</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net45\cbforest-sharp.Net45.csproj">
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net45\cbforest-sharp.Net45.csproj" Condition="$(DefineConstants.Contains('FORESTDB'))">
       <Project>{20839831-948C-42BA-AAF1-75081209E6C5}</Project>
       <Name>cbforest-sharp.Net45</Name>
     </ProjectReference>

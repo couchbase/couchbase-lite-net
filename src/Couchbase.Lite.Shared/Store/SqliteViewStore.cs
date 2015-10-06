@@ -18,6 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+#if !NOSQLITE
 using System;
 using Couchbase.Lite.Util;
 using System.Diagnostics;
@@ -1024,13 +1025,13 @@ namespace Couchbase.Lite.Store
                 object valueOrData = FromJSON(valueData.Value);
                 if(valuesToReduce != null && RowValueIsEntireDoc(valueData.Value)) {
                     // map fn emitted 'doc' as value, which was stored as a "*" placeholder; expand now:
-                    Status status = new Status();
-                    var rev = db.GetDocument(docID, c.GetLong(1), status);
-                    if(rev == null) {
-                        Log.W(TAG, "Couldn't load doc for row value: status {0}", status.Code);
-                    }
-
-                    valueOrData = rev.GetProperties();
+                    try {
+                        var rev = db.GetDocument(docID, c.GetLong(1));
+                        valueOrData = rev.GetProperties();
+                    } catch(CouchbaseLiteException) {
+                        Log.W(TAG, "Couldn't load doc for row value");
+                        throw;
+                    }   
                 }
 
                 keysToReduce.Add(keyData.Value);
@@ -1120,4 +1121,4 @@ namespace Couchbase.Lite.Store
         #endregion
     }
 }
-
+#endif

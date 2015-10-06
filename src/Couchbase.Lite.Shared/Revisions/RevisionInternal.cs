@@ -93,6 +93,20 @@ namespace Couchbase.Lite.Internal
         internal RevisionInternal(IDictionary<String, Object> properties)
             : this(new Body(properties)) { }
 
+        #if FORESTDB
+
+        internal unsafe RevisionInternal(CBForest.C4Document *doc, bool loadBody) 
+            : this((string)doc->docID, (string)doc->selectedRev.revID, doc->IsDeleted)
+        {
+            _sequence = (long)doc->selectedRev.sequence;
+            if (loadBody) {
+                SetBody(new Body(doc->selectedRev.body));
+            }
+        }
+
+        #endif
+
+
         #endregion
 
         #region Methods

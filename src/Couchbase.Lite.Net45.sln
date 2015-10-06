@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "portable.profile78", "Couch
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cbforest-sharp.Net45", "Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net45\cbforest-sharp.Net45.csproj", "{20839831-948C-42BA-AAF1-75081209E6C5}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "cbforest-sharp.Shared", "Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.shproj", "{0BFC8B40-0659-4D45-B111-7CB4CCD22991}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -150,6 +152,7 @@ Global
 		{11440D11-E458-4BB6-ADBB-7C233F952089} = {1825B796-D027-42E9-801B-CEAC3EA0F252}
 		{84547E16-A872-418D-82A6-B57ADEE290AE} = {1825B796-D027-42E9-801B-CEAC3EA0F252}
 		{20839831-948C-42BA-AAF1-75081209E6C5} = {1825B796-D027-42E9-801B-CEAC3EA0F252}
+		{0BFC8B40-0659-4D45-B111-7CB4CCD22991} = {1825B796-D027-42E9-801B-CEAC3EA0F252}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

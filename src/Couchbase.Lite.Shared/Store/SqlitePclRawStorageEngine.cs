@@ -39,19 +39,21 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
+#if !NOSQLITE
 using System;
-using System.Threading.Tasks;
-using Couchbase.Lite.Storage;
-using System.Threading;
-using SQLitePCL;
-using Couchbase.Lite.Util;
-using System.Diagnostics;
-using System.Text;
 using System.Collections.Generic;
-using System.Linq;
-using SQLitePCL.Ugly;
-using Couchbase.Lite.Store;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Storage;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
+using SQLitePCL;
+using SQLitePCL.Ugly;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -888,3 +890,4 @@ namespace Couchbase.Lite
         #endregion
     }
 }
+#endif

@@ -18,12 +18,16 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sharpen;
-using SQLitePCL;
 using Couchbase.Lite.Util;
+
+#if !NOSQLITE
+using SQLitePCL;
+#endif
 
 namespace Couchbase.Lite.Db
 {
@@ -32,6 +36,8 @@ namespace Couchbase.Lite.Db
         private const string TAG = "DatabaseUpgraderFactory";
 
         public static readonly string[] ALL_KNOWN_PREFIXES = new string[] { "touchdb", "cblite" };
+
+        #if !NOSQLITE
 
         private static readonly Dictionary<string, Func<Database, string, IDatabaseUpgrader>> UPGRADER_MAP = 
             new Dictionary<string, Func<Database, string, IDatabaseUpgrader>> {
@@ -76,6 +82,7 @@ namespace Couchbase.Lite.Db
 
             return version;
         }
+
+        #endif
     }
 }
-
