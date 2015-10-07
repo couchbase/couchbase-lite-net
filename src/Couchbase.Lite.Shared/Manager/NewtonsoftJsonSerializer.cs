@@ -27,6 +27,10 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Util;
 
+#if FORESTDB
+using CBForest;
+#endif
+
 namespace Couchbase.Lite
 {
     //Eventually split this into another assembly
@@ -67,6 +71,7 @@ namespace Couchbase.Lite
         {
             return JsonConvert.SerializeObject(obj, pretty ? Formatting.Indented : Formatting.None, settings);
         }
+
         public T DeserializeObject<T>(string json)
         {
             T item;
@@ -93,6 +98,15 @@ namespace Couchbase.Lite
 
                 return item;
             }
+        }
+
+        public T CurrentTokenValue<T>()
+        {
+            if (_textReader == null) {
+                throw new InvalidOperationException("JSON serializer is not running in incremental mode");
+            }
+
+            return (T)_textReader.Value;
         }
 
         public void StartIncrementalParse(Stream json)
@@ -151,9 +165,34 @@ namespace Couchbase.Lite
         {
             return new NewtonsoftJsonSerializer();
         }
+
+        #if FORESTDB
+
+        public unsafe C4Key* SerializeToKey(object value)
+        {
+            var retVal = Native.c4key_new();
+            using (var jsonWriter = new JsonC4KeyWriter(retVal)) {
+                var serializer = new JsonSerializer();
+                serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                serializer.Serialize(jsonWriter, value);
+            }
+
+            return retVal;
+        }
+
+        public T DeserializeKey<T>(C4KeyReader keyReader)
+        {
+            using (var jsonReader = new JsonC4KeyReader(keyReader)) {
+                var o = JObject.Load(jsonReader);
+                var serializer = new JsonSerializer();
+                serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                return o.ToObject<T>(serializer);
+            }
+        }
+
+        #endif
             
         #endregion
-
 
         #region IDisposable
 

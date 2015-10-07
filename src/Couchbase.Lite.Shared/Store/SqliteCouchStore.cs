@@ -221,7 +221,7 @@ namespace Couchbase.Lite.Store
                         StorageEngine.ExecSQL("ANALYZE");
                         StorageEngine.ExecSQL("ANALYZE sqlite_master");
                         SetInfo("last_optimized", currentSequence.ToString());
-                        return new Status(StatusCode.Ok);
+                        return true;
                     });
                 }
             }
@@ -543,7 +543,7 @@ namespace Couchbase.Lite.Store
                         outPruned += rowsDeleted;
                     }
 
-                    return new Status(StatusCode.Ok);
+                    return true;
                 });
             } catch (Exception e) {
                 throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
@@ -673,18 +673,17 @@ namespace Couchbase.Lite.Store
             return rev;
         }
 
-        private Status RunInOuterTransaction(Func<Status> action)
+        private bool RunInOuterTransaction(RunInTransactionDelegate action)
         {
             if (!InTransaction) {
                 return RunInTransaction(action);
             }
 
-            Status status = null;
+            var status = false;
             try {
                 status = action();
             } catch(Exception e) {
-                Log.E(TAG, "Exception in RunInOuterTransaction", e);
-                status = new Status(StatusCode.Exception);
+                Log.W(TAG, "Exception in RunInOuterTransaction", e);
             }
 
             return status;
@@ -845,13 +844,9 @@ namespace Couchbase.Lite.Store
             RunInTransaction(() =>
             {
                 RevisionInternal prevRev = GetLocalDocument(rev.GetDocId(), null);
-                try {
-                    result = PutLocalRevision(rev, prevRev == null ? null : prevRev.GetRevId(), true);
-                } catch(CouchbaseLiteException e) {
-                    return e.CBLStatus;
-                }
+                result = PutLocalRevision(rev, prevRev == null ? null : prevRev.GetRevId(), true);
 
-                return new Status(StatusCode.Ok);
+                return true;
             });
 
             return result;
@@ -963,39 +958,43 @@ namespace Couchbase.Lite.Store
             }
         }
 
-        public Status RunInTransaction(Func<Status> block)
+        public bool RunInTransaction(RunInTransactionDelegate block)
         {
-            Status status = new Status();
+            var status = false;
+            var keepGoing = false;
             int retries = 0;
             do {
+                keepGoing = false;
                 if(!BeginTransaction()) {
-                    return new Status(StatusCode.DbError);
+                    throw new CouchbaseLiteException("Error beginning begin transaction", StatusCode.DbError);
                 }
 
                 try {
                     status = block();
+                } catch(CouchbaseLiteException e) {
+                    if(e.Code == StatusCode.DbBusy) {
+                        // retry if locked out
+                        if(_transactionCount > 1) {
+                            break;
+                        }
+
+                        if(++retries > TRANSACTION_MAX_RETRIES) {
+                            Log.W(TAG, "Db busy, too many retries, giving up");
+                            break;
+                        }
+
+                        Log.D(TAG, "Db busy, retrying transaction ({0})", retries);
+                        Thread.Sleep(TRANSACTION_MAX_RETRY_DELAY);
+                        keepGoing = true;
+                    }
                 } catch(Exception e) {
-                    Log.E(TAG, "Exception in RunInTransaction", e);
-                    status.Code = StatusCode.Exception;
+                    Log.W(TAG, "Exception in RunInTransaction", e);
                 } finally {
-                    EndTransaction(status.IsSuccessful);
+                    EndTransaction(status);
                 }
 
-                if(status.Code == StatusCode.DbBusy) {
-                    // retry if locked out
-                    if(_transactionCount > 1) {
-                        break;
-                    }
 
-                    if(++retries > TRANSACTION_MAX_RETRIES) {
-                        Log.W(TAG, "Db busy, too many retries, giving up");
-                        break;
-                    }
-
-                    Log.D(TAG, "Db busy, retrying transaction ({0})", retries);
-                    Thread.Sleep(TRANSACTION_MAX_RETRY_DELAY);
-                }
-            } while(status.Code == StatusCode.DbBusy);
+            } while(keepGoing);
 
             return status;
         }
@@ -1699,35 +1698,31 @@ namespace Couchbase.Lite.Store
                 ValueTypePtr<bool> wasConflicted = false;
                 string oldWinningRevId = null;
                 if(!isNewDoc) {
-                    try {
-                        // Look up which rev is the winner, before this insertion
-                        oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, wasConflicted);
-                    } catch(CouchbaseLiteException e) {
-                        return e.CBLStatus;
-                    }
+                    // Look up which rev is the winner, before this insertion
+                    oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, wasConflicted);
                 }
 
                 long parentSequence = 0L;
                 if(prevRevId != null) {
                     // Replacing: make sure given prevRevID is current & find its sequence number:
                     if(isNewDoc) {
-                        return new Status(StatusCode.NotFound);
+                        throw new CouchbaseLiteException("Previous revision not found", StatusCode.NotFound);
                     }
 
                     parentSequence = GetSequenceOfDocument(docNumericId, prevRevId, !allowConflict);
                     if(parentSequence == 0L) {
                         // Not found: NotFound or a Conflict, depending on whether there is any current revision
                         if(!allowConflict && DocumentExists(docId, null)) {
-                            return new Status(StatusCode.Conflict);
+                            throw new CouchbaseLiteException(StatusCode.Conflict);
                         }
 
-                        return new Status(StatusCode.NotFound);
+                        throw new CouchbaseLiteException("Previous revision not found", StatusCode.NotFound);
                     }
                 } else {
                     // Inserting first revision.
                     if(deleting && docId != null) {
                         // Didn't specify a revision to delete: NotFound or a Conflict, depending
-                        return DocumentExists(docId, null) ? new Status(StatusCode.Conflict) : new Status(StatusCode.NotFound);
+                        throw new CouchbaseLiteException(DocumentExists(docId, null) ? StatusCode.Conflict : StatusCode.NotFound);
                     }
 
                     if(docId != null) {
@@ -1738,14 +1733,15 @@ namespace Couchbase.Lite.Store
                             parentSequence = GetSequenceOfDocument(docNumericId, prevRevId, false);
                         } else if(oldWinningRevId != null) {
                             // The current winning revision is not deleted, so this is a conflict
-                            return new Status(StatusCode.Conflict);
+                            throw new CouchbaseLiteException(StatusCode.Conflict);
                         }
                     } else {
                         // Inserting first revision, with no docID given (POST): generate a unique docID:
                         docId = Misc.CreateGUID();
                         docNumericId = GetOrInsertDocNumericID(docId, ref isNewDoc);
                         if(docNumericId <= 0L) {
-                            return new Status(StatusCode.DbError);
+                            throw new CouchbaseLiteException(String.Format(
+                                "Couldn't write new document {0} to database", docId), StatusCode.DbError);
                         }
                     }
                 }
@@ -1760,7 +1756,8 @@ namespace Couchbase.Lite.Store
                 string newRevId = Delegate.GenerateRevID(json, deleting, prevRevId);
                 if(newRevId == null) {
                     // invalid previous revID (no numeric prefix)
-                    return new Status(StatusCode.BadId);
+                    throw new CouchbaseLiteException(String.Format(
+                        "Invalid rev ID {0} for document {1}", prevRevId, docId), StatusCode.BadId);
                 }
 
                 Debug.Assert(docId != null);
@@ -1779,7 +1776,8 @@ namespace Couchbase.Lite.Store
 
                     var validationStatus = validationBlock(newRev, prevRev, prevRevId);
                     if(validationStatus.IsError) {
-                        return validationStatus;
+                        throw new CouchbaseLiteException(String.Format("{0} failed validation", newRev), 
+                            validationStatus.Code);
                     }
                 }
 
@@ -1802,7 +1800,8 @@ namespace Couchbase.Lite.Store
                 var sequence = InsertRevision(newRev, docNumericId, parentSequence, true, hasAttachments, json, docType);
                 if(sequence == 0L) {
                     if(StorageEngine.LastErrorCode != raw.SQLITE_CONSTRAINT) {
-                        return LastDbError;
+                        throw new CouchbaseLiteException(String.Format("Failed to insert revision {0}", newRev),
+                            LastDbError.Code);
                     }
 
                     Log.I(TAG, "Duplicate rev insertion {0} / {1}", docId, newRevId);
@@ -1816,22 +1815,26 @@ namespace Couchbase.Lite.Store
                     args["doc_type"] = null;
                     try {
                         StorageEngine.Update("revs", args, "sequence=?", parentSequence.ToString());
-                    } catch(Exception) {
+                    } catch(CouchbaseLiteException) {
+                        Log.W(TAG, "Failed to update document {0}", docId);
+                        throw;
+                    } catch(Exception e) {
                         StorageEngine.Delete("revs", "sequence=?", sequence.ToString());
-                        return new Status(StatusCode.DbError);
+                        throw new CouchbaseLiteException(String.Format(
+                            "Error updating document {0}", docId), e) { Code = StatusCode.DbError };
                     }
                 }
 
                 if(sequence == 0L) {
                     // duplicate rev; see above
-                    return new Status(StatusCode.Ok);
+                    return true;
                 }
 
                 // Figure out what the new winning rev ID is:
                 winningRevID = GetWinner(docNumericId, oldWinningRevId, oldWinnerWasDeletion, newRev);
 
                 // Success!
-                return deleting ? new Status(StatusCode.Ok) : new Status(StatusCode.Created);
+                return true;
             });
 
             //// EPILOGUE: A change notification is sent...
@@ -1857,7 +1860,8 @@ namespace Couchbase.Lite.Store
                 bool isNewDoc = revHistory.Count == 1;
                 var docNumericId = GetOrInsertDocNumericID(docId, ref isNewDoc);
                 if(docNumericId <= 0) {
-                    return new Status(StatusCode.DbError);
+                    throw new CouchbaseLiteException(String.Format("Error inserting document {0}", docId),
+                        StatusCode.DbError);
                 }
 
                 if(!isNewDoc) {
@@ -1905,7 +1909,8 @@ namespace Couchbase.Lite.Store
                     string parentRevId = (revHistory.Count > 1) ? revHistory[1] : null;
                     var validationStatus = validationBlock(rev, oldRev, parentRevId);
                     if(validationStatus.IsError) {
-                        return validationStatus;
+                        throw new CouchbaseLiteException(String.Format("{0} failed validation", rev),
+                            StatusCode.DbError);
                     }
                 }
 
@@ -1932,9 +1937,6 @@ namespace Couchbase.Lite.Store
                             // Hey, this is the leaf revision we're inserting:
                             newRev = rev;
                             json = EncodeDocumentJSON(rev);
-                            if(json == null) {
-                                return new Status(StatusCode.BadJson);
-                            }
 
                             docType = rev.GetPropertyForKey("type") as string;
                             current = true;
@@ -1947,7 +1949,8 @@ namespace Couchbase.Lite.Store
                         sequence = InsertRevision(newRev, docNumericId, sequence, current, newRev.GetAttachments() != null, json, docType);
                         if(sequence == 0) {
                             if(StorageEngine.LastErrorCode != raw.SQLITE_CONSTRAINT) {
-                                return new Status(StatusCode.DbError);
+                                throw new CouchbaseLiteException(String.Format("Error inserting revision {0}", newRev),
+                                    StatusCode.DbError);
                             } else {
                                 sequence = GetSequenceOfDocument(docNumericId, newRev.GetRevId(), false);
                             }
@@ -1958,7 +1961,7 @@ namespace Couchbase.Lite.Store
 
                 if(localParentSequence == sequence) {
                     // No-op: No new revisions were inserted.
-                    return new Status(StatusCode.Ok);
+                    return true;
                 }
 
                 // Mark the latest local rev as no longer current:
@@ -1969,8 +1972,12 @@ namespace Couchbase.Lite.Store
                     int changes;
                     try {
                         changes = StorageEngine.Update("revs", args, "sequence=?", localParentSequence.ToString());
-                    } catch(Exception) {
-                        return new Status(StatusCode.DbError);
+                    } catch(CouchbaseLiteException) {
+                        Log.W(TAG, "Failed to update {0}", docId);
+                        throw;
+                    } catch(Exception e) {
+                        throw new CouchbaseLiteException(String.Format("Error updating {0}", docId),
+                            e) { Code = StatusCode.Exception };
                     }
 
                     if(changes == 0) {
@@ -1981,7 +1988,7 @@ namespace Couchbase.Lite.Store
 
                 // Figure out what the new winning rev ID is:
                 winningRevId = GetWinner(docNumericId, oldWinningRevId, oldWinnerWasDeletion, rev);
-                return new Status(StatusCode.Created);
+                return true;
             });
                 
             Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId, inConflict, source));
@@ -2007,15 +2014,20 @@ namespace Couchbase.Lite.Store
                     IEnumerable<string> revsPurged = null;
                     var revIDs = docsToRev[docId];
                     if(revIDs == null) {
-                        return new Status(StatusCode.BadParam);
+                        throw new CouchbaseLiteException(String.Format("Illegal null revIds for {0}", docId),
+                            StatusCode.BadParam);
                     } else if(revIDs.Count == 0) {
                         revsPurged = new List<string>();
                     } else if(revIDs.Contains("*")) {
                         // Delete all revisions if magic "*" revision ID is given:
                         try {
                             StorageEngine.Delete("revs", "doc_id=?", docNumericId.ToString());
-                        } catch(Exception) {
-                            return new Status(StatusCode.DbError);
+                        } catch(CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to delete revisions of {0}", docId);
+                            throw;
+                        } catch(Exception e) {
+                            throw new CouchbaseLiteException(String.Format("Error deleting revisions of {0}", docId),
+                                e) { Code = StatusCode.Exception };
                         }
 
                         revsPurged = new List<string> { "*" };
@@ -2056,8 +2068,12 @@ namespace Couchbase.Lite.Store
                             int count = 0;
                             try {
                                 count = StorageEngine.Delete("revs", deleteSql);
-                            } catch(Exception) {
-                                return new Status(StatusCode.DbError);
+                            } catch(CouchbaseLiteException) {
+                                Log.W(TAG, "Failed to delete revisions of {0}", docId);
+                                throw;
+                            } catch(Exception e) {
+                                throw new CouchbaseLiteException(String.Format("Error deleting revisions of {0}", docId),
+                                    e) { Code = StatusCode.Exception };
                             }
 
                             if(count != seqsToPurge.Count) {
@@ -2071,7 +2087,7 @@ namespace Couchbase.Lite.Store
                     result["docID"] = revIDs.Where(x => revsPurged.Contains(x));
                 }
 
-                return new Status(StatusCode.Ok);
+                return true;
             });
 
             return result;

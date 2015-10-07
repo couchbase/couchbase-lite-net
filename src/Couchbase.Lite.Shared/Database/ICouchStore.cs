@@ -113,7 +113,7 @@ namespace Couchbase.Lite.Store
         /// if 10 retries all fail, the DbBusy will be returned to the caller.
         /// Any exception raised by the block will be caught and treated as Exception.
         /// </summary>
-        Status RunInTransaction(Func<Status> block);
+        bool RunInTransaction(RunInTransactionDelegate block);
 
         /// <summary>
         /// Registers the encryption key of the database file. Must be called before opening the db.

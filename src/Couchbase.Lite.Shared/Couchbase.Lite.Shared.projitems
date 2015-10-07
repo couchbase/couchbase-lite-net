@@ -176,6 +176,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\IAtomicAction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\AtomicAction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\ForestDBCouchStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\ForestDBViewStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonC4KeyWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonC4KeyReader.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

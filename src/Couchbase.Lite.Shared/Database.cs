@@ -616,8 +616,7 @@ namespace Couchbase.Lite
         /// <param name="transactionDelegate">The delegate to run within a transaction.</param>
         public bool RunInTransaction(RunInTransactionDelegate transactionDelegate)
         {
-            return Storage.RunInTransaction(() => transactionDelegate() ? 
-                new Status(StatusCode.Ok) : new Status(StatusCode.Reserved)).Code == StatusCode.Ok;
+            return Storage.RunInTransaction(transactionDelegate);
         }
 
             

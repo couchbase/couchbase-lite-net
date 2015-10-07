@@ -149,15 +149,20 @@ namespace Couchbase.Lite.Store
 
         #region Variables
 
-        private string _directory;
         private C4DatabaseFlags _config;
-        private C4Database *_forest;
         private SymmetricKey _encryptionKey;
         private int _transactionLevel;
 
         #endregion
 
         #region Properties
+
+        public SymmetricKey EncryptionKey
+        {
+            get {
+                return _encryptionKey;
+            }
+        }
 
         public bool AutoCompact { get; set; }
 
@@ -168,23 +173,34 @@ namespace Couchbase.Lite.Store
         public int DocumentCount
         {
             get {
-                return (int)Native.c4db_getDocumentCount(_forest);
+                return (int)Native.c4db_getDocumentCount(Forest);
             }
         }
 
         public long LastSequence
         {
             get {
-                return (long)Native.c4db_getLastSequence(_forest);
+                return (long)Native.c4db_getLastSequence(Forest);
             }
         }
 
         public bool InTransaction
         {
             get {
-                return Native.c4db_isInTransaction(_forest);
+                return Native.c4db_isInTransaction(Forest);
             }
         }
+
+        public bool IsOpen
+        { 
+            get {
+                return Forest != null;
+            }
+        }
+
+        public string Directory { get; private set; }
+
+        public C4Database* Forest { get; private set; }
 
         #endregion
 
@@ -202,7 +218,7 @@ namespace Couchbase.Lite.Store
 
         public void GetDocument(string docId, long sequence)
         {
-            throw new NotSupportedException("C API lacks this feature");
+            throw new NotImplementedException("C API lacks this feature");
         } 
 
         #endregion
@@ -211,7 +227,7 @@ namespace Couchbase.Lite.Store
 
         private void WithC4Document(string docId, string revId, bool withBody, C4DocumentActionDelegate block)
         {
-            var doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(_forest, docId, true, err));
+            var doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, docId, true, err));
             ForestDBBridge.Check(err => Native.c4doc_selectRevision(doc, revId, withBody, err));
 
             try {
@@ -224,7 +240,7 @@ namespace Couchbase.Lite.Store
         private void WithC4Raw(string docId, string storeName, C4RawDocumentActionDelegate block)
         {
             var doc = (C4RawDocument*)ForestDBBridge.Check(err =>
-                Native.c4raw_get(_forest, storeName, docId, err));
+                Native.c4raw_get(Forest, storeName, docId, err));
 
             try {
                 block(doc);
@@ -265,9 +281,9 @@ namespace Couchbase.Lite.Store
                 nativeKey.bytes = _encryptionKey.KeyData;
             }
 
-            var forestPath = Path.Combine(_directory, DB_FILENAME);
+            var forestPath = Path.Combine(Directory, DB_FILENAME);
             var nativeKeyPtr = &nativeKey;
-            _forest = (C4Database*)ForestDBBridge.Check(err => Native.c4db_open(forestPath, _config, nativeKeyPtr, err));
+            Forest = (C4Database*)ForestDBBridge.Check(err => Native.c4db_open(forestPath, _config, nativeKeyPtr, err));
         }
 
         private void DeleteLocalRevision(string docId, string revId, bool obeyMVCC)
@@ -288,7 +304,7 @@ namespace Couchbase.Lite.Store
 
             RunInTransaction(() =>
             {
-                var doc = (C4RawDocument *)ForestDBBridge.Check(err => Native.c4raw_get(_forest, "_local", docId, err));
+                var doc = (C4RawDocument *)ForestDBBridge.Check(err => Native.c4raw_get(Forest, "_local", docId, err));
                 if(doc == null) {
                     throw new CouchbaseLiteException(StatusCode.NotFound);
                 }
@@ -297,7 +313,7 @@ namespace Couchbase.Lite.Store
                     throw new CouchbaseLiteException(StatusCode.Conflict);
                 }
 
-                ForestDBBridge.Check(err => Native.c4raw_put(_forest, "_local", docId, null, null, err));
+                ForestDBBridge.Check(err => Native.c4raw_put(Forest, "_local", docId, null, null, err));
                 return true;
             });
         }
@@ -342,7 +358,7 @@ namespace Couchbase.Lite.Store
 
         public void Open(string directory, Manager manager, bool readOnly)
         {
-            _directory = directory;
+            Directory = directory;
             _config = readOnly ? C4DatabaseFlags.ReadOnly : C4DatabaseFlags.Create;
             if (AutoCompact) {
                 _config &= C4DatabaseFlags.AutoCompact;
@@ -353,8 +369,8 @@ namespace Couchbase.Lite.Store
 
         public void Close()
         {
-            ForestDBBridge.Check(err => Native.c4db_close(_forest, err));
-            _forest = null;
+            ForestDBBridge.Check(err => Native.c4db_close(Forest, err));
+            Forest = null;
         }
 
         public void SetEncryptionKey(SymmetricKey key)
@@ -384,11 +400,11 @@ namespace Couchbase.Lite.Store
             throw new NotImplementedException("C API needs a compact function");
         }
 
-        public void RunInTransaction(RunInTransactionDelegate block)
+        public bool RunInTransaction(RunInTransactionDelegate block)
         {
             Log.D(TAG, "BEGIN transaction...");
             _transactionLevel++;
-            ForestDBBridge.Check(err => Native.c4db_beginTransaction(_forest, err));
+            ForestDBBridge.Check(err => Native.c4db_beginTransaction(Forest, err));
             var success = false;
             try {
                 success = block();
@@ -398,10 +414,12 @@ namespace Couchbase.Lite.Store
             }
 
             Log.D(TAG, "END transaction (success={0})", success);
-            ForestDBBridge.Check(err => Native.c4db_endTransaction(_forest, success, err));
+            ForestDBBridge.Check(err => Native.c4db_endTransaction(Forest, success, err));
             if (--_transactionLevel == 0 && Delegate != null) {
                 Delegate.StorageExitedTransaction(success);
             }
+
+            return success;
         }
 
         public RevisionInternal GetDocument(string docId, string revId, bool withBody)
@@ -533,7 +551,7 @@ namespace Couchbase.Lite.Store
             forestOps.includeBodies = options.IsIncludeDocs() || options.IsIncludeConflicts() || filter != null;
             var changes = new RevisionList();
             var p = &forestOps;
-            var e = (C4DocEnumerator*)ForestDBBridge.Check(err => Native.c4db_enumerateChanges(_forest, (ulong)lastSequence, p, err));
+            var e = (C4DocEnumerator*)ForestDBBridge.Check(err => Native.c4db_enumerateChanges(Forest, (ulong)lastSequence, p, err));
             var doc = (C4Document*)null;
             while((doc = Native.c4enum_nextDocument(e, null)) != null) {
                 var revs = default(IEnumerable<RevisionInternal>);
@@ -569,7 +587,7 @@ namespace Couchbase.Lite.Store
             var e = (C4DocEnumerator *)ForestDBBridge.Check(err => 
             {
                 var f = forestOpts;
-                return Native.c4db_enumerateAllDocs(_forest, options.StartKeyDocId, options.EndKeyDocId, &f, err);
+                return Native.c4db_enumerateAllDocs(Forest, options.StartKeyDocId, options.EndKeyDocId, &f, err);
             });
 
             var doc = (C4Document*)null;
@@ -604,7 +622,7 @@ namespace Couchbase.Lite.Store
                     if (rev.GetDocId() != lastDocId) {
                         lastDocId = rev.GetDocId();
                         Native.c4doc_free(doc);
-                        doc = (C4Document *)ForestDBBridge.Check(err => Native.c4doc_get(_forest, lastDocId, true, err));
+                        doc = (C4Document *)ForestDBBridge.Check(err => Native.c4doc_get(Forest, lastDocId, true, err));
                     }
 
                     if (Native.c4doc_selectRevision(doc, rev.GetRevId(), false, null)) {
@@ -627,7 +645,7 @@ namespace Couchbase.Lite.Store
             options.includeDeleted = true;
             var p = &options;
             var e = (C4DocEnumerator*)ForestDBBridge.Check(err =>
-                Native.c4db_enumerateAllDocs(_forest, null, null, p, err));
+                Native.c4db_enumerateAllDocs(Forest, null, null, p, err));
             var doc = default(C4Document*);
             while ((doc = Native.c4enum_nextDocument(e, null)) != null) {
                 if (!doc->HasAttachments || (doc->IsDeleted && !doc->IsConflicted)) {
@@ -670,7 +688,7 @@ namespace Couchbase.Lite.Store
             {
                 foreach(var docRevPair in docsToRev) {
                     var docID = docRevPair.Key;
-                    var doc = (C4Document *)ForestDBBridge.Check(err => Native.c4doc_get(_forest, docID, false, err));
+                    var doc = (C4Document *)ForestDBBridge.Check(err => Native.c4doc_get(Forest, docID, false, err));
                     if(!doc->Exists) {
                         throw new CouchbaseLiteException(StatusCode.NotFound);
                     }
@@ -760,7 +778,7 @@ namespace Couchbase.Lite.Store
                     }
 
                     var newRevId = String.Format("{0}-local", ++generation);
-                    ForestDBBridge.Check(err => Native.c4raw_put(_forest, "_local", docId, newRevId, json, err));
+                    ForestDBBridge.Check(err => Native.c4raw_put(Forest, "_local", docId, newRevId, json, err));
                     result = revision.CopyWithDocID(docId, newRevId);
                 });
 
@@ -787,7 +805,7 @@ namespace Couchbase.Lite.Store
 
         public void SetInfo(string key, string info)
         {
-            ForestDBBridge.Check(err => Native.c4raw_put(_forest, "info", key, null, info, err)); 
+            ForestDBBridge.Check(err => Native.c4raw_put(Forest, "info", key, null, info, err)); 
         }
 
         public RevisionInternal PutRevision(string inDocId, string inPrevRevId, IDictionary<string, object> properties,
@@ -810,6 +828,7 @@ namespace Couchbase.Lite.Store
             {
                 var docId = inDocId;
                 var prevRevId = inPrevRevId;
+                var transactionSuccess = false;
                 WithC4Document(docId ?? Misc.CreateGUID(), null, false, doc =>
                 {
                     if(prevRevId != null) {
@@ -853,27 +872,30 @@ namespace Couchbase.Lite.Store
                     if(validationBlock != null) {
                         var prevRev = default(RevisionInternal);
                         if(prevRevId != null) {
-                            prevRev = new RevisionInternal(docId, prevRev, doc->selectedRev.IsDeleted);
+                            prevRev = new RevisionInternal(docId, prevRevId, doc->selectedRev.IsDeleted);
                         }
 
                         try {
                             var status = validationBlock(putRev, prevRev, prevRevId);
                             if(status.IsError) {
-                                return false;
+                                transactionSuccess = false;
                             }
                         } catch(Exception e) {
                             Log.W(TAG, "Exception throw in validation block", e);
-                            return false;
+                            transactionSuccess = false;
                         }
                     }
 
                     // Add the revision to the database:
-                    ForestDBBridge.Check(err => Native.c4doc_insertRevision(doc, newRevID, Encoding.UTF8.GetString(json), deleting,
+                    ForestDBBridge.Check(err => Native.c4doc_insertRevision(doc, newRevID, Encoding.UTF8.GetString(json.ToArray()), deleting,
                         putRev.GetAttachments() != null, allowConflict, err));
                     var isWinner = SaveDocument(doc, newRevID, properties);
                     putRev.SetSequence((long)doc->sequence);
                     change = ChangeWithNewRevision(putRev, isWinner, doc, null);
+                    transactionSuccess = true;
                 });
+
+                return transactionSuccess;
             });
 
             if (Delegate != null) {
@@ -889,7 +911,7 @@ namespace Couchbase.Lite.Store
                 throw new CouchbaseLiteException("Attempting to write to a readonly database", StatusCode.Forbidden);
             }
 
-            var json = Manager.GetObjectMapper().WriteValueAsBytes(inRev.GetProperties(), true);
+            var json = Manager.GetObjectMapper().WriteValueAsString(inRev.GetProperties(), true);
             var change = default(DocumentChange);
             RunInTransaction(() =>
             {
@@ -897,13 +919,15 @@ namespace Couchbase.Lite.Store
                 WithC4Document(inRev.GetDocId(), null, false, doc =>
                 {
                     ForestDBBridge.Check(err => Native.c4doc_insertRevisionWithHistory(doc, inRev.GetRevId(), json, inRev.IsDeleted(), 
-                        inRev.GetAttachments() != null, revHistory.ToArray(), revHistory.Count, err));
+                        inRev.GetAttachments() != null, revHistory.ToArray(), (uint)revHistory.Count, err) > 0);
 
                     // Save updated doc back to the database:
                     var isWinner = SaveDocument(doc, revHistory[0], inRev.GetProperties());
                     inRev.SetSequence((long)doc->sequence);
                     change = ChangeWithNewRevision(inRev, isWinner, doc, source);
                 });
+
+                return true;
             });
 
             if (change != null && Delegate != null) {

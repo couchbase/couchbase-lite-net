@@ -140,6 +140,8 @@ namespace Couchbase.Lite
         /// <typeparam name="T">The type of object to return</typeparam>
         T Deserialize<T>(Stream json);
 
+        T CurrentTokenValue<T>();
+
         /// <summary>
         /// Starts parsing a stream of JSON incrementally, rather than serializing
         /// the entire object into memory
@@ -187,6 +189,15 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The cloned object</returns>
         IJsonSerializer DeepClone();
+
+        #if FORESTDB
+
+        T DeserializeKey<T>(CBForest.C4KeyReader keyReader);
+
+        unsafe CBForest.C4Key* SerializeToKey(object keyValue);
+
+        #endif
+
     }
 }
 
