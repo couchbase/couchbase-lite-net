@@ -62,7 +62,7 @@ namespace Couchbase.Lite
 {
     public class PerformanceTest : PerformanceTestCase
     {
-        public PerformanceTest()
+        public PerformanceTest(string storageType) : base(storageType)
         {
         }
 

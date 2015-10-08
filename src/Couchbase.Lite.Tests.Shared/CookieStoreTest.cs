@@ -53,9 +53,12 @@ using System.Net;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class CookieStoreTest : LiteTestCase
     {
         public const string Tag = "CookieStoreTest";
+
+        public CookieStoreTest(string storageType) : base(storageType) {}
 
         private DirectoryInfo GetCookiesDirectory()
         {

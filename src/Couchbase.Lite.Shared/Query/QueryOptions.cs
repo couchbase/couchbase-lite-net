@@ -203,6 +203,22 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        #if FORESTDB
+
+        public CBForest.C4AllDocsOptions AsAllDocsOptions()
+        {
+            var retVal = default(CBForest.C4AllDocsOptions);
+            retVal.descending = Descending;
+            retVal.includeBodies = IncludeDocs;
+            retVal.includeDeleted = IncludeDeletedDocs;
+            retVal.inclusiveEnd = InclusiveEnd;
+            retVal.inclusiveStart = InclusiveStart;
+
+            return retVal;
+        }
+
+        #endif
+
         /// <summary>
         /// Gets the start key for the query
         /// </summary>

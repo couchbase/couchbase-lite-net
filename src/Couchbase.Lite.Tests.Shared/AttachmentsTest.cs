@@ -63,9 +63,12 @@ using System.Net.Http.Headers;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class AttachmentsTest : LiteTestCase
     {
         public const string Tag = "Attachments";
+
+        public AttachmentsTest(string storageType) : base(storageType) {}
 
         [Test]
         public void TestFollowWithRevPos()
@@ -115,7 +118,7 @@ namespace Couchbase.Lite
 
             var status = new Status();
             var rev1 = default(RevisionInternal);
-            Assert.DoesNotThrow(() => rev1 = database.PutRevision(new RevisionInternal(props), null, false, status));
+            Assert.DoesNotThrow(() => rev1 = database.PutRevision(new RevisionInternal(props), null, false));
             Assert.AreEqual(StatusCode.Created, status.Code);
             Assert.AreEqual(1L, rev1.GetAttachments().GetCast<IDictionary<string, object>>("attach").GetCast<long>("revpos"));
 
@@ -125,7 +128,7 @@ namespace Couchbase.Lite
             };
 
             var rev2 = default(RevisionInternal);
-            Assert.DoesNotThrow(() => rev2 = database.PutRevision(new RevisionInternal(props), rev1.GetRevId(), status));
+            Assert.DoesNotThrow(() => rev2 = database.PutRevision(new RevisionInternal(props), rev1.GetRevId()));
             Assert.AreEqual(StatusCode.Ok, status.Code);
             Assert.IsTrue(rev2.IsDeleted());
 
@@ -325,7 +328,7 @@ namespace Couchbase.Lite
             };
 
             Status status = new Status();
-            RevisionInternal rev1 = database.PutRevision(new RevisionInternal(props), null, false, status);
+            RevisionInternal rev1 = database.PutRevision(new RevisionInternal(props), null, false);
             Assert.AreEqual(StatusCode.Created, status.Code);
 
             var att = database.GetAttachmentForRevision(rev1, testAttachmentName, status);
@@ -361,7 +364,7 @@ namespace Couchbase.Lite
                 { "bazz", false },
                 { "_attachments", CreateAttachmentsStub(testAttachmentName) }
             };
-            var rev2 = database.PutRevision(new RevisionInternal(props), rev1.GetRevId(), status);
+            var rev2 = database.PutRevision(new RevisionInternal(props), rev1.GetRevId());
             Assert.AreEqual(StatusCode.Created, status.Code);
 
             // Add a third revision of the same document:
@@ -372,7 +375,7 @@ namespace Couchbase.Lite
                 { "bazz", false },
                 { "_attachments", CreateAttachmentsDict(attach2, testAttachmentName, "text/html", false) }
             };
-            var rev3 = database.PutRevision(new RevisionInternal(props), rev2.GetRevId(), status);
+            var rev3 = database.PutRevision(new RevisionInternal(props), rev2.GetRevId());
             Assert.AreEqual(StatusCode.Created, status.Code);
 
             // Check the second revision's attachment

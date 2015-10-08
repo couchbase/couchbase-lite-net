@@ -18,6 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+    #if FORESTDB
 using System;
 using Newtonsoft.Json;
 using CBForest;
@@ -157,4 +158,4 @@ namespace Couchbase.Lite
         #endregion
     }
 }
-
+#endif

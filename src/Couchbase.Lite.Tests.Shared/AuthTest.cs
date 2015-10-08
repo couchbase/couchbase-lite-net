@@ -58,9 +58,12 @@ using System.Text;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class AuthTest : LiteTestCase
     {
         const string Tag = "AuthTest";
+
+        public AuthTest(string storageType) : base(storageType) {}
 
         [Test]
         public void TestParsePersonaAssertion()

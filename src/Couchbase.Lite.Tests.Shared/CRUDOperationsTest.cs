@@ -50,9 +50,12 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class CRUDOperationsTest : LiteTestCase
     {
         public const string Tag = "CRUDOperations";
+
+        public CRUDOperationsTest(string storageType) : base(storageType) {}
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
@@ -88,7 +91,7 @@ namespace Couchbase.Lite
             var rev1 = new RevisionInternal(body);
 
             var status = new Status();
-            rev1 = database.PutRevision(rev1, null, false, status);
+            rev1 = database.PutRevision(rev1, null, false);
             Log.V(Tag, "Created " + rev1);
             Assert.IsTrue(rev1.GetDocId().Length >= 10);
             Assert.IsTrue(rev1.GetRevId().StartsWith("1-"));
@@ -112,7 +115,7 @@ namespace Couchbase.Lite
             body = new Body(documentProperties);
             var rev2 = new RevisionInternal(body);
             var rev2input = rev2;
-            rev2 = database.PutRevision(rev2, rev1.GetRevId(), false, status);
+            rev2 = database.PutRevision(rev2, rev1.GetRevId(), false);
             Log.V(Tag, "Updated " + rev1);
             Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
             Assert.IsTrue(rev2.GetRevId().StartsWith("2-"));
@@ -125,7 +128,7 @@ namespace Couchbase.Lite
                 (body.GetProperties()));
 
             // Try to update the first rev, which should fail:
-            database.PutRevision(rev2input, rev1.GetRevId(), false, status);
+            database.PutRevision(rev2input, rev1.GetRevId(), false);
             Assert.AreEqual(StatusCode.Conflict, status.Code);
 
             // Check the changes feed, with and without filters:
@@ -145,18 +148,18 @@ namespace Couchbase.Lite
             // Delete it:
             var revD = new RevisionInternal(rev2.GetDocId(), null, true);
             RevisionInternal revResult = null;
-            revResult = database.PutRevision(revD, null, false, status);
+            revResult = database.PutRevision(revD, null, false);
             Assert.AreEqual(StatusCode.Conflict, status.Code);
             Assert.IsNull(revResult);
 
-            revD = database.PutRevision(revD, rev2.GetRevId(), false, status);
+            revD = database.PutRevision(revD, rev2.GetRevId(), false);
             Assert.AreEqual(StatusCode.Ok, status.Code);
             Assert.AreEqual(revD.GetDocId(), rev2.GetDocId());
             Assert.IsTrue(revD.GetRevId().StartsWith("3-"));
             
             // Delete nonexistent doc:
             var revFake = new RevisionInternal("fake", null, true);
-            database.PutRevision(revFake, null, false, status);
+            database.PutRevision(revFake, null, false);
             Assert.AreEqual(StatusCode.NotFound, status.Code);
 
             // Read it back (should fail):

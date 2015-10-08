@@ -51,8 +51,12 @@ using System;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class ChangesTest : LiteTestCase
     {
+
+        public ChangesTest(string storageType) : base(storageType) {}
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
         public void TestChangeNotification()
@@ -72,9 +76,8 @@ namespace Couchbase.Lite
             
             var body = new Body(documentProperties);
             var rev1 = new RevisionInternal(body);
-            
-            var status = new Status();
-            database.PutRevision(rev1, null, false, status);
+
+            database.PutRevision(rev1, null, false);
             
             Assert.AreEqual(1, changeNotifications);
 

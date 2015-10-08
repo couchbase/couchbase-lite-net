@@ -54,9 +54,12 @@ using System.Threading;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class BatcherTest : LiteTestCase
     {
         public const string Tag = "BatcherTest";
+
+        public BatcherTest(string storageType) : base(storageType) {}
 
         private Int32 inboxCapacity;
 

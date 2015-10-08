@@ -52,9 +52,12 @@ using System;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class RevTreeTest : LiteTestCase
     {
         public const string Tag = "RevTree";
+
+        public RevTreeTest(string storageType) : base(storageType) {}
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]

@@ -65,9 +65,12 @@ using System.Net;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class ChangeTrackerTest : LiteTestCase
     {
         public const string Tag = "ChangeTracker";
+
+        public ChangeTrackerTest(string storageType) : base(storageType) {}
 
         private class ChangeTrackerTestClient : IChangeTrackerClient
         {

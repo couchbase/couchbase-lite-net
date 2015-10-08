@@ -648,7 +648,7 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Database"/>.</returns>
         public override string ToString()
         {
-            return GetType().FullName + "[" + Path + "]";
+            return "Database[" + Path + "]";
         }
 
         /// <summary>
@@ -1978,7 +1978,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Log.D("Closing database at {0}", Path);
+            Log.D(TAG, "Closing database at {0}", Path);
             if (_views != null) {
                 foreach (var view in _views) {
                     view.Value.Close();
@@ -2021,15 +2021,47 @@ namespace Couchbase.Lite
             Log.D(TAG, "Opening {0}", Name);
 
             // Instantiate storage:
-            //string storageType = Manager.StorageType ?? "SQLite";
-            #if !NOSQLITE
-            Storage = new SqliteCouchStore();
-            #elif FORESTDB
-            Storage = new ForestDBCouchStore();
-            #else
+            string storageType = Manager.StorageType ?? "SQLite";
+            #if !FORESTDB
+            #if NOSQLITE
             #error No storage engine compilation options selected
             #endif
-            Storage.Delegate = this;
+            if(storageType == "ForestDB") {
+                throw new ApplicationException("ForestDB storage engine selected, but not compiled in library");
+            }
+            #elif FORESTDB
+            #if NOSQLITE
+            if(storageType == "SQLite") {
+                throw new ApplicationException("SQLite storage engine selected, but not compiled in library");
+            }
+            #endif
+            #endif
+
+            var className = String.Format("Couchbase.Lite.Store.{0}CouchStore", storageType);
+            var primaryStorage = Type.GetType(className, false, true);
+            if(primaryStorage == null) {
+                throw new InvalidOperationException(String.Format("'{0}' is not a valid storage type", storageType));
+            }
+
+            var isStore = primaryStorage.GetInterface("Couchbase.Lite.Store.ICouchStore") != null;
+            if(!isStore) {
+                throw new InvalidOperationException(String.Format("{0} does not implement ICouchStore", className));
+            }
+
+            #if !NOSQLITE
+            var secondaryClass = "Couchbase.Lite.Store.ForestDBCouchStore";
+            if(className == secondaryClass) {
+                secondaryClass = "Couchbase.Lite.Store.SqliteCouchStore";
+            }
+
+            var secondaryStorage = Type.GetType(secondaryClass, false, true);
+            Storage = (ICouchStore)Activator.CreateInstance(secondaryStorage);
+            if(!Storage.DatabaseExistsIn(Path)) {
+                Storage = (ICouchStore)Activator.CreateInstance(primaryStorage);
+            }
+            #else
+            Storage = new ForestDBCouchStore();
+            #endif
 
             var encryptionKey = default(SymmetricKey);
             var gotKey = Manager.Shared.TryGetValue("encryptionKey", "", Name, out encryptionKey);
@@ -2037,6 +2069,7 @@ namespace Couchbase.Lite
                 Storage.SetEncryptionKey(encryptionKey);
             }
 
+            Storage.Delegate = this;
             Log.D(TAG, "Using {0} for db at {1}", Storage.GetType(), Path);
             try {
                 Storage.Open(Path, Manager, false);

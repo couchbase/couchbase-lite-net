@@ -445,12 +445,7 @@ namespace Couchbase.Lite {
                 properties["_attachments"] = updatedAttachments;
             }
                 
-            Status status = new Status();
             var newRev = Database.PutDocument(Id, properties, prevID, allowConflict);
-            if (newRev == null) {
-                throw new CouchbaseLiteException(status.Code);
-            }
-                
             return GetRevisionFromRev(newRev);
         }
 

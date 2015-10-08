@@ -46,6 +46,7 @@ namespace Couchbase.Lite.Store
         /// which contains attachments; don't mess with that..</param>
         /// <param name="manager">The owning Manager; this is provided so the storage can examine its
         ///properties.</param>
+        /// <param name="readOnly">Whether or not the database is read-only</param> 
         void Open(string directory, Manager manager, bool readOnly);
 
         /// <summary>

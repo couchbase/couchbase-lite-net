@@ -48,8 +48,11 @@ using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class DocumentTest : LiteTestCase
     {
+
+        public DocumentTest(string storageType) : base(storageType) {}
 
         [Test] // #447
         public void TestDocumentArraysMaintainOrder()

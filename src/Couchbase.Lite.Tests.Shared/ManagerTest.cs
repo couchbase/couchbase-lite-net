@@ -51,8 +51,12 @@ using System;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class ManagerTest : LiteTestCase
     {
+
+        public ManagerTest(string storageType) : base(storageType) {}
+
         [Test]
         public void TestServer()
         {

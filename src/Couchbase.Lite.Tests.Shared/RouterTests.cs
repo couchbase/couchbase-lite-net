@@ -47,6 +47,7 @@ using WebHeaderCollection = System.Net.Couchbase.WebHeaderCollection;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class RouterTests : LiteTestCase
     {
         private const string TAG = "RouterTests";
@@ -55,6 +56,8 @@ namespace Couchbase.Lite
         private int _minHeartbeat = 5000;
         private CouchbaseLiteTcpListener _listener;
         private HttpWebResponse _lastResponse;
+
+        public RouterTests(string storageType) : base(storageType) {}
 
         [Test]
         public void TestServer()

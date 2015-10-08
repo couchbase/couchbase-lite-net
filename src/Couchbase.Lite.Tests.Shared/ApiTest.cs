@@ -56,61 +56,15 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    /// <summary>Created by andrey on 12/3/13.</summary>
-    /// <remarks>Created by andrey on 12/3/13.</remarks>
+
+    [TestFixture("ForestDB")]
     public class ApiTest : LiteTestCase
     {
         private const string Tag = "ApiTest";
-//        public static Task CreateDocumentsAsync(Database db, int n)
-//      {
-//            return db.RunAsync((database)=>
-//                {
-//                    database.BeginTransaction();
-//                    ApiTest.CreateDocuments(database, n);
-//                    database.EndTransaction(true);
-//                });
-//      }
 
-//          public static void CreateDocuments(Database db, int numberOfDocsToCreate)
-//      {
-//          //TODO should be changed to use db.runInTransaction
-//          for (int i = 0; i < numberOfDocsToCreate; i++)
-//          {
-//                var properties = new Dictionary<String, Object>();
-//                properties["testName"] = "testDatabase";
-//                properties["sequence"] = i;
-//              CreateDocumentWithProperties(db, properties);
-//          }
-//      }
-//
-//        public static Document CreateDocumentWithProperties(Database db, IDictionary<String, Object> properties)
-//      {
-//            var doc = db.CreateDocument();
-//
-//          Assert.IsNotNull(doc);
-//          Assert.IsNull(doc.CurrentRevisionId);
-//          Assert.IsNull(doc.CurrentRevision);
-//          Assert.IsNotNull("Document has no ID", doc.Id);
-//
-//          // 'untitled' docs are no longer untitled (8/10/12)
-//          try
-//          {
-//              doc.PutProperties(properties);
-//          }
-//          catch (Exception e)
-//          {
-//              Log.E(Tag, "Error creating document", e);
-//                Assert.IsTrue( false, "can't create new document in db:" + db.Name +
-//                    " with properties:" + properties.Aggregate(new StringBuilder(" >>> "), (str, kvp)=> { str.AppendFormat("'{0}:{1}' ", kvp.Key, kvp.Value); return str; }, str=>str.ToString()));
-//          }
-//
-//          Assert.IsNotNull(doc.Id);
-//          Assert.IsNotNull(doc.CurrentRevisionId);
-//          Assert.IsNotNull(doc.UserProperties);
-//          Assert.AreEqual(db.GetDocument(doc.Id), doc);
-//
-//          return doc;
-//      }
+        public ApiTest(string storageType) : base(storageType)
+        {
+        }
 
         /// <exception cref="System.Exception"></exception>
         public void RunLiveQuery(String methodNameToCall)
@@ -535,14 +489,14 @@ namespace Couchbase.Lite
             var n = 0;
             foreach (var row in rows)
             {
-                Log.I(Tag, "    --> " + row);
+                Log.I(Tag, "    --> " + Manager.GetObjectMapper().WriteValueAsString(row.AsJSONDictionary()));
 
                 var doc = row.Document;
 
                 Assert.IsNotNull(doc, "Couldn't get doc from query");
                 Assert.IsNotNull(doc.CurrentRevision.PropertiesAvailable, "QueryRow should have preloaded revision contents");
 
-                Log.I(Tag, "        Properties =" + doc.Properties);
+                Log.I(Tag, "        Properties =" + Manager.GetObjectMapper().WriteValueAsString(doc.Properties));
 
                 Assert.IsNotNull(doc.Properties, "Couldn't get doc properties");
                 Assert.AreEqual("testDatabase", doc.GetProperty("testName"));
@@ -1044,7 +998,7 @@ namespace Couchbase.Lite
             var priv = db.PrivateUUID();
             Assert.IsTrue(pub.Length > 10);
             Assert.IsTrue(priv.Length > 10);
-            Assert.IsTrue(db.ReplaceUUIDs(), "replaceUUIDs failed");
+            Assert.DoesNotThrow(() => db.ReplaceUUIDs(), "replaceUUIDs failed");
             Assert.IsFalse(pub.Equals(db.PublicUUID()));
             Assert.IsFalse(priv.Equals(db.PrivateUUID()));
             mgr.Close();

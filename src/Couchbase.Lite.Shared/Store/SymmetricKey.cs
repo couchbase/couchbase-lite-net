@@ -18,6 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+#define FAKE_C4_ENCRYPTION
 using System;
 using System.IO;
 using System.Linq;
@@ -164,6 +165,23 @@ namespace Couchbase.Lite.Store
         #endregion
 
         #region Public Methods
+
+        #if FORESTDB
+
+        public CBForest.C4EncryptionKey AsC4EncryptionKey()
+        {
+            var retVal = new CBForest.C4EncryptionKey();
+        #if FAKE_C4_ENCRYPTION
+            retVal.algorithm = (CBForest.C4EncryptionType)(-1);
+        #else
+            retVal.algorithm = CBForest.C4EncryptionType.AES256;
+        #endif
+            
+            retVal.bytes = KeyData;
+            return retVal;
+        }
+
+        #endif
 
         public static SymmetricKey Create(object keyOrPassword)
         {

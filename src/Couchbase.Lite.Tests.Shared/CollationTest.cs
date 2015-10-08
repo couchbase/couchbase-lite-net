@@ -48,6 +48,7 @@ namespace Couchbase.Lite
 {
     public class CollationTest : LiteTestCase
     {
+        public CollationTest(string storageType) : base(storageType) {}
 
         private static void TestStrtodEquals(string input, double expectedValue)
         {

@@ -54,13 +54,14 @@ namespace Couchbase.Lite {
     /// </summary>
     public sealed class QueryEnumerator : IEnumerator<QueryRow>, IEnumerable<QueryRow>
     {
-
+        private readonly int _count;
     #region Constructors
 
         internal QueryEnumerator (QueryEnumerator rows)
         {
             Database = rows.Database;
             Rows = rows.Rows;
+            _count = rows.Count;
             SequenceNumber = rows.SequenceNumber;
 
             Reset();
@@ -70,6 +71,7 @@ namespace Couchbase.Lite {
         {
             Database = database;
             Rows = rows;
+            _count = rows.Count();
             SequenceNumber = lastSequence;
 
             Reset();
@@ -94,7 +96,7 @@ namespace Couchbase.Lite {
         /// Gets the number of rows in the <see cref="Couchbase.Lite.QueryEnumerator"/>.
         /// </summary>
         /// <value>The number of rows in the <see cref="Couchbase.Lite.QueryEnumerator"/>.</value>
-        public Int32 Count { get { return Rows.Count(); } }
+        public Int32 Count { get { return _count; } }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Database"/>'s sequence number at the time the View results were generated.

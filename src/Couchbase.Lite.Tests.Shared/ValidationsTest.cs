@@ -51,9 +51,12 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class ValidationsTest : LiteTestCase
     {
         public const string Tag = "Validations";
+
+        public ValidationsTest(string storageType) : base(storageType) {}
 
         internal bool validationCalled = false;
 
@@ -87,7 +90,7 @@ namespace Couchbase.Lite
             RevisionInternal rev = new RevisionInternal(props);
             Status status = new Status();
             validationCalled = false;
-            rev = database.PutRevision(rev, null, false, status);
+            rev = database.PutRevision(rev, null, false);
             Assert.IsTrue(validationCalled);
             Assert.AreEqual(StatusCode.Created, status.Code);
 
@@ -95,7 +98,7 @@ namespace Couchbase.Lite
             props["head_count"] = 3;
             rev.SetProperties(props);
             validationCalled = false;
-            rev = database.PutRevision(rev, rev.GetRevId(), false, status);
+            rev = database.PutRevision(rev, rev.GetRevId(), false);
             Assert.IsTrue(validationCalled);
             Assert.AreEqual(StatusCode.Created, status.Code);
 
@@ -103,7 +106,7 @@ namespace Couchbase.Lite
             Sharpen.Collections.Remove(props, "towel");
             rev.SetProperties(props);
             validationCalled = false;
-            rev = database.PutRevision(rev, rev.GetRevId(), false, status);
+            rev = database.PutRevision(rev, rev.GetRevId(), false);
             Assert.IsTrue(validationCalled);
             Assert.AreEqual(StatusCode.Forbidden, status.Code);
 
@@ -113,7 +116,7 @@ namespace Couchbase.Lite
             props["poetry"] = true;
             rev = new RevisionInternal(props);
             validationCalled = false;
-            rev = database.PutRevision(rev, null, false, status);
+            rev = database.PutRevision(rev, null, false);
             Assert.IsTrue(validationCalled);
             Assert.AreEqual(StatusCode.Forbidden, status.Code);
 
@@ -124,7 +127,7 @@ namespace Couchbase.Lite
             props["towel"] = "terrycloth";
             rev = new RevisionInternal(props);
             validationCalled = false;
-            rev = database.PutRevision(rev, null, false, status);
+            rev = database.PutRevision(rev, null, false);
             Assert.IsTrue(validationCalled);
             Assert.AreEqual("ford", rev.GetDocId());
 
@@ -132,7 +135,7 @@ namespace Couchbase.Lite
             rev = new RevisionInternal(rev.GetDocId(), rev.GetRevId(), true);
             Assert.IsTrue(rev.IsDeleted());
             validationCalled = false;
-            rev = database.PutRevision(rev, rev.GetRevId(), false, status);
+            rev = database.PutRevision(rev, rev.GetRevId(), false);
             Assert.IsTrue(validationCalled);
 
             // PUT an invalid new document:
@@ -141,7 +144,7 @@ namespace Couchbase.Lite
             props["name"] = "Pot of Petunias";
             rev = new RevisionInternal(props);
             validationCalled = false;
-            rev = database.PutRevision(rev, null, false, status);
+            rev = database.PutRevision(rev, null, false);
             Assert.IsTrue(validationCalled);
             Assert.AreEqual(StatusCode.Forbidden, status.Code);
         }

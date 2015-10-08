@@ -70,7 +70,7 @@ namespace Couchbase.Lite
 
         private JObject _config;
 
-        public PerformanceTestCase()
+        public PerformanceTestCase(string storageType) : base(storageType)
         {
         }
 

@@ -61,7 +61,7 @@ using System.IO.Compression;
 
 namespace Couchbase.Lite
 {
-    [TestFixture]
+    [TestFixture("SQLite")]
     public abstract class LiteTestCase
     {
         private const string Tag = "LiteTestCase";
@@ -73,6 +73,8 @@ namespace Couchbase.Lite
         protected Manager manager = null;
 
         protected Database database = null;
+
+        private readonly string _storageType;
 
         protected string DefaultTestDb = "cblitetest";
 
@@ -92,6 +94,10 @@ namespace Couchbase.Lite
             }
         }
 
+        protected LiteTestCase(string storageType)
+        {
+            _storageType = storageType;
+        }
 
         [SetUp]
         protected virtual void SetUp()
@@ -131,6 +137,7 @@ namespace Couchbase.Lite
 
             var testPath = path.CreateSubdirectory("tests");
             manager = new Manager(testPath, Manager.DefaultOptions);
+            manager.StorageType = _storageType;
         }
 
         protected void StopCBLite()

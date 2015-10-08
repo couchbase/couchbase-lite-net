@@ -27,8 +27,11 @@ using System.IO;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class EncryptionTest : LiteTestCase
     {
+
+        public EncryptionTest(string storageType) : base(storageType) {}
 
         [Test]
         public void TestUnencryptedDB()

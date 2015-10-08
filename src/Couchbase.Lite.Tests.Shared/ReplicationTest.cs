@@ -75,6 +75,7 @@ using WebException = System.Net.Couchbase.WebException;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class ReplicationTest : LiteTestCase
     {
         private const string Tag = "ReplicationTest";
@@ -82,6 +83,8 @@ namespace Couchbase.Lite
         private SyncGateway _sg;
         private static int _dbCounter = 0;
         private HttpClient _httpClient = new HttpClient();
+
+        public ReplicationTest(string storageType) : base(storageType) {}
 
         private class ReplicationIdleObserver 
         {
@@ -641,12 +644,12 @@ namespace Couchbase.Lite
                 var body = new Body(documentProperties);
                 var rev1 = new RevisionInternal(body);
                 var status = new Status();
-                rev1 = database.PutRevision(rev1, null, false, status);
+                rev1 = database.PutRevision(rev1, null, false);
                 Assert.AreEqual(StatusCode.Created, status.Code);
 
                 documentProperties.Put("_rev", rev1.GetRevId());
                 documentProperties["UPDATED"] = true;
-                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false, status);
+                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false);
                 Assert.AreEqual(StatusCode.Created, status.Code);
 
                 documentProperties = new Dictionary<string, object>();
@@ -655,7 +658,7 @@ namespace Couchbase.Lite
                 documentProperties["baz"] = 666;
                 documentProperties["fnord"] = true;
 
-                database.PutRevision(new RevisionInternal(documentProperties), null, false, status);
+                database.PutRevision(new RevisionInternal(documentProperties), null, false);
                 Assert.AreEqual(StatusCode.Created, status.Code);
 
                 var doc2 = database.GetDocument(doc2Id);
@@ -760,13 +763,13 @@ namespace Couchbase.Lite
                 var body = new Body(documentProperties);
                 var rev1 = new RevisionInternal(body);
                 var status = new Status();
-                rev1 = database.PutRevision(rev1, null, false, status);
+                rev1 = database.PutRevision(rev1, null, false);
                 Assert.AreEqual(StatusCode.Created, status.Code);
 
                 documentProperties["_rev"] = rev1.GetRevId();
                 documentProperties["UPDATED"] = true;
                 documentProperties["_deleted"] = true;
-                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false, status);
+                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false);
                 Assert.IsTrue((int)status.Code >= 200 && (int)status.Code < 300);
 
                 var repl = database.CreatePushReplication(remote);

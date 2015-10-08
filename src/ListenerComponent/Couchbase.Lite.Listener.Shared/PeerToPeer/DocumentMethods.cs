@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Listener
                         }
 
                         Status status = new Status();
-                        rev = db.GetDocument(docId, revId, true, status);
+                        rev = db.GetDocument(docId, revId, true);
                         if(rev != null) {
                             rev = ApplyOptions(options, rev, context, db, status);
                         }
@@ -175,7 +175,7 @@ namespace Couchbase.Lite.Listener
                             }
 
                             Status status = new Status();
-                            var rev = db.GetDocument(docId, revID, true, status);
+                            var rev = db.GetDocument(docId, revID, true);
                             if(rev != null) {
                                 rev = ApplyOptions(options, rev, context, db, status);
                             }
@@ -322,7 +322,7 @@ namespace Couchbase.Lite.Listener
                     outRev = db.Storage.PutLocalRevision(rev, prevRevId, true); //TODO: Doesn't match iOS
                 } else {
                     Status retStatus = new Status();
-                    outRev = db.PutRevision(rev, prevRevId, allowConflict, retStatus);
+                    outRev = db.PutRevision(rev, prevRevId, allowConflict);
                     status = retStatus.Code;
                 }
             } catch(CouchbaseLiteException e) {
@@ -365,8 +365,7 @@ namespace Couchbase.Lite.Listener
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             {
                 Status status = new Status();
-                var rev = db.GetDocument(context.DocumentName, context.GetQueryParam("rev"), false, 
-                    status);
+                var rev = db.GetDocument(context.DocumentName, context.GetQueryParam("rev"), false);
                     
                 if(rev ==null) {
                     return context.CreateResponse(status.Code);

@@ -28,7 +28,7 @@
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;MOCK_ENCRYPTION;</DefineConstants>
+    <DefineConstants>DEBUG;VERBOSE;MOCK_ENCRYPTION;FORESTDB</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>

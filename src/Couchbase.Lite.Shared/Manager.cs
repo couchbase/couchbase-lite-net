@@ -350,10 +350,10 @@ namespace Couchbase.Lite
                 try {
                     db.Open();
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Error opening database");
+                    Log.W(TAG, "Failed to open database");
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException("Unknown error opening database", e) { Code = StatusCode.Exception };
+                    throw new CouchbaseLiteException("Error opening database", e) { Code = StatusCode.Exception };
                 }
 
                 Shared.OpenedDatabase(db);

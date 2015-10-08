@@ -479,8 +479,23 @@ namespace Couchbase.Lite {
 
         #endregion
 
-        #region IDisposable
+        #region Overrides
         #pragma warning disable 1591
+
+        public override string ToString()
+        {
+            return string.Format("[Query: Database={0}, Limit={1}, Skip={2}, Descending={3}, StartKey={4},{18}" +
+                "EndKey={5}, StartKeyDocId={6}, EndKeyDocId={7}, InclusiveStart={8}, InclusiveEnd={9},{18}" +
+                "IndexUpdateMode={10}, AllDocsMode={11}, Keys={12}, MapOnly={13}, GroupLevel={14}, Prefetch={15},{18}" +
+                "IncludeDeleted={16}, PostFilter={17}]", Database, Limit, Skip, Descending, StartKey, EndKey, StartKeyDocId, 
+                EndKeyDocId, InclusiveStart, InclusiveEnd, IndexUpdateMode, AllDocsMode, Keys, MapOnly, GroupLevel, Prefetch, 
+                IncludeDeleted, PostFilter, Environment.NewLine);
+        }
+
+        #endregion
+
+        #region IDisposable
+
 
         /// <summary>
         /// Releases all resource used by the <see cref="Couchbase.Lite.Query"/> object.
