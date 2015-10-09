@@ -139,7 +139,7 @@ namespace Couchbase.Lite
         {
             get {
                 if (_persistentCookieStore == null) {
-                    _persistentCookieStore = new CookieStore(System.IO.Path.GetDirectoryName(Path));
+                    _persistentCookieStore = new CookieStore(DbDirectory);
                 }
 
                 return _persistentCookieStore;
@@ -188,28 +188,12 @@ namespace Couchbase.Lite
         /// </summary>
         public long TotalDataSize {
             get {
-                string dir = System.IO.Path.GetDirectoryName(Path);
+                string dir = DbDirectory;
                 var info = new DirectoryInfo(dir);
-                long size = 0;
                 var sanitizedName = Name.Replace('/', '.');
 
                 // Database files
-                foreach (var fileInfo in info.EnumerateFiles(sanitizedName + "*", SearchOption.TopDirectoryOnly)) {
-                    size += fileInfo.Length;
-                }
-
-                // Attachment files
-                dir = AttachmentStorePath;
-                info = new DirectoryInfo(dir);
-                if (!info.Exists) {
-                    return size;
-                }
-
-                foreach (var fileInfo in info.EnumerateFiles()) {
-                    size += fileInfo.Length;
-                }
-
-                return size;
+                return info.EnumerateFiles("*", SearchOption.AllDirectories).Sum(x => x.Length);
             }
         }
 
@@ -221,7 +205,12 @@ namespace Couchbase.Lite
         /// and are still running.
         /// </summary>
         /// <value>All replications.</value>
-        public IEnumerable<Replication> AllReplications { get { return AllReplicators.ToList(); } }
+        public IEnumerable<Replication> AllReplications 
+        { 
+            get { 
+                return AllReplicators.ToList(); 
+            } 
+        }
 
         /// <summary>
         /// Maximum depth of a document's revision tree (or, max length of its revision history.)
@@ -232,7 +221,7 @@ namespace Couchbase.Lite
         /// Revisions older than this limit will be deleted during a -compact: operation.
         /// Smaller values save space, at the expense of making document conflicts somewhat more likely.
         /// </remarks>
-        public Int32 MaxRevTreeDepth 
+        public int MaxRevTreeDepth 
         {
             get {
                 return Storage != null ? Storage.MaxRevTreeDepth : _maxRevTreeDepth;
@@ -260,7 +249,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal String                                 Path { get; private set; }
+        internal String                                 DbDirectory { get; private set; }
         internal IList<Replication>                     ActiveReplicators { get; set; }
         internal IList<Replication>                     AllReplicators { get; set; }
         internal LruCache<String, Document>             DocumentCache { get; set; }
@@ -294,13 +283,13 @@ namespace Couchbase.Lite
             return Misc.CreateGUID();
         }
 
-        internal Database(string path, string name, Manager manager)
+        internal Database(string directory, string name, Manager manager)
         {
-            Debug.Assert(System.IO.Path.IsPathRooted(path));
+            Debug.Assert(Path.IsPathRooted(directory));
 
             //path must be absolute
-            Path = path;
-            Name = name ?? FileDirUtils.GetDatabaseNameFromPath(path);
+            DbDirectory = directory;
+            Name = name ?? FileDirUtils.GetDatabaseNameFromPath(DbDirectory);
             Manager = manager;
             DocumentCache = new LruCache<string, Document>(MAX_DOC_CACHE_SIZE);
             UnsavedRevisionDocumentCache = new ConcurrentDictionary<string, WeakReference>();
@@ -353,36 +342,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var file = new FilePath(Path);
-            var fileJournal = new FilePath(Path + "-journal");
-            var fileWal = new FilePath(Path + "-wal");
-            var fileShm = new FilePath(Path + "-shm");
-
-            var deleteStatus = file.Delete();
-            
-            if (fileJournal.Exists()){
-                deleteStatus &= fileJournal.Delete();
-            }
-            if (fileWal.Exists()) {
-                deleteStatus &= fileWal.Delete();
-            }
-            if (fileShm.Exists()) {
-                deleteStatus &= fileShm.Delete();
-            }
-
-            //recursively delete attachments path
-            var attachmentsFile = new FilePath(AttachmentStorePath);
-            var deleteAttachmentStatus = FileDirUtils.DeleteRecursive(attachmentsFile);
-
-            if (!deleteStatus) {
-                Log.W(TAG, "Error deleting the SQLite database file at {0}", file.GetAbsolutePath());
-                throw new CouchbaseLiteException("Was not able to delete the database file", StatusCode.InternalServerError);
-            }
-
-            if (!deleteAttachmentStatus) {
-                Log.W(TAG, "Error deleting the attachment files file at {0}", attachmentsFile.GetAbsolutePath());
-                throw new CouchbaseLiteException("Was not able to delete the attachments files", StatusCode.InternalServerError);
-            }
+            Directory.Delete(DbDirectory, true);
         }
 
         /// <summary>
@@ -648,7 +608,7 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Database"/>.</returns>
         public override string ToString()
         {
-            return "Database[" + Path + "]";
+            return "Database[" + DbDirectory + "]";
         }
 
         /// <summary>
@@ -802,7 +762,7 @@ namespace Couchbase.Lite
 
         internal bool Exists()
         {
-            return new FilePath(Path).Exists();
+            return Directory.Exists(DbDirectory);
         }
 
         internal static string MakeLocalDocumentId(string documentId)
@@ -1629,10 +1589,10 @@ namespace Couchbase.Lite
                             if(ancestorAttachment != null) {
                                 return ancestorAttachment;
                             }
-                        }
 
-                        throw new CouchbaseLiteException(
-                            String.Format("Unable to find 'stub' attachment {0} in history", name), StatusCode.BadAttachment);
+                            throw new CouchbaseLiteException(
+                                String.Format("Unable to find 'stub' attachment {0} in history", name), StatusCode.BadAttachment);
+                        }
                     }
 
                     var parentAttachment = parentAttachments == null ? null : parentAttachments.Get(name).AsDictionary<string, object>();
@@ -1968,7 +1928,7 @@ namespace Couchbase.Lite
         internal String AttachmentStorePath 
         {
             get {
-                return System.IO.Path.ChangeExtension(Path, null) + " attachments";
+                return Path.Combine(DbDirectory, "attachments");
             }
         }
 
@@ -1978,7 +1938,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Log.D(TAG, "Closing database at {0}", Path);
+            Log.D(TAG, "Closing database at {0}", DbDirectory);
             if (_views != null) {
                 foreach (var view in _views) {
                     view.Value.Close();
@@ -2056,7 +2016,7 @@ namespace Couchbase.Lite
 
             var secondaryStorage = Type.GetType(secondaryClass, false, true);
             Storage = (ICouchStore)Activator.CreateInstance(secondaryStorage);
-            if(!Storage.DatabaseExistsIn(Path)) {
+            if(!Storage.DatabaseExistsIn(DbDirectory)) {
                 Storage = (ICouchStore)Activator.CreateInstance(primaryStorage);
             }
             #else
@@ -2070,14 +2030,14 @@ namespace Couchbase.Lite
             }
 
             Storage.Delegate = this;
-            Log.D(TAG, "Using {0} for db at {1}", Storage.GetType(), Path);
+            Log.D(TAG, "Using {0} for db at {1}", Storage.GetType(), DbDirectory);
             try {
-                Storage.Open(Path, Manager, false);
+                Storage.Open(DbDirectory, Manager, false);
 
                 // HACK: Needed to overcome the read connection not getting the write connection
                 // changes until after the schema is written
                 Storage.Close();
-                Storage.Open(Path, Manager, false);
+                Storage.Open(DbDirectory, Manager, false);
             } catch(CouchbaseLiteException) {
                 Storage.Close();
                 Log.W(TAG, "Error creating storage engine");

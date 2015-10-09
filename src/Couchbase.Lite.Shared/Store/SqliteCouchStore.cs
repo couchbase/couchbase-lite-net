@@ -50,6 +50,7 @@ namespace Couchbase.Lite.Store
 
         private const string LOCAL_CHECKPOINT_DOC_ID = "CBL_LocalCheckpoint";
         private const string TAG = "SqliteCouchStore";
+        private const string DB_FILENAME = "db.sqlite3";
 
         private const string SCHEMA = 
             // docs            
@@ -112,7 +113,7 @@ namespace Couchbase.Lite.Store
         private bool ENABLE_MOCK_ENCRYPTION = false;
         #endif
 
-        private string _path;
+        private string _directory;
         private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
         private SymmetricKey _encryptionKey;
@@ -436,7 +437,12 @@ namespace Couchbase.Lite.Store
             StorageEngine = SQLiteStorageEngineFactory.CreateStorageEngine();
 
             // Try to open the storage engine and stop if we fail.
-            if (StorageEngine == null || !StorageEngine.Open(_path, _encryptionKey)) {
+            if (!Directory.Exists(_directory)) {
+                Directory.CreateDirectory(_directory);
+            }
+
+            var path = Path.Combine(_directory, DB_FILENAME);
+            if (StorageEngine == null || !StorageEngine.Open(path, _encryptionKey)) {
                 throw new CouchbaseLiteException("Unable to create a storage engine", StatusCode.DbError);
             }
 
@@ -878,14 +884,14 @@ namespace Couchbase.Lite.Store
         #region ICouchStore
         #pragma warning disable 1591
 
-        public bool DatabaseExistsIn(string path)
+        public bool DatabaseExistsIn(string directory)
         {
-            return File.Exists(path);
+            return File.Exists(Path.Combine(directory, DB_FILENAME));
         }
 
-        public void Open(string path, Manager manager, bool readOnly)
+        public void Open(string directory, Manager manager, bool readOnly)
         {
-            _path = path;
+            _directory = directory;
             Open();
         }
 
@@ -986,14 +992,15 @@ namespace Couchbase.Lite.Store
                         Log.D(TAG, "Db busy, retrying transaction ({0})", retries);
                         Thread.Sleep(TRANSACTION_MAX_RETRY_DELAY);
                         keepGoing = true;
+                    } else {
+                        Log.W(TAG, "Failed to run transaction");
+                        throw;
                     }
                 } catch(Exception e) {
-                    Log.W(TAG, "Exception in RunInTransaction", e);
+                    throw new CouchbaseLiteException("Error running transaction", e) { Code = StatusCode.Exception };
                 } finally {
                     EndTransaction(status);
                 }
-
-
             } while(keepGoing);
 
             return status;
@@ -1021,8 +1028,8 @@ namespace Couchbase.Lite.Store
             #if MOCK_ENCRYPTION
             if (!hasRealEncryption) {
                 var givenKeyData = newKey != null ? newKey.KeyData : new byte[0];
-                var oldKeyPath = Path.Combine(Path.GetDirectoryName(_path), "mock_key");
-                var newKeyPath = Path.Combine(Path.GetDirectoryName(_path), "mock_new_key");
+                var oldKeyPath = Path.Combine(Path.GetDirectoryName(_directory), "mock_key");
+                var newKeyPath = Path.Combine(Path.GetDirectoryName(_directory), "mock_new_key");
                 File.WriteAllBytes(newKeyPath, givenKeyData);
                 action.AddLogic(AtomicAction.MoveFile(oldKeyPath, newKeyPath));
             } else
@@ -1072,7 +1079,7 @@ namespace Couchbase.Lite.Store
 
             // Overwrite the old db file with the new one:
             if (hasRealEncryption) {
-                action.AddLogic(AtomicAction.MoveFile(tempPath, _path));
+                action.AddLogic(AtomicAction.MoveFile(tempPath, _directory));
             }
 
             return action;

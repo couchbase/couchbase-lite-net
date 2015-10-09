@@ -394,7 +394,7 @@ namespace Couchbase.Lite.Db
 
             private void MoveAttachmentsDir()
             {
-                var oldAttachmentsPath = Path.Combine(Path.ChangeExtension(_db.Path, null), "attachments");
+                var oldAttachmentsPath = Path.Combine(Path.ChangeExtension(_db.DbDirectory, null), "attachments");
                 var newAttachmentsPath = _db.AttachmentStorePath;
                 if (oldAttachmentsPath.Equals(newAttachmentsPath)) {
                     Log.D(TAG, "Skip moving the attachments folder as no path change ('{0}' vs '{1}').", oldAttachmentsPath, newAttachmentsPath);
@@ -419,7 +419,7 @@ namespace Couchbase.Lite.Db
                             File.Move(file, newPath);
                         }
 
-                        Directory.Delete(Path.ChangeExtension(_db.Path, null), true);
+                        Directory.Delete(Path.ChangeExtension(_db.DbDirectory, null), true);
                     } else {
                         DirectoryCopy(oldAttachmentsPath, newAttachmentsPath);
                     }
@@ -643,7 +643,7 @@ namespace Couchbase.Lite.Db
                 // Move attachments dir back to the old path
                 var newAttachmentsPath = _db.AttachmentStorePath;
                 if (Directory.Exists(newAttachmentsPath)) {
-                    var oldAttachmentsPath = Path.ChangeExtension(_db.Path, null) + Path.PathSeparator + "attachments";
+                    var oldAttachmentsPath = Path.ChangeExtension(_db.DbDirectory, null) + Path.PathSeparator + "attachments";
                     if (CanRemoveOldAttachmentsDir) {
                         try {
                             Directory.Move(newAttachmentsPath, oldAttachmentsPath);

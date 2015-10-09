@@ -137,6 +137,10 @@
       <Project>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</Project>
       <Name>Couchbase.Lite.Net45</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net45\cbforest-sharp.Net45.csproj">
+      <Project>{20839831-948C-42BA-AAF1-75081209E6C5}</Project>
+      <Name>cbforest-sharp.Net45</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />

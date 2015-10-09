@@ -71,7 +71,7 @@ namespace Couchbase.Lite
         {
             var db = database;
 
-            var doneSignal = new CountdownEvent(11); // FIXME.ZJG: Not sure why, but now Changed is only called once.
+            var doneSignal = new CountdownEvent(11);
 
             // 11 corresponds to startKey = 23; endKey = 33
             // run a live query
@@ -97,7 +97,7 @@ namespace Couchbase.Lite
                 var rows = e.Rows;
                 foreach(var row in rows)
                 {
-                    if (expectedKeys.Contains((Int64)row.Key))
+                    if (expectedKeys.Contains(Convert.ToInt64(row.Key)))
                     {
                         Log.I(Tag, " doneSignal decremented " + doneSignal.CurrentCount);
                         doneSignal.Signal();
@@ -187,8 +187,8 @@ namespace Couchbase.Lite
 
             var currentRevisionID = doc.CurrentRevisionId;
             Assert.IsTrue(currentRevisionID.Length > 10, "Invalid doc revision: " + docID);
-            Assert.AreEqual(doc.UserProperties, properties);
-            Assert.AreEqual(db.GetDocument(docID), doc);
+            Assert.AreEqual(properties, doc.UserProperties);
+            Assert.AreEqual(doc, db.GetDocument(docID));
 
             db.DocumentCache.EvictAll();
             
@@ -206,14 +206,13 @@ namespace Couchbase.Lite
             var deleteme = manager.GetDatabase("deleteme");
             Assert.IsTrue(deleteme.Exists());
 
-            var dbPath = deleteme.Path;
+            var dbPath = deleteme.DbDirectory;
             Assert.IsTrue(new FilePath(dbPath).Exists());
             Assert.IsTrue(new FilePath(deleteme.AttachmentStorePath).Exists());
 
             deleteme.Delete();
             Assert.IsFalse(deleteme.Exists());
             Assert.IsFalse(new FilePath(dbPath).Exists());
-            Assert.IsFalse(new FilePath(dbPath + "-journal").Exists());
             Assert.IsFalse(new FilePath(deleteme.AttachmentStorePath).Exists());
 
             // delete again, even though already deleted
@@ -304,9 +303,9 @@ namespace Couchbase.Lite
             var listRevs = new List<SavedRevision>();
             listRevs.Add(rev1);
             listRevs.Add(rev2);
-            Assert.AreEqual(newRev.RevisionHistory, listRevs);
-            Assert.AreEqual(newRev.Properties, rev2.Properties);
-            Assert.AreEqual(newRev.UserProperties, rev2.UserProperties);
+            Assert.AreEqual(listRevs, newRev.RevisionHistory);
+            Assert.AreEqual(rev2.Properties, newRev.Properties);
+            Assert.AreEqual(rev2.UserProperties, newRev.UserProperties);
 
             var userProperties = new Dictionary<String, Object>();
             userProperties["because"] = "NoSQL";
@@ -535,7 +534,7 @@ namespace Couchbase.Lite
             
             props = db.GetExistingLocalDocument("dock");
             Assert.IsNull(props);
-            Assert.IsFalse(db.DeleteLocalDocument("dock"),"Second delete should have failed");
+            Assert.Throws<CouchbaseLiteException>(() => db.DeleteLocalDocument("dock"), "Second delete should have failed");
         }
 
         //TODO issue: deleteLocalDocument should return error.code( see ios)
@@ -614,8 +613,8 @@ namespace Couchbase.Lite
             var confRevs = new List<SavedRevision>();
             confRevs.AddItem(rev2b);
             confRevs.AddItem(rev2a);
-            Assert.AreEqual(confRevs, doc.ConflictingRevisions);
-            Assert.AreEqual(confRevs, doc.LeafRevisions);
+            CollectionAssert.AreEquivalent(confRevs, doc.ConflictingRevisions);
+            CollectionAssert.AreEquivalent(confRevs, doc.LeafRevisions);
 
             SavedRevision defaultRev;
             SavedRevision otherRev;
@@ -639,8 +638,8 @@ namespace Couchbase.Lite
             var row = rows.GetRow(0);
             var revs = row.GetConflictingRevisions().ToList();
             Assert.AreEqual(2, revs.Count);
-            Assert.AreEqual(defaultRev, revs[0]);
-            Assert.AreEqual(otherRev, revs[1]);
+            CollectionAssert.Contains(revs, defaultRev);
+            CollectionAssert.Contains(revs, otherRev);
         }
 
         //ATTACHMENTS

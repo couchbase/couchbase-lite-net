@@ -66,7 +66,8 @@ namespace Couchbase.Lite
                         SetToken(Newtonsoft.Json.JsonToken.Null, null);
                         break;
                     case C4KeyToken.Number:
-                        SetToken(Newtonsoft.Json.JsonToken.Float, Native.c4key_readNumber(r));
+                        var foo = Native.c4key_readNumber(r);
+                        SetToken(Newtonsoft.Json.JsonToken.Float, foo);
                         break;
                     case C4KeyToken.String:
                         {

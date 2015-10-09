@@ -183,10 +183,9 @@ namespace Couchbase.Lite
         public T DeserializeKey<T>(C4KeyReader keyReader)
         {
             using (var jsonReader = new JsonC4KeyReader(keyReader)) {
-                var o = JObject.Load(jsonReader);
                 var serializer = new JsonSerializer();
                 serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-                return o.ToObject<T>(serializer);
+                return serializer.Deserialize<T>(jsonReader);
             }
         }
 

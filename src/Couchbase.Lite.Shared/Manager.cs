@@ -88,7 +88,8 @@ namespace Couchbase.Lite
         private const string HttpErrorDomain = "CBLHTTP";
 
         internal const string DatabaseSuffixv0 = ".touchdb";
-        internal const string DatabaseSuffix = ".cblite";
+        internal const string DatabaseSuffixv1 = ".cblite";
+        internal const string DatabaseSuffix = ".cblite2";
 
         // FIXME: Not all of these are valid Windows file chars.
         private const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
@@ -403,35 +404,9 @@ namespace Couchbase.Lite
         /// will be honoured.
         /// </param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public void ReplaceDatabase(String name, Stream databaseStream, IDictionary<String, Stream> attachmentStreams)
+        public void ReplaceDatabase(string name, Stream databaseStream, IDictionary<string, Stream> attachmentStreams)
         {
-            try {
-                using(var database = GetDatabaseWithoutOpening (name, false)) {
-                    var dstAttachmentsPath = database.AttachmentStorePath;
-
-                    using(var destStream = File.OpenWrite(database.Path)) {
-                        databaseStream.CopyTo(destStream);
-                    }
-
-                    UpgradeDatabase(new FileInfo(database.Path));
-
-                    if (System.IO.Directory.Exists(dstAttachmentsPath)) 
-                    {
-                        System.IO.Directory.Delete (dstAttachmentsPath, true);
-                    }
-                    System.IO.Directory.CreateDirectory(dstAttachmentsPath);
-
-                    var attachmentsFile = new FilePath(dstAttachmentsPath);
-
-                    if (attachmentStreams != null) {
-                        StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsFile);
-                    }
-                    database.Open();
-                }
-            } catch (Exception e) {
-                Log.E(Database.TAG, string.Empty, e);
-                throw new CouchbaseLiteException(StatusCode.InternalServerError);
-            }
+            #warning Needs to be redone
         }
 
         /// <summary>
@@ -447,7 +422,7 @@ namespace Couchbase.Lite
         /// </remarks>
         public void ReplaceDatabase(string name, Stream compressedStream, bool autoRename)
         {
-            var zipDbName = GetDbNameFromZip(compressedStream);
+            /*var zipDbName = GetDbNameFromZip(compressedStream);
             bool namesMatch = name.Equals(zipDbName);
             if (!namesMatch && !autoRename) {
                 throw new ArgumentException("Names of db file in zip and name passed to function differ", "compressedStream");
@@ -492,7 +467,7 @@ namespace Couchbase.Lite
 
 
             UpgradeDatabase(new FileInfo(database.Path));
-            database.Open();
+            database.Open();*/
         }
 
     #endregion
@@ -629,7 +604,7 @@ namespace Couchbase.Lite
         private void UpgradeDatabase(FileInfo path)
         {
             #if !NOSQLITE
-            var oldFilename = path.FullName;
+            /*var oldFilename = path.FullName;
             var newFilename = Path.ChangeExtension(oldFilename, DatabaseSuffix);
             var newFile = new FileInfo(newFilename);
 
@@ -656,7 +631,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Log.D(TAG, "...Success!");
+            Log.D(TAG, "...Success!");*/
             #endif
         }
 
@@ -749,7 +724,7 @@ namespace Couchbase.Lite
                         return new Status(StatusCode.BadRequest);
                     }
 
-                    targetDict["url"] = "http://localhost:20000" + targetDb.Path;
+                    targetDict["url"] = "http://localhost:20000" + targetDb.DbDirectory;
                 }
 
                 remoteDict = targetDict;
@@ -885,7 +860,7 @@ namespace Couchbase.Lite
             var oldStyleName = name.Replace('/', ':');
             var fileName = oldStyleName + Manager.DatabaseSuffix;
             var result = Path.Combine(directoryFile.FullName, fileName);
-            if (new FilePath(result).Exists()) {
+            if (System.IO.Directory.Exists(result)) {
                 return result;
             }
             

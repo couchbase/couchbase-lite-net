@@ -155,7 +155,7 @@ namespace Couchbase.Lite.Store
                 ForestDBBridge.Check(err => Native.c4view_close(indexDB, err));
             }
 
-            _dbStorage.ForgetStorage(Name);
+            _dbStorage.ForgetViewStorage(Name);
         }
 
         private C4View* OpenIndexWithOptions(C4DatabaseFlags options, bool dryRun = false)
@@ -305,8 +305,8 @@ namespace Couchbase.Lite.Store
 
         public void Close()
         {
-            //CloseIndex();
-            //_dbStorage.ForgetViewStorageNamed(Name);
+            CloseIndex();
+            _dbStorage.ForgetViewStorage(Name);
         }
 
         public void DeleteIndex()
@@ -337,46 +337,54 @@ namespace Couchbase.Lite.Store
                 nativeViews[i] = viewsArray[i]._indexDB;
             }
 
-            var indexer = (C4Indexer*)ForestDBBridge.Check(err => Native.c4indexer_begin(_dbStorage.Forest, nativeViews, 
-                nativeViews.Length, err));
+            var indexer = (C4Indexer*)ForestDBBridge.Check(err => Native.c4indexer_begin(_dbStorage.Forest, nativeViews, err));
           
             var enumerator = new CBForestDocEnumerator(indexer);
-            
-            foreach(var next in enumerator) {
-                var doc = next.Document;
-                var seq = doc->selectedRev.sequence;
-                for (int i = 0; i < viewInfo.Length; i++) {
-                    var info = viewInfo[i];
-                    if (seq <= (ulong)info.Item2) {
-                        continue; // This view has already indexed this sequence
-                    }
 
-                    var viewDelegate = info.Item1.Delegate;
-                    if (viewDelegate == null || viewDelegate.Map == null) {
-                        Log.V(TAG, "    {0} has no map block; skipping it", info.Item1.Name);
-                        continue;
-                    }
+            var commit = false;
+            try {
+                foreach(var next in enumerator) {
+                    var doc = next.Document;
+                    var seq = doc->selectedRev.sequence;
 
-                    var rev = new RevisionInternal(doc, true);
-                    var keys = new List<object>();
-                    var values = new List<object>();
-                    try {
-                        viewDelegate.Map(rev.GetProperties(), (key, value) =>
-                        {
-                            keys.Add(key);
-                            values.Add(value);
-                        });
-                    } catch (Exception e) {
-                        Log.W(TAG, String.Format("Exception thrown in map function of {0}", info.Item1.Name), e);
-                        continue;
-                    }
+                    for (int i = 0; i < viewInfo.Length; i++) {
+                        var info = viewInfo[i];
+                        if (seq <= (ulong)info.Item2) {
+                            continue; // This view has already indexed this sequence
+                        }
 
-                    WithC4Keys(keys.ToArray(), c4keys =>
-                        WithC4Keys(values.ToArray(), c4values =>
-                            ForestDBBridge.Check(err => Native.c4indexer_emit(indexer, doc, (uint)i, 
-                        (uint)keys.Count, c4keys, c4values, err)))
-                    );
+                        var viewDelegate = info.Item1.Delegate;
+                        if (viewDelegate == null || viewDelegate.Map == null) {
+                            Log.V(TAG, "    {0} has no map block; skipping it", info.Item1.Name);
+                            continue;
+                        }
+
+                        var rev = new RevisionInternal(doc, true);
+                        var keys = new List<object>();
+                        var values = new List<object>();
+                        try {
+                            viewDelegate.Map(rev.GetProperties(), (key, value) =>
+                            {
+                                keys.Add(key);
+                                values.Add(value);
+                            });
+                        } catch (Exception e) {
+                            Log.W(TAG, String.Format("Exception thrown in map function of {0}", info.Item1.Name), e);
+                            continue;
+                        }
+
+                        WithC4Keys(keys.ToArray(), c4keys =>
+                            WithC4Keys(values.ToArray(), c4values =>
+                                ForestDBBridge.Check(err => Native.c4indexer_emit(indexer, doc, (uint)i, c4keys, c4values, err)))
+                        );
+                    }
                 }
+
+                commit = true;
+            } catch(Exception e) {
+                Log.W(TAG, "Error updates indexes", e);
+            } finally {
+                ForestDBBridge.Check(err => Native.c4indexer_end(indexer, commit, err));
             }
 
             return true;
@@ -464,7 +472,14 @@ namespace Couchbase.Lite.Store
                     keysToReduce.Add(key);
                     var nextVal = next.Value;
                     if (Native.c4key_peek(&nextVal) == C4KeyToken.Special) {
-                        #warning Need access to sequence from enumerator
+                        try {
+                            var rev = _dbStorage.GetDocument(next.DocID, next.DocSequence);
+                            value = rev.GetProperties();
+                        } catch(CouchbaseLiteException e) {
+                            Log.W(TAG, "Couldn't load doc for row value: status {0}", e.CBLStatus.Code);
+                        } catch(Exception e) {
+                            Log.W(TAG, "Couldn't load doc for row value", e);
+                        }
                     } else {
                         value = Manager.GetObjectMapper().DeserializeKey<object>(next.Value);
                     }
@@ -484,12 +499,11 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<IDictionary<string, object>> Dump()
         {
-            var index = OpenIndex();
-            #warning Need to include sequence
+            OpenIndex();
             var enumerator = QueryEnumeratorWithOptions(new QueryOptions());
             foreach (var next in enumerator) {
                 yield return new Dictionary<string, object> {
-                    { "sequence", 0L },
+                    { "sequence", next.DocSequence },
                     { "key", next.KeyJSON },
                     { "value", next.ValueJSON }
                 };
