@@ -688,8 +688,10 @@ namespace Couchbase.Lite.Store
             var status = false;
             try {
                 status = action();
-            } catch(Exception e) {
-                Log.W(TAG, "Exception in RunInOuterTransaction", e);
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Failed in RunInOuterTransaction");
+                status = false;
+                throw;
             }
 
             return status;
@@ -994,9 +996,11 @@ namespace Couchbase.Lite.Store
                         keepGoing = true;
                     } else {
                         Log.W(TAG, "Failed to run transaction");
+                        status = false;
                         throw;
                     }
                 } catch(Exception e) {
+                    status = false;
                     throw new CouchbaseLiteException("Error running transaction", e) { Code = StatusCode.Exception };
                 } finally {
                     EndTransaction(status);

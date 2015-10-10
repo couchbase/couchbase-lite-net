@@ -286,16 +286,18 @@ namespace Couchbase.Lite.Store
 
             RunInTransaction(() =>
             {
-                var doc = (C4RawDocument *)ForestDBBridge.Check(err => Native.c4raw_get(Forest, "_local", docId, err));
-                if(doc == null) {
-                    throw new CouchbaseLiteException(StatusCode.NotFound);
-                }
+                WithC4Raw(docId, "_local", doc =>
+                {
+                    if(doc == null) {
+                        throw new CouchbaseLiteException(StatusCode.NotFound);
+                    }
 
-                if(obeyMVCC && (revId != (string)doc->meta)) {
-                    throw new CouchbaseLiteException(StatusCode.Conflict);
-                }
+                    if(obeyMVCC && (revId != (string)doc->meta)) {
+                        throw new CouchbaseLiteException(StatusCode.Conflict);
+                    }
 
-                ForestDBBridge.Check(err => Native.c4raw_put(Forest, "_local", docId, null, null, err));
+                    ForestDBBridge.Check(err => Native.c4raw_put(Forest, "_local", docId, null, null, err));
+                });
                 return true;
             });
         }
@@ -390,15 +392,19 @@ namespace Couchbase.Lite.Store
             var success = false;
             try {
                 success = block();
-            } catch(Exception e) {
-                Log.E(TAG, "Exception in RunInTransaction block", e);
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Failed to run transaction");
                 success = false;
-            }
-
-            Log.D(TAG, "END transaction (success={0})", success);
-            ForestDBBridge.Check(err => Native.c4db_endTransaction(Forest, success, err));
-            if (!InTransaction && Delegate != null) {
-                Delegate.StorageExitedTransaction(success);
+                throw;
+            } catch(Exception e) {
+                success = false;
+                throw new CouchbaseLiteException("Error running transaction", e) { Code = StatusCode.Exception };
+            } finally {
+                Log.D(TAG, "END transaction (success={0})", success);
+                ForestDBBridge.Check(err => Native.c4db_endTransaction(Forest, success, err));
+                if (!InTransaction && Delegate != null) {
+                    Delegate.StorageExitedTransaction(success);
+                }
             }
 
             return success;
@@ -577,7 +583,17 @@ namespace Couchbase.Lite.Store
         public IEnumerable<QueryRow> GetAllDocs(QueryOptions options)
         {
             var forestOps = options.AsAllDocsOptions();
-            var enumerator = new CBForestDocEnumerator(Forest, options.StartKeyDocId, options.EndKeyDocId, forestOps);
+            var enumerator = default(CBForestDocEnumerator);
+            if (options.Keys != null) {
+                try {
+                    enumerator = new CBForestDocEnumerator(Forest, options.Keys.Cast<string>().ToArray(), options.AsAllDocsOptions());
+                } catch (InvalidCastException) {
+                    Log.E(TAG, "options.keys must contain strings");
+                    throw;
+                }
+            } else {
+                enumerator = new CBForestDocEnumerator(Forest, options.StartKeyDocId, options.EndKeyDocId, forestOps);
+            }
 
             foreach(var next in enumerator) {
                 var doc = next.Document;
@@ -732,13 +748,13 @@ namespace Couchbase.Lite.Store
                 }
 
                 var gotRevId = (string)doc->meta;
-                if(revId != gotRevId || doc->body.size.ToUInt32() == 0) {
+                if(revId != null && revId != gotRevId || doc->body.size.ToUInt32() == 0) {
                     return;
                 }
 
                 var properties = default(IDictionary<string, object>);
                 try {
-                    Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(doc->body);
+                    properties = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(doc->body);
                 } catch(CouchbaseLiteException) {
                     Log.W(TAG, "Invalid JSON for document {0}", docId);
                     return;
@@ -833,7 +849,7 @@ namespace Couchbase.Lite.Store
 
             var putRev = default(RevisionInternal);
             var change = default(DocumentChange);
-            RunInTransaction(() =>
+            var success = RunInTransaction(() =>
             {
                 var docId = inDocId;
                 var prevRevId = inPrevRevId;
@@ -888,10 +904,12 @@ namespace Couchbase.Lite.Store
                             var status = validationBlock(putRev, prevRev, prevRevId);
                             if(status.IsError) {
                                 transactionSuccess = false;
+                                return;
                             }
                         } catch(Exception e) {
                             Log.W(TAG, "Exception throw in validation block", e);
                             transactionSuccess = false;
+                            return;
                         }
                     }
 
@@ -907,7 +925,11 @@ namespace Couchbase.Lite.Store
                 return transactionSuccess;
             });
 
-            if (Delegate != null) {
+            if (!success) {
+                return null;
+            }
+
+            if (Delegate != null && change != null) {
                 Delegate.DatabaseStorageChanged(change);
             }
 
