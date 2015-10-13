@@ -97,7 +97,7 @@ namespace Couchbase.Lite.Replicator
         {
             get
             {
-                return Batcher.Count() == 0 && (Continuous || _changeTracker != null && !_changeTracker.IsRunning);
+                return (Batcher == null || Batcher.Count() == 0) && (Continuous || _changeTracker != null && !_changeTracker.IsRunning);
             }
         }
 
