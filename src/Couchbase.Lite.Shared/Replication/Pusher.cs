@@ -509,7 +509,7 @@ namespace Couchbase.Lite.Replicator
             } 
 
             var options = new ChangesOptions();
-            options.SetIncludeConflicts(true);
+            options.IncludeConflicts = true;
             var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, _filter, FilterParams);
             if (changes.Count > 0) {
                 Batcher.QueueObjects(changes);
@@ -655,8 +655,10 @@ namespace Couchbase.Lite.Replicator
                                     // Look for the latest common ancestor and stuf out older attachments:
                                     var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
                                     Status status = new Status();
-                                    if(!LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false, status)) {
-                                        Log.W(TAG, "Error expanding attachments!");
+                                    try {
+                                        LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
+                                    } catch(Exception ex) {
+                                        Log.W(TAG, "Error expanding attachments!", ex);
                                         RevisionFailed();
                                         continue;
                                     }

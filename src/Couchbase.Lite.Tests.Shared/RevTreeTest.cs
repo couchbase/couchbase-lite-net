@@ -139,7 +139,7 @@ namespace Couchbase.Lite
             expectedChanges.AddItem(conflict);
             expectedChanges.AddItem(other);
             Assert.AreEqual(expectedChanges, changes);
-            options.SetIncludeConflicts(true);
+            options.IncludeConflicts = true;
             changes = database.ChangesSince(0, options, null, null);
             expectedChanges = new RevisionList();
             expectedChanges.AddItem(rev);

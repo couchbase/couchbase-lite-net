@@ -41,21 +41,19 @@
 //
 
 using System;
-using System.Collections.Generic;
+using System.Collections;
 
+
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Couchbase.Lite.Replicator;
-
-using Couchbase.Lite.Util;
-using Sharpen;
-
-using System.Net.Http;
-using System.Threading.Tasks;
-using NUnit.Framework;
 using Couchbase.Lite.Tests;
-using System.Collections;
-using System.Threading;
-using Couchbase.Lite.Auth;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
+using Sharpen;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -65,10 +63,9 @@ using System.Net;
 
 namespace Couchbase.Lite
 {
-    [TestFixture("ForestDB")]
     public class ChangeTrackerTest : LiteTestCase
     {
-        public const string Tag = "ChangeTracker";
+        public const string TAG = "ChangeTracker";
 
         public ChangeTrackerTest(string storageType) : base(storageType) {}
 

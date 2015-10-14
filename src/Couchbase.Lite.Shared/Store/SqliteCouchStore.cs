@@ -1126,7 +1126,7 @@ namespace Couchbase.Lite.Store
 
             if (transactionStatus.IsError) {
                 if (transactionStatus.Code == StatusCode.NotFound && revId == null) {
-                    throw new CouchbaseLiteException(StatusCode.Deleted);
+                    return null;
                 } else {
                     throw new CouchbaseLiteException(transactionStatus.Code);
                 }
@@ -1614,11 +1614,8 @@ namespace Couchbase.Lite.Store
         public RevisionList ChangesSince(long lastSequence, ChangesOptions options, RevisionFilter filter)
         {
             // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
-            if (options == null) {
-                options = new ChangesOptions();
-            }
 
-            bool includeDocs = options.IsIncludeDocs() || filter != null;
+            bool includeDocs = options.IncludeDocs || filter != null;
             var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
                 "WHERE sequence > ? AND current=1 " +
                 "AND revs.doc_id = docs.doc_id " +
@@ -1629,7 +1626,7 @@ namespace Couchbase.Lite.Store
             long lastDocId = 0L;
             TryQuery(c =>
             {
-                if(!options.IsIncludeConflicts()) {
+                if(!options.IncludeConflicts) {
                     // Only count the first rev for a given doc (the rest will be losing conflicts):
                     var docNumericId = c.GetLong(1);
                     if(docNumericId == lastDocId) {
@@ -1655,9 +1652,9 @@ namespace Couchbase.Lite.Store
                 return true;
             }, false, sql, lastSequence);
 
-            if (options.IsSortBySequence()) {
+            if (options.SortBySequence) {
                 changes.SortBySequence(!options.Descending);
-                changes.Limit(options.GetLimit());
+                changes.Limit(options.Limit);
             }
 
             return changes;

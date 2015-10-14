@@ -115,13 +115,9 @@ namespace Couchbase.Lite.Listener
                         if(ancestorId != null) {
                             minRevPos = RevisionInternal.GenerationFromRevID(ancestorId) + 1;
                         }
-
-                        Status status = new Status();
+                            
                         bool attEncodingInfo = context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
-                        if(!db.ExpandAttachments(rev, minRevPos, sendMultipart, attEncodingInfo, status)) {
-                            response.InternalStatus = status.Code;
-                            return response;
-                        }
+                        db.ExpandAttachments(rev, minRevPos, sendMultipart, attEncodingInfo);
                     }
 
                     if(sendMultipart) {
@@ -378,7 +374,7 @@ namespace Couchbase.Lite.Listener
                 bool acceptEncoded = acceptEncoding != null && acceptEncoding.Contains("gzip") &&
                     context.RequestHeaders["Range"] == null;
 
-                var attachment = db.GetAttachmentForRevision(rev, context.AttachmentName, status);
+                var attachment = db.GetAttachmentForRevision(rev, context.AttachmentName);
                 if(attachment == null) {
                     return context.CreateResponse(status.Code);
                 }
@@ -532,9 +528,7 @@ namespace Couchbase.Lite.Listener
                 RevisionInternal nuRev = new RevisionInternal(dst);
                 if (options.HasFlag(DocumentContentOptions.IncludeAttachments)) {
                     bool attEncodingInfo = context != null && context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
-                    if(!db.ExpandAttachments(nuRev, 0, false, !attEncodingInfo, outStatus)) {
-                        return null;
-                    }
+                    db.ExpandAttachments(nuRev, 0, false, !attEncodingInfo);
                 }
 
                 rev = nuRev;

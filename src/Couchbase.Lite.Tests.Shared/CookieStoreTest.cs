@@ -41,8 +41,9 @@
 //
 
 using System;
-using Couchbase.Lite.Util;
 using System.IO;
+
+using Couchbase.Lite.Util;
 using NUnit.Framework;
 
 #if NET_3_5
@@ -53,10 +54,9 @@ using System.Net;
 
 namespace Couchbase.Lite
 {
-    [TestFixture("ForestDB")]
     public class CookieStoreTest : LiteTestCase
     {
-        public const string Tag = "CookieStoreTest";
+        public const string TAG = "CookieStoreTest";
 
         public CookieStoreTest(string storageType) : base(storageType) {}
 

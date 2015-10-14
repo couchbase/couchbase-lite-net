@@ -82,7 +82,7 @@ namespace Couchbase.Lite {
 
         private  Boolean CheckedProperties { get; set; }
 
-        internal override Int64 Sequence {
+        internal override long Sequence {
             get {
                 var sequence = RevisionInternal.GetSequence();
                 if (sequence == 0 && LoadProperties())

@@ -223,7 +223,7 @@ namespace Couchbase.Lite {
                 if (Name == null)
                     throw new CouchbaseLiteException("Name must not be null when retrieving attachment content");
 
-                var attachment = Revision.Database.AttachmentForDict(Metadata, Name, null);
+                var attachment = Revision.Database.AttachmentForDict(Metadata, Name);
 
                 if (attachment == null)
                     throw new CouchbaseLiteException("Could not retrieve an attachment for revision sequence {0}.", Revision.Sequence);
@@ -254,7 +254,7 @@ namespace Couchbase.Lite {
                 if (Name == null)
                     throw new CouchbaseLiteException("Name must not be null when retrieving attachment content");
 
-                var attachment = Revision.Database.AttachmentForDict(Metadata, Name, null);
+                var attachment = Revision.Database.AttachmentForDict(Metadata, Name);
                 return attachment.Content;
             }
         }

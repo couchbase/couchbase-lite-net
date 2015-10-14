@@ -66,12 +66,12 @@ namespace Couchbase.Lite
                         SetToken(Newtonsoft.Json.JsonToken.Null, null);
                         break;
                     case C4KeyToken.Number:
-                        var foo = Native.c4key_readNumber(r);
-                        SetToken(Newtonsoft.Json.JsonToken.Float, foo);
+                        SetToken(Newtonsoft.Json.JsonToken.Float, Native.c4key_readNumber(r));
                         break;
                     case C4KeyToken.String:
                         {
-                            var lastSequence = _sequenceStack.Peek();
+                            var lastSequence = _sequenceStack.Count > 0 ? _sequenceStack.Peek() : 
+                                Newtonsoft.Json.JsonToken.None;
                             if (lastSequence == Newtonsoft.Json.JsonToken.StartObject) {
                                 SetToken(Newtonsoft.Json.JsonToken.PropertyName, Native.c4key_readString(r));
                                 _sequenceStack.Push(Newtonsoft.Json.JsonToken.PropertyName);

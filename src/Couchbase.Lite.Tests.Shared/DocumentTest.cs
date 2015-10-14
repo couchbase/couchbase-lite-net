@@ -177,7 +177,6 @@ namespace Couchbase.Lite
             Assert.IsNull(fetchedDoc);
 
             // query all docs and make sure we don't see that document
-            database.GetAllDocs(new QueryOptions());
             Query queryAllDocs = database.CreateAllDocumentsQuery();
             QueryEnumerator queryEnumerator = queryAllDocs.Run();
             for (IEnumerator<QueryRow> it = queryEnumerator; it.MoveNext();)

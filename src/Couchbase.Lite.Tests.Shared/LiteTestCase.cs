@@ -64,7 +64,7 @@ namespace Couchbase.Lite
     [TestFixture("SQLite")]
     public abstract class LiteTestCase
     {
-        private const string Tag = "LiteTestCase";
+        private const string TAG = "LiteTestCase";
 
         public const string FacebookAppId = "127107807637855";
 
@@ -102,7 +102,7 @@ namespace Couchbase.Lite
         [SetUp]
         protected virtual void SetUp()
         {
-            Log.V(Tag, "SetUp");
+            Log.V(TAG, "SetUp");
             if (_storageType == "ForestDB") {
                 CBForest.Native.c4log_register(CBForest.C4LogLevel.Debug, (level, message) =>
                 {
@@ -119,7 +119,7 @@ namespace Couchbase.Lite
         protected Stream GetAsset(string name)
         {
             var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
-            Log.D(Tag, "Fetching assembly resource: " + assetPath);
+            Log.D(TAG, "Fetching assembly resource: " + assetPath);
             var stream = GetType().GetResourceAsStream(assetPath);
             return stream;
         }
@@ -186,7 +186,7 @@ namespace Couchbase.Lite
                     db.Close();
                     status = true;
                 } catch (Exception e) { 
-                    Log.E(Tag, "Cannot delete database " + e.Message);
+                    Log.E(TAG, "Cannot delete database " + e.Message);
                 }
 
                 Assert.IsTrue(status);
@@ -214,7 +214,7 @@ namespace Couchbase.Lite
             }
             catch (IOException)
             {
-                Log.W(Tag, "Error trying to read from local-test.properties, does this file exist?");
+                Log.W(TAG, "Error trying to read from local-test.properties, does this file exist?");
             }
         }
 
@@ -314,7 +314,7 @@ namespace Couchbase.Lite
         [TearDown]
         protected virtual void TearDown()
         {
-            Log.V(Tag, "tearDown");
+            Log.V(TAG, "tearDown");
             StopDatabase();
             StopCBLite();
             Manager.DefaultOptions.RestoreDefaults();
@@ -454,7 +454,7 @@ namespace Couchbase.Lite
             } 
             catch (Exception e)
             {
-                Log.E(Tag, "Error creating document", e);
+                Log.E(TAG, "Error creating document", e);
                 Assert.IsTrue(false, "can't create new document in db:" + db.Name + " with properties:" + properties.ToString());
             }
 

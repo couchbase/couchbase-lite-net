@@ -644,8 +644,8 @@ namespace Couchbase.Lite
         internal RevisionList UnpushedRevisionsSince(string sequence, FilterDelegate filter, IDictionary<string, object> filterParams)
         {
             // Include conflicts so all conflicting revisions are replicated too
-            var options = ChangesOptions.Default();
-            options.SetIncludeConflicts(true);
+            var options = ChangesOptions.Default;
+            options.IncludeConflicts = true;
 
             return ChangesSince(Int64.Parse(sequence ?? "0"), options, filter, filterParams);
         }
@@ -856,10 +856,10 @@ namespace Couchbase.Lite
             }
 
             ChangesOptions changesOpts = new ChangesOptions();
-            changesOpts.SetLimit(options.Limit);
-            changesOpts.SetIncludeDocs(options.IncludeDocs);
-            changesOpts.SetIncludeConflicts(true);
-            changesOpts.SetSortBySequence(true);
+            changesOpts.Limit = options.Limit;
+            changesOpts.IncludeDocs = options.IncludeDocs;
+            changesOpts.IncludeConflicts = true;
+            changesOpts.SortBySequence = true;
 
             long startSeq = KeyToSequence(options.StartKey, 1);
             long endSeq = KeyToSequence(options.EndKey, long.MaxValue);
@@ -1054,8 +1054,7 @@ namespace Couchbase.Lite
                     var disposition = String.Format("attachment; filename={0}", Quote(entry.Key));
                     writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Disposition", disposition } });
 
-                    Status status = new Status();
-                    var attachObj = AttachmentForDict(attachment, entry.Key, status);
+                    var attachObj = AttachmentForDict(attachment, entry.Key);
                     if (attachObj == null) {
                         return null;
                     }
@@ -1380,10 +1379,9 @@ namespace Couchbase.Lite
             return Storage.GetRevisionHistory(rev, ancestors);
         }
 
-        internal bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
-            bool decodeAttachments, Status outStatus)
+        internal void ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
+            bool decodeAttachments)
         {
-            outStatus.Code = StatusCode.Ok;
             rev.MutateAttachments((name, attachment) =>
             {
                 var revPos = attachment.GetCast<long>("revpos");
@@ -1406,18 +1404,10 @@ namespace Couchbase.Lite
                 } else {
                     //Put data inline:
                     expanded.Remove("follows");
-                    Status status = new Status();
-                    var attachObj = AttachmentForDict(attachment, name, status);
-                    if(attachObj == null) {
-                        Log.W(TAG, "Can't get attachment '{0}' of {1} (status {2})", name, rev, status);
-                        outStatus.Code = status.Code;
-                        return attachment;
-                    }
-
+                    var attachObj = AttachmentForDict(attachment, name);
                     var data = decodeAttachments ? attachObj.Content : attachObj.EncodedContent;
                     if(data == null) {
                         Log.W(TAG, "Can't get binary data of attachment '{0}' of {1}", name, rev);
-                        outStatus.Code = StatusCode.NotFound;
                         return attachment;
                     }
 
@@ -1426,30 +1416,15 @@ namespace Couchbase.Lite
                     
                 return expanded;
             });
-
-            return outStatus.Code == StatusCode.Ok;
         }
 
-        internal AttachmentInternal AttachmentForDict(IDictionary<string, object> info, string filename, Status status)
+        internal AttachmentInternal AttachmentForDict(IDictionary<string, object> info, string filename)
         {
             if (info == null) {
-                if (status != null) {
-                    status.Code = StatusCode.NotFound;
-                }
-
                 return null;
             }
 
-            AttachmentInternal attachment;
-            try {
-                attachment = new AttachmentInternal(filename, info);
-            } catch(CouchbaseLiteException e) {
-                if (status != null) {
-                    status.Code = e.CBLStatus.Code;
-                }
-                return null;
-            }
-
+            AttachmentInternal attachment = new AttachmentInternal(filename, info);
             attachment.Database = this;
             return attachment;
         }
@@ -1747,29 +1722,19 @@ namespace Couchbase.Lite
             return attachments;
         }
 
-        internal AttachmentInternal GetAttachmentForRevision(RevisionInternal rev, string name, Status status = null)
+        internal AttachmentInternal GetAttachmentForRevision(RevisionInternal rev, string name)
         {
             Debug.Assert(name != null);
             var attachments = rev.GetAttachments();
             if (attachments == null) {
-                try {
-                    rev = LoadRevisionBody(rev);
-                } catch(CouchbaseLiteException e) {
-                    if (status != null) {
-                        status.Code = e.CBLStatus.Code;
-                    }
-
-                    return null;
-                }
-
+                rev = LoadRevisionBody(rev);
                 attachments = rev.GetAttachments();
                 if (attachments == null) {
-                    status.Code = StatusCode.NotFound;
                     return null;
                 }
             }
 
-            return AttachmentForDict(attachments.Get(name).AsDictionary<string, object>(), name, status);
+            return AttachmentForDict(attachments.Get(name).AsDictionary<string, object>(), name);
         }
             
         internal RevisionInternal RevisionByLoadingBody(RevisionInternal rev, Status outStatus)

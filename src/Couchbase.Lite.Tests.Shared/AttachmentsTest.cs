@@ -66,7 +66,7 @@ namespace Couchbase.Lite
     [TestFixture("ForestDB")]
     public class AttachmentsTest : LiteTestCase
     {
-        public const string Tag = "Attachments";
+        private const string TAG = "AttachmentsTest";
 
         public AttachmentsTest(string storageType) : base(storageType) {}
 
@@ -115,11 +115,9 @@ namespace Couchbase.Lite
                 { "_id", "X" },
                 { "_attachments", attachDict }
             };
-
-            var status = new Status();
+                
             var rev1 = default(RevisionInternal);
             Assert.DoesNotThrow(() => rev1 = database.PutRevision(new RevisionInternal(props), null, false));
-            Assert.AreEqual(StatusCode.Created, status.Code);
             Assert.AreEqual(1L, rev1.GetAttachments().GetCast<IDictionary<string, object>>("attach").GetCast<long>("revpos"));
 
             props = new Dictionary<string, object> {
@@ -129,7 +127,6 @@ namespace Couchbase.Lite
 
             var rev2 = default(RevisionInternal);
             Assert.DoesNotThrow(() => rev2 = database.PutRevision(new RevisionInternal(props), rev1.GetRevId()));
-            Assert.AreEqual(StatusCode.Ok, status.Code);
             Assert.IsTrue(rev2.IsDeleted());
 
             // Insert a revision several generations advanced but which hasn't changed the attachment:
@@ -326,13 +323,10 @@ namespace Couchbase.Lite
                 { "bar", false },
                 { "_attachments", CreateAttachmentsDict(attach1, testAttachmentName, "text/plain", false) }
             };
-
-            Status status = new Status();
+                
             RevisionInternal rev1 = database.PutRevision(new RevisionInternal(props), null, false);
-            Assert.AreEqual(StatusCode.Created, status.Code);
 
-            var att = database.GetAttachmentForRevision(rev1, testAttachmentName, status);
-            Assert.IsNotNull(att, "Couldn't get attachment:  Status {0}", status.Code);
+            var att = database.GetAttachmentForRevision(rev1, testAttachmentName);
             Assert.AreEqual(attach1, att.Content);
             Assert.AreEqual("text/plain", att.ContentType);
             Assert.AreEqual(AttachmentEncoding.None, att.Encoding);
@@ -354,7 +348,7 @@ namespace Couchbase.Lite
             itemDict["data"] = Convert.ToBase64String(attach1);
             gotRev1 = database.GetDocument(rev1.GetDocId(), rev1.GetRevId(), true);
             var expandedRev = gotRev1.CopyWithDocID(rev1.GetDocId(), rev1.GetRevId());
-            Assert.IsTrue(database.ExpandAttachments(expandedRev, 0, false, true, status));
+            Assert.DoesNotThrow(() => database.ExpandAttachments(expandedRev, 0, false, true));
             AssertDictionariesAreEqual(attachmentDict, expandedRev.GetAttachments());
 
             // Add a second revision that doesn't update the attachment:
@@ -365,7 +359,6 @@ namespace Couchbase.Lite
                 { "_attachments", CreateAttachmentsStub(testAttachmentName) }
             };
             var rev2 = database.PutRevision(new RevisionInternal(props), rev1.GetRevId());
-            Assert.AreEqual(StatusCode.Created, status.Code);
 
             // Add a third revision of the same document:
             var attach2 = Encoding.UTF8.GetBytes("<html>And this is attach2</html>");
@@ -376,17 +369,15 @@ namespace Couchbase.Lite
                 { "_attachments", CreateAttachmentsDict(attach2, testAttachmentName, "text/html", false) }
             };
             var rev3 = database.PutRevision(new RevisionInternal(props), rev2.GetRevId());
-            Assert.AreEqual(StatusCode.Created, status.Code);
 
             // Check the second revision's attachment
-            att = database.GetAttachmentForRevision(rev2, testAttachmentName, status);
-            Assert.IsNotNull(att, "Couldn't get attachment:  Status {0}", status.Code);
+            att = database.GetAttachmentForRevision(rev2, testAttachmentName);
             Assert.AreEqual(attach1, att.Content);
             Assert.AreEqual("text/plain", att.ContentType);
             Assert.AreEqual(AttachmentEncoding.None, att.Encoding);
 
             expandedRev = rev2.CopyWithDocID(rev2.GetDocId(), rev2.GetRevId());
-            Assert.IsTrue(database.ExpandAttachments(expandedRev, 2, false, true, status));
+            Assert.DoesNotThrow(() => database.ExpandAttachments(expandedRev, 2, false, true));
             AssertDictionariesAreEqual(new Dictionary<string, object> { { testAttachmentName, new Dictionary<string, object> { 
                         { "stub", true }, 
                         { "revpos", 1 } 
@@ -395,14 +386,13 @@ namespace Couchbase.Lite
             }, expandedRev.GetAttachments());
 
             // Check the 3rd revision's attachment:
-            att = database.GetAttachmentForRevision(rev3, testAttachmentName, status);
-            Assert.IsNotNull(att, "Couldn't get attachment:  Status {0}", status.Code);
+            att = database.GetAttachmentForRevision(rev3, testAttachmentName);
             Assert.AreEqual(attach2, att.Content);
             Assert.AreEqual("text/html", att.ContentType);
             Assert.AreEqual(AttachmentEncoding.None, att.Encoding);
 
             expandedRev = rev3.CopyWithDocID(rev3.GetDocId(), rev3.GetRevId());
-            Assert.IsTrue(database.ExpandAttachments(expandedRev, 2, false, true, status));
+            Assert.DoesNotThrow(() => database.ExpandAttachments(expandedRev, 2, false, true));
             attachmentDict = new Dictionary<string, object> { { testAttachmentName, new Dictionary<string, object> {
                         { "content_type", "text/html" },
                         { "data", "PGh0bWw+QW5kIHRoaXMgaXMgYXR0YWNoMjwvaHRtbD4=" },
@@ -593,7 +583,7 @@ namespace Couchbase.Lite
             try
             {
                 database.UpdateAttachment(testAttachmentName, new BlobStoreWriter(database.Attachments), "application/foo", 
-                    AttachmentEncoding.None, rev1.GetDocId(), "1-bogus");
+                    AttachmentEncoding.None, rev1.GetDocId(), "1-fafafa");
             }
             catch (CouchbaseLiteException e)
             {

@@ -43,10 +43,9 @@
 */
 
 using System.IO;
-using Couchbase.Lite;
+
 using NUnit.Framework;
 using Sharpen;
-using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {

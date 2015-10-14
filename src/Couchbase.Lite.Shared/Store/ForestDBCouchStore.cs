@@ -208,9 +208,15 @@ namespace Couchbase.Lite.Store
                     ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
                 }
             } catch(CBForestException e) {
-                if (e.Domain != C4ErrorDomain.ForestDB || (fdb_status)e.Code != fdb_status.RESULT_KEY_NOT_FOUND) {
+                var is404 = e.Domain == C4ErrorDomain.ForestDB && e.Code == (int)ForestDBStatus.KeyNotFound;
+                is404 |= e.Domain == C4ErrorDomain.HTTP && e.Code == 404;
+
+                if (!is404) {
                     throw;
                 }
+
+                Native.c4doc_free(doc); // In case the failure was in selectRevision
+                doc = null;
             }
 
             try {
@@ -226,7 +232,7 @@ namespace Couchbase.Lite.Store
             try {
                 doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_getBySequence(Forest, (ulong)sequence, err));
             } catch(CBForestException e) {
-                if (e.Domain != C4ErrorDomain.ForestDB && (fdb_status)e.Code != fdb_status.RESULT_KEY_NOT_FOUND) {
+                if (e.Domain != C4ErrorDomain.ForestDB && (ForestDBStatus)e.Code != ForestDBStatus.KeyNotFound) {
                     throw;
                 }
             }
@@ -244,7 +250,7 @@ namespace Couchbase.Lite.Store
             try {
                 doc = (C4RawDocument*)ForestDBBridge.Check(err => Native.c4raw_get(Forest, storeName, docId, err));
             } catch(CBForestException e) {
-                if (e.Domain != C4ErrorDomain.ForestDB && (fdb_status)e.Code != fdb_status.RESULT_KEY_NOT_FOUND) {
+                if (e.Domain != C4ErrorDomain.ForestDB && (ForestDBStatus)e.Code != ForestDBStatus.KeyNotFound) {
                     throw;
                 }
             }
@@ -419,6 +425,10 @@ namespace Couchbase.Lite.Store
                     return;
                 }
 
+                if(revId == null && doc->IsDeleted) {
+                    return;
+                }
+
                 retVal = new RevisionInternal(doc, withBody);
             });
 
@@ -427,7 +437,14 @@ namespace Couchbase.Lite.Store
 
         public void LoadRevisionBody(RevisionInternal rev)
         {
-            WithC4Document(rev.GetDocId(), rev.GetRevId(), true, false, doc => rev.SetBody(new Body(doc->selectedRev.body)));
+            WithC4Document(rev.GetDocId(), rev.GetRevId(), true, false, doc => 
+            {
+                if(doc == null) {
+                    throw new CouchbaseLiteException(StatusCode.NotFound);
+                }
+
+                rev.SetBody(new Body(doc->selectedRev.body));
+            });
         }
 
         public long GetRevisionSequence(RevisionInternal rev)
@@ -440,7 +457,7 @@ namespace Couchbase.Lite.Store
 
         public RevisionInternal GetParentRevision(RevisionInternal rev)
         {
-            var retVal = rev;
+            var retVal = default(RevisionInternal);
             WithC4Document(rev.GetDocId(), rev.GetRevId(), false, false, doc =>
             {
                 if (!Native.c4doc_selectParentRevision(doc)) {
@@ -448,7 +465,7 @@ namespace Couchbase.Lite.Store
                 }
                     
                 ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
-                retVal = rev.CopyWithDocID(rev.GetDocId(), (string)doc->selectedRev.revID);
+                retVal = new RevisionInternal((string)doc->docID, (string)doc->selectedRev.revID, doc->selectedRev.IsDeleted);
                 retVal.SetSequence((long)doc->selectedRev.sequence);
                 retVal.SetBody(new Body(doc->selectedRev.body));
             });
@@ -550,13 +567,13 @@ namespace Couchbase.Lite.Store
 
             var forestOps = C4ChangesOptions.DEFAULT;
             forestOps.includeDeleted = false;
-            forestOps.includeBodies = options.IsIncludeDocs() || options.IsIncludeConflicts() || filter != null;
+            forestOps.includeBodies = options.IncludeDocs || options.IncludeConflicts || filter != null;
             var changes = new RevisionList();
             var e = new CBForestDocEnumerator(Forest, lastSequence, forestOps);
             foreach (var next in e) {
                 var doc = next.Document;
                 var revs = default(IEnumerable<RevisionInternal>);
-                if (options.IsIncludeConflicts()) {
+                if (options.IncludeConflicts) {
                     using (var enumerator = new CBForestHistoryEnumerator(doc, false, false)) {
                         var includeBody = forestOps.includeBodies;
                         revs = enumerator.Select(x => new RevisionInternal(x.Document, includeBody)).ToList();
@@ -568,7 +585,7 @@ namespace Couchbase.Lite.Store
                 foreach (var rev in revs) {
                     Debug.Assert(rev != null);
                     if (filter == null || filter(rev)) {
-                        if (!options.IsIncludeDocs()) {
+                        if (!options.IncludeDocs) {
                             rev.SetBody(null);
                         }
 
@@ -662,6 +679,7 @@ namespace Couchbase.Lite.Store
                 // won't have any bodies. So only scan the current revs.
                 do {
                     if(doc->selectedRev.IsActive && doc->selectedRev.HasAttachments) {
+                        ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
                         var body = doc->selectedRev.body;
                         if(body.size.ToUInt32() > 0) {
                             var rev = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(body);
@@ -847,6 +865,10 @@ namespace Couchbase.Lite.Store
                 json = "{}";
             }
 
+            if (inDocId == null) {
+                inDocId = Misc.CreateGUID();
+            }
+
             var putRev = default(RevisionInternal);
             var change = default(DocumentChange);
             var success = RunInTransaction(() =>
@@ -854,7 +876,7 @@ namespace Couchbase.Lite.Store
                 var docId = inDocId;
                 var prevRevId = inPrevRevId;
                 var transactionSuccess = false;
-                WithC4Document(docId ?? Misc.CreateGUID(), null, false, true, doc =>
+                WithC4Document(docId, null, false, true, doc =>
                 {
                     if(prevRevId != null) {
                         // Updating an existing revision; make sure it exists and is a leaf:
@@ -949,8 +971,8 @@ namespace Couchbase.Lite.Store
                 // First get the CBForest doc:
                 WithC4Document(inRev.GetDocId(), null, false, true, doc =>
                 {
-                    ForestDBBridge.Check(err => Native.c4doc_insertRevisionWithHistory(doc, inRev.GetRevId(), json, inRev.IsDeleted(), 
-                        inRev.GetAttachments() != null, revHistory.ToArray(), err) > 0);
+                    ForestDBBridge.Check(err => Native.c4doc_insertRevisionWithHistory(doc, json, inRev.IsDeleted(), 
+                        inRev.GetAttachments() != null, revHistory.ToArray(), err));
 
                     // Save updated doc back to the database:
                     var isWinner = SaveDocument(doc, revHistory[0], inRev.GetProperties());

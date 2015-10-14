@@ -44,7 +44,6 @@ namespace Couchbase.Lite.Store
 
         private ForestDBCouchStore _dbStorage;
         private string _path;
-        private string _latestMapVersion;
         private C4View* _indexDB;
 
         public IViewStoreDelegate Delegate { get; set; }
@@ -57,7 +56,7 @@ namespace Couchbase.Lite.Store
                 try {
                     OpenIndex();
                 } catch(Exception e) {
-                    Log.W(TAG, "Exception opening index while getting total rows");
+                    Log.W(TAG, "Exception opening index while getting total rows", e);
                     return 0;
                 }
 
@@ -71,7 +70,7 @@ namespace Couchbase.Lite.Store
                 try {
                     OpenIndex();
                 } catch(Exception e) {
-                    Log.W(TAG, "Exception opening index while getting last sequence changed at");
+                    Log.W(TAG, "Exception opening index while getting last sequence changed at", e);
                     return 0;
                 }
 
@@ -85,7 +84,7 @@ namespace Couchbase.Lite.Store
                 try {
                     OpenIndex();
                 } catch(Exception e) {
-                    Log.W(TAG, "Exception opening index while getting last sequence indexed");
+                    Log.W(TAG, "Exception opening index while getting last sequence indexed", e);
                     return 0;
                 }
 
@@ -107,11 +106,11 @@ namespace Couchbase.Lite.Store
                         "Create is false but no db file exists at {0}", _path));
                 }
 
-                var view = OpenIndexWithOptions(C4DatabaseFlags.Create, true);
+                OpenIndexWithOptions(C4DatabaseFlags.Create, true);
             }
         }
 
-        public static void WithC4Keys(object[] keySources, C4KeyActionDelegate action)
+        public static void WithC4Keys(object[] keySources, bool writeNull, C4KeyActionDelegate action)
         {
             if (keySources == null) {
                 action(null);
@@ -120,7 +119,11 @@ namespace Couchbase.Lite.Store
 
             var c4Keys = new C4Key*[keySources.Length];
             for (int i = 0; i < keySources.Length; i++) {
-                c4Keys[i] = Manager.GetObjectMapper().SerializeToKey(keySources[i]);
+                if (keySources[i] == null && !writeNull) {
+                    c4Keys[i] = null;
+                } else {
+                    c4Keys[i] = Manager.GetObjectMapper().SerializeToKey(keySources[i]);
+                }
             }
 
             try {
@@ -154,8 +157,6 @@ namespace Couchbase.Lite.Store
                 Log.D(TAG, "Closing index");
                 ForestDBBridge.Check(err => Native.c4view_close(indexDB, err));
             }
-
-            _dbStorage.ForgetViewStorage(Name);
         }
 
         private C4View* OpenIndexWithOptions(C4DatabaseFlags options, bool dryRun = false)
@@ -211,8 +212,8 @@ namespace Couchbase.Lite.Store
             var enumerator = default(C4QueryEnumerator*);
             using(var startkeydocid_ = new C4String(options.StartKeyDocId))
             using(var endkeydocid_ = new C4String(options.EndKeyDocId)) {
-                WithC4Keys(new object[] { options.StartKey, options.EndKey }, startEndKey =>
-                    WithC4Keys(options.Keys == null ? null : options.Keys.ToArray(), c4keys =>
+                WithC4Keys(new object[] { options.StartKey, options.EndKey }, false, startEndKey =>
+                    WithC4Keys(options.Keys == null ? null : options.Keys.ToArray(), true, c4keys =>
                     {
                         var opts = C4QueryOptions.DEFAULT;
                         opts.descending = options.Descending;
@@ -373,8 +374,8 @@ namespace Couchbase.Lite.Store
                             continue;
                         }
 
-                        WithC4Keys(keys.ToArray(), c4keys =>
-                            WithC4Keys(values.ToArray(), c4values =>
+                        WithC4Keys(keys.ToArray(), true, c4keys =>
+                            WithC4Keys(values.ToArray(), true, c4values =>
                                 ForestDBBridge.Check(err => Native.c4indexer_emit(indexer, doc, (uint)i, c4keys, c4values, err)))
                         );
                     }
