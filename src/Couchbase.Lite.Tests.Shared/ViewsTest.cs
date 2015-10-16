@@ -246,9 +246,7 @@ namespace Couchbase.Lite
         private RevisionInternal PutDoc(Database db, IDictionary<string, object> props)
         {
             var rev = new RevisionInternal(props);
-            var status = new Status();
             rev = db.PutRevision(rev, null, false);
-            Assert.IsTrue(status.IsSuccessful);
             return rev;
         }
 
@@ -418,9 +416,7 @@ namespace Couchbase.Lite
             newdict3["key"] = "3hree";
             threeUpdated.SetProperties(newdict3);
 
-            Status status = new Status();
             rev3 = database.PutRevision(threeUpdated, rev3.GetRevId(), false);
-            Assert.IsTrue(status.IsSuccessful);
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
@@ -434,7 +430,6 @@ namespace Couchbase.Lite
             var rev4 = PutDoc(database, dict4);
             var twoDeleted = new RevisionInternal(rev2.GetDocId(), rev2.GetRevId(), true);
             database.PutRevision(twoDeleted, rev2.GetRevId(), false);
-            Assert.IsTrue(status.IsSuccessful);
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
@@ -710,7 +705,7 @@ namespace Couchbase.Lite
             options = new QueryOptions();
             options.Keys = new List<object>();
             allDocs = database.GetAllDocs(options);
-            Assert.IsNull(allDocs);
+            Assert.IsTrue(allDocs == null || !allDocs.Any());
 
             // Get specific documents:
             options = new QueryOptions();
@@ -725,9 +720,7 @@ namespace Couchbase.Lite
             // Delete a document:
             var del = docs[0];
             del = new RevisionInternal(del.GetDocId(), del.GetRevId(), true);
-            var status = new Status();
             del = database.PutRevision(del, del.GetRevId(), false);
-            Assert.AreEqual(StatusCode.Ok, status.Code);
 
             // Get deleted doc, and one bogus one:
             options = new QueryOptions();

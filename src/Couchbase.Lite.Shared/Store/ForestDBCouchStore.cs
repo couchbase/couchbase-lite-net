@@ -210,8 +210,9 @@ namespace Couchbase.Lite.Store
             } catch(CBForestException e) {
                 var is404 = e.Domain == C4ErrorDomain.ForestDB && e.Code == (int)ForestDBStatus.KeyNotFound;
                 is404 |= e.Domain == C4ErrorDomain.HTTP && e.Code == 404;
+                var is410 = e.Domain == C4ErrorDomain.HTTP && e.Code == 410; // Body compacted
 
-                if (!is404) {
+                if (!is404 && !is410) {
                     throw;
                 }
 
@@ -515,8 +516,8 @@ namespace Couchbase.Lite.Store
         public string FindCommonAncestor(RevisionInternal rev, IEnumerable<string> revIds)
         {
             var generation = RevisionInternal.GenerationFromRevID(rev.GetRevId());
-            var revIdArray = revIds.ToList();
-            if (generation <= 1 || revIdArray.Count == 0) {
+            var revIdArray = revIds == null ? null : revIds.ToList();
+            if (generation <= 1 || revIdArray == null || revIdArray.Count == 0) {
                 return null;
             }
              
@@ -574,7 +575,7 @@ namespace Couchbase.Lite.Store
                 var doc = next.Document;
                 var revs = default(IEnumerable<RevisionInternal>);
                 if (options.IncludeConflicts) {
-                    using (var enumerator = new CBForestHistoryEnumerator(doc, false, false)) {
+                    using (var enumerator = new CBForestHistoryEnumerator(doc, true, false)) {
                         var includeBody = forestOps.includeBodies;
                         revs = enumerator.Select(x => new RevisionInternal(x.Document, includeBody)).ToList();
                     }
@@ -609,29 +610,46 @@ namespace Couchbase.Lite.Store
                     throw;
                 }
             } else {
-                enumerator = new CBForestDocEnumerator(Forest, options.StartKeyDocId, options.EndKeyDocId, forestOps);
+                enumerator = new CBForestDocEnumerator(Forest, options.StartKey as string, options.EndKey as string, forestOps);
             }
 
+            var current = 0;
             foreach(var next in enumerator) {
-                var doc = next.Document;
-                var docID = (string)doc->docID;
-                var conflicts = default(IList<string>);
-                if (options.AllDocsMode >= AllDocsMode.ShowConflicts && doc->IsConflicted) {
-                    using(var innerEnumerator = new CBForestHistoryEnumerator(doc, true, false)) {
-                        conflicts = innerEnumerator.Select(x => (string)x.Document->selectedRev.revID).ToList();
-                    }
-
-                    if (conflicts.Count == 1) {
-                        conflicts = null;
-                    }
+                if (current++ >= options.Limit) {
+                    yield break;
                 }
 
-                var value = new NonNullDictionary<string, object> {
-                    { "rev", (string)doc->revID },
-                    { "deleted", doc->IsDeleted ? (object)true : null },
-                    { "_conflicts", conflicts }
-                };
-                yield return new QueryRow(docID, (long)doc->selectedRev.sequence, docID, value, new RevisionInternal(doc, false), null);
+                var doc = next.Document;
+                var sequenceNumber = 0L;
+                var docID = (string)doc->docID;
+                var value = default(IDictionary<string, object>);
+                if (doc->Exists) {
+                    sequenceNumber = (long)doc->selectedRev.sequence;
+                    var conflicts = default(IList<string>);
+                    if (options.AllDocsMode >= AllDocsMode.ShowConflicts && doc->IsConflicted) {
+                        using (var innerEnumerator = new CBForestHistoryEnumerator(doc, true, false)) {
+                            conflicts = innerEnumerator.Select(x => (string)x.Document->selectedRev.revID).ToList();
+                        }
+
+                        if (conflicts.Count == 1) {
+                            conflicts = null;
+                        }
+                    }
+
+                    bool valid = conflicts != null || options.AllDocsMode != AllDocsMode.OnlyConflicts;
+                    if (!valid) {
+                        continue;
+                    }
+
+                    value = new NonNullDictionary<string, object> {
+                        { "rev", (string)doc->revID },
+                        { "deleted", doc->IsDeleted ? (object)true : null },
+                        { "_conflicts", conflicts }
+                    };
+                }
+
+                yield return new QueryRow(value == null ? null : docID, sequenceNumber, docID, value, 
+                    value == null ? null : new RevisionInternal(doc, false), null);
             }
         }
 
@@ -647,7 +665,10 @@ namespace Couchbase.Lite.Store
                     if (rev.GetDocId() != lastDocId) {
                         lastDocId = rev.GetDocId();
                         Native.c4doc_free(doc);
-                        doc = (C4Document *)ForestDBBridge.Check(err => Native.c4doc_get(Forest, lastDocId, true, err));
+                        doc = Native.c4doc_get(Forest, lastDocId, true, null);
+                        if(doc == null) {
+                            continue;
+                        }
                     }
 
                     if (Native.c4doc_selectRevision(doc, rev.GetRevId(), false, null)) {
@@ -681,7 +702,7 @@ namespace Couchbase.Lite.Store
                     if(doc->selectedRev.IsActive && doc->selectedRev.HasAttachments) {
                         ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
                         var body = doc->selectedRev.body;
-                        if(body.size.ToUInt32() > 0) {
+                        if(body.size > 0) {
                             var rev = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(body);
                             foreach(var entry in rev.Get("_attachments").AsDictionary<string, IDictionary<string, object>>()) {
                                 try {
@@ -766,7 +787,7 @@ namespace Couchbase.Lite.Store
                 }
 
                 var gotRevId = (string)doc->meta;
-                if(revId != null && revId != gotRevId || doc->body.size.ToUInt32() == 0) {
+                if(revId != null && revId != gotRevId || doc->body.size == 0) {
                     return;
                 }
 
@@ -995,6 +1016,8 @@ namespace Couchbase.Lite.Store
                 try {
                     view = new ForestDBViewStore(this, name, create);
                     _views[name] = view;
+                } catch(InvalidOperationException) {
+                    return null;
                 } catch(Exception e) {
                     Log.E(TAG, String.Format("Error creating view storage for {0}", name), e);
                     return null;
@@ -1006,7 +1029,8 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<string> GetAllViews()
         {
-            return System.IO.Directory.EnumerateFiles(Directory).Select(x => ForestDBViewStore.FileNameToViewName(x));
+            return System.IO.Directory.EnumerateFiles(Directory, "*."+ForestDBViewStore.VIEW_INDEX_PATH_EXTENSION).
+                Select(x => ForestDBViewStore.FileNameToViewName(Path.GetFileName(x)));
         }
 
         #endregion

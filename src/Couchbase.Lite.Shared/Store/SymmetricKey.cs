@@ -168,6 +168,11 @@ namespace Couchbase.Lite.Store
 
         #if FORESTDB
 
+        /// <summary>
+        /// Transforms this object into an object suitable for use
+        /// with the CBForest library
+        /// </summary>
+        /// <returns>The c4 encryption key.</returns>
         public CBForest.C4EncryptionKey AsC4EncryptionKey()
         {
             var retVal = new CBForest.C4EncryptionKey();
@@ -183,6 +188,11 @@ namespace Couchbase.Lite.Store
 
         #endif
 
+        /// <summary>
+        /// Creates a new SymmetricKey using the supplied data
+        /// </summary>
+        /// <param name="keyOrPassword">A password as a string or a byte
+        /// IEnumerable containig key data</param>
         public static SymmetricKey Create(object keyOrPassword)
         {
             var password = keyOrPassword as string;
@@ -255,6 +265,11 @@ namespace Couchbase.Lite.Store
             return new CryptoStream(stream, _cryptor.CreateDecryptor(), CryptoStreamMode.Read);
         }
 
+        /// <summary>
+        /// Creates a strem that will encrypt the given base stream
+        /// </summary>
+        /// <returns>The stream to write to for encryption</returns>
+        /// <param name="baseStream">The stream to read from</param>
         public CryptoStream CreateStream(Stream baseStream)
         {
             if (_cryptor == null || baseStream == null) {

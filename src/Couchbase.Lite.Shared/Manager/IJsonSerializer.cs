@@ -140,8 +140,6 @@ namespace Couchbase.Lite
         /// <typeparam name="T">The type of object to return</typeparam>
         T Deserialize<T>(Stream json);
 
-        T CurrentTokenValue<T>();
-
         /// <summary>
         /// Starts parsing a stream of JSON incrementally, rather than serializing
         /// the entire object into memory
@@ -192,8 +190,19 @@ namespace Couchbase.Lite
 
         #if FORESTDB
 
+        /// <summary>
+        /// Deserializes the CBForest key into a .NET object of a given type
+        /// </summary>
+        /// <returns>The deserialized key</returns>
+        /// <param name="keyReader">The CBForest key reader instance to read from</param>
+        /// <typeparam name="T">The type of object to deserialize into</typeparam>
         T DeserializeKey<T>(CBForest.C4KeyReader keyReader);
 
+        /// <summary>
+        /// Serializes the given object into a CBForest key
+        /// </summary>
+        /// <returns>The serialized key</returns>
+        /// <param name="keyValue">The object to serialize</param>
         unsafe CBForest.C4Key* SerializeToKey(object keyValue);
 
         #endif

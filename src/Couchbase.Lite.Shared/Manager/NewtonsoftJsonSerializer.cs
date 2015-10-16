@@ -100,15 +100,6 @@ namespace Couchbase.Lite
             }
         }
 
-        public T CurrentTokenValue<T>()
-        {
-            if (_textReader == null) {
-                throw new InvalidOperationException("JSON serializer is not running in incremental mode");
-            }
-
-            return (T)_textReader.Value;
-        }
-
         public void StartIncrementalParse(Stream json)
         {
             if (_textReader != null) {

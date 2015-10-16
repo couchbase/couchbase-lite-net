@@ -6,6 +6,7 @@
     </MonoPrefix>
     <ReleaseVersion>1.1.1</ReleaseVersion>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <AssemblyName>Couchbase.Lite</AssemblyName>
   </PropertyGroup>
   <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
@@ -28,12 +29,11 @@
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;VERBOSE;MOCK_ENCRYPTION;FORESTDB</DefineConstants>
+    <DefineConstants>DEBUG;FORESTDB</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
     <DocumentationFile>bin\Debug\Couchbase.Lite.xml</DocumentationFile>
-    <AssemblyName>Couchbase.Lite</AssemblyName>
     <LangVersion>5</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -45,18 +45,7 @@
     <Prefer32Bit>false</Prefer32Bit>
     <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
-    <AssemblyName>Couchbase.Lite</AssemblyName>
-    <DefineConstants>MOCK_ENCRYPTION;FORESTDB</DefineConstants>
-    <LangVersion>5</LangVersion>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Prod|AnyCPU' ">
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Prod</OutputPath>
-    <WarningLevel>4</WarningLevel>
-    <AssemblyName>Couchbase.Lite.Net45</AssemblyName>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>pdbonly</DebugType>
+    <DefineConstants>FORESTDB</DefineConstants>
     <LangVersion>5</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>

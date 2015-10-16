@@ -109,10 +109,6 @@ namespace Couchbase.Lite.Store
 
         private static readonly int _SqliteVersion;
 
-        #if MOCK_ENCRYPTION
-        private bool ENABLE_MOCK_ENCRYPTION = false;
-        #endif
-
         private string _directory;
         private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
@@ -200,7 +196,7 @@ namespace Couchbase.Lite.Store
             // the app might be linked with a custom version of SQLite (like SQLCipher) instead of the
             // system library, so the actual version/features may differ from what was declared in
             // sqlite3.h at compile time.
-            Log.I(TAG, "Couchbase Lite using SQLite version {0} ({1})", raw.sqlite3_libversion(), raw.sqlite3_sourceid());
+            Log.I(TAG, "Initialized SQLite store (version {0} ({1}))", raw.sqlite3_libversion(), raw.sqlite3_sourceid());
             _SqliteVersion = raw.sqlite3_libversion_number();
 
             Debug.Assert(_SqliteVersion >= 3007000, String.Format("SQLite library is too old ({0}); needs to be at least 3.7", raw.sqlite3_libversion()));
@@ -284,7 +280,7 @@ namespace Couchbase.Lite.Store
         public RevisionInternal GetDocument(string docId, long sequence)
         {
             RevisionInternal result = null;
-            var status = TryQuery(c =>
+            TryQuery(c =>
             {
                 string revId = c.GetString(0);
                 bool deleted = c.GetInt(1) != 0;
@@ -1020,52 +1016,39 @@ namespace Couchbase.Lite.Store
             // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export
             var hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
             if (!hasRealEncryption) {
-                #if MOCK_ENCRYPTION
-                if (!Database.EnableMockEncryption)
-                #endif
-                    return null;
+                return null;
             }
 
             var action = new AtomicAction();
             var dbWasClosed = false;
             var tempPath = default(string);
-            #if MOCK_ENCRYPTION
-            if (!hasRealEncryption) {
-                var givenKeyData = newKey != null ? newKey.KeyData : new byte[0];
-                var oldKeyPath = Path.Combine(Path.GetDirectoryName(_directory), "mock_key");
-                var newKeyPath = Path.Combine(Path.GetDirectoryName(_directory), "mock_new_key");
-                File.WriteAllBytes(newKeyPath, givenKeyData);
-                action.AddLogic(AtomicAction.MoveFile(oldKeyPath, newKeyPath));
-            } else
-            #endif
+
+            // Make a path for a temporary database file:
+            tempPath = Path.Combine(Path.GetTempPath(), Misc.CreateGUID());
+            action.AddLogic(null, () => File.Delete(tempPath), null);
+
+            // Create & attach a temporary database encrypted with the new key:
+            action.AddLogic(() =>
             {
-                // Make a path for a temporary database file:
-                tempPath = Path.Combine(Path.GetTempPath(), Misc.CreateGUID());
-                action.AddLogic(null, () => File.Delete(tempPath), null);
+                var keyStr = newKey != null ? newKey.HexData : String.Empty;
+                var sql = String.Format("ATTACH DATABASE ? AS rekeyed_db KEY \"x'{0}'\"", keyStr);
+                StorageEngine.ExecSQL(sql, tempPath);
+            }, () =>
+            {
+                if(dbWasClosed) {
+                    return;
+                }
 
-                // Create & attach a temporary database encrypted with the new key:
-                action.AddLogic(() =>
-                {
-                    var keyStr = newKey != null ? newKey.HexData : String.Empty;
-                    var sql = String.Format("ATTACH DATABASE ? AS rekeyed_db KEY \"x'{0}'\"", keyStr);
-                    StorageEngine.ExecSQL(sql, tempPath);
-                }, () =>
-                {
-                    if(dbWasClosed) {
-                        return;
-                    }
+                StorageEngine.ExecSQL("DETACH DATABASE rekeyed_db");
+            });
 
-                    StorageEngine.ExecSQL("DETACH DATABASE rekeyed_db");
-                });
-
-                // Export the current database's contents to the new one:
-                action.AddLogic(() => 
-                {
-                    StorageEngine.ExecSQL("SELECT sqlcipher_export('rekeyed_db')");
-                    var version = QueryOrDefault<int>(c => c.GetInt(0), false, 0, "PRAGMA user_version");
-                    StorageEngine.ExecSQL(String.Format("PRAGMA rekeyed_db.user_version = {0}", version));
-                }, null, null);
-            }
+            // Export the current database's contents to the new one:
+            action.AddLogic(() => 
+            {
+                StorageEngine.ExecSQL("SELECT sqlcipher_export('rekeyed_db')");
+                var version = QueryOrDefault<int>(c => c.GetInt(0), false, 0, "PRAGMA user_version");
+                StorageEngine.ExecSQL(String.Format("PRAGMA rekeyed_db.user_version = {0}", version));
+            }, null, null);
 
             // Close the database (and re-open it on cleanup):
             action.AddLogic(() =>
@@ -1125,7 +1108,7 @@ namespace Couchbase.Lite.Store
             }, true, sb.ToString(), docNumericId, revId);
 
             if (transactionStatus.IsError) {
-                if (transactionStatus.Code == StatusCode.NotFound && revId == null) {
+                if (transactionStatus.Code == StatusCode.NotFound) {
                     return null;
                 } else {
                     throw new CouchbaseLiteException(transactionStatus.Code);
@@ -1678,7 +1661,7 @@ namespace Couchbase.Lite.Store
             string winningRevID = null;
             bool inConflict = false;
 
-            var status = RunInOuterTransaction(() =>
+            RunInOuterTransaction(() =>
             {
                 // Remember, this block may be called multiple times if I have to retry the transaction.
                 newRev = null;
@@ -1859,7 +1842,7 @@ namespace Couchbase.Lite.Store
 
             string winningRevId = null;
             bool inConflict = false;
-            var status = RunInTransaction(() =>
+            RunInTransaction(() =>
             {
                 // First look up the document's row-id and all locally-known revisions of it:
                 Dictionary<string, RevisionInternal> localRevs = null;

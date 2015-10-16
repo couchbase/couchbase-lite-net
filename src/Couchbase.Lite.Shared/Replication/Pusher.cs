@@ -654,7 +654,6 @@ namespace Couchbase.Lite.Replicator
                                 if (properties.ContainsKey("_attachments")) {
                                     // Look for the latest common ancestor and stuf out older attachments:
                                     var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
-                                    Status status = new Status();
                                     try {
                                         LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
                                     } catch(Exception ex) {

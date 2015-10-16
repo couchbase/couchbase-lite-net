@@ -76,12 +76,73 @@ namespace Couchbase.Lite.Db
 
         }
 
+        private class aggregate_upgrader : IDatabaseUpgrader
+        {
+            private const string TAG = "aggregate_upgrader";
+            private readonly IDatabaseUpgrader[] _children;
+            private int _currentIndex = -1;
+
+            public static IDatabaseUpgrader Create(IDatabaseUpgrader[] children) 
+            {
+                if (children == null || children.Length == 0) {
+                    return null;
+                }
+
+                if (children.Length == 1) {
+                    return children.First();
+                }
+
+                return new aggregate_upgrader(children);
+            }
+
+            private aggregate_upgrader(IDatabaseUpgrader[] children) 
+            {
+                _children = children;
+            }
+
+
+            #region IDatabaseUpgrader implementation
+
+            public void Import()
+            {
+                foreach (var child in _children) {
+                    _currentIndex++;
+                    child.CanRemoveOldAttachmentsDir = CanRemoveOldAttachmentsDir;
+                    child.Import();
+                }
+            }
+
+            public void Backout()
+            {
+                _children[_currentIndex].Backout();
+            }
+
+            public int NumDocs
+            {
+                get {
+                    return _children[_currentIndex].NumDocs;
+                }
+            }
+
+            public int NumRevs
+            {
+                get {
+                    return _children[_currentIndex].NumDocs;
+                }
+            }
+
+            public bool CanRemoveOldAttachmentsDir { get; set; }
+
+            #endregion
+        }
+
         private class v1_upgrader : IDatabaseUpgrader
         {
             private const string TAG = "v1_upgrader";
             private readonly Database _db;
             private readonly string _path;
             private sqlite3 _sqlite;
+            private string _oldAttachmentsPath;
 
             public int NumDocs { get; private set; }
 
@@ -94,28 +155,6 @@ namespace Couchbase.Lite.Db
                 _db = db;
                 _path = path;
                 CanRemoveOldAttachmentsDir = true;
-            }
-
-            private static Status SqliteErrToStatus(int sqliteErr)
-            {
-                if (sqliteErr == raw.SQLITE_OK || sqliteErr == raw.SQLITE_DONE) {
-                    return new Status(StatusCode.Ok);
-                }
-
-                Log.W(TAG, "Upgrade failed: SQLite error {0}", sqliteErr);
-                switch (sqliteErr) {
-                    case raw.SQLITE_NOTADB:
-                        return new Status(StatusCode.BadRequest);
-                    case raw.SQLITE_PERM:
-                        return new Status(StatusCode.Forbidden);
-                    case raw.SQLITE_CORRUPT:
-                    case raw.SQLITE_IOERR:
-                        return new Status(StatusCode.CorruptError);
-                    case raw.SQLITE_CANTOPEN:
-                        return new Status(StatusCode.NotFound);
-                    default:
-                        return new Status(StatusCode.DbError);
-                }
             }
 
             private static int CollateRevIDs(object user_data, string s1, string s2)
@@ -179,12 +218,12 @@ namespace Couchbase.Lite.Db
                             AddAttachmentsToSequence(sequence, nuJson);
                         } catch(CouchbaseLiteException) {
                             Log.W(TAG, "Failed to add attachments to sequence {0}", sequence);
+                            raw.sqlite3_finalize(revQuery);
                             throw;
                         } catch(Exception e) {
+                            raw.sqlite3_finalize(revQuery);
                             throw new CouchbaseLiteException(String.Format(
                                 "Error adding attachments to sequence {0}", sequence), e) { Code = StatusCode.DbError };
-                        } finally {
-                            raw.sqlite3_finalize(revQuery);
                         }
 
                         json = nuJson;
@@ -205,12 +244,12 @@ namespace Couchbase.Lite.Db
                             _db.ForceInsert(rev, history, null);
                         } catch (CouchbaseLiteException) {
                             Log.W(TAG, "Failed to insert revision {0} into target database", rev);
+                            raw.sqlite3_finalize(revQuery);
                             throw;
                         } catch(Exception e) {
+                            raw.sqlite3_finalize(revQuery);
                             throw new CouchbaseLiteException(String.Format(
                                 "Error inserting revision {0} into target database", rev), e) { Code = StatusCode.Exception };
-                        } finally {
-                            raw.sqlite3_finalize(revQuery);
                         }
 
                         NumRevs++;
@@ -222,7 +261,10 @@ namespace Couchbase.Lite.Db
                 raw.sqlite3_finalize(revQuery);
                 ++NumDocs;
                 if (err != raw.SQLITE_OK) {
-                    throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
+                    var s = SqliteErrToStatus(err);
+                    if (s.IsError) {
+                        throw new CouchbaseLiteException(s.Code);
+                    }
                 }
             }
 
@@ -335,7 +377,10 @@ namespace Couchbase.Lite.Db
 
                 raw.sqlite3_finalize(localQuery);
                 if (err != raw.SQLITE_OK) {
-                    throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
+                    var s = SqliteErrToStatus(err);
+                    if (s.IsError) {
+                        throw new CouchbaseLiteException(s.Code);
+                    }
                 }
             }
 
@@ -394,25 +439,28 @@ namespace Couchbase.Lite.Db
 
             private void MoveAttachmentsDir()
             {
-                var oldAttachmentsPath = Path.Combine(Path.ChangeExtension(_db.DbDirectory, null), "attachments");
+                _oldAttachmentsPath = Path.Combine(Path.ChangeExtension(_path, null), "attachments");
                 var newAttachmentsPath = _db.AttachmentStorePath;
-                if (oldAttachmentsPath.Equals(newAttachmentsPath)) {
-                    Log.D(TAG, "Skip moving the attachments folder as no path change ('{0}' vs '{1}').", oldAttachmentsPath, newAttachmentsPath);
+                if (_oldAttachmentsPath.Equals(newAttachmentsPath)) {
+                    Log.D(TAG, "Skip moving the attachments folder as no path change ('{0}' vs '{1}').", _oldAttachmentsPath, newAttachmentsPath);
                     return;
                 }
 
-                if (!Directory.Exists(oldAttachmentsPath)) {
-                    return;
+                if (!Directory.Exists(_oldAttachmentsPath)) {
+                    _oldAttachmentsPath = Path.Combine(Path.GetDirectoryName(_path), Path.ChangeExtension(_path, null) + " attachments");
+                    if (!Directory.Exists(_oldAttachmentsPath)) {
+                        return;
+                    }
                 }
-
-                Log.D(TAG, "Moving {0} to {1}", oldAttachmentsPath, newAttachmentsPath);
+                    
+                Log.D(TAG, "Moving {0} to {1}", _oldAttachmentsPath, newAttachmentsPath);
                 Directory.Delete(newAttachmentsPath, true);
                 Directory.CreateDirectory(newAttachmentsPath);
 
                 try {
                     if (CanRemoveOldAttachmentsDir) {
                         // Need to ensure upper case
-                        foreach(var file in Directory.GetFiles(oldAttachmentsPath)) {
+                        foreach(var file in Directory.GetFiles(_oldAttachmentsPath)) {
                             var filename = Path.GetFileNameWithoutExtension(file).ToUpperInvariant();
                             var extension = Path.GetExtension(file);
                             var newPath = Path.Combine(newAttachmentsPath, filename + extension);
@@ -421,7 +469,7 @@ namespace Couchbase.Lite.Db
 
                         Directory.Delete(Path.ChangeExtension(_db.DbDirectory, null), true);
                     } else {
-                        DirectoryCopy(oldAttachmentsPath, newAttachmentsPath);
+                        DirectoryCopy(_oldAttachmentsPath, newAttachmentsPath);
                     }
                 } catch(IOException e) {
                     if (!(e is DirectoryNotFoundException)) {
@@ -479,13 +527,21 @@ namespace Couchbase.Lite.Db
 
             public void Import()
             {
-                int version = DatabaseUpgraderFactory.SchemaVersion(_path);
+                // Rename the old database file for migration:
+                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffixv1 + "-mgr");
+                if (!MoveSqliteFiles(_path, destPath)) {
+                    Log.W(TAG, "Upgrade failed: Cannot rename the old sqlite files");
+                    MoveSqliteFiles(destPath, _path);
+                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                }
+
+                int version = DatabaseUpgraderFactory.SchemaVersion(destPath);
                 if (version < 0) {
                     throw new CouchbaseLiteException("Cannot determine database schema version", StatusCode.CorruptError);
                 }
 
                 // Open source (SQLite) database:
-                var err = raw.sqlite3_open_v2(_path, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
+                var err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
                 if (err > 0) {
                     throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
                 }
@@ -516,10 +572,13 @@ namespace Couchbase.Lite.Db
                         var key = raw.sqlite3_column_text(stmt2, 2);
                         var value = raw.sqlite3_column_text(stmt2, 3);
 
-                        var insertSql = String.Format("INSERT INTO maps_{0} (sequence, key, value) VALUES ({1}, {2}, {3}",
-                                            viewId, sequence, key, value);
+                        var insertSql = String.Format("INSERT INTO maps_{0} (sequence, key, value) VALUES (?, ?, ?)",
+                                            viewId);
                         
                         PrepareSQL(ref stmt3, insertSql);
+                        raw.sqlite3_bind_int64(stmt3, 0, sequence);
+                        raw.sqlite3_bind_text(stmt3, 1, key);
+                        raw.sqlite3_bind_text(stmt3, 2, value);
                         raw.sqlite3_step(stmt3);
                         raw.sqlite3_finalize(stmt3);
                     }
@@ -538,18 +597,15 @@ namespace Couchbase.Lite.Db
                 }
 
                 if (version >= 101) {
+                    _db.Delete();
+                    MoveSqliteFiles(destPath, _path);
+                    var secondaryUpgrade = new v11_upgrader(_db, _path);
+                    secondaryUpgrade.Import();
+                    Directory.Move(Path.Combine(Path.GetDirectoryName(_path), _db.Name + Manager.DatabaseSuffix), _db.DbDirectory);
                     return;
                 }
 
                 Log.D(TAG, "Upgrading database v1.0 ({0}) to v1.1 at {1} ...", version, _path);
-
-                // Rename the old database file for migration:
-                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffix + "-mgr");
-                if (!MoveSqliteFiles(_path, destPath)) {
-                    MoveSqliteFiles(destPath, _path);
-
-                    throw new CouchbaseLiteException("Cannot rename the old sqlite files", StatusCode.InternalServerError);
-                }
 
                 err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
                 if (err > 0) {
@@ -640,22 +696,102 @@ namespace Couchbase.Lite.Db
 
             public void Backout()
             {
+                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffixv1 + "-mgr");
+                if (!File.Exists(destPath)) {
+                    // Upgrader failed to even do the first step, nothing to backout
+                    return;
+                }
+
                 // Move attachments dir back to the old path
                 var newAttachmentsPath = _db.AttachmentStorePath;
-                if (Directory.Exists(newAttachmentsPath)) {
-                    var oldAttachmentsPath = Path.ChangeExtension(_db.DbDirectory, null) + Path.PathSeparator + "attachments";
+                if (_oldAttachmentsPath != null && Directory.Exists(newAttachmentsPath)) {
                     if (CanRemoveOldAttachmentsDir) {
                         try {
-                            Directory.Move(newAttachmentsPath, oldAttachmentsPath);
+                            Directory.CreateDirectory(_oldAttachmentsPath);
                         } catch(IOException) {
                         }
                     }
                 }
 
                 _db.Delete();
+                MoveSqliteFiles(destPath, _path);
+
             }
 
             #endregion
+
+        }
+
+        private class v11_upgrader : IDatabaseUpgrader
+        {
+            private const string TAG = "v11_upgrader";
+            private const string SUFFIX = ".cblite2";
+            private readonly Database _db;
+            private readonly string _path;
+
+            public int NumDocs { get; private set; }
+
+            public int NumRevs { get; private set; }
+
+            public bool CanRemoveOldAttachmentsDir { get; set; }
+
+            public v11_upgrader(Database db, string path)
+            {
+                _db = db;
+                _path = path;
+                CanRemoveOldAttachmentsDir = true;
+            }
+             
+            public void Import()
+            {
+                var newPath = Path.Combine(Path.GetDirectoryName(_path), _db.Name + SUFFIX);
+                if (Directory.Exists(newPath)) {
+                    Log.W(TAG, "Upgrade to v1.2 failed ({0} already exists)", newPath);
+                    throw new CouchbaseLiteException(StatusCode.PreconditionFailed);
+                }
+
+                Directory.CreateDirectory(newPath);
+                var sqliteFilePath = Path.Combine(newPath, "db.sqlite3");
+                try {
+                    File.Copy(_path, sqliteFilePath);
+                    if (File.Exists(_path + "-wal")) {
+                        File.Copy(_path + "-wal", sqliteFilePath + "-wal");
+                    }
+
+                    if (File.Exists(_path + "-shm")) {
+                        File.Copy(_path + "-shm", sqliteFilePath + "-shm");
+                    }
+                } catch(IOException e) {
+                    Log.W(TAG, "Upgrade to v1.2 failed (Couldn't copy sqlite files: {0})", e.ToString());
+                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                }
+
+                var oldAttachmentsPath = Path.Combine(Path.GetDirectoryName(_path), _db.Name + " attachments");
+                try {
+                    if (Directory.Exists(oldAttachmentsPath)) {
+                        var newAttachmentsPath = Path.Combine(newPath, "attachments");
+                        Directory.CreateDirectory(newAttachmentsPath);
+
+                        foreach (var att in Directory.EnumerateFiles(oldAttachmentsPath)) {
+                            File.Copy(att, Path.Combine(newAttachmentsPath, Path.GetFileName(att))); 
+                        }
+                    }
+                } catch(IOException e) {
+                    Log.W(TAG, "Upgrade to v1.2 failed (Couldn't copy attachment files: {0})", e.ToString());
+                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                }
+
+                File.Delete(_path);
+                File.Delete(_path + "-wal");
+                File.Delete(_path + "-shm");
+                Directory.Delete(oldAttachmentsPath, true);
+            }
+
+            public void Backout()
+            {
+                var newPath = Path.Combine(Path.GetDirectoryName(_path) + _db.Name + SUFFIX);
+                Directory.Delete(newPath, true);
+            }
 
         }
     }

@@ -88,12 +88,6 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        #if MOCK_ENCRYPTION
-        public static bool EnableMockEncryption;
-        #else
-        public const bool EnableMockEncryption = false;
-        #endif
-
         /// <summary>
         /// Each database can have an associated PersistentCookieStore,
         /// where the persistent cookie store uses the database to store
@@ -190,7 +184,6 @@ namespace Couchbase.Lite
             get {
                 string dir = DbDirectory;
                 var info = new DirectoryInfo(dir);
-                var sanitizedName = Name.Replace('/', '.');
 
                 // Database files
                 return info.EnumerateFiles("*", SearchOption.AllDirectories).Sum(x => x.Length);
@@ -462,6 +455,7 @@ namespace Couchbase.Lite
             if (view != null) {
                 return view;
             }
+
             view = View.MakeView(this, name, false);
 
             return RegisterView(view);
@@ -620,6 +614,11 @@ namespace Couchbase.Lite
         }
         private EventHandler<DatabaseChangeEventArgs> _changed;
 
+        /// <summary>
+        /// Change the encryption key used to secure this database
+        /// </summary>
+        /// <param name="newKeyOrPassword">Either a password as a string or derived
+        /// key data as a byte IEnumerable</param>
         public void ChangeEncryptionKey(object newKeyOrPassword)
         {
             var newKey = default(SymmetricKey);
@@ -637,7 +636,7 @@ namespace Couchbase.Lite
             action.Run();
         }
 
-    #endregion
+        #endregion
 
         #region Internal Methods
 
@@ -1194,8 +1193,6 @@ namespace Couchbase.Lite
         /// <param name="prevRevId">The ID of the revision to replace (same as the "?rev=" parameter to a PUT), or null if this is a new document.
         ///     </param>
         /// <param name="allowConflict">If false, an error status 409 will be returned if the insertion would create a conflict, i.e. if the previous revision already has a child.
-        ///     </param>
-        /// <param name="resultStatus">On return, an HTTP status code indicating success or failure.
         ///     </param>
         /// <returns>A new RevisionInternal with the docID, revID and sequence filled in (but no body).
         ///     </returns>

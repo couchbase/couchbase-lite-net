@@ -228,15 +228,6 @@ namespace Couchbase.Lite
             Assert.AreEqual(100, query.Run().Count);
             seekrit.Dispose();
         }
-
-        #if ENABLE_MOCK_ENCRYPTION
-        protected override void TearDown()
-        {
-            base.TearDown();
-            Database.EnableMockEncryption = false;
-            
-        }
-        #endif
     }
 }
 

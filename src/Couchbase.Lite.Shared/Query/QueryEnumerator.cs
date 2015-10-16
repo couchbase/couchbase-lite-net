@@ -79,7 +79,12 @@ namespace Couchbase.Lite {
         /// Gets whether the <see cref="Couchbase.Lite.Database"/> has changed since 
         /// the <see cref="Couchbase.Lite.View"/> results were generated.
         /// </summary>
-        public bool Stale { get { return SequenceNumber < Database.LastSequenceNumber; } }
+        public bool Stale
+        { 
+            get { 
+                return SequenceNumber < Database.LastSequenceNumber; 
+            } 
+        }
 
         #endregion
 

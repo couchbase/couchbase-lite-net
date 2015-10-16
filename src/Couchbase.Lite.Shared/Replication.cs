@@ -128,11 +128,18 @@ namespace Couchbase.Lite
 
     #endregion
 
+    /// <summary>
+    /// A class for holding replication options
+    /// </summary>
     [DictionaryContract(OptionalKeys=new object[] { 
         ReplicationOptionsDictionary.REMOTE_UUID_KEY, typeof(string) 
     })]
     public sealed class ReplicationOptionsDictionary : ContractedDictionary
     {
+        /// <summary>
+        /// This key stores an ID for a remote endpoint whose identifier
+        /// is likely to change (i.e. found via Bonjour)
+        /// </summary>
         public const string REMOTE_UUID_KEY = "remoteUUID";
     }
 
@@ -478,6 +485,9 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Gets or sets custom options on this replication
+        /// </summary>
         public ReplicationOptionsDictionary Options { get; set; }
        
         /// <summary>
@@ -692,6 +702,11 @@ namespace Couchbase.Lite
             FireTrigger(ReplicationTrigger.StopGraceful);
         }
 
+        /// <summary>
+        /// Gets a collection of document IDs that have been scheduled for replication
+        /// but not yet completed.
+        /// </summary>
+        /// <returns>The pending document IDs.</returns>
         public ICollection<string> GetPendingDocumentIDs()
         {
             if (IsPull || (_stateMachine.State > ReplicationState.Initial && _pendingDocumentIDs != null)) {
@@ -722,6 +737,11 @@ namespace Couchbase.Lite
             return null;
         }
 
+        /// <summary>
+        /// Checks if the specified document is pending replication
+        /// </summary>
+        /// <returns><c>true</c> if this document is pending, otherwise, <c>false</c>.</returns>
+        /// <param name="doc">The document to check.</param>
         public bool IsDocumentPending(Document doc)
         {
             return doc != null && GetPendingDocumentIDs().Contains(doc.Id);

@@ -78,6 +78,7 @@ namespace Couchbase.Lite
                 {
                     context.Reject("Where's your towel?");
                 }
+                    
                 return hoopy;
             };
 
@@ -88,11 +89,9 @@ namespace Couchbase.Lite
             props["name"] = "Zaphod Beeblebrox";
             props["towel"] = "velvet";
             RevisionInternal rev = new RevisionInternal(props);
-            Status status = new Status();
             validationCalled = false;
             rev = database.PutRevision(rev, null, false);
             Assert.IsTrue(validationCalled);
-            Assert.AreEqual(StatusCode.Created, status.Code);
 
             // PUT a valid update:
             props["head_count"] = 3;
@@ -100,7 +99,6 @@ namespace Couchbase.Lite
             validationCalled = false;
             rev = database.PutRevision(rev, rev.GetRevId(), false);
             Assert.IsTrue(validationCalled);
-            Assert.AreEqual(StatusCode.Created, status.Code);
 
             // PUT an invalid update:
             Sharpen.Collections.Remove(props, "towel");
@@ -108,7 +106,6 @@ namespace Couchbase.Lite
             validationCalled = false;
             rev = database.PutRevision(rev, rev.GetRevId(), false);
             Assert.IsTrue(validationCalled);
-            Assert.AreEqual(StatusCode.Forbidden, status.Code);
 
             // POST an invalid new document:
             props = new Dictionary<string, object>();
@@ -116,9 +113,8 @@ namespace Couchbase.Lite
             props["poetry"] = true;
             rev = new RevisionInternal(props);
             validationCalled = false;
-            rev = database.PutRevision(rev, null, false);
+            database.PutRevision(rev, null, false);
             Assert.IsTrue(validationCalled);
-            Assert.AreEqual(StatusCode.Forbidden, status.Code);
 
             // PUT a valid new document with an ID:
             props = new Dictionary<string, object>();
@@ -146,7 +142,6 @@ namespace Couchbase.Lite
             validationCalled = false;
             rev = database.PutRevision(rev, null, false);
             Assert.IsTrue(validationCalled);
-            Assert.AreEqual(StatusCode.Forbidden, status.Code);
         }
     }
 }

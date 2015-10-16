@@ -74,7 +74,7 @@ namespace Couchbase.Lite
 
         protected Database database = null;
 
-        private readonly string _storageType;
+        protected readonly string _storageType;
 
         protected string DefaultTestDb = "cblitetest";
 
@@ -104,10 +104,9 @@ namespace Couchbase.Lite
         {
             Log.V(TAG, "SetUp");
             if (_storageType == "ForestDB") {
-                CBForest.Native.c4log_register(CBForest.C4LogLevel.Debug, (level, message) =>
-                {
-                    Console.WriteLine(String.Format("[CBForest {0}]: {1}", level, (string)message));
-                });
+                CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, (level, message) =>
+                    Console.WriteLine(String.Format("[CBForest {0}]: {1}", level, (string)message))
+                );
             }
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
@@ -330,7 +329,7 @@ namespace Couchbase.Lite
             var observer = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += observer.Changed;
             replication.Start();
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(60));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
 
             replication.Changed -= observer.Changed;

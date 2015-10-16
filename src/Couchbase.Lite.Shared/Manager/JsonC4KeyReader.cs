@@ -41,6 +41,7 @@ namespace Couchbase.Lite
             fixed(C4KeyReader *r = &_reader) {
                 switch (Native.c4key_peek(r)) {
                     case C4KeyToken.Array:
+                        Native.c4key_skipToken(r);
                         SetToken(Newtonsoft.Json.JsonToken.StartArray);
                         _sequenceStack.Push(Newtonsoft.Json.JsonToken.StartArray);
                         break;
@@ -49,6 +50,7 @@ namespace Couchbase.Lite
                         break;
                     case C4KeyToken.EndSequence:
                         {
+                            Native.c4key_skipToken(r);
                             var lastSequence = _sequenceStack.Pop();
                             if (lastSequence == Newtonsoft.Json.JsonToken.StartArray) {
                                 SetToken(Newtonsoft.Json.JsonToken.EndArray);
@@ -59,10 +61,12 @@ namespace Couchbase.Lite
                             break;
                         }
                     case C4KeyToken.Map:
+                        Native.c4key_skipToken(r);
                         SetToken(Newtonsoft.Json.JsonToken.StartObject);
                         _sequenceStack.Push(Newtonsoft.Json.JsonToken.StartObject);
                         break;
                     case C4KeyToken.Null:
+                        Native.c4key_skipToken(r);
                         SetToken(Newtonsoft.Json.JsonToken.Null, null);
                         break;
                     case C4KeyToken.Number:

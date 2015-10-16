@@ -205,6 +205,11 @@ namespace Couchbase.Lite
 
         #if FORESTDB
 
+        /// <summary>
+        /// Transforms this instance into an object suitable for use with
+        /// a CBForest all document query.
+        /// </summary>
+        /// <returns>The transformed options</returns>
         public CBForest.C4AllDocsOptions AsAllDocsOptions()
         {
             var retVal = default(CBForest.C4AllDocsOptions);
@@ -213,6 +218,7 @@ namespace Couchbase.Lite
             retVal.includeDeleted = IncludeDeletedDocs;
             retVal.inclusiveEnd = InclusiveEnd;
             retVal.inclusiveStart = InclusiveStart;
+            retVal.skip = (uint)Skip;
 
             return retVal;
         }

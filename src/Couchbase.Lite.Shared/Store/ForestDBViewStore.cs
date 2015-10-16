@@ -40,7 +40,7 @@ namespace Couchbase.Lite.Store
     internal sealed unsafe class ForestDBViewStore : IViewStore, IQueryRowStore
     {
         private const string TAG = "ForestDBViewStore";
-        private const string VIEW_INDEX_PATH_EXTENSION = "viewindex";
+        internal const string VIEW_INDEX_PATH_EXTENSION = "viewindex";
 
         private ForestDBCouchStore _dbStorage;
         private string _path;
@@ -146,7 +146,7 @@ namespace Couchbase.Lite.Store
             }
 
             var viewName = Path.ChangeExtension(filename, String.Empty);
-            return viewName.Replace(":", "/");
+            return viewName.Replace(":", "/").TrimEnd('.');
         }
 
         private void CloseIndex()
@@ -222,7 +222,7 @@ namespace Couchbase.Lite.Store
                         opts.inclusiveEnd = options.InclusiveEnd;
                         opts.inclusiveStart = options.InclusiveStart;
                         if(c4keys != null) {
-                            opts.keysCount = new UIntPtr((uint)c4keys.Length);
+                            opts.keysCount = (uint)c4keys.Length;
                         }
 
                         opts.limit = (ulong)options.Limit;
@@ -304,6 +304,26 @@ namespace Couchbase.Lite.Store
             return null;
         }
 
+        private QueryRow CreateReducedRow(object key, bool group, int groupLevel, ReduceDelegate reduce, Func<QueryRow, bool> filter,
+            IList<object> keysToReduce, IList<object> valsToReduce)
+        {
+            try {
+                var row = new QueryRow(null, 0, group ? GroupKey(key, groupLevel) : null, 
+                    CallReduce(reduce, keysToReduce, valsToReduce), null, this);
+                if (filter != null && filter(row)) {
+                    row = null;
+                }
+
+                return row;
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Failed to run reduce query for {0}", Name);
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException(String.Format("Error running reduce query for {0}",
+                    Name), e) { Code = StatusCode.Exception };
+            }
+        }
+
         public void Close()
         {
             CloseIndex();
@@ -362,12 +382,12 @@ namespace Couchbase.Lite.Store
 
                         var rev = new RevisionInternal(doc, true);
                         var keys = new List<object>();
-                        var values = new List<object>();
+                        var values = new List<string>();
                         try {
                             viewDelegate.Map(rev.GetProperties(), (key, value) =>
                             {
                                 keys.Add(key);
-                                values.Add(value);
+                                values.Add(Manager.GetObjectMapper().WriteValueAsString(value));
                             });
                         } catch (Exception e) {
                             Log.W(TAG, String.Format("Exception thrown in map function of {0}", info.Item1.Name), e);
@@ -375,8 +395,7 @@ namespace Couchbase.Lite.Store
                         }
 
                         WithC4Keys(keys.ToArray(), true, c4keys =>
-                            WithC4Keys(values.ToArray(), true, c4values =>
-                                ForestDBBridge.Check(err => Native.c4indexer_emit(indexer, doc, (uint)i, c4keys, c4values, err)))
+                            ForestDBBridge.Check(err => Native.c4indexer_emit(indexer, doc, (uint)i, c4keys, values.ToArray(), err))
                         );
                     }
                 }
@@ -405,7 +424,7 @@ namespace Couchbase.Lite.Store
             foreach (var next in enumerator) {
                 var docRevision = _dbStorage.GetDocument(next.DocID, null, true);
                 var key = Manager.GetObjectMapper().DeserializeKey<object>(next.Key);
-                var value = Manager.GetObjectMapper().DeserializeKey<object>(next.Value);
+                var value = Manager.GetObjectMapper().ReadValue<object>(next.Value);
                 yield return new QueryRow(docRevision.GetDocId(), docRevision.GetSequence(), key, value, docRevision, this);
             }
         }
@@ -445,20 +464,7 @@ namespace Couchbase.Lite.Store
                 var value = default(object);
                 if (lastKey != null && (key == null || (group && !GroupTogether(lastKey, key, groupLevel)))) {
                     // key doesn't match lastKey; emit a grouped/reduced row for what came before:
-                    try {
-                        row = new QueryRow(null, 0, GroupKey(lastKey, groupLevel), 
-                        CallReduce(reduce, keysToReduce, valsToReduce), null, this);
-                        if (filter != null && filter(row)) {
-                            row = null;
-                        }
-                    } catch(CouchbaseLiteException) {
-                        Log.W(TAG, "Failed to run reduce query for {0}", Name);
-                        throw;
-                    } catch(Exception e) {
-                        throw new CouchbaseLiteException(String.Format("Error running reduce query for {0}",
-                            Name), e) { Code = StatusCode.Exception };
-                    }
-
+                    row = CreateReducedRow(lastKey, group, groupLevel, reduce, filter, keysToReduce, valsToReduce);
                     keysToReduce.Clear();
                     valsToReduce.Clear();
                     if(row != null) {
@@ -472,7 +478,7 @@ namespace Couchbase.Lite.Store
                     // Add this key/value to the list to be reduced:
                     keysToReduce.Add(key);
                     var nextVal = next.Value;
-                    if (Native.c4key_peek(&nextVal) == C4KeyToken.Special) {
+                    if (nextVal.size == 1 && nextVal.ElementAt(0) == (byte)'*') {
                         try {
                             var rev = _dbStorage.GetDocument(next.DocID, next.DocSequence);
                             value = rev.GetProperties();
@@ -482,7 +488,7 @@ namespace Couchbase.Lite.Store
                             Log.W(TAG, "Couldn't load doc for row value", e);
                         }
                     } else {
-                        value = Manager.GetObjectMapper().DeserializeKey<object>(next.Value);
+                        value = Manager.GetObjectMapper().ReadValue<object>(next.Value);
                     }
 
                     valsToReduce.Add(value);
@@ -491,6 +497,10 @@ namespace Couchbase.Lite.Store
                 lastKey = key;
             }
 
+            row = CreateReducedRow(lastKey, group, groupLevel, reduce, filter, keysToReduce, valsToReduce);
+            if(row != null) {
+                yield return row;
+            }
         }
 
         public IQueryRowStore StorageForQueryRow(QueryRow row)
@@ -504,9 +514,9 @@ namespace Couchbase.Lite.Store
             var enumerator = QueryEnumeratorWithOptions(new QueryOptions());
             foreach (var next in enumerator) {
                 yield return new Dictionary<string, object> {
-                    { "sequence", next.DocSequence },
+                    { "seq", next.DocSequence },
                     { "key", next.KeyJSON },
-                    { "value", next.ValueJSON }
+                    { "val", next.ValueJSON }
                 };
             }
         }

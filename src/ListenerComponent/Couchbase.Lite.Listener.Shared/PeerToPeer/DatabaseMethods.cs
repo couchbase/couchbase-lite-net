@@ -310,7 +310,7 @@ namespace Couchbase.Lite.Listener
                     }
                 }
                     
-                var options = new ChangesOptions();
+                var options = ChangesOptions.Default;
                 responseState.Db = db;
                 responseState.ContentOptions = context.ContentOptions;
                 responseState.ChangesFeedMode = context.ChangesFeedMode;

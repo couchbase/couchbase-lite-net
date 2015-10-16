@@ -643,14 +643,11 @@ namespace Couchbase.Lite
 
                 var body = new Body(documentProperties);
                 var rev1 = new RevisionInternal(body);
-                var status = new Status();
                 rev1 = database.PutRevision(rev1, null, false);
-                Assert.AreEqual(StatusCode.Created, status.Code);
 
                 documentProperties.Put("_rev", rev1.GetRevId());
                 documentProperties["UPDATED"] = true;
                 database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false);
-                Assert.AreEqual(StatusCode.Created, status.Code);
 
                 documentProperties = new Dictionary<string, object>();
                 var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
@@ -659,7 +656,6 @@ namespace Couchbase.Lite
                 documentProperties["fnord"] = true;
 
                 database.PutRevision(new RevisionInternal(documentProperties), null, false);
-                Assert.AreEqual(StatusCode.Created, status.Code);
 
                 var doc2 = database.GetDocument(doc2Id);
                 var doc2UnsavedRev = doc2.CreateRevision();
@@ -762,15 +758,12 @@ namespace Couchbase.Lite
 
                 var body = new Body(documentProperties);
                 var rev1 = new RevisionInternal(body);
-                var status = new Status();
                 rev1 = database.PutRevision(rev1, null, false);
-                Assert.AreEqual(StatusCode.Created, status.Code);
 
                 documentProperties["_rev"] = rev1.GetRevId();
                 documentProperties["UPDATED"] = true;
                 documentProperties["_deleted"] = true;
                 database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false);
-                Assert.IsTrue((int)status.Code >= 200 && (int)status.Code < 300);
 
                 var repl = database.CreatePushReplication(remote);
                 if (!IsSyncGateway(remote)) {
