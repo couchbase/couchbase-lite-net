@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Listener
                         }
 
                         Status status = new Status();
-                        rev = db.GetDocument(docId, revId, true);
+                        rev = db.GetDocument(docId, revId, true, status);
                         if(rev != null) {
                             rev = ApplyOptions(options, rev, context, db, status);
                         }
@@ -312,14 +312,12 @@ namespace Couchbase.Lite.Listener
             RevisionInternal rev = new RevisionInternal(docId, null, deleting);
             rev.SetBody(body);
 
-            StatusCode status = StatusCode.Created;
+            StatusCode status = deleting ? StatusCode.Ok : StatusCode.Created;
             try {
                 if (docId != null && docId.StartsWith("_local")) {
                     outRev = db.Storage.PutLocalRevision(rev, prevRevId, true); //TODO: Doesn't match iOS
                 } else {
-                    Status retStatus = new Status();
                     outRev = db.PutRevision(rev, prevRevId, allowConflict);
-                    status = retStatus.Code;
                 }
             } catch(CouchbaseLiteException e) {
                 status = e.Code;
@@ -361,7 +359,7 @@ namespace Couchbase.Lite.Listener
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             {
                 Status status = new Status();
-                var rev = db.GetDocument(context.DocumentName, context.GetQueryParam("rev"), false);
+                var rev = db.GetDocument(context.DocumentName, context.GetQueryParam("rev"), false, status);
                     
                 if(rev ==null) {
                     return context.CreateResponse(status.Code);
@@ -376,7 +374,7 @@ namespace Couchbase.Lite.Listener
 
                 var attachment = db.GetAttachmentForRevision(rev, context.AttachmentName);
                 if(attachment == null) {
-                    return context.CreateResponse(status.Code);
+                    return context.CreateResponse(StatusCode.AttachmentNotFound);
                 }
 
                 var response = context.CreateResponse();

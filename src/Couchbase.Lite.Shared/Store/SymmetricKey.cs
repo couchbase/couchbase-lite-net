@@ -166,28 +166,6 @@ namespace Couchbase.Lite.Store
 
         #region Public Methods
 
-        #if FORESTDB
-
-        /// <summary>
-        /// Transforms this object into an object suitable for use
-        /// with the CBForest library
-        /// </summary>
-        /// <returns>The c4 encryption key.</returns>
-        public CBForest.C4EncryptionKey AsC4EncryptionKey()
-        {
-            var retVal = new CBForest.C4EncryptionKey();
-        #if FAKE_C4_ENCRYPTION
-            retVal.algorithm = (CBForest.C4EncryptionType)(-1);
-        #else
-            retVal.algorithm = CBForest.C4EncryptionType.AES256;
-        #endif
-            
-            retVal.bytes = KeyData;
-            return retVal;
-        }
-
-        #endif
-
         /// <summary>
         /// Creates a new SymmetricKey using the supplied data
         /// </summary>
@@ -195,6 +173,10 @@ namespace Couchbase.Lite.Store
         /// IEnumerable containig key data</param>
         public static SymmetricKey Create(object keyOrPassword)
         {
+            if (keyOrPassword == null) {
+                return null;
+            }
+
             var password = keyOrPassword as string;
             if(password != null) {
                 return new SymmetricKey(password);

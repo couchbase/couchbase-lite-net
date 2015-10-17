@@ -270,7 +270,7 @@ namespace Couchbase.Lite
         { 
             get 
             { 
-                var databaseFiles = directoryFile.GetFiles("*" + Manager.DatabaseSuffix, SearchOption.AllDirectories);
+                var databaseFiles = directoryFile.GetDirectories("*" + Manager.DatabaseSuffix);
                 var result = new List<String>();
                 foreach (var databaseFile in databaseFiles) {
                     var path = Path.GetFileNameWithoutExtension(databaseFile.FullName);
@@ -326,19 +326,10 @@ namespace Couchbase.Lite
         public bool RegisterEncryptionKey(object keyDataOrPassword, string dbName)
         {
             var realKey = default(SymmetricKey);
-            if (keyDataOrPassword != null) {
-                var password = keyDataOrPassword as string;
-                if (password != null) {
-                    realKey = new SymmetricKey(password);
-                } else {
-                    var keyData = keyDataOrPassword as IEnumerable<byte>;
-                    Debug.Assert(keyData != null);
-                    try {
-                        realKey = new SymmetricKey(keyData.ToArray());
-                    } catch (ArgumentOutOfRangeException) {
-                        return false;
-                    }
-                }
+            try {
+                realKey = SymmetricKey.Create(keyDataOrPassword);
+            } catch (InvalidOperationException) {
+                return false;
             }
 
             Shared.SetValue("encryptionKey", "", dbName, realKey);

@@ -84,6 +84,15 @@ namespace Couchbase.Lite
         private const int DEFAULT_MAX_REVS = 20;
         private const string LOCAL_CHECKPOINT_DOC_ID = "CBL_LocalCheckpoint";
 
+        private static readonly HashSet<string> SPECIAL_KEYS_TO_REMOVE = new HashSet<string> {
+            "_id", "_rev", "_deleted", "_revisions", "_revs_info", "_conflicts", "_deleted_conflicts",
+            "_local_seq"
+        };
+
+        private static readonly HashSet<string> SPECIAL_KEYS_TO_LEAVE = new HashSet<string> {
+            "_removed", "_attachments"
+        };
+
         #endregion
 
         #region Variables
@@ -640,6 +649,23 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
+        internal static IDictionary<string, object> StripDocumentJSON(IDictionary<string, object> originalProps)
+        {
+            // Don't leave in any "_"-prefixed keys except for the ones in SPECIAL_KEYS_TO_LEAVE.
+            // Keys in SPECIAL_KEYS_TO_REMOVE (_id, _rev, ...) are left out, any others trigger an error.
+            var properties = new Dictionary<string, object>(originalProps.Count);
+            foreach (var pair in originalProps) {
+                if (!pair.Key.StartsWith("_") || SPECIAL_KEYS_TO_LEAVE.Contains(pair.Key)) {
+                    properties[pair.Key] = pair.Value;
+                } else if (!SPECIAL_KEYS_TO_REMOVE.Contains(pair.Key)) {
+                    Log.W(TAG, "Invalid top-level key '{0}' in document to be inserted", pair.Key);
+                    return null;
+                }
+            }
+
+            return properties;
+        }
+
         internal RevisionList UnpushedRevisionsSince(string sequence, FilterDelegate filter, IDictionary<string, object> filterParams)
         {
             // Include conflicts so all conflicting revisions are replicated too
@@ -1032,9 +1058,9 @@ namespace Couchbase.Lite
             PendingAttachmentsByDigest[digest] = writer;
         }
 
-        internal RevisionInternal GetDocument(string docId, string revId, bool withBody)
+        internal RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
         {
-            return Storage.GetDocument(docId, revId, withBody);
+            return Storage.GetDocument(docId, revId, withBody, outStatus);
         }
 
         internal MultipartWriter MultipartWriterForRev(RevisionInternal rev, string contentType)

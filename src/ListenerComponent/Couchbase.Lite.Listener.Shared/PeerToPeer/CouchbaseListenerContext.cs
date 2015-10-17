@@ -129,9 +129,9 @@ namespace Couchbase.Lite.Listener
                 }
 
                 _queryOptions.UpdateSeq = GetQueryParam<bool>("update_seq", bool.TryParse, false);
-                _queryOptions.InclusiveEnd = GetQueryParam<bool>("inclusive_end", bool.TryParse, false);
-                //TODO: InclusiveStart
-                //TODO: PrefixMatchLevel
+                _queryOptions.InclusiveEnd = GetQueryParam<bool>("inclusive_end", bool.TryParse, _queryOptions.InclusiveEnd);
+                _queryOptions.InclusiveStart = GetQueryParam<bool>("inclusive_start", bool.TryParse, _queryOptions.InclusiveStart); // non-standard
+                _queryOptions.PrefixMatchLevel = GetQueryParam<int>("prefix_match_level", int.TryParse, _queryOptions.PrefixMatchLevel); // non-standard
                 _queryOptions.ReduceSpecified = GetQueryParam("reduce") != null;
                 _queryOptions.Reduce = GetQueryParam<bool>("reduce", bool.TryParse, false);
                 _queryOptions.Group = GetQueryParam<bool>("group", bool.TryParse, false);

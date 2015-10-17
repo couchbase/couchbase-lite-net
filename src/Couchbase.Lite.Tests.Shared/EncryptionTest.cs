@@ -154,8 +154,7 @@ namespace Couchbase.Lite
             // Close and re-open:
             Assert.DoesNotThrow(seekrit.Close, "Close failed");
             manager.RegisterEncryptionKey("letmein", "seekrit");
-            seekrit = manager.GetDatabase("seekrit");
-            Assert.IsNotNull(seekrit, "Failed to reopen encrypted db");
+            Assert.DoesNotThrow(() => seekrit = manager.GetDatabase("seekrit"), "Failed to reopen encrypted db");
             Assert.AreEqual(1, seekrit.DocumentCount);
         }
 

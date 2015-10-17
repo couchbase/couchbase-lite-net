@@ -289,6 +289,8 @@ namespace Couchbase.Lite
                     }
                 }
             });
+
+            CollectionAssert.AreEquivalent(expectedResult, result["rows"] as IEnumerable);
         }
 
         [Test]

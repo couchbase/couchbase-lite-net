@@ -92,16 +92,6 @@ namespace Couchbase.Lite.Store
             "        value TEXT);" +
             // version
             "    PRAGMA user_version = 17";
-        
-
-        private static readonly HashSet<string> SPECIAL_KEYS_TO_REMOVE = new HashSet<string> {
-            "_id", "_rev", "_deleted", "_revisions", "_revs_info", "_conflicts", "_deleted_conflicts",
-            "_local_seq"
-        };
-
-        private static readonly HashSet<string> SPECIAL_KEYS_TO_LEAVE = new HashSet<string> {
-            "_removed", "_attachments"
-        };
 
         #endregion
 
@@ -810,23 +800,6 @@ namespace Couchbase.Lite.Store
             return revs;
         }
 
-        private IDictionary<string, object> StripDocumentJSON(IDictionary<string, object> originalProps)
-        {
-            // Don't leave in any "_"-prefixed keys except for the ones in SPECIAL_KEYS_TO_LEAVE.
-            // Keys in SPECIAL_KEYS_TO_REMOVE (_id, _rev, ...) are left out, any others trigger an error.
-            var properties = new Dictionary<string, object>(originalProps.Count);
-            foreach (var pair in originalProps) {
-                if (!pair.Key.StartsWith("_") || SPECIAL_KEYS_TO_LEAVE.Contains(pair.Key)) {
-                    properties[pair.Key] = pair.Value;
-                } else if (!SPECIAL_KEYS_TO_REMOVE.Contains(pair.Key)) {
-                    Log.W(TAG, "Invalid top-level key '{0}' in document to be inserted", pair.Key);
-                    return null;
-                }
-            }
-
-            return properties;
-        }
-
         internal IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
         {
             var originalProps = rev.GetProperties();
@@ -834,7 +807,7 @@ namespace Couchbase.Lite.Store
                 return null;
             }
 
-            var properties = StripDocumentJSON(originalProps);
+            var properties = Database.StripDocumentJSON(originalProps);
 
             // Create canonical JSON -- this is important, because the JSON data returned here will be used
             // to create the new revision ID, and we need to guarantee that equivalent revision bodies
@@ -1072,10 +1045,15 @@ namespace Couchbase.Lite.Store
             return action;
         }
 
-        public RevisionInternal GetDocument(string docId, string revId, bool withBody)
+        public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
         {
+            if (outStatus == null) {
+                outStatus = new Status();
+            }
+
             long docNumericId = GetDocNumericID(docId);
             if (docNumericId <= 0L) {
+                outStatus.Code = StatusCode.NotFound;
                 return null;
             }
 
@@ -1090,7 +1068,7 @@ namespace Couchbase.Lite.Store
             } else {
                 sb.Append(" FROM revs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1");
             }
-
+                
             var transactionStatus = TryQuery(c =>
             {
                 if(revId == null) {
@@ -1109,12 +1087,14 @@ namespace Couchbase.Lite.Store
 
             if (transactionStatus.IsError) {
                 if (transactionStatus.Code == StatusCode.NotFound) {
+                    outStatus.Code = revId == null ? StatusCode.Deleted : StatusCode.NotFound;
                     return null;
                 } else {
                     throw new CouchbaseLiteException(transactionStatus.Code);
                 }
             }
 
+            outStatus.Code = StatusCode.Ok;
             return result;
         }
 
@@ -1649,7 +1629,7 @@ namespace Couchbase.Lite.Store
             IEnumerable<byte> json = null;
             if (properties != null) {
                 try {
-                    json = Manager.GetObjectMapper().WriteValueAsBytes(StripDocumentJSON(properties), true);
+                    json = Manager.GetObjectMapper().WriteValueAsBytes(Database.StripDocumentJSON(properties), true);
                 } catch (Exception e) {
                     throw new CouchbaseLiteException(e, StatusCode.BadJson);
                 }

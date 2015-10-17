@@ -265,14 +265,24 @@ namespace Couchbase.Lite.Store
 
         private void Reopen()
         {
-            var nativeKey = default(C4EncryptionKey);
-            if (_encryptionKey != null) {
-                nativeKey = _encryptionKey.AsC4EncryptionKey();
-            }
-                
             var forestPath = Path.Combine(Directory, DB_FILENAME);
-            var nativeKeyPtr = &nativeKey;
-            Forest = (C4Database*)ForestDBBridge.Check(err => Native.c4db_open(forestPath, _config, nativeKeyPtr, err));
+            try {
+                Forest = (C4Database*)ForestDBBridge.Check(err => 
+                {
+                    var nativeKey = default(C4EncryptionKey);
+                    if (_encryptionKey != null) {
+                        nativeKey = new C4EncryptionKey(_encryptionKey.KeyData);
+                    }
+
+                    return Native.c4db_open(forestPath, _config, &nativeKey, err);
+                });
+            } catch(CBForestException e) {
+                if (e.Domain == C4ErrorDomain.ForestDB && e.Code == (int)ForestDBStatus.NoDbHeaders) {
+                    throw new CouchbaseLiteException(StatusCode.Unauthorized);
+                }
+
+                throw;
+            }
         }
 
         private void DeleteLocalRevision(string docId, string revId, bool obeyMVCC)
@@ -381,7 +391,7 @@ namespace Couchbase.Lite.Store
                 {
                     var newc4key = default(C4EncryptionKey);
                     if (newKey != null) {
-                        newc4key = newKey.AsC4EncryptionKey();
+                        newc4key = new C4EncryptionKey(newKey.KeyData);
                     }
                     return Native.c4db_rekey(Forest, &newc4key, err);
                 }), null, null);
@@ -417,19 +427,26 @@ namespace Couchbase.Lite.Store
             return success;
         }
 
-        public RevisionInternal GetDocument(string docId, string revId, bool withBody)
+        public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
         {
+            if (outStatus == null) {
+                outStatus = new Status();
+            }
+
             var retVal = default(RevisionInternal);
             WithC4Document(docId, revId, withBody, false, doc =>
             {
                 if(doc == null) {
+                    outStatus.Code = StatusCode.NotFound;
                     return;
                 }
 
                 if(revId == null && doc->IsDeleted) {
+                    outStatus.Code = revId == null ? StatusCode.Deleted : StatusCode.NotFound;
                     return;
                 }
 
+                outStatus.Code = StatusCode.Ok;
                 retVal = new RevisionInternal(doc, withBody);
             });
 
@@ -566,9 +583,12 @@ namespace Couchbase.Lite.Store
                 throw new CouchbaseLiteException(StatusCode.NotImplemented);
             }
 
-            var forestOps = C4ChangesOptions.DEFAULT;
-            forestOps.includeDeleted = false;
-            forestOps.includeBodies = options.IncludeDocs || options.IncludeConflicts || filter != null;
+            var forestOps = C4EnumeratorOptions.DEFAULT;
+            forestOps.flags |= C4EnumeratorFlags.IncludeDeleted | C4EnumeratorFlags.IncludeNonConflicted;
+            if (options.IncludeDocs || options.IncludeConflicts || filter != null) {
+                forestOps.flags |= C4EnumeratorFlags.IncludeBodies;
+            }
+
             var changes = new RevisionList();
             var e = new CBForestDocEnumerator(Forest, lastSequence, forestOps);
             foreach (var next in e) {
@@ -576,11 +596,11 @@ namespace Couchbase.Lite.Store
                 var revs = default(IEnumerable<RevisionInternal>);
                 if (options.IncludeConflicts) {
                     using (var enumerator = new CBForestHistoryEnumerator(doc, true, false)) {
-                        var includeBody = forestOps.includeBodies;
+                        var includeBody = forestOps.flags.HasFlag(C4EnumeratorFlags.IncludeBodies);
                         revs = enumerator.Select(x => new RevisionInternal(x.Document, includeBody)).ToList();
                     }
                 } else {
-                    revs = new List<RevisionInternal> { new RevisionInternal(doc, forestOps.includeBodies) };
+                    revs = new List<RevisionInternal> { new RevisionInternal(doc, forestOps.flags.HasFlag(C4EnumeratorFlags.IncludeBodies)) };
                 }
 
                 foreach (var rev in revs) {
@@ -590,9 +610,16 @@ namespace Couchbase.Lite.Store
                             rev.SetBody(null);
                         }
 
-                        changes.Add(rev);
+                        if(filter == null || filter(rev)) {
+                            changes.Add(rev);
+                        }
                     }
                 }
+            }
+
+            if (options.SortBySequence) {
+                changes.SortBySequence(!options.Descending);
+                changes.Limit(options.Limit);
             }
 
             return changes;
@@ -600,11 +627,11 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<QueryRow> GetAllDocs(QueryOptions options)
         {
-            var forestOps = options.AsAllDocsOptions();
+            var forestOps = options.AsC4EnumeratorOptions();
             var enumerator = default(CBForestDocEnumerator);
             if (options.Keys != null) {
                 try {
-                    enumerator = new CBForestDocEnumerator(Forest, options.Keys.Cast<string>().ToArray(), options.AsAllDocsOptions());
+                    enumerator = new CBForestDocEnumerator(Forest, options.Keys.Cast<string>().ToArray(), options.AsC4EnumeratorOptions());
                 } catch (InvalidCastException) {
                     Log.E(TAG, "options.keys must contain strings");
                     throw;
@@ -649,7 +676,7 @@ namespace Couchbase.Lite.Store
                 }
 
                 yield return new QueryRow(value == null ? null : docID, sequenceNumber, docID, value, 
-                    value == null ? null : new RevisionInternal(doc, false), null);
+                    value == null ? null : new RevisionInternal(doc, options.IncludeDocs), null);
             }
         }
 
@@ -686,9 +713,9 @@ namespace Couchbase.Lite.Store
         public ICollection<BlobKey> FindAllAttachmentKeys()
         {
             var keys = new HashSet<BlobKey>();
-            var options = C4AllDocsOptions.DEFAULT;
-            options.includeBodies = false;
-            options.includeDeleted = true;
+            var options = C4EnumeratorOptions.DEFAULT;
+            options.flags &= ~C4EnumeratorFlags.IncludeBodies;
+            options.flags |= C4EnumeratorFlags.IncludeDeleted;
             var e = new CBForestDocEnumerator(Forest, null, null, options);
             foreach(var next in e) {
                 var doc = next.Document;
@@ -800,7 +827,7 @@ namespace Couchbase.Lite.Store
                 }
 
                 properties["_id"] = docId;
-                properties["_rev"] = revId;
+                properties["_rev"] = gotRevId;
                 retVal = new RevisionInternal(docId, revId, false);
                 retVal.SetProperties(properties);
             });
@@ -881,7 +908,7 @@ namespace Couchbase.Lite.Store
 
             var json = default(string);
             if (properties != null) {
-                json = Manager.GetObjectMapper().WriteValueAsString(properties, true);
+                json = Manager.GetObjectMapper().WriteValueAsString(Database.StripDocumentJSON(properties), true);
             } else {
                 json = "{}";
             }

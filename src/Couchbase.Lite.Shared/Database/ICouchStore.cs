@@ -140,7 +140,8 @@ namespace Couchbase.Lite.Store
         /// <param name="docId">The document ID</param>
         /// <param name="revId">The revision ID; may be nil, meaning "the current revision".</param>
         /// <param name="withBody">Whether or not to include the document body</param>
-        RevisionInternal GetDocument(string docId, string revId, bool withBody);
+        /// <param name="outStatus">Stores the reason that the returned value is null</param> 
+        RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null);
 
         /// <summary>
         /// Loads the body of a revision.

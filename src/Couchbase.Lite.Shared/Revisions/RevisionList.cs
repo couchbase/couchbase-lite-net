@@ -106,7 +106,7 @@ namespace Couchbase.Lite
 
         public virtual void SortBySequence(bool ascending = false)
         {
-            Sort((r1, r2) => Misc.TDSequenceCompare(r1.GetSequence(), r1.GetSequence(), ascending));
+            Sort((r1, r2) => Misc.TDSequenceCompare(r1.GetSequence(), r2.GetSequence(), ascending));
         }
 
         public virtual void Limit(int limit)

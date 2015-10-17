@@ -166,7 +166,7 @@ namespace Couchbase.Lite.Store
                 {
                     var encryptionKey = default(C4EncryptionKey);
                     if(_dbStorage.EncryptionKey != null) {
-                        encryptionKey = _dbStorage.EncryptionKey.AsC4EncryptionKey();
+                        encryptionKey = new C4EncryptionKey(_dbStorage.EncryptionKey.KeyData);
                     }
 
                     return Native.c4view_open(_dbStorage.Forest, _path, Name, dryRun  ? "0" : Delegate.MapVersion, options, 
@@ -422,7 +422,7 @@ namespace Couchbase.Lite.Store
             OpenIndex();
             var enumerator = QueryEnumeratorWithOptions(options); 
             foreach (var next in enumerator) {
-                var docRevision = _dbStorage.GetDocument(next.DocID, null, true);
+                var docRevision = _dbStorage.GetDocument(next.DocID, null, options.IncludeDocs);
                 var key = Manager.GetObjectMapper().DeserializeKey<object>(next.Key);
                 var value = Manager.GetObjectMapper().ReadValue<object>(next.Value);
                 yield return new QueryRow(docRevision.GetDocId(), docRevision.GetSequence(), key, value, docRevision, this);
