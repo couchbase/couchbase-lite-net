@@ -386,15 +386,27 @@ namespace Couchbase.Lite.Store
 
         public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
         {
-            return new AtomicAction(() =>
+            var retVal = new AtomicAction(() =>
                 ForestDBBridge.Check(err => 
                 {
                     var newc4key = default(C4EncryptionKey);
                     if (newKey != null) {
                         newc4key = new C4EncryptionKey(newKey.KeyData);
                     }
+
                     return Native.c4db_rekey(Forest, &newc4key, err);
                 }), null, null);
+
+            foreach (var viewName in GetAllViews()) {
+                var store = GetViewStorage(viewName, false) as ForestDBViewStore;
+                if (store == null) {
+                    continue;
+                }
+
+                retVal.AddLogic(store.ActionToChangeEncryptionKey(newKey));
+            }
+
+            return retVal;
         }
 
         public void Compact()

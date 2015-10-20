@@ -135,6 +135,20 @@ namespace Couchbase.Lite.Store
             }
         }
 
+        public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
+        {
+            return new AtomicAction(() =>
+                ForestDBBridge.Check(err => 
+                {
+                    var newc4key = default(C4EncryptionKey);
+                    if (newKey != null) {
+                        newc4key = new C4EncryptionKey(newKey.KeyData);
+                    }
+
+                    return Native.c4view_rekey(_indexDB, &newc4key, err);
+                }), null, null);
+        }
+
         internal static string FileNameToViewName(string filename)
         {
             if(!filename.EndsWith(VIEW_INDEX_PATH_EXTENSION)) {
@@ -337,6 +351,7 @@ namespace Couchbase.Lite.Store
 
         public void DeleteView()
         {
+            _dbStorage.ForgetViewStorage(Name);
             ForestDBBridge.Check(err => Native.c4view_delete(_indexDB, err));
         }
 

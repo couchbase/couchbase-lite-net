@@ -221,8 +221,6 @@ namespace Couchbase.Lite
             var body = Encoding.UTF8.GetBytes("This is a test attachment!");
             Assert.AreEqual(body, att.Content);
 
-            view = seekrit.GetView("vu");
-            query = view.CreateQuery();
             // Check that the view survived:
             Assert.AreEqual(100, query.Run().Count);
             seekrit.Dispose();
