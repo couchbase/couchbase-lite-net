@@ -260,13 +260,9 @@ namespace Couchbase.Lite.Store
 
             try {
                 RunStatements(sql);
-            } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Couldn't create view SQL index `{0}`", Name);
-                throw;
             } catch(Exception e) {
-                throw new CouchbaseLiteException(String.Format("Couldn't create view SQL index `{0}`", Name), e) {
-                    Code = StatusCode.Exception
-                };
+                Log.W(TAG, String.Format("Couldn't create view SQL index `{0}`", Name), e);
+                throw;
             }
         }
             
