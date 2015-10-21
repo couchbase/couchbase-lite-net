@@ -1168,14 +1168,15 @@ namespace Couchbase.Lite
             {
                 Log.V (TAG, "Set batcher to null");
                 Batcher = null;
-                if (LocalDatabase != null) {
-                    var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+                var localDb = LocalDatabase;
+                if (localDb != null) {
+                    var reachabilityManager = localDb.Manager.NetworkReachabilityManager;
                     if (reachabilityManager != null) {
                         reachabilityManager.StatusChanged -= NetworkStatusChanged;
                         reachabilityManager.StopListening ();
                     }
 
-                    LocalDatabase.ForgetReplication(this);
+                    localDb.ForgetReplication(this);
                 }
 
                 ClearDbRef ();
@@ -1726,6 +1727,7 @@ namespace Couchbase.Lite
 
         private void SaveLastSequence(SaveLastSequenceCompletionBlock completionHandler)
         {
+            
             if (!lastSequenceChanged) {
                 if (completionHandler != null) {
                     completionHandler();
@@ -1762,8 +1764,9 @@ namespace Couchbase.Lite
                 if (e != null) {
                     Log.V(TAG, "Unable to save remote checkpoint", e);
                 }
-
-                if (LocalDatabase == null || !LocalDatabase.Storage.IsOpen) {
+                    
+                var localDb = LocalDatabase;
+                if (localDb == null || localDb.Storage == null || !localDb.Storage.IsOpen) {
                     Log.W(TAG, "Database is null or closed, ignoring remote checkpoint response");
                     if (completionHandler != null) {
                         completionHandler();
@@ -1789,7 +1792,7 @@ namespace Couchbase.Lite
                     var response = result.AsDictionary<string, object>();
                     body.Put ("_rev", response.Get ("rev"));
                     _remoteCheckpoint = body;
-                    LocalDatabase.SetLastSequence(LastSequence, remoteCheckpointDocID);
+                    localDb.SetLastSequence(LastSequence, remoteCheckpointDocID);
                 }
 
                 if (completionHandler != null) {
@@ -1892,8 +1895,9 @@ namespace Couchbase.Lite
             // If we're in the middle of saving the checkpoint and waiting for a response, by the time the
             // response arrives _db will be nil, so there won't be any way to save the checkpoint locally.
             // To avoid that, pre-emptively save the local checkpoint now.
-            if (LocalDatabase != null && _savingCheckpoint && LastSequence != null) {
-                LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID());
+            var localDb = LocalDatabase;
+            if (localDb != null && _savingCheckpoint && LastSequence != null) {
+                localDb.SetLastSequence(LastSequence, RemoteCheckpointDocID());
             }
 
             LocalDatabase = null;

@@ -663,35 +663,41 @@ namespace Couchbase.Lite
         private bool UpgradeDatabase(FileInfo path)
         {
             #if !NOSQLITE
-            var oldFilename = path.FullName;
-            var newFilename = Path.ChangeExtension(oldFilename, DatabaseSuffix);
-            var newFile = new DirectoryInfo(newFilename);
-
-            if (!oldFilename.Equals(newFilename) && newFile.Exists) {
-                var msg = String.Format("Cannot move {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
-                Log.W(Database.TAG, msg);
-                return false;
-            }
-
-            var name = Path.GetFileNameWithoutExtension(Path.Combine(path.DirectoryName, newFilename));
-            var db = GetDatabaseWithoutOpening(name, false);
-            if (db == null) {
-                Log.W(TAG, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
-                return false;
-            }
-            db.Dispose();
-
-            var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
+            var previousStorageType = StorageType;
             try {
-                upgrader.Import();
-            } catch(CouchbaseLiteException e) {
-                Log.W(TAG, "Upgrade failed for {0} (Status {1})", path.Name, e.CBLStatus);
-                upgrader.Backout();
-                return false;
-            }
+                StorageType = "SQLite";
+                var oldFilename = path.FullName;
+                var newFilename = Path.ChangeExtension(oldFilename, DatabaseSuffix);
+                var newFile = new DirectoryInfo(newFilename);
 
-            Log.D(TAG, "...Success!");
-            return true;
+                if (!oldFilename.Equals(newFilename) && newFile.Exists) {
+                    var msg = String.Format("Cannot move {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
+                    Log.W(Database.TAG, msg);
+                    return false;
+                }
+
+                var name = Path.GetFileNameWithoutExtension(Path.Combine(path.DirectoryName, newFilename));
+                var db = GetDatabaseWithoutOpening(name, false);
+                if (db == null) {
+                    Log.W(TAG, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
+                    return false;
+                }
+                db.Dispose();
+
+                var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
+                try {
+                    upgrader.Import();
+                } catch(CouchbaseLiteException e) {
+                    Log.W(TAG, "Upgrade failed for {0} (Status {1})", path.Name, e.CBLStatus);
+                    upgrader.Backout();
+                    return false;
+                }
+
+                Log.D(TAG, "...Success!");
+                return true;
+            } finally {
+                StorageType = previousStorageType;
+            }
             #endif
         }
 

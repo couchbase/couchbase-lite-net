@@ -22,11 +22,14 @@
 #if FORESTDB
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 using CBForest;
 using Couchbase.Lite.Internal;
@@ -55,17 +58,25 @@ namespace Couchbase.Lite.Store
     #region ForestDBBridge
 
     internal unsafe static class ForestDBBridge {
-        public static void Check(C4TryLogicDelegate1 block)
+        private const int RETRY_TIME = 200; // ms
+
+        public static void Check(C4TryLogicDelegate1 block, int attemptNumber = 0)
         {
             var err = default(C4Error);
             if (block(&err)) {
                 return;
             }
 
+            if (attemptNumber < 5 && err.domain == C4ErrorDomain.ForestDB && err.code == (int)ForestDBStatus.HandleBusy) {
+                Task.Delay(RETRY_TIME).Wait();
+                Check(block, attemptNumber + 1);
+                return;
+            }
+
             throw new CBForestException(err.code, err.domain);
         }
 
-        public static void* Check(C4TryLogicDelegate2 block)
+        public static void* Check(C4TryLogicDelegate2 block, int attemptNumber = 0)
         {
             var err = default(C4Error);
             var obj = block(&err);
@@ -73,14 +84,25 @@ namespace Couchbase.Lite.Store
                 return obj;
             }
 
+            if (attemptNumber < 5 && err.domain == C4ErrorDomain.ForestDB && err.code == (int)ForestDBStatus.HandleBusy) {
+                Task.Delay(RETRY_TIME).Wait();
+                return Check(block, attemptNumber + 1);
+            }
+
             throw new CBForestException(err.code, err.domain);
         }
 
-        public static void Check(C4TryLogicDelegate3 block)
+        public static void Check(C4TryLogicDelegate3 block, int attemptNumber = 0)
         {
             var err = default(C4Error);
             var result = block(&err);
             if (result >= 0) {
+                return;
+            }
+
+            if (attemptNumber < 5 && err.domain == C4ErrorDomain.ForestDB && err.code == (int)ForestDBStatus.HandleBusy) {
+                Task.Delay(RETRY_TIME).Wait();
+                Check(block, attemptNumber + 1);
                 return;
             }
 
@@ -105,6 +127,9 @@ namespace Couchbase.Lite.Store
         #endregion
 
         #region Variables
+
+        private static ConcurrentDictionary<int, IntPtr> _fdbConnections =
+            new ConcurrentDictionary<int, IntPtr>();
 
         private C4DatabaseFlags _config;
         private SymmetricKey _encryptionKey;
@@ -157,11 +182,25 @@ namespace Couchbase.Lite.Store
 
         public string Directory { get; private set; }
 
-        public C4Database* Forest { get; private set; }
+        public C4Database* Forest 
+        {
+            get {
+                var threadId = Thread.CurrentThread.ManagedThreadId;
+                var outVal = default(IntPtr);
+
+                var retVal = _fdbConnections.GetOrAdd(threadId, x => (IntPtr)Reopen());
+                return (C4Database*)retVal.ToPointer();
+            }
+        }
 
         #endregion
 
         #region Constructors
+
+        static ForestDBCouchStore()
+        {
+            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (1f5c60fe056295137caea58b0f811bec8a1a0ada))");
+        }
 
         public ForestDBCouchStore()
         {
@@ -204,7 +243,9 @@ namespace Couchbase.Lite.Store
                 doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, docId, !create, err));
                 if(revId != null) {
                     ForestDBBridge.Check(err => Native.c4doc_selectRevision(doc, revId, withBody, err));
-                } else if(withBody) {
+                }
+
+                if(withBody) {
                     ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
                 }
             } catch(CBForestException e) {
@@ -263,11 +304,11 @@ namespace Couchbase.Lite.Store
             }
         }
 
-        private void Reopen()
+        private C4Database* Reopen()
         {
             var forestPath = Path.Combine(Directory, DB_FILENAME);
             try {
-                Forest = (C4Database*)ForestDBBridge.Check(err => 
+                return (C4Database*)ForestDBBridge.Check(err => 
                 {
                     var nativeKey = default(C4EncryptionKey);
                     if (_encryptionKey != null) {
@@ -370,13 +411,16 @@ namespace Couchbase.Lite.Store
                 _config |= C4DatabaseFlags.AutoCompact;
             }
 
-            Reopen();
+            _fdbConnections.GetOrAdd(Thread.CurrentThread.ManagedThreadId, x => (IntPtr)Reopen());
         }
 
         public void Close()
         {
-            ForestDBBridge.Check(err => Native.c4db_close(Forest, err));
-            Forest = null;
+            foreach (var ptr in _fdbConnections) {
+                ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
+            }
+
+            _fdbConnections.Clear();
         }
 
         public void SetEncryptionKey(SymmetricKey key)
@@ -524,7 +568,18 @@ namespace Couchbase.Lite.Store
             }
 
             var returnedCount = 0;
-            var doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, rev.GetDocId(), true, err));
+            var doc = default(C4Document*);
+            try {
+                doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, rev.GetDocId(), true, err));
+                ForestDBBridge.Check(err => Native.c4doc_selectCurrentRevision(doc));
+            } catch(CBForestException e) {
+                if (e.Domain == C4ErrorDomain.ForestDB && e.Code == (int)ForestDBStatus.KeyNotFound) {
+                    yield break;
+                }
+
+                throw;
+            }
+
             var enumerator = new CBForestHistoryEnumerator(doc, false, true);
             foreach (var next in enumerator) {
                 if(returnedCount >= limit) {
@@ -569,7 +624,7 @@ namespace Couchbase.Lite.Store
         public IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, ICollection<string> ancestorRevIds)
         {
             var history = new List<RevisionInternal>();
-            WithC4Document(rev.GetDocId(), null, false, false, doc =>
+            WithC4Document(rev.GetDocId(), rev.GetRevId(), false, false, doc =>
             {
                 var enumerator = new CBForestHistoryEnumerator(doc, false);
                 foreach(var next in enumerator) {
@@ -666,6 +721,7 @@ namespace Couchbase.Lite.Store
                     sequenceNumber = (long)doc->selectedRev.sequence;
                     var conflicts = default(IList<string>);
                     if (options.AllDocsMode >= AllDocsMode.ShowConflicts && doc->IsConflicted) {
+                        ForestDBBridge.Check(err => Native.c4doc_selectCurrentRevision(doc));
                         using (var innerEnumerator = new CBForestHistoryEnumerator(doc, true, false)) {
                             conflicts = innerEnumerator.Select(x => (string)x.Document->selectedRev.revID).ToList();
                         }

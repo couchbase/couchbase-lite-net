@@ -54,16 +54,14 @@ namespace Couchbase.Lite {
         #region Variables
 
         private readonly int _count;
+        private readonly IEnumerable<QueryRow> _rows;
+        private IEnumerator<QueryRow> _enumerator;
 
         #endregion
 
         #region Properties
 
         private Database Database { get; set; }
-
-        private IEnumerable<QueryRow> Rows { get; set; }
-
-        private int CurrentRow { get; set; }
 
         /// <summary>
         /// Gets the number of rows in the <see cref="Couchbase.Lite.QueryEnumerator"/>.
@@ -93,21 +91,19 @@ namespace Couchbase.Lite {
         internal QueryEnumerator (QueryEnumerator rows)
         {
             Database = rows.Database;
-            Rows = rows.Rows;
+            _rows = rows._rows;
+            _enumerator = _rows.GetEnumerator();
             _count = rows.Count;
             SequenceNumber = rows.SequenceNumber;
-
-            Reset();
         }
 
-        internal QueryEnumerator (Database database, IEnumerable<QueryRow> rows, Int64 lastSequence)
+        internal QueryEnumerator (Database database, IEnumerable<QueryRow> rows, long lastSequence)
         {
             Database = database;
-            Rows = rows;
+            _rows = rows;
+            _enumerator = rows.GetEnumerator();
             _count = rows.Count();
             SequenceNumber = lastSequence;
-
-            Reset();
         }
 
         #endregion
@@ -119,8 +115,9 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.QueryRow"/> at the specified index in the results.</returns>
         /// <param name="index">Index.</param>
+        [Obsolete("Use LINQ ElementAt")]
         public QueryRow GetRow(int index) {
-            var row = Rows.ElementAt(index);
+            var row = _rows.ElementAt(index);
             row.Database = Database; // Avoid multiple enumerations by doing this here instead of the constructor.
             return row;
         }
@@ -155,26 +152,27 @@ namespace Couchbase.Lite {
         #region IEnumerator
 
         public void Reset() {
-            CurrentRow = -1; 
-            Current = null;
+            _enumerator.Reset();
         }
 
-        public QueryRow Current { get; private set; }
+        public QueryRow Current 
+        {
+            get {
+                var retVal = _enumerator.Current;
+                retVal.Database = Database;
+                return retVal;
+            }
+        }
 
         public bool MoveNext ()
         {
-            if (++CurrentRow >= Count)
-                return false;
-
-            Current = GetRow(CurrentRow);
-
-            return true;
+            return _enumerator.MoveNext();
         }
 
         public void Dispose ()
         {
             Database = null;
-            Rows = null;
+            _enumerator.Dispose();
         }
 
         object System.Collections.IEnumerator.Current { get { return Current; } }

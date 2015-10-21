@@ -530,7 +530,7 @@ namespace Couchbase.Lite
                 query.MapOnly = false;
                 var rows = query.Run();
 
-                var row = rows.GetRow(0);
+                var row = rows.ElementAt(0);
                 Assert.IsNotNull(row);
 
                 stopwatch.Stop();

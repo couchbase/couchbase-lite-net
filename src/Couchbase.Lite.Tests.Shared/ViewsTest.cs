@@ -1406,7 +1406,7 @@ namespace Couchbase.Lite
             query.Changed += (sender, e) => 
             {
                 Assert.IsNull(e.Error);
-                if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.GetRow(0).Value) == numDocs)
+                if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.ElementAt(0).Value) == numDocs)
                 {
                     gotExpectedQueryResult.Signal();
                 }
@@ -1424,7 +1424,7 @@ namespace Couchbase.Lite
             query1.Changed += (sender, e) => 
             {
                 Assert.IsNull(e.Error);
-                if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.GetRow(0).Value) == (2 * numDocs) + 5)
+                if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.ElementAt(0).Value) == (2 * numDocs) + 5)
                 {
                     gotExpectedQuery1Result.Signal();
                 }
@@ -1479,7 +1479,7 @@ namespace Couchbase.Lite
             query.EndKey = 33547239;
             var rows = query.Run();
             Assert.AreEqual(1, rows.Count());
-            Assert.AreEqual(33547239, rows.GetRow(0).Key);
+            Assert.AreEqual(33547239, rows.ElementAt(0).Key);
         }
             
         [Test]
@@ -1557,7 +1557,7 @@ namespace Couchbase.Lite
             var view = CreateView(database);
             var rows = view.CreateQuery().Run();
             Assert.AreEqual(1, rows.Count);
-            var row = rows.GetRow(0);
+            var row = rows.ElementAt(0);
             Assert.AreEqual(row.Key, "3");
 
             // TODO: Why is this null?
@@ -1580,7 +1580,7 @@ namespace Couchbase.Lite
             // we should only see one row, with key=3.
             // if we see key=2b then it's a bug.
             Assert.AreEqual(1, rows.Count);
-            row = rows.GetRow(0);
+            row = rows.ElementAt(0);
             Assert.AreEqual(row.Key, "3");
         }
 

@@ -329,7 +329,7 @@ namespace Couchbase.Lite
             var observer = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += observer.Changed;
             replication.Start();
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(10));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(60));
             Assert.IsTrue(success);
 
             replication.Changed -= observer.Changed;
@@ -600,8 +600,7 @@ namespace Couchbase.Lite
 
         public void Changed(object sender, ReplicationChangeEventArgs args)
         {
-            var replicator = args.Source;
-            if (replicator.Status == ReplicationStatus.Stopped && doneSignal.CurrentCount > 0)
+            if (args.Status == ReplicationStatus.Stopped && doneSignal.CurrentCount > 0)
             {
                 doneSignal.Signal();
             }

@@ -706,9 +706,8 @@ namespace Couchbase.Lite
             var query = view.CreateQuery();
             query.Prefetch=true;
             var results = query.Run();
-            while (results.MoveNext())
+            foreach(var row in results)
             {
-                var row = results.Current;
                 // This returns the revision just fine, but the sequence number
                 // is set to 0.
                 var revision = row.Document.CurrentRevision;

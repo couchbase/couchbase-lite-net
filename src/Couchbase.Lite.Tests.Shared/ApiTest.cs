@@ -556,7 +556,7 @@ namespace Couchbase.Lite
             var rows = query.Run();
             Assert.AreEqual(1, rows.Count);
 
-            var row = rows.GetRow(0);
+            var row = rows.ElementAt(0);
             var revs = row.GetConflictingRevisions().ToList();
             Assert.AreEqual(2, revs.Count);
             CollectionAssert.Contains(revs, defaultRev);
@@ -844,12 +844,12 @@ namespace Couchbase.Lite
                 Assert.AreEqual (11, rows.Count);
 
                 var expectedKey = 23;
-                for (IEnumerator<QueryRow> it = rows; it.MoveNext ();) {
-                    var row = it.Current;
+                foreach(var row in rows) {
                     Assert.AreEqual (row.Document.Database, db);
                     Assert.AreEqual (row.Key, expectedKey);
                     ++expectedKey;
                 }
+
                 doneSignal.Signal();
             }, manager.CapturedContext.Scheduler);
 

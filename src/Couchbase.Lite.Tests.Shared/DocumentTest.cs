@@ -179,9 +179,8 @@ namespace Couchbase.Lite
             // query all docs and make sure we don't see that document
             Query queryAllDocs = database.CreateAllDocumentsQuery();
             QueryEnumerator queryEnumerator = queryAllDocs.Run();
-            for (IEnumerator<QueryRow> it = queryEnumerator; it.MoveNext();)
+            foreach (var row in queryEnumerator)
             {
-                QueryRow row = it.Current;
                 Assert.IsFalse(row.Document.Id.Equals(docId));
             }
         }

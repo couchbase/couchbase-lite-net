@@ -1343,11 +1343,11 @@ namespace Couchbase.Lite
 
             // make sure we can query the db to get the conflict
             var allDocsQuery = database.CreateAllDocumentsQuery();
-            allDocsQuery.AllDocsMode = allDocsQuery.AllDocsMode = AllDocsMode.OnlyConflicts;
+            allDocsQuery.AllDocsMode = AllDocsMode.OnlyConflicts;
 
             var rows = allDocsQuery.Run();
             Assert.AreEqual(1, rows.Count);
-            Assert.IsTrue(rows.Aggregate(false, (found, row) => found |= row.Document.Id.Equals(doc.Id)));
+            Assert.AreEqual(doc.Id, rows.ElementAt(0).Document.Id);
 
             // Push the conflicts to the remote DB.
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
@@ -1805,6 +1805,8 @@ namespace Couchbase.Lite
 
                 document.PutProperties(values);
 
+                Thread.Sleep(5000);
+
                 long expectedLength = 0;
                 document.Update((r) =>
                 {
@@ -1826,15 +1828,16 @@ namespace Couchbase.Lite
                 Thread.Sleep(2000);
                 var json = GetRemoteDocById(remote, doc1Id);
 
-                var attachments = json["_attachments"].AsDictionary<string,object>();
-                var content = attachments["content"].AsDictionary<string,object>();
-                var lengthAsStr = content["length"];
-                var length = Convert.ToInt64(lengthAsStr);
-                Assert.AreEqual(expectedLength, length);
-
-                Log.D(Tag, "TestContinuousPusherWithAttachment() finished");
-
-                StopReplication(pusher);
+                try {
+                    var attachments = json["_attachments"].AsDictionary<string,object>();
+                    var content = attachments["content"].AsDictionary<string,object>();
+                    var lengthAsStr = content["length"];
+                    var length = Convert.ToInt64(lengthAsStr);
+                    Assert.AreEqual(expectedLength, length);
+                    Log.D(Tag, "TestContinuousPusherWithAttachment() finished");
+                } finally {
+                    StopReplication(pusher);
+                }
             }
         }  
 
@@ -2246,6 +2249,7 @@ namespace Couchbase.Lite
                 Assert.IsNotNull(attachment);
                 Assert.AreEqual(attachmentLength, attachment.Length);
                 Assert.IsNotNull(attachment.Content);
+                db.Close();
             }
         }
 
