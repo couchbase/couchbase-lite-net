@@ -989,7 +989,7 @@ namespace Couchbase.Lite.Store
             // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export
             var hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
             if (!hasRealEncryption) {
-                return null;
+                return new AtomicAction();
             }
 
             var action = new AtomicAction();
@@ -1039,7 +1039,7 @@ namespace Couchbase.Lite.Store
 
             // Overwrite the old db file with the new one:
             if (hasRealEncryption) {
-                action.AddLogic(AtomicAction.MoveFile(tempPath, _directory));
+                action.AddLogic(AtomicAction.MoveFile(tempPath, Path.Combine(_directory, DB_FILENAME)));
             }
 
             return action;
