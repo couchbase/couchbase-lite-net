@@ -530,22 +530,34 @@ namespace Couchbase.Lite
             var enumerator1 = list1.GetEnumerator();
             var enumerator2 = list2.GetEnumerator();
 
-            while (enumerator1.MoveNext() && enumerator2.MoveNext())
-            {
-                var obj1 = enumerator1.Current;
-                var obj2 = enumerator1.Current;
+            try {
+                while (enumerator1.MoveNext() && enumerator2.MoveNext())
+                {
+                    var obj1 = enumerator1.Current;
+                    var obj2 = enumerator1.Current;
 
-                if (obj1 is IDictionary<string, object> && obj2 is IDictionary<string, object>) 
-                {
-                    AssertPropertiesAreEqual((IDictionary<string, object>)obj1, (IDictionary<string, object>)obj2);
+                    if (obj1 is IDictionary<string, object> && obj2 is IDictionary<string, object>) 
+                    {
+                        AssertPropertiesAreEqual((IDictionary<string, object>)obj1, (IDictionary<string, object>)obj2);
+                    }
+                    else if (obj1 is IEnumerable && obj2 is IEnumerable)
+                    {
+                        AssertEnumerablesAreEqual((IEnumerable)obj1, (IEnumerable)obj2);
+                    }
+                    else
+                    {
+                        Assert.AreEqual(obj1, obj2);
+                    }
                 }
-                else if (obj1 is IEnumerable && obj2 is IEnumerable)
-                {
-                    AssertEnumerablesAreEqual((IEnumerable)obj1, (IEnumerable)obj2);
+            } finally {
+                var disp1 = enumerator1 as IDisposable;
+                var disp2 = enumerator2 as IDisposable;
+                if (disp1 != null) {
+                    disp1.Dispose();
                 }
-                else
-                {
-                    Assert.AreEqual(obj1, obj2);
+
+                if (disp2 != null) {
+                    disp2.Dispose();
                 }
             }
         }

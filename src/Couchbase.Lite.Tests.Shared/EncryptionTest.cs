@@ -223,6 +223,7 @@ namespace Couchbase.Lite
 
             view = seekrit.GetExistingView("vu");
             Assert.IsNotNull(view);
+            view.SetMap((doc, emit) => { if(doc.ContainsKey("sequence")) { emit(doc["sequence"], null); }}, "1");
             query = view.CreateQuery();
             query.IndexUpdateMode = IndexUpdateMode.Never; // Ensure that the previous results survived
 

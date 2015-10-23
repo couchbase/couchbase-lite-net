@@ -1235,7 +1235,8 @@ namespace Couchbase.Lite
             // This is a 'while' instead of an 'if' because when we finish posting notifications, there
             // might be new ones that have arrived as a result of notification handlers making document
             // changes of their own (the replicator manager will do this.) So we need to check again.
-            while (!Storage.InTransaction && _isOpen && !_isPostingChangeNotifications && _changesToNotify != null && _changesToNotify.Count > 0) {
+            while ((Storage == null || !Storage.InTransaction) && _isOpen && !_isPostingChangeNotifications 
+                && _changesToNotify != null && _changesToNotify.Count > 0) {
                 try {
                     _isPostingChangeNotifications = true;
 
@@ -1248,6 +1249,10 @@ namespace Couchbase.Lite
                     var isExternal = false;
                     foreach (var change in outgoingChanges) {
                         var document = GetDocument(change.DocumentId);
+                        if(document == null) {
+                            continue;
+                        }
+
                         document.RevisionAdded(change, true);
                         if (change.SourceUrl != null) {
                             isExternal = true;

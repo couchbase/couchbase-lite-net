@@ -140,6 +140,7 @@ namespace Couchbase.Lite
 
         static Manager()
         {
+            Log.I(TAG, "Starting Manager version: " + VersionString);
             illegalCharactersPattern = new Regex(IllegalCharacters);
             mapper = new ObjectWriter();
             DefaultOptions = ManagerOptions.Default;
@@ -198,8 +199,6 @@ namespace Couchbase.Lite
         /// <exception cref="T:System.IO.DirectoryNotFoundException">Thrown when there is an error while accessing or creating the given directory.</exception>
         public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
-            Log.I(TAG, "Starting Manager version: " + VersionString);
-
             this.directoryFile = directoryFile;
             this.options = options ?? DefaultOptions;
             this.databases = new Dictionary<string, Database>();

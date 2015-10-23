@@ -104,7 +104,7 @@ namespace Couchbase.Lite
             Sharpen.Collections.Remove(props, "towel");
             rev.SetProperties(props);
             validationCalled = false;
-            rev = database.PutRevision(rev, rev.GetRevId(), false);
+            Assert.Throws<CouchbaseLiteException>(() => rev = database.PutRevision(rev, rev.GetRevId(), false));
             Assert.IsTrue(validationCalled);
 
             // POST an invalid new document:
@@ -113,7 +113,7 @@ namespace Couchbase.Lite
             props["poetry"] = true;
             rev = new RevisionInternal(props);
             validationCalled = false;
-            database.PutRevision(rev, null, false);
+            Assert.Throws<CouchbaseLiteException>(() => database.PutRevision(rev, null, false));
             Assert.IsTrue(validationCalled);
 
             // PUT a valid new document with an ID:
@@ -140,7 +140,7 @@ namespace Couchbase.Lite
             props["name"] = "Pot of Petunias";
             rev = new RevisionInternal(props);
             validationCalled = false;
-            rev = database.PutRevision(rev, null, false);
+            Assert.Throws<CouchbaseLiteException>(() => rev = database.PutRevision(rev, null, false));
             Assert.IsTrue(validationCalled);
         }
     }

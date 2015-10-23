@@ -199,7 +199,7 @@ namespace Couchbase.Lite.Store
 
         static ForestDBCouchStore()
         {
-            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (1f5c60fe056295137caea58b0f811bec8a1a0ada))");
+            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (24d7d797310bd3bb00433d304137573a7734084b))");
         }
 
         public ForestDBCouchStore()
@@ -696,9 +696,11 @@ namespace Couchbase.Lite.Store
         {
             var forestOps = options.AsC4EnumeratorOptions();
             var enumerator = default(CBForestDocEnumerator);
+            var remainingIDs = new List<string>();
             if (options.Keys != null) {
                 try {
-                    enumerator = new CBForestDocEnumerator(Forest, options.Keys.Cast<string>().ToArray(), options.AsC4EnumeratorOptions());
+                    remainingIDs = options.Keys.Cast<string>().ToList();
+                    enumerator = new CBForestDocEnumerator(Forest, remainingIDs.ToArray(), forestOps);
                 } catch (InvalidCastException) {
                     Log.E(TAG, "options.keys must contain strings");
                     throw;
@@ -716,6 +718,7 @@ namespace Couchbase.Lite.Store
                 var doc = next.Document;
                 var sequenceNumber = 0L;
                 var docID = (string)doc->docID;
+                remainingIDs.Remove(docID);
                 var value = default(IDictionary<string, object>);
                 if (doc->Exists) {
                     sequenceNumber = (long)doc->selectedRev.sequence;
@@ -743,9 +746,38 @@ namespace Couchbase.Lite.Store
                     };
                 }
 
-                yield return new QueryRow(value == null ? null : docID, sequenceNumber, docID, value, 
+                var row = new QueryRow(value == null ? null : docID, sequenceNumber, docID, value, 
                     value == null ? null : new RevisionInternal(doc, options.IncludeDocs), null);
+                if (options.Filter == null || options.Filter(row)) {
+                    yield return row;
+                }
             }
+
+            foreach (var docId in remainingIDs) {
+                var value = default(IDictionary<string, object>);
+                var existingDoc = default(C4Document*);
+                try {
+                    existingDoc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, docId, true, err));
+                    if (existingDoc != null) {
+                        value = new NonNullDictionary<string, object> {
+                            { "rev", (string)existingDoc->revID },
+                            { "deleted", true }
+                        };
+                    }
+                } catch(CBForestException e) {
+                    if (e.Domain != C4ErrorDomain.ForestDB || e.Code != (int)ForestDBStatus.KeyNotFound) {
+                        throw;
+                    }
+                } finally {
+                    Native.c4doc_free(existingDoc);
+                }
+                    
+                var row = new QueryRow(value != null ? docId as string : null, 0, docId, value, null, null);
+                if (options.Filter == null || options.Filter(row)) {
+                    yield return row;
+                }
+            }
+                
         }
 
         public int FindMissingRevisions(RevisionList revs)
@@ -1037,17 +1069,11 @@ namespace Couchbase.Lite.Store
                         if(prevRevId != null) {
                             prevRev = new RevisionInternal(docId, prevRevId, doc->selectedRev.IsDeleted);
                         }
-
-                        try {
-                            var status = validationBlock(putRev, prevRev, prevRevId);
-                            if(status.IsError) {
-                                transactionSuccess = false;
-                                return;
-                            }
-                        } catch(Exception e) {
-                            Log.W(TAG, "Exception throw in validation block", e);
-                            transactionSuccess = false;
-                            return;
+                            
+                        var status = validationBlock(putRev, prevRev, prevRevId);
+                        if(status.IsError) {
+                            throw new CouchbaseLiteException(String.Format("{0} failed validation", putRev), 
+                                status.Code);
                         }
                     }
 

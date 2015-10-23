@@ -132,8 +132,6 @@ namespace Couchbase.Lite
             Factory = new TaskFactory(new SingleThreadScheduler());
 
             try {
-                Log.I(TAG, "Sqlite Version: {0}".Fmt(raw.sqlite3_libversion()));
-                
                 shouldCommit = false;
                 const int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(writer_flags, encryptionKey, out _writeConnection);
@@ -587,7 +585,6 @@ namespace Couchbase.Lite
                     next.Dispose();
                 } 
                 dbCopy.close();
-                Log.I(TAG, "db connection {0} closed", dbCopy);
             }
             catch (KeyNotFoundException ex)
             {
