@@ -301,9 +301,9 @@ namespace Couchbase.Lite
                     for (var k = 0; k < repeatCount; k++)
                     {
                         base.TearDown();
-                        Thread.Sleep(200);
+                        Sleep(200);
                         base.SetUp();
-                        //Thread.Sleep(2000);
+                        //Sleep(2000);
 
                         // Execute test
                         var parameters = new Dictionary<string, object>() 

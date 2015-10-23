@@ -181,7 +181,7 @@ namespace Couchbase.Lite
                     {
                         break;
                     }
-                    Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                    Sleep(TimeSpan.FromMilliseconds(10));
                 }
                 doneEvent.Set();
             });
@@ -226,12 +226,12 @@ namespace Couchbase.Lite
                 while (DateTime.UtcNow < timeout && !stop)
                 {
                     stop |= replicator.Status != ReplicationStatus.Active;
-                    Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                    Sleep(TimeSpan.FromMilliseconds(10));
                 }
                 doneEvent.Set();
             });
             doneEvent.WaitOne(TimeSpan.FromSeconds(35));
-            Thread.Sleep(1000);
+            Sleep(1000);
             var lastError = replicator.LastError;
             Assert.IsNotNull(lastError);
         }

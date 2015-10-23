@@ -1,0 +1,69 @@
+diff --git a/NUnitLite/MonoTouch.NUnitLite.csproj b/NUnitLite/MonoTouch.NUnitLite.csproj
+index 856c307..46a8aa2 100644
+--- a/NUnitLite/MonoTouch.NUnitLite.csproj
++++ b/NUnitLite/MonoTouch.NUnitLite.csproj
+@@ -3,20 +3,21 @@
+   <PropertyGroup>
+     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+-    <ProductVersion>9.0.21022</ProductVersion>
+-    <SchemaVersion>2.0</SchemaVersion>
+     <ProjectGuid>{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}</ProjectGuid>
+-    <ProjectTypeGuids>{6BC8ED88-2882-458C-8E55-DFD12B67127B};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
++    <ProjectTypeGuids>{FEACFBD2-3405-455C-9665-78FE426C6842};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+     <OutputType>Library</OutputType>
+     <RootNamespace>NUnitLite</RootNamespace>
+     <AssemblyName>NUnitLite</AssemblyName>
++    <TargetFrameworkIdentifier>Xamarin.iOS</TargetFrameworkIdentifier>
++    <TargetFrameworkVersion>v1.0</TargetFrameworkVersion>
++    <ReleaseVersion>1.1.1</ReleaseVersion>
+   </PropertyGroup>
+   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+     <DebugSymbols>True</DebugSymbols>
+     <DebugType>full</DebugType>
+     <Optimize>False</Optimize>
+     <OutputPath>bin\Debug</OutputPath>
+-    <DefineConstants>DEBUG;NUNITLITE;CLR_4_0;NET_4_5;</DefineConstants>
++    <DefineConstants>DEBUG;NUNITLITE;CLR_4_0;NET_4_5;XAMCORE_2_0</DefineConstants>
+     <ErrorReport>prompt</ErrorReport>
+     <WarningLevel>4</WarningLevel>
+     <ConsolePause>False</ConsolePause>
+@@ -28,16 +29,15 @@
+     <ErrorReport>prompt</ErrorReport>
+     <WarningLevel>4</WarningLevel>
+     <ConsolePause>False</ConsolePause>
+-    <DefineConstants>NUNITLITE;CLR_4_0;NET_4_5;</DefineConstants>
++    <DefineConstants>NUNITLITE;CLR_4_0;NET_4_5;XAMCORE_2_0</DefineConstants>
+   </PropertyGroup>
+   <ItemGroup>
+     <Reference Include="System" />
+     <Reference Include="System.Xml" />
+     <Reference Include="System.Core" />
+-    <Reference Include="monotouch" />
+     <Reference Include="MonoTouch.Dialog-1" />
++    <Reference Include="Xamarin.iOS" />
+   </ItemGroup>
+-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+   <ItemGroup>
+     <Compile Include="TouchRunner\TestCaseElement.cs" />
+     <Compile Include="TouchRunner\TestElement.cs" />
+@@ -896,4 +896,5 @@
+       <Link>framework\nunitlite-sl-5.0.csproj</Link>
+     </None>
+   </ItemGroup>
++  <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
+ </Project>
+\ No newline at end of file
+diff --git a/NUnitLite/TouchRunner/TestCaseElement.cs b/NUnitLite/TouchRunner/TestCaseElement.cs
+index 00bd1a1..66691f8 100644
+--- a/NUnitLite/TouchRunner/TestCaseElement.cs
++++ b/NUnitLite/TouchRunner/TestCaseElement.cs
+@@ -48,7 +48,7 @@ namespace MonoTouch.NUnit.UI {
+ 
+ 				var suite = (testCase.Parent as TestSuite);
+ 				var context = TestExecutionContext.CurrentContext;
+-				context.TestObject = Reflect.Construct (testCase.Method.ReflectedType, null);
++                context.TestObject = Reflect.Construct (testCase.Method.ReflectedType, suite.arguments);
+ 
+ 				suite.GetOneTimeSetUpCommand ().Execute (context);
+ 				Run ();

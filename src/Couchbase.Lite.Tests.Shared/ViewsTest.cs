@@ -185,7 +185,7 @@ namespace Couchbase.Lite
             var changeCount = 0;
             liveQuery.Changed += (sender, e) => changeCount++;
             liveQuery.Start();
-            Thread.Sleep(1000);
+            Sleep(1000);
 
             Assert.AreEqual(1, changeCount);
             Assert.AreEqual(5, liveQuery.Rows.Count);
@@ -196,7 +196,7 @@ namespace Couchbase.Lite
 
             liveQuery.StartKey = 2;
             liveQuery.QueryOptionsChanged();
-            Thread.Sleep(1000);
+            Sleep(1000);
 
             Assert.AreEqual(2, changeCount);
             Assert.AreEqual(3, liveQuery.Rows.Count);
@@ -575,11 +575,11 @@ namespace Couchbase.Lite
             Assert.IsNotNull(liveQuery.EndKey);
 
             liveQuery.Start();
-            Thread.Sleep(2000);
+            Sleep(2000);
             Assert.AreEqual(0, liveQuery.Rows.Count);
 
             PutDocs(database);
-            Thread.Sleep(2000);
+            Sleep(2000);
             Assert.AreEqual(1, liveQuery.Rows.Count);
         }
 
@@ -870,7 +870,7 @@ namespace Couchbase.Lite
             // wait until indexing is (hopefully) done
             try
             {
-                Thread.Sleep(1 * 1000);
+                Sleep(1 * 1000);
             }
             catch (Exception e)
             {
@@ -1374,7 +1374,7 @@ namespace Couchbase.Lite
                 rev = rev.CreateRevision(properties);
             }
             // Sleep to ensure that the LiveQuery is done all of its async operations.
-            Thread.Sleep(8000);
+            Sleep(8000);
 
             liveQuery.Stop();
 
@@ -1609,7 +1609,7 @@ namespace Couchbase.Lite
                     } });
             }
 
-            Thread.Sleep(5000);
+            Sleep(5000);
             Assert.AreEqual(50, view.TotalRows);
             Assert.AreEqual(50, view.LastSequenceIndexed);
 
@@ -1624,7 +1624,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            Thread.Sleep(5000);
+            Sleep(5000);
             Assert.AreEqual(60, view.TotalRows);
             Assert.AreEqual(60, view.LastSequenceIndexed);
         }

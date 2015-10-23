@@ -534,8 +534,13 @@ namespace Couchbase.Lite
             var confRevs = new List<SavedRevision>();
             confRevs.AddItem(rev2b);
             confRevs.AddItem(rev2a);
-            CollectionAssert.AreEquivalent(confRevs, doc.ConflictingRevisions);
-            CollectionAssert.AreEquivalent(confRevs, doc.LeafRevisions);
+
+            var gotConflicting = doc.ConflictingRevisions;
+            var gotLeaf = doc.LeafRevisions;
+            foreach (var rev in confRevs) {
+                Assert.IsTrue(gotConflicting.Contains(rev));
+                Assert.IsTrue(gotLeaf.Contains(rev));
+            }
 
             SavedRevision defaultRev;
             SavedRevision otherRev;
@@ -559,8 +564,9 @@ namespace Couchbase.Lite
             var row = rows.ElementAt(0);
             var revs = row.GetConflictingRevisions().ToList();
             Assert.AreEqual(2, revs.Count);
-            CollectionAssert.Contains(revs, defaultRev);
-            CollectionAssert.Contains(revs, otherRev);
+            Assert.IsTrue(revs.Contains(defaultRev));
+            Assert.IsTrue(revs.Contains(otherRev));
+
         }
 
         //ATTACHMENTS

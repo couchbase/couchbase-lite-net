@@ -219,7 +219,7 @@ namespace Couchbase.Lite
             changeTracker.Start();
 
             // sleep for a few seconds
-            Thread.Sleep(10 * 1000);
+            Sleep(10 * 1000);
 
             // make sure we got less than 10 requests in those 10 seconds (if it was hammering, we'd get a lot more)
             var handler = client.HttpRequestHandler;
@@ -231,11 +231,11 @@ namespace Couchbase.Lite
 
             // at this point, the change tracker backoff should cause it to sleep for about 3 seconds
             // and so lets wait 3 seconds until it wakes up and starts getting valid responses
-            Thread.Sleep(3 * 1000);
+            Sleep(3 * 1000);
 
             // now find the delta in requests received in a 2s period
             int before = handler.CapturedRequests.Count;
-            Thread.Sleep(2 * 1000);
+            Sleep(2 * 1000);
             int after = handler.CapturedRequests.Count;
 
             // assert that the delta is high, because at this point the change tracker should

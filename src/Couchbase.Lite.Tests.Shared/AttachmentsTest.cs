@@ -259,9 +259,9 @@ namespace Couchbase.Lite
                 response = client.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
-                Thread.Sleep(1000);
+                Sleep(1000);
                 while (pull.Status == ReplicationStatus.Active) {
-                    Thread.Sleep(500);
+                    Sleep(500);
                 }
 
                 var doc = database.GetExistingDocument(docName);
@@ -289,9 +289,9 @@ namespace Couchbase.Lite
                 response = client.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
-                Thread.Sleep(1000);
+                Sleep(1000);
                 while (pull.Status == ReplicationStatus.Active) {
-                    Thread.Sleep(500);
+                    Sleep(500);
                 }
 
                 doc = database.GetExistingDocument(docName);

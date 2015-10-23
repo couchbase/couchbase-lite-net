@@ -171,7 +171,7 @@ namespace Couchbase.Lite
                     var docId = String.Format("doc{0}-{0}", i, docIdTimestamp);
                     AddDocToSyncGateway(docId, new Dictionary<string, object>(props), 
                         "attachment.png", "image/png");
-                    Thread.Sleep(1 * 1000);
+                    Sleep(1 * 1000);
                 }
 
                 var stopwatch = Stopwatch.StartNew();

@@ -115,6 +115,25 @@ namespace Couchbase.Lite
             StartDatabase();
         }
 
+        protected void Sleep(int milliseconds)
+        {
+            if (milliseconds < 1000) {
+                Thread.Sleep(milliseconds);
+                return;
+            }
+
+            while (milliseconds > 0) {
+                Log.I(TAG, "Sleeping...");
+                Thread.Sleep(Math.Min(milliseconds, 1000));
+                milliseconds -= 1000;
+            }
+        }
+
+        protected void Sleep(TimeSpan timespan)
+        {
+            Sleep((int)timespan.TotalMilliseconds);
+        }
+
         protected Stream GetAsset(string name)
         {
             var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
@@ -520,7 +539,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
 
             // give a little padding to give it a chance to save a checkpoint
-            Thread.Sleep(2 * 1000);
+            Sleep(2 * 1000);
         }
 
         protected void AssertEnumerablesAreEqual(
