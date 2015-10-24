@@ -113,6 +113,12 @@ namespace Couchbase.Lite.Internal
             }
         }
 
+        internal unsafe RevisionInternal(CBForest.CBForestDocStatus docStatus, bool loadBody)
+            : this(docStatus.Document, loadBody)
+        {
+
+        }
+
         #endif
 
         #endregion

@@ -196,6 +196,12 @@ namespace Couchbase.Lite.Store
             return _indexDB;
         }
 
+        // Needed to call from inside an iterator
+        private void OpenIndexNoReturn()
+        {
+            OpenIndex(); 
+        }
+
         private C4View* OpenIndex()
         {
             if (_indexDB != null) {
@@ -380,8 +386,7 @@ namespace Couchbase.Lite.Store
             var commit = false;
             try {
                 foreach(var next in enumerator) {
-                    var doc = next.Document;
-                    var seq = doc->selectedRev.sequence;
+                    var seq = next.SelectedRev.sequence;
 
                     for (int i = 0; i < viewInfo.Length; i++) {
                         var info = viewInfo[i];
@@ -395,7 +400,7 @@ namespace Couchbase.Lite.Store
                             continue;
                         }
 
-                        var rev = new RevisionInternal(doc, true);
+                        var rev = new RevisionInternal(next, true);
                         var keys = new List<object>();
                         var values = new List<string>();
                         try {
@@ -410,7 +415,7 @@ namespace Couchbase.Lite.Store
                         }
 
                         WithC4Keys(keys.ToArray(), true, c4keys =>
-                            ForestDBBridge.Check(err => Native.c4indexer_emit(indexer, doc, (uint)i, c4keys, values.ToArray(), err))
+                            ForestDBBridge.Check(err => Native.c4indexer_emit(indexer, next.Document, (uint)i, c4keys, values.ToArray(), err))
                         );
                     }
                 }
@@ -434,7 +439,7 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<QueryRow> RegularQuery(QueryOptions options)
         {
-            OpenIndex();
+            OpenIndexNoReturn();
             var enumerator = QueryEnumeratorWithOptions(options); 
             foreach (var next in enumerator) {
                 var docRevision = _dbStorage.GetDocument(next.DocID, null, options.IncludeDocs);
@@ -446,7 +451,7 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<QueryRow> ReducedQuery(QueryOptions options)
         {
-            OpenIndex();
+            OpenIndexNoReturn();
             var groupLevel = options.GroupLevel;
             var group = options.Group || groupLevel > 0;
 
@@ -525,7 +530,7 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<IDictionary<string, object>> Dump()
         {
-            OpenIndex();
+            OpenIndexNoReturn();
             var enumerator = QueryEnumeratorWithOptions(new QueryOptions());
             foreach (var next in enumerator) {
                 yield return new Dictionary<string, object> {

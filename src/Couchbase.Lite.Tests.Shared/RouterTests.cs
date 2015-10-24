@@ -290,11 +290,7 @@ namespace Couchbase.Lite
                 }
             });
 
-            var gotResult = result["rows"] as IEnumerable<object>;
-            Assert.IsNotNull(gotResult);
-            foreach (var entry in expectedResult) {
-                Assert.IsTrue(gotResult.Contains(entry));
-            }
+            CollectionAssert.AreEquivalent(expectedResult, result["rows"] as IEnumerable);
         }
 
         [Test]

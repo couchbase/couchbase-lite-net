@@ -18,7 +18,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#define FAKE_ENCRYPTION
 #if FORESTDB
 
 using System;
@@ -134,6 +133,7 @@ namespace Couchbase.Lite.Store
         private C4DatabaseFlags _config;
         private SymmetricKey _encryptionKey;
         private LruCache<string, ForestDBViewStore> _views = new LruCache<string, ForestDBViewStore>(100);
+        private bool _isClosed;
 
         #endregion
 
@@ -174,10 +174,9 @@ namespace Couchbase.Lite.Store
         }
 
         public bool IsOpen
-        { 
-            get {
-                return Forest != null;
-            }
+        {
+            get;
+            private set;
         }
 
         public string Directory { get; private set; }
@@ -185,8 +184,11 @@ namespace Couchbase.Lite.Store
         public C4Database* Forest 
         {
             get {
+                if(!IsOpen) {
+                    return null;
+                }
+
                 var threadId = Thread.CurrentThread.ManagedThreadId;
-                var outVal = default(IntPtr);
 
                 var retVal = _fdbConnections.GetOrAdd(threadId, x => (IntPtr)Reopen());
                 return (C4Database*)retVal.ToPointer();
@@ -235,6 +237,47 @@ namespace Couchbase.Lite.Store
         #endregion
 
         #region Private Methods
+
+        private CBForestDocEnumerator GetDocEnumerator(QueryOptions options, out List<string> remainingIDs)
+        {
+            var forestOps = options.AsC4EnumeratorOptions();
+            var enumerator = default(CBForestDocEnumerator);
+            remainingIDs = new List<string>();
+            if(options.Keys != null) {
+                try {
+                    remainingIDs = options.Keys.Cast<string>().ToList();
+                    enumerator = new CBForestDocEnumerator(Forest, remainingIDs.ToArray(), forestOps);
+                } catch(InvalidCastException) {
+                    Log.E(TAG, "options.keys must contain strings");
+                    throw;
+                }
+            } else {
+                enumerator = new CBForestDocEnumerator(Forest, options.StartKey as string, options.EndKey as string, forestOps);
+            }
+
+            return enumerator;
+        }
+
+        private CBForestHistoryEnumerator GetHistoryEnumerator(RevisionInternal rev, int generation)
+        {
+            if(generation <= 1) {
+                return null;
+            }
+
+            var doc = default(C4Document*);
+            try {
+                doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, rev.GetDocId(), true, err));
+                ForestDBBridge.Check(err => Native.c4doc_selectCurrentRevision(doc));
+            } catch(CBForestException e) {
+                if(e.Domain == C4ErrorDomain.ForestDB && e.Code == (int)ForestDBStatus.KeyNotFound) {
+                    return null;
+                }
+
+                throw;
+            }
+
+            return new CBForestHistoryEnumerator(doc, false, true);
+        }
 
         private void WithC4Document(string docId, string revId, bool withBody, bool create, C4DocumentActionDelegate block)
         {
@@ -389,6 +432,34 @@ namespace Couchbase.Lite.Store
             return new DocumentChange(inRev, winningRevId, doc->IsConflicted, source);
         }
 
+        private void SelectCurrentRevision(CBForestDocStatus status)
+        {
+            ForestDBBridge.Check(err => Native.c4doc_selectCurrentRevision(status.Document));
+        }
+
+        private IDictionary<string, object> GetAllDocsEntry(string docId)
+        {
+            var value = default(IDictionary<string, object>);
+            var existingDoc = default(C4Document*);
+            try {
+                existingDoc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, docId, true, err));
+                if(existingDoc != null) {
+                    value = new NonNullDictionary<string, object> {
+                            { "rev", (string)existingDoc->revID },
+                            { "deleted", true }
+                        };
+                }
+            } catch(CBForestException e) {
+                if(e.Domain != C4ErrorDomain.ForestDB || e.Code != (int)ForestDBStatus.KeyNotFound) {
+                    throw;
+                }
+            } finally {
+                Native.c4doc_free(existingDoc);
+            }
+
+            return value;
+        }
+
         #endregion
 
         #region ICouchStore
@@ -401,6 +472,11 @@ namespace Couchbase.Lite.Store
 
         public void Open(string directory, Manager manager, bool readOnly)
         {
+            if(IsOpen) {
+                return;
+            }
+
+            IsOpen = true;
             Directory = directory;
             if (!System.IO.Directory.Exists(directory)) {
                 System.IO.Directory.CreateDirectory(Directory);
@@ -416,7 +492,10 @@ namespace Couchbase.Lite.Store
 
         public void Close()
         {
-            foreach (var ptr in _fdbConnections) {
+            IsOpen = false;
+            var connections = _fdbConnections;
+            _fdbConnections = new ConcurrentDictionary<int, IntPtr>();
+            foreach(var ptr in connections) {
                 ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
             }
 
@@ -562,35 +641,22 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<string> GetPossibleAncestors(RevisionInternal rev, int limit, bool onlyAttachments)
         {
+            var returnedCount = 0;
             var generation = RevisionInternal.GenerationFromRevID(rev.GetRevId());
-            if (generation <= 1) {
+            var enumerator = GetHistoryEnumerator(rev, generation);
+            if(enumerator == null) {
                 yield break;
             }
 
-            var returnedCount = 0;
-            var doc = default(C4Document*);
-            try {
-                doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, rev.GetDocId(), true, err));
-                ForestDBBridge.Check(err => Native.c4doc_selectCurrentRevision(doc));
-            } catch(CBForestException e) {
-                if (e.Domain == C4ErrorDomain.ForestDB && e.Code == (int)ForestDBStatus.KeyNotFound) {
-                    yield break;
-                }
-
-                throw;
-            }
-
-            var enumerator = new CBForestHistoryEnumerator(doc, false, true);
             foreach (var next in enumerator) {
                 if(returnedCount >= limit) {
                     break;
                 }
 
-                var nextDoc = next.Document;
-                var revId = (string)nextDoc->selectedRev.revID;
+                var revId = next.CurrentRevID;
                 if(RevisionInternal.GenerationFromRevID(revId) < generation &&
-                    !nextDoc->selectedRev.IsDeleted && Native.c4doc_hasRevisionBody(nextDoc) &&
-                    !(onlyAttachments && !nextDoc->selectedRev.HasAttachments)) {
+                    !next.SelectedRev.IsDeleted && next.HasRevisionBody &&
+                    !(onlyAttachments && !next.SelectedRev.HasAttachments)) {
                     returnedCount++;
                     yield return revId;
                 }
@@ -694,39 +760,25 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<QueryRow> GetAllDocs(QueryOptions options)
         {
-            var forestOps = options.AsC4EnumeratorOptions();
-            var enumerator = default(CBForestDocEnumerator);
-            var remainingIDs = new List<string>();
-            if (options.Keys != null) {
-                try {
-                    remainingIDs = options.Keys.Cast<string>().ToList();
-                    enumerator = new CBForestDocEnumerator(Forest, remainingIDs.ToArray(), forestOps);
-                } catch (InvalidCastException) {
-                    Log.E(TAG, "options.keys must contain strings");
-                    throw;
-                }
-            } else {
-                enumerator = new CBForestDocEnumerator(Forest, options.StartKey as string, options.EndKey as string, forestOps);
-            }
-
+            var remainingIDs = default(List<string>);
+            var enumerator = GetDocEnumerator(options, out remainingIDs);
             var current = 0;
             foreach(var next in enumerator) {
                 if (current++ >= options.Limit) {
                     yield break;
                 }
 
-                var doc = next.Document;
                 var sequenceNumber = 0L;
-                var docID = (string)doc->docID;
+                var docID = next.CurrentDocID;
                 remainingIDs.Remove(docID);
                 var value = default(IDictionary<string, object>);
-                if (doc->Exists) {
-                    sequenceNumber = (long)doc->selectedRev.sequence;
+                if (next.Exists) {
+                    sequenceNumber = (long)next.SelectedRev.sequence;
                     var conflicts = default(IList<string>);
-                    if (options.AllDocsMode >= AllDocsMode.ShowConflicts && doc->IsConflicted) {
-                        ForestDBBridge.Check(err => Native.c4doc_selectCurrentRevision(doc));
-                        using (var innerEnumerator = new CBForestHistoryEnumerator(doc, true, false)) {
-                            conflicts = innerEnumerator.Select(x => (string)x.Document->selectedRev.revID).ToList();
+                    if (options.AllDocsMode >= AllDocsMode.ShowConflicts && next.IsConflicted) {
+                        SelectCurrentRevision(next);
+                        using (var innerEnumerator = new CBForestHistoryEnumerator(next, true, false)) {
+                            conflicts = innerEnumerator.Select(x => (string)x.SelectedRev.revID).ToList();
                         }
 
                         if (conflicts.Count == 1) {
@@ -740,37 +792,22 @@ namespace Couchbase.Lite.Store
                     }
 
                     value = new NonNullDictionary<string, object> {
-                        { "rev", (string)doc->revID },
-                        { "deleted", doc->IsDeleted ? (object)true : null },
+                        { "rev", next.CurrentRevID },
+                        { "deleted", next.IsDeleted ? (object)true : null },
                         { "_conflicts", conflicts }
                     };
                 }
 
                 var row = new QueryRow(value == null ? null : docID, sequenceNumber, docID, value, 
-                    value == null ? null : new RevisionInternal(doc, options.IncludeDocs), null);
+                    value == null ? null : new RevisionInternal(next, options.IncludeDocs), null);
                 if (options.Filter == null || options.Filter(row)) {
                     yield return row;
                 }
             }
 
             foreach (var docId in remainingIDs) {
-                var value = default(IDictionary<string, object>);
-                var existingDoc = default(C4Document*);
-                try {
-                    existingDoc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, docId, true, err));
-                    if (existingDoc != null) {
-                        value = new NonNullDictionary<string, object> {
-                            { "rev", (string)existingDoc->revID },
-                            { "deleted", true }
-                        };
-                    }
-                } catch(CBForestException e) {
-                    if (e.Domain != C4ErrorDomain.ForestDB || e.Code != (int)ForestDBStatus.KeyNotFound) {
-                        throw;
-                    }
-                } finally {
-                    Native.c4doc_free(existingDoc);
-                }
+                var value = GetAllDocsEntry(docId);
+                
                     
                 var row = new QueryRow(value != null ? docId as string : null, 0, docId, value, null, null);
                 if (options.Filter == null || options.Filter(row)) {
@@ -864,7 +901,6 @@ namespace Couchbase.Lite.Store
                         if(!doc->Exists) {
                             throw new CouchbaseLiteException(StatusCode.NotFound);
                         }
-
                         var revsPurged = default(IList<string>);
                         var revIDs = docRevPair.Value;
                         if(revIDs.Count == 0) {

@@ -298,7 +298,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Close() 
         {
-            Log.I(TAG, "Closing " + this);
+            Log.D(TAG, "Closing " + this);
             foreach (var database in databases.Values.ToArray()) {
                 var replicators = database.AllReplications;
 
@@ -312,7 +312,7 @@ namespace Couchbase.Lite
             }
 
             databases.Clear();
-            Log.I(TAG, "Manager is Closed");
+            Log.D(TAG, "Manager is Closed");
         }
 
         /// <summary>
@@ -989,7 +989,16 @@ namespace Couchbase.Lite
         }
 
     #endregion
-    }
+
+        #region Overrides
+
+        public override StringEx ToString()
+        {
+            return String.Format("[Manager] {0}", Directory);
+        }
+
+        #endregion
+    }
 
 }
 

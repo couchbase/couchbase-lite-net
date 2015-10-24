@@ -174,6 +174,13 @@ namespace Couchbase.Lite
             _sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
         }
 
+        protected override void TearDown()
+        {
+            Sleep(2000); // Give the replicators a chance to finish up before moving to the next test
+
+            base.TearDown();
+        }
+
         [Test]
         public void TestPendingDocumentIDs()
         {

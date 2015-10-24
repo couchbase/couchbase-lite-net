@@ -118,7 +118,7 @@ namespace Couchbase.Lite
             // Make sure old password doesn't work:
             manager.RegisterEncryptionKey("letmein", "seekrit");
             var e = Assert.Throws<CouchbaseLiteException>(() => seekrit = manager.GetDatabase("seekrit"),
-                        "Password opened unencrypted db!");
+                        "Password opened unencrypted db or unexpected exception occurred!");
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
         }
 

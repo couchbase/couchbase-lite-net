@@ -1951,10 +1951,10 @@ namespace Couchbase.Lite
             try {
                 Storage.Close();
             } catch(CouchbaseLiteException) {
-                Log.E(TAG, "Error closing database");
+                Log.E(TAG, "Failed to close database");
                 throw;
             } catch(Exception e) {
-                throw new CouchbaseLiteException("Unknown error closing database", e) { Code = StatusCode.Exception };
+                throw new CouchbaseLiteException("Error closing database", e) { Code = StatusCode.Exception };
             } finally {
                 Storage = null;
 
@@ -2033,10 +2033,10 @@ namespace Couchbase.Lite
                 Storage.Open(DbDirectory, Manager, false);
             } catch(CouchbaseLiteException) {
                 Storage.Close();
-                Log.W(TAG, "Error creating storage engine");
+                Log.W(TAG, "Failed to create storage engine");
                 throw;
             } catch(Exception e) {
-                throw new CouchbaseLiteException("Unknown exception creating storage engine", e) { Code = StatusCode.Exception };
+                throw new CouchbaseLiteException("Error creating storage engine", e) { Code = StatusCode.Exception };
             }
 
             Storage.AutoCompact = AUTO_COMPACT;

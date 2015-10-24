@@ -75,6 +75,7 @@ namespace Couchbase.Lite
         protected override void TearDown()
         {
             CleanUpCookiesDirectory();
+            base.TearDown();
         }
 
         [Test]

@@ -1765,14 +1765,7 @@ namespace Couchbase.Lite
                     Log.V(TAG, "Unable to save remote checkpoint", e);
                 }
                     
-                var localDb = LocalDatabase;
-                if (localDb == null || localDb.Storage == null || !localDb.Storage.IsOpen) {
-                    Log.W(TAG, "Database is null or closed, ignoring remote checkpoint response");
-                    if (completionHandler != null) {
-                        completionHandler();
-                    }
-                    return;
-                }
+                
 
                 if (e != null) {
                     switch (GetStatusFromError(e)) {
@@ -1792,6 +1785,14 @@ namespace Couchbase.Lite
                     var response = result.AsDictionary<string, object>();
                     body.Put ("_rev", response.Get ("rev"));
                     _remoteCheckpoint = body;
+                    var localDb = LocalDatabase;
+                    if(localDb == null || localDb.Storage == null) {
+                        Log.W(TAG, "Database is null, ignoring remote checkpoint response");
+                        if(completionHandler != null) {
+                            completionHandler();
+                        }
+                        return;
+                    }
                     localDb.SetLastSequence(LastSequence, remoteCheckpointDocID);
                 }
 

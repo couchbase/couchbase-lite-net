@@ -29,7 +29,7 @@
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;FORESTDB</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;FORESTDB</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -81,8 +81,10 @@
     </PropertyGroup>
   </Target>
   <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net45.pinvoke_packaged_sqlcipher.anycpu.csproj" Condition="!$(DefineConstants.Contains('NOSQLITE'))">&gt;
-      <Project>{8E62D3FC-CE27-427F-A060-F86DA48142F8}</Project><Name>platform.net45.pinvoke_packaged_sqlcipher.anycpu</Name></ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net45.pinvoke_packaged_sqlcipher.anycpu.csproj" Condition="!$(DefineConstants.Contains('NOSQLITE'))">
+      <Project>{8E62D3FC-CE27-427F-A060-F86DA48142F8}</Project>
+      <Name>platform.net45.pinvoke_packaged_sqlcipher.anycpu</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj" Condition="!$(DefineConstants.Contains('NOSQLITE'))">
       <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
       <Name>ugly_profile78</Name>
