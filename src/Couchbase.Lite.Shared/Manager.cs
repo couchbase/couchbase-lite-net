@@ -61,8 +61,6 @@ using System.Diagnostics;
 
 #if !NET_3_5
 using StringEx = System.String;
-#else
-using Rackspace.Threading;
 #endif
 
 namespace Couchbase.Lite
@@ -173,7 +171,7 @@ namespace Couchbase.Lite
             #if !OFFICIAL
             VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
             #else
-            VersionString = String.Format("1.1.1-pre1 ({0})", gitVersion.TrimEnd());
+            VersionString = String.Format("1.1.1 ({0})", gitVersion.TrimEnd());
             #endif
         }
 

@@ -51,12 +51,10 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using System.Net;
 
 #if NET_3_5
-using System.Net.Couchbase;
 using CredentialCache = System.Net.CredentialCache;
-#else
-using System.Net;
 #endif
 
 namespace Couchbase.Lite.Support

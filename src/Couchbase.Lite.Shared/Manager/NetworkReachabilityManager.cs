@@ -15,13 +15,6 @@ using Android.Content;
 using Android.Webkit;
 #endif
 
-#if NET_3_5
-using WebRequest = System.Net.Couchbase.WebRequest;
-using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
-using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
-using WebException = System.Net.Couchbase.WebException;
-#endif
-
 namespace Couchbase.Lite
 {
 
@@ -43,10 +36,11 @@ namespace Couchbase.Lite
 
         public bool CanReach(string remoteUri)
         {
-            HttpWebRequest request = WebRequest.CreateHttp(remoteUri);
-            request.AllowWriteStreamBuffering = true;
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(remoteUri);
+            request.AllowWriteStreamBuffering = false;
             request.Timeout = 5000;
             request.Method = "GET";
+            request.ContentLength = 0;
 
             try {
                 using(var response = (HttpWebResponse)request.GetResponse()) {

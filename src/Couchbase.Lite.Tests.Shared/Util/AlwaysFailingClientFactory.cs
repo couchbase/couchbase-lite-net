@@ -46,12 +46,7 @@ using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Auth;
-
-#if NET_3_5
-using System.Net.Couchbase;
-#else
 using System.Net;
-#endif
 
 namespace Couchbase.Lite.Tests
 {

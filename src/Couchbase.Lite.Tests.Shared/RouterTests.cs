@@ -37,12 +37,7 @@ using Couchbase.Lite.Listener.Tcp;
 using System.IO;
 
 #if NET_3_5
-using WebRequest = System.Net.Couchbase.WebRequest;
-using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
-using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
-using WebResponse = System.Net.Couchbase.WebResponse;
-using WebException = System.Net.Couchbase.WebException;
-using WebHeaderCollection = System.Net.Couchbase.WebHeaderCollection;
+using Rackspace.Threading;
 #endif
 
 namespace Couchbase.Lite
@@ -851,7 +846,9 @@ namespace Couchbase.Lite
         public void TestContinuousChanges()
         {
             HttpWebResponse response = null;
+            #if !NET_3_5
             try {
+            #endif
                 string endpoint = String.Format("/{0}/doc1", database.Name);
                 SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
                     { "message", "hello" } 
@@ -892,18 +889,22 @@ namespace Couchbase.Lite
                 Assert.IsFalse(mre.IsSet);
 
                 mre.Dispose();
+                #if !NET_3_5
             } finally {
                 if (response != null) {
                     response.Dispose();
                 }
             }
+                #endif
         }
 
         [Test]
         public void TestContinuousChanges_Heartbeat()
         {
             HttpWebResponse response = null;
+            #if !NET_3_5
             try {
+            #endif
                 int heartbeat = 0;
                 List<byte> body = new List<byte>();
                 var mre = new ManualResetEventSlim();
@@ -933,11 +934,14 @@ namespace Couchbase.Lite
                 Assert.IsFalse(mre.IsSet);
 
                 mre.Dispose();
+                #if !NET_3_5
             } finally {
                 if (response != null) {
                     response.Dispose();
                 }
             }
+
+                #endif
         }
 
         [Test]
@@ -1426,7 +1430,7 @@ namespace Couchbase.Lite
             string fullPath = ("http://localhost:59840" + path).Replace("%2F", "%252F");
             var url = new Uri(fullPath);
 
-            HttpWebRequest request = WebRequest.CreateHttp(url);
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
             request.Method = method;
             foreach (var header in headers) {
                 SetHeader(request, header.Key, header.Value);
@@ -1448,7 +1452,9 @@ namespace Couchbase.Lite
                     }
 
                     callback((HttpWebResponse)t.Result);
+                    #if !NET_3_5
                     t.Result.Dispose(); //OK to be called multiple times
+                    #endif
                 });
             } else {
                 HttpWebResponse response = null;
@@ -1456,9 +1462,11 @@ namespace Couchbase.Lite
                     response = (HttpWebResponse)request.GetResponse();
                 } catch (WebException e) {
                     if (e.Response == null) {
+                        #if !NET_3_5
                         if (response != null) {
                             response.Dispose();
                         }
+                        #endif
                         throw;
                     } else {
                         Log.D(TAG, "{0} {1} --> {2}", method, path, ((HttpWebResponse)e.Response).StatusCode);
@@ -1470,9 +1478,11 @@ namespace Couchbase.Lite
                 Log.D(TAG, "{0} {1} --> {2}", method, path, response.StatusCode);
 
                 callback(response);
+                #if !NET_3_5
                 if (!keepAlive) {
                     response.Dispose();
                 }
+                #endif
             }
         }
 

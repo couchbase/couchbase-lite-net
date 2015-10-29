@@ -20,15 +20,12 @@
 //
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
-
-#if NET_3_5
-using Rackspace.Threading;
-#endif
 
 namespace Couchbase.Lite.Listener
 {

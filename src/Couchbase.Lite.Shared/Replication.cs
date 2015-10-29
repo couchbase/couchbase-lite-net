@@ -61,10 +61,9 @@ using System.Collections.Concurrent;
 
 #if !NET_3_5
 using StringEx = System.String;
-using System.Net;
-#else
-using System.Net.Couchbase;
 #endif
+
+using System.Net;
 
 namespace Couchbase.Lite
 {

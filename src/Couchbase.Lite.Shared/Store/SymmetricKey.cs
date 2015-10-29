@@ -25,10 +25,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Collections.Generic;
 
-#if NET_3_5
-using Rackspace.Threading;
-#endif
-
 namespace Couchbase.Lite.Store
 {
     /// <summary>

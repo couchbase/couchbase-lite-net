@@ -65,13 +65,6 @@ using Couchbase.Lite.Listener.Tcp;
 using System.Text.RegularExpressions;
 using System.Net.Http.Headers;
 
-#if NET_3_5
-using WebRequest = System.Net.Couchbase.WebRequest;
-using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
-using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
-using WebException = System.Net.Couchbase.WebException;
-#endif
-
 
 namespace Couchbase.Lite
 {

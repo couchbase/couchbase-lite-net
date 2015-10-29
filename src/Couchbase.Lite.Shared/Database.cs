@@ -57,13 +57,11 @@ using Sharpen;
 using Couchbase.Lite.Storage;
 using SQLitePCL;
 using System.Threading;
+using System.Net;
 
 
 #if !NET_3_5
-using System.Net;
 using StringEx = System.String;
-#else
-using System.Net.Couchbase;
 #endif
 
 namespace Couchbase.Lite 

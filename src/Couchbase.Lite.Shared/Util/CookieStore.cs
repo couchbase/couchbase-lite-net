@@ -44,12 +44,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 
 #if !NET_3_5
-using System.Net;
 using StringEx = System.String;
-#else
-using System.Net.Couchbase;
 #endif
 
 namespace Couchbase.Lite.Util

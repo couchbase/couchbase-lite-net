@@ -29,10 +29,6 @@ using System.Threading;
 using Couchbase.Lite.Util;
 using System.Threading.Tasks;
 
-#if NET_3_5
-using Rackspace.Threading;
-#endif
-
 namespace Couchbase.Lite.Support
 {
 
