@@ -631,11 +631,15 @@ namespace Couchbase.Lite
 
             // We expect that the changes reported by the server won't be notified, because those revisions
             // are already cached in memory.
-            var success = doneSignal.Wait(TimeSpan.FromSeconds(100));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(10));
+            Assert.IsTrue(success);
+
+            // Sometimes the test is so fast that the task is still running
+            // and fails the final assert.
+            success = task.Wait(TimeSpan.FromSeconds(5)); 
             Assert.IsTrue(success);
             Assert.AreEqual(5, db.LastSequenceNumber);
-
-            Assert.IsTrue(task.Status.HasFlag(TaskStatus.RanToCompletion));
+            Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
         }
 
         //VIEWS

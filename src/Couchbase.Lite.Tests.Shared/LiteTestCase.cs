@@ -104,7 +104,7 @@ namespace Couchbase.Lite
         {
             Log.V(TAG, "SetUp");
             if (_storageType == "ForestDB") {
-                CBForest.Native.c4log_register(CBForest.C4LogLevel.Error, (level, message) =>
+                CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, (level, message) =>
                     Console.WriteLine(String.Format("[CBForest {0}]: {1}", level, (string)message))
                 );
             }

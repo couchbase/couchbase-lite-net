@@ -318,21 +318,21 @@ namespace Couchbase.Lite
         /// <summary>
         /// Register an encryption key for use with a given database
         /// </summary>
-        /// <returns><c>true</c>, if the key is valid, <c>false</c> otherwise.</returns>
         /// <param name="keyDataOrPassword">A password as a string or key data as a byte
         /// IEnumerable</param>
         /// <param name="dbName">The name of the database to use this key with</param>
-        public bool RegisterEncryptionKey(object keyDataOrPassword, string dbName)
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if invalid data
+        /// is passed into keyDataOrPassword</exception>
+        public void RegisterEncryptionKey(object keyDataOrPassword, string dbName)
         {
             var realKey = default(SymmetricKey);
             try {
                 realKey = SymmetricKey.Create(keyDataOrPassword);
             } catch (InvalidOperationException) {
-                return false;
+                throw new CouchbaseLiteException("Invalid object passed to SymmetricKey", StatusCode.BadParam);
             }
 
             Shared.SetValue("encryptionKey", "", dbName, realKey);
-            return true;
         }
 
         /// <summary>

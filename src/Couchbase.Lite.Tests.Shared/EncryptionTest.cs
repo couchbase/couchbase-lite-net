@@ -24,22 +24,39 @@ using System.Collections.Generic;
 using System.Text;
 using Sharpen;
 using System.IO;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
     [TestFixture("ForestDB")]
     public class EncryptionTest : LiteTestCase
     {
+        private SymmetricKey _letmein;
+        private SymmetricKey _letmeout;
+        private SymmetricKey _wrong;
+        private const string TAG = "EncryptionTest";
 
         public EncryptionTest(string storageType) : base(storageType) {}
+
+
+        [TestFixtureSetUp]
+        public void OneTimeSetUp()
+        {
+            base.SetUp();
+
+            Log.I(TAG, "Generating keys for test, this might take a while...");
+            _letmein = SymmetricKey.Create("letmein");
+            Log.I(TAG, "Keys completed (1/3)");
+            _letmeout = SymmetricKey.Create("letmeout");
+            Log.I(TAG, "Keys completed (2/3)");
+            _wrong = SymmetricKey.Create("wrong");
+            Log.I(TAG, "Keys completed (3/3)");
+        }
 
         [Test]
         public void TestUnencryptedDB()
         {
-            #if ENABLE_MOCK_ENCRYPTION
-            Database.EnableMockEncryption = true;
-            #endif
-
             // Create unencrypted DB:
             var seekrit = manager.GetDatabase("seekrit");
             Assert.IsNotNull(seekrit, "Failed to create db");
@@ -49,7 +66,7 @@ namespace Couchbase.Lite
 
             Assert.DoesNotThrow(seekrit.Close);
 
-            manager.RegisterEncryptionKey("wrong", "seekrit");
+            manager.RegisterEncryptionKey(_wrong.KeyData, "seekrit");
             var e = Assert.Throws<CouchbaseLiteException>(() => seekrit = manager.GetDatabase("seekrit"), 
                 "Shouldn't have been able to reopen encrypted db with wrong password");
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
@@ -63,7 +80,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestEncryptedDB()
         {
-            manager.RegisterEncryptionKey("letmein", "seekrit");
+            manager.RegisterEncryptionKey(_letmein.KeyData, "seekrit");
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.GetDatabase("seekrit"),
                 "Failed to create encrypted DB");
@@ -77,13 +94,13 @@ namespace Couchbase.Lite
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
 
             // Try to reopen with wrong password (fails):
-            manager.RegisterEncryptionKey("wrong", "seekrit");
+            manager.RegisterEncryptionKey(_wrong.KeyData, "seekrit");
             e = Assert.Throws<CouchbaseLiteException>(() => seekrit = manager.GetDatabase("seekrit"),
                 "Shouldn't have been able to reopen encrypted db with wrong password");
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
 
             // Reopen with correct password:
-            manager.RegisterEncryptionKey("letmein", "seekrit");
+            manager.RegisterEncryptionKey(_letmein.KeyData, "seekrit");
             seekrit = manager.GetDatabase("seekrit");
             Assert.IsNotNull(seekrit, "Failed to reopen encrypted db");
             Assert.AreEqual(1, seekrit.DocumentCount);
@@ -93,7 +110,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestDeleteEncryptedDatabase()
         {
-            manager.RegisterEncryptionKey("letmein", "seekrit");
+            manager.RegisterEncryptionKey(_letmein.KeyData, "seekrit");
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.GetDatabase("seekrit"),
                 "Failed to create encrypted DB");
@@ -116,7 +133,7 @@ namespace Couchbase.Lite
             Assert.DoesNotThrow(seekrit.Close);
 
             // Make sure old password doesn't work:
-            manager.RegisterEncryptionKey("letmein", "seekrit");
+            manager.RegisterEncryptionKey(_letmein.KeyData, "seekrit");
             var e = Assert.Throws<CouchbaseLiteException>(() => seekrit = manager.GetDatabase("seekrit"),
                         "Password opened unencrypted db or unexpected exception occurred!");
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
@@ -125,7 +142,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestCompactEncryptedDatabase()
         {
-            manager.RegisterEncryptionKey("letmein", "seekrit");
+            manager.RegisterEncryptionKey(_letmein.KeyData, "seekrit");
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.GetDatabase("seekrit"),
                 "Failed to create encrypted DB");
@@ -153,7 +170,7 @@ namespace Couchbase.Lite
 
             // Close and re-open:
             Assert.DoesNotThrow(seekrit.Close, "Close failed");
-            manager.RegisterEncryptionKey("letmein", "seekrit");
+            manager.RegisterEncryptionKey(_letmein.KeyData, "seekrit");
             Assert.DoesNotThrow(() => seekrit = manager.GetDatabase("seekrit"), "Failed to reopen encrypted db");
             Assert.AreEqual(1, seekrit.DocumentCount);
         }
@@ -161,7 +178,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestEncryptedAttachments()
         {
-            manager.RegisterEncryptionKey("letmein", "seekrit");
+            manager.RegisterEncryptionKey(_letmein.KeyData, "seekrit");
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.GetDatabase("seekrit"),
                 "Failed to create encrypted DB");
@@ -192,7 +209,7 @@ namespace Couchbase.Lite
         {
             // First run the encrypted-attachments test to populate the db:
             TestEncryptedAttachments();
-            manager.RegisterEncryptionKey("letmein", "seekrit");
+            manager.RegisterEncryptionKey(_letmein.KeyData, "seekrit");
 
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.GetDatabase("seekrit"),
@@ -202,13 +219,13 @@ namespace Couchbase.Lite
             view.SetMap((doc, emit) => { if(doc.ContainsKey("sequence")) { emit(doc["sequence"], null); }}, "1");
             var query = view.CreateQuery();
             Assert.AreEqual(100, query.Run().Count);
-            Assert.DoesNotThrow(() => seekrit.ChangeEncryptionKey("letmeout"), "Error changing encryption key");
+            Assert.DoesNotThrow(() => seekrit.ChangeEncryptionKey(_letmeout.KeyData), "Error changing encryption key");
 
             // Close & reopen seekrit:
             var dbName = seekrit.Name;
             Assert.DoesNotThrow(seekrit.Close, "Couldn't close seekrit");
             seekrit = null;
-            Assert.DoesNotThrow(() => manager.RegisterEncryptionKey("letmeout", "seekrit"));
+            Assert.DoesNotThrow(() => manager.RegisterEncryptionKey(_letmeout.KeyData, "seekrit"));
             var seekrit2 = default(Database);
             Assert.DoesNotThrow(() => seekrit2 = manager.GetDatabase(dbName));
             seekrit = seekrit2;
@@ -230,7 +247,6 @@ namespace Couchbase.Lite
             // Check that the view survived:
             Assert.AreEqual(100, query.Run().Count);
             seekrit.Dispose();
-        }
-    }
+        }  }
 }
 
