@@ -230,7 +230,7 @@ namespace Couchbase.Lite
                 }
                 doneEvent.Set();
             });
-            doneEvent.WaitOne(TimeSpan.FromSeconds(35));
+            doneEvent.WaitOne(TimeSpan.FromSeconds(10));
             Sleep(1000);
             var lastError = replicator.LastError;
             Assert.IsNotNull(lastError);

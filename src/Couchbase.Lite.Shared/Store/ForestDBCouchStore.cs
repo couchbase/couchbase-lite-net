@@ -44,12 +44,6 @@ namespace Couchbase.Lite.Store
 
     internal unsafe delegate void C4RawDocumentActionDelegate(C4RawDocument *doc);
 
-    internal unsafe delegate bool C4TryLogicDelegate1(C4Error* err);
-
-    internal unsafe delegate void* C4TryLogicDelegate2(C4Error *err);
-
-    internal unsafe delegate int C4TryLogicDelegate3(C4Error *err);
-
     internal unsafe delegate bool C4RevisionSelector(C4Document *doc);
 
     #endregion
@@ -57,57 +51,21 @@ namespace Couchbase.Lite.Store
     #region ForestDBBridge
 
     internal unsafe static class ForestDBBridge {
-        private const int RETRY_TIME = 200; // ms
 
-        public static void Check(C4TryLogicDelegate1 block, int attemptNumber = 0)
+        public static void Check(C4TryLogicDelegate1 block)
         {
-            var err = default(C4Error);
-            if (block(&err)) {
-                return;
-            }
-
-            if (attemptNumber < 5 && err.domain == C4ErrorDomain.ForestDB && err.code == (int)ForestDBStatus.HandleBusy) {
-                Task.Delay(RETRY_TIME).Wait();
-                Check(block, attemptNumber + 1);
-                return;
-            }
-
-            throw new CBForestException(err.code, err.domain);
+            RetryHandler.RetryIfBusy().Execute(block);
         }
 
-        public static void* Check(C4TryLogicDelegate2 block, int attemptNumber = 0)
+        public static void* Check(C4TryLogicDelegate2 block)
         {
-            var err = default(C4Error);
-            var obj = block(&err);
-            if (obj != null) {
-                return obj;
-            }
-
-            if (attemptNumber < 5 && err.domain == C4ErrorDomain.ForestDB && err.code == (int)ForestDBStatus.HandleBusy) {
-                Task.Delay(RETRY_TIME).Wait();
-                return Check(block, attemptNumber + 1);
-            }
-
-            throw new CBForestException(err.code, err.domain);
+            return RetryHandler.RetryIfBusy().Execute(block);
         }
 
-        public static void Check(C4TryLogicDelegate3 block, int attemptNumber = 0)
+        public static void Check(C4TryLogicDelegate3 block)
         {
-            var err = default(C4Error);
-            var result = block(&err);
-            if (result >= 0) {
-                return;
-            }
-
-            if (attemptNumber < 5 && err.domain == C4ErrorDomain.ForestDB && err.code == (int)ForestDBStatus.HandleBusy) {
-                Task.Delay(RETRY_TIME).Wait();
-                Check(block, attemptNumber + 1);
-                return;
-            }
-
-            throw new CBForestException(err.code, err.domain);
+            RetryHandler.RetryIfBusy().Execute(block);
         }
-
     }
 
     #endregion
@@ -201,7 +159,7 @@ namespace Couchbase.Lite.Store
 
         static ForestDBCouchStore()
         {
-            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (0442c26b400f978eb29e08b257216ccc05b4cfe6))");
+            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (d64e0e9b7d0a26eb47c316ac3e1a5c84ec297d14))");
         }
 
         public ForestDBCouchStore()
