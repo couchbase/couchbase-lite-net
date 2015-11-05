@@ -991,12 +991,14 @@ namespace Couchbase.Lite
     #endregion
 
         #region Overrides
+        #pragma warning disable 1591
 
-        public override StringEx ToString()
+        public override string ToString()
         {
             return String.Format("[Manager] {0}", Directory);
         }
 
+        #pragma warning restore 1591
         #endregion
     }
 
