@@ -50,12 +50,15 @@ using System.Linq;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class RevisionsTest : LiteTestCase
     {
         private static RevisionInternal Mkrev(string revID)
         {
             return new RevisionInternal("docid", revID, false);
         }
+
+        public RevisionsTest(string storageType) : base(storageType) {}
 
         [Test]
         public void TestParseRevID()

@@ -84,7 +84,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         /// <returns>The success/error status.</returns>
         /// <param name="views">An array of IViewStorage instances, always including the receiver.</param>
-        Status UpdateIndexes(IEnumerable<IViewStore> views);
+        bool UpdateIndexes(IEnumerable<IViewStore> views);
 
         UpdateJob CreateUpdateJob(IEnumerable<IViewStore> views);
 

@@ -18,12 +18,16 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sharpen;
-using SQLitePCL;
 using Couchbase.Lite.Util;
+
+#if !NOSQLITE
+using SQLitePCL;
+#endif
 
 namespace Couchbase.Lite.Db
 {
@@ -31,22 +35,32 @@ namespace Couchbase.Lite.Db
     {
         private const string TAG = "DatabaseUpgraderFactory";
 
-        public static readonly string[] ALL_KNOWN_PREFIXES = new string[] { "touchdb", "cblite" };
+        public static readonly string[] ALL_KNOWN_PREFIXES = new string[] { "touchdb", "cblite", "cblite2" };
 
-        private static readonly Dictionary<string, Func<Database, string, IDatabaseUpgrader>> UPGRADER_MAP = 
-            new Dictionary<string, Func<Database, string, IDatabaseUpgrader>> {
-            { "touchdb", (db, path) => new v1_upgrader(db, path) },     //Old naming
-            { "cblite", (db, path) => new v1_upgrader(db, path) },      //possible v1.0 schema
+        #if !NOSQLITE
+
+        private static readonly Dictionary<string, int> UPGRADER_MAP =  new Dictionary<string, int> {
+            { "touchdb", 0 },     //Old naming
+            { "cblite", 0 },     // v1 schema
+            { "cblite2", 1 }     // Newest version
         };
+
+        private static readonly List<Func<Database, string, IDatabaseUpgrader>> UPGRADE_PATH = 
+            new List<Func<Database, string, IDatabaseUpgrader>> {
+            { (db, path) => new v1_upgrader(db, path) },
+            { (db, path) => new NoopUpgrader(db, path) }
+        };
+
 
         public static IDatabaseUpgrader CreateUpgrader(Database db, string path)
         {
-            var generator = UPGRADER_MAP.Get(path.Split('.').Last());
-            if (generator != null) {
-                return generator(db, path);
+            var suffix = path.Split('.').Last();
+            var index = 0;
+            if (!UPGRADER_MAP.TryGetValue(suffix, out index)) {
+                return null;
             }
 
-            return null;
+            return UPGRADE_PATH[index](db, path);
         }
 
         internal static int SchemaVersion(string path) {
@@ -76,6 +90,29 @@ namespace Couchbase.Lite.Db
 
             return version;
         }
+
+        private static Status SqliteErrToStatus(int sqliteErr)
+        {
+            if (sqliteErr == raw.SQLITE_OK || sqliteErr == raw.SQLITE_DONE) {
+                return new Status(StatusCode.Ok);
+            }
+
+            Log.W(TAG, "Upgrade failed: SQLite error {0}", sqliteErr);
+            switch (sqliteErr) {
+                case raw.SQLITE_NOTADB:
+                    return new Status(StatusCode.BadRequest);
+                case raw.SQLITE_PERM:
+                    return new Status(StatusCode.Forbidden);
+                case raw.SQLITE_CORRUPT:
+                case raw.SQLITE_IOERR:
+                    return new Status(StatusCode.CorruptError);
+                case raw.SQLITE_CANTOPEN:
+                    return new Status(StatusCode.NotFound);
+                default:
+                    return new Status(StatusCode.DbError);
+            }
+        }
+
+        #endif
     }
 }
-

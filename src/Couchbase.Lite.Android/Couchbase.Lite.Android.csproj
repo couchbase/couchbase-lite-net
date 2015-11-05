@@ -32,12 +32,14 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;TRACE;VERBOSE;ANDROID;MOCK_ENCRYPTION;</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;VERBOSE;ANDROID;FORESTDB</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AndroidLinkMode>None</AndroidLinkMode>
     <ConsolePause>false</ConsolePause>
     <DocumentationFile>bin\Debug\Couchbase.Lite.xml</DocumentationFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -48,20 +50,10 @@
     <ConsolePause>false</ConsolePause>
     <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>ANDROID:MOCK_ENCRYPTION;</DefineConstants>
+    <DefineConstants>ANDROID;FORESTDB;</DefineConstants>
     <DebugType>pdbonly</DebugType>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Prod|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
-    <DefineConstants>ANDROID</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
-    <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
-    <ConsolePause>false</ConsolePause>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>5</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -101,6 +93,10 @@
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
       <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
       <Name>ugly_profile78</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Droid\cbforest-sharp.Droid.csproj">
+      <Project>{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}</Project>
+      <Name>cbforest-sharp.Droid</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

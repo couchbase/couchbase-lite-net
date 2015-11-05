@@ -18,6 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+#if !NOSQLITE
 using System;
 using Couchbase.Lite.Util;
 using System.Diagnostics;
@@ -152,11 +153,15 @@ namespace Couchbase.Lite.Store
             {
                 try {
                     _dbStorage.RunStatements(QueryString(sqlStatements));
-                } catch(Exception) {
-                    return new Status(StatusCode.DbError);
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to run statments ({0})", sqlStatements);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(String.Format("Error running statements ({0})", sqlStatements),
+                        e) { Code = StatusCode.Exception };
                 }
 
-                return new Status(StatusCode.Ok);
+                return true;
             });
         }
 
@@ -544,11 +549,15 @@ namespace Couchbase.Lite.Store
                 DeleteIndex();
                 try {
                     db.StorageEngine.Delete("views", "name=?", Name);
-                } catch(Exception) {
-                    return new Status(StatusCode.DbError);
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to delete view {0}", Name);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(String.Format("Error deleting view {0}", Name),
+                        e) { Code = StatusCode.Exception };
                 }
 
-                return new Status(StatusCode.Ok);
+                return true;
             });
 
             _viewId = 0;
@@ -589,19 +598,19 @@ namespace Couchbase.Lite.Store
             return true;
         }
 
-        public Status UpdateIndexes(IEnumerable<IViewStore> inputViews)
+        public bool UpdateIndexes(IEnumerable<IViewStore> inputViews)
         {
             Log.D(TAG, "Checking indexes of ({0}) for {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), Name);
             var db = _dbStorage;
 
-            Status status = null;
+            var status = false;
                 status = db.RunInTransaction(() =>
                 {
                     // If the view the update is for doesn't need any update, don't do anything:
                     long dbMaxSequence = db.LastSequence;
                     long forViewLastSequence = LastSequenceIndexed;
                     if (forViewLastSequence >= dbMaxSequence) {
-                        return new Status(StatusCode.NotModified);
+                        return true;
                     }
 
                     // Check whether we need to update at all,
@@ -637,7 +646,7 @@ namespace Couchbase.Lite.Store
                         long last = view == this ? forViewLastSequence : view.LastSequenceIndexed;
                         viewLastSequence[i++] = last;
                         if (last < 0) {
-                            return new Status(StatusCode.DbError);
+                            throw new CouchbaseLiteException(StatusCode.DbError);
                         }
 
                         if (last < dbMaxSequence) {
@@ -683,7 +692,7 @@ namespace Couchbase.Lite.Store
                             }
 
                             if (!ok) {
-                                return new Status(StatusCode.DbError);
+                                throw new CouchbaseLiteException(StatusCode.DbError);
                             }
 
                             // Update #deleted rows
@@ -697,7 +706,7 @@ namespace Couchbase.Lite.Store
                     }
 
                     if (minLastSequence == dbMaxSequence) {
-                        return new Status(StatusCode.NotModified);
+                        return true;
                     }
 
                     Log.D(TAG, "Updating indexes of ({0}) from #{1} to #{2} ...",
@@ -835,15 +844,19 @@ namespace Couchbase.Lite.Store
 
                                     if (emitStatus.IsError) {
                                         c.Dispose();
-                                        return emitStatus;
+                                        return false;
                                     }
                                 }
                             }
 
                             currentView = null;
                         }
-                    } catch (Exception) {
-                        return new Status(StatusCode.DbError);
+                    } catch(CouchbaseLiteException) {
+                        Log.W(TAG, "Failed to update index for {0}", currentView.Name);
+                        throw;
+                    } catch (Exception e) {
+                        throw new CouchbaseLiteException(String.Format("Error updating index for {0}", currentView.Name),
+                            e) { Code = StatusCode.Exception };
                     } finally {
                         if (c != null) {
                             c.Dispose();
@@ -861,17 +874,21 @@ namespace Couchbase.Lite.Store
                         args["total_docs"] = newTotalRows;
                         try {
                             db.StorageEngine.Update("views", args, "view_id=?", view.ViewID.ToString());
-                        } catch (Exception) {
-                            return new Status(StatusCode.DbError);
+                        } catch (CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to update view {0}", view.Name);
+                            throw;
+                        } catch(Exception e) {
+                            throw new CouchbaseLiteException(String.Format("Error updating view {0}", view.Name),
+                                e) { Code = StatusCode.Exception };
                         }
                     }
 
                     Log.D(TAG, "...Finished re-indexing ({0}) to #{1} (deleted {2}, added {3})",
                         ViewNames(views), dbMaxSequence, deletedCount, insertedCount);
-                    return new Status(StatusCode.Ok);
+                    return true;
                 });
 
-            if(status.Code >= StatusCode.BadRequest) {
+            if(!status) {
                 Log.W(TAG, "CouchbaseLite: Failed to rebuild views ({0}): {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), status);
             }
 
@@ -1024,13 +1041,13 @@ namespace Couchbase.Lite.Store
                 object valueOrData = FromJSON(valueData.Value);
                 if(valuesToReduce != null && RowValueIsEntireDoc(valueData.Value)) {
                     // map fn emitted 'doc' as value, which was stored as a "*" placeholder; expand now:
-                    Status status = new Status();
-                    var rev = db.GetDocument(docID, c.GetLong(1), status);
-                    if(rev == null) {
-                        Log.W(TAG, "Couldn't load doc for row value: status {0}", status.Code);
-                    }
-
-                    valueOrData = rev.GetProperties();
+                    try {
+                        var rev = db.GetDocument(docID, c.GetLong(1));
+                        valueOrData = rev.GetProperties();
+                    } catch(CouchbaseLiteException) {
+                        Log.W(TAG, "Couldn't load doc for row value");
+                        throw;
+                    }   
                 }
 
                 keysToReduce.Add(keyData.Value);
@@ -1120,4 +1137,4 @@ namespace Couchbase.Lite.Store
         #endregion
     }
 }
-
+#endif

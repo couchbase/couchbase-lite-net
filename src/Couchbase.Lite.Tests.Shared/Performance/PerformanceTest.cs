@@ -62,7 +62,7 @@ namespace Couchbase.Lite
 {
     public class PerformanceTest : PerformanceTestCase
     {
-        public PerformanceTest()
+        public PerformanceTest(string storageType) : base(storageType)
         {
         }
 
@@ -171,7 +171,7 @@ namespace Couchbase.Lite
                     var docId = String.Format("doc{0}-{0}", i, docIdTimestamp);
                     AddDocToSyncGateway(docId, new Dictionary<string, object>(props), 
                         "attachment.png", "image/png");
-                    Thread.Sleep(1 * 1000);
+                    Sleep(1 * 1000);
                 }
 
                 var stopwatch = Stopwatch.StartNew();
@@ -530,7 +530,7 @@ namespace Couchbase.Lite
                 query.MapOnly = false;
                 var rows = query.Run();
 
-                var row = rows.GetRow(0);
+                var row = rows.ElementAt(0);
                 Assert.IsNotNull(row);
 
                 stopwatch.Stop();

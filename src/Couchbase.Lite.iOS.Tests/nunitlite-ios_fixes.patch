@@ -1,0 +1,13 @@
+diff --git a/NUnitLite-1.0.0/src/framework/Internal/Commands/OneTimeSetUpCommand.cs b/NUnitLite-1.0.0/src/framework/Internal/Commands/OneTimeSetUpCommand.cs
+index 5f0112b..5609ccf 100644
+--- a/NUnitLite-1.0.0/src/framework/Internal/Commands/OneTimeSetUpCommand.cs
++++ b/NUnitLite-1.0.0/src/framework/Internal/Commands/OneTimeSetUpCommand.cs
+@@ -56,7 +56,7 @@ namespace NUnit.Framework.Internal.Commands
+         {
+             if (fixtureType != null)
+             {
+-                if (context.TestObject == null && !IsStaticClass(fixtureType))
++                if ((context.TestObject == null || context.GetType() != fixtureType) && !IsStaticClass(fixtureType))
+                     context.TestObject = Reflect.Construct(fixtureType, arguments);
+ 
+                 foreach (MethodInfo method in  Reflect.GetMethodsWithAttribute(fixtureType, typeof(TestFixtureSetUpAttribute), true))

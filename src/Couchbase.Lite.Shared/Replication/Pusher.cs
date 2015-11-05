@@ -509,7 +509,7 @@ namespace Couchbase.Lite.Replicator
             } 
 
             var options = new ChangesOptions();
-            options.SetIncludeConflicts(true);
+            options.IncludeConflicts = true;
             var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, _filter, FilterParams);
             if (changes.Count > 0) {
                 Batcher.QueueObjects(changes);
@@ -592,6 +592,11 @@ namespace Couchbase.Lite.Replicator
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
             {
                 try {
+                    var localDb = LocalDatabase;
+                    if(localDb == null) {
+                        return;
+                    }
+
                     var results = response.AsDictionary<string, object>();
 
                     Log.D(TAG, "/_revs_diff response: {0}\r\n{1}", response, results);
@@ -631,7 +636,7 @@ namespace Couchbase.Lite.Replicator
 
                                 RevisionInternal loadedRev;
                                 try {
-                                    loadedRev = LocalDatabase.LoadRevisionBody (rev);
+                                    loadedRev = localDb.LoadRevisionBody (rev);
                                     properties = new Dictionary<string, object>(rev.GetProperties());
                                 } catch (CouchbaseLiteException e1) {
                                     Log.W(TAG, string.Format("{0} Couldn't get local contents of {1}", rev, this), e1);
@@ -646,7 +651,7 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 properties = new Dictionary<string, object>(populatedRev.GetProperties());
-                                var history = LocalDatabase.GetRevisionHistory(populatedRev, possibleAncestors);
+                                var history = localDb.GetRevisionHistory(populatedRev, possibleAncestors);
                                 properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
                                 populatedRev.SetProperties(properties);
 
@@ -654,9 +659,10 @@ namespace Couchbase.Lite.Replicator
                                 if (properties.ContainsKey("_attachments")) {
                                     // Look for the latest common ancestor and stuf out older attachments:
                                     var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
-                                    Status status = new Status();
-                                    if(!LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false, status)) {
-                                        Log.W(TAG, "Error expanding attachments!");
+                                    try {
+                                        localDb.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
+                                    } catch(Exception ex) {
+                                        Log.W(TAG, "Error expanding attachments!", ex);
                                         RevisionFailed();
                                         continue;
                                     }

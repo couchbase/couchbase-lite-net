@@ -59,12 +59,15 @@ using System.Diagnostics;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class ViewsTest : LiteTestCase
     {
         public const string Tag = "Views";
 
         private Replication pull;
         private LiveQuery query;
+
+        public ViewsTest(string storageType) : base(storageType) {}
 
         [Test] 
         public void TestIssue490()
@@ -182,7 +185,7 @@ namespace Couchbase.Lite
             var changeCount = 0;
             liveQuery.Changed += (sender, e) => changeCount++;
             liveQuery.Start();
-            Thread.Sleep(1000);
+            Sleep(1000);
 
             Assert.AreEqual(1, changeCount);
             Assert.AreEqual(5, liveQuery.Rows.Count);
@@ -193,7 +196,7 @@ namespace Couchbase.Lite
 
             liveQuery.StartKey = 2;
             liveQuery.QueryOptionsChanged();
-            Thread.Sleep(1000);
+            Sleep(1000);
 
             Assert.AreEqual(2, changeCount);
             Assert.AreEqual(3, liveQuery.Rows.Count);
@@ -243,9 +246,7 @@ namespace Couchbase.Lite
         private RevisionInternal PutDoc(Database db, IDictionary<string, object> props)
         {
             var rev = new RevisionInternal(props);
-            var status = new Status();
-            rev = db.PutRevision(rev, null, false, status);
-            Assert.IsTrue(status.IsSuccessful);
+            rev = db.PutRevision(rev, null, false);
             return rev;
         }
 
@@ -415,9 +416,7 @@ namespace Couchbase.Lite
             newdict3["key"] = "3hree";
             threeUpdated.SetProperties(newdict3);
 
-            Status status = new Status();
-            rev3 = database.PutRevision(threeUpdated, rev3.GetRevId(), false, status);
-            Assert.IsTrue(status.IsSuccessful);
+            rev3 = database.PutRevision(threeUpdated, rev3.GetRevId(), false);
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
@@ -430,8 +429,7 @@ namespace Couchbase.Lite
             dict4["key"] = "four";
             var rev4 = PutDoc(database, dict4);
             var twoDeleted = new RevisionInternal(rev2.GetDocId(), rev2.GetRevId(), true);
-            database.PutRevision(twoDeleted, rev2.GetRevId(), false, status);
-            Assert.IsTrue(status.IsSuccessful);
+            database.PutRevision(twoDeleted, rev2.GetRevId(), false);
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
@@ -577,11 +575,11 @@ namespace Couchbase.Lite
             Assert.IsNotNull(liveQuery.EndKey);
 
             liveQuery.Start();
-            Thread.Sleep(2000);
+            Sleep(2000);
             Assert.AreEqual(0, liveQuery.Rows.Count);
 
             PutDocs(database);
-            Thread.Sleep(2000);
+            Sleep(2000);
             Assert.AreEqual(1, liveQuery.Rows.Count);
         }
 
@@ -707,7 +705,7 @@ namespace Couchbase.Lite
             options = new QueryOptions();
             options.Keys = new List<object>();
             allDocs = database.GetAllDocs(options);
-            Assert.IsNull(allDocs);
+            Assert.IsTrue(allDocs == null || !allDocs.Any());
 
             // Get specific documents:
             options = new QueryOptions();
@@ -722,9 +720,7 @@ namespace Couchbase.Lite
             // Delete a document:
             var del = docs[0];
             del = new RevisionInternal(del.GetDocId(), del.GetRevId(), true);
-            var status = new Status();
-            del = database.PutRevision(del, del.GetRevId(), false, status);
-            Assert.AreEqual(StatusCode.Ok, status.Code);
+            del = database.PutRevision(del, del.GetRevId(), false);
 
             // Get deleted doc, and one bogus one:
             options = new QueryOptions();
@@ -874,7 +870,7 @@ namespace Couchbase.Lite
             // wait until indexing is (hopefully) done
             try
             {
-                Thread.Sleep(1 * 1000);
+                Sleep(1 * 1000);
             }
             catch (Exception e)
             {
@@ -1378,7 +1374,7 @@ namespace Couchbase.Lite
                 rev = rev.CreateRevision(properties);
             }
             // Sleep to ensure that the LiveQuery is done all of its async operations.
-            Thread.Sleep(8000);
+            Sleep(8000);
 
             liveQuery.Stop();
 
@@ -1410,7 +1406,7 @@ namespace Couchbase.Lite
             query.Changed += (sender, e) => 
             {
                 Assert.IsNull(e.Error);
-                if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.GetRow(0).Value) == numDocs)
+                if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.ElementAt(0).Value) == numDocs)
                 {
                     gotExpectedQueryResult.Signal();
                 }
@@ -1428,7 +1424,7 @@ namespace Couchbase.Lite
             query1.Changed += (sender, e) => 
             {
                 Assert.IsNull(e.Error);
-                if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.GetRow(0).Value) == (2 * numDocs) + 5)
+                if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.ElementAt(0).Value) == (2 * numDocs) + 5)
                 {
                     gotExpectedQuery1Result.Signal();
                 }
@@ -1483,7 +1479,7 @@ namespace Couchbase.Lite
             query.EndKey = 33547239;
             var rows = query.Run();
             Assert.AreEqual(1, rows.Count());
-            Assert.AreEqual(33547239, rows.GetRow(0).Key);
+            Assert.AreEqual(33547239, rows.ElementAt(0).Key);
         }
             
         [Test]
@@ -1561,7 +1557,7 @@ namespace Couchbase.Lite
             var view = CreateView(database);
             var rows = view.CreateQuery().Run();
             Assert.AreEqual(1, rows.Count);
-            var row = rows.GetRow(0);
+            var row = rows.ElementAt(0);
             Assert.AreEqual(row.Key, "3");
 
             // TODO: Why is this null?
@@ -1584,7 +1580,7 @@ namespace Couchbase.Lite
             // we should only see one row, with key=3.
             // if we see key=2b then it's a bug.
             Assert.AreEqual(1, rows.Count);
-            row = rows.GetRow(0);
+            row = rows.ElementAt(0);
             Assert.AreEqual(row.Key, "3");
         }
 
@@ -1613,7 +1609,7 @@ namespace Couchbase.Lite
                     } });
             }
 
-            Thread.Sleep(5000);
+            Sleep(5000);
             Assert.AreEqual(50, view.TotalRows);
             Assert.AreEqual(50, view.LastSequenceIndexed);
 
@@ -1628,7 +1624,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            Thread.Sleep(5000);
+            Sleep(5000);
             Assert.AreEqual(60, view.TotalRows);
             Assert.AreEqual(60, view.LastSequenceIndexed);
         }

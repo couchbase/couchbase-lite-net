@@ -39,19 +39,21 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
+#if !NOSQLITE
 using System;
-using System.Threading.Tasks;
-using Couchbase.Lite.Storage;
-using System.Threading;
-using SQLitePCL;
-using Couchbase.Lite.Util;
-using System.Diagnostics;
-using System.Text;
 using System.Collections.Generic;
-using System.Linq;
-using SQLitePCL.Ugly;
-using Couchbase.Lite.Store;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Storage;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
+using SQLitePCL;
+using SQLitePCL.Ugly;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -82,7 +84,7 @@ namespace Couchbase.Lite
         private TaskFactory Factory { get; set; }
         private CancellationTokenSource _cts = new CancellationTokenSource();
 
-        #region implemented abstract members of SQLiteStorageEngine
+        #region ISQLiteStorageEngine
 
         public int LastErrorCode { get; private set; }
 
@@ -90,12 +92,6 @@ namespace Couchbase.Lite
         public bool Decrypt(SymmetricKey encryptionKey)
         {
             var hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
-            #if MOCK_ENCRYPTION
-            if(!hasRealEncryption && Database.EnableMockEncryption) {
-                return MockDecrypt(encryptionKey);
-            }
-            #endif
-
             if (encryptionKey != null) {
                 if (!hasRealEncryption) {
                     throw new CouchbaseLiteException("Encryption not available (app not built with SQLCipher)", StatusCode.NotImplemented);
@@ -127,24 +123,6 @@ namespace Couchbase.Lite
             return true;
         }
 
-        #if MOCK_ENCRYPTION
-        public bool MockDecrypt(SymmetricKey encryptionKey)
-        {
-            var givenKeyData = encryptionKey != null ? encryptionKey.KeyData : new byte[0];
-            var keyPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path), "mock_key");
-            if (!File.Exists(keyPath)) {
-                File.WriteAllBytes(keyPath, givenKeyData);
-            } else {
-                var actualKeyData = File.ReadAllBytes(keyPath);
-                if (!givenKeyData.SequenceEqual(actualKeyData)) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-        #endif
-
         public bool Open(String path, SymmetricKey encryptionKey = null)
         {
             if (IsOpen)
@@ -154,8 +132,6 @@ namespace Couchbase.Lite
             Factory = new TaskFactory(new SingleThreadScheduler());
 
             try {
-                Log.I(TAG, "Sqlite Version: {0}".Fmt(raw.sqlite3_libversion()));
-                
                 shouldCommit = false;
                 const int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(writer_flags, encryptionKey, out _writeConnection);
@@ -609,7 +585,6 @@ namespace Couchbase.Lite
                     next.Dispose();
                 } 
                 dbCopy.close();
-                Log.I(TAG, "db connection {0} closed", dbCopy);
             }
             catch (KeyNotFoundException ex)
             {
@@ -888,3 +863,4 @@ namespace Couchbase.Lite
         #endregion
     }
 }
+#endif

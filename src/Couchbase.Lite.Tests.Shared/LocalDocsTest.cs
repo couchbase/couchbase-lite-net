@@ -51,9 +51,12 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class LocalDocsTest : LiteTestCase
     {
         public const string Tag = "LocalDocs";
+
+        public LocalDocsTest(string storageType) : base(storageType) {}
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]

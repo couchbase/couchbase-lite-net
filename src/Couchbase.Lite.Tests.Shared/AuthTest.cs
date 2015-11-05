@@ -44,23 +44,27 @@
 
 using System;
 using System.Collections.Generic;
-using Couchbase.Lite;
-using Couchbase.Lite.Auth;
-using Couchbase.Lite.Util;
-using Sharpen;
-using NUnit.Framework;
 using System.Net;
 using System.Net.Http;
-using Couchbase.Lite.Support;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text;
+
+using Couchbase.Lite;
+using Couchbase.Lite.Auth;
+using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
+using Sharpen;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class AuthTest : LiteTestCase
     {
-        const string Tag = "AuthTest";
+        private const string TAG = "AuthTest";
+
+        public AuthTest(string storageType) : base(storageType) {}
 
         [Test]
         public void TestParsePersonaAssertion()
@@ -141,19 +145,7 @@ namespace Couchbase.Lite
             Assert.IsFalse(basicAuth.UsesCookieBasedLogin);
             Assert.AreEqual("dXNlcm5hbWU6cGFzc3dvcmQ=", basicAuth.UserInfo);
         }
-
-        private void AddUser(string username, string password)
-        {
-            var uri = GetReplicationAdminURL();
-            var addUserUri = uri.AppendPath(string.Format("/_user/{0}", username));
-            var content = "{\"all_channels\":[\"*\"],\"password\":\"" + password + "\"}";
-            var httpclient = new HttpClient();
-            var postTask = httpclient.PutAsync(addUserUri, new StringContent(content, Encoding.UTF8, "application/json"));
-            var response = postTask.Result;
-            var status = response.StatusCode;
-            Assert.IsTrue((status == HttpStatusCode.Created) || (status == HttpStatusCode.OK));
-        }
-
+            
         [Test]
         public void TestBasicAuthenticationSuccess()
         {
@@ -189,7 +181,7 @@ namespace Couchbase.Lite
                     {
                         break;
                     }
-                    Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                    Sleep(TimeSpan.FromMilliseconds(10));
                 }
                 doneEvent.Set();
             });
@@ -234,12 +226,12 @@ namespace Couchbase.Lite
                 while (DateTime.UtcNow < timeout && !stop)
                 {
                     stop |= replicator.Status != ReplicationStatus.Active;
-                    Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                    Sleep(TimeSpan.FromMilliseconds(10));
                 }
                 doneEvent.Set();
             });
-            doneEvent.WaitOne(TimeSpan.FromSeconds(35));
-            Thread.Sleep(1000);
+            doneEvent.WaitOne(TimeSpan.FromSeconds(10));
+            Sleep(1000);
             var lastError = replicator.LastError;
             Assert.IsNotNull(lastError);
         }
@@ -278,6 +270,18 @@ namespace Couchbase.Lite
             auth = AuthenticatorFactory.CreateFacebookAuthenticator("1234");
             authHeader = AuthUtils.GetAuthenticationHeaderValue(auth, null);
             Assert.IsNull(authHeader);
+        }
+
+        private void AddUser(string username, string password)
+        {
+            var uri = GetReplicationAdminURL();
+            var addUserUri = uri.AppendPath(string.Format("/_user/{0}", username));
+            var content = "{\"all_channels\":[\"*\"],\"password\":\"" + password + "\"}";
+            var httpclient = new HttpClient();
+            var postTask = httpclient.PutAsync(addUserUri, new StringContent(content, Encoding.UTF8, "application/json"));
+            var response = postTask.Result;
+            var status = response.StatusCode;
+            Assert.IsTrue((status == HttpStatusCode.Created) || (status == HttpStatusCode.OK));
         }
     }
 }

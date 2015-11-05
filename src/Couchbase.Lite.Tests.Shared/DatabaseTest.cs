@@ -54,9 +54,12 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class DatabaseTest : LiteTestCase
     {
         const String TooLongName = "a11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110";
+
+        public DatabaseTest(string storageType) : base(storageType) {}
 
         #if !NET_3_5
         [Test]

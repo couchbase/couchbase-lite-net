@@ -27,7 +27,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;__IOS__;TRACE;VERBOSE;MOCK_ENCRYPTION;</DefineConstants>
+    <DefineConstants>DEBUG;__IOS__;TRACE;VERBOSE;FORESTDB;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -48,20 +48,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>__IOS__;MOCK_ENCRYPTION;</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Prod|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
-    <DefineConstants>__IOS__</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <ConsolePause>false</ConsolePause>
-    <Platform>iPhone</Platform>
+    <DefineConstants>__IOS__;FORESTDB;</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Data" />
@@ -103,6 +90,10 @@
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
       <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
       <Name>ugly_profile78</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS\cbforest-sharp.iOS.csproj">
+      <Project>{A5757777-CDFE-43BF-8260-D342BF83B773}</Project>
+      <Name>cbforest-sharp.iOS</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

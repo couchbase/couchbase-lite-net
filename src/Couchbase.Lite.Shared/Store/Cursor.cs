@@ -39,7 +39,7 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-
+#if !NOSQLITE
 using System;
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
@@ -208,4 +208,4 @@ namespace Couchbase.Lite
         #endregion
     }
 }
-
+#endif

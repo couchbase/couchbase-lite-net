@@ -58,6 +58,11 @@ namespace Couchbase.Lite
     {
         const string Tag = "FacebookAuthTest";
 
+        public FacebookAuthTest(string storageType) : base(storageType)
+        {
+
+        }
+
         [Test]
         public void TestFacebookAuth()
         {

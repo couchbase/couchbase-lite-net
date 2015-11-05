@@ -76,7 +76,6 @@
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
-    <Reference Include="MonoTouch.NUnitLite" />
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Web.Services" />
@@ -112,6 +111,14 @@
     <ProjectReference Include="..\ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.iOS\Couchbase.Lite.Listener.Bonjour.iOS.csproj">
       <Project>{2B3FFAFB-5BE1-493A-9647-901FACAD7801}</Project>
       <Name>Couchbase.Lite.Listener.Bonjour.iOS</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS\cbforest-sharp.iOS.csproj">
+      <Project>{A5757777-CDFE-43BF-8260-D342BF83B773}</Project>
+      <Name>cbforest-sharp.iOS</Name>
+    </ProjectReference>
+    <ProjectReference Include="vendor\Touch.Unit\NUnitLite\MonoTouch.NUnitLite.csproj">
+      <Project>{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}</Project>
+      <Name>MonoTouch.NUnitLite</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -163,5 +170,8 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+  </Target>
+  <Target Name="EnsureValidSetup" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(ProjectDir)\vendor\Touch.Unit') OR !Exists('$(ProjectDir)\vendor\NUnitLite')" Text="Set up the test environment by running the init-unit script in $(ProjectDir)" />
   </Target>
 </Project>

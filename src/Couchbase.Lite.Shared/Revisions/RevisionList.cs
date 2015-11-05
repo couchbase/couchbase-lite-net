@@ -99,24 +99,14 @@ namespace Couchbase.Lite
             return result;
         }
 
-        public virtual void SortBySequence(bool ascending = false)
+        public virtual void SortByDocID()
         {
-            this.Sort(new SortBySequenceImpl(ascending));
+            Sort((r1, r2) => r1.GetDocId().CompareTo(r2.GetDocId()));
         }
 
-        private sealed class SortBySequenceImpl : IComparer<RevisionInternal>
+        public virtual void SortBySequence(bool ascending = false)
         {
-            private readonly bool _ascending;
-
-            public SortBySequenceImpl(bool ascending = false)
-            {
-                _ascending = ascending;
-            }
-
-            public int Compare(RevisionInternal rev1, RevisionInternal rev2)
-            {
-                return Misc.TDSequenceCompare(rev1.GetSequence(), rev2.GetSequence(), _ascending);
-            }
+            Sort((r1, r2) => Misc.TDSequenceCompare(r1.GetSequence(), r2.GetSequence(), ascending));
         }
 
         public virtual void Limit(int limit)

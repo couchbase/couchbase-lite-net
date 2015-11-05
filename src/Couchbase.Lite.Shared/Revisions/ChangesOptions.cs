@@ -39,89 +39,42 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-
-using Couchbase.Lite;
-using Sharpen;
 using System;
+using Couchbase.Lite;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Internal
 {
     /// <summary>Options for _changes feed</summary>
-    internal class ChangesOptions
+    internal struct ChangesOptions
     {
-        
-        private int limit = int.MaxValue;
-
-        private DocumentContentOptions contentOptions;
-
-        private bool includeDocs = false;
-
-        private bool includeConflicts = false;
-
-        private bool sortBySequence = true;
 
         public bool Descending { get; set; }
 
-        public static ChangesOptions Default()
+        public static ChangesOptions Default
         {
-            return new ChangesOptions {
-                limit = Int32.MaxValue,
-                includeDocs = false,
-                includeConflicts = false,
-                sortBySequence = true,
-                Descending = false
-            };
+            get {
+                return new ChangesOptions {
+                    Limit = Int32.MaxValue,
+                    SortBySequence = true,
+                };
+            }
         }
 
-        public virtual int GetLimit()
-        {
-            return limit;
-        }
+        public int Limit { get; set; }
 
-        public virtual void SetLimit(int limit)
-        {
-            this.limit = limit;
-        }
+        public bool IncludeConflicts { get; set; }
 
-        public virtual bool IsIncludeConflicts()
-        {
-            return includeConflicts;
-        }
+        public bool IncludeDocs { get; set; }
 
-        public virtual void SetIncludeConflicts(bool includeConflicts)
-        {
-            this.includeConflicts = includeConflicts;
-        }
+        public bool SortBySequence { get; set; }
 
-        public virtual bool IsIncludeDocs()
-        {
-            return includeDocs;
-        }
+        public DocumentContentOptions ContentOptions { get; set; }
 
-        public virtual void SetIncludeDocs(bool includeDocs)
+        public override string ToString()
         {
-            this.includeDocs = includeDocs;
-        }
-
-        public virtual bool IsSortBySequence()
-        {
-            return sortBySequence;
-        }
-
-        public virtual void SetSortBySequence(bool sortBySequence)
-        {
-            this.sortBySequence = sortBySequence;
-        }
-
-        public virtual DocumentContentOptions GetContentOptions()
-        {
-            return contentOptions;
-        }
-
-        public virtual void SetContentOptions(DocumentContentOptions contentOptions
-            )
-        {
-            this.contentOptions = contentOptions;
+            return string.Format("[ChangesOptions: Descending={0}, Limit={1}, IncludeConflicts={2}, IncludeDocs={3},{6}" +
+                "SortBySequence={4}, ContentOptions={5}]", Descending, Limit, IncludeConflicts, IncludeDocs, 
+                SortBySequence, ContentOptions, Environment.NewLine);
         }
     }
 }

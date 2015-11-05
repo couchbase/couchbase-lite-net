@@ -18,6 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+#define FAKE_C4_ENCRYPTION
 using System;
 using System.IO;
 using System.Linq;
@@ -165,8 +166,17 @@ namespace Couchbase.Lite.Store
 
         #region Public Methods
 
+        /// <summary>
+        /// Creates a new SymmetricKey using the supplied data
+        /// </summary>
+        /// <param name="keyOrPassword">A password as a string or a byte
+        /// IEnumerable containig key data</param>
         public static SymmetricKey Create(object keyOrPassword)
         {
+            if (keyOrPassword == null) {
+                return null;
+            }
+
             var password = keyOrPassword as string;
             if(password != null) {
                 return new SymmetricKey(password);
@@ -237,6 +247,11 @@ namespace Couchbase.Lite.Store
             return new CryptoStream(stream, _cryptor.CreateDecryptor(), CryptoStreamMode.Read);
         }
 
+        /// <summary>
+        /// Creates a strem that will encrypt the given base stream
+        /// </summary>
+        /// <returns>The stream to write to for encryption</returns>
+        /// <param name="baseStream">The stream to read from</param>
         public CryptoStream CreateStream(Stream baseStream)
         {
             if (_cryptor == null || baseStream == null) {

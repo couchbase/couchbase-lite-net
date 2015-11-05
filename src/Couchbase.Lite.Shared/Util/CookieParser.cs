@@ -31,8 +31,14 @@ using Cookie = System.Net.Couchbase.Cookie;
 
 namespace Couchbase.Lite.Util
 {
+    /// <summary>
+    /// A class for parsing HTTP cookies
+    /// </summary>
     public static class CookieParser
     {
+
+        #region Constants
+
         private const string ExpiresToken = "expires";
         private const string MaxAgeToken = "max-age";
         private const string DomainToken = "domain";
@@ -66,6 +72,17 @@ namespace Couchbase.Lite.Util
             "d MMM yyyy H:m:s", // RFC 5322 no day-of-week, no zone
         };
 
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Attempts to parse the given cookie
+        /// </summary>
+        /// <returns><c>true</c>, if the cookie was parsed, <c>false</c> otherwise.</returns>
+        /// <param name="value">The value to parse.</param>
+        /// <param name="domain">The cookie domain.</param>
+        /// <param name="cookie">Stores the cookie on success.</param>
         public static bool TryParse(string value, string domain, out Cookie cookie)
         {
             cookie = null;
@@ -95,6 +112,10 @@ namespace Couchbase.Lite.Util
             cookie = tmpCookie;
             return true;
         }
+
+        #endregion
+
+        #region Private Methods
 
         private static bool ParseSegment(string segment, Cookie cookie)
         {
@@ -179,6 +200,8 @@ namespace Couchbase.Lite.Util
             Debug.Assert(nameValuePair != null);
             return nameValuePair.Length > 1 ? nameValuePair[1].Trim('"') : defaultValue;
         }
+
+        #endregion
     }
 }
 

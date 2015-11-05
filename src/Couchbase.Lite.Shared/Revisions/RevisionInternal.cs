@@ -47,6 +47,7 @@ using Couchbase.Lite.Internal;
 using Sharpen;
 using System.Text;
 using System.Linq;
+using Couchbase.Lite.Store;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -92,6 +93,33 @@ namespace Couchbase.Lite.Internal
 
         internal RevisionInternal(IDictionary<String, Object> properties)
             : this(new Body(properties)) { }
+
+        #if FORESTDB
+
+        internal unsafe RevisionInternal(CBForest.C4Document *doc, bool loadBody) 
+        {
+            if (!doc->Exists) {
+                return;
+            }
+
+            _docId = (string)doc->docID;
+            _revId = (string)doc->selectedRev.revID;
+            _deleted = doc->selectedRev.IsDeleted;
+            _sequence = (long)doc->selectedRev.sequence;
+            if (loadBody) {
+                // Important not to lazy load here since we can only assume
+                // doc lives until immediately after this function ends
+                SetBody(new Body(doc->selectedRev.body.ToArray())); 
+            }
+        }
+
+        internal unsafe RevisionInternal(CBForest.CBForestDocStatus docStatus, bool loadBody)
+            : this(docStatus.Document, loadBody)
+        {
+
+        }
+
+        #endif
 
         #endregion
 

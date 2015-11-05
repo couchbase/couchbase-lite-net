@@ -43,15 +43,18 @@
 */
 
 using System.IO;
-using Couchbase.Lite;
+
 using NUnit.Framework;
 using Sharpen;
-using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class BlobStoreWriterTest : LiteTestCase
     {
+
+        public BlobStoreWriterTest(string storageType) : base(storageType) {}
+
         /// <exception cref="System.Exception"></exception>
         [Test]
         public void TestBasicOperation()

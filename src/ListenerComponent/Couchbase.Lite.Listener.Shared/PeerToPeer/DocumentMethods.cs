@@ -115,13 +115,9 @@ namespace Couchbase.Lite.Listener
                         if(ancestorId != null) {
                             minRevPos = RevisionInternal.GenerationFromRevID(ancestorId) + 1;
                         }
-
-                        Status status = new Status();
+                            
                         bool attEncodingInfo = context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
-                        if(!db.ExpandAttachments(rev, minRevPos, sendMultipart, attEncodingInfo, status)) {
-                            response.InternalStatus = status.Code;
-                            return response;
-                        }
+                        db.ExpandAttachments(rev, minRevPos, sendMultipart, attEncodingInfo);
                     }
 
                     if(sendMultipart) {
@@ -175,7 +171,7 @@ namespace Couchbase.Lite.Listener
                             }
 
                             Status status = new Status();
-                            var rev = db.GetDocument(docId, revID, true, status);
+                            var rev = db.GetDocument(docId, revID, true);
                             if(rev != null) {
                                 rev = ApplyOptions(options, rev, context, db, status);
                             }
@@ -316,14 +312,12 @@ namespace Couchbase.Lite.Listener
             RevisionInternal rev = new RevisionInternal(docId, null, deleting);
             rev.SetBody(body);
 
-            StatusCode status = StatusCode.Created;
+            StatusCode status = deleting ? StatusCode.Ok : StatusCode.Created;
             try {
                 if (docId != null && docId.StartsWith("_local")) {
                     outRev = db.Storage.PutLocalRevision(rev, prevRevId, true); //TODO: Doesn't match iOS
                 } else {
-                    Status retStatus = new Status();
-                    outRev = db.PutRevision(rev, prevRevId, allowConflict, retStatus);
-                    status = retStatus.Code;
+                    outRev = db.PutRevision(rev, prevRevId, allowConflict);
                 }
             } catch(CouchbaseLiteException e) {
                 status = e.Code;
@@ -365,8 +359,7 @@ namespace Couchbase.Lite.Listener
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             {
                 Status status = new Status();
-                var rev = db.GetDocument(context.DocumentName, context.GetQueryParam("rev"), false, 
-                    status);
+                var rev = db.GetDocument(context.DocumentName, context.GetQueryParam("rev"), false, status);
                     
                 if(rev ==null) {
                     return context.CreateResponse(status.Code);
@@ -379,9 +372,9 @@ namespace Couchbase.Lite.Listener
                 bool acceptEncoded = acceptEncoding != null && acceptEncoding.Contains("gzip") &&
                     context.RequestHeaders["Range"] == null;
 
-                var attachment = db.GetAttachmentForRevision(rev, context.AttachmentName, status);
+                var attachment = db.GetAttachmentForRevision(rev, context.AttachmentName);
                 if(attachment == null) {
-                    return context.CreateResponse(status.Code);
+                    return context.CreateResponse(StatusCode.AttachmentNotFound);
                 }
 
                 var response = context.CreateResponse();
@@ -533,9 +526,7 @@ namespace Couchbase.Lite.Listener
                 RevisionInternal nuRev = new RevisionInternal(dst);
                 if (options.HasFlag(DocumentContentOptions.IncludeAttachments)) {
                     bool attEncodingInfo = context != null && context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
-                    if(!db.ExpandAttachments(nuRev, 0, false, !attEncodingInfo, outStatus)) {
-                        return null;
-                    }
+                    db.ExpandAttachments(nuRev, 0, false, !attEncodingInfo);
                 }
 
                 rev = nuRev;

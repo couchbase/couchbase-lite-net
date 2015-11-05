@@ -61,10 +61,10 @@ using System.IO.Compression;
 
 namespace Couchbase.Lite
 {
-    [TestFixture]
+    [TestFixture("SQLite")]
     public abstract class LiteTestCase
     {
-        private const string Tag = "LiteTestCase";
+        private const string TAG = "LiteTestCase";
 
         public const string FacebookAppId = "127107807637855";
 
@@ -73,6 +73,8 @@ namespace Couchbase.Lite
         protected Manager manager = null;
 
         protected Database database = null;
+
+        protected readonly string _storageType;
 
         protected string DefaultTestDb = "cblitetest";
 
@@ -92,11 +94,20 @@ namespace Couchbase.Lite
             }
         }
 
+        protected LiteTestCase(string storageType)
+        {
+            _storageType = storageType;
+        }
 
         [SetUp]
         protected virtual void SetUp()
         {
-            Log.V(Tag, "SetUp");
+            Log.V(TAG, "SetUp");
+            if (_storageType == "ForestDB") {
+                CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, (level, message) =>
+                    Console.WriteLine(String.Format("[CBForest {0}]: {1}", level, (string)message))
+                );
+            }
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
             LoadCustomProperties();
@@ -104,10 +115,29 @@ namespace Couchbase.Lite
             StartDatabase();
         }
 
+        protected void Sleep(int milliseconds)
+        {
+            if (milliseconds < 1000) {
+                Thread.Sleep(milliseconds);
+                return;
+            }
+
+            while (milliseconds > 0) {
+                Log.I(TAG, "Sleeping...");
+                Thread.Sleep(Math.Min(milliseconds, 1000));
+                milliseconds -= 1000;
+            }
+        }
+
+        protected void Sleep(TimeSpan timespan)
+        {
+            Sleep((int)timespan.TotalMilliseconds);
+        }
+
         protected Stream GetAsset(string name)
         {
             var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
-            Log.D(Tag, "Fetching assembly resource: " + assetPath);
+            Log.D(TAG, "Fetching assembly resource: " + assetPath);
             var stream = GetType().GetResourceAsStream(assetPath);
             return stream;
         }
@@ -131,6 +161,7 @@ namespace Couchbase.Lite
 
             var testPath = path.CreateSubdirectory("tests");
             manager = new Manager(testPath, Manager.DefaultOptions);
+            manager.StorageType = _storageType;
         }
 
         protected void StopCBLite()
@@ -173,7 +204,7 @@ namespace Couchbase.Lite
                     db.Close();
                     status = true;
                 } catch (Exception e) { 
-                    Log.E(Tag, "Cannot delete database " + e.Message);
+                    Log.E(TAG, "Cannot delete database " + e.Message);
                 }
 
                 Assert.IsTrue(status);
@@ -201,7 +232,7 @@ namespace Couchbase.Lite
             }
             catch (IOException)
             {
-                Log.W(Tag, "Error trying to read from local-test.properties, does this file exist?");
+                Log.W(TAG, "Error trying to read from local-test.properties, does this file exist?");
             }
         }
 
@@ -301,10 +332,15 @@ namespace Couchbase.Lite
         [TearDown]
         protected virtual void TearDown()
         {
-            Log.V(Tag, "tearDown");
+            Log.V(TAG, "tearDown");
             StopDatabase();
             StopCBLite();
             Manager.DefaultOptions.RestoreDefaults();
+
+            if (_storageType == "ForestDB") {
+                CBForest.Native.CheckMemoryLeaks();
+                CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, null);
+            }
         }
 
         protected virtual void RunReplication(Replication replication)
@@ -437,7 +473,7 @@ namespace Couchbase.Lite
             } 
             catch (Exception e)
             {
-                Log.E(Tag, "Error creating document", e);
+                Log.E(TAG, "Error creating document", e);
                 Assert.IsTrue(false, "can't create new document in db:" + db.Name + " with properties:" + properties.ToString());
             }
 
@@ -504,7 +540,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
 
             // give a little padding to give it a chance to save a checkpoint
-            Thread.Sleep(2 * 1000);
+            Sleep(2 * 1000);
         }
 
         protected void AssertEnumerablesAreEqual(
@@ -514,22 +550,34 @@ namespace Couchbase.Lite
             var enumerator1 = list1.GetEnumerator();
             var enumerator2 = list2.GetEnumerator();
 
-            while (enumerator1.MoveNext() && enumerator2.MoveNext())
-            {
-                var obj1 = enumerator1.Current;
-                var obj2 = enumerator1.Current;
+            try {
+                while (enumerator1.MoveNext() && enumerator2.MoveNext())
+                {
+                    var obj1 = enumerator1.Current;
+                    var obj2 = enumerator1.Current;
 
-                if (obj1 is IDictionary<string, object> && obj2 is IDictionary<string, object>) 
-                {
-                    AssertPropertiesAreEqual((IDictionary<string, object>)obj1, (IDictionary<string, object>)obj2);
+                    if (obj1 is IDictionary<string, object> && obj2 is IDictionary<string, object>) 
+                    {
+                        AssertPropertiesAreEqual((IDictionary<string, object>)obj1, (IDictionary<string, object>)obj2);
+                    }
+                    else if (obj1 is IEnumerable && obj2 is IEnumerable)
+                    {
+                        AssertEnumerablesAreEqual((IEnumerable)obj1, (IEnumerable)obj2);
+                    }
+                    else
+                    {
+                        Assert.AreEqual(obj1, obj2);
+                    }
                 }
-                else if (obj1 is IEnumerable && obj2 is IEnumerable)
-                {
-                    AssertEnumerablesAreEqual((IEnumerable)obj1, (IEnumerable)obj2);
+            } finally {
+                var disp1 = enumerator1 as IDisposable;
+                var disp2 = enumerator2 as IDisposable;
+                if (disp1 != null) {
+                    disp1.Dispose();
                 }
-                else
-                {
-                    Assert.AreEqual(obj1, obj2);
+
+                if (disp2 != null) {
+                    disp2.Dispose();
                 }
             }
         }
@@ -584,8 +632,7 @@ namespace Couchbase.Lite
 
         public void Changed(object sender, ReplicationChangeEventArgs args)
         {
-            var replicator = args.Source;
-            if (replicator.Status == ReplicationStatus.Stopped && doneSignal.CurrentCount > 0)
+            if (args.Status == ReplicationStatus.Stopped && doneSignal.CurrentCount > 0)
             {
                 doneSignal.Signal();
             }

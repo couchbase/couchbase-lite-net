@@ -46,7 +46,8 @@ namespace Couchbase.Lite.Store
         /// which contains attachments; don't mess with that..</param>
         /// <param name="manager">The owning Manager; this is provided so the storage can examine its
         ///properties.</param>
-        void Open(string directory, Manager manager);
+        /// <param name="readOnly">Whether or not the database is read-only</param> 
+        void Open(string directory, Manager manager, bool readOnly);
 
         /// <summary>
         /// Closes storage before it's deallocated. 
@@ -79,7 +80,7 @@ namespace Couchbase.Lite.Store
         /// <summary>
         /// Stores an arbitrary string under an arbitrary key, persistently.
         /// </summary>
-        Status SetInfo(string key, string info);
+        void SetInfo(string key, string info);
 
         /// <summary>
         /// Returns the value assigned to the given key by SetInfo().
@@ -94,7 +95,7 @@ namespace Couchbase.Lite.Store
         /// <summary>
         /// The last sequence number allocated to a revision.
         /// </summary>
-        Int64 LastSequence { get; }
+        long LastSequence { get; }
 
         /// <summary>
         /// Is a transaction active?
@@ -113,7 +114,7 @@ namespace Couchbase.Lite.Store
         /// if 10 retries all fail, the DbBusy will be returned to the caller.
         /// Any exception raised by the block will be caught and treated as Exception.
         /// </summary>
-        Status RunInTransaction(Func<Status> block);
+        bool RunInTransaction(RunInTransactionDelegate block);
 
         /// <summary>
         /// Registers the encryption key of the database file. Must be called before opening the db.
@@ -139,8 +140,8 @@ namespace Couchbase.Lite.Store
         /// <param name="docId">The document ID</param>
         /// <param name="revId">The revision ID; may be nil, meaning "the current revision".</param>
         /// <param name="withBody">Whether or not to include the document body</param>
-        /// <param name="status">An object that holds the result of the operation</param> 
-        RevisionInternal GetDocument(string docId, string revId, bool withBody, Status status = null);
+        /// <param name="outStatus">Stores the reason that the returned value is null</param> 
+        RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null);
 
         /// <summary>
         /// Loads the body of a revision.
@@ -236,9 +237,8 @@ namespace Couchbase.Lite.Store
         /// <param name="validationBlock">If non-null, this block will be called before the revision is added.
         /// It's given the parent revision, with its properties if available, and can reject
         /// the operation by returning an error status.</param>
-        /// <param name="outStatus">A parameter to hold the result of the operation</param>
         RevisionInternal PutRevision(string docId, string prevRevId, IDictionary<string, object> properties,
-            bool deleting, bool allowConflict, StoreValidation validationBlock, Status outStatus = null);
+            bool deleting, bool allowConflict, StoreValidation validationBlock);
 
         /// <summary>
         /// Inserts an already-existing revision (with its revID), plus its ancestry, into a document.
@@ -254,7 +254,7 @@ namespace Couchbase.Lite.Store
         /// the operation by returning an error status.</param>
         /// <param name="source">The URL of the remote database this was pulled from, or null if it's local.
         /// (This will be used to create the DatabaseChange object sent to the delegate.</param>
-        Status ForceInsert(RevisionInternal rev, IList<string> revHistory, StoreValidation validationBlock, Uri source);
+        void ForceInsert(RevisionInternal rev, IList<string> revHistory, StoreValidation validationBlock, Uri source);
 
         /// <summary>
         /// Purges specific revisions, which deletes them completely from the local database 

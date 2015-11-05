@@ -310,17 +310,17 @@ namespace Couchbase.Lite.Listener
                     }
                 }
                     
-                var options = new ChangesOptions();
+                var options = ChangesOptions.Default;
                 responseState.Db = db;
                 responseState.ContentOptions = context.ContentOptions;
                 responseState.ChangesFeedMode = context.ChangesFeedMode;
                 responseState.ChangesIncludeDocs = context.GetQueryParam<bool>("include_docs", bool.TryParse, false);
-                options.SetIncludeDocs(responseState.ChangesIncludeDocs);
+                options.IncludeDocs = responseState.ChangesIncludeDocs;
                 responseState.ChangesIncludeConflicts = context.GetQueryParam("style") == "all_docs";
-                options.SetIncludeConflicts(responseState.ChangesIncludeConflicts);
-                options.SetContentOptions(context.ContentOptions);
-                options.SetSortBySequence(!options.IsIncludeConflicts());
-                options.SetLimit(context.GetQueryParam<int>("limit", int.TryParse, options.GetLimit()));
+                options.IncludeConflicts = responseState.ChangesIncludeConflicts;
+                options.ContentOptions = context.ContentOptions;
+                options.SortBySequence = !options.IncludeConflicts;
+                options.Limit = context.GetQueryParam<int>("limit", int.TryParse, options.Limit);
                 int since = context.GetQueryParam<int>("since", int.TryParse, 0);
 
                 string filterName = context.GetQueryParam("filter");
@@ -368,7 +368,7 @@ namespace Couchbase.Lite.Listener
                     return context.CreateResponse();
                 } else {
                     if(responseState.ChangesIncludeConflicts) {
-                        response.JsonBody = new Body(ResponseBodyForChanges(changes, since, options.GetLimit(), responseState));
+                        response.JsonBody = new Body(ResponseBodyForChanges(changes, since, options.Limit, responseState));
                     } else {
                         response.JsonBody = new Body(ResponseBodyForChanges(changes, since, responseState));
                     }

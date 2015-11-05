@@ -128,11 +128,18 @@ namespace Couchbase.Lite
 
     #endregion
 
+    /// <summary>
+    /// A class for holding replication options
+    /// </summary>
     [DictionaryContract(OptionalKeys=new object[] { 
         ReplicationOptionsDictionary.REMOTE_UUID_KEY, typeof(string) 
     })]
     public sealed class ReplicationOptionsDictionary : ContractedDictionary
     {
+        /// <summary>
+        /// This key stores an ID for a remote endpoint whose identifier
+        /// is likely to change (i.e. found via Bonjour)
+        /// </summary>
         public const string REMOTE_UUID_KEY = "remoteUUID";
     }
 
@@ -478,6 +485,9 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Gets or sets custom options on this replication
+        /// </summary>
         public ReplicationOptionsDictionary Options { get; set; }
        
         /// <summary>
@@ -692,6 +702,11 @@ namespace Couchbase.Lite
             FireTrigger(ReplicationTrigger.StopGraceful);
         }
 
+        /// <summary>
+        /// Gets a collection of document IDs that have been scheduled for replication
+        /// but not yet completed.
+        /// </summary>
+        /// <returns>The pending document IDs.</returns>
         public ICollection<string> GetPendingDocumentIDs()
         {
             if (IsPull || (_stateMachine.State > ReplicationState.Initial && _pendingDocumentIDs != null)) {
@@ -722,6 +737,11 @@ namespace Couchbase.Lite
             return null;
         }
 
+        /// <summary>
+        /// Checks if the specified document is pending replication
+        /// </summary>
+        /// <returns><c>true</c> if this document is pending, otherwise, <c>false</c>.</returns>
+        /// <param name="doc">The document to check.</param>
         public bool IsDocumentPending(Document doc)
         {
             return doc != null && GetPendingDocumentIDs().Contains(doc.Id);
@@ -1148,14 +1168,15 @@ namespace Couchbase.Lite
             {
                 Log.V (TAG, "Set batcher to null");
                 Batcher = null;
-                if (LocalDatabase != null) {
-                    var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+                var localDb = LocalDatabase;
+                if (localDb != null) {
+                    var reachabilityManager = localDb.Manager.NetworkReachabilityManager;
                     if (reachabilityManager != null) {
                         reachabilityManager.StatusChanged -= NetworkStatusChanged;
                         reachabilityManager.StopListening ();
                     }
 
-                    LocalDatabase.ForgetReplication(this);
+                    localDb.ForgetReplication(this);
                 }
 
                 ClearDbRef ();
@@ -1706,6 +1727,7 @@ namespace Couchbase.Lite
 
         private void SaveLastSequence(SaveLastSequenceCompletionBlock completionHandler)
         {
+            
             if (!lastSequenceChanged) {
                 if (completionHandler != null) {
                     completionHandler();
@@ -1742,14 +1764,8 @@ namespace Couchbase.Lite
                 if (e != null) {
                     Log.V(TAG, "Unable to save remote checkpoint", e);
                 }
-
-                if (LocalDatabase == null || !LocalDatabase.Storage.IsOpen) {
-                    Log.W(TAG, "Database is null or closed, ignoring remote checkpoint response");
-                    if (completionHandler != null) {
-                        completionHandler();
-                    }
-                    return;
-                }
+                    
+                
 
                 if (e != null) {
                     switch (GetStatusFromError(e)) {
@@ -1769,7 +1785,15 @@ namespace Couchbase.Lite
                     var response = result.AsDictionary<string, object>();
                     body.Put ("_rev", response.Get ("rev"));
                     _remoteCheckpoint = body;
-                    LocalDatabase.SetLastSequence(LastSequence, remoteCheckpointDocID);
+                    var localDb = LocalDatabase;
+                    if(localDb == null || localDb.Storage == null) {
+                        Log.W(TAG, "Database is null, ignoring remote checkpoint response");
+                        if(completionHandler != null) {
+                            completionHandler();
+                        }
+                        return;
+                    }
+                    localDb.SetLastSequence(LastSequence, remoteCheckpointDocID);
                 }
 
                 if (completionHandler != null) {
@@ -1872,8 +1896,9 @@ namespace Couchbase.Lite
             // If we're in the middle of saving the checkpoint and waiting for a response, by the time the
             // response arrives _db will be nil, so there won't be any way to save the checkpoint locally.
             // To avoid that, pre-emptively save the local checkpoint now.
-            if (LocalDatabase != null && _savingCheckpoint && LastSequence != null) {
-                LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID());
+            var localDb = LocalDatabase;
+            if (localDb != null && _savingCheckpoint && LastSequence != null) {
+                localDb.SetLastSequence(LastSequence, RemoteCheckpointDocID());
             }
 
             LocalDatabase = null;

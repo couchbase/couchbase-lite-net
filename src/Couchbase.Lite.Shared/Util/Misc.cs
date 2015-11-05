@@ -158,7 +158,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.Store.SQLException"></exception>
-        public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
+        /*public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
         {
             byte[] result = null;
             using (var cursor = database.IntransactionRawQuery(query, args))
@@ -169,7 +169,7 @@ namespace Couchbase.Lite
                 }
                 return result;
             }
-        }
+        }*/
 
 
         /// <summary>Like equals, but works even if either/both are null</summary>

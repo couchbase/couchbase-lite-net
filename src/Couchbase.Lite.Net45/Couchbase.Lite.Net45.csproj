@@ -6,6 +6,7 @@
     </MonoPrefix>
     <ReleaseVersion>1.1.1</ReleaseVersion>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <AssemblyName>Couchbase.Lite</AssemblyName>
   </PropertyGroup>
   <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
@@ -28,13 +29,13 @@
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;MOCK_ENCRYPTION;</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;FORESTDB</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
     <DocumentationFile>bin\Debug\Couchbase.Lite.xml</DocumentationFile>
-    <AssemblyName>Couchbase.Lite</AssemblyName>
     <LangVersion>5</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>True</Optimize>
@@ -44,18 +45,9 @@
     <Prefer32Bit>false</Prefer32Bit>
     <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
-    <AssemblyName>Couchbase.Lite</AssemblyName>
-    <DefineConstants>MOCK_ENCRYPTION;</DefineConstants>
+    <DefineConstants>FORESTDB</DefineConstants>
     <LangVersion>5</LangVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Prod|AnyCPU' ">
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Prod</OutputPath>
-    <WarningLevel>4</WarningLevel>
-    <AssemblyName>Couchbase.Lite.Net45</AssemblyName>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>pdbonly</DebugType>
-    <LangVersion>5</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -89,13 +81,17 @@
     </PropertyGroup>
   </Target>
   <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net45.pinvoke_packaged_sqlcipher.anycpu.csproj">
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net45.pinvoke_packaged_sqlcipher.anycpu.csproj" Condition="!$(DefineConstants.Contains('NOSQLITE'))">
       <Project>{8E62D3FC-CE27-427F-A060-F86DA48142F8}</Project>
       <Name>platform.net45.pinvoke_packaged_sqlcipher.anycpu</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj" Condition="!$(DefineConstants.Contains('NOSQLITE'))">
       <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
       <Name>ugly_profile78</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net45\cbforest-sharp.Net45.csproj" Condition="$(DefineConstants.Contains('FORESTDB'))">
+      <Project>{20839831-948C-42BA-AAF1-75081209E6C5}</Project>
+      <Name>cbforest-sharp.Net45</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

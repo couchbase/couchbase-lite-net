@@ -75,6 +75,7 @@ using WebException = System.Net.Couchbase.WebException;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class ReplicationTest : LiteTestCase
     {
         private const string Tag = "ReplicationTest";
@@ -82,6 +83,8 @@ namespace Couchbase.Lite
         private SyncGateway _sg;
         private static int _dbCounter = 0;
         private HttpClient _httpClient = new HttpClient();
+
+        public ReplicationTest(string storageType) : base(storageType) {}
 
         private class ReplicationIdleObserver 
         {
@@ -169,6 +172,13 @@ namespace Couchbase.Lite
             base.SetUp();
 
             _sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+        }
+
+        protected override void TearDown()
+        {
+            Sleep(2000); // Give the replicators a chance to finish up before moving to the next test
+
+            base.TearDown();
         }
 
         [Test]
@@ -397,7 +407,7 @@ namespace Couchbase.Lite
                 };
 
                 RunReplication(push);
-                Thread.Sleep(1000);
+                Sleep(1000);
 
                 Assert.IsNull(push.LastError);
                 foreach (var status in statusHistory.Take(statusHistory.Count - 1)) {
@@ -599,7 +609,7 @@ namespace Couchbase.Lite
 
                 // wait for a while to give the replicator a chance to push it
                 // (it should not actually push anything)
-                Thread.Sleep(5 * 1000);
+                Sleep(5 * 1000);
 
                 // we should not have gotten any more _bulk_docs requests, because
                 // the replicator should not have pushed anything else.
@@ -640,14 +650,11 @@ namespace Couchbase.Lite
 
                 var body = new Body(documentProperties);
                 var rev1 = new RevisionInternal(body);
-                var status = new Status();
-                rev1 = database.PutRevision(rev1, null, false, status);
-                Assert.AreEqual(StatusCode.Created, status.Code);
+                rev1 = database.PutRevision(rev1, null, false);
 
                 documentProperties.Put("_rev", rev1.GetRevId());
                 documentProperties["UPDATED"] = true;
-                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false, status);
-                Assert.AreEqual(StatusCode.Created, status.Code);
+                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false);
 
                 documentProperties = new Dictionary<string, object>();
                 var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
@@ -655,8 +662,7 @@ namespace Couchbase.Lite
                 documentProperties["baz"] = 666;
                 documentProperties["fnord"] = true;
 
-                database.PutRevision(new RevisionInternal(documentProperties), null, false, status);
-                Assert.AreEqual(StatusCode.Created, status.Code);
+                database.PutRevision(new RevisionInternal(documentProperties), null, false);
 
                 var doc2 = database.GetDocument(doc2Id);
                 var doc2UnsavedRev = doc2.CreateRevision();
@@ -722,14 +728,14 @@ namespace Couchbase.Lite
 
                 Assert.IsNull(repl2.LastError);
 
-                Thread.Sleep(1000);
+                Sleep(1000);
 
                 // make sure trhe doc has been added
                 remoteDb.VerifyDocumentExists(doc3Id);
 
                 Assert.AreEqual(repl2.LastSequence, database.LastSequenceWithCheckpointId(repl2CheckedpointId));
 
-                System.Threading.Thread.Sleep(2000);
+                Sleep(2000);
                 var json = GetRemoteDoc(remote, repl2CheckedpointId);
                 var remoteLastSequence = (string)json["lastSequence"];
                 Assert.AreEqual(repl2.LastSequence, remoteLastSequence);
@@ -759,15 +765,12 @@ namespace Couchbase.Lite
 
                 var body = new Body(documentProperties);
                 var rev1 = new RevisionInternal(body);
-                var status = new Status();
-                rev1 = database.PutRevision(rev1, null, false, status);
-                Assert.AreEqual(StatusCode.Created, status.Code);
+                rev1 = database.PutRevision(rev1, null, false);
 
                 documentProperties["_rev"] = rev1.GetRevId();
                 documentProperties["UPDATED"] = true;
                 documentProperties["_deleted"] = true;
-                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false, status);
-                Assert.IsTrue((int)status.Code >= 200 && (int)status.Code < 300);
+                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false);
 
                 var repl = database.CreatePushReplication(remote);
                 if (!IsSyncGateway(remote)) {
@@ -852,9 +855,9 @@ namespace Couchbase.Lite
                 response = _httpClient.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
-                Thread.Sleep(1000);
+                Sleep(1000);
                 while (pull.Status == ReplicationStatus.Active) {
-                    Thread.Sleep(500);
+                    Sleep(500);
                 }
 
                 Assert.IsNull(pull.LastError);
@@ -920,10 +923,10 @@ namespace Couchbase.Lite
 
                 allDocsLiveQuery.Stop();
 
-                Thread.Sleep(2000);
+                Sleep(2000);
             }
 
-            Thread.Sleep(1000);
+            Sleep(1000);
         }
 
         /// <exception cref="System.IO.IOException"></exception>
@@ -1011,7 +1014,7 @@ namespace Couchbase.Lite
                 mre.Reset();
                 Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)), "Timed out waiting for replicator to stop");
                 Assert.IsFalse(replicator.IsRunning);
-                Thread.Sleep(500);
+                Sleep(500);
                 activeReplicators = new Replication[database.ActiveReplicators.Count];
                 database.ActiveReplicators.CopyTo(activeReplicators, 0);
                 Assert.AreEqual(0, activeReplicators.Length);
@@ -1115,7 +1118,7 @@ namespace Couchbase.Lite
 
                 //Some platforms will fire an intial GoOnline event because of network status
                 //change registration, so get that out of the way first
-                Thread.Sleep(1000);
+                Sleep(1000);
                 PutReplicationOffline(repl);
                 Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
 
@@ -1272,7 +1275,7 @@ namespace Couchbase.Lite
                     }
                 }
                 Assert.IsTrue(foundFooHeader);
-                Thread.Sleep(1000);
+                Sleep(1000);
             }
         }
 
@@ -1347,11 +1350,11 @@ namespace Couchbase.Lite
 
             // make sure we can query the db to get the conflict
             var allDocsQuery = database.CreateAllDocumentsQuery();
-            allDocsQuery.AllDocsMode = allDocsQuery.AllDocsMode = AllDocsMode.OnlyConflicts;
+            allDocsQuery.AllDocsMode = AllDocsMode.OnlyConflicts;
 
             var rows = allDocsQuery.Run();
             Assert.AreEqual(1, rows.Count);
-            Assert.IsTrue(rows.Aggregate(false, (found, row) => found |= row.Document.Id.Equals(doc.Id)));
+            Assert.AreEqual(doc.Id, rows.ElementAt(0).Document.Id);
 
             // Push the conflicts to the remote DB.
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
@@ -1394,7 +1397,7 @@ namespace Couchbase.Lite
                         Assert.IsNull(err);
                     }
 
-                    Thread.Sleep(200);
+                    Sleep(200);
 
                     // Pull the remote changes.
                     var puller = database.CreatePullReplication(remoteDb.RemoteUri);
@@ -1516,7 +1519,7 @@ namespace Couchbase.Lite
 
             Assert.IsNotNull(pusher.LastError);
 
-            System.Threading.Thread.Sleep(TimeSpan.FromMilliseconds(500));
+            Sleep(TimeSpan.FromMilliseconds(500));
 
             var localLastSequence = database.LastSequenceWithCheckpointId(pusher.RemoteCheckpointDocID());
 
@@ -1809,6 +1812,8 @@ namespace Couchbase.Lite
 
                 document.PutProperties(values);
 
+                Sleep(5000);
+
                 long expectedLength = 0;
                 document.Update((r) =>
                 {
@@ -1822,23 +1827,24 @@ namespace Couchbase.Lite
                 });
 
                 // Make sure it has time to push the document
-                Thread.Sleep(5000);
+                Sleep(5000);
 
                 // make sure the doc has been added
                 remoteDb.VerifyDocumentExists(doc1Id);
 
-                Thread.Sleep(2000);
+                Sleep(2000);
                 var json = GetRemoteDocById(remote, doc1Id);
 
-                var attachments = json["_attachments"].AsDictionary<string,object>();
-                var content = attachments["content"].AsDictionary<string,object>();
-                var lengthAsStr = content["length"];
-                var length = Convert.ToInt64(lengthAsStr);
-                Assert.AreEqual(expectedLength, length);
-
-                Log.D(Tag, "TestContinuousPusherWithAttachment() finished");
-
-                StopReplication(pusher);
+                try {
+                    var attachments = json["_attachments"].AsDictionary<string,object>();
+                    var content = attachments["content"].AsDictionary<string,object>();
+                    var lengthAsStr = content["length"];
+                    var length = Convert.ToInt64(lengthAsStr);
+                    Assert.AreEqual(expectedLength, length);
+                    Log.D(Tag, "TestContinuousPusherWithAttachment() finished");
+                } finally {
+                    StopReplication(pusher);
+                }
             }
         }  
 
@@ -2000,7 +2006,7 @@ namespace Couchbase.Lite
 
                 // workaround for the fact that the replicationDoneSignal.Await() call could unblock before all
                 // the statements in Replication.Stopped() have even had a chance to execute.
-                Thread.Sleep(500);
+                Sleep(500);
 
                 var localLastSequence = database.LastSequenceWithCheckpointId(checkpointId);
                 if (expectError) {
@@ -2236,7 +2242,7 @@ namespace Couchbase.Lite
 
                 //In release mode this actually goes so fast that sync gateway doesn't
                 //have time to store the document before we try to pull it
-                Thread.Sleep(500);
+                Sleep(500);
 
                 var db = manager.GetDatabase("tmp");
 
@@ -2250,6 +2256,7 @@ namespace Couchbase.Lite
                 Assert.IsNotNull(attachment);
                 Assert.AreEqual(attachmentLength, attachment.Length);
                 Assert.IsNotNull(attachment.Content);
+                db.Close();
             }
         }
 
@@ -2534,7 +2541,7 @@ namespace Couchbase.Lite
             FlowControl flow = new FlowControl(new FlowItem[]
             {
                 new FunctionRunner<HttpResponseMessage>(() => {
-                    Thread.Sleep(7000);
+                    Sleep(7000);
                     return new RequestCorrectHttpMessage();
                 }) { ExecutionCount = 2 },
                 new FunctionRunner<HttpResponseMessage>(() => {
@@ -2630,7 +2637,7 @@ namespace Couchbase.Lite
                     Assert.AreEqual(gotSequence, Int32.Parse(repl.LastSequence), "LastSequence was advanced");
                 });
 
-                Thread.Sleep(500);
+                Sleep(500);
                 fakeFactory.HttpHandler.ClearResponders();
                 var pull = database.CreatePullReplication(remoteDb.RemoteUri);
                 RunReplication(pull);

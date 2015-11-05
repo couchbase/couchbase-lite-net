@@ -33,6 +33,7 @@ using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class PeerToPeerTest : LiteTestCase
     {
         private const string TAG = "PeerToPeerTest";
@@ -46,6 +47,8 @@ namespace Couchbase.Lite
         private Uri _listenerDBUri;
         private ushort _port = 59840;
         private Random _rng = new Random(DateTime.Now.Millisecond);
+
+        public PeerToPeerTest(string storageType) : base(storageType) {}
 
         [Test]
         public void TestBrowser()
@@ -110,6 +113,7 @@ namespace Couchbase.Lite
             base.TearDown();
 
             _listener.Stop();
+            _listenerDB.Close();
         }
 
         [Test]

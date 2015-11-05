@@ -82,7 +82,7 @@ namespace Couchbase.Lite {
 
         private  Boolean CheckedProperties { get; set; }
 
-        internal override Int64 Sequence {
+        internal override long Sequence {
             get {
                 var sequence = RevisionInternal.GetSequence();
                 if (sequence == 0 && LoadProperties())
@@ -253,7 +253,7 @@ namespace Couchbase.Lite {
         /// Thrown if an error occurs while creating or saving the new <see cref="Couchbase.Lite.Revision"/>.
         /// </exception>
         public SavedRevision CreateRevision(IDictionary<String, Object> properties) {
-            return Document.PutProperties(properties, RevisionInternal.GetRevId(), allowConflict: false);           
+            return Document.PutProperties(properties, RevisionInternal.GetRevId(), false);           
         }
 
         /// <summary>

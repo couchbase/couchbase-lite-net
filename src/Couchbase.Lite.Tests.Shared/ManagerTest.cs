@@ -51,8 +51,12 @@ using System;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class ManagerTest : LiteTestCase
     {
+
+        public ManagerTest(string storageType) : base(storageType) {}
+
         [Test]
         public void TestServer()
         {
@@ -69,7 +73,7 @@ namespace Couchbase.Lite
             var db = manager.GetDatabaseWithoutOpening("foo", mustExist);
             Assert.IsNotNull(db);
             Assert.AreEqual("foo", db.Name);
-            Assert.IsTrue(db.Path.StartsWith(GetServerPath()));
+            Assert.IsTrue(db.DbDirectory.StartsWith(GetServerPath()));
             Assert.IsFalse(db.Exists());
 
             // because foo doesn't exist yet
@@ -95,7 +99,7 @@ namespace Couchbase.Lite
             var testDirInfo = Directory.CreateDirectory(testDirPath);
 
             var dbStream = GetAsset("withattachments.cblite");
-            var destStream = File.OpenWrite(Path.Combine(testDirPath, "withattachments" + Manager.DatabaseSuffix));
+            var destStream = File.OpenWrite(Path.Combine(testDirPath, "withattachments" + Manager.DatabaseSuffixv1));
             dbStream.CopyTo(destStream);
             dbStream.Dispose();
             destStream.Dispose();
@@ -110,10 +114,10 @@ namespace Couchbase.Lite
             StopCBLite();
             manager = new Manager(testDirInfo, Manager.DefaultOptions);
             var db = manager.GetDatabaseWithoutOpening("withattachments", true);
-            int version = DatabaseUpgraderFactory.SchemaVersion(db.Path);
+            int version = DatabaseUpgraderFactory.SchemaVersion(Path.Combine(db.DbDirectory, "db.sqlite3"));
             Assert.IsTrue(version >= 101, "Upgrade failed");
             Assert.IsFalse(Directory.Exists(Path.Combine(testDirPath, "withattachments/attachments")), "Failed to remove old attachments dir");
-            Assert.IsTrue(Directory.Exists(Path.Combine(testDirPath, "withattachments attachments")), "Failed to create new attachments dir");
+            Assert.IsTrue(Directory.Exists(db.AttachmentStorePath), "Failed to create new attachments dir");
         }
 
         [Test]
