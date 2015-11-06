@@ -35,21 +35,6 @@ namespace Couchbase.Lite.Views
 
         #region Member Variables
 
-        //For JSViewCompiler
-        private static readonly Dictionary<string, ReduceDelegate> MAP = new Dictionary<string, ReduceDelegate>
-        {
-            //NOTE: None of these support rereduce! They'll need to be reimplemented when we add
-            // rereduce support to View.
-            { "count", Count },
-            { "sum", Sum },
-            { "min", Min },
-            { "max", Max },
-            { "average", Average },
-            { "median", Median},
-            { "stddev", StdDev },
-            { "stats", Stats }
-        };
-
         /// <summary>
         /// A function that counts the number of documents contained in the map
         /// </summary>
@@ -89,6 +74,21 @@ namespace Couchbase.Lite.Views
         /// A function that outputs various statistics about the map (count, sum, squared sum, min, and max)
         /// </summary>
         public static readonly ReduceDelegate Stats = (k, v, r) => CalcuateStats(v);
+
+        //For JSViewCompiler
+        private static readonly Dictionary<string, ReduceDelegate> MAP = new Dictionary<string, ReduceDelegate>
+        {
+            //NOTE: None of these support rereduce! They'll need to be reimplemented when we add
+            // rereduce support to View.
+            { "count", Count },
+            { "sum", Sum },
+            { "min", Min },
+            { "max", Max },
+            { "average", Average },
+            { "median", Median},
+            { "stddev", StdDev },
+            { "stats", Stats }
+        };
 
         #endregion
 

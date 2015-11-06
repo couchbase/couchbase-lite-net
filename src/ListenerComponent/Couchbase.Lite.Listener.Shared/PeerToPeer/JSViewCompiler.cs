@@ -68,31 +68,13 @@ namespace Couchbase.Lite.Listener
             var engine = new Engine().Execute(source).SetValue("log", new Action<object>((line) => Log.I("JSViewCompiler", line.ToString())));
 
             return (keys, values, rereduce) => {
-                var jsKeys = ToJSArray(keys, engine);
-                var jsVals = ToJSArray(values, engine);
-
-                var result = engine.Invoke("_f2", jsKeys, jsVals, rereduce);
+                var result = engine.Invoke("_f2", keys, values, rereduce);
                 return result.ToObject();
             };
         }
 
         #endregion
 
-        #region Private Methods
-
-        //Arrays cannot simply be passed into the Javascript engine, they must be allocated
-        //according to Javascript rules
-        private static ArrayInstance ToJSArray(IEnumerable list, Engine engine)
-        {
-            List<JsValue> wrappedVals = new List<JsValue>();
-            foreach (object x in list) {
-                wrappedVals.Add(JsValue.FromObject(engine, x));
-            }
-
-            return (ArrayInstance)engine.Array.Construct(wrappedVals.ToArray());
-        }
-
-        #endregion
     }
 }
 
