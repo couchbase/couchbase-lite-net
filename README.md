@@ -52,6 +52,8 @@ Note that you must have a Xamarin paid license to build for iOS or Android.  Fur
 
 The replication unit tests currently require a running instance of `sync_gateway`. Prior to running the replication tests, start `sync_gateway` by running the `start_gateway` script found in the root of the project
 
+The iOS and Android unit tests require a custom test runner so to run them you must first run the `init-unit.sh` script in the respective Couchbase.Lite.\<Platform>.Tests directory
+
 ## Example Apps
 * [GrocerySync](https://github.com/couchbase/couchbase-lite-net/tree/master/samples)
 	* Beginner example

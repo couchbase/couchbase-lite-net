@@ -1,14 +1,7 @@
 #!/bin/sh
 
+mkdir -p vendor
 pushd vendor
-if [ ! -d Touch.Unit ]; then
-  git clone https://github.com/spouliot/Touch.Unit.git
-  pushd Touch.Unit
-  git checkout e7d73c1a4d037193f589a08c22a18afd4d3baaf7
-  git apply ../../touch.unit-ios_fixes.patch
-  popd
-fi
-
 if [ ! -d NUnitLite ]; then
   git clone https://github.com/spouliot/NUnitLite.git
   pushd NUnitLite
@@ -17,4 +10,11 @@ if [ ! -d NUnitLite ]; then
   popd
 fi
 
+if [ ! -d MonoDroid.Dialog ]; then
+  git clone https://github.com/couchbaselabs/MonoDroid.Dialog
+fi
+
+if [ ! -d Andr.Unit ]; then
+  git clone https://github.com/couchbaselabs/Andr.Unit
+fi
 popd

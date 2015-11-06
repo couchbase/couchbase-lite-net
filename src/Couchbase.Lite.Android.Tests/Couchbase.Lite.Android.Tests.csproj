@@ -120,13 +120,13 @@
       <Project>{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1}</Project>
       <Name>platform.android.pinvoke_packaged_sqlcipher.anycpu</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\Andr.Unit\Android.NUnitLite\Android.NUnitLite.csproj">
-      <Project>{6A005891-A3D6-4398-A729-F645397D573A}</Project>
-      <Name>Android.NUnitLite</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Droid\cbforest-sharp.Droid.csproj">
       <Project>{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}</Project>
       <Name>cbforest-sharp.Droid</Name>
+    </ProjectReference>
+    <ProjectReference Include="vendor\Andr.Unit\Android.NUnitLite\Android.NUnitLite.csproj">
+      <Project>{6A005891-A3D6-4398-A729-F645397D573A}</Project>
+      <Name>Android.NUnitLite</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
