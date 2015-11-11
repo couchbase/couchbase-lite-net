@@ -8,5 +8,7 @@
              "bucket":"unity-sync",
              "sync":`function(doc) {channel(doc.channels);}`
           }
-     }
+     },
+     "SSLCert": "../../Tools/cert.pem",
+     "SSLKey": "../../Tools/privkey.pem"
 }

@@ -33,7 +33,7 @@
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\Assets\Plugins\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;__UNITY__;NET_3_5;OFFICIAL;</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;VERBOSE;__UNITY__;NET_3_5;OFFICIAL;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CustomCommands>
@@ -95,18 +95,6 @@
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
   <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
-      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
-      <Name>System.Net.Http-net_4_5</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
-      <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
-      <Name>Rackspace.Threading.net35-client</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
-      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
-      <Name>System.Threading.Tasks.Net35</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Stateless\Stateless\Stateless.csproj">
       <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
       <Name>Stateless</Name>
@@ -123,6 +111,18 @@
     <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\SQLitePCL\bld\ugly_net35.csproj">
       <Project>{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}</Project>
       <Name>ugly_net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http.Unity.csproj">
+      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
+      <Name>System.Net.Http.Unity</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Unity.csproj">
+      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
+      <Name>System.Threading.Tasks.Unity</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.Unity.csproj">
+      <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
+      <Name>Rackspace.Threading.Unity</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

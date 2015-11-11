@@ -1,0 +1,1714 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Rackspace.Threading</name>
+    </assembly>
+    <members>
+        <member name="T:Rackspace.Threading.CompletedTask">
+            <summary>
+            Provides static methods to create completed <see cref="T:System.Threading.Tasks.Task" /> and <see cref="T:System.Threading.Tasks.Task`1" /> instances.
+            </summary>
+            <threadsafety static="true" instance="false" /></member>
+        <member name="P:Rackspace.Threading.CompletedTask.Default">
+            <summary>
+            Gets a completed <see cref="T:System.Threading.Tasks.Task" />.
+            </summary>
+            <value>A completed <see cref="T:System.Threading.Tasks.Task" />.</value></member>
+        <member name="M:Rackspace.Threading.CompletedTask.Canceled">
+            <summary>
+            Gets a canceled <see cref="T:System.Threading.Tasks.Task" />.
+            </summary>
+            <returns>A canceled <see cref="T:System.Threading.Tasks.Task" />.</returns></member>
+        <member name="M:Rackspace.Threading.CompletedTask.Canceled``1">
+            <summary>
+            Gets a canceled <see cref="T:System.Threading.Tasks.Task`1" />.
+            </summary>
+            <typeparam name="TResult">The task result type.</typeparam>
+            <returns>A canceled <see cref="T:System.Threading.Tasks.Task`1" />.</returns></member>
+        <member name="T:Rackspace.Threading.CoreTaskExtensions">
+            <summary>
+            Provides extension methods for efficiently creating <see cref="T:System.Threading.Tasks.Task" /> continuations,
+            with automatic handling of faulted and canceled antecedent tasks.
+            </summary>
+            <threadsafety static="true" instance="false" /></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Select``1(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,``0})">
+            <summary>
+            Synchronously execute a continuation when a task completes successfully.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            await task.ConfigureAwait(false);
+            return continuationFunction(task);
+            </code>
+            <para>If the antecedent task is canceled or faulted, the status of the antecedent is
+            directly applied to the task returned by this method; it is not wrapped in an additional
+            <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight continuation functions. For non-trivial continuation functions, use a
+            <see cref="T:System.Threading.Tasks.Task" /> for the continuation operation and call
+            <see cref="M:Rackspace.Threading.CoreTaskExtensions.Then``1(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task{``0}})" /> instead.
+            </note>
+            </remarks>
+            <typeparam name="TResult">The type of the result produced by the continuation <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes successfully.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result returned from the <paramref name="continuationFunction" />.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Select``1(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,``0},System.Boolean)">
+            <summary>
+            Synchronously execute a continuation when a task completes. The <paramref name="supportsErrors" />
+            parameter specifies whether the continuation is executed if the antecedent task is faulted.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            await task.ConfigureAwait(false);
+            }
+            catch
+            {
+            if (!supportsErrors)
+            throw;
+            }
+            return continuationFunction(task);
+            </code>
+            <para>If the antecedent task is canceled, or faulted with <paramref name="supportsErrors" />
+            set to <see langword="false" />, the status of the antecedent is directly applied to the task
+            returned by this method; it is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight continuation functions. For non-trivial continuation functions, use a
+            <see cref="T:System.Threading.Tasks.Task" /> for the continuation operation and call
+            <see cref="M:Rackspace.Threading.CoreTaskExtensions.Then``1(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task{``0}},System.Boolean)" /> instead.
+            </note>
+            </remarks>
+            <typeparam name="TResult">The type of the result produced by the continuation <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes.</param>
+            <param name="supportsErrors"><see langword="true" /> if the <paramref name="continuationFunction" /> properly handles a faulted antecedent task; otherwise, <see langword="false" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result returned from the <paramref name="continuationFunction" />.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Select``2(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},``1})">
+            <summary>
+            Synchronously execute a continuation when a task completes successfully.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            TSource source = await task.ConfigureAwait(false);
+            return continuationFunction(task);
+            </code>
+            <para>If the antecedent task is canceled or faulted, the status of the antecedent is
+            directly applied to the task returned by this method; it is not wrapped in an additional
+            <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight continuation functions. For non-trivial continuation functions, use <see cref="M:Rackspace.Threading.CoreTaskExtensions.Then``2(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task{``1}})" />
+            instead.
+            </note>
+            </remarks>
+            <typeparam name="TSource">The type of the result produced by the antecedent <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <typeparam name="TResult">The type of the result produced by the continuation <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes successfully.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result returned from the <paramref name="continuationFunction" />.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Select``2(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},``1},System.Boolean)">
+            <summary>
+            Synchronously execute a continuation when a task completes. The <paramref name="supportsErrors" />
+            parameter specifies whether the continuation is executed if the antecedent task is faulted.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            TSource source = await task.ConfigureAwait(false);
+            }
+            catch
+            {
+            if (!supportsErrors)
+            throw;
+            }
+            return continuationFunction(task);
+            </code>
+            <para>If the antecedent task is canceled, or faulted with <paramref name="supportsErrors" />
+            set to <see langword="false" />, the status of the antecedent is directly applied to the task
+            returned by this method; it is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight continuation functions. For non-trivial continuation functions, use <see cref="M:Rackspace.Threading.CoreTaskExtensions.Then``2(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task{``1}},System.Boolean)" />
+            instead.
+            </note>
+            </remarks>
+            <typeparam name="TSource">The type of the result produced by the antecedent <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <typeparam name="TResult">The type of the result produced by the continuation <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes.</param>
+            <param name="supportsErrors"><see langword="true" /> if the <paramref name="continuationFunction" /> properly handles a faulted antecedent task; otherwise, <see langword="false" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result returned from the <paramref name="continuationFunction" />.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Select(System.Threading.Tasks.Task,System.Action{System.Threading.Tasks.Task})">
+            <summary>
+            Synchronously execute a continuation when a task completes successfully.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            await task.ConfigureAwait(false);
+            continuationAction(task);
+            </code>
+            <para>If the antecedent task is canceled or faulted, the status of the antecedent is
+            directly applied to the task returned by this method; it is not wrapped in an additional
+            <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight continuation actions. For non-trivial continuation actions, use a
+            <see cref="T:System.Threading.Tasks.Task" /> for the continuation operation and call
+            <see cref="M:Rackspace.Threading.CoreTaskExtensions.Then(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task})" /> instead.
+            </note>
+            </remarks>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationAction">The continuation action to execute when <paramref name="task" /> completes successfully.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationAction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Select(System.Threading.Tasks.Task,System.Action{System.Threading.Tasks.Task},System.Boolean)">
+            <summary>
+            Synchronously execute a continuation when a task completes. The <paramref name="supportsErrors" />
+            parameter specifies whether the continuation is executed if the antecedent task is faulted.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            await task.ConfigureAwait(false);
+            }
+            catch
+            {
+            if (!supportsErrors)
+            throw;
+            }
+            continuationAction(task);
+            </code>
+            <para>If the antecedent task is canceled, or faulted with <paramref name="supportsErrors" />
+            set to <see langword="false" />, the status of the antecedent is directly applied to the task
+            returned by this method; it is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight continuation actions. For non-trivial continuation actions, use a
+            <see cref="T:System.Threading.Tasks.Task" /> for the continuation operation and call
+            <see cref="M:Rackspace.Threading.CoreTaskExtensions.Then(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task},System.Boolean)" /> instead.
+            </note>
+            </remarks>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationAction">The continuation action to execute when <paramref name="task" /> completes.</param>
+            <param name="supportsErrors"><see langword="true" /> if the <paramref name="continuationAction" /> properly handles a faulted antecedent task; otherwise, <see langword="false" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationAction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Select``1(System.Threading.Tasks.Task{``0},System.Action{System.Threading.Tasks.Task{``0}})">
+            <summary>
+            Synchronously execute a continuation when a task completes successfully.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            TSource source = await task.ConfigureAwait(false);
+            continuationAction(task);
+            </code>
+            <para>If the antecedent task is canceled or faulted, the status of the antecedent is
+            directly applied to the task returned by this method; it is not wrapped in an additional
+            <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight continuation actions. For non-trivial continuation actions, use <see cref="M:Rackspace.Threading.CoreTaskExtensions.Then``1(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task})" />
+            instead.
+            </note>
+            </remarks>
+            <typeparam name="TSource">The type of the result produced by the antecedent <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationAction">The continuation action to execute when <paramref name="task" /> completes successfully.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationAction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Select``1(System.Threading.Tasks.Task{``0},System.Action{System.Threading.Tasks.Task{``0}},System.Boolean)">
+            <summary>
+            Synchronously execute a continuation when a task completes. The <paramref name="supportsErrors" />
+            parameter specifies whether the continuation is executed if the antecedent task is faulted.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            TSource source = await task.ConfigureAwait(false);
+            }
+            catch
+            {
+            if (!supportsErrors)
+            throw;
+            }
+            continuationAction(task);
+            </code>
+            <para>If the antecedent task is canceled, or faulted with <paramref name="supportsErrors" />
+            set to <see langword="false" />, the status of the antecedent is directly applied to the task
+            returned by this method; it is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight continuation actions. For non-trivial continuation actions, use <see cref="M:Rackspace.Threading.CoreTaskExtensions.Then``1(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task},System.Boolean)" />
+            instead.
+            </note>
+            </remarks>
+            <typeparam name="TSource">The type of the result produced by the antecedent <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationAction">The continuation action to execute when <paramref name="task" /> completes.</param>
+            <param name="supportsErrors"><see langword="true" /> if the <paramref name="continuationAction" /> properly handles a faulted antecedent task; otherwise, <see langword="false" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationAction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Catch``1(System.Threading.Tasks.Task,System.Action{System.Threading.Tasks.Task,``0})">
+            <summary>
+            Synchronously execute an exception handling continuation when a task completes in the
+            <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> or <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" /> state. If the
+            antecedent task completes successfully, or if the <see cref="P:System.Threading.Tasks.Task.Exception" /> it
+            provides is not a <typeparamref name="TException" /> wrapped in an
+            <see cref="T:System.AggregateException" />, the status of the antecedent is directly applied to
+            the task returned by this method. Otherwise, the status of the cleanup operation is
+            directly applied to the task returned by this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            await task.ConfigureAwait(false);
+            }
+            catch (TException ex)
+            {
+            handler(task, ex);
+            }
+            </code>
+            <para>This method is capable of handling <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> antecedent
+            tasks when <typeparamref name="TException" /> is assignable from
+            <see cref="T:System.Threading.Tasks.TaskCanceledException" />.</para>
+            <para>This method ensures that exception information provided by a faulted or canceled
+            task is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight exception handler methods. For non-trivial exception handlers, use a
+            <see cref="T:System.Threading.Tasks.Task" /> for the exception handling operation and call
+            <see cref="M:Rackspace.Threading.CoreTaskExtensions.Catch``1(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,``0,System.Threading.Tasks.Task})" />
+            instead.
+            </note>
+            </remarks>
+            <typeparam name="TException">The type of exception which is handled by <paramref name="handler" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="handler">The exception handler continuation action to execute when <paramref name="task" /> completes with an exception of type <typeparamref name="TException" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="handler" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Catch``2(System.Threading.Tasks.Task{``1},System.Func{System.Threading.Tasks.Task{``1},``0,``1})">
+            <summary>
+            Synchronously execute an exception handling continuation when a task completes in the
+            <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> or <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" /> state. If the
+            antecedent task completes successfully, or if the <see cref="P:System.Threading.Tasks.Task.Exception" /> it
+            provides is not a <typeparamref name="TException" /> wrapped in an
+            <see cref="T:System.AggregateException" />, the status of the antecedent is directly applied to
+            the task returned by this method. Otherwise, the status of the cleanup operation is
+            directly applied to the task returned by this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            return await task.ConfigureAwait(false);
+            }
+            catch (TException ex)
+            {
+            return handler(task, ex);
+            }
+            </code>
+            <para>This method is capable of handling <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> antecedent
+            tasks when <typeparamref name="TException" /> is assignable from
+            <see cref="T:System.Threading.Tasks.TaskCanceledException" />.</para>
+            <para>This method ensures that exception information provided by a faulted or canceled
+            task is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight exception handler methods. For non-trivial exception handlers, use a
+            <see cref="T:System.Threading.Tasks.Task" /> for the exception handling operation and call
+            <see cref="M:Rackspace.Threading.CoreTaskExtensions.Catch``2(System.Threading.Tasks.Task{``1},System.Func{System.Threading.Tasks.Task{``1},``0,System.Threading.Tasks.Task{``1}})" />
+            instead.
+            </note>
+            </remarks>
+            <typeparam name="TException">The type of exception which is handled by <paramref name="handler" />.</typeparam>
+            <typeparam name="TResult">The result type of the antecedent <paramref name="task" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="handler">The exception handler continuation function to execute when <paramref name="task" /> completes with an exception of type <typeparamref name="TException" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result returned from the <paramref name="task" />
+            if it completed successfully, or the result of <paramref name="handler" /> if it resulted in an error condition
+            which was handled.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="handler" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Catch``1(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,``0,System.Threading.Tasks.Task})">
+            <summary>
+            Execute an exception handling continuation when a task completes in the
+            <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> or <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" /> state. If the
+            antecedent task completes successfully, or if the <see cref="P:System.Threading.Tasks.Task.Exception" /> it
+            provides is not a <typeparamref name="TException" /> wrapped in an
+            <see cref="T:System.AggregateException" />, the status of the antecedent is directly applied to
+            the task returned by this method. Otherwise, the status of the cleanup operation is
+            directly applied to the task returned by this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            await task.ConfigureAwait(false);
+            }
+            catch (TException ex)
+            {
+            await handler(task, ex).ConfigureAwait(false);
+            }
+            </code>
+            <para>This method is capable of handling <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> antecedent
+            tasks when <typeparamref name="TException" /> is assignable from
+            <see cref="T:System.Threading.Tasks.TaskCanceledException" />.</para>
+            <para>This method ensures that exception information provided by a faulted or canceled
+            task is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="handler" /> function is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="handler" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <typeparam name="TException">The type of exception which is handled by <paramref name="handler" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="handler">The exception handler continuation function to execute when <paramref name="task" /> completes with an exception of type <typeparamref name="TException" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="handler" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Catch``2(System.Threading.Tasks.Task{``1},System.Func{System.Threading.Tasks.Task{``1},``0,System.Threading.Tasks.Task{``1}})">
+            <summary>
+            Execute an exception handling continuation when a task completes in the
+            <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> or <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" /> state. If the
+            antecedent task completes successfully, or if the <see cref="P:System.Threading.Tasks.Task.Exception" /> it
+            provides is not a <typeparamref name="TException" /> wrapped in an
+            <see cref="T:System.AggregateException" />, the status of the antecedent is directly applied to
+            the task returned by this method. Otherwise, the status of the cleanup operation is
+            directly applied to the task returned by this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            return await task.ConfigureAwait(false);
+            }
+            catch (TException ex)
+            {
+            return await handler(task, ex).ConfigureAwait(false);
+            }
+            </code>
+            <para>This method is capable of handling <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> antecedent
+            tasks when <typeparamref name="TException" /> is assignable from
+            <see cref="T:System.Threading.Tasks.TaskCanceledException" />.</para>
+            <para>This method ensures that exception information provided by a faulted or canceled
+            task is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="handler" /> function is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="handler" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task`1" /> returned by it.
+            </note>
+            </remarks>
+            <typeparam name="TException">The type of exception which is handled by <paramref name="handler" />.</typeparam>
+            <typeparam name="TResult">The result type of the antecedent <paramref name="task" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="handler">The exception handler continuation function to execute when <paramref name="task" /> completes with an exception of type <typeparamref name="TException" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result returned from the <paramref name="task" />
+            if it completed successfully, or the result of <paramref name="handler" /> if it resulted in an error condition
+            which was handled.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="handler" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Finally(System.Threading.Tasks.Task,System.Action{System.Threading.Tasks.Task})">
+            <summary>
+            Synchronously execute a cleanup continuation when a task completes, regardless of the
+            final <see cref="P:System.Threading.Tasks.Task.Status" /> of the task. If the cleanup action completes
+            successfully, the status of the antecedent is directly applied to the task returned by
+            this method. Otherwise, the status of the faulted or canceled cleanup operation is
+            directly applied to the task returned by this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            await task.ConfigureAwait(false);
+            }
+            finally
+            {
+            cleanupAction(task);
+            }
+            </code>
+            <para>This method ensures that exception information provided by a faulted or canceled
+            task is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight continuation functions. For non-trivial continuation functions, use a
+            <see cref="T:System.Threading.Tasks.Task" /> for the continuation operation and call
+            <see cref="M:Rackspace.Threading.CoreTaskExtensions.Finally(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task})" /> instead.
+            </note>
+            </remarks>
+            <param name="task">The antecedent task.</param>
+            <param name="cleanupAction">The cleanup continuation function to execute when <paramref name="task" /> completes.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="cleanupAction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Finally``1(System.Threading.Tasks.Task{``0},System.Action{System.Threading.Tasks.Task{``0}})">
+            <summary>
+            Synchronously execute a cleanup continuation when a task completes, regardless of the
+            final <see cref="P:System.Threading.Tasks.Task.Status" /> of the task. If the cleanup action completes
+            successfully, the status of the antecedent is directly applied to the task returned by
+            this method. Otherwise, the status of the faulted or canceled cleanup operation is
+            directly applied to the task returned by this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            return await task.ConfigureAwait(false);
+            }
+            finally
+            {
+            cleanupAction(task);
+            }
+            </code>
+            <para>This method ensures that exception information provided by a faulted or canceled
+            task is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the continuation is executed synchronously, this method should only be used for
+            lightweight continuation functions. For non-trivial continuation functions, use a
+            <see cref="T:System.Threading.Tasks.Task" /> for the continuation operation and call
+            <see cref="M:Rackspace.Threading.CoreTaskExtensions.Finally(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task})" /> instead.
+            </note>
+            </remarks>
+            <typeparam name="TResult">The type of the result produced by the antecedent <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="cleanupAction">The cleanup continuation function to execute when <paramref name="task" /> completes.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task
+            completes successfully, the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will return
+            the result of the antecedent <paramref name="task" />.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="cleanupAction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Finally(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task})">
+            <summary>
+            Execute a cleanup continuation task when a task completes, regardless of the final
+            <see cref="P:System.Threading.Tasks.Task.Status" /> of the antecedent task. If the cleanup action completes
+            successfully, the status of the antecedent is directly applied to the task returned by
+            this method. Otherwise, the status of the faulted or canceled cleanup operation is
+            directly applied to the task returned by this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            await task.ConfigureAwait(false);
+            }
+            finally
+            {
+            await cleanupFunction(task).ConfigureAwait(false);
+            }
+            </code>
+            <para>This method ensures that exception information provided by a faulted or canceled
+            task is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="cleanupFunction" /> is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="cleanupFunction" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <param name="task">The antecedent task.</param>
+            <param name="cleanupFunction">The continuation function to execute when <paramref name="task" /> completes. The continuation function returns a <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous cleanup operation.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="cleanupFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Finally``1(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task})">
+            <summary>
+            Execute a cleanup continuation task when a task completes, regardless of the final
+            <see cref="P:System.Threading.Tasks.Task.Status" /> of the antecedent task. If the cleanup action completes
+            successfully, the status of the antecedent is directly applied to the task returned by
+            this method. Otherwise, the status of the faulted or canceled cleanup operation is
+            directly applied to the task returned by this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            return await task.ConfigureAwait(false);
+            }
+            finally
+            {
+            await cleanupFunction(task).ConfigureAwait(false);
+            }
+            </code>
+            <para>This method ensures that exception information provided by a faulted or canceled
+            task is not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="cleanupFunction" /> is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="cleanupFunction" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <typeparam name="TResult">The type of the result produced by the antecedent <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="cleanupFunction">The continuation function to execute when <paramref name="task" /> completes. The continuation function returns a <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous cleanup operation.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task
+            completes successfully, the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will return
+            the result of the antecedent <paramref name="task" />.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="cleanupFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Then``1(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task{``0}})">
+            <summary>
+            Execute a continuation task when a task completes successfully. The continuation
+            task is synchronously created by a continuation function, and then unwrapped to
+            form the result of this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            await task.ConfigureAwait(false);
+            return await continuationFunction(task).ConfigureAwait(false);
+            </code>
+            <para>If the antecedent <paramref name="task" /> is canceled or faulted, the status
+            of the antecedent is directly applied to the task returned by this method; it is
+            not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="continuationFunction" /> is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="continuationFunction" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <typeparam name="TResult">The type of the result produced by the continuation <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes successfully. The continuation function returns a <see cref="T:System.Threading.Tasks.Task`1" /> which provides the final result of the continuation.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result provided by the
+            <see cref="P:System.Threading.Tasks.Task`1.Result" /> property of the task returned from <paramref name="continuationFunction" />.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Then``1(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task{``0}},System.Boolean)">
+            <summary>
+            Execute a continuation task when a task completes. The continuation task is synchronously
+            created by a continuation function, and then unwrapped to form the result of this method.
+            The <paramref name="supportsErrors" /> parameter specifies whether the continuation is
+            executed if the antecedent task is faulted.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            await task.ConfigureAwait(false);
+            }
+            catch
+            {
+            if (!supportsErrors)
+            throw;
+            }
+            return await continuationFunction(task).ConfigureAwait(false);
+            </code>
+            <para>If the antecedent <paramref name="task" /> is canceled, or faulted with <paramref name="supportsErrors" />
+            set to <see langword="false" />, the status
+            of the antecedent is directly applied to the task returned by this method; it is
+            not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="continuationFunction" /> is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="continuationFunction" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <typeparam name="TResult">The type of the result produced by the continuation <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes. The continuation function returns a <see cref="T:System.Threading.Tasks.Task`1" /> which provides the final result of the continuation.</param>
+            <param name="supportsErrors"><see langword="true" /> if the <paramref name="continuationFunction" /> properly handles a faulted antecedent task; otherwise, <see langword="false" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result provided by the
+            <see cref="P:System.Threading.Tasks.Task`1.Result" /> property of the task returned from <paramref name="continuationFunction" />.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Then``2(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task{``1}})">
+            <summary>
+            Execute a continuation task when a task completes successfully. The continuation
+            task is synchronously created by a continuation function, and then unwrapped to
+            form the result of this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            TSource source = await task.ConfigureAwait(false);
+            return await continuationFunction(task).ConfigureAwait(false);
+            </code>
+            <para>If the antecedent <paramref name="task" /> is canceled or faulted, the status
+            of the antecedent is directly applied to the task returned by this method; it is
+            not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="continuationFunction" /> is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="continuationFunction" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <typeparam name="TSource">The type of the result produced by the antecedent <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <typeparam name="TResult">The type of the result produced by the continuation <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes successfully. The continuation function returns a <see cref="T:System.Threading.Tasks.Task`1" /> which provides the final result of the continuation.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result provided by the
+            <see cref="P:System.Threading.Tasks.Task`1.Result" /> property of the task returned from <paramref name="continuationFunction" />.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Then``2(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task{``1}},System.Boolean)">
+            <summary>
+            Execute a continuation task when a task completes. The continuation
+            task is synchronously created by a continuation function, and then unwrapped to
+            form the result of this method. The <paramref name="supportsErrors" />
+            parameter specifies whether the continuation is executed if the antecedent task is faulted.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            TSource source = await task.ConfigureAwait(false);
+            }
+            catch
+            {
+            if (!supportsErrors)
+            throw;
+            }
+            return await continuationFunction(task).ConfigureAwait(false);
+            </code>
+            <para>If the antecedent <paramref name="task" /> is canceled, or faulted with <paramref name="supportsErrors" />
+            set to <see langword="false" />, the status
+            of the antecedent is directly applied to the task returned by this method; it is
+            not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="continuationFunction" /> is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="continuationFunction" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <typeparam name="TSource">The type of the result produced by the antecedent <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <typeparam name="TResult">The type of the result produced by the continuation <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes. The continuation function returns a <see cref="T:System.Threading.Tasks.Task`1" /> which provides the final result of the continuation.</param>
+            <param name="supportsErrors"><see langword="true" /> if the <paramref name="continuationFunction" /> properly handles a faulted antecedent task; otherwise, <see langword="false" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result provided by the
+            <see cref="P:System.Threading.Tasks.Task`1.Result" /> property of the task returned from <paramref name="continuationFunction" />.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Then(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task})">
+            <summary>
+            Execute a continuation task when a task completes successfully. The continuation
+            task is synchronously created by a continuation function, and then unwrapped to
+            form the result of this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            await task.ConfigureAwait(false);
+            await continuationFunction(task).ConfigureAwait(false);
+            </code>
+            <para>If the antecedent <paramref name="task" /> is canceled or faulted, the status
+            of the antecedent is directly applied to the task returned by this method; it is
+            not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="continuationFunction" /> is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="continuationFunction" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes successfully. The continuation function returns a <see cref="T:System.Threading.Tasks.Task" /> which provides the final result of the continuation.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the unwrapped asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Then(System.Threading.Tasks.Task,System.Func{System.Threading.Tasks.Task,System.Threading.Tasks.Task},System.Boolean)">
+            <summary>
+            Execute a continuation task when a task completes. The continuation task is synchronously
+            created by a continuation function, and then unwrapped to form the result of this method.
+            The <paramref name="supportsErrors" /> parameter specifies whether the continuation is
+            executed if the antecedent task is faulted.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            await task.ConfigureAwait(false);
+            }
+            catch
+            {
+            if (!supportsErrors)
+            throw;
+            }
+            await continuationFunction(task).ConfigureAwait(false);
+            </code>
+            <para>If the antecedent <paramref name="task" /> is canceled, or faulted with <paramref name="supportsErrors" />
+            set to <see langword="false" />, the status
+            of the antecedent is directly applied to the task returned by this method; it is
+            not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="continuationFunction" /> is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="continuationFunction" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes. The continuation function returns a <see cref="T:System.Threading.Tasks.Task" /> which provides the final result of the continuation.</param>
+            <param name="supportsErrors"><see langword="true" /> if the <paramref name="continuationFunction" /> properly handles a faulted antecedent task; otherwise, <see langword="false" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the unwrapped asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Then``1(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task})">
+            <summary>
+            Execute a continuation task when a task completes successfully. The continuation
+            task is synchronously created by a continuation function, and then unwrapped to
+            form the result of this method.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            TSource source = await task.ConfigureAwait(false);
+            await continuationFunction(task).ConfigureAwait(false);
+            </code>
+            <para>If the antecedent <paramref name="task" /> is canceled or faulted, the status
+            of the antecedent is directly applied to the task returned by this method; it is
+            not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="continuationFunction" /> is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="continuationFunction" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <typeparam name="TSource">The type of the result produced by the antecedent <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes successfully. The continuation function returns a <see cref="T:System.Threading.Tasks.Task" /> which provides the final result of the continuation.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the unwrapped asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.Then``1(System.Threading.Tasks.Task{``0},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task},System.Boolean)">
+            <summary>
+            Execute a continuation task when a task completes. The continuation
+            task is synchronously created by a continuation function, and then unwrapped to
+            form the result of this method. The <paramref name="supportsErrors" />
+            parameter specifies whether the continuation is executed if the antecedent task is faulted.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            try
+            {
+            TSource source = await task.ConfigureAwait(false);
+            }
+            catch
+            {
+            if (!supportsErrors)
+            throw;
+            }
+            await continuationFunction(task).ConfigureAwait(false);
+            </code>
+            <para>If the antecedent <paramref name="task" /> is canceled, or faulted with <paramref name="supportsErrors" />
+            set to <see langword="false" />, the status
+            of the antecedent is directly applied to the task returned by this method; it is
+            not wrapped in an additional <see cref="T:System.AggregateException" />.
+            </para>
+            <note type="caller">
+            Since the <paramref name="continuationFunction" /> is executed synchronously, this
+            method should only be used for lightweight continuation functions. This restriction
+            applies only to <paramref name="continuationFunction" /> itself, not to the
+            <see cref="T:System.Threading.Tasks.Task" /> returned by it.
+            </note>
+            </remarks>
+            <typeparam name="TSource">The type of the result produced by the antecedent <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="task">The antecedent task.</param>
+            <param name="continuationFunction">The continuation function to execute when <paramref name="task" /> completes. The continuation function returns a <see cref="T:System.Threading.Tasks.Task" /> which provides the final result of the continuation.</param>
+            <param name="supportsErrors"><see langword="true" /> if the <paramref name="continuationFunction" /> properly handles a faulted antecedent task; otherwise, <see langword="false" />.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the unwrapped asynchronous operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="task" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="continuationFunction" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.CoreTaskExtensions.TryGetException``1(System.Threading.Tasks.Task)">
+            <summary>
+            Attempts to gets the first unwrapped exception from a faulted or canceled task
+            as an instance of <typeparamref name="TException" />.
+            </summary>
+            <typeparam name="TException">The desired exception type.</typeparam>
+            <param name="task">The completed task.</param>
+            <returns>
+            An instance of <typeparamref name="TException" /> if the <paramref name="task" /> is in the
+            <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" /> state and the first exception in
+            <see cref="P:System.AggregateException.InnerExceptions" /> is an instance of
+            <typeparamref name="TException" />.
+            <para>-or-</para>
+            <para>An instance of <typeparamref name="TException" /> if the <paramref name="task" /> is in
+            the <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> state, and a call to <see cref="M:System.Threading.Tasks.Task.Wait" /> results
+            in an <see cref="T:System.AggregateException" />, and the first unwrapped exception is an instance of
+            <typeparamref name="TException" />.</para>
+            <para>-or-</para>
+            <para>Otherwise, <see langword="null" /> if the <paramref name="task" /> completed
+            successfully or the unwrapped exception was not an instance of
+            <typeparamref name="TException" />.</para>
+            </returns>
+            <exception cref="T:System.ArgumentNullException">If <paramref name="task" /> is <see langword="null" />.</exception></member>
+        <member name="T:Rackspace.Threading.CoreTaskExtensions.CouldHandleCancellation`1">
+            <summary>
+            This utility class provide efficient access to a value indicating whether
+            a particular exception type might be able to handle the unwrapped exception
+            from a <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> task.
+            </summary>
+            <typeparam name="TException">The desired exception type.</typeparam></member>
+        <member name="F:Rackspace.Threading.CoreTaskExtensions.CouldHandleCancellation`1.Value">
+            <summary>
+            A value indicating whether the unwrapped exception from a <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" />
+            task could be an instance of <typeparamref name="TException" />.
+            </summary>
+            <value>
+            <see langword="true" /> if <typeparamref name="TException" /> is assignable from <see cref="T:System.Threading.Tasks.TaskCanceledException" />.
+            <para>-or-</para>
+            <para><see langword="true" /> if <see cref="T:System.Threading.Tasks.TaskCanceledException" /> is assignable from <typeparamref name="TException" />.</para>
+            <para>-or-</para>
+            <para>Otherwise, <see langword="false" />.</para>
+            </value></member>
+        <member name="T:Rackspace.Threading.IAsyncDisposable">
+            <summary>
+            Provides a mechanism for asynchronously releasing unmanaged resources.
+            </summary></member>
+        <member name="M:Rackspace.Threading.IAsyncDisposable.DisposeAsync">
+            <summary>
+            Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+            </summary>
+            <remarks>
+            This method should perform the same operation as <see cref="M:System.IDisposable.Dispose" />, with the following
+            key differences.
+            <list type="bullet">
+            <item>The <see cref="M:Rackspace.Threading.IAsyncDisposable.DisposeAsync" /> method should never be called from a finalizer.</item>
+            <item>The <see cref="M:Rackspace.Threading.IAsyncDisposable.DisposeAsync" /> method will not be called automatically from a <c>using</c> block,
+            even when that block is located within an <see langword="async" /> method. The
+            <see cref="O:Rackspace.Threading.TaskBlocks.Using" /> methods provide support for the
+            <see cref="T:Rackspace.Threading.IAsyncDisposable" /> interface in a manner resembling the behavior proposed in
+            <see href="http://roslyn.codeplex.com/discussions/546377">IAsyncDisposable, using statements, and async/await</see>.</item>
+            </list>
+            <note type="implement">
+            To prevent finalization of the object while an asynchronous dispose operation is ongoing,
+            the <see cref="T:System.Threading.Tasks.Task" /> returned by this method should retain a reference to the object
+            until the operation is complete.
+            </note>
+            </remarks>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns></member>
+        <member name="T:System.IProgress`1">
+            <summary>
+            Defines a provider for progress updates.
+            </summary>
+            <typeparam name="T">The type of progress update value.</typeparam></member>
+        <member name="M:System.IProgress`1.Report(`0)">
+            <summary>
+            Reports a progress update.
+            </summary>
+            <param name="value">The value of the updated progress.</param></member>
+        <member name="T:Rackspace.Threading.NamespaceDoc">
+            <summary>
+            The <see cref="N:Rackspace.Threading" /> namespace contains classes for simplifying the
+            development of asynchronous code which supports .NET 3.5 and newer, without relying
+            on <see langword="async/await" />.
+            </summary></member>
+        <member name="T:Rackspace.Threading.ProgressChangedEventArgs`1">
+            <summary>
+            This class contains information for the <see cref="E:Rackspace.Threading.Progress`1.ProgressChanged" /> event.
+            </summary>
+            <remarks>
+            Prior to .NET 4.5, the <see cref="T:System.EventHandler`1" /> delegate included a
+            constraint that the generic argument be derived from <see cref="T:System.EventArgs" />. This
+            constraint prevents a direct back-port of the <see cref="T:System.Progress`1" />
+            class to earlier frameworks, so the <see cref="T:Rackspace.Threading.Progress`1" /> class is provided with
+            a wrapper around the progress value reported by the
+            <see cref="E:Rackspace.Threading.Progress`1.ProgressChanged" /> event.
+            </remarks>
+            <typeparam name="T">The type representing the progress indicator.</typeparam>
+            <threadsafety static="true" instance="false" /></member>
+        <member name="F:Rackspace.Threading.ProgressChangedEventArgs`1._progress">
+            <summary>
+            This is the backing field for the <see cref="P:Rackspace.Threading.ProgressChangedEventArgs{`0}.Progress" /> property.
+            </summary></member>
+        <member name="M:Rackspace.Threading.ProgressChangedEventArgs`1.#ctor(`0)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Rackspace.Threading.ProgressChangedEventArgs`1" /> class
+            with the specified progress.
+            </summary>
+            <param name="progress">An instance of <typeparamref name="T" /> representing the current progress.</param></member>
+        <member name="P:Rackspace.Threading.ProgressChangedEventArgs`1.Progress">
+            <summary>
+            Gets the current progress.
+            </summary>
+            <value>
+            An instance of <typeparamref name="T" /> representing the current progress.
+            </value></member>
+        <member name="T:Rackspace.Threading.Progress`1">
+            <summary>
+            Provides an <see cref="T:System.IProgress`1" /> that invokes callbacks for each reported progress value.
+            </summary>
+            <remarks>
+            Any handler provided to the constructor or event handlers registered with the
+            <see cref="E:Rackspace.Threading.Progress{`0}.ProgressChanged" /> event are invoked through a <see cref="T:System.Threading.SynchronizationContext" />
+            instance captured when the instance is constructed. If there is no current
+            <see cref="T:System.Threading.SynchronizationContext" /> at the time of construction, the callbacks will be invoked
+            on the <see cref="T:System.Threading.ThreadPool" />.
+            </remarks>
+            <typeparam name="T">Specifies the type of the progress report value.</typeparam></member>
+        <member name="E:Rackspace.Threading.Progress`1.ProgressChanged">
+            <summary>
+            Raised for each reported progress value.
+            </summary>
+            <remarks>
+            Handlers registered with this event will be invoked on the <see cref="T:System.Threading.SynchronizationContext" />
+            captured when the instance was constructed.
+            </remarks></member>
+        <member name="M:Rackspace.Threading.Progress`1.#ctor">
+            <summary>
+            Initializes the <see cref="T:Rackspace.Threading.Progress`1" /> object.
+            </summary></member>
+        <member name="M:Rackspace.Threading.Progress`1.#ctor(System.Action{`0})">
+            <summary>
+            Initializes the <see cref="T:Rackspace.Threading.Progress`1" /> object with the specified callback.
+            </summary>
+            <param name="handler">
+            A handler to invoke for each reported progress value. This handler will be invoked in addition
+            to any delegates registered with the <see cref="E:Rackspace.Threading.Progress{`0}.ProgressChanged" /> event. Depending on the
+            <see cref="T:System.Threading.SynchronizationContext" /> instance captured by the <see cref="T:Rackspace.Threading.Progress`1" /> at
+            construction, it is possible that this handler instance could be invoked concurrently with
+            itself.
+            </param></member>
+        <member name="M:Rackspace.Threading.Progress`1.System#IProgress{T}#Report(`0)">
+            <inheritdoc />
+            <remarks>
+            Any handler provided to the constructor or event handlers registered with the
+            <see cref="E:Rackspace.Threading.Progress{`0}.ProgressChanged" /> event are invoked through a <see cref="T:System.Threading.SynchronizationContext" />
+            instance captured when the instance is constructed. If there is no current
+            <see cref="T:System.Threading.SynchronizationContext" /> at the time of construction, the callbacks will be invoked
+            on the <see cref="T:System.Threading.ThreadPool" />.
+            </remarks></member>
+        <member name="M:Rackspace.Threading.Progress`1.OnReport(`0)">
+            <summary>
+            Reports a progress change.
+            </summary>
+            <param name="value">The value of the updated progress.</param></member>
+        <member name="T:Rackspace.Threading.StreamExtensions">
+            <summary>
+            Provides extension methods for the <see cref="T:System.IO.Stream" /> class.
+            </summary>
+            <threadsafety static="true" instance="false" /></member>
+        <member name="M:Rackspace.Threading.StreamExtensions.CopyToAsync(System.IO.Stream,System.IO.Stream)">
+            <summary>
+            Asynchronously reads the bytes from a source stream and writes them to a destination stream.
+            </summary>
+            <remarks>
+            Copying begins at the current position in <paramref name="stream" />.
+            </remarks>
+            <param name="stream">The source stream.</param>
+            <param name="destination">The stream to which the contents of the source stream will be copied.</param>
+            <returns>A task that represents the asynchronous copy operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            <para>If <paramref name="stream" /> is <see langword="null" />.</para>
+            <para>-or-</para>
+            <para>If <paramref name="destination" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.ObjectDisposedException">
+            <para>If <paramref name="stream" /> is disposed.</para>
+            <para>-or-</para>
+            <para>If <paramref name="destination" /> is disposed.</para>
+            </exception>
+            <exception cref="T:System.NotSupportedException">
+            <para>If <paramref name="stream" /> does not support reading.</para>
+            <para>-or-</para>
+            <para>If <paramref name="destination" /> does not support writing.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.StreamExtensions.CopyToAsync(System.IO.Stream,System.IO.Stream,System.Int32)">
+            <summary>
+            Asynchronously reads the bytes from a source stream and writes them to a destination stream,
+            using a specified buffer size.
+            </summary>
+            <remarks>
+            Copying begins at the current position in <paramref name="stream" />.
+            </remarks>
+            <param name="stream">The source stream.</param>
+            <param name="destination">The stream to which the contents of the source stream will be copied.</param>
+            <param name="bufferSize">The size, in bytes, of the buffer. This value must be greater than zero. The default size is 81920.</param>
+            <returns>A task that represents the asynchronous copy operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            <para>If <paramref name="stream" /> is <see langword="null" />.</para>
+            <para>-or-</para>
+            <para>If <paramref name="destination" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            If <paramref name="bufferSize" /> is negative or zero.
+            </exception>
+            <exception cref="T:System.ObjectDisposedException">
+            <para>If <paramref name="stream" /> is disposed.</para>
+            <para>-or-</para>
+            <para>If <paramref name="destination" /> is disposed.</para>
+            </exception>
+            <exception cref="T:System.NotSupportedException">
+            <para>If <paramref name="stream" /> does not support reading.</para>
+            <para>-or-</para>
+            <para>If <paramref name="destination" /> does not support writing.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.StreamExtensions.CopyToAsync(System.IO.Stream,System.IO.Stream,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously reads the bytes from a source stream and writes them to a destination stream,
+            using a specified buffer size and cancellation token.
+            </summary>
+            <remarks>
+            <para>If the operation is canceled before it completes, the returned task contains the <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" />
+            value for the <see cref="P:System.Threading.Tasks.Task.Status" /> property.</para>
+            <para>
+            Copying begins at the current position in <paramref name="stream" />.
+            </para>
+            </remarks>
+            <param name="stream">The source stream.</param>
+            <param name="destination">The stream to which the contents of the source stream will be copied.</param>
+            <param name="bufferSize">The size, in bytes, of the buffer. This value must be greater than zero. The default size is 81920.</param>
+            <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="P:System.Threading.CancellationToken.None" />.</param>
+            <returns>A task that represents the asynchronous copy operation.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            <para>If <paramref name="stream" /> is <see langword="null" />.</para>
+            <para>-or-</para>
+            <para>If <paramref name="destination" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            If <paramref name="bufferSize" /> is negative or zero.
+            </exception>
+            <exception cref="T:System.ObjectDisposedException">
+            <para>If <paramref name="stream" /> is disposed.</para>
+            <para>-or-</para>
+            <para>If <paramref name="destination" /> is disposed.</para>
+            </exception>
+            <exception cref="T:System.NotSupportedException">
+            <para>If <paramref name="stream" /> does not support reading.</para>
+            <para>-or-</para>
+            <para>If <paramref name="destination" /> does not support writing.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.StreamExtensions.FlushAsync(System.IO.Stream)">
+            <summary>
+            Asynchronously clears all buffers for a stream and causes any buffered data to be written to the underlying device.
+            </summary>
+            <remarks>
+            If a derived class does not flush the buffer in its implementation of the <see cref="M:System.IO.Stream.Flush" /> method,
+            the <see cref="M:Rackspace.Threading.StreamExtensions.FlushAsync(System.IO.Stream)" /> method will not flush the buffer.
+            </remarks>
+            <param name="stream">The stream to flush.</param>
+            <returns>A task that represents the asynchronous flush operation.</returns>
+            <exception cref="T:System.ArgumentNullException">If <paramref name="stream" /> is <see langword="null" />.</exception>
+            <exception cref="T:System.ObjectDisposedException">If <paramref name="stream" /> has been disposed.</exception></member>
+        <member name="M:Rackspace.Threading.StreamExtensions.FlushAsync(System.IO.Stream,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously clears all buffers for a stream and causes any buffered data to be written to the underlying device,
+            and monitors cancellation requests.
+            </summary>
+            <remarks>
+            <para>If the operation is canceled before it completes, the returned task contains the <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" />
+            value for the <see cref="P:System.Threading.Tasks.Task.Status" /> property.</para>
+            <para>
+            If a derived class does not flush the buffer in its implementation of the <see cref="M:System.IO.Stream.Flush" /> method,
+            the <see cref="M:Rackspace.Threading.StreamExtensions.FlushAsync(System.IO.Stream)" /> method will not flush the buffer.
+            </para>
+            </remarks>
+            <param name="stream">The stream to flush.</param>
+            <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="P:System.Threading.CancellationToken.None" />.</param>
+            <returns>A task that represents the asynchronous flush operation.</returns>
+            <exception cref="T:System.ArgumentNullException">If <paramref name="stream" /> is <see langword="null" />.</exception>
+            <exception cref="T:System.ObjectDisposedException">If <paramref name="stream" /> has been disposed.</exception></member>
+        <member name="M:Rackspace.Threading.StreamExtensions.ReadAsync(System.IO.Stream,System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Asynchronously reads a sequence of bytes from a stream and advances the position within the stream by the number of bytes read.
+            </summary>
+            <remarks>
+            Use the <see cref="P:System.IO.Stream.CanRead" /> property to determine whether the stream instance supports reading.
+            </remarks>
+            <param name="stream">The stream to read data from.</param>
+            <param name="buffer">The buffer to write the data into.</param>
+            <param name="offset">The byte offset in <paramref name="buffer" /> at which to begin writing data from the stream.</param>
+            <param name="count">The maximum number of bytes to read.</param>
+            <returns>
+            A task that represents the asynchronous read operation. When the task completes successfully, the <see cref="P:System.Threading.Tasks.Task`1.Result" />
+            property contains the total number of bytes read into the buffer. The result value can be less than the number of bytes requested if
+            the number of bytes currently available is less than the requested number, or it can be 0 (zero) if the end of the stream has been reached.
+            </returns>
+            <exception cref="T:System.ArgumentNullException">
+            <para>If <paramref name="stream" /> is <see langword="null" />.</para>
+            <para>-or-</para>
+            <para>If <paramref name="buffer" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            <para>If <paramref name="offset" /> is negative.</para>
+            <para>-or-</para>
+            <para>If <paramref name="count" /> is negative.</para>
+            </exception>
+            <exception cref="T:System.ArgumentException">
+            If the sum of <paramref name="offset" /> and <paramref name="count" /> is larger than the buffer length.
+            </exception>
+            <exception cref="T:System.NotSupportedException">If <paramref name="stream" /> does not support reading.</exception>
+            <exception cref="T:System.ObjectDisposedException">If <paramref name="stream" /> has been disposed.</exception>
+            <exception cref="T:System.InvalidOperationException">If <paramref name="stream" /> is currently in use by a previous read operation.</exception></member>
+        <member name="M:Rackspace.Threading.StreamExtensions.ReadAsync(System.IO.Stream,System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously reads a sequence of bytes from a stream, advances the position within the stream by the number of bytes read,
+            and monitors cancellation requests.
+            </summary>
+            <remarks>
+            Use the <see cref="P:System.IO.Stream.CanRead" /> property to determine whether the stream instance supports reading.
+            <para>
+            If the operation is canceled before it completes, the returned task contains the <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" />
+            value for the <see cref="P:System.Threading.Tasks.Task.Status" /> property.
+            </para>
+            </remarks>
+            <param name="stream">The stream to read data from.</param>
+            <param name="buffer">The buffer to write the data into.</param>
+            <param name="offset">The byte offset in <paramref name="buffer" /> at which to begin writing data from the stream.</param>
+            <param name="count">The maximum number of bytes to read.</param>
+            <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="P:System.Threading.CancellationToken.None" />.</param>
+            <returns>
+            A task that represents the asynchronous read operation. When the task completes successfully, the <see cref="P:System.Threading.Tasks.Task`1.Result" />
+            property contains the total number of bytes read into the buffer. The result value can be less than the number of bytes requested if
+            the number of bytes currently available is less than the requested number, or it can be 0 (zero) if the end of the stream has been reached.
+            </returns>
+            <exception cref="T:System.ArgumentNullException">
+            <para>If <paramref name="stream" /> is <see langword="null" />.</para>
+            <para>-or-</para>
+            <para>If <paramref name="buffer" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            <para>If <paramref name="offset" /> is negative.</para>
+            <para>-or-</para>
+            <para>If <paramref name="count" /> is negative.</para>
+            </exception>
+            <exception cref="T:System.ArgumentException">
+            If the sum of <paramref name="offset" /> and <paramref name="count" /> is larger than the buffer length.
+            </exception>
+            <exception cref="T:System.NotSupportedException">If <paramref name="stream" /> does not support reading.</exception>
+            <exception cref="T:System.ObjectDisposedException">If <paramref name="stream" /> has been disposed.</exception>
+            <exception cref="T:System.InvalidOperationException">If <paramref name="stream" /> is currently in use by a previous read operation.</exception></member>
+        <member name="M:Rackspace.Threading.StreamExtensions.WriteAsync(System.IO.Stream,System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Asynchronously writes a sequence of bytes to a stream and advances the position within the stream by the number of bytes written.
+            </summary>
+            <remarks>
+            Use the <see cref="P:System.IO.Stream.CanWrite" /> property to determine whether the stream instance supports writing.
+            </remarks>
+            <param name="stream">The stream to write data to.</param>
+            <param name="buffer">The buffer to read the data from.</param>
+            <param name="offset">The zero-based byte offset in buffer from which to begin copying bytes to the stream.</param>
+            <param name="count">The maximum number of bytes to write.</param>
+            <returns>
+            A task that represents the asynchronous write operation.
+            </returns>
+            <exception cref="T:System.ArgumentNullException">
+            <para>If <paramref name="stream" /> is <see langword="null" />.</para>
+            <para>-or-</para>
+            <para>If <paramref name="buffer" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            <para>If <paramref name="offset" /> is negative.</para>
+            <para>-or-</para>
+            <para>If <paramref name="count" /> is negative.</para>
+            </exception>
+            <exception cref="T:System.ArgumentException">
+            If the sum of <paramref name="offset" /> and <paramref name="count" /> is larger than the buffer length.
+            </exception>
+            <exception cref="T:System.NotSupportedException">If <paramref name="stream" /> does not support writing.</exception>
+            <exception cref="T:System.ObjectDisposedException">If <paramref name="stream" /> has been disposed.</exception>
+            <exception cref="T:System.InvalidOperationException">If <paramref name="stream" /> is currently in use by a previous write operation.</exception></member>
+        <member name="M:Rackspace.Threading.StreamExtensions.WriteAsync(System.IO.Stream,System.Byte[],System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously writes a sequence of bytes to a stream, advances the position within the stream by the number of bytes written,
+            and monitors cancellation requests.
+            </summary>
+            <remarks>
+            Use the <see cref="P:System.IO.Stream.CanWrite" /> property to determine whether the stream instance supports writing.
+            <para>
+            If the operation is canceled before it completes, the returned task contains the <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" />
+            value for the <see cref="P:System.Threading.Tasks.Task.Status" /> property.
+            </para>
+            </remarks>
+            <param name="stream">The stream to write data to.</param>
+            <param name="buffer">The buffer to read the data from.</param>
+            <param name="offset">The zero-based byte offset in buffer from which to begin copying bytes to the stream.</param>
+            <param name="count">The maximum number of bytes to write.</param>
+            <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="P:System.Threading.CancellationToken.None" />.</param>
+            <returns>
+            A task that represents the asynchronous write operation.
+            </returns>
+            <exception cref="T:System.ArgumentNullException">
+            <para>If <paramref name="stream" /> is <see langword="null" />.</para>
+            <para>-or-</para>
+            <para>If <paramref name="buffer" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            <para>If <paramref name="offset" /> is negative.</para>
+            <para>-or-</para>
+            <para>If <paramref name="count" /> is negative.</para>
+            </exception>
+            <exception cref="T:System.ArgumentException">
+            If the sum of <paramref name="offset" /> and <paramref name="count" /> is larger than the buffer length.
+            </exception>
+            <exception cref="T:System.NotSupportedException">If <paramref name="stream" /> does not support writing.</exception>
+            <exception cref="T:System.ObjectDisposedException">If <paramref name="stream" /> has been disposed.</exception>
+            <exception cref="T:System.InvalidOperationException">If <paramref name="stream" /> is currently in use by a previous write operation.</exception></member>
+        <member name="T:Rackspace.Threading.TaskBlocks">
+            <summary>
+            Provides methods for creating tasks which emulate the behavior of <see langword="async/await" />
+            without requiring the use of those keywords.
+            </summary>
+            <threadsafety static="true" instance="false" /></member>
+        <member name="M:Rackspace.Threading.TaskBlocks.Using``2(System.Func{System.Threading.Tasks.Task{``0}},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task{``1}})">
+            <summary>
+            Provides support for resource cleanup in asynchronous code where the <see langword="async/await" />
+            keywords are not available.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            using (IDisposable disposable = await resource().ConfigureAwait(false))
+            {
+            return await body(disposable).ConfigureAwait(false);
+            }
+            </code>
+            <para>
+            This method expands on the <c>using</c> statement provided by C# by implementing support for
+            <see cref="T:Rackspace.Threading.IAsyncDisposable" /> as described in
+            <see href="http://roslyn.codeplex.com/discussions/546377">IAsyncDisposable, using statements, and async/await</see>.
+            </para>
+            <note type="caller">
+            If the <paramref name="resource" /> function throws an exception, or if it returns <see langword="null" />,
+            or if the <see cref="T:System.Threading.Tasks.Task`1" /> it returns does not complete successfully, the resource will not be
+            acquired by this method. In either of these situations the caller is responsible for ensuring the
+            <paramref name="resource" /> function cleans up any resources it creates.
+            </note>
+            </remarks>
+            <typeparam name="TResource">The type of resource used within the task and disposed of afterwards.</typeparam>
+            <typeparam name="TResult">The type of the result produced by the continuation <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <param name="resource">A function which acquires the resource used during the execution of the task.</param>
+            <param name="body">The continuation function which provides the <see cref="T:System.Threading.Tasks.Task`1" /> which acts as the body of the <c>using</c> block.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation. When the task completes successfully,
+            the <see cref="P:System.Threading.Tasks.Task`1.Result" /> property will contain the result provided by the
+            <see cref="P:System.Threading.Tasks.Task`1.Result" /> property of the task returned from <paramref name="body" />.</returns>
+            <example>
+            The following example asynchronously acquires a resource by calling the user method <c>AcquireResourceAsync</c>.
+            The resource will be disposed after the body executes, prior to returning the result of the body.
+            <code source="..\Samples\CSharpSamples\TaskBlockUsingWithResult.cs" region="UsingWithResultAsyncBuildingBlock" language="cs" />
+            <para>
+            For reference, the following example demonstrates a (nearly) equivalent implementation of this behavior using
+            the <see langword="async/await" /> operators.
+            </para>
+            <code source="..\Samples\CSharpSamples\TaskBlockUsingWithResult.cs" region="UsingWithResultAsyncAwait" language="cs" />
+            </example>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="resource" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="body" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.InvalidOperationException">
+            If <paramref name="resource" /> returns <see langword="null" />.
+            </exception></member>
+        <member name="M:Rackspace.Threading.TaskBlocks.Using``1(System.Func{System.Threading.Tasks.Task{``0}},System.Func{System.Threading.Tasks.Task{``0},System.Threading.Tasks.Task})">
+            <summary>
+            Provides support for resource cleanup in asynchronous code where the <see langword="async/await" />
+            keywords are not available.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            using (IDisposable disposable = await resource().ConfigureAwait(false))
+            {
+            await body(disposable).ConfigureAwait(false);
+            }
+            </code>
+            <para>
+            This method expands on the <c>using</c> statement provided by C# by implementing support for
+            <see cref="T:Rackspace.Threading.IAsyncDisposable" /> as described in
+            <see href="http://roslyn.codeplex.com/discussions/546377">IAsyncDisposable, using statements, and async/await</see>.
+            </para>
+            <note type="caller">
+            If the <paramref name="resource" /> function throws an exception, or if it returns <see langword="null" />,
+            or if the <see cref="T:System.Threading.Tasks.Task`1" /> it returns does not complete successfully, the resource will not be
+            acquired by this method. In either of these situations the caller is responsible for ensuring the
+            <paramref name="resource" /> function cleans up any resources it creates.
+            </note>
+            </remarks>
+            <typeparam name="TResource">The type of resource used within the task and disposed of afterwards.</typeparam>
+            <param name="resource">A function which acquires the resource used during the execution of the task.</param>
+            <param name="body">The continuation function which provides the <see cref="T:System.Threading.Tasks.Task" /> which acts as the body of the <c>using</c> block.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <example>
+            The following example asynchronously acquires a resource by calling the user method <c>AcquireResourceAsync</c>.
+            The resource will be disposed after the body executes. No result is return from this operation, as the body of
+            the task block represents an asynchronous operation that does not return a result.
+            <code source="..\Samples\CSharpSamples\TaskBlockUsing.cs" region="UsingAsyncBuildingBlock" language="cs" />
+            <para>
+            For reference, the following example demonstrates a (nearly) equivalent implementation of this behavior using
+            the <see langword="async/await" /> operators.
+            </para>
+            <code source="..\Samples\CSharpSamples\TaskBlockUsing.cs" region="UsingAsyncAwait" language="cs" />
+            </example>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="resource" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="body" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.InvalidOperationException">
+            If <paramref name="resource" /> returns <see langword="null" />.
+            </exception></member>
+        <member name="M:Rackspace.Threading.TaskBlocks.While(System.Func{System.Boolean},System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Provides support for a conditional "while" loop in asynchronous code, without requiring the use of <see langword="async/await" />.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            while (condition())
+            {
+            await body().ConfigureAwait(false);
+            }
+            </code>
+            </remarks>
+            <param name="condition">A function which evaluates the condition of the asynchronous <c>while</c> loop.</param>
+            <param name="body">A function which returns a <see cref="T:System.Threading.Tasks.Task" /> representing one iteration of the body of the <c>while</c> loop.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <example>
+            The following example shows a basic "while" loop implemented using this building block.
+            <code source="..\Samples\CSharpSamples\TaskBlockWhileAsync.cs" region="WhileAsyncBuildingBlock" language="cs" />
+            <para>
+            For reference, the following example demonstrates a (nearly) equivalent implementation of this behavior using
+            the <see langword="async/await" /> operators.
+            </para>
+            <code source="..\Samples\CSharpSamples\TaskBlockWhileAsync.cs" region="WhileAsyncAwait" language="cs" />
+            </example>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="condition" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="body" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.InvalidOperationException">
+            If <paramref name="body" /> returns <see langword="null" />.
+            </exception></member>
+        <member name="M:Rackspace.Threading.TaskBlocks.While(System.Func{System.Threading.Tasks.Task{System.Boolean}},System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Provides support for a conditional "while" loop in asynchronous code, without requiring the use of <see langword="async/await" />.
+            </summary>
+            <remarks>
+            This code implements support for the following construct without requiring the use of <see langword="async/await" />.
+            <code language="cs">
+            while (await condition().ConfigureAwait(false))
+            {
+            await body().ConfigureAwait(false);
+            }
+            </code>
+            </remarks>
+            <param name="condition">A function which returns a <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous evaluation of the <c>while</c> condition.</param>
+            <param name="body">A function which returns a <see cref="T:System.Threading.Tasks.Task" /> representing one iteration of the body of the <c>while</c> loop.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing the asynchronous operation.</returns>
+            <example>
+            The following example shows a basic "while" loop implemented using this building block.
+            <code source="..\Samples\CSharpSamples\TaskBlockWhileAsyncCondition.cs" region="WhileAsyncBuildingBlock" language="cs" />
+            <para>
+            For reference, the following example demonstrates a (nearly) equivalent implementation of this behavior using
+            the <see langword="async/await" /> operators.
+            </para>
+            <code source="..\Samples\CSharpSamples\TaskBlockWhileAsyncCondition.cs" region="WhileAsyncAwait" language="cs" />
+            </example>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="condition" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="body" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.InvalidOperationException">
+            If <paramref name="condition" /> returns <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="body" /> returns <see langword="null" />.</para>
+            </exception></member>
+        <member name="T:Rackspace.Threading.TaskCompletionSourceExtensions">
+            <summary>Extension methods for <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />.</summary>
+            <threadsafety static="true" instance="false" /></member>
+        <member name="M:Rackspace.Threading.TaskCompletionSourceExtensions.SetFromTask``2(System.Threading.Tasks.TaskCompletionSource{``1},System.Threading.Tasks.Task{``0})">
+            <summary>Transfers the result of a <see cref="T:System.Threading.Tasks.Task`1" /> to a <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />.</summary>
+            <remarks>
+            If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.RanToCompletion" /> state,
+            the result of the task is assigned to the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />
+            using the <see cref="!:TaskCompletionSource&lt;TResult&gt;.SetResult(TResult)" /> method.
+            <para>If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" /> state,
+            the unwrapped exceptions are bound to the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />
+            using the <see cref="M:System.Threading.Tasks.TaskCompletionSource`1.SetException(System.Collections.Generic.IEnumerable{System.Exception})" />
+            method.</para>
+            <para>If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> state,
+            the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" /> is transitioned to the
+            <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> state using the
+            <see cref="M:System.Threading.Tasks.TaskCompletionSource`1.SetCanceled" /> method.</para>
+            </remarks>
+            <typeparam name="TSource">Specifies the result type of the source <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <typeparam name="TResult">Specifies the result type of the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />.</typeparam>
+            <param name="taskCompletionSource">The <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" /> instance.</param>
+            <param name="task">The result task whose completion results should be transferred.</param>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="taskCompletionSource" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="task" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.ObjectDisposedException">
+            If the underlying <see cref="T:System.Threading.Tasks.Task`1" /> of <paramref name="taskCompletionSource" /> was disposed.
+            </exception>
+            <exception cref="T:System.InvalidOperationException">
+            If the underlying <see cref="T:System.Threading.Tasks.Task`1" /> produced by <paramref name="taskCompletionSource" /> is already
+            in one of the three final states: <see cref="F:System.Threading.Tasks.TaskStatus.RanToCompletion" />,
+            <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" />, or <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" />.
+            </exception></member>
+        <member name="M:Rackspace.Threading.TaskCompletionSourceExtensions.SetFromTask``1(System.Threading.Tasks.TaskCompletionSource{``0},System.Threading.Tasks.Task,``0)">
+            <summary>
+            Transfers the result of a <see cref="T:System.Threading.Tasks.Task`1" /> to a <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />,
+            using a specified result value when the task is in the <see cref="F:System.Threading.Tasks.TaskStatus.RanToCompletion" />
+            state.
+            </summary>
+            <remarks>
+            If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.RanToCompletion" /> state,
+            the specified <paramref name="result" /> value is assigned to the
+            <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" /> using the
+            <see cref="!:TaskCompletionSource&lt;TResult&gt;.SetResult(TResult)" /> method.
+            <para>If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" /> state,
+            the unwrapped exceptions are bound to the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />
+            using the <see cref="M:System.Threading.Tasks.TaskCompletionSource`1.SetException(System.Collections.Generic.IEnumerable{System.Exception})" />
+            method.</para>
+            <para>If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> state,
+            the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" /> is transitioned to the
+            <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> state using the
+            <see cref="M:System.Threading.Tasks.TaskCompletionSource`1.SetCanceled" /> method.</para>
+            </remarks>
+            <typeparam name="TResult">Specifies the result type of the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />.</typeparam>
+            <param name="taskCompletionSource">The <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" /> instance.</param>
+            <param name="task">The result task whose completion results should be transferred.</param>
+            <param name="result">The result of the completion source when the specified task completed successfully.</param>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="taskCompletionSource" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="task" /> is <see langword="null" />.</para>
+            </exception>
+            <exception cref="T:System.ObjectDisposedException">
+            If the underlying <see cref="T:System.Threading.Tasks.Task`1" /> of <paramref name="taskCompletionSource" /> was disposed.
+            </exception>
+            <exception cref="T:System.InvalidOperationException">
+            If the underlying <see cref="T:System.Threading.Tasks.Task`1" /> produced by <paramref name="taskCompletionSource" /> is already
+            in one of the three final states: <see cref="F:System.Threading.Tasks.TaskStatus.RanToCompletion" />,
+            <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" />, or <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" />.
+            </exception></member>
+        <member name="M:Rackspace.Threading.TaskCompletionSourceExtensions.TrySetFromTask``2(System.Threading.Tasks.TaskCompletionSource{``1},System.Threading.Tasks.Task{``0})">
+            <summary>Attempts to transfer the result of a <see cref="T:System.Threading.Tasks.Task`1" /> to a <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />.</summary>
+            <remarks>
+            This method will return <see langword="false" /> if the <see cref="T:System.Threading.Tasks.Task`1" />
+            provided by <paramref name="taskCompletionSource" /> is already in one of the three
+            final states: <see cref="F:System.Threading.Tasks.TaskStatus.RanToCompletion" />, <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" />,
+            or <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" />. This method also returns <see langword="false" />
+            if the underlying <see cref="T:System.Threading.Tasks.Task`1" /> has already been disposed.
+            <para>If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.RanToCompletion" /> state,
+            the result of the task is assigned to the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />
+            using the <see cref="!:TaskCompletionSource&lt;TResult&gt;.TrySetResult(TResult)" /> method.</para>
+            <para>If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" /> state,
+            the unwrapped exceptions are bound to the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />
+            using the <see cref="M:System.Threading.Tasks.TaskCompletionSource`1.TrySetException(System.Collections.Generic.IEnumerable{System.Exception})" />
+            method.</para>
+            <para>If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> state,
+            the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" /> is transitioned to the
+            <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> state using the
+            <see cref="M:System.Threading.Tasks.TaskCompletionSource`1.TrySetCanceled" /> method.</para>
+            </remarks>
+            <typeparam name="TSource">Specifies the result type of the source <see cref="T:System.Threading.Tasks.Task`1" />.</typeparam>
+            <typeparam name="TResult">Specifies the result type of the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />.</typeparam>
+            <param name="taskCompletionSource">The <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" /> instance.</param>
+            <param name="task">The result task whose completion results should be transferred.</param>
+            <returns>
+            <see langword="true" /> if the operation was successful.
+            <para>-or-</para>
+            <para><see langword="false" /> if the operation was unsuccessful or the object has already been disposed.</para>
+            </returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="taskCompletionSource" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="task" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.TaskCompletionSourceExtensions.TrySetFromTask``1(System.Threading.Tasks.TaskCompletionSource{``0},System.Threading.Tasks.Task,``0)">
+            <summary>
+            Attempts to transfer the result of a <see cref="T:System.Threading.Tasks.Task`1" /> to a <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />,
+            using a specified result value when the task is in the <see cref="F:System.Threading.Tasks.TaskStatus.RanToCompletion" />
+            state.
+            </summary>
+            <remarks>
+            This method will return <see langword="false" /> if the <see cref="T:System.Threading.Tasks.Task`1" />
+            provided by <paramref name="taskCompletionSource" /> is already in one of the three
+            final states: <see cref="F:System.Threading.Tasks.TaskStatus.RanToCompletion" />, <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" />,
+            or <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" />. This method also returns <see langword="false" />
+            if the underlying <see cref="T:System.Threading.Tasks.Task`1" /> has already been disposed.
+            <para>If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.RanToCompletion" /> state,
+            the specified <paramref name="result" /> value is assigned to the
+            <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" /> using the
+            <see cref="!:TaskCompletionSource&lt;TResult&gt;.TrySetResult(TResult)" /> method.</para>
+            <para>If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.Faulted" /> state,
+            the unwrapped exceptions are bound to the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />
+            using the <see cref="M:System.Threading.Tasks.TaskCompletionSource`1.TrySetException(System.Collections.Generic.IEnumerable{System.Exception})" />
+            method.</para>
+            <para>If <paramref name="task" /> is in the <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> state,
+            the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" /> is transitioned to the
+            <see cref="F:System.Threading.Tasks.TaskStatus.Canceled" /> state using the
+            <see cref="M:System.Threading.Tasks.TaskCompletionSource`1.TrySetCanceled" /> method.</para>
+            </remarks>
+            <typeparam name="TResult">Specifies the result type of the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />.</typeparam>
+            <param name="taskCompletionSource">The <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" /> instance.</param>
+            <param name="task">The result task whose completion results should be transferred.</param>
+            <param name="result">The result of the completion source when the specified task completed successfully.</param>
+            <returns>
+            <see langword="true" /> if the operation was successful.
+            <para>-or-</para>
+            <para><see langword="false" /> if the operation was unsuccessful or the object has already been disposed.</para>
+            </returns>
+            <exception cref="T:System.ArgumentNullException">
+            If <paramref name="taskCompletionSource" /> is <see langword="null" />.
+            <para>-or-</para>
+            <para>If <paramref name="task" /> is <see langword="null" />.</para>
+            </exception></member>
+        <member name="M:Rackspace.Threading.TaskCompletionSourceExtensions.SetFromFailedTask``1(System.Threading.Tasks.TaskCompletionSource{``0},System.Threading.Tasks.Task)">
+            <summary>Transfers the result of a canceled or faulted <see cref="T:System.Threading.Tasks.Task" /> to the <see cref="T:System.Threading.Tasks.TaskCompletionSource`1" />.</summary>
+            <typeparam name="TResult">Specifies the type of the result.</typeparam>
+            <param name="taskCompletionSource">The TaskCompletionSource.</param>
+            <param name="task">The task whose completion results should be transferred.</param></member>
+    </members>
+</doc>

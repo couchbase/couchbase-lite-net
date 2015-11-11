@@ -8,12 +8,16 @@ function usage
 
 PROJECT_DIR="$(pwd)"
 SG_DIR="${PROJECT_DIR}/tmp"
-SG_URL="http://packages.couchbase.com/releases/couchbase-sync-gateway/1.1.0/couchbase-sync-gateway-enterprise_1.1.0-28_x86_64.tar.gz"
+SG_URL="http://packages.couchbase.com/releases/couchbase-sync-gateway/1.1.1/couchbase-sync-gateway-community_1.1.1-10_x86_64.tar.gz"
 SG_PKG="${SG_DIR}/sync_gateway.tar.gz"
 SG_TAR="${SG_DIR}/couchbase-sync-gateway"
 SG_BIN="${SG_TAR}/bin/sync_gateway"
 SG_PID="${SG_DIR}/pid"
-SG_CFG="${PROJECT_DIR}/script/sync-gateway-config.json"
+if [ "$USE_SSL" = "1" ]; then
+  SG_CFG="${PROJECT_DIR}/script/sync-gateway-config-ssl.json"
+else
+  SG_CFG="${PROJECT_DIR}/script/sync-gateway-config-nossl.json"
+fi
 
 function startSyncGateway
 {
@@ -29,8 +33,12 @@ function startSyncGateway
 
 	stopSyncGateway
 
-	open "http://localhost:4985/_admin/"
-	
+  if [ "$USE_SSL" = "1" ]; then
+    open "https://localhost:4985/_admin/"
+  else
+	  open "http://localhost:4985/_admin/"
+  fi
+
 	"${SG_BIN}" "${SG_CFG}"
 	PID=$!
 	echo ${PID} > "${SG_PID}"
