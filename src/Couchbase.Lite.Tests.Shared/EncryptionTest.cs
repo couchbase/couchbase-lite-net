@@ -43,8 +43,7 @@ namespace Couchbase.Lite
         [TestFixtureSetUp]
         public void OneTimeSetUp()
         {
-            base.SetUp();
-
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             Log.I(TAG, "Generating keys for test, this might take a while...");
             _letmein = SymmetricKey.Create("letmein");
             Log.I(TAG, "Keys completed (1/3)");
@@ -52,6 +51,8 @@ namespace Couchbase.Lite
             Log.I(TAG, "Keys completed (2/3)");
             _wrong = SymmetricKey.Create("wrong");
             Log.I(TAG, "Keys completed (3/3)");
+            sw.Stop();
+            Log.I(TAG, "Created three keys in {0}ms", sw.ElapsedMilliseconds);
         }
 
         [Test]
