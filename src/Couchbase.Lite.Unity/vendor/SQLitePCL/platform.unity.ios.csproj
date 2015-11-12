@@ -62,6 +62,7 @@
     <ProjectReference Include="..\..\..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Unity.csproj">
       <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
       <Name>System.Threading.Tasks.Unity</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
 </Project>
