@@ -1545,7 +1545,7 @@ namespace Couchbase.Lite
             var replicator = database.CreatePushReplication(new Uri("http://fake.test-url.com:4984/fake/"));
             Assert.IsFalse(replicator.CheckServerCompatVersion("0.01"));
 
-            replicator.ServerType = "Couchbase Sync Gateway/1.00";
+            replicator.ServerType = new RemoteServerVersion("Couchbase Sync Gateway/1.1.0");
             Assert.IsTrue(replicator.CheckServerCompatVersion("1.00"));
             Assert.IsFalse(replicator.CheckServerCompatVersion("2.00"));
         }

@@ -146,7 +146,7 @@ namespace Couchbase.Lite.Replicator
             _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
             _changeTracker.Authenticator = Authenticator;
             if(DocIds != null) {
-                if(ServerType != null && ServerType.StartsWith("CouchDB")) {
+                if(ServerType != null && ServerType.Name == "CouchDB") {
                     _changeTracker.SetDocIDs(DocIds.ToList());
                 } else {
                     Log.W(TAG, "DocIds parameter only supported on CouchDB");

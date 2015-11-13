@@ -574,7 +574,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal string ServerType { get; set; }
+        internal RemoteServerVersion ServerType { get; set; }
         internal Batcher<RevisionInternal> Batcher { get; set; }
         internal Func<RevisionInternal, RevisionInternal> RevisionBodyTransformationFunction { get; private set; }
 
@@ -811,17 +811,11 @@ namespace Couchbase.Lite
         /// <param name="minVersion">Minimum version.</param>
         protected internal bool CheckServerCompatVersion(string minVersion)
         {
-            if (StringEx.IsNullOrWhiteSpace(ServerType)) {
+            if (ServerType == null) {
                 return false;
             }
 
-            const string prefix = "Couchbase Sync Gateway/";
-            if (ServerType.StartsWith(prefix, StringComparison.Ordinal)) {
-                var version = ServerType.Substring(prefix.Length);
-                return string.Compare(version, minVersion, StringComparison.Ordinal) >= 0;
-            }
-
-            return false;
+            return ServerType.IsSyncGateway && string.Compare(ServerType.Version, minVersion, StringComparison.Ordinal) >= 0;
         }
 
         /// <summary>
@@ -1817,7 +1811,8 @@ namespace Couchbase.Lite
         {
             var server = response.Headers.Server;
             if (server != null && server.Any()) {
-                ServerType = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null).ToStringArray());
+                var serverString = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null).ToStringArray());
+                ServerType = new RemoteServerVersion(serverString);
                 Log.V(TAG, "Server Version: " + ServerType);
             }
         }

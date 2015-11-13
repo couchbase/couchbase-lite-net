@@ -60,6 +60,31 @@ namespace Couchbase.Lite
         public MiscTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestServerVersionParsing()
+        {
+            var oldVersion = new RemoteServerVersion("Couchbase Sync Gateway/1.1.0");
+            Assert.IsTrue(oldVersion.IsSyncGateway);
+            Assert.AreEqual("Couchbase Sync Gateway", oldVersion.Name);
+            Assert.AreEqual("1.1.0", oldVersion.Version);
+            Assert.IsNullOrEmpty(oldVersion.Branch);
+            Assert.IsNullOrEmpty(oldVersion.Commit);
+
+            var nonSGVersion = new RemoteServerVersion("CouchDB/1.6.1");
+            Assert.IsFalse(nonSGVersion.IsSyncGateway);
+            Assert.AreEqual("CouchDB", nonSGVersion.Name);
+            Assert.AreEqual("1.6.1", nonSGVersion.Version);
+            Assert.IsNullOrEmpty(nonSGVersion.Branch);
+            Assert.IsNullOrEmpty(nonSGVersion.Commit);
+
+            var newVersion = new RemoteServerVersion("Couchbase Sync Gateway/1.2 branch/fix/server_header commit/5bfcf79");
+            Assert.IsTrue(newVersion.IsSyncGateway);
+            Assert.AreEqual("Couchbase Sync Gateway", newVersion.Name);
+            Assert.AreEqual("1.2", newVersion.Version);
+            Assert.AreEqual("fix/server_header", newVersion.Branch);
+            Assert.AreEqual("5bfcf79", newVersion.Commit);
+        }
+
+        [Test]
         public void TestFacebookAuthorizer()
         {
             const string token = "pyrzqxgl";
