@@ -18,7 +18,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#define FAKE_C4_ENCRYPTION
 using System;
 using System.IO;
 using System.Linq;
