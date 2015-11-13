@@ -562,6 +562,103 @@ namespace Couchbase.Lite
             Assert.AreEqual(dict4["key"], rows[1].Key);
         }
 
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [Test]
+        public void TestViewQueryWithDictSentinel()
+        {
+            var key1 = new List<string>();
+            key1.Add("red");
+            key1.Add("model1");
+            var dict1 = new Dictionary<string, object>();
+            dict1.Add("id", "11");
+            dict1.Add("key", key1);
+            PutDoc(database, dict1);
+
+            var key2 = new List<string>();
+            key2.Add("red");
+            key2.Add("model2");
+            var dict2 = new Dictionary<string, object>();
+            dict2.Add("id", "12");
+            dict2.Add("key", key2);
+            PutDoc(database, dict2);
+
+            var key3 = new List<string>();
+            key3.Add("green");
+            key3.Add("model1");
+            var dict3 = new Dictionary<string, object>();
+            dict3.Add("id", "21");
+            dict3.Add("key", key3);
+            PutDoc(database, dict3);
+
+            var key4 = new List<string>();
+            key4.Add("yellow");
+            key4.Add("model2");
+            var dict4 = new Dictionary<string, object>();
+            dict4.Add("id", "31");
+            dict4.Add("key", key4);
+            PutDoc(database, dict4);
+
+            var view = CreateView(database);
+
+            view.UpdateIndex();
+
+            // Query all rows:
+            QueryOptions options = new QueryOptions();
+            IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
+
+            Assert.AreEqual(4, rows.Count);
+            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[0].Key).ToObject<object[]>());
+            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
+            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[2].Key).ToObject<object[]>());
+            Assert.AreEqual(new object[] { "yellow", "model2" }, ((JArray)rows[3].Key).ToObject<object[]>());
+
+            // Start/end key query:
+            options = new QueryOptions();
+            options.StartKey = "a";
+            options.EndKey = new List<object> { "red", new Dictionary<string, object>() };
+            rows = view.QueryWithOptions(options).ToList();
+            Assert.AreEqual(3, rows.Count);
+            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[0].Key).ToObject<object[]>());
+            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
+            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[2].Key).ToObject<object[]>());
+
+            // Start/end query without inclusive end:
+            options.EndKey = new List<object> { "red", "model1" };
+            options.InclusiveEnd = false;
+            rows = view.QueryWithOptions(options).ToList();
+            Assert.AreEqual(1, rows.Count); //1
+            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[0].Key).ToObject<object[]>());
+
+            // Reversed:
+            options = new QueryOptions();
+            options.StartKey = new List<object> { "red", new Dictionary<string, object>() };
+            options.EndKey = new List<object> { "green", "model1" };
+            options.Descending = true;
+            rows = view.QueryWithOptions(options).ToList();
+            Assert.AreEqual(3, rows.Count);
+            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[0].Key).ToObject<object[]>());
+            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
+            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[2].Key).ToObject<object[]>());
+
+            // Reversed, no inclusive end:
+            options.InclusiveEnd = false;
+            rows = view.QueryWithOptions(options).ToList();
+            Assert.AreEqual(2, rows.Count);
+            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[0].Key).ToObject<object[]>());
+            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
+
+            // Specific keys:
+            options = new QueryOptions();
+            IList<object> keys = new List<object>();
+            keys.Add(new object[] { "red", "model2" });
+            keys.Add(new object[] { "red", "model1" });
+            options.Keys = keys;
+            rows = view.QueryWithOptions(options).ToList();
+            Assert.AreEqual(2, rows.Count);
+            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[0].Key).ToObject<object[]>());
+            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
+        }
+
         [Test]
         public void TestLiveQueryStartEndKey()
         {
