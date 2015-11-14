@@ -120,10 +120,6 @@
       <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
       <Name>System.Threading.Tasks.Unity</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.Unity.csproj">
-      <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
-      <Name>Rackspace.Threading.Unity</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
