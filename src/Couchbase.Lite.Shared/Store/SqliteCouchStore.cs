@@ -987,7 +987,13 @@ namespace Couchbase.Lite.Store
         public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
         {
             // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export
-            var hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
+            var hasRealEncryption = false;
+            try {
+                hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
+            } catch(EntryPointNotFoundException) {
+                hasRealEncryption = false;
+            }
+
             if (!hasRealEncryption) {
                 return new AtomicAction();
             }
