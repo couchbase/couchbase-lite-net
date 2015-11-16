@@ -27,7 +27,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "platform.unity.ios", "Couch
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Net.Http.Unity", "Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http.Unity.csproj", "{9862694D-E4FA-418B-8692-A0280FEDDF36}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Threading.Tasks.Unity", "Couchbase.Lite.Net35\vendor\Rackspace\System.Threading.Tasks\System.Threading.Tasks.Unity.csproj", "{DCB5D745-525C-46A1-BFC0-E12F87AB6165}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Threading.Tasks.Unity", "Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Unity.csproj", "{DCB5D745-525C-46A1-BFC0-E12F87AB6165}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ListenerComponent", "ListenerComponent", "{93A9E803-DBF3-45BE-96FA-87D68422F401}"
 EndProject
