@@ -53,6 +53,7 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Views;
+using Couchbase.Lite.Tests;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -60,669 +61,730 @@ using StringEx = System.String;
 
 namespace Couchbase.Lite
 {
-    public class PerformanceTest : PerformanceTestCase
+    [TestFixture("ForestDB")]
+    public class PerformanceTest : LiteTestCase
     {
+        private const string TAG = "PerformanceTest";
+
+        private bool PerformanceTestsEnabled 
+        {
+            get {
+                return Convert.ToBoolean(Runtime.GetProperty("enabled"));
+            }
+        }
+
         public PerformanceTest(string storageType) : base(storageType)
         {
+        }
+
+        [TestFixtureSetUp]
+        protected void InitConfig()
+        {
+            var systemProperties = Runtime.Properties;
+            InputStream mainProperties = GetAsset("perftest.properties");
+            if (mainProperties != null)
+            {
+                systemProperties.Load(mainProperties);
+            }
+            mainProperties.Close();
+
+            try {
+                var localProperties = GetAsset("local-perftest.properties");
+                if (localProperties != null) {
+                    systemProperties.Load(localProperties);
+                    localProperties.Close();
+                }
+            } catch (IOException) {
+                Log.W(TAG, "Error trying to read from local-perftest.properties, does this file exist?");
+                throw;
+            }
         }
 
         [Test]
         public void Test01CreateDocs()
         {
-            RunTest("Test01CreateDocs", (parameters) => 
+            const string TEST_NAME = "test1";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
+
+            var content = CreateContent(GetSizeOfDocument(TEST_NAME));
+            TimeBlock(String.Format("{0}, {1}", GetNumberOfDocuments(TEST_NAME), GetSizeOfDocument(TEST_NAME)), () =>
             {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
-
-                var props = CreateTestProperties(docSize);
-
-                var stopwatch = Stopwatch.StartNew();
-
-                database.RunInTransaction(() =>
+                var success = database.RunInTransaction(() =>
                 {
-                    for (var i = 0; i < numDocs; i++)
-                    {
-                        Document document = database.CreateDocument();
-                        document.PutProperties(props);
+                    for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                        try {
+                            var props = new Dictionary<string, object> {
+                                { "content", content }
+                            };
+                            var doc = database.CreateDocument();
+                            doc.PutProperties(props);
+                        } catch(CouchbaseLiteException e) {
+                            Log.E(TAG, "Error creating document", e);
+                            return false;
+                        }
                     }
+
                     return true;
                 });
 
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
+                Assert.IsTrue(success);
             });
         }
 
         [Test]
         public void Test02CreateDocsUnoptimizedWay()
         {
-            RunTest("Test02CreateDocsUnoptimizedWay", (parameters) => 
+            const string TEST_NAME = "test2";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
+
+            var content = CreateContent(GetSizeOfDocument(TEST_NAME));
+            TimeBlock(String.Format("{0}, {1}", GetNumberOfDocuments(TEST_NAME), GetSizeOfDocument(TEST_NAME)), () =>
             {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
-
-                var props = CreateTestProperties(docSize);
-
-                var stopwatch = Stopwatch.StartNew();
-
-                for (var i = 0; i < numDocs; i++)
-                {
-                    Document document = database.CreateDocument();
-                    document.PutProperties(props);
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    var props = new Dictionary<string, object> {
+                        { "content", content }
+                    };
+                    var doc = database.CreateDocument();
+                    doc.PutProperties(props);
                 }
-
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
             });
         }
 
         [Test]
-        public void Test03CreateDocsWithAttachments()
+        public void Test03ReadDocs()
         {
-            RunTest("Test03CreateDocsWithAttachments", (parameters) =>
+            const string TEST_NAME = "test3";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
+
+            var docIds = new List<string>();
+            var content = CreateContent(GetSizeOfDocument(TEST_NAME));
+            var success = database.RunInTransaction(() =>
             {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
-
-                var sb = new StringBuilder();
-                for (var i = 0; i < docSize; i++)
-                {
-                    sb.Append('1');
-                }
-                var bytes = Encoding.ASCII.GetBytes(sb.ToString());
-
-                var props = new Dictionary<string, object>() {
-                    { "k", "v" }
-                };
-
-                var stopwatch = Stopwatch.StartNew();
-
-                for (var i = 0; i < numDocs; i++)
-                {
-                    var document = database.CreateDocument();
-                    document.PutProperties(props);
-
-                    var unsavedRev = document.CurrentRevision.CreateRevision();
-                    unsavedRev.SetAttachment("test_attachment", "text/plain", bytes);
-                    var rev = unsavedRev.Save();
-                    Assert.IsNotNull(rev);
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    try {
+                        var props = new Dictionary<string, object> {
+                            { "content", content }
+                        };
+                        var doc = database.CreateDocument();
+                        Assert.IsNotNull(doc.PutProperties(props));
+                        docIds.Add(doc.Id);
+                    } catch(CouchbaseLiteException e) {
+                        Log.E(TAG, "Error creating document", e);
+                        return false;
+                    }
                 }
 
-                stopwatch.Stop();
+                return true;
+            });
 
-                return stopwatch.ElapsedMilliseconds;
+            Assert.IsTrue(success);
+            TimeBlock(String.Format("{0}, {1}", GetNumberOfDocuments(TEST_NAME), GetSizeOfDocument(TEST_NAME)), () =>
+            {
+                foreach(var docId in docIds) {
+                    var doc = database.GetDocument(docId);
+                    Assert.IsNotNull(doc);
+                    var properties = doc.Properties;
+                    Assert.IsNotNull(properties);
+                    Assert.IsNotNull(properties.Get("content"));
+                }
             });
         }
 
         [Test]
-        public void Test06PullReplication()
+        public void Test04CreateAttachment()
         {
-            RunTest("Test06PullReplication", (parameters) =>
+            const string TEST_NAME = "test4";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(CreateContent(GetSizeOfAttachment(TEST_NAME)));
+            TimeBlock(String.Format("{0}, {1}", GetNumberOfDocuments(TEST_NAME), GetSizeOfAttachment(TEST_NAME)), () =>
             {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
-
-                var props = CreateTestProperties(docSize);
-                var docIdTimestamp = DateTime.UtcNow.ToMillisecondsSinceEpoch().ToString();
-                for (var i = 0; i < numDocs; i++)
+                var success = database.RunInTransaction(() =>
                 {
-                    var docId = String.Format("doc{0}-{0}", i, docIdTimestamp);
-                    AddDocToSyncGateway(docId, new Dictionary<string, object>(props), 
-                        "attachment.png", "image/png");
-                    Sleep(1 * 1000);
-                }
+                    try {
+                        for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                            var doc = database.CreateDocument();
+                            var unsaved = doc.CreateRevision();
+                            unsaved.SetProperties(new Dictionary<string, object>());
+                            unsaved.SetAttachment("attach", "text/plain", bytes);
+                            unsaved.Save();
+                        }
+                    } catch(Exception e) {
+                        Log.E(TAG, "Document create with attachment failed", e);
+                        return false;
+                    }
 
-                var stopwatch = Stopwatch.StartNew();
+                    return true;
+                });
 
-                var remote = GetReplicationURL();
-                var repl = database.CreatePullReplication(remote);
-                repl.Continuous = false;
-                repl.CreateTarget |= !IsTestingAgainstSyncGateway();
-
-                RunReplication(repl);
-
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
+                Assert.IsTrue(success);
             });
         }
 
         [Test]
-        public void Test07PushReplication()
+        public void Test05ReadAttachments()
         {
-            RunTest("Test07PushReplication", (parameters) =>
-            {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
+            const string TEST_NAME = "test5";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
 
-                var props = CreateTestProperties(docSize);
-                var docIdTimestamp = DateTime.UtcNow.ToMillisecondsSinceEpoch().ToString();
-                for (var i = 0; i < numDocs; i++)
-                {
-                    var docId = String.Format("doc{0}-{0}", i, docIdTimestamp);
-                    AddDoc(docId, new Dictionary<string, object>(props), 
-                        "attachment.png", "image/png");
+            var bytes = Encoding.UTF8.GetBytes(CreateContent(GetSizeOfAttachment(TEST_NAME)));
+            var docs = new Document[GetNumberOfDocuments(TEST_NAME)];
+            var success = database.RunInTransaction(() =>
+            {
+                try {
+                    for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                        var properties = new Dictionary<string, object> {
+                            { "foo", "bar" }
+                        };
+                        var doc = database.CreateDocument();
+                        var unsaved = doc.CreateRevision();
+                        unsaved.SetProperties(properties);
+                        unsaved.SetAttachment("attach", "text/plain", bytes);
+                        unsaved.Save();
+
+                        docs[i] = doc;
+                    }
+                } catch(Exception e) {
+                    Log.E(TAG, "Document create with attachment failed", e);
+                    return false;
                 }
 
-                var stopwatch = Stopwatch.StartNew();
+                return true;
+            });
 
+            Assert.IsTrue(success);
+
+            TimeBlock(String.Format("{0}, {1}", GetNumberOfDocuments(TEST_NAME), GetSizeOfAttachment(TEST_NAME)), () =>
+            {
+                foreach(var doc in docs) {
+                    var att = doc.CurrentRevision.GetAttachment("attach");
+                    Assert.IsNotNull(att);
+
+                    var gotBytes = att.Content.ToArray();
+                    Assert.AreEqual(GetSizeOfAttachment(TEST_NAME), gotBytes.Length);
+                    LogPerformanceStats(bytes.Length, "Size");
+                }
+            });
+        }
+
+        [Test]
+        public void Test06PushReplication()
+        {
+            const string TEST_NAME = "test6";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
+
+            var content = CreateContent(GetSizeOfDocument(TEST_NAME));
+            var attSize = GetSizeOfAttachment(TEST_NAME);
+            var attachment = default(byte[]);
+            if (attSize > 0) {
+                attachment = Encoding.UTF8.GetBytes(CreateContent(attSize, 'b'));
+            }
+
+            var success = database.RunInTransaction(() =>
+            {
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    try {
+                        var properties = new Dictionary<string, object> {
+                            { "content", content }
+                        };
+                        var document = database.CreateDocument();
+                        var unsaved = document.CreateRevision();
+                        unsaved.SetProperties(properties);
+                        if(attachment != null) {
+                            unsaved.SetAttachment("attach", "text/plain", attachment);
+                        }
+                        Assert.IsNotNull(unsaved.Save());
+                    } catch(Exception e) {
+                        Log.E(TAG, "Error creating documents", e);
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            Assert.IsTrue(success);
+            TimeBlock(String.Format("{0}, {1}, {2}", GetNumberOfDocuments(TEST_NAME), GetSizeOfDocument(TEST_NAME), 
+                GetSizeOfAttachment(TEST_NAME)), () =>
+            {
                 var remote = GetReplicationURL();
                 var repl = database.CreatePushReplication(remote);
                 repl.Continuous = false;
-                repl.CreateTarget |= !IsTestingAgainstSyncGateway();
-
                 RunReplication(repl);
+            });
+        }
 
-                stopwatch.Stop();
+        [Test]
+        public void Test07PullReplication()
+        {
+            const string TEST_NAME = "test7";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
 
-                return stopwatch.ElapsedMilliseconds;
+            var content = CreateContent(GetSizeOfDocument(TEST_NAME));
+            var attSize = GetSizeOfAttachment(TEST_NAME);
+            var attachment = default(byte[]);
+            if (attSize > 0) {
+                attachment = Encoding.UTF8.GetBytes(CreateContent(attSize, 'b'));
+            }
+
+            var success = database.RunInTransaction(() =>
+            {
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    try {
+                        var properties = new Dictionary<string, object> {
+                            { "content", content }
+                        };
+                        var document = database.CreateDocument();
+                        var unsaved = document.CreateRevision();
+                        unsaved.SetProperties(properties);
+                        if(attachment != null) {
+                            unsaved.SetAttachment("attach", "text/plain", attachment);
+                        }
+                        Assert.IsNotNull(unsaved.Save());
+                    } catch(Exception e) {
+                        Log.E(TAG, "Error creating documents", e);
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            var remote = GetReplicationURL();
+            var repl = database.CreatePushReplication(remote);
+            repl.Continuous = false;
+            RunReplication(repl);
+
+            Sleep(5000);
+            TimeBlock(String.Format("{0}, {1}, {2}", GetNumberOfDocuments(TEST_NAME), GetSizeOfDocument(TEST_NAME), 
+                GetSizeOfAttachment(TEST_NAME)), () =>
+            {
+                repl = database.CreatePullReplication(remote);
+                repl.Continuous = false;
+                RunReplication(repl);
             });
         }
 
         [Test]
         public void Test08DocRevisions()
         {
-            RunTest("Test08DocRevisions", (parameters) =>
+            const string TEST_NAME = "test8";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
+
+            var docs = new Document[GetNumberOfDocuments(TEST_NAME)];
+            var success = database.RunInTransaction(() =>
             {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
-
-                var docs = new Document[numDocs];
-                var props = CreateTestProperties(docSize);
-                props["toggle"] = true;
-
-                database.RunInTransaction(() =>
-                {
-                    for (var i = 0; i < docs.Length; i++)
-                    {
-                        var doc = database.CreateDocument();
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    var props = new Dictionary<string, object> {
+                        { "toggle", true }
+                    };
+                    var doc = database.CreateDocument();
+                    try {
                         doc.PutProperties(props);
                         docs[i] = doc;
+                    } catch(CouchbaseLiteException e) {
+                        Log.E(TAG, "Document creation failed");
+                        return false;
                     }
-
-                    return true;
-                });
-
-                var stopwatch = Stopwatch.StartNew();
-
-                for (var j = 0; j < docs.Length; j++) {
-                    Document doc = docs[j];
-                    var contents = new Dictionary<string, object>(doc.Properties);
-                    contents["toggle"] = !(Boolean)contents["toggle"];
-                    doc.PutProperties(contents);
                 }
 
-                stopwatch.Stop();
+                return true;
+            });
 
-                return stopwatch.ElapsedMilliseconds;
+            Assert.IsTrue(success);
+            TimeBlock(String.Format("{0}, {1}", GetNumberOfDocuments(TEST_NAME), GetNumberOfUpdates(TEST_NAME)), () =>
+            {
+                foreach(var doc in docs) {
+                    for(int i = 0; i < GetNumberOfUpdates(TEST_NAME); i++) {
+                        var contents = new Dictionary<string, object>(doc.Properties);
+                        var wasChecked = contents.GetCast<bool>("toggle");
+                        contents["toggle"] = !wasChecked;
+                        doc.PutProperties(contents);
+                    }
+                 }
             });
         }
 
         [Test]
         public void Test09LoadDB()
         {
-            RunTest("Test09LoadDB", (parameters) =>
-            {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
+            const string TEST_NAME = "test9";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
 
-                var docs = new Document[numDocs];
-                database.RunInTransaction(() =>
-                {
-                    var props = CreateTestProperties(docSize);
-                    for (var i = 0; i < docs.Length; i++)
-                    {
+            var content = CreateContent(GetSizeOfDocument(TEST_NAME));
+            var success = database.RunInTransaction(() =>
+            {
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    try {
+                        var props = new Dictionary<string, object> {
+                            { "content", content }
+                        };
                         var doc = database.CreateDocument();
                         doc.PutProperties(props);
-                        docs[i] = doc;
+                    } catch(CouchbaseLiteException e) {
+                        Log.E(TAG, "Error creating document", e);
+                        return false;
                     }
+                }
 
-                    return true;
-                });
+                return true;
+            });
 
-                var stopwatch = Stopwatch.StartNew();
-
-                database.Close();
-                manager.Close();
-
-                var path = new DirectoryInfo(GetServerPath() + "/tests");
-                manager = new Manager(path, Manager.DefaultOptions);
-                database = manager.GetDatabase(DefaultTestDb);
-
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
+            Assert.IsTrue(success);
+            TimeBlock(String.Format("{0}, {1}, {2}", GetNumberOfDocuments(TEST_NAME), GetSizeOfDocument(TEST_NAME), 
+                GetNumberOfRounds(TEST_NAME)), () =>
+            {
+                for(int i = 0; i < GetNumberOfRounds(TEST_NAME); i++) {
+                    Assert.DoesNotThrow(database.Close);
+                    database = manager.GetDatabase(DefaultTestDb);
+                    Assert.IsNotNull(database);
+                }
             });
         }
 
         [Test]
         public void Test10DeleteDB()
         {
-            RunTest("Test10DeleteDB", (parameters) =>
-            {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
+            const string TEST_NAME = "test10";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
 
-                var docs = new Document[numDocs];
-                database.RunInTransaction(() =>
-                {
-                    var props = CreateTestProperties(docSize);
-                    for (var i = 0; i < docs.Length; i++)
-                    {
+            var content = CreateContent(GetSizeOfDocument(TEST_NAME));
+            var success = database.RunInTransaction(() =>
+            {
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    try {
+                        var props = new Dictionary<string, object> {
+                            { "content", content }
+                        };
                         var doc = database.CreateDocument();
                         doc.PutProperties(props);
-                        docs[i] = doc;
+                    } catch(CouchbaseLiteException e) {
+                        Log.E(TAG, "Error creating document", e);
+                        return false;
                     }
+                }
 
-                    return true;
-                });
+                return true;
+            });
 
-                var stopwatch = Stopwatch.StartNew();
-
+            Assert.IsTrue(success);
+            TimeBlock(String.Format("{0}, {1}", GetNumberOfDocuments(TEST_NAME), GetSizeOfDocument(TEST_NAME)), () =>
+            {
                 database.Delete();
-
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
             });
         }
 
         [Test]
         public void Test11DeleteDocs()
         {
-            RunTest("Test11DeleteDocs", (parameters) =>
-            {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
+            const string TEST_NAME = "test11";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
 
-                var docs = new Document[numDocs];
-                database.RunInTransaction(() =>
-                {
-                    var props = CreateTestProperties(docSize);
-                    for (var i = 0; i < docs.Length; i++)
-                    {
-                        var doc = database.CreateDocument();
+            var docs = new Document[GetNumberOfDocuments(TEST_NAME)];
+            var success = database.RunInTransaction(() =>
+            {
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    var props = new Dictionary<string, object> {
+                        { "toggle", true }
+                    };
+                    var doc = database.CreateDocument();
+                    try {
                         doc.PutProperties(props);
                         docs[i] = doc;
+                    } catch(CouchbaseLiteException e) {
+                        Log.E(TAG, "Document creation failed", e);
+                        return false;
                     }
+                }
 
-                    return true;
-                });
+                return true;
+            });
 
-                var stopwatch = Stopwatch.StartNew();
-
-                database.RunInTransaction(() =>
+            Assert.IsTrue(success);
+            TimeBlock(String.Format("{0}, {1}", GetNumberOfDocuments(TEST_NAME), GetSizeOfDocument(TEST_NAME)), () =>
+            {
+                success = database.RunInTransaction(() =>
                 {
-                    for (int i = 0; i < docs.Length; i++) {
-                        Document doc = docs[i];
-                        doc.Delete();
+                    foreach(var doc in docs) {
+                        try {
+                            doc.Delete();
+                        } catch(Exception e) {
+                            Log.E(TAG, "Document delete failed", e);
+                            return false;
+                        }
                     }
+
                     return true;
                 });
 
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
+                Assert.IsTrue(success);
             });
         }
 
         [Test]
         public void Test12IndexView()
         {
-            RunTest("Test12IndexView", (parameters) =>
+            const string TEST_NAME = "test12";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
+
+            var view = database.GetView("vacant");
+            view.SetMapReduce((doc, emit) =>
             {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
+                var vacant = doc.GetCast<bool>("vacant");
+                var name = doc.GetCast<string>("name");
+                if(vacant && name != null) {
+                    emit(name, vacant);
+                }
+            }, BuiltinReduceFunctions.Sum, "1.0.0");
 
-                // Prepare
-                var view = database.GetView("vacant");
+            var success = database.RunInTransaction(() =>
+            {
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    var name = String.Format("{0}{1}", "n", i);
+                    var vacant = (i % 2) == 0;
+                    var props = new Dictionary<string, object> {
+                        { "name", name },
+                        { "apt", i },
+                        { "phone", 408100000 + i },
+                        { "vacant", vacant }
+                    };
 
-                view.SetMapReduce((document, emit) =>
-                {
-                    var vacant = (Boolean)document["vacant"];
-                    var name = (String)document["name"];
-                    if (vacant && name != null)
-                    {
-                        emit(name, vacant);
-                    }
-                }, BuiltinReduceFunctions.Sum, "1.0");
-
-                database.RunInTransaction(() =>
-                {
-                    for (var i = 0; i < numDocs; i++)
-                    {
-                        var name = String.Format("n{0}", i);
-                        var vacant = ((i + 2) % 2) == 0;
-                        var props = new Dictionary<string, object>()
-                        {
-                            {"name", name},
-                            {"apt", i},
-                            {"phone", 408100000 + i},
-                            {"vacant", vacant}
-                        };
-
-                        var doc = database.CreateDocument();
+                    var doc = database.CreateDocument();
+                    try {
                         doc.PutProperties(props);
+                    } catch(CouchbaseLiteException e) {
+                        Log.E(TAG, "Failed to create doc", e);
+                        return false;
                     }
+                }
 
-                    return true;
-                });
+                return true;
+            });
 
-                // Test
-                var stopwatch = Stopwatch.StartNew();
-
+            Assert.IsTrue(success);
+            TimeBlock(GetNumberOfDocuments(TEST_NAME).ToString(), () =>
+            {
+                view = database.GetView("vacant");
                 view.UpdateIndex();
-
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
             });
         }
 
         [Test]
         public void Test13QueryView()
         {
-            RunTest("Test13QueryView", (parameters) =>
+            const string TEST_NAME = "test13";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
+
+            var view = database.GetView("vacant");
+            view.SetMapReduce((doc, emit) =>
             {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
+                var vacant = doc.GetCast<bool>("vacant");
+                var name = doc.GetCast<string>("name");
+                if(vacant && name != null) {
+                    emit(name, vacant);
+                }
+            }, BuiltinReduceFunctions.Sum, "1.0.0");
 
-                // Prepare
-                var view = database.GetView("vacant");
+            var success = database.RunInTransaction(() =>
+            {
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    var name = String.Format("{0}{1}", "n", i);
+                    var vacant = (i % 2) == 0;
+                    var props = new Dictionary<string, object> {
+                        { "name", name },
+                        { "apt", i },
+                        { "phone", 408100000 + i },
+                        { "vacant", vacant }
+                    };
 
-                view.SetMapReduce((document, emit) =>
-                {
-                    var vacant = (Boolean)document["vacant"];
-                    var name = (String)document["name"];
-                    if (vacant && name != null)
-                    {
-                        emit(name, vacant);
-                    }
-                }, BuiltinReduceFunctions.Sum, "1.0");
-
-                database.RunInTransaction(() =>
-                {
-                    for (var i = 0; i < numDocs; i++)
-                    {
-                        var name = String.Format("n{0}", i);
-                        var vacant = ((i + 2) % 2) == 0;
-                        var props = new Dictionary<string, object>()
-                        {
-                            {"name", name},
-                            {"apt", i},
-                            {"phone", 408100000 + i},
-                            {"vacant", vacant}
-                        };
-
-                        var doc = database.CreateDocument();
+                    var doc = database.CreateDocument();
+                    try {
                         doc.PutProperties(props);
+                    } catch(CouchbaseLiteException e) {
+                        Log.E(TAG, "Failed to create doc", e);
+                        return false;
                     }
-
-                    return true;
-                });
-
-                // Test
-                var stopwatch = Stopwatch.StartNew();
-
-                var query = database.GetView("vacant").CreateQuery();
-                query.Descending = false;
-                query.MapOnly = true;
-                var rows = query.Run();
-
-                foreach(var row in rows)
-                {
-                    var key = (string)row.Key;
-                    var value = (Boolean)row.Value;
-
-                    Assert.IsNotNull(key);
-                    Assert.IsTrue(value == true || value == false);
                 }
 
-                stopwatch.Stop();
+                return true;
+            });
 
-                return stopwatch.ElapsedMilliseconds;
+            Assert.IsTrue(success);
+            view.UpdateIndex();
+
+            TimeBlock(GetNumberOfDocuments(TEST_NAME).ToString(), () =>
+            {
+                var query = view.CreateQuery();
+                query.Descending = false;
+                query.MapOnly = true;
+                foreach(var row in query.Run()) {
+                    Assert.IsNotNull(row.Key);
+                    Assert.IsNotNull(row.Value);
+                }
             });
         }
 
         [Test]
         public void Test14ReduceView()
         {
-            RunTest("Test14ReduceView", (parameters) =>
+            const string TEST_NAME = "test14";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
+
+            var view = database.GetView("vacant");
+            view.SetMapReduce((doc, emit) =>
             {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
+                var vacant = doc.GetCast<bool>("vacant");
+                var name = doc.GetCast<string>("name");
+                if(vacant && name != null) {
+                    emit(name, vacant);
+                }
+            }, BuiltinReduceFunctions.Sum, "1.0.0");
 
-                var view = database.GetView("vacant");
+            var success = database.RunInTransaction(() =>
+            {
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    var name = String.Format("{0}{1}", "n", i);
+                    var vacant = (i % 2) == 0;
+                    var props = new Dictionary<string, object> {
+                        { "name", name },
+                        { "apt", i },
+                        { "phone", 408100000 + i },
+                        { "vacant", vacant }
+                    };
 
-                view.SetMapReduce((document, emit) =>
-                {
-                    var vacant = (Boolean)document["vacant"];
-                    var name = (String)document["name"];
-                    if (vacant && name != null)
-                    {
-                        emit(name, vacant);
+                    var doc = database.CreateDocument();
+                    try {
+                        doc.PutProperties(props);
+                    } catch(CouchbaseLiteException e) {
+                        Log.E(TAG, "Failed to create doc", e);
+                        return false;
                     }
-                }, BuiltinReduceFunctions.Sum, "1.0");
+                }
 
-                database.RunInTransaction(() =>
-                {
-                    for (var i = 0; i < numDocs; i++)
-                    {
-                        var name = String.Format("n{0}", i);
-                        var vacant = ((i + 2) % 2) == 0;
-                        var props = new Dictionary<string, object>()
-                        {
-                            {"name", name},
-                            {"apt", i},
-                            {"phone", 408100000 + i},
-                            {"vacant", vacant}
+                return true;
+            });
+
+            Assert.IsTrue(success);
+            view.UpdateIndex();
+            TimeBlock(GetNumberOfDocuments(TEST_NAME).ToString(), () =>
+            {
+                var query = view.CreateQuery();
+                query.MapOnly = false;
+                var rowEnum = query.Run();
+                var row = default(QueryRow);
+                Assert.DoesNotThrow(() => row =rowEnum.ElementAt(0));
+                Assert.IsNotNull(row.Value);
+            });
+        }
+
+        [Test]
+        public void Test15AllDocsQuery()
+        {
+            const string TEST_NAME = "test15";
+            if (!PerformanceTestsEnabled) {
+                return;
+            }
+            var content = CreateContent(GetSizeOfDocument(TEST_NAME));
+
+            var success = database.RunInTransaction(() =>
+            {
+                for(int i = 0; i < GetNumberOfDocuments(TEST_NAME); i++) {
+                    try {
+                        var props = new Dictionary<string, object> {
+                            { "content", content }
                         };
-
                         var doc = database.CreateDocument();
                         doc.PutProperties(props);
+                    } catch(CouchbaseLiteException e) {
+                        Log.E("PerformanceTest", "Error when creating document", e);
+                        return false;
                     }
+                }
 
-                    return true;
-                });
-
-                var stopwatch = Stopwatch.StartNew();
-
-                var query = database.GetView("vacant").CreateQuery();
-                query.MapOnly = false;
-                var rows = query.Run();
-
-                var row = rows.ElementAt(0);
-                Assert.IsNotNull(row);
-
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
+                return true;
             });
-        }
 
-        [Test]
-        public void Test28KeySizes()
-        {
-            RunTest("Test28KeySizes", (parameters) =>
+            Assert.IsTrue(success, "Failed to create documents");
+            TimeBlock(String.Format("{0}, {1}", GetNumberOfDocuments(TEST_NAME), GetSizeOfDocument(TEST_NAME)), () =>
             {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
-
-                var sb = new StringBuilder();
-                for (var i = 0; i < docSize; i++)
-                {
-                    sb.Append("1");
-                }
-
-                //Start measurement, including create docs, define view, and do query
-                var stopwatch = Stopwatch.StartNew();
-                database.RunInTransaction(() => 
-                {
-                    for (var i = 0; i < numDocs; i++)
-                    {
-                        var vacant = ((i + 2) % 2 == 0);
-                        var props = new Dictionary<string, object>()
-                        {
-                            {"name", sb.ToString()},
-                            {"apt", i},
-                            {"phone", 408100000 + i},
-                            {"vacant", vacant}
-                        };
-
-                        var doc = database.CreateDocument();
-                        var rev = doc.PutProperties(props);
-                        Assert.IsNotNull(rev);
-                    }
-                    return true;
-                });
-
-                var view = database.GetView("vacant");
-                view.SetMapReduce((document, emit) => 
-                {
-                    var vacant = (Boolean)document["vacant"];
-                    var name = (string)document["name"];
-                    if (vacant && !StringEx.IsNullOrWhiteSpace(name))
-                    {
-                        emit(name, vacant);
-                    }
-                }, BuiltinReduceFunctions.Sum, "1.0.0");
-
-                var query = database.GetView("vacant").CreateQuery();
-                query.Descending = false;
-                query.MapOnly = true;
-
-                var rows = query.Run();
-                foreach(var row in rows)
-                {
-                    var key = (string)row.Key;
-                    var value = (Boolean)row.Value;
-
-                    Assert.IsNotNull(key);
-                    Assert.IsTrue(value == true || value == false);
-                }
-
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
-            });
-        }
-
-        [Test]
-        public void Test29AllDocQuery()
-        {
-            RunTest("Test29AllDocQuery", (parameters) =>
-            {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
-
-                var sb = new StringBuilder();
-                for (var i = 0; i < docSize; i++)
-                {
-                    sb.Append("1");
-                }
-
-                database.RunInTransaction(() => 
-                {
-                    for (var i = 0; i < numDocs; i++)
-                    {
-                        var vacant = ((i + 2) % 2 == 0);
-                        var props = new Dictionary<string, object>()
-                        {
-                            {"name", sb.ToString()},
-                            {"apt", i},
-                            {"phone", 408100000 + i},
-                            {"vacant", vacant}
-                        };
-
-                        var doc = database.CreateDocument();
-                        var rev = doc.PutProperties(props);
-                        Assert.IsNotNull(rev);
-                    }
-                    return true;
-                });
-
-                var stopwatch = Stopwatch.StartNew();
-
                 var query = database.CreateAllDocumentsQuery();
-                query.AllDocsMode = AllDocsMode.IncludeDeleted;
-                var rows = query.Run();
-                foreach(var row in rows)
-                {
-                    var key = row.Key;
-                    var value = row.Value;
-                    Assert.IsNotNull(key);
-                    Assert.IsNotNull(value);
+                query.AllDocsMode = AllDocsMode.AllDocs;
+                foreach(var row in query.Run()) {
+                    Assert.IsNotNull(row.Document);
                 }
-
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
             });
         }
 
-        [Test]
-        public void Test30LiveQuery()
+        private int GetSizeOfDocument(string testName)
         {
-            RunTest("Test30LiveQuery", (parameters) =>
-            {
-                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
-                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
+            return Convert.ToInt32(Runtime.GetProperty(testName + ".sizeOfDocument"));
+        }
 
-                // Prepare document content
-                var sb = new StringBuilder();
-                for (var s = 0; s < docSize; s++)
-                {
-                    sb.Append("1");
-                }
-                var name = sb.ToString();
+        private int GetNumberOfDocuments(string testName)
+        {
+            return Convert.ToInt32(Runtime.GetProperty(testName + ".numberOfDocuments"));
+        }
 
-                var props = new Dictionary<string, object>();
-                props["name"] = name;
+        private int GetSizeOfAttachment(string testName)
+        {
+            return Convert.ToInt32(Runtime.GetProperty(testName + ".sizeOfAttachment"));
+        }
 
-                var doneSignal = new CountDownLatch(1);
+        private int GetNumberOfUpdates(string testName)
+        {
+            return Convert.ToInt32(Runtime.GetProperty(testName + ".numberOfUpdates"));
+        }
 
-                // Run a live query
-                var view = database.GetView("vu");
-                view.SetMap((document, emit) =>
-                {
-                    emit(document["sequence"], null);
-                }, "1");
+        private int GetNumberOfRounds(string testName)
+        {
+            return Convert.ToInt32(Runtime.GetProperty(testName + ".numberOfRounds"));
+        }
 
-                var liveQuery = view.CreateQuery().ToLiveQuery();
-                liveQuery.Changed += (sender, e) => 
-                {
-                    var rows = e.Rows;
-                    var count = rows.Count;
-                    if (count == numDocs)
-                    {
-                        doneSignal.CountDown();
-                    }
-                };
-                liveQuery.Start();
+        private void TimeBlock(string comment, Action block)
+        {
+            var sw = Stopwatch.StartNew();
+            block();
+            sw.Stop();
+            LogPerformanceStats(sw.ElapsedMilliseconds, comment);
+        }
 
-                var stopwatch = Stopwatch.StartNew();
+        private void LogPerformanceStats(long time, string comment)
+        {
+            Log.I(TAG, "PerformanceStats: {0} msec {1}", time, comment != null ? "(" + comment + ")" : String.Empty);
+        }
 
-                database.RunAsync((db) => 
-                {
-                    database.RunInTransaction(() =>
-                    {
-                        for (var i = 0; i < numDocs; i++) {
-                            var doc = database.CreateDocument();
-                            props["sequence"] = i;
-                            var rev = doc.PutProperties(props);
-                            Assert.IsNotNull(rev);
-                        }
-
-                        return true;
-                    });
-                });
-
-                var success = doneSignal.Await(TimeSpan.FromSeconds(300));
-                Assert.IsTrue(success);
-
-                stopwatch.Stop();
-
-                return stopwatch.ElapsedMilliseconds;
-            });
+        private string CreateContent(int size, char fill = 'a')
+        {
+            var chars = Enumerable.Repeat(fill, size).ToArray();
+            return new string(chars, 0, chars.Length);
         }
     }
 }

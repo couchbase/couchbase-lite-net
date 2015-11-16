@@ -136,7 +136,6 @@
     <EmbeddedResource Include="Assets\test.properties" />
     <EmbeddedResource Include="Assets\attachment.blob" />
     <EmbeddedResource Include="Assets\withattachments.cblite" />
-    <EmbeddedResource Include="Assets\performance-test.json" />
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
       <Link>Assets\android104.zip</Link>
     </EmbeddedResource>
@@ -151,6 +150,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
       <Link>Assets\noattachments.cblite</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
+      <Link>Assets\perftest.properties</Link>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

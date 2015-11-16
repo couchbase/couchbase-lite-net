@@ -52,14 +52,13 @@
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net35\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
+      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
@@ -82,11 +81,11 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net35.pinvoke_packaged_sqlcipher.anycpu.csproj">
-      <Project>{084f8a7a-fd6d-4f7d-8a13-de9b1d71efe4}</Project>
+      <Project>{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}</Project>
       <Name>platform.net35.pinvoke_packaged_sqlcipher.anycpu</Name>
     </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_net35.csproj">
-      <Project>{237dd22c-0bf1-469a-9bf8-c90d2cde6a5d}</Project>
+      <Project>{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}</Project>
       <Name>ugly_net35</Name>
     </ProjectReference>
     <ProjectReference Include="vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">

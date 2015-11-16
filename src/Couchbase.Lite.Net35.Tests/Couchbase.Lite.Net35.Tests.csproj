@@ -65,9 +65,6 @@
     <EmbeddedResource Include="Assets\local-test.properties">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.local-test.properties</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Assets\performance-test.json">
-      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.performance-test.json</LogicalName>
-    </EmbeddedResource>
     <EmbeddedResource Include="Assets\test.properties">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.test.properties</LogicalName>
     </EmbeddedResource>
@@ -93,6 +90,9 @@
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
       <Link>Assets\noattachments.cblite</Link>
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.noattachments.cblite</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
+      <Link>Assets\perftest.properties</Link>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

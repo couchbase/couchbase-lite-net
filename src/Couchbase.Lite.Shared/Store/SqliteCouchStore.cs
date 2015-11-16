@@ -991,6 +991,7 @@ namespace Couchbase.Lite.Store
             try {
                 hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
             } catch(EntryPointNotFoundException) {
+                // Android omits the compileoption_used from its system SQLite
                 hasRealEncryption = false;
             }
 
