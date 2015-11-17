@@ -159,7 +159,7 @@ namespace Couchbase.Lite.Store
 
         static ForestDBCouchStore()
         {
-            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (f636ef8638c71a62f5567a6bd884f373f83f4d0d))");
+            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (c6233eaff2f49aab67e3d3f0a863e9b0cfafd5f9))");
         }
 
         public ForestDBCouchStore()
