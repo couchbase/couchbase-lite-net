@@ -73,7 +73,7 @@ namespace Couchbase.Lite.Internal
                     if(Finished != null) {
                         Finished(this, null);
                     }
-                });
+                }, TaskScheduler.Default);
             }
         }
 
