@@ -162,6 +162,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
       <Link>Resources\perftest.properties</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.perftest.properties</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

@@ -80,6 +80,7 @@ namespace Couchbase.Lite
         [TestFixtureSetUp]
         protected void InitConfig()
         {
+            Log.SetLogger(null);
             var systemProperties = Runtime.Properties;
             InputStream mainProperties = GetAsset("perftest.properties");
             if (mainProperties != null)
@@ -98,6 +99,12 @@ namespace Couchbase.Lite
                 Log.W(TAG, "Error trying to read from local-perftest.properties, does this file exist?");
                 throw;
             }
+        }
+
+        [TestFixtureTearDown]
+        public void FixtureTearDown()
+        {
+            Log.SetDefaultLoggerWithLevel(SourceLevels.All);
         }
 
         [Test]
@@ -778,7 +785,7 @@ namespace Couchbase.Lite
 
         private void LogPerformanceStats(long time, string comment)
         {
-            Log.I(TAG, "PerformanceStats: {0} msec {1}", time, comment != null ? "(" + comment + ")" : String.Empty);
+            Console.Out.WriteLine("PerformanceStats: {0} msec {1}", time, comment != null ? "(" + comment + ")" : String.Empty);
         }
 
         private string CreateContent(int size, char fill = 'a')
