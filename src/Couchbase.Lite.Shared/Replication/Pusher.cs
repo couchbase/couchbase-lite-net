@@ -219,6 +219,10 @@ namespace Couchbase.Lite.Replicator
                     }
                     LastSequence = maxCompleted.ToString();
                 }
+
+                if (_pendingSequences.Count == 0) {
+                    FireTrigger(Continuous ? ReplicationTrigger.WaitingForChanges : ReplicationTrigger.StopGraceful);
+                }
             }
         }
 
@@ -237,6 +241,7 @@ namespace Couchbase.Lite.Replicator
             var bulkDocsBody = new Dictionary<string, object>();
             bulkDocsBody["docs"] = docsToSend;
             bulkDocsBody["new_edits"] = false;
+            SafeAddToChangesCount(numDocsToSend);
 
             SendAsyncRequest(HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, e) => {
                 if (e == null)
@@ -571,7 +576,6 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            SafeAddToChangesCount(inbox.Count);
             // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
             // <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
             var diffs = new Dictionary<String, IList<String>>();
@@ -654,6 +658,10 @@ namespace Couchbase.Lite.Replicator
                                 var history = localDb.GetRevisionHistory(populatedRev, possibleAncestors);
                                 properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
                                 populatedRev.SetProperties(properties);
+                                if(properties.GetCast<bool>("_removed")) {
+                                    RemovePending(rev);
+                                    continue;
+                                }
 
                                 // Strip any attachments already known to the target db:
                                 if (properties.ContainsKey("_attachments")) {

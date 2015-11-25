@@ -72,9 +72,9 @@ namespace Couchbase.Lite.Tests
             }
         }
 
-        public virtual RemoteDatabase CreateDatabase(string name)
+        public virtual RemoteDatabase CreateDatabase(string name, string user = "jim", string password = "borden")
         {
-            var retVal = new RemoteDatabase(this, name, "jim", "borden");
+            var retVal = new RemoteDatabase(this, name, user, password);
             retVal.Create();
             return retVal;
         }

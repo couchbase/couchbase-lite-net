@@ -727,6 +727,11 @@ namespace Couchbase.Lite
                 }
             }
 
+            if (LocalDatabase == null) {
+                Log.D(TAG, "LocalDatabase is null, so ruling Replication as stopped.  Returning empty pending ID set");
+                return new HashSet<string>();
+            }
+
             var revs = LocalDatabase.UnpushedRevisionsSince(lastSequence, LocalDatabase.GetFilter(Filter), FilterParams);
             if (revs != null) {
                 _pendingDocumentIDs = new HashSet<string>(revs.GetAllDocIds());
@@ -734,7 +739,7 @@ namespace Couchbase.Lite
             }
 
             Log.W(TAG, "Error getting unpushed revisions");
-            return null;
+            return new HashSet<string>();
         }
 
         /// <summary>

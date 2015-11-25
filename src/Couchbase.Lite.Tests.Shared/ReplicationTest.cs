@@ -2646,5 +2646,80 @@ namespace Couchbase.Lite
             }
         }
 
+        [Test]
+        public void TestRemovedRevision()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+                
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var doc = database.GetDocument("doc1");
+                var unsaved = doc.CreateRevision();
+                unsaved.SetUserProperties(new Dictionary<string, object> {
+                    { "_removed", true }
+                });
+
+                Assert.DoesNotThrow(() => unsaved.Save());
+                 
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Start();
+
+                Assert.IsTrue(pusher.IsDocumentPending(doc));
+                RunReplication(pusher);
+                Assert.IsNull(pusher.LastError);
+                Assert.AreEqual(0, pusher.ChangesCount);
+                Assert.AreEqual(0, pusher.CompletedChangesCount);
+                Assert.IsFalse(pusher.IsDocumentPending(doc));
+            }
+        }
+
+        [Test]
+        public void TestRemovedChangesFeed()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName(), "test_user", "1234")) {
+                
+                var doc = database.GetDocument("channel_walker");
+                doc.PutProperties(new Dictionary<string, object> {
+                    { "foo", "bar" },
+                    { "channels", new List<object> { "unit_test" } }
+                });
+
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+
+                doc.Update(rev =>
+                {
+                    var props = rev.UserProperties;
+                    props["channels"] = new List<object> { "no_mans_land" };
+                    props.Remove("foo");
+                    rev.SetUserProperties(props);
+                    return true;
+                });
+
+                pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+
+                database.Close();
+                database = EnsureEmptyDatabase(database.Name);
+
+                remoteDb.DisableGuestAccess();
+                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
+                puller.Authenticator = new BasicAuthenticator("test_user", "1234");
+                RunReplication(puller);
+                Assert.IsNull(puller.LastError);
+                Assert.AreEqual(1, database.DocumentCount);
+                Assert.DoesNotThrow(() => doc = database.GetExistingDocument("channel_walker"));
+                Assert.IsTrue(doc.Properties.GetCast<bool>("_removed"));
+            }
+        }
     }
 }

@@ -75,7 +75,8 @@ namespace Couchbase.Lite.Tests
             putRequest.Content = new StringContent(@"{""server"":""walrus:"",
                  ""users"": {
                     ""GUEST"": {""disabled"": false, ""admin_channels"": [""*""]},
-                    ""jim"" : { ""password"": ""borden"", ""admin_channels"": [""*""]}
+                    ""jim"" : { ""password"": ""borden"", ""admin_channels"": [""*""]},
+                    ""test_user"" : { ""password"": ""1234"", ""admin_channels"": [""unit_test""]}
                   },
                  ""facebook"": {
                     ""register"": true
@@ -93,8 +94,9 @@ namespace Couchbase.Lite.Tests
                     Delete().ContinueWith(t => Create()).Wait();
                     return;
                 }
-            } catch(WebException ex) {
-                if (ex.Status == WebExceptionStatus.ProtocolError) {
+            } catch(AggregateException e) {
+                var ex = e.InnerException as WebException;
+                if (ex != null && ex.Status == WebExceptionStatus.ProtocolError) {
                     var response = ex.Response as HttpWebResponse;
                     if (response != null) {
                         Assert.AreEqual(HttpStatusCode.PreconditionFailed, response.StatusCode);
@@ -104,7 +106,7 @@ namespace Couchbase.Lite.Tests
                         Assert.Fail("Error from remote: {0}", response.StatusCode);
                     }
                 } else {
-                    Assert.Fail("Error from remote: {0}", ex);
+                    Assert.Fail("Error from remote: {0}", e);
                 }
             }
 
