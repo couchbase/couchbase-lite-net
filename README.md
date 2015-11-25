@@ -1,6 +1,6 @@
 [![Stories in Ready](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=ready&title=Scheduled)](https://waffle.io/couchbase/couchbase-lite-net)
 [![Stories in Progress](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=in%20progress&title=In%20Progress)](https://waffle.io/couchbase/couchbase-lite-net)
-Couchbase Lite for .NET
+Couchbase Lite for .NET [![GitHub release](https://img.shields.io/github/release/couchbase/couchbase-lite-net.svg?style=plastic)]()
 ==================
 
 Couchbase Lite is a lightweight embedded NoSQL database that has built-in sync to larger backend structures, such as Couchbase Server.
@@ -42,6 +42,8 @@ The solution files ending in **VS2013** are for use in Visual Studio, while the 
 * UnityApple - Unity iOS and OS X Standalone
 
 Note that you must have a Xamarin paid license to build for iOS or Android.  Furthermore, to build any of the Unity projects you must supply the UnityEngine.dll file to the project.  If your Unity install is in the default location, then the project will copy it as part of the build.  Otherwise, it needs to go in the src/Couchbase.Lite.Unity/vendor/Unity folder.  If you can't build the project then file an issue here.
+
+ForestDB requires native components to be built for each platform you want to target.  Those need to be put in [this folder](src/Couchbase.Lite.Shared/vendor/cbforest/prebuilt).  You can either download the binaries from a GitHub release page (starting with 1.2) or build them yourself.  Building instructions can be found [here](https://github.com/couchbaselabs/cbforest/blob/master/CSharp/README.md).
 
 ## Other Notes
 
