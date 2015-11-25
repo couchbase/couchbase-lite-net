@@ -62,6 +62,4 @@ The iOS and Android unit tests require a custom test runner so to run them you m
 * [Couchbase Connect](https://github.com/FireflyLogic/couchbase-connect-14)
 	* Advanced example
 	
-## License
-
-Apache License 2.0
+[![GitHub license](https://img.shields.io/github/license/couchbase/couchbase-lite-net.svg?style=plastic)]()
