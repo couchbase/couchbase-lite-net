@@ -2002,6 +2002,7 @@ namespace Couchbase.Lite
             }
 
             #if !NOSQLITE
+            #if FORESTDB
             var secondaryClass = "Couchbase.Lite.Store.ForestDBCouchStore";
             if(className == secondaryClass) {
                 secondaryClass = "Couchbase.Lite.Store.SqliteCouchStore";
@@ -2010,8 +2011,11 @@ namespace Couchbase.Lite
             var secondaryStorage = Type.GetType(secondaryClass, false, true);
             Storage = (ICouchStore)Activator.CreateInstance(secondaryStorage);
             if(!Storage.DatabaseExistsIn(DbDirectory)) {
+            #endif
                 Storage = (ICouchStore)Activator.CreateInstance(primaryStorage);
+            #if FORESTDB
             }
+            #endif
             #else
             Storage = new ForestDBCouchStore();
             #endif

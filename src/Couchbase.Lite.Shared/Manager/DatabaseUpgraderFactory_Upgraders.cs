@@ -772,7 +772,7 @@ namespace Couchbase.Lite.Db
                         var newAttachmentsPath = Path.Combine(newPath, "attachments");
                         Directory.CreateDirectory(newAttachmentsPath);
 
-                        foreach (var att in Directory.EnumerateFiles(oldAttachmentsPath)) {
+                        foreach (var att in Directory.GetFiles(oldAttachmentsPath)) {
                             File.Copy(att, Path.Combine(newAttachmentsPath, Path.GetFileName(att))); 
                         }
                     }
@@ -789,7 +789,7 @@ namespace Couchbase.Lite.Db
 
             public void Backout()
             {
-                var newPath = Path.Combine(Path.GetDirectoryName(_path) + _db.Name + SUFFIX);
+                var newPath = Path.Combine(Path.GetDirectoryName(_path), _db.Name + SUFFIX);
                 Directory.Delete(newPath, true);
             }
 
