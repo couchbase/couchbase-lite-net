@@ -36,10 +36,6 @@ using System.Reflection;
 using Couchbase.Lite.Listener.Tcp;
 using System.IO;
 
-#if NET_3_5
-using Rackspace.Threading;
-#endif
-
 namespace Couchbase.Lite
 {
     public class RouterTests : LiteTestCase

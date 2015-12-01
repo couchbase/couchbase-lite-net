@@ -77,10 +77,6 @@
       <Project>{DBD30658-44C1-4903-8763-8E23FB4ADD9E}</Project>
       <Name>Couchbase.Lite.Listener.Unity</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Unity\vendor\JSON.NET\Src\Newtonsoft.Json\Newtonsoft.Json.Net35.csproj">
-      <Project>{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}</Project>
-      <Name>Newtonsoft.Json.Net35</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />

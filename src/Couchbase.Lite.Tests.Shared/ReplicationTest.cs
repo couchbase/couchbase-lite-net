@@ -165,6 +165,20 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestExpiredSession()
+        {
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.DisableGuestAccess();
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull.SetCookie("SyncGatewaySession", "b91b2aa1f87fa804979fcd2af01dd5e7e68630bb", "/", DateTime.Now, false, true);
+                RunReplication(pull);
+                var le = pull.LastError as HttpResponseException;
+                Assert.IsNotNull(le);
+                Assert.AreEqual(HttpStatusCode.Unauthorized, le.StatusCode);
+            }
+        }
+
+        [Test]
         public void TestPullerChangedEvent()
         {
             if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))

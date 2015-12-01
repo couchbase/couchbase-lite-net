@@ -78,26 +78,34 @@ namespace Couchbase.Lite.Tests
 
             try {
                 var putResponse = _httpClient.SendAsync(putRequest).Result;
-                Assert.AreEqual(HttpStatusCode.Created, putResponse.StatusCode);
-            } catch(WebException ex) {
-                if (ex.Status == WebExceptionStatus.ProtocolError) {
+                if(putResponse.StatusCode != HttpStatusCode.PreconditionFailed) {
+                    Assert.AreEqual(HttpStatusCode.Created, putResponse.StatusCode);
+                } else {
+                    Delete().ContinueWith(t => Create()).Wait();
+                    return;
+                }
+            } catch(AggregateException e) {
+                var ex = e.InnerException as WebException;
+                if (ex != null && ex.Status == WebExceptionStatus.ProtocolError) {
                     var response = ex.Response as HttpWebResponse;
                     if (response != null) {
                         Assert.AreEqual(HttpStatusCode.PreconditionFailed, response.StatusCode);
+                        Delete().ContinueWith(t => Create()).Wait();
+                        return;
                     } else {
                         Assert.Fail("Error from remote: {0}", response.StatusCode);
                     }
                 } else {
-                    Assert.Fail("Error from remote: {0}", ex);
+                    Assert.Fail("Error from remote: {0}", e);
                 }
             }
 
             Thread.Sleep(500);
         }
 
-        public void Delete()
+        public Task Delete()
         {
-            Task.Delay(1000).ContinueWith(t =>
+            return Task.Delay(1000).ContinueWith(t =>
             {
                 var server = _adminRemoteUri;
                 var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, server);

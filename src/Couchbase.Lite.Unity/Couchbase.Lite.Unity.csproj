@@ -99,10 +99,6 @@
       <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
       <Name>Stateless</Name>
     </ProjectReference>
-    <ProjectReference Include="vendor\JSON.NET\Src\Newtonsoft.Json\Newtonsoft.Json.Net35.csproj">
-      <Project>{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}</Project>
-      <Name>Newtonsoft.Json.Net35</Name>
-    </ProjectReference>
     <ProjectReference Include="vendor\SQLitePCL\platform.unity.standalone.csproj">
       <Project>{0E3578A2-D15E-4183-8F0F-638EC8D437B8}</Project>
       <Name>platform.unity.standalone</Name>
@@ -119,6 +115,10 @@
     <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Unity.csproj">
       <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
       <Name>System.Threading.Tasks.Unity</Name>
+    </ProjectReference>
+    <ProjectReference Include="vendor\JSON.NET\Src\Newtonsoft.Json\Newtonsoft.Json.Net20.csproj">
+      <Project>{A9AE40FF-1A21-414A-9FE7-3BE13644CC6D}</Project>
+      <Name>Newtonsoft.Json.Net20</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
