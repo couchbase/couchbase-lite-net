@@ -33,9 +33,6 @@ public class TestScript : MonoBehaviour {
 	void Start() {
 		Log.SetLogger(new UnityLogger());
 
-		var path = Application.persistentDataPath;
-		Log.D (TAG, "Database path: " + path);
-
 		_manager = new Manager (new DirectoryInfo (Application.persistentDataPath), new ManagerOptions { CallbackScheduler = UnityMainThreadScheduler.TaskScheduler } );
 		_db = _manager.GetDatabase ("unity_test");
 
@@ -106,7 +103,7 @@ public class TestScript : MonoBehaviour {
 		_pusher.Start ();
 		_puller.Start ();
 
-		Log.D (TAG, "Started replication with " + replicationUrl);
+		Log.I (TAG, "Started replication with " + replicationUrl);
 	}
 	
 	void ProcessRows(QueryEnumerator rows)
