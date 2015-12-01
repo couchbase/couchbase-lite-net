@@ -80,6 +80,7 @@
     <Compile Include="..\Couchbase.Lite.Net35\StringEx.cs">
       <Link>StringEx.cs</Link>
     </Compile>
+    <Compile Include="InvalidDataException.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="CopyUnityDll" BeforeTargets="PrepareForBuild">
