@@ -101,7 +101,11 @@ namespace Couchbase.Lite
             RequestTimeout = TimeSpan.FromSeconds(90);
 
             #if __UNITY__
-            CallbackScheduler = Couchbase.Lite.Unity.UnityMainThreadScheduler.TaskScheduler;
+            CallbackScheduler = Couchbase.Lite.Unity.UnityEditorThreadScheduler.TaskScheduler;
+            if(CallbackScheduler == null)
+            {
+                CallbackScheduler = Couchbase.Lite.Unity.UnityMainThreadScheduler.TaskScheduler;
+            }
             #else
             TaskScheduler scheduler = null;
             try {

@@ -81,6 +81,7 @@
       <Link>StringEx.cs</Link>
     </Compile>
     <Compile Include="InvalidDataException.cs" />
+    <Compile Include="UnityEditorThreadScheduler.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="CopyUnityDll" BeforeTargets="PrepareForBuild">
