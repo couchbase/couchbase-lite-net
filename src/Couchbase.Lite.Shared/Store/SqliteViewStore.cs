@@ -804,17 +804,17 @@ namespace Couchbase.Lite.Store
                                             deleted = false;
                                             sequence = oldSequence;
                                             json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
+                                        }
 
-                                            if (!deleted) {
-                                                // Conflict revisions:
-                                                if (conflicts == null) {
-                                                    conflicts = new List<string>();
-                                                }
+                                        if (!deleted) {
+                                            // Conflict revisions:
+                                            if (conflicts == null) {
+                                                conflicts = new List<string>();
+                                            }
 
-                                                conflicts.Add(oldRevId);
-                                                while (c2.MoveToNext()) {
-                                                    conflicts.Add(c2.GetString(0));
-                                                }
+                                            conflicts.Add(oldRevId);
+                                            while (c2.MoveToNext()) {
+                                                conflicts.Add(c2.GetString(0));
                                             }
                                         }
                                     }

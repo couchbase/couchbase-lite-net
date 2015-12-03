@@ -2268,15 +2268,16 @@ namespace Couchbase.Lite
             if (previousRevisionId != null) {
                 var prevIDUTF8 = Encoding.UTF8.GetBytes(previousRevisionId);
                 length = prevIDUTF8.Length;
+                if (length > unchecked((0xFF))) {
+                    return null;
+                }
+
+                var lengthByte = unchecked((byte)(length & unchecked((0xFF))));
+                md5Digest.Update(lengthByte);
+                md5Digest.Update(prevIDUTF8);
             }
 
-            if (length > unchecked((0xFF))) {
-                return null;
-            }
 
-            var lengthByte = unchecked((byte)(length & unchecked((0xFF))));
-            var lengthBytes = new[] { lengthByte };
-            md5Digest.Update(lengthBytes);
 
             var isDeleted = deleted ? 1 : 0;
             var deletedByte = new[] { unchecked((byte)isDeleted) };

@@ -57,6 +57,8 @@ using Couchbase.Lite.Tests;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections;
+using CBForest;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite
 {
@@ -1728,7 +1730,7 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        public void TestMapConflicts()
+        public unsafe void TestMapConflicts()
         {
             var view = database.GetView("vu");
             Assert.IsNotNull(view);
@@ -1776,7 +1778,7 @@ namespace Couchbase.Lite
             row = rows.ElementAt(0);
             Assert.AreEqual(doc.Id, row.Key);
             conflicts = new List<string> { rev2a.Id, rev2b.Id };
-            CollectionAssert.AreEqual(conflicts, row.ValueAs<IEnumerable<string>>());
+            CollectionAssert.AreEquivalent(conflicts, row.ValueAs<IEnumerable<string>>());
         }
 
         private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)
