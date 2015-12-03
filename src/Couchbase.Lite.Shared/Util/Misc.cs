@@ -67,7 +67,16 @@ namespace Couchbase.Lite
         
         public static string CreateGUID()
         {
-            return Guid.NewGuid().ToString().ToLower();
+            var sb = new StringBuilder(Convert.ToBase64String(Guid.NewGuid().ToByteArray()).TrimEnd('='));
+           
+            // URL-safe character set per RFC 4648 sec. 5:
+            sb.Replace('/', '_');
+            sb.Replace('+', '-');
+
+            // prefix a '-' to make it more clear where this string came from and prevent having a leading
+            // '_' character:
+            sb.Insert(0, '-');
+            return sb.ToString();
         }
 
         public static string HexSHA1Digest(IEnumerable<Byte> input)
