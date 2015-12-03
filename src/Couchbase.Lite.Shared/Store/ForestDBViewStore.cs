@@ -403,6 +403,24 @@ namespace Couchbase.Lite.Store
                         var rev = new RevisionInternal(next, true);
                         var keys = new List<object>();
                         var values = new List<string>();
+
+                        var conflicts = default(List<string>);
+                        foreach(var leaf in new CBForestHistoryEnumerator(next, true, false).Skip(1)) {
+                            if(leaf.IsDeleted) {
+                                break;
+                            }
+
+                            if(conflicts == null) {
+                                conflicts = new List<string>();
+                            }
+
+                            conflicts.Add((string)leaf.SelectedRev.revID);
+                        }
+
+                        if(conflicts != null) {
+                            rev.SetPropertyForKey("_conflicts", conflicts);
+                        }
+
                         try {
                             viewDelegate.Map(rev.GetProperties(), (key, value) =>
                             {

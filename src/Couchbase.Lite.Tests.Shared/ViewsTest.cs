@@ -56,6 +56,7 @@ using Couchbase.Lite.Views;
 using Couchbase.Lite.Tests;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Collections;
 
 namespace Couchbase.Lite
 {
@@ -1724,6 +1725,58 @@ namespace Couchbase.Lite
             Sleep(5000);
             Assert.AreEqual(60, view.TotalRows);
             Assert.AreEqual(60, view.LastSequenceIndexed);
+        }
+
+        [Test]
+        public void TestMapConflicts()
+        {
+            var view = database.GetView("vu");
+            Assert.IsNotNull(view);
+            view.SetMap((d, emit) =>
+                emit(d.Get("_id"), d.Get("_conflicts")), "1");
+
+            var doc = CreateDocumentWithProperties(database, new Dictionary<string, object> { { "foo", "bar" } });
+            var rev1 = doc.CurrentRevision;
+            var properties = rev1.Properties;
+            properties["tag"] = "1";
+            var rev2a = default(SavedRevision);
+            Assert.DoesNotThrow(() => rev2a = doc.PutProperties(properties));
+
+            // No conflicts:
+            var query = view.CreateQuery();
+            var rows = query.Run();
+            Assert.AreEqual(1, rows.Count);
+            var row = rows.ElementAt(0);
+            Assert.AreEqual(doc.Id, row.Key);
+            Assert.IsNull(row.Value);
+
+            // Create a conflict revision:
+            properties["tag"] = "2";
+            var newRev = rev1.CreateRevision();
+            newRev.SetProperties(properties);
+            var rev2b = default(SavedRevision);
+            Assert.DoesNotThrow(() => rev2b = newRev.Save(true));
+
+            rows = query.Run();
+            Assert.AreEqual(1, rows.Count);
+            row = rows.ElementAt(0);
+            Assert.AreEqual(doc.Id, row.Key);
+            var conflicts = new List<string> { rev2a.Id };
+            CollectionAssert.AreEqual(conflicts, row.ValueAs<IEnumerable<string>>());
+
+            // Create another conflict revision:
+            properties["tag"] = "3";
+            newRev = rev1.CreateRevision();
+            newRev.SetProperties(properties);
+            var rev2c = default(SavedRevision);
+            Assert.DoesNotThrow(() => rev2c = newRev.Save(true));
+
+            rows = query.Run();
+            Assert.AreEqual(1, rows.Count);
+            row = rows.ElementAt(0);
+            Assert.AreEqual(doc.Id, row.Key);
+            conflicts = new List<string> { rev2a.Id, rev2b.Id };
+            CollectionAssert.AreEqual(conflicts, row.ValueAs<IEnumerable<string>>());
         }
 
         private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)

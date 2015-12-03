@@ -145,35 +145,7 @@ namespace Couchbase.Lite
         public object Value 
         { 
             get {
-                var value = _parsedValue;
-                if (value == null) {
-                    value = _value;
-                    var valueData = value as IEnumerable<byte>;
-                    if (valueData != null) {
-                        // _value may start out as unparsed Collatable data
-                        var storage = _storage;
-                        Debug.Assert(storage != null);
-                        if (storage.RowValueIsEntireDoc(valueData)) {
-                            // Value is a placeholder ("*") denoting that the map function emitted "doc" as
-                            // the value. So load the body of the revision now:
-                            if (_documentRevision != null) {
-                                value = _documentRevision.GetProperties();
-                            } else {
-                                Debug.Assert(SequenceNumber != 0);
-                                value = storage.DocumentProperties(SourceDocumentId, SequenceNumber);
-                                if (value == null) {
-                                    Log.W(TAG, "Couldn't load doc for row value");
-                                }
-                            }
-                        } else {
-                            value = storage.ParseRowValue<object>(valueData);
-                        }
-                    }
-
-                    _parsedValue = value;
-                }
-
-                return value;
+                return ValueAs<object>();
             }
         }
         private object _value;
@@ -251,6 +223,39 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The sequence number.</value>
         public Int64 SequenceNumber { get; private set; }
+
+        public T ValueAs<T>()
+        {
+            var value = _parsedValue;
+            if (value == null || !(value is T)) {
+                value = _value;
+                var valueData = value as IEnumerable<byte>;
+                if (valueData != null) {
+                    // _value may start out as unparsed Collatable data
+                    var storage = _storage;
+                    Debug.Assert(storage != null);
+                    if (storage.RowValueIsEntireDoc(valueData)) {
+                        // Value is a placeholder ("*") denoting that the map function emitted "doc" as
+                        // the value. So load the body of the revision now:
+                        if (_documentRevision != null) {
+                            value = _documentRevision.GetProperties();
+                        } else {
+                            Debug.Assert(SequenceNumber != 0);
+                            value = storage.DocumentProperties(SourceDocumentId, SequenceNumber);
+                            if (value == null) {
+                                Log.W(TAG, "Couldn't load doc for row value");
+                            }
+                        }
+                    } else {
+                        value = storage.ParseRowValue<T>(valueData);
+                    }
+                }
+
+                _parsedValue = value;
+            }
+
+            return (T)value;
+        }
 
         /// <summary>
         /// Gets the conflicting <see cref="Couchbase.Lite.Revision"/>s of the associated <see cref="Couchbase.Lite.Document"/>. 

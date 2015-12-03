@@ -140,7 +140,6 @@ namespace Couchbase.Lite
 
         static Manager()
         {
-            Log.I(TAG, "Starting Manager version: " + VersionString);
             illegalCharactersPattern = new Regex(IllegalCharacters);
             mapper = new ObjectWriter();
             DefaultOptions = ManagerOptions.Default;
@@ -184,6 +183,8 @@ namespace Couchbase.Lite
 
             VersionString = String.Format("1.1.1 ({0})", gitVersion.TrimEnd());
             #endif
+
+            Log.I(TAG, "Starting Manager version: " + VersionString);
         }
 
         /// <summary>

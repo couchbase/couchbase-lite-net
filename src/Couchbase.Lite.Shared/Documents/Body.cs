@@ -248,6 +248,21 @@ namespace Couchbase.Lite
             return ExtensionMethods.TryCast<T>(valueObj, out val);
         }
 
+        /// <summary>
+        /// Sets the property for a given key.
+        /// </summary>
+        /// <param name="key">The key to set.</param>
+        /// <param name="value">The value to set.</param>
+        public void SetPropertyForKey(string key, object value)
+        {
+            IDictionary<string, object> theProperties = GetProperties();
+            if (theProperties == null) {
+                throw new InvalidDataException("Cannot parse body properties");
+            }
+
+            theProperties[key] = value;
+        }
+
         #endregion
 
         #region Private Methods
