@@ -770,7 +770,13 @@ namespace Couchbase.Lite.Store
                             string docType = checkDocTypes ? c.GetString(6) : null;
 
                             // Skip rows with the same doc_id -- these are losing conflicts.
+                            var conflicts = default(List<string>);
                             while ((keepGoing = c.MoveToNext()) && c.GetLong(0) == doc_id) {
+                                if(conflicts == null) {
+                                    conflicts = new List<string>();
+                                }
+                                
+                                conflicts.Add(c.GetString(3));
                             }
 
                             long realSequence = sequence; // because sequence may be changed, below
@@ -778,8 +784,7 @@ namespace Couchbase.Lite.Store
                                 // Find conflicts with documents from previous indexings.
                                 using (c2 = db.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs " +
                                   "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " +
-                                  "ORDER BY revID DESC " +
-                                  "LIMIT 1", doc_id, minLastSequence)) {
+                                  "ORDER BY revID DESC ", doc_id, minLastSequence)) {
 
                                     if (c2.MoveToNext()) {
                                         string oldRevId = c2.GetString(0);
@@ -799,7 +804,18 @@ namespace Couchbase.Lite.Store
                                             deleted = false;
                                             sequence = oldSequence;
                                             json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
+                                        }
 
+                                        if (!deleted) {
+                                            // Conflict revisions:
+                                            if (conflicts == null) {
+                                                conflicts = new List<string>();
+                                            }
+
+                                            conflicts.Add(oldRevId);
+                                            while (c2.MoveToNext()) {
+                                                conflicts.Add(c2.GetString(0));
+                                            }
                                         }
                                     }
                                 }
@@ -817,6 +833,9 @@ namespace Couchbase.Lite.Store
                             }
 
                             currentDoc["_local_seq"] = sequence;
+                            if(conflicts != null) {
+                                currentDoc["_conflicts"] = conflicts;
+                            }
 
                             // Call the user-defined map() to emit new key/value pairs from this revision:
                             int viewIndex = -1;

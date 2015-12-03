@@ -386,11 +386,11 @@ namespace Couchbase.Lite.Store
             var commit = false;
             try {
                 foreach(var next in enumerator) {
-                    var seq = next.SelectedRev.sequence;
+                    var seq = next.Sequence;
 
                     for (int i = 0; i < viewInfo.Length; i++) {
                         var info = viewInfo[i];
-                        if (seq <= (ulong)info.Item2) {
+                        if (seq <= info.Item2) {
                             continue; // This view has already indexed this sequence
                         }
 
@@ -403,6 +403,28 @@ namespace Couchbase.Lite.Store
                         var rev = new RevisionInternal(next, true);
                         var keys = new List<object>();
                         var values = new List<string>();
+
+                        var conflicts = default(List<string>);
+                        foreach(var leaf in new CBForestHistoryEnumerator(next, true, false)) {
+                            if(leaf.SelectedRev.revID.Equals(leaf.CurrentRevID)) {
+                                continue;
+                            }
+
+                            if(leaf.IsDeleted) {
+                                break;
+                            }
+
+                            if(conflicts == null) {
+                                conflicts = new List<string>();
+                            }
+
+                            conflicts.Add((string)leaf.SelectedRev.revID);
+                        }
+
+                        if(conflicts != null) {
+                            rev.SetPropertyForKey("_conflicts", conflicts);
+                        }
+
                         try {
                             viewDelegate.Map(rev.GetProperties(), (key, value) =>
                             {
@@ -444,7 +466,7 @@ namespace Couchbase.Lite.Store
             foreach (var next in enumerator) {
                 var docRevision = _dbStorage.GetDocument(next.DocID, null, options.IncludeDocs);
                 var key = Manager.GetObjectMapper().DeserializeKey<object>(next.Key);
-                var value = Manager.GetObjectMapper().ReadValue<object>(next.Value);
+                var value = (next.Value as IEnumerable<byte>).ToArray();
                 yield return new QueryRow(docRevision.GetDocId(), docRevision.GetSequence(), key, value, docRevision, this);
             }
         }
@@ -566,10 +588,7 @@ namespace Couchbase.Lite.Store
 
         public T ParseRowValue<T>(IEnumerable<byte> valueData)
         {
-            var c4key = Native.c4key_withBytes(valueData);
-            var retVal = Manager.GetObjectMapper().DeserializeKey<T>(Native.c4key_read(c4key));
-            Native.c4key_free(c4key);
-            return retVal;
+            return Manager.GetObjectMapper().ReadValue<T>(valueData);
         }
 
         public IDictionary<string, object> DocumentProperties(string docId, long sequenceNumber)

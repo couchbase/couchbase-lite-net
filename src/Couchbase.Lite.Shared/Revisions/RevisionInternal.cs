@@ -199,7 +199,7 @@ namespace Couchbase.Lite.Internal
             rev.SetMissing(_missing);
             return rev;
         }
-
+            
         internal object GetPropertyForKey(string key)
         {
             if (key == "_id") {
@@ -214,17 +214,17 @@ namespace Couchbase.Lite.Internal
                 return _deleted ? (object)true : null;
             }
 
-            var prop = GetProperties();
-            if (prop == null)
-            {
-                return null;
-            }
-            return GetProperties().Get(key);
+            return _body.GetPropertyForKey(key);
         }
 
         internal void SetProperties(IDictionary<string, object> properties)
         {
             _body = new Body(properties);
+        }
+
+        internal void SetPropertyForKey(string key, object value)
+        {
+            _body.SetPropertyForKey(key, value);
         }
 
         internal IEnumerable<Byte> GetJson()

@@ -50,7 +50,6 @@ using System.Text;
 
 namespace Couchbase.Lite 
 {
-
     internal class ObjectWriter 
     {
 
