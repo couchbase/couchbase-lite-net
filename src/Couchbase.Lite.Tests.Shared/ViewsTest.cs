@@ -1730,7 +1730,7 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        public unsafe void TestMapConflicts()
+        public void TestMapConflicts()
         {
             var view = database.GetView("vu");
             Assert.IsNotNull(view);

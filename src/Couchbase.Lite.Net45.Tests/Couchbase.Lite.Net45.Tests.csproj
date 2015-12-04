@@ -54,6 +54,7 @@
     <Reference Include="nunit.framework, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
       <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
     </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib" />
   </ItemGroup>
   <Choose>
     <When Condition="('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
@@ -90,6 +91,22 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
       <Link>Assets\perftest.properties</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartStars.mime">
+      <Link>Assets\MultipartStars.mime</Link>
+      <LogicalName>MultipartStars.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\Multipart1.mime">
+      <Link>Assets\Multipart1.mime</Link>
+      <LogicalName>Multipart1.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartBinary.mime">
+      <Link>Assets\MultipartBinary.mime</Link>
+      <LogicalName>MultipartBinary.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartGZipped.mime">
+      <Link>Assets\MultipartGZipped.mime</Link>
+      <LogicalName>MultipartGZipped.mime</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Choose>

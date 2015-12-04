@@ -180,6 +180,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonC4KeyWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonC4KeyReader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteServerVersion.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\CompressedContent.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

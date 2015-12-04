@@ -71,10 +71,11 @@ namespace Couchbase.Lite
         public static IEnumerable<byte> Compress(this IEnumerable<byte> data)
         {
             var array = data.ToArray();
+            using (var ms = new MemoryStream()) {
+                using (var gs = new GZipStream(ms, CompressionMode.Compress, false)) {
+                    gs.Write(array, 0, array.Length);
+                }
 
-            using (var ms = new MemoryStream())
-            using (var gs = new GZipStream(ms, CompressionMode.Compress, false)) {
-                gs.Write(array, 0, array.Length);
                 return ms.ToArray();
             }
         }

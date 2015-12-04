@@ -152,7 +152,7 @@ namespace Couchbase.Lite.Replicator
                                         _topReader.AppendData(buffer);
                                     }
                                 }
-                                _topReader.Finished();
+
                                 RespondWithResult(fullBody, error, response);
                             }
                             finally

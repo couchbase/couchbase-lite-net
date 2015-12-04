@@ -93,6 +93,14 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
+        private bool CanSendCompressedRequests
+        {
+            get {
+                return CheckServerCompatVersion("0.92");
+            }
+        }
+
+
         #endregion
 
         #region Constructors
@@ -149,6 +157,58 @@ namespace Couchbase.Lite.Replicator
         #endregion
 
         #region Private Methods
+
+        private MultipartWriter GetMultipartWriter(RevisionInternal rev, string boundary)
+        {
+            // Find all the attachments with "follows" instead of a body, and put 'em in a multipart stream.
+            // It's important to scan the _attachments entries in the same order in which they will appear
+            // in the JSON, because CouchDB expects the MIME bodies to appear in that same order
+            var bodyStream = default(MultipartWriter);
+            var attachments = rev.GetAttachments();
+            foreach (var a in attachments) {
+                var attachment = a.Value.AsDictionary<string, object>();
+                if (attachment != null && attachment.GetCast<bool>("follows")) {
+                    if (bodyStream == null) {
+                        // Create the HTTP multipart stream:
+                        bodyStream = new MultipartWriter("multipart/related", boundary);
+                        bodyStream.SetNextPartHeaders(new Dictionary<string, string> { 
+                            { "Content-Type", "application/json" } 
+                        });
+
+                        // Use canonical JSON encoder so that _attachments keys will be written in the
+                        // same order that this for loop is processing the attachments.
+                        var json = Manager.GetObjectMapper().WriteValueAsBytes(rev.GetProperties(), true);
+                        if (CanSendCompressedRequests) {
+                            bodyStream.AddGZippedData(json);
+                        } else {
+                            bodyStream.AddData(json);
+                        }
+                    }
+
+                    // Add attachment as another MIME part:
+                    var disposition = String.Format("attachment; filename={0}", Misc.QuoteString(a.Key));
+                    var contentType = attachment.GetCast<string>("type");
+                    var contentEncoding = attachment.GetCast<string>("encoding");
+                    bodyStream.SetNextPartHeaders(new NonNullDictionary<string, string> {
+                        { "Content-Disposition", disposition },
+                        { "Content-Type", contentType },
+                        { "Content-Encoding", contentEncoding }
+                    });
+
+                    var attachmentObj = default(AttachmentInternal);
+                    try {
+                        attachmentObj = LocalDatabase.AttachmentForDict(attachment, a.Key);
+                    } catch(CouchbaseLiteException) {
+                        return null;
+                    }
+
+                    bodyStream.AddStream(attachmentObj.ContentStream, attachmentObj.Length);
+                }
+            }
+
+            return bodyStream;
+        }
+
 
         private void StopObserving()
         {

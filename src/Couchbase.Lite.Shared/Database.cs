@@ -649,6 +649,18 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
+        // This is ONLY FOR TESTS
+        internal BlobStoreWriter AttachmentWriterForAttachment(IDictionary<string, object> attachment)
+        {
+            var digest = attachment.GetCast<string>("digest");
+            if (digest == null) {
+                return null;
+            }
+
+            return _pendingAttachmentsByDigest.Get(digest);
+        }
+
+
         internal static IDictionary<string, object> StripDocumentJSON(IDictionary<string, object> originalProps)
         {
             // Don't leave in any "_"-prefixed keys except for the ones in SPECIAL_KEYS_TO_LEAVE.
@@ -1061,39 +1073,6 @@ namespace Couchbase.Lite
         internal RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
         {
             return Storage.GetDocument(docId, revId, withBody, outStatus);
-        }
-
-        internal MultipartWriter MultipartWriterForRev(RevisionInternal rev, string contentType)
-        {
-            var writer = new MultipartWriter(contentType, null);
-            writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
-            writer.AddData(rev.GetBody().AsJson());
-            var attachments = rev.GetAttachments();
-            if (attachments == null) {
-                return writer;
-            }
-
-            foreach (var entry in attachments) {
-                var attachment = entry.Value.AsDictionary<string, object>();
-                if (attachment != null && attachment.GetCast<bool>("follows", false)) {
-                    var disposition = String.Format("attachment; filename={0}", Quote(entry.Key));
-                    writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Disposition", disposition } });
-
-                    var attachObj = AttachmentForDict(attachment, entry.Key);
-                    if (attachObj == null) {
-                        return null;
-                    }
-
-                    var fileURL = attachObj.ContentUrl;
-                    if (fileURL != null) {
-                        writer.AddFileUrl(fileURL);
-                    } else {
-                        writer.AddStream(attachObj.ContentStream);
-                    }
-                }
-            }
-
-            return writer;
         }
 
         internal static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal> history)

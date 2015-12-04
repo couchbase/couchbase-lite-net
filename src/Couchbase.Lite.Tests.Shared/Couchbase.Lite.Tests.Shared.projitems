@@ -51,6 +51,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\RemoteEndpoint.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EncryptionTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JSViewCompilerTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MultipartTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Performance\" />

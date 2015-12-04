@@ -57,6 +57,8 @@ namespace Couchbase.Lite.Support
         private Stream _output;
         private ManualResetEventSlim _mre;
         private bool _isDisposed;
+        private readonly int _bufferSize;
+
 
         /// <summary>
         /// The total bytes written so far.
@@ -84,6 +86,16 @@ namespace Couchbase.Lite.Support
         }
 
         #endregion
+
+        #region Constructors
+
+        public MultiStreamWriter(int bufferSize = DEFAULT_BUFFER_SIZE)
+        {
+            _bufferSize = bufferSize;
+        }
+
+        #endregion
+
 
         #region Public Methods
 
@@ -170,8 +182,12 @@ namespace Couchbase.Lite.Support
             }
 
             var tcs = new TaskCompletionSource<bool>();
-            ThreadPool.RegisterWaitForSingleObject(_mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
-                null, TimeSpan.FromSeconds(30), true);
+            try {
+                ThreadPool.RegisterWaitForSingleObject(_mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
+                    null, TimeSpan.FromSeconds(30), true);
+            } catch(ObjectDisposedException) {
+                tcs.SetResult(false);
+            }
 
             return tcs.Task;
         }
@@ -213,6 +229,7 @@ namespace Couchbase.Lite.Support
         /// <returns>All the accumulated data</returns>
         public IEnumerable<byte> AllOutput()
         {
+            _nextInputIndex = 0;
             using (var ms = new MemoryStream()) {
                 if (!WriteAsync(ms).Wait(TimeSpan.FromSeconds(30))) {
                     Log.W(TAG, "Unable to get output!");
@@ -256,7 +273,7 @@ namespace Couchbase.Lite.Support
         {
             var gotInput = OpenNextInput();
             if (gotInput) {
-                _currentInput.CopyToAsync(_output).ContinueWith(t => StartWriting());
+                _currentInput.CopyToAsync(_output, _bufferSize).ContinueWith(t => StartWriting());
             } else {
                 _mre.Set();
                 _mre.Dispose();
