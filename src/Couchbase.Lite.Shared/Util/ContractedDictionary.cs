@@ -138,6 +138,12 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
+        #region Constants
+
+        private const string TAG = "ContractedDictionary";
+
+        #endregion
+
         #region Variables
 
         private readonly ConcurrentDictionary<string, object> _inner =
@@ -249,7 +255,8 @@ namespace Couchbase.Lite.Util
                 value = (T)rawValue;
                 return true;
             } catch (InvalidCastException) {
-                throw new ArgumentException(String.Format("Incorrect type {0} specified for object with type {1}", typeof(T), rawValue.GetType()));
+                Log.W(TAG, "Incorrect type {0} specified for object with type {1}", typeof(T), rawValue.GetType());
+                return false;
             }
         }
 
@@ -310,7 +317,7 @@ namespace Couchbase.Lite.Util
 
         public bool Remove(KeyValuePair<string, object> item)
         {
-            ((ICollection<KeyValuePair<string, object>>)_inner).Remove(item);
+            return ((ICollection<KeyValuePair<string, object>>)_inner).Remove(item);
         }
 
         public int Count

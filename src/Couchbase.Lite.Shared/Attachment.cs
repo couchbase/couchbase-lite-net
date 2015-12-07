@@ -195,8 +195,10 @@ namespace Couchbase.Lite {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public Document Document {
             get {
-                if (Revision == null)
+                if (Revision == null) {
                     throw new CouchbaseLiteException("Revision must not be null.");
+                }
+
                 return Revision.Document;
             } 
         }
@@ -213,7 +215,12 @@ namespace Couchbase.Lite {
         /// <value>The content-type.</value>
         public string ContentType {
             get {
-                return Metadata.GetCast<string>(AttachmentMetadataDictionary.CONTENT_TYPE);
+                var contentType = default(string);
+                if (!Metadata.TryGetValue<string>(AttachmentMetadataDictionary.CONTENT_TYPE, out contentType)) {
+                    throw new CouchbaseLiteException("Content type of attachment corrupt", StatusCode.BadAttachment);
+                }
+
+                return contentType;
             }
         }
 
