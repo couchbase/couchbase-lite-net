@@ -48,10 +48,11 @@ namespace Couchbase.Lite.Util
         /// </summary>
         /// <exception cref="System.ArgumentException">Throw if the number of entries is not even (
         /// there needs to be two entries per key, name and type)</exception>
-        public object[] RequiredKeys 
+        public object[] RequiredKeys
         {
             get { return null; }
-            set { 
+            set
+            { 
                 if ((value.Length % 2) == 1) {
                     throw new ArgumentException("RequiredKeys needs an even number of entries:  key, type, key, type, ...");
                 }
@@ -81,10 +82,11 @@ namespace Couchbase.Lite.Util
         /// </summary>
         /// <exception cref="System.ArgumentException">Throw if the number of entries is not even (
         /// there needs to be two entries per key, name and type)</exception>
-        public object[] OptionalKeys 
+        public object[] OptionalKeys
         {
             get { return null; }
-            set { 
+            set
+            { 
                 if ((value.Length % 2) == 1) {
                     throw new ArgumentException("OptionalKeys needs an even number of entries:  key, type, key, type, ...");
                 }
@@ -113,7 +115,7 @@ namespace Couchbase.Lite.Util
     /// <summary>
     /// A dictionary which conforms to certains keys and types specified as an attribute
     /// </summary>
-    public abstract class ContractedDictionary : IEnumerable<KeyValuePair<string, object>>
+    public abstract class ContractedDictionary : ICollection<KeyValuePair<string, object>>, IDictionary<string, object>
     {
 
         #region Enums
@@ -150,7 +152,7 @@ namespace Couchbase.Lite.Util
         /// <summary>
         /// Constructor
         /// </summary>
-        public ContractedDictionary()
+        protected ContractedDictionary()
         {
             var att = (DictionaryContractAttribute)GetType().GetCustomAttributes(typeof(DictionaryContractAttribute), false).FirstOrDefault();
             if (att == null) {
@@ -158,6 +160,11 @@ namespace Couchbase.Lite.Util
             }
 
             _contract = att.Contract;
+        }
+
+        protected ContractedDictionary(IDictionary<string, object> source) : this()
+        {
+            _inner = new ConcurrentDictionary<string, object>(source);
         }
 
         #endregion
@@ -172,7 +179,8 @@ namespace Couchbase.Lite.Util
         /// present in the dictionary</exception>
         public object this[string key]
         {
-            get { 
+            get
+            { 
                 object retVal;
                 if (!_inner.TryGetValue(key, out retVal)) {
                     throw new KeyNotFoundException();
@@ -180,9 +188,7 @@ namespace Couchbase.Lite.Util
 
                 return retVal;
             }
-            set { 
-                Add(key, value);
-            }
+            set { Add(key, value); }
         }
 
         /// <summary>
@@ -218,7 +224,7 @@ namespace Couchbase.Lite.Util
         /// </summary>
         /// <returns><c>true</c>, if the key was found, <c>false</c> otherwise.</returns>
         /// <param name="key">The key to check</param>
-        public bool ContainsKey(string key) 
+        public bool ContainsKey(string key)
         {
             return _inner.ContainsKey(key);
         }
@@ -242,7 +248,7 @@ namespace Couchbase.Lite.Util
             try {
                 value = (T)rawValue;
                 return true;
-            } catch(InvalidCastException) {
+            } catch (InvalidCastException) {
                 throw new ArgumentException(String.Format("Incorrect type {0} specified for object with type {1}", typeof(T), rawValue.GetType()));
             }
         }
@@ -270,7 +276,7 @@ namespace Couchbase.Lite.Util
                 return null;
             }
 
-            if(!rule.Item2.IsInstanceOfType(value)) {
+            if (!rule.Item2.IsInstanceOfType(value)) {
                 return String.Format("Incorrect type for key '{0}'.  Cannot assign {1} to {2}.", key, value.GetType(), rule.Item2);
             }
 
@@ -278,9 +284,84 @@ namespace Couchbase.Lite.Util
         }
 
         #endregion
-        
-        #region IEnumerable
+
+        #region ICollection
         #pragma warning disable 1591
+
+        public void Add(KeyValuePair<string, object> item)
+        {
+            Add(item.Key, item.Value);
+        }
+
+        public void Clear()
+        {
+            _inner.Clear();
+        }
+
+        public bool Contains(KeyValuePair<string, object> item)
+        {
+            return _inner.Contains(item);
+        }
+
+        public void CopyTo(KeyValuePair<string, object>[] array, int arrayIndex)
+        {
+            ((ICollection<KeyValuePair<string, object>>)_inner).CopyTo(array, arrayIndex);
+        }
+
+        public bool Remove(KeyValuePair<string, object> item)
+        {
+            ((ICollection<KeyValuePair<string, object>>)_inner).Remove(item);
+        }
+
+        public int Count
+        {
+            get
+            {
+                return _inner.Count;
+            }
+        }
+
+        public bool IsReadOnly
+        {
+            get
+            {
+                return ((ICollection<KeyValuePair<string, object>>)_inner).IsReadOnly;
+            }
+        }
+
+        #endregion
+
+        #region IDictionary
+
+        public bool Remove(string key)
+        {
+            return ((IDictionary<string, object>)_inner).Remove(key);
+        }
+
+        public bool TryGetValue(string key, out object value)
+        {
+            return _inner.TryGetValue(key, out value);
+        }
+
+        public ICollection<string> Keys
+        {
+            get
+            {
+                return _inner.Keys;
+            }
+        }
+
+        public ICollection<object> Values
+        {
+            get
+            {
+                return _inner.Values;
+            }
+        }
+
+        #endregion
+
+        #region IEnumerable
 
         public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
