@@ -716,14 +716,10 @@ namespace Couchbase.Lite.Store
             if (docType != null) {
                 vals["doc_type"] = docType;
             }
-
-            try {
-                var row = StorageEngine.Insert("revs", null, vals);
-                rev.SetSequence(row);
-                return row;
-            } catch(Exception) {
-                return 0L;
-            }
+                
+            var row = StorageEngine.Insert("revs", null, vals);
+            rev.SetSequence(row);
+            return row;
         }
 
         private string GetWinner(long docNumericId, string oldWinnerRevId, bool oldWinnerWasDeletion, RevisionInternal newRev)
@@ -793,8 +789,8 @@ namespace Couchbase.Lite.Store
                 return true;
             }, true, sql, docNumericId);
                 
-            if (innerStatus.IsError) {
-                throw new CouchbaseLiteException("Error getting document revisions", StatusCode.DbError);
+            if (innerStatus.IsError && innerStatus.Code != StatusCode.NotFound) {
+                throw new CouchbaseLiteException("Error getting document revisions ({0})", innerStatus) { Code = StatusCode.DbError };
             }
 
             return revs;
@@ -1924,16 +1920,29 @@ namespace Couchbase.Lite.Store
                         }
 
                         // Insert it:
-                        sequence = InsertRevision(newRev, docNumericId, sequence, current, newRev.GetAttachments() != null, json, docType);
-                        if(sequence == 0) {
-                            if(StorageEngine.LastErrorCode != raw.SQLITE_CONSTRAINT) {
-                                throw new CouchbaseLiteException(String.Format("Error inserting revision {0}", newRev),
-                                    StatusCode.DbError);
+                        try {
+                            sequence = InsertRevision(newRev, docNumericId, sequence, current, newRev.GetAttachments() != null, json, docType);
+                        } catch(CouchbaseLiteException e) {
+                            if(e.Code == StatusCode.DbError) {
+                                var sqliteException = e.InnerException as ugly.sqlite3_exception;
+                                if(sqliteException == null) {
+                                    // DbError without an inner sqlite3 exception? Weird...throw
+                                    throw;
+                                }
+
+                                if(sqliteException.errcode != raw.SQLITE_CONSTRAINT) {
+                                    // This is a genuine error inserting the revision
+                                    Log.E(TAG, "Error inserting revision {0} ({1})", newRev, sqliteException.errcode);
+                                    throw;
+                                } else {
+                                    // This situation means that the revision already exists, so go get the existing
+                                    // sequence number
+                                    sequence = GetSequenceOfDocument(docNumericId, newRev.GetRevId(), false);
+                                }
                             } else {
-                                sequence = GetSequenceOfDocument(docNumericId, newRev.GetRevId(), false);
+                                throw;
                             }
                         }
-
                     }
                 }
 

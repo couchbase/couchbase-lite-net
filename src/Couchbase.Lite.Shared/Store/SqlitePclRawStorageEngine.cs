@@ -459,11 +459,15 @@ namespace Couchbase.Lite
                     }
 
                 } 
+                catch(CouchbaseLiteException) {
+                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
+                    Log.E(TAG, "Error inserting into table " + table);
+                    throw;
+                }
                 catch (Exception ex)
                 {
-                    Log.E(TAG, "Error inserting into table " + table, ex);
                     LastErrorCode = raw.sqlite3_errcode(_writeConnection);
-                    throw;
+                    throw new CouchbaseLiteException("Error inserting into table " + table, ex) { Code = StatusCode.DbError };
                 }
                 return lastInsertedId;
             });

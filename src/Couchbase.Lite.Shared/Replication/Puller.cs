@@ -618,12 +618,13 @@ namespace Couchbase.Lite.Replicator
             var time = DateTime.UtcNow;
             downloads.Sort(new RevisionComparer());
 
-            if (LocalDatabase == null) {
+            var localDb = LocalDatabase;
+            if (localDb == null) {
                 return;
             }
 
             try {
-                var success = LocalDatabase.RunInTransaction(() =>
+                var success = localDb.RunInTransaction(() =>
                 {
                     foreach (var rev in downloads) {
                         var fakeSequence = rev.GetSequence();
@@ -640,7 +641,7 @@ namespace Couchbase.Lite.Replicator
 
                         // Insert the revision:
                         try {
-                            LocalDatabase.ForceInsert(rev, history, RemoteUrl);
+                            localDb.ForceInsert(rev, history, RemoteUrl);
                         } catch (CouchbaseLiteException e) {
                             if (e.Code == StatusCode.Forbidden) {
                                 Log.I(TAG, "Remote rev failed validation: " + rev);

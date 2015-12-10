@@ -83,13 +83,16 @@ namespace Couchbase.Lite
                 compressedStream = new DeflateStream(stream, CompressionMode.Compress, leaveOpen: true);
             }
 
-            return originalContent.CopyToAsync(compressedStream).ContinueWith(tsk =>
+            var retVal = originalContent.CopyToAsync(compressedStream);
+            retVal.ConfigureAwait(false).GetAwaiter().OnCompleted(() =>
             {
                 if (compressedStream != null)
                 {
                     compressedStream.Dispose();
                 }
             });
+
+            return retVal;
         }
     }
 }

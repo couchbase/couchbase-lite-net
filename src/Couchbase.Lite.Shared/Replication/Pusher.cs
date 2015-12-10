@@ -212,9 +212,12 @@ namespace Couchbase.Lite.Replicator
 
         private void StopObserving()
         {
+            var localDb = LocalDatabase;
             if (_observing) {
                 _observing = false;
-                LocalDatabase.Changed -= OnChanged;
+                if (localDb != null) {
+                    localDb.Changed -= OnChanged;
+                }
             }
         }
 
@@ -417,7 +420,7 @@ namespace Couchbase.Lite.Replicator
 
             // TODO: need to throttle these requests
             Log.D(TAG, "Uploading multipart request.  Revision: " + revision);
-
+            SafeAddToChangesCount(1);
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
             {
                 if (e != null) {
@@ -652,7 +655,6 @@ namespace Couchbase.Lite.Replicator
 
             // Call _revs_diff on the target db:
             Log.D(TAG, "posting to /_revs_diff: {0}", String.Join(Environment.NewLine, new[] { Manager.GetObjectMapper().WriteValueAsString(diffs) }));
-
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
             {
                 try {
@@ -679,14 +681,14 @@ namespace Couchbase.Lite.Replicator
                                 IDictionary<string, object> properties = null;
                                 var revResults = results.Get(rev.GetDocId()).AsDictionary<string, object>(); 
                                 if (revResults == null) {
-                                    SafeIncrementCompletedChangesCount();
+                                    //SafeIncrementCompletedChangesCount();
                                     continue;
                                 }
 
                                 var revs = revResults.Get("missing").AsList<string>();
                                 if (revs == null || !revs.Any( id => id.Equals(rev.GetRevId(), StringComparison.OrdinalIgnoreCase))) {
                                     RemovePending(rev);
-                                    SafeIncrementCompletedChangesCount();
+                                    //SafeIncrementCompletedChangesCount();
                                     continue;
                                 }
 

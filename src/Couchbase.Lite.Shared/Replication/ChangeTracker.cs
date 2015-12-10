@@ -284,9 +284,6 @@ namespace Couchbase.Lite.Replicator
             }
 
             backoff = new ChangeTrackerBackoff();
-
-            while (IsRunning && !tokenSource.Token.IsCancellationRequested)
-            {
                 _startTime = DateTime.Now;
                 if (Request != null)
                 {
@@ -313,116 +310,82 @@ namespace Couchbase.Lite.Replicator
                 maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
                 Log.V(Tag, "Making request to " + maskedRemoteWithoutCredentials);
 
-                if (tokenSource.Token.IsCancellationRequested)
+            if (tokenSource.Token.IsCancellationRequested) {
+                return;
+            }
+
+            HttpClient httpClient = null;
+            try {
+                httpClient = clientCopy.GetHttpClient(mode == ChangeTrackerMode.LongPoll);
+                var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+                if(challengeResponseAuth != null) {
+                    challengeResponseAuth.PrepareWithRequest(Request);
+                }
+         
+                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
+                if (authHeader != null)
                 {
-                    break;
+                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                Task<HttpResponseMessage> changesRequestTask = null;
-                Task successHandler;
+                changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
 
-                HttpClient httpClient = null;
-                try {
-                    httpClient = clientCopy.GetHttpClient(mode == ChangeTrackerMode.LongPoll);
-                    var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
-                    if(challengeResponseAuth != null) {
-                        challengeResponseAuth.PrepareWithRequest(Request);
+                var option = mode == ChangeTrackerMode.LongPoll ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead;
+                var info = httpClient.SendAsync(
+                    Request, 
+                    option,
+                    changesFeedRequestTokenSource.Token
+                );
+
+                info.ContinueWith(t => {
+                    if(t.IsFaulted) {
+                        var ts = changesFeedRequestTokenSource;
+                        if(ts != null) {
+                            ts.Dispose();
+                            ts = null;
+                        }
+
+                        if(httpClient != null) {
+                            httpClient.Dispose();
+                        }
+
+                        throw t.Exception;
                     }
-             
-                    var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
-                    if (authHeader != null)
-                    {
-                        httpClient.DefaultRequestHeaders.Authorization = authHeader;
-                    }
 
-                    changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
-
-                    var option = mode == ChangeTrackerMode.LongPoll ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead;
-                    var info = httpClient.SendAsync(
-                        Request, 
-                        option,
-                        changesFeedRequestTokenSource.Token
-                    );
-
-                    successHandler = info.ContinueWith(
-                        ChangeFeedResponseHandler, 
-                        changesFeedRequestTokenSource.Token, 
-                        TaskContinuationOptions.LongRunning, 
-                        WorkExecutor.Scheduler
-                    );
-
-                    try 
-                    {
-                        var mre = new ManualResetEvent(false);
-                        successHandler.ContinueWith(t => mre.Set());
-                        mre.WaitOne();
-                        if(successHandler.IsFaulted) {
-                            throw successHandler.Exception;
+                    ChangeFeedResponseHandler(t).ContinueWith(t2 => {
+                        if(httpClient != null) {
+                            httpClient.Dispose();
                         }
-
-                        Log.D(Tag, "Finished processing changes feed.");
-                    }
-                    finally 
-                    {
-                        if (changesRequestTask != null) 
-                        {
-                            if(changesRequestTask.IsCompleted)
-                            {
-                                changesRequestTask.Dispose();
-                            }
-
-                            changesRequestTask = null;
-                        }
-
-                        if (successHandler != null)
-                        {
-                            if(successHandler.IsCompleted)
-                            {
-                                successHandler.Dispose();
-                            }
-
-                            successHandler = null;
-                        }
-
-                        if(Request != null)
-                        {
-                            Request.Dispose();
-                            Request = null;
-                        }
-
-                        if(changesFeedRequestTokenSource != null)
-                        {
-                            changesFeedRequestTokenSource.Dispose();
-                            changesFeedRequestTokenSource = null;
-                        }
-                    }
-                }
-                catch (Exception e)
+                    });
+                },
+                    changesFeedRequestTokenSource.Token, 
+                    TaskContinuationOptions.LongRunning, 
+                    TaskScheduler.Default
+                );
+            }
+            catch (Exception e)
+            {
+                if (!IsRunning && e.InnerException is IOException)
                 {
-                    if (!IsRunning && e.InnerException is IOException)
-                    {
-                        // swallow
-                    }
-                    else
-                    {
-                        // in this case, just silently absorb the exception because it
-                        // frequently happens when we're shutting down and have to
-                        // close the socket underneath our read.
-                        Log.E(Tag, "Exception in change tracker", e);
-                    }
-                    backoff.SleepAppropriateAmountOfTime();
+                    // swallow
                 }
-                finally
+                else
                 {
-                    if (httpClient != null) {
-                        httpClient.Dispose();
-                    }
+                    // in this case, just silently absorb the exception because it
+                    // frequently happens when we're shutting down and have to
+                    // close the socket underneath our read.
+                    Log.E(Tag, "Exception in change tracker", e);
                 }
+                backoff.SleepAppropriateAmountOfTime();
             }
         }
 
-        void ChangeFeedResponseHandler(Task<HttpResponseMessage> responseTask)
+        private Task ChangeFeedResponseHandler(Task<HttpResponseMessage> responseTask)
         {
+            if (changesFeedRequestTokenSource != null) {
+                changesFeedRequestTokenSource.Dispose();
+            }
+
             if (responseTask.IsCanceled || responseTask.IsFaulted) {
                 if (!responseTask.IsCanceled) {
                     var err = responseTask.Exception.Flatten();
@@ -432,12 +395,12 @@ namespace Couchbase.Lite.Replicator
                     responseTask.Result.Dispose();
                 }
 
-                return;
+                return Task.FromResult(false);
             }
 
             var response = responseTask.Result;
             if (response == null)
-                return;
+                return Task.FromResult(false);
             
             var status = response.StatusCode;
 
@@ -450,69 +413,34 @@ namespace Couchbase.Lite.Replicator
                 Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
                 Stop();
                 response.Dispose();
-                return;
+                return Task.FromResult(false);
             }
-                
-            try {
-                switch (mode)
-                {
-                    case ChangeTrackerMode.LongPoll:
-                        {
-                        if (response.Content == null) {
-                            throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
+
+            switch (mode)  {
+                case ChangeTrackerMode.LongPoll:
+                    if (response.Content == null) {
+                        throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
+                    }
+                            
+                    Log.D(Tag, "Getting stream from change tracker response");
+                    return response.Content.ReadAsStreamAsync().ContinueWith(t => {
+                        try {
+                            backoff.ResetBackoff();
+                            ProcessLongPollStream(t);
+                        } finally {
+                            response.Dispose();
                         }
-                                
-                            Log.D(Tag, "Getting stream from change tracker response");
-                            Stream stream = response.Content.ReadAsStreamAsync().Result;
-                            Log.D(Tag, "Got stream from change tracker response");
-                            bool beforeFirstItem = true;
-                            bool responseOK = false;
-                            using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(stream)) {
-                                responseOK = ReceivedPollResponse(jsonReader, ref beforeFirstItem);
-                            }
-
-                            Log.D(Tag, "Finished polling change tracker");
-
-                            if (responseOK) {
-                                Log.V(Tag, "Starting new longpoll");
-                                backoff.ResetBackoff();
-                            } else {
-                                backoff.SleepAppropriateAmountOfTime();
-                                if (beforeFirstItem) {
-                                    var elapsed = DateTime.Now - _startTime;
-                                    Log.W(Tag, "Longpoll connection closed (by proxy?) after {0} sec", elapsed.TotalSeconds);
-
-                                    // Looks like the connection got closed by a proxy (like AWS' load balancer) while the
-                                    // server was waiting for a change to send, due to lack of activity.
-                                    // Lower the heartbeat time to work around this, and reconnect:
-                                    _heartbeatMilliseconds = (int)(elapsed.TotalMilliseconds * 0.75f);
-                                    Log.V(Tag, "    Starting new longpoll");
-                                    backoff.ResetBackoff();
-                                } else {
-                                    Log.W(Tag, "Change tracker calling stop");
-                                    WorkExecutor.StartNew(Stop);
-                                }
-                            }
-
+                    });
+                default:
+                    return response.Content.ReadAsStreamAsync().ContinueWith(t => {
+                        
+                        try {
+                            backoff.ResetBackoff();
+                            ProcessOneShotStream(t);
+                        } finally {
+                            response.Dispose();
                         }
-                        break;
-                    default:
-                        {
-                            Stream content = response.Content.ReadAsStreamAsync().Result;
-                            using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(content)) {
-                                bool timedOut = false;
-                                ReceivedPollResponse(jsonReader, ref timedOut);
-                            }
-                               
-                            IsRunning = false;
-                            Stopped();
-                        }
-                        break;
-                }
-
-                backoff.ResetBackoff();
-            } finally {
-                response.Dispose();
+                    });
             }
         }
 
@@ -665,6 +593,51 @@ namespace Couchbase.Lite.Replicator
         internal void SetRequestHeaders(IDictionary<String, Object> requestHeaders)
         {
             RequestHeaders = requestHeaders;
+        }
+
+        private void ProcessLongPollStream(Task<Stream> t)
+        {
+            Log.D(Tag, "Got stream from change tracker response");
+            bool beforeFirstItem = true;
+            bool responseOK = false;
+            using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(t.Result)) {
+                responseOK = ReceivedPollResponse(jsonReader, ref beforeFirstItem);
+            }
+
+            Log.D(Tag, "Finished polling change tracker");
+
+            if (responseOK) {
+                Log.V(Tag, "Starting new longpoll");
+                backoff.ResetBackoff();
+                WorkExecutor.StartNew(Run);
+            } else {
+                backoff.SleepAppropriateAmountOfTime();
+                if (beforeFirstItem) {
+                    var elapsed = DateTime.Now - _startTime;
+                    Log.W(Tag, "Longpoll connection closed (by proxy?) after {0} sec", elapsed.TotalSeconds);
+
+                    // Looks like the connection got closed by a proxy (like AWS' load balancer) while the
+                    // server was waiting for a change to send, due to lack of activity.
+                    // Lower the heartbeat time to work around this, and reconnect:
+                    _heartbeatMilliseconds = (int)(elapsed.TotalMilliseconds * 0.75f);
+                    Log.V(Tag, "    Starting new longpoll");
+                    backoff.ResetBackoff();
+                    WorkExecutor.StartNew(Run);
+                } else {
+                    Log.W(Tag, "Change tracker calling stop");
+                    WorkExecutor.StartNew(Stop);
+                }
+            }
+        }
+
+        private void ProcessOneShotStream(Task<Stream> t)
+        {
+            using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(t.Result)) {
+                bool timedOut = false;
+                ReceivedPollResponse(jsonReader, ref timedOut);
+            }
+
+            Stopped();
         }
 
         private void AddRequestHeaders(HttpRequestMessage request)

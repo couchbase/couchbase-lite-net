@@ -1311,7 +1311,7 @@ namespace Couchbase.Lite
                     _requests.TryRemove(message, out dummy);
                     client.Dispose();
                 }
-            }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
+            }, token);
 
             _requests.AddOrUpdate(message, k => t, (k, v) => t);
             return message;
