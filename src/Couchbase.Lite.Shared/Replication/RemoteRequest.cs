@@ -177,23 +177,22 @@ namespace Couchbase.Lite.Replicator
         protected internal void SetBody(HttpRequestMessage request)
         {
             // set body if appropriate
-            if (body != null)
-            {
+            if (body != null)  {
                 byte[] bodyBytes = null;
-                try
-                {
+                try {
                     bodyBytes = Manager.GetObjectMapper().WriteValueAsBytes(body).ToArray();
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     Log.E(Tag, "Error serializing body of request", e);
                 }
-                var entity = new ByteArrayContent(bodyBytes);
+
+                HttpContent entity = new ByteArrayContent(bodyBytes);
                 entity.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                if (bodyBytes.Length > 100) {
+                    entity = new CompressedContent(entity, "gzip");
+                }
+
                 request.Content = entity;
-            }
-            else
-            {
+            } else {
                 Log.W(Tag + ".SetBody", "No body found for this request to {0}", request.RequestUri);
             }
         }

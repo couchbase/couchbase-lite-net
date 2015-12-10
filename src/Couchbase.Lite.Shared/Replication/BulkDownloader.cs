@@ -47,6 +47,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Threading;
+using System.Net.Http.Headers;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -90,6 +91,9 @@ namespace Couchbase.Lite.Replicator
                 tcs.SetCanceled();
                 return tcs.Task;
             }
+                
+            request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+            request.Headers.Add("X-Accept-Part-Encoding", "gzip");
 
             Log.D(Tag + ".ExecuteRequest", "Sending request: {0}", request);
             var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
@@ -152,7 +156,7 @@ namespace Couchbase.Lite.Replicator
                                         _topReader.AppendData(buffer);
                                     }
                                 }
-                                _topReader.Finished();
+
                                 RespondWithResult(fullBody, error, response);
                             }
                             finally

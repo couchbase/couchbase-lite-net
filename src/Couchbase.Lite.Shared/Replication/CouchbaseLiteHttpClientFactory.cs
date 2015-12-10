@@ -138,6 +138,11 @@ namespace Couchbase.Lite.Support
                 UseCookies = true
             };
 
+            if (handler.SupportsAutomaticDecompression)
+            {
+                handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+            }
+
             Handler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
 
             var retryHandler = new TransientErrorRetryHandler(Handler);

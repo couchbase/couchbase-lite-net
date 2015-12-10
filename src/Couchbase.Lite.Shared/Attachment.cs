@@ -40,20 +40,39 @@
 // and limitations under the License.
 
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.IO;
+
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Sharpen;
 
 namespace Couchbase.Lite {
+    
+    [DictionaryContract(RequiredKeys=new object[] { 
+        AttachmentMetadataDictionary.CONTENT_TYPE, typeof(string),
+        AttachmentMetadataDictionary.LENGTH, typeof(long),
+        AttachmentMetadataDictionary.DIGEST, typeof(string)
+    },
+        OptionalKeys=new object[] {
+        AttachmentMetadataDictionary.FOLLOWS, typeof(bool),
+        AttachmentMetadataDictionary.STUB, typeof(bool),
+        AttachmentMetadataDictionary.ENCODED_LENGTH, typeof(long),
+        AttachmentMetadataDictionary.ENCODING, typeof(string)
+    })]
+    internal sealed class AttachmentMetadataDictionary : ContractedDictionary
+    {
+        public const string CONTENT_TYPE = "content_type";
+        public const string LENGTH = "length";
+        public const string FOLLOWS = "follows";
+        public const string DIGEST = "digest";
+        public const string STUB = "stub";
+        public const string ENCODED_LENGTH = "encoded_length";
+        public const string ENCODING = "encoding";
 
-    struct AttachmentMetadataKeys {
-        internal static readonly String ContentType = "content_type";
-        internal static readonly String Length = "length";
-        internal static readonly String Follows = "follows";
-        internal static readonly String Digest = "digest";
+        public AttachmentMetadataDictionary() : base() {}
+
+        public AttachmentMetadataDictionary(IDictionary<string, object> source) : base(source) {}
     }
 
     /// <summary>
@@ -72,14 +91,14 @@ namespace Couchbase.Lite {
         internal Attachment(Stream contentStream, string contentType)
         {
             Metadata = new Dictionary<String, Object> {
-                { AttachmentMetadataKeys.ContentType, contentType },
-                { AttachmentMetadataKeys.Follows, true }
+                { AttachmentMetadataDictionary.CONTENT_TYPE, contentType },
+                { AttachmentMetadataDictionary.FOLLOWS, true }
             };
 
             Body = contentStream;
         }
 
-        internal Attachment(Revision revision, String name, IDictionary<String, Object> metadata)
+        internal Attachment(Revision revision, String name, IDictionary<string, object> metadata)
         {
             Revision = revision;
             Name = name;
@@ -118,15 +137,20 @@ namespace Couchbase.Lite {
                 if (value is Attachment)
                 {
                     var attachment = (Attachment)value;
-                    var metadataMutable = new Dictionary<string, object>(attachment.Metadata);
+                    var metadataMutable = new AttachmentMetadataDictionary(attachment.Metadata);
                     var body = attachment.Body;
                     if (body != null)
                     {
                         // Copy attachment body into the database's blob store:
                         var writer = BlobStoreWriterForBody(body, database);
-                        metadataMutable["length"] = (long)writer.GetLength();
-                        metadataMutable["digest"] = writer.SHA1DigestString();
-                        metadataMutable["follows"] = true;
+                        metadataMutable[AttachmentMetadataDictionary.LENGTH] = (long)writer.GetLength();
+                        metadataMutable[AttachmentMetadataDictionary.DIGEST] = writer.SHA1DigestString();
+                        metadataMutable[AttachmentMetadataDictionary.FOLLOWS] = true;
+                        var errMsg = metadataMutable.Validate();
+                        if (errMsg != null) {
+                            throw new CouchbaseLiteException("Error installing attachment body ({0})", errMsg) { Code = StatusCode.BadAttachment };
+                        }
+
                         database.RememberAttachmentWriter(writer);
                     }
 
@@ -171,8 +195,10 @@ namespace Couchbase.Lite {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public Document Document {
             get {
-                if (Revision == null)
+                if (Revision == null) {
                     throw new CouchbaseLiteException("Revision must not be null.");
+                }
+
                 return Revision.Document;
             } 
         }
@@ -187,18 +213,14 @@ namespace Couchbase.Lite {
         /// Gets the content-type.
         /// </summary>
         /// <value>The content-type.</value>
-        public String ContentType {
+        public string ContentType {
             get {
-//                Object contentType;
-//
-//                if (!Metadata.TryGetValue(AttachmentMetadataKeys.ContentType, out contentType))
-//                    throw new CouchbaseLiteException("Metadata must contain a key-value pair for {0}.", AttachmentMetadataKeys.ContentType);
-//
-//                if (!(contentType is String))
-//                    throw new CouchbaseLiteException("The {0} key in Metadata must contain a string value.", AttachmentMetadataKeys.ContentType);
-//
-//                return (String)contentType; 
-                return Metadata.Get(AttachmentMetadataKeys.ContentType) as String;
+                var contentType = default(string);
+                if (!Metadata.TryGetValue<string>(AttachmentMetadataDictionary.CONTENT_TYPE, out contentType)) {
+                    throw new CouchbaseLiteException("Content type of attachment corrupt", StatusCode.BadAttachment);
+                }
+
+                return contentType;
             }
         }
 
@@ -266,7 +288,7 @@ namespace Couchbase.Lite {
         public Int64 Length {
             get {
                 Object length;
-                var success = Metadata.TryGetValue(AttachmentMetadataKeys.Length, out length);
+                var success = Metadata.TryGetValue(AttachmentMetadataDictionary.LENGTH, out length);
                 return success ? (Int64)length : 0;
             }
         }
@@ -274,7 +296,7 @@ namespace Couchbase.Lite {
         /// <summary>
         /// The CouchbaseLite metadata about the attachment, that lives in the document.
         /// </summary>
-        public IDictionary<String, Object> Metadata { get ; private set; }
+        public IDictionary<string, object> Metadata { get ; private set; }
 
         #endregion
 

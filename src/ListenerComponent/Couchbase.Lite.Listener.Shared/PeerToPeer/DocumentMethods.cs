@@ -121,7 +121,7 @@ namespace Couchbase.Lite.Listener
                     }
 
                     if(sendMultipart) {
-                        response.MultipartWriter = db.MultipartWriterForRev(rev, "multipart/related");
+                        response.MultipartWriter = MultipartWriterForRev(db, rev, "multipart/related");
                     } else {
                         response.JsonBody = rev.GetBody();
                     }
@@ -458,6 +458,42 @@ namespace Couchbase.Lite.Listener
         #endregion
 
         #region Private Methods
+
+        private static MultipartWriter MultipartWriterForRev(Database db, RevisionInternal rev, string contentType)
+        {
+            var writer = new MultipartWriter(contentType, null);
+            writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
+            writer.AddData(rev.GetBody().AsJson());
+            var attachments = rev.GetAttachments();
+            if (attachments == null) {
+                return writer;
+            }
+
+            foreach (var entry in attachments) {
+                var attachment = entry.Value.AsDictionary<string, object>();
+                if (attachment != null && attachment.GetCast<bool>("follows", false)) {
+                    var disposition = String.Format("attachment; filename={0}", Database.Quote(entry.Key));
+                    writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Disposition", disposition } });
+
+                    var attachObj = default(AttachmentInternal);
+                    try {
+                        attachObj = db.AttachmentForDict(attachment, entry.Key);
+                    } catch(CouchbaseLiteException) {
+                        return null;
+                    }
+
+                    var fileURL = attachObj.ContentUrl;
+                    if (fileURL != null) {
+                        writer.AddFileUrl(fileURL);
+                    } else {
+                        writer.AddStream(attachObj.ContentStream);
+                    }
+                }
+            }
+
+            return writer;
+        }
+
 
         // Factors out the logic of opening the database and reading the document body from the HTTP request
         // and performs the specified logic on the body received in the request, barring any problems
