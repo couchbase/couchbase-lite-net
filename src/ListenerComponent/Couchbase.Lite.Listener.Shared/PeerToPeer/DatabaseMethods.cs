@@ -120,7 +120,7 @@ namespace Couchbase.Lite.Listener
         public static ICouchbaseResponseState UpdateConfiguration(ICouchbaseListenerContext context)
         {
             string dbName = context.DatabaseName;
-            Database db = context.DbManager.GetDatabaseWithoutOpening(dbName, false);
+            Database db = context.DbManager.GetDatabase(dbName, false);
             if (db != null && db.Exists()) {
                 return context.CreateResponse(StatusCode.PreconditionFailed).AsDefaultState();
             }
@@ -508,7 +508,7 @@ namespace Couchbase.Lite.Listener
             Func<Database, CouchbaseLiteResponse> action) 
         {
             string dbName = context.DatabaseName;
-            Database db = context.DbManager.GetDatabaseWithoutOpening(dbName, false);
+            Database db = context.DbManager.GetDatabase(dbName, false);
             if (db == null || !db.Exists()) {
                 return context.CreateResponse(StatusCode.NotFound);
             }

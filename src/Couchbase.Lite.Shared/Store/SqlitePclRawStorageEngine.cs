@@ -77,6 +77,7 @@ namespace Couchbase.Lite
         private const String TAG = "SqlitePCLRawStorageEngine";
         private sqlite3 _writeConnection;
         private sqlite3 _readConnection;
+        private bool _readOnly; // Needed for issue with GetVersion()
 
         private Boolean shouldCommit;
 
@@ -130,17 +131,19 @@ namespace Couchbase.Lite
             return true;
         }
 
-        public bool Open(String path, SymmetricKey encryptionKey = null)
+        public bool Open(String path, bool readOnly, SymmetricKey encryptionKey = null)
         {
             if (IsOpen)
                 return true;
 
             Path = path;
+            _readOnly = readOnly;
             Factory = new TaskFactory(new SingleThreadScheduler());
 
             try {
                 shouldCommit = false;
-                const int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
+                int readFlag = readOnly ? SQLITE_OPEN_READONLY : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+                int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | readFlag | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(writer_flags, encryptionKey, out _writeConnection);
 
                 const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
@@ -214,6 +217,10 @@ namespace Couchbase.Lite
 
         public void SetVersion(int version)
         {
+            if (_readOnly) {
+                throw new CouchbaseLiteException("Attempting to write to a readonly database", StatusCode.Forbidden);
+            }
+
             var errMessage = "Unable to set version to {0}".Fmt(version);
             const string commandText = "PRAGMA user_version = ?";
 
@@ -249,9 +256,13 @@ namespace Couchbase.Lite
 
         public int BeginTransaction()
         {
+            if (_readOnly) {
+                throw new CouchbaseLiteException("Transactions not allowed on a readonly database", StatusCode.Forbidden);
+            }
+
             if (!IsOpen)
             {
-                Open(Path);
+                Open(Path, _readOnly);
             }
             // NOTE.ZJG: Seems like we should really be using TO SAVEPOINT
             //           but this is how Android SqliteDatabase does it,
@@ -280,6 +291,10 @@ namespace Couchbase.Lite
 
         public int EndTransaction()
         {
+            if (_readOnly) {
+                throw new CouchbaseLiteException("Transactions not allowed on a readonly database", StatusCode.Forbidden);
+            }
+
             if (_writeConnection == null)
                 throw new InvalidOperationException("Database is not open.");
 
@@ -341,7 +356,7 @@ namespace Couchbase.Lite
         {
             if (!IsOpen)
             {
-                Open(Path);
+                Open(Path, _readOnly);
             }
 
             if (transactionCount == 0) 
@@ -386,7 +401,7 @@ namespace Couchbase.Lite
         {
             if (!IsOpen)
             {
-                Open(Path);
+                Open(Path, _readOnly);
             }
 
             Cursor cursor = null;
@@ -422,6 +437,10 @@ namespace Couchbase.Lite
 
         public long InsertWithOnConflict(String table, String nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy)
         {
+            if (_readOnly) {
+                throw new CouchbaseLiteException("Attempting to write to a readonly database", StatusCode.Forbidden);
+            }
+
             if (!StringEx.IsNullOrWhiteSpace(nullColumnHack))
             {
                 var e = new InvalidOperationException("{0} does not support the 'nullColumnHack'.".Fmt(TAG));
@@ -481,6 +500,10 @@ namespace Couchbase.Lite
 
         public int Update(String table, ContentValues values, String whereClause, params String[] whereArgs)
         {
+            if (_readOnly) {
+                throw new CouchbaseLiteException("Attempting to write to a readonly database", StatusCode.Forbidden);
+            }
+
             Debug.Assert(!StringEx.IsNullOrWhiteSpace(table));
             Debug.Assert(values != null);
 
@@ -524,6 +547,10 @@ namespace Couchbase.Lite
 
         public int Delete(String table, String whereClause, params String[] whereArgs)
         {
+            if (_readOnly) {
+                throw new CouchbaseLiteException("Attempting to write to a readonly database", StatusCode.Forbidden);
+            }
+
             Debug.Assert(!StringEx.IsNullOrWhiteSpace(table));
 
             var t = Factory.StartNew(() =>
@@ -637,7 +664,7 @@ namespace Couchbase.Lite
             try
             {
                 if (!IsOpen) {
-                    Open(Path);
+                    Open(Path, _readOnly);
                 }
 
                 lock(Cursor.StmtDisposeLock)
@@ -676,7 +703,7 @@ namespace Couchbase.Lite
         {
             if (!IsOpen)
             {
-                Open(Path);
+                Open(Path, _readOnly);
             }
             var builder = new StringBuilder("UPDATE ");
 
@@ -727,7 +754,7 @@ namespace Couchbase.Lite
         {
             if (!IsOpen)
             {
-                Open(Path);
+                Open(Path, _readOnly);
             }
             var builder = new StringBuilder("INSERT");
 
@@ -795,7 +822,7 @@ namespace Couchbase.Lite
         {
             if (!IsOpen)
             {
-                Open(Path);
+                Open(Path, _readOnly);
             }
             var builder = new StringBuilder("DELETE FROM ");
             builder.Append(table);

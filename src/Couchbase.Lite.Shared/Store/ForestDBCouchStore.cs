@@ -425,7 +425,7 @@ namespace Couchbase.Lite.Store
         public bool DatabaseExistsIn(string directory)
         {
             var dbPath = Path.Combine(directory, DB_FILENAME);
-            return File.Exists(dbPath);
+            return File.Exists(dbPath) || File.Exists(dbPath + ".meta"); // Auto-compaction changes the filename
         }
 
         public void Open(string directory, Manager manager, bool readOnly)

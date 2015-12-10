@@ -108,6 +108,9 @@
       <Link>Assets\MultipartGZipped.mime</Link>
       <LogicalName>MultipartGZipped.mime</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120.zip">
+      <Link>Assets\ios120.zip</Link>
+    </EmbeddedResource>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

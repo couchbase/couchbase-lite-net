@@ -201,7 +201,7 @@ namespace Couchbase.Lite
         public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
             this.directoryFile = directoryFile;
-            this.options = options ?? DefaultOptions;
+            _options = options ?? DefaultOptions;
             this.databases = new Dictionary<string, Database>();
             this.replications = new List<Replication>();
             Shared = new SharedState();
@@ -263,6 +263,12 @@ namespace Couchbase.Lite
         public String Directory { get { return directoryFile.FullName; } }
 
         /// <summary>
+        /// Default storage type for newly created databases.
+        /// There are two options, "SQLite" (the default) or "ForestDB".
+        /// </summary>
+        public string StorageType { get; set; }
+
+        /// <summary>
         /// Gets the names of all existing <see cref="Couchbase.Lite.Database"/>s.
         /// </summary>
         /// <value>All database names.</value>
@@ -317,23 +323,33 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Register an encryption key for use with a given database
+        /// Returns the database with the given name. If the database is not yet open, the options given
+        /// will be applied; if it's already open, the options are ignored.
+        /// Multiple calls with the same name will return the same CBLDatabase instance.
         /// </summary>
-        /// <param name="keyDataOrPassword">A password as a string or key data as a byte
-        /// IEnumerable</param>
-        /// <param name="dbName">The name of the database to use this key with</param>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if invalid data
-        /// is passed into keyDataOrPassword</exception>
-        public void RegisterEncryptionKey(object keyDataOrPassword, string dbName)
+        /// <param name="name">The name of the database. May NOT contain capital letters!</param>
+        /// <param name="options">ptions to use when opening, such as the encryption key; if nil, a default
+        /// set of options will be used.</param>
+        /// <returns>The opened database, or null if it doesn't exist and options.Create is false</returns>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an error occurs opening
+        /// the database</exception>
+        public Database OpenDatabase(string name, DatabaseOptions options)
         {
-            var realKey = default(SymmetricKey);
-            try {
-                realKey = SymmetricKey.Create(keyDataOrPassword);
-            } catch (InvalidOperationException) {
-                throw new CouchbaseLiteException("Invalid object passed to SymmetricKey", StatusCode.BadParam);
+            if (name == null) {
+                throw new ArgumentNullException("name");
             }
 
-            Shared.SetValue("encryptionKey", "", dbName, realKey);
+            if (options == null) {
+                options = new DatabaseOptions();
+            }
+
+            var db = GetDatabase(name, !options.Create);
+            if (db != null && !db.IsOpen) {
+                db.OpenWithOptions(options);
+                Shared.SetValue("encryptionKey", "", name, options.EncryptionKey);
+            }
+
+            return db;
         }
 
         /// <summary>
@@ -342,22 +358,12 @@ namespace Couchbase.Lite
         /// <returns>The database.</returns>
         /// <param name="name">Name.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while gettings or createing the <see cref="Couchbase.Lite.Database"/>.</exception>
+        [Obsolete("Use new OpenDatabase API")]
         public Database GetDatabase(String name) 
         {
-            var db = GetDatabaseWithoutOpening(name, false);
-            if (db != null) {
-                try {
-                    db.Open();
-                } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Failed to open database");
-                    throw;
-                } catch(Exception e) {
-                    throw new CouchbaseLiteException("Error opening database", e) { Code = StatusCode.Exception };
-                }
-
-                Shared.OpenedDatabase(db);
-            }
-            return db;
+            var options = DefaultOptionsFor(name);
+            options.Create = true;
+            return OpenDatabase(name, options);
         }
 
         /// <summary>
@@ -366,23 +372,11 @@ namespace Couchbase.Lite
         /// <returns>The <see cref="Couchbase.Lite.Database"/> with the given name if it exists, otherwise null.</returns>
         /// <param name="name">The name of the Database to get.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while getting the <see cref="Couchbase.Lite.Database"/>.</exception>
-        public Database GetExistingDatabase(String name)
+        [Obsolete("Use new OpenDatabase API")]
+        public Database GetExistingDatabase(string name)
         {
-            var db = GetDatabaseWithoutOpening(name, true);
-            if (db != null) {
-                try {
-                    db.Open();
-                } catch(CouchbaseLiteException) {
-                    Log.E(TAG, "Error opening database");
-                    throw;
-                } catch(Exception e) {
-                    throw new CouchbaseLiteException("Error opening database", e) { Code = StatusCode.Exception };
-                }
-
-                Shared.OpenedDatabase(db);
-            }
-
-            return db;
+            var options = DefaultOptionsFor(name);
+            return OpenDatabase(name, options);
         }
 
         /// <summary>Replaces or installs a database from a file.</summary>
@@ -424,7 +418,7 @@ namespace Couchbase.Lite
                    
                 System.IO.Directory.Delete(tempPath, true);
 
-                var db = GetDatabaseWithoutOpening(name, true);
+                var db = GetDatabase(name, true);
                 var attachmentsPath = db.AttachmentStorePath;
                 if(attachmentStreams != null) {
                     StreamUtils.CopyStreamsToFolder(attachmentStreams, new FilePath(attachmentsPath));
@@ -448,7 +442,9 @@ namespace Couchbase.Lite
         /// </remarks>
         public void ReplaceDatabase(string name, Stream compressedStream, bool autoRename)
         {
-            var zipDbName = GetDbNameFromZip(compressedStream);
+            var zipInfo = GetDbNameAndExtFromZip(compressedStream);
+            var zipDbName = zipInfo.Item1;
+            var extension = zipInfo.Item2;
             bool namesMatch = name.Equals(zipDbName);
             if (!namesMatch && !autoRename) {
                 throw new ArgumentException("Names of db file in zip and name passed to function differ", "compressedStream");
@@ -461,7 +457,6 @@ namespace Couchbase.Lite
 
             System.IO.Directory.CreateDirectory(tempPath);
 
-            var extension = default(string);
             ZipEntry entry = null;
             using (var zipStream = new ZipInputStream(compressedStream) { IsStreamOwner = false }) {
                 while ((entry = zipStream.GetNextEntry()) != null) {
@@ -470,11 +465,6 @@ namespace Couchbase.Lite
                         entryName = entry.Name;
                     } else {
                         entryName = entry.Name.Replace(zipDbName, name);
-                    }
-
-                    var possibleExtension = Path.GetExtension(entry.Name);
-                    if (possibleExtension.Length > 0 && DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES.Contains(possibleExtension.Substring(1))) {
-                        extension = possibleExtension;
                     }
 
                     if (entry.IsDirectory) {
@@ -496,16 +486,17 @@ namespace Couchbase.Lite
                 }
             }
 
-            var db = GetDatabaseWithoutOpening(name, false);
+            var db = GetDatabase(name, false);
             if (db.Exists()) {
                 System.IO.Directory.Move(db.DbDirectory, db.DbDirectory + "-old");
             }
 
-            var success = false;
-            if (extension == ".cblite2") {
-                success = UpgradeDatabase(new DirectoryInfo(Path.Combine(tempPath, name + extension)));
-            } else {
+            var success = true;
+            if (extension == Manager.DatabaseSuffixv0 || extension == Manager.DatabaseSuffixv1) {
                 success = UpgradeDatabase(new FileInfo(Path.Combine(tempPath, name + extension)));
+            } else {
+                var folderPath = Path.Combine(tempPath, Path.GetFileName(db.DbDirectory));
+                System.IO.Directory.Move(folderPath, db.DbDirectory);
             }
 
             if (!success) {
@@ -546,7 +537,7 @@ namespace Couchbase.Lite
         }
 
         // Instance Fields
-        private readonly ManagerOptions options;
+        private readonly ManagerOptions _options;
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;
         private readonly List<Replication> replications;
@@ -557,11 +548,10 @@ namespace Couchbase.Lite
         internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
         internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
         internal CookieStore SharedCookieStore { get; set; } 
-        internal string StorageType { get; set; } // @"SQLite" (default) or @"ForestDB"
         internal SharedState Shared { get; private set; }
 
         // Instance Methods
-        internal Database GetDatabaseWithoutOpening(string name, bool mustExist)
+        internal Database GetDatabase(string name, bool mustExist)
         {
             var db = databases.Get(name);
             if (db == null) {
@@ -569,16 +559,12 @@ namespace Couchbase.Lite
                     throw new ArgumentException("Invalid database name: " + name);
                 }
 
-                if (options.ReadOnly) {
+                if (_options.ReadOnly) {
                     mustExist = true;
                 }
 
                 var path = PathForName(name);
-                if (path == null) {
-                    return null;
-                }
-
-                db = new Database(path, name, this);
+                db = new Database(path, name, this, _options.ReadOnly);
                 if (mustExist && !db.Exists()) {
                     Log.W(TAG, "mustExist is true and db ({0}) does not exist", name);
                     return null;
@@ -618,8 +604,9 @@ namespace Couchbase.Lite
             }
         }
 
-        private string GetDbNameFromZip(Stream compressedStream) {
+        private Tuple<string, string> GetDbNameAndExtFromZip(Stream compressedStream) {
             string dbName = null;
+            string extension = null;
             using (var zipStream = new ZipInputStream(compressedStream) { IsStreamOwner = false }) {
                 ZipEntry next;
                 while ((next = zipStream.GetNextEntry()) != null) {
@@ -627,6 +614,7 @@ namespace Couchbase.Lite
                         (FileSystemInfo)new DirectoryInfo(next.Name) : (FileSystemInfo)new FileInfo(next.Name);
                     if (DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES.Contains(fileInfo.Extension.TrimStart('.'))) {
                         dbName = Path.GetFileNameWithoutExtension(fileInfo.Name);
+                        extension = Path.GetExtension(fileInfo.Name);
                         break;
                     }
                 }
@@ -637,27 +625,16 @@ namespace Couchbase.Lite
             }
 
             compressedStream.Seek(0, SeekOrigin.Begin);
-            return dbName;
+            return Tuple.Create(dbName, extension);
         }
 
         private void UpgradeOldDatabaseFiles(DirectoryInfo dirInfo)
         {
             var extensions = DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES;
-            var files = dirInfo.GetFiles().Where(f => extensions.Contains(f.Extension.TrimStart('.')));
+            var files = dirInfo.GetFiles("*." + DatabaseSuffixv1);
             foreach (var file in files) {
                 UpgradeDatabase(file);
             }
-
-            var directories = dirInfo.GetDirectories().Where(f => extensions.Contains(f.Extension.TrimStart('.')));
-            foreach (var directory in directories) {
-                UpgradeDatabase(directory);
-            }
-        }
-
-        private bool UpgradeDatabase(DirectoryInfo path)
-        {
-            // Currently only the newest version has directories, so for now this is a no-op
-            return true;
         }
 
         private bool UpgradeDatabase(FileInfo path)
@@ -677,7 +654,7 @@ namespace Couchbase.Lite
                 }
 
                 var name = Path.GetFileNameWithoutExtension(Path.Combine(path.DirectoryName, newFilename));
-                var db = GetDatabaseWithoutOpening(name, false);
+                var db = GetDatabase(name, false);
                 if (db == null) {
                     Log.W(TAG, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
                     return false;
@@ -919,7 +896,7 @@ namespace Couchbase.Lite
         private string PathForName(string name)
         {
             if (String.IsNullOrEmpty(name) || illegalCharactersPattern.IsMatch(name)) {
-                return null;
+                throw new ArgumentException(String.Format("\"{0}\" is empty or contains illegal characters", name), "name");
             }
 
             //Backwards compatibility
@@ -944,7 +921,7 @@ namespace Couchbase.Lite
 
         internal Task<Boolean> RunAsync(String databaseName, Func<Database, Boolean> action) 
         {
-            var db = GetDatabase(databaseName);
+            var db = OpenDatabase(databaseName, new DatabaseOptions { Create = true });
             return RunAsync<Boolean>(() => action (db));
         }
 
@@ -987,6 +964,17 @@ namespace Couchbase.Lite
                 ? workExecutor.StartNew(action) 
                   : workExecutor.StartNew(action, token);
             return task;
+        }
+
+        internal DatabaseOptions DefaultOptionsFor(string dbName)
+        {
+            var options = new DatabaseOptions();
+            var encryptionKey = default(SymmetricKey);
+            if (Shared.TryGetValue("encryptionKey", "", dbName, out encryptionKey)) {
+                options.EncryptionKey = encryptionKey;
+            }
+
+            return options;
         }
 
     #endregion

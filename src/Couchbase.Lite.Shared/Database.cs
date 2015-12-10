@@ -55,6 +55,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Collections.Concurrent;
+using Couchbase.Lite.Db;
 
 
 #if !NET_3_5
@@ -97,37 +98,20 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        /// <summary>
-        /// Each database can have an associated PersistentCookieStore,
-        /// where the persistent cookie store uses the database to store
-        /// its cookies.
-        /// </summary>
-        /// <remarks>
-        /// Each database can have an associated PersistentCookieStore,
-        /// where the persistent cookie store uses the database to store
-        /// its cookies.
-        /// There are two reasons this has been made an instance variable
-        /// of the Database, rather than of the Replication:
-        /// - The PersistentCookieStore needs to span multiple replications.
-        /// For example, if there is a "push" and a "pull" replication for
-        /// the same DB, they should share a cookie store.
-        /// - PersistentCookieStore lifecycle should be tied to the Database
-        /// lifecycle, since it needs to cease to exist if the underlying
-        /// Database ceases to exist.
-        /// REF: https://github.com/couchbase/couchbase-lite-android/issues/269
-        /// </remarks>
-        private CookieStore                             _persistentCookieStore; // Not used yet.
+        private CookieStore                             _persistentCookieStore;
 
-        private bool                                    _isOpen;
         private IDictionary<string, BlobStoreWriter>    _pendingAttachmentsByDigest;
         private IDictionary<string, View>               _views;
         private IList<DocumentChange>                   _changesToNotify;
         private bool                                    _isPostingChangeNotifications;
         private object                                  _allReplicatorsLocker = new object();
+        private bool                                    _readonly;
 
         #endregion
 
         #region Properties
+
+        internal bool IsOpen { get; private set; }
 
         /// <summary>
         /// Gets or sets an object that can compile source code into <see cref="FilterDelegate"/>.
@@ -285,7 +269,7 @@ namespace Couchbase.Lite
             return Misc.CreateGUID();
         }
 
-        internal Database(string directory, string name, Manager manager)
+        internal Database(string directory, string name, Manager manager, bool readOnly)
         {
             Debug.Assert(Path.IsPathRooted(directory));
 
@@ -295,6 +279,7 @@ namespace Couchbase.Lite
             Manager = manager;
             DocumentCache = new LruCache<string, Document>(MAX_DOC_CACHE_SIZE);
             UnsavedRevisionDocumentCache = new ConcurrentDictionary<string, WeakReference>();
+            _readonly = readOnly;
  
             // FIXME: Not portable to WinRT/WP8.
             ActiveReplicators = new List<Replication>();
@@ -336,7 +321,7 @@ namespace Couchbase.Lite
         /// Thrown if an issue occurs while deleting the <see cref="Couchbase.Lite.Database" /></exception>
         public void Delete()
         {
-            if (_isOpen) {
+            if (IsOpen) {
                 Close();
             }
 
@@ -626,23 +611,21 @@ namespace Couchbase.Lite
         /// <summary>
         /// Change the encryption key used to secure this database
         /// </summary>
-        /// <param name="newKeyOrPassword">Either a password as a string or derived
-        /// key data as a byte IEnumerable</param>
-        public void ChangeEncryptionKey(object newKeyOrPassword)
+        /// <param name="newPassword">The new password to derive the key from</param>
+        public void ChangeEncryptionPassword(string newPassword)
         {
-            var newKey = default(SymmetricKey);
-            if (newKeyOrPassword != null) {
-                try {
-                    newKey = SymmetricKey.Create(newKeyOrPassword);
-                } catch(Exception e) {
-                    throw new CouchbaseLiteException(e, StatusCode.BadRequest);
-                }
-            }
+            var newKey = new SymmetricKey(newPassword);
+            ChangeEncryptionKey(newKey);
+        }
 
-            var action = Storage.ActionToChangeEncryptionKey(newKey);
-            action.AddLogic(Attachments.ActionToChangeEncryptionKey(newKey));
-            action.AddLogic(() => Manager.RegisterEncryptionKey(newKeyOrPassword, Name), null, null);
-            action.Run();
+        /// <summary>
+        /// Change the encryption key used to secure this database
+        /// </summary>
+        /// <param name="newPassKey">The new password to derive the key from</param>
+        public void ChangeEncryptionKey(IEnumerable<byte> newPassKey)
+        {
+            var newKey = new SymmetricKey(newPassKey.ToArray());
+            ChangeEncryptionKey(newKey);
         }
 
         #endregion
@@ -1214,7 +1197,7 @@ namespace Couchbase.Lite
             // This is a 'while' instead of an 'if' because when we finish posting notifications, there
             // might be new ones that have arrived as a result of notification handlers making document
             // changes of their own (the replicator manager will do this.) So we need to check again.
-            while ((Storage == null || !Storage.InTransaction) && _isOpen && !_isPostingChangeNotifications 
+            while ((Storage == null || !Storage.InTransaction) && IsOpen && !_isPostingChangeNotifications 
                 && _changesToNotify != null && _changesToNotify.Count > 0) {
                 try {
                     _isPostingChangeNotifications = true;
@@ -1906,7 +1889,7 @@ namespace Couchbase.Lite
 
         internal void Close()
         {
-            if (!_isOpen) {
+            if (!IsOpen) {
                 return;
             }
 
@@ -1937,92 +1920,98 @@ namespace Couchbase.Lite
             } finally {
                 Storage = null;
 
-                _isOpen = false;
+                IsOpen = false;
                 UnsavedRevisionDocumentCache.Clear();
                 DocumentCache = new LruCache<string, Document>(DocumentCache.MaxSize);
                 Manager.ForgetDatabase(this);
             }
         }
 
-        internal void Open()
+        internal void OpenWithOptions(DatabaseOptions options)
         {
-            if (_isOpen) {
+            if (IsOpen) {
                 return;
             }
 
             Log.D(TAG, "Opening {0}", Name);
 
             // Instantiate storage:
-            string storageType = Manager.StorageType ?? "SQLite";
-            #if !FORESTDB
-            #if NOSQLITE
-            #error No storage engine compilation options selected
-            #endif
-            if(storageType == "ForestDB") {
-                throw new ApplicationException("ForestDB storage engine selected, but not compiled in library");
-            }
-            #elif FORESTDB
-            #if NOSQLITE
-            if(storageType == "SQLite") {
-                throw new ApplicationException("SQLite storage engine selected, but not compiled in library");
-            }
-            #endif
-            #endif
+            string storageType = options.StorageType ?? Manager.StorageType ?? DatabaseOptions.SQLITE_STORAGE;
 
             var className = String.Format("Couchbase.Lite.Store.{0}CouchStore", storageType);
             var primaryStorage = Type.GetType(className, false, true);
-            if(primaryStorage == null) {
-                throw new InvalidOperationException(String.Format("'{0}' is not a valid storage type", storageType));
+            var errorMessage = default(string);
+            if (primaryStorage == null) {
+                #if !FORESTDB
+                if (storageType == DatabaseOptions.FORESTDB_STORAGE) {
+                    errorMessage = "ForestDB storage option selected but not compiled into library";
+                }
+                #endif
+                #if NOSQLITE
+                if (storageType == DatabaseOptions.SQLITE_STORAGE) {
+                    errorMessage = "SQLite storage option selected but not compiled into library";
+                }
+                #endif
+            } else if (primaryStorage.GetInterface("Couchbase.Lite.Store.ICouchStore") == null) {
+                errorMessage = String.Format("{0} does not implement ICouchStore", className);
+                primaryStorage = null;
             }
 
-            var isStore = primaryStorage.GetInterface("Couchbase.Lite.Store.ICouchStore") != null;
-            if(!isStore) {
-                throw new InvalidOperationException(String.Format("{0} does not implement ICouchStore", className));
+            if (primaryStorage == null) {
+                throw new CouchbaseLiteException(errorMessage, StatusCode.InvalidStorageType);
             }
 
-            #if !NOSQLITE
-            #if FORESTDB
-            var secondaryClass = "Couchbase.Lite.Store.ForestDBCouchStore";
-            if(className == secondaryClass) {
-                secondaryClass = "Couchbase.Lite.Store.SqliteCouchStore";
+            var upgrade = false;
+            var primarySQLite = storageType == DatabaseOptions.SQLITE_STORAGE;
+            var otherStorage = primarySQLite ? Type.GetType("Couchbase.Lite.Store.ForestDBCouchStore") : 
+                Type.GetType("Couchbase.Lite.Store.SqliteCouchStore");
+
+
+            var primaryStorageInstance = (ICouchStore)Activator.CreateInstance(primaryStorage);
+            var otherStorageInstance = otherStorage != null ? (ICouchStore)Activator.CreateInstance(otherStorage) : null;
+            if(options.StorageType != null) {
+                // If explicit storage type given in options, always use primary storage type,
+                // and if secondary db exists, try to upgrade from it:
+                upgrade = otherStorageInstance != null && otherStorageInstance.DatabaseExistsIn(DbDirectory) &&
+                    !primaryStorageInstance.DatabaseExistsIn(DbDirectory);
+
+                if (upgrade && primarySQLite) {
+                    throw new CouchbaseLiteException("Cannot upgrade to SQLite", StatusCode.InvalidStorageType);
+                }
+            } else {
+                // If options don't specify, use primary unless secondary db already exists in dir:
+                if (otherStorageInstance != null && otherStorageInstance.DatabaseExistsIn(DbDirectory)) {
+                    primaryStorageInstance = otherStorageInstance;
+                }
             }
 
-            var secondaryStorage = Type.GetType(secondaryClass, false, true);
-            Storage = (ICouchStore)Activator.CreateInstance(secondaryStorage);
-            if(!Storage.DatabaseExistsIn(DbDirectory)) {
-            #endif
-                Storage = (ICouchStore)Activator.CreateInstance(primaryStorage);
-            #if FORESTDB
-            }
-            #endif
-            #else
-            Storage = new ForestDBCouchStore();
-            #endif
+            Log.I(TAG, "Using {0} for db at {1}; upgrade={2}", primaryStorage, DbDirectory, upgrade);
+            Storage = primaryStorageInstance;
+            Storage.Delegate = this;
+            Storage.AutoCompact = AUTO_COMPACT;
 
-            var encryptionKey = default(SymmetricKey);
-            var gotKey = Manager.Shared.TryGetValue("encryptionKey", "", Name, out encryptionKey);
-            if (gotKey) {
+            // Encryption:
+            var encryptionKey = options.EncryptionKey;
+            if (encryptionKey != null) {
                 Storage.SetEncryptionKey(encryptionKey);
             }
 
-            Storage.Delegate = this;
-            Log.D(TAG, "Using {0} for db at {1}", Storage.GetType(), DbDirectory);
+            // Open the storage!
             try {
-                Storage.Open(DbDirectory, Manager, false);
+                Storage.Open(DbDirectory, Manager, _readonly);
 
                 // HACK: Needed to overcome the read connection not getting the write connection
                 // changes until after the schema is written
                 Storage.Close();
-                Storage.Open(DbDirectory, Manager, false);
+                Storage.Open(DbDirectory, Manager, _readonly);
             } catch(CouchbaseLiteException) {
                 Storage.Close();
-                Log.W(TAG, "Failed to create storage engine");
+                Log.E(TAG, "Failed to open storage for database");
                 throw;
             } catch(Exception e) {
-                throw new CouchbaseLiteException("Error creating storage engine", e) { Code = StatusCode.Exception };
+                Storage.Close();
+                throw new CouchbaseLiteException("Error opening storage for database", e);
             }
-
-            Storage.AutoCompact = AUTO_COMPACT;
 
             // First-time setup:
             if (PrivateUUID() == null) {
@@ -2054,14 +2043,40 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException(String.Format("Unknown error creating blob store at {0}", attachmentsPath),
                     e) { Code = StatusCode.Exception };
             }
-           
-            _isOpen = true;
+
+            IsOpen = true;
+
+            if (upgrade) {
+                var dbPath = Path.Combine(DbDirectory, "db.sqlite3");
+                var upgrader = DatabaseUpgraderFactory.CreateUpgrader(this, dbPath);
+                try {
+                    upgrader.Import();
+                } catch(CouchbaseLiteException e) {
+                    Log.W(TAG, "Upgrade failed for {0} (Status {1})", dbPath, e.CBLStatus);
+                    upgrader.Backout();
+                    Close();
+                    throw;
+                }
+            }
+        }
+
+        internal void Open()
+        {
+            OpenWithOptions(Manager.DefaultOptionsFor(Name));
         }
 
 
         #endregion
 
         #region Private Methods
+
+        private void ChangeEncryptionKey(SymmetricKey newKey)
+        {
+            var action = Storage.ActionToChangeEncryptionKey(newKey);
+            action.AddLogic(Attachments.ActionToChangeEncryptionKey(newKey));
+            action.AddLogic(() => Shared.SetValue("encryptionKey", "", Name, newKey), null, null);
+            action.Run();
+        }
 
         private static long SmallestLength(IDictionary<string, object> attachment)
         {
@@ -2159,7 +2174,7 @@ namespace Couchbase.Lite
         /// </remarks>
         public void Dispose()
         {
-            if (_isOpen) {
+            if (IsOpen) {
                 try {
                     Close();
                 } catch(Exception) {
