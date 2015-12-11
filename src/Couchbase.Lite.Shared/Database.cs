@@ -2047,12 +2047,11 @@ namespace Couchbase.Lite
             IsOpen = true;
 
             if (upgrade) {
-                var dbPath = Path.Combine(DbDirectory, "db.sqlite3");
-                var upgrader = DatabaseUpgraderFactory.CreateUpgrader(this, dbPath);
+                var upgrader = DatabaseUpgraderFactory.CreateUpgrader(this, DbDirectory);
                 try {
                     upgrader.Import();
                 } catch(CouchbaseLiteException e) {
-                    Log.W(TAG, "Upgrade failed for {0} (Status {1})", dbPath, e.CBLStatus);
+                    Log.W(TAG, "Upgrade failed for {0} (Status {1})", DbDirectory, e.CBLStatus);
                     upgrader.Backout();
                     Close();
                     throw;

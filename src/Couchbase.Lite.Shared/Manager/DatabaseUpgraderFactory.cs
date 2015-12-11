@@ -48,7 +48,7 @@ namespace Couchbase.Lite.Db
         private static readonly List<Func<Database, string, IDatabaseUpgrader>> UPGRADE_PATH = 
             new List<Func<Database, string, IDatabaseUpgrader>> {
             { (db, path) => new v1_upgrader(db, path) },
-            { (db, path) => new NoopUpgrader(db, path) }
+            { (db, path) => new v12_upgrader(db, path) }
         };
 
 
@@ -61,6 +61,11 @@ namespace Couchbase.Lite.Db
             }
 
             return UPGRADE_PATH[index](db, path);
+        }
+
+        private static int CollateRevIDs(object user_data, string s1, string s2)
+        {
+            throw new NotImplementedException();
         }
 
         internal static int SchemaVersion(string path) {

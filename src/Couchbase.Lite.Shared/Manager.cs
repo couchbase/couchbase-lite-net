@@ -358,7 +358,6 @@ namespace Couchbase.Lite
         /// <returns>The database.</returns>
         /// <param name="name">Name.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while gettings or createing the <see cref="Couchbase.Lite.Database"/>.</exception>
-        [Obsolete("Use new OpenDatabase API")]
         public Database GetDatabase(String name) 
         {
             var options = DefaultOptionsFor(name);
@@ -372,7 +371,6 @@ namespace Couchbase.Lite
         /// <returns>The <see cref="Couchbase.Lite.Database"/> with the given name if it exists, otherwise null.</returns>
         /// <param name="name">The name of the Database to get.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while getting the <see cref="Couchbase.Lite.Database"/>.</exception>
-        [Obsolete("Use new OpenDatabase API")]
         public Database GetExistingDatabase(string name)
         {
             var options = DefaultOptionsFor(name);
@@ -630,8 +628,7 @@ namespace Couchbase.Lite
 
         private void UpgradeOldDatabaseFiles(DirectoryInfo dirInfo)
         {
-            var extensions = DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES;
-            var files = dirInfo.GetFiles("*." + DatabaseSuffixv1);
+            var files = dirInfo.GetFiles("*" + DatabaseSuffixv1);
             foreach (var file in files) {
                 UpgradeDatabase(file);
             }
