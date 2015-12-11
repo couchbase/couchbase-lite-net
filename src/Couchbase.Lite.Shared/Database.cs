@@ -217,12 +217,20 @@ namespace Couchbase.Lite
                     value = DEFAULT_MAX_REVS;
                 }
 
-                if (Storage != null && value != Storage.MaxRevTreeDepth) {
-                    Storage.MaxRevTreeDepth = value;
-                    Storage.SetInfo("max_revs", value.ToString());
-                }
-
                 _maxRevTreeDepth = value;
+                if (Storage != null && value != Storage.MaxRevTreeDepth) {
+                    var last = Storage.MaxRevTreeDepth;
+                    Storage.MaxRevTreeDepth = value;
+                    if (last == 0) {
+                        var saved = Storage.GetInfo("max_revs");
+                        var savedInt = 0;
+                        if (saved != null && Int32.TryParse(saved, out savedInt) && savedInt == value) {
+                            return;
+                        }
+
+                        Storage.SetInfo("max_revs", value.ToString());
+                    }
+                }
             }
         }
         private int _maxRevTreeDepth;
@@ -1934,6 +1942,7 @@ namespace Couchbase.Lite
             }
 
             Log.D(TAG, "Opening {0}", Name);
+            _readonly = _readonly || options.ReadOnly;
 
             // Instantiate storage:
             string storageType = options.StorageType ?? Manager.StorageType ?? DatabaseOptions.SQLITE_STORAGE;

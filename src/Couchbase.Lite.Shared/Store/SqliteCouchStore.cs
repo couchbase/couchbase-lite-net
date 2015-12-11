@@ -121,6 +121,7 @@ namespace Couchbase.Lite.Store
 
         public ICouchStoreDelegate Delegate { get; set; }
         public int MaxRevTreeDepth { get; set; }
+
         public bool AutoCompact { get; set; }
 
         public int DocumentCount { 
@@ -477,7 +478,7 @@ namespace Couchbase.Lite.Store
                     RunStatements("END TRANSACTION");
                 }
 
-                if (!isNew) {
+                if (!isNew && !_readOnly) {
                     OptimizeSQLIndexes();
                 }
             } catch(CouchbaseLiteException) {

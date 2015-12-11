@@ -467,15 +467,7 @@ namespace Couchbase.Lite
             Assert.IsNull(doc.CurrentRevision);
             Assert.IsNotNull(doc.Id, "Document has no ID");
 
-            try
-            {
-                doc.PutProperties(properties);
-            } 
-            catch (Exception e)
-            {
-                Log.E(TAG, "Error creating document", e);
-                Assert.IsTrue(false, "can't create new document in db:" + db.Name + " with properties:" + properties.ToString());
-            }
+            doc.PutProperties(properties);
 
             Assert.IsNotNull(doc.Id);
             Assert.IsNotNull(doc.CurrentRevisionId);

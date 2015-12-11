@@ -51,6 +51,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Store;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Couchbase.Lite
 {
@@ -81,6 +82,34 @@ namespace Couchbase.Lite
         }
 
         #endif
+
+        [Test]
+        public void TestReadOnlyDb()
+        {
+            CreateDocuments(database, 10);
+            database.Close();
+
+            var options = new ManagerOptions();
+            options.ReadOnly = true;
+            var readOnlyManager = new Manager(new DirectoryInfo(manager.Directory), options);
+            database = readOnlyManager.GetExistingDatabase(database.Name);
+            Assert.IsNotNull(database);
+            var e = Assert.Throws<CouchbaseLiteException>(() => CreateDocuments(database, 1));
+            Assert.AreEqual(StatusCode.Forbidden, e.Code);
+            database.Close();
+
+            var dbOptions = new DatabaseOptions();
+            dbOptions.ReadOnly = true;
+            database = manager.OpenDatabase(database.Name, dbOptions);
+            Assert.IsNotNull(database);
+            e = Assert.Throws<CouchbaseLiteException>(() => CreateDocuments(database, 1));
+            Assert.AreEqual(StatusCode.Forbidden, e.Code);
+            database.Close();
+
+            dbOptions.ReadOnly = false;
+            database = manager.OpenDatabase(database.Name, dbOptions);
+            Assert.DoesNotThrow(() => CreateDocuments(database, 1));
+        }
 
         [Test]
         public void TestUpgradeDatabase()
