@@ -70,7 +70,7 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <param name="message">The message to use</param>
         /// <param name="innerException">The exception that was caught before the one being made, if applicable</param>
-        public CouchbaseLiteException(string message, Exception innerException) : base(message, innerException) { Code = StatusCode.Unknown; }
+        public CouchbaseLiteException(string message, Exception innerException) : base(message, innerException) { Code = StatusCode.Exception; }
 
         /// <summary>
         /// Constructor

@@ -181,6 +181,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonC4KeyReader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteServerVersion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CompressedContent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

@@ -1358,7 +1358,7 @@ namespace Couchbase.Lite
         protected override void SetUp()
         {
             foreach (var name in manager.AllDatabaseNames) {
-                var db = manager.GetDatabaseWithoutOpening(name, true);
+                var db = manager.GetDatabase(name, true);
                 db.Delete();
             }
 

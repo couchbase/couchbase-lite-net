@@ -170,7 +170,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         /// <param name="keyOrPassword">A password as a string or a byte
         /// IEnumerable containig key data</param>
-        public static SymmetricKey Create(object keyOrPassword)
+        internal static SymmetricKey Create(object keyOrPassword)
         {
             if (keyOrPassword == null) {
                 return null;
@@ -260,52 +260,6 @@ namespace Couchbase.Lite.Store
             var retVal = new CryptoStream(baseStream, _cryptor.CreateEncryptor(), CryptoStreamMode.Write);
             retVal.Write(_cryptor.IV, 0, IV_SIZE);
             return retVal;
-        }
-
-        /// <summary>
-        /// Incremental encryption: returns a block that can be called repeatedly with input data and
-        /// returns additional output data. At EOF the block should be called with a nil parameter, and
-        /// it will return the remaining encrypted data from its buffer. 
-        /// </summary>
-        [Obsolete("Replaced with CreateStream method")]
-        public CryptorBlock CreateEncryptor()
-        {
-            _cryptor.GenerateIV();
-            var encryptor = _cryptor.CreateEncryptor();
-            bool wroteIv = false;
-            byte[] prevBlock = null;
-            var inputBuffer = new List<byte>();
-            return new CryptorBlock((input) => {
-                if(prevBlock == null) {
-                    prevBlock = input;
-                    return new byte[0];
-                }
-
-                inputBuffer.AddRange(prevBlock);
-                List<byte> outputBuffer = null;
-                if(input != null) {
-                    //Unlike iOS, .NET has no "update" method so we have to manually
-                    //break the input into blocks
-                    outputBuffer = new List<byte>();
-                    while(inputBuffer.Count > encryptor.InputBlockSize) {
-                        var tmpBuffer = new byte[encryptor.OutputBlockSize];
-                        encryptor.TransformBlock(inputBuffer.Take(encryptor.InputBlockSize).ToArray(), 0, encryptor.InputBlockSize, tmpBuffer, 0);
-                        inputBuffer.RemoveRange(0, encryptor.InputBlockSize);
-                        outputBuffer.AddRange(tmpBuffer);
-                    }
-                } else {
-                    var tmp = encryptor.TransformFinalBlock(inputBuffer.ToArray(), 0, inputBuffer.Count);
-                    outputBuffer = new List<byte>(tmp);
-                }
-
-                if(!wroteIv) {
-                    outputBuffer.InsertRange(0, _cryptor.IV);
-                    wroteIv = true;
-                }
-
-                prevBlock = input;
-                return outputBuffer.ToArray();
-            });
         }
 
         #endregion

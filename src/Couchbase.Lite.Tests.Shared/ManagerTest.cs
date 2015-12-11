@@ -63,14 +63,14 @@ namespace Couchbase.Lite
             //to ensure this test is easily repeatable we will explicitly remove
             //any stale foo.cblite
             var mustExist = true;
-            Database old = manager.GetDatabaseWithoutOpening("foo", mustExist);
+            Database old = manager.GetDatabase("foo", mustExist);
             if (old != null)
             {
                 old.Delete();
             }
 
             mustExist = false;
-            var db = manager.GetDatabaseWithoutOpening("foo", mustExist);
+            var db = manager.GetDatabase("foo", mustExist);
             Assert.IsNotNull(db);
             Assert.AreEqual("foo", db.Name);
             Assert.IsTrue(db.DbDirectory.StartsWith(GetServerPath()));
@@ -113,7 +113,7 @@ namespace Couchbase.Lite
 
             StopCBLite();
             manager = new Manager(testDirInfo, Manager.DefaultOptions);
-            var db = manager.GetDatabaseWithoutOpening("withattachments", true);
+            var db = manager.GetDatabase("withattachments", true);
             int version = DatabaseUpgraderFactory.SchemaVersion(Path.Combine(db.DbDirectory, "db.sqlite3"));
             Assert.IsTrue(version >= 101, "Upgrade failed");
             Assert.IsFalse(Directory.Exists(Path.Combine(testDirPath, "withattachments/attachments")), "Failed to remove old attachments dir");

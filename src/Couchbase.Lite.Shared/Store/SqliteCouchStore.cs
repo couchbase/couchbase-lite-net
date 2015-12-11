@@ -103,6 +103,7 @@ namespace Couchbase.Lite.Store
         private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
         private SymmetricKey _encryptionKey;
+        private bool _readOnly;
 
         #endregion
 
@@ -428,7 +429,7 @@ namespace Couchbase.Lite.Store
             }
 
             var path = Path.Combine(_directory, DB_FILENAME);
-            if (StorageEngine == null || !StorageEngine.Open(path, _encryptionKey)) {
+            if (StorageEngine == null || !StorageEngine.Open(path, _readOnly, _encryptionKey)) {
                 throw new CouchbaseLiteException("Unable to create a storage engine", StatusCode.DbError);
             }
 
@@ -859,6 +860,7 @@ namespace Couchbase.Lite.Store
         public void Open(string directory, Manager manager, bool readOnly)
         {
             _directory = directory;
+            _readOnly = readOnly;
             Open();
         }
 
