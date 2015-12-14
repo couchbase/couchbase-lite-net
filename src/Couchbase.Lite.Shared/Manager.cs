@@ -605,6 +605,11 @@ namespace Couchbase.Lite
             }
         }
 
+        private bool ContainsExtension(string name)
+        {
+            return DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES.Any(x => name.Contains(x));
+        }
+
         private Tuple<string, string> GetDbNameAndExtFromZip(Stream compressedStream) {
             string dbName = null;
             string extension = null;
@@ -613,7 +618,7 @@ namespace Couchbase.Lite
                 while ((next = zipStream.GetNextEntry()) != null) {
                     var fileInfo = next.IsDirectory ? 
                         (FileSystemInfo)new DirectoryInfo(next.Name) : (FileSystemInfo)new FileInfo(next.Name);
-                    if (DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES.Contains(fileInfo.Extension.TrimStart('.'))) {
+                    if (ContainsExtension(fileInfo.Name)) {
                         dbName = Path.GetFileNameWithoutExtension(fileInfo.Name);
                         extension = Path.GetExtension(fileInfo.Name);
                         break;

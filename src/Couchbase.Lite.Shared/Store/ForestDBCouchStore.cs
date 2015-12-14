@@ -158,7 +158,7 @@ namespace Couchbase.Lite.Store
 
         static ForestDBCouchStore()
         {
-            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (f373e6af1a705581fd5bab8f162b2cff24c7b42a))");
+            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (cc7dab06dc42ec3a795d838757b7a7c1cd071a7d))");
         }
 
         public ForestDBCouchStore()
@@ -194,6 +194,11 @@ namespace Couchbase.Lite.Store
         #endregion
 
         #region Private Methods
+
+        private CBForestHistoryEnumerator GetHistoryFromSequence(long sequence)
+        {
+            return new CBForestHistoryEnumerator(Forest, sequence, true);
+        }
 
         private long[] GetLastSequenceNumbers()
         {
@@ -757,7 +762,7 @@ namespace Couchbase.Lite.Store
                     if (options.AllDocsMode >= AllDocsMode.ShowConflicts && next.IsConflicted) {
                         SelectCurrentRevision(next);
                         LoadRevisionBody(next);
-                        using (var innerEnumerator = new CBForestHistoryEnumerator(Forest, next.Sequence, true)) {
+                        using (var innerEnumerator = GetHistoryFromSequence(next.Sequence)) {
                             conflicts = innerEnumerator.Select(x => (string)x.SelectedRev.revID).ToList();
                         }
 

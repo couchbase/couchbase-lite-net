@@ -1242,7 +1242,9 @@ namespace Couchbase.Lite
                         Log.E(TAG, "Http Message failed to send: {0}", message);
                         Log.E(TAG, "Http exception", response.Exception.InnerException);
                         if(message.Content != null) {
-                            Log.E(TAG, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
+                            try {
+                                Log.E(TAG, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
+                            } catch(ObjectDisposedException) {}
                         }
                     }
 
@@ -2082,7 +2084,7 @@ namespace Couchbase.Lite
             NotifyChangeListeners(stateTransition);
         }
 
-        private void NotifyChangeListeners(ReplicationStateTransition transition = null)
+        private void NotifyChangeListeners(ReplicationStateTransition transition = null) 
         {
             Log.V(TAG, "NotifyChangeListeners ({0}/{1}, state={2} (batch={3}, net={4}))",
                 CompletedChangesCount, ChangesCount,

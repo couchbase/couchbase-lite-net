@@ -255,6 +255,8 @@ namespace Couchbase.Lite
                 var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
                 RunReplication(pusher);
 
+                Sleep(1000);
+
                 CreateDocuments(database, 10);
                 RunReplication(pusher);
                 Assert.AreEqual(20, pusher.CompletedChangesCount);
@@ -311,6 +313,7 @@ namespace Couchbase.Lite
 
                 remoteDb.AddDocuments(propertiesList);
 
+                prePopulateDB.Close();
                 using (var zipStream = ZipDatabase(prePopulateDB, "prepopulated.zip")) {
                     manager.ReplaceDatabase("importdb", zipStream, true);
                 }
@@ -379,6 +382,8 @@ namespace Couchbase.Lite
 
                     return true;
                 });
+
+                Sleep(1000);
 
                 repl = database.CreatePushReplication(remoteDb.RemoteUri);
                 Assert.AreEqual(10, repl.GetPendingDocumentIDs().Count);
@@ -1588,6 +1593,7 @@ namespace Couchbase.Lite
                     "{\"_id\":\"realdoc\",\"_rev\":\"1-12345abc\",\"channels\":[\"unit_test\"],\"foo\":\"bar\"}\r\n" +
                     "--67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f--");
 
+                response.Content.Headers.Remove("Content-Type");
                 response.Content.Headers.TryAddWithoutValidation("Content-Type", "multipart/mixed; boundary=\"67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\"");
                 return response;
             });
@@ -1663,6 +1669,7 @@ namespace Couchbase.Lite
                 var retVal = new HttpResponseMessage(HttpStatusCode.OK);
                 var responseString = responseBody.ToString();
                 retVal.Content = new StringContent(responseString);
+                retVal.Content.Headers.Remove("Content-Type");
                 retVal.Content.Headers.TryAddWithoutValidation("Content-Type", "multipart/mixed; boundary=\"67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\"");
 
                 return retVal;
