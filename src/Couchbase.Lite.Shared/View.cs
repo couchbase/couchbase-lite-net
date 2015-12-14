@@ -301,8 +301,7 @@ namespace Couchbase.Lite {
 
         internal Status UpdateIndex()
         {
-            //TODO: View grouping
-            var viewsToUpdate = new List<IViewStore> { Storage };
+            var viewsToUpdate = ViewsInGroup();
 
             UpdateJob proposedJob = Storage.CreateUpdateJob(viewsToUpdate);
             UpdateJob nextJob = null;
@@ -449,6 +448,17 @@ namespace Couchbase.Lite {
         #endregion
 
         #region Private Methods
+
+        private IEnumerable<IViewStore> ViewsInGroup()
+        {
+            var slash = Name.IndexOf('/');
+            if (slash != -1) {
+                var prefix = Name.Substring(0, slash);
+                return Database.GetAllViews().Where(v => v.Name.StartsWith(prefix)).Select(v => v.Storage);
+            } else {
+                return new List<IViewStore> { Storage };
+            }
+        }
 
         private UpdateJob QueueUpdate(UpdateJob job)
         {

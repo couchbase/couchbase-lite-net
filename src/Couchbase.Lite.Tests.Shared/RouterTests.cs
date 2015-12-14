@@ -558,9 +558,8 @@ namespace Couchbase.Lite
                 },
                 { "total_rows", 4L }
             });
-
-            //TODO.JHB: Should .NET also implement views so that groups are updated at once like iOS?
-            //Assert.IsFalse(database.GetView("design/view").IsStale);
+                
+            Assert.IsFalse(database.GetView("design/view").IsStale);
             Assert.IsFalse(database.GetView("design/view2").IsStale);
 
             //NOTE.JHB: The _rev property differs from iOS.  Should investigate later.
@@ -1539,7 +1538,7 @@ namespace Couchbase.Lite
                 Assert.AreEqual(expectedStatus, _lastResponse.StatusCode);
 
                 if (expectedResult != null) {
-                    Assert.AreEqual(expectedResult, result);
+                    AssertAreEqual(expectedResult, result);
                 }
             });
 

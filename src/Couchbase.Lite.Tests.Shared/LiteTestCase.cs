@@ -301,19 +301,57 @@ namespace Couchbase.Lite
             return GetReplicationPort() == 4984;
         }
 
+        private void AssertAreEqual(object first, object second, bool nestedCall)
+        {
+            if (!nestedCall) {
+                Log.D(TAG, "Starting equality comparison");
+            }
+
+            var firstDic = first.AsDictionary<string, object>();
+            var secondDic = second.AsDictionary<string, object>();
+            if (firstDic != null && secondDic != null) {
+                AssertDictionariesAreEqual(firstDic, secondDic);
+            } else {
+                var firstEnum = first as IEnumerable;
+                var secondEnum = first as IEnumerable;
+                if (firstEnum != null && secondEnum != null) {
+                    AssertEnumerablesAreEquivalent(firstEnum, secondEnum);
+                } else {
+                    Assert.AreEqual(first, second);
+                }
+            }
+        }
+
+        protected void AssertAreEqual(object first, object second)
+        {
+            AssertAreEqual(first, second, false);
+        }
+
         protected void AssertDictionariesAreEqual(IDictionary<string, object> first, IDictionary<string, object> second)
         {
             //I'm tired of NUnit misunderstanding that objects are dictionaries and trying to compare them as collections...
-            Assert.IsTrue(first.Keys.Count == second.Keys.Count);
+            Assert.AreEqual(first.Keys.Count, second.Keys.Count, "Differing number of keys in dictionary");
             foreach (var key in first.Keys) {
+                Log.D(TAG, "Analyzing key {0}", key);
                 var firstObj = first[key];
                 var secondObj = second[key];
-                var firstDic = firstObj.AsDictionary<string, object>();
-                var secondDic = secondObj.AsDictionary<string, object>();
-                if (firstDic != null && secondDic != null) {
-                    AssertDictionariesAreEqual(firstDic, secondDic);
+                AssertAreEqual(firstObj, secondObj, true);
+            }
+        }
+
+        protected void AssertEnumerablesAreEquivalent(IEnumerable first, IEnumerable second)
+        {
+            var firstEnum = first.GetEnumerator();
+            var secondEnum = second.GetEnumerator();
+            while(true) {
+                var firstMoved = firstEnum.MoveNext();
+                var secondMoved = secondEnum.MoveNext();
+                if (firstMoved && secondMoved) {
+                    AssertAreEqual(firstEnum.Current, secondEnum.Current, true);
+                } else if (!firstMoved && !secondMoved) {
+                    return;
                 } else {
-                    Assert.AreEqual(firstObj, secondObj);
+                    Assert.Fail("Differing number of array elements");
                 }
             }
         }
