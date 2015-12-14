@@ -30,6 +30,9 @@ using Couchbase.Lite.Listener.Tcp;
 using Couchbase.Lite.Util;
 using Mono.Zeroconf.Providers.Bonjour;
 using NUnit.Framework;
+using System.Security.Cryptography;
+using Mono.Security.X509.Extensions;
+using Couchbase.Lite.Listener.Security;
 
 namespace Couchbase.Lite
 {
@@ -49,6 +52,12 @@ namespace Couchbase.Lite
         private Random _rng = new Random(DateTime.Now.Millisecond);
 
         public PeerToPeerTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestSsl()
+        {
+            SSLGenerator.GenerateTempCert(59840, "127.0.0.1");
+        }
 
         [Test]
         public void TestBrowser()
@@ -99,12 +108,12 @@ namespace Couchbase.Lite
             base.SetUp();
 
             _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
-            _listener = new CouchbaseLiteTcpListener(manager, _port);
+            _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.UseTLS);
             #if USE_AUTH
             _listener.SetPasswords(new Dictionary<string, string> { { "bob", "slack" } });
             #endif
 
-            _listenerDBUri = new Uri("http://localhost:" + _port + "/" + LISTENER_DB_NAME);
+            _listenerDBUri = new Uri("https://localhost:" + _port + "/" + LISTENER_DB_NAME);
             _listener.Start();
         }
 
