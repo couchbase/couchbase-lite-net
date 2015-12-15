@@ -47,6 +47,11 @@ using System.Linq;
 using System.Text;
 
 using Sharpen;
+#if __UNITY__
+using InvalidDataException = System.IO.Couchbase.InvalidDataException;
+#else
+using InvalidDataException = System.IO.InvalidDataException;
+#endif
 
 namespace Couchbase.Lite
 {
