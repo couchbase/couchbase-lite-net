@@ -84,6 +84,7 @@ namespace Couchbase.Lite
         private const int MAX_DOC_CACHE_SIZE = 50;
         private const int DEFAULT_MAX_REVS = 20;
         private const string LOCAL_CHECKPOINT_DOC_ID = "CBL_LocalCheckpoint";
+        private const string CHECKPOINT_LOCAL_UUID_KEY = "localUUID";
 
         private static readonly HashSet<string> SPECIAL_KEYS_TO_REMOVE = new HashSet<string> {
             "_id", "_rev", "_deleted", "_revisions", "_revs_info", "_conflicts", "_deleted_conflicts",
@@ -640,6 +641,31 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
+        /* Create a local checkpoint document. This method is called only when importing or
+        replacing the database. The local checkpoint contains the old localUUID of the database 
+        before importing. The old localUUID is used by replicators to get the local checkpoint 
+        from the imported database in order to start replicating from from the current local       
+        checkpoint of the imported database after importing. */
+        internal void CreateLocalCheckpointDoc()
+        {
+
+            var document = new Dictionary<string, object> { { CHECKPOINT_LOCAL_UUID_KEY, PrivateUUID() } };
+            try {
+                PutLocalDocument(LOCAL_CHECKPOINT_DOC_ID, document);
+            } catch(CouchbaseLiteException) {
+                Log.E(TAG, "Could not create local checkpoint document");
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException("Error creating local checkpoint document", e);
+            }
+        }
+
+        /* Returns local checkpoint document if it exists. Otherwise returns null. */
+        internal IDictionary<string, object> GetLocalCheckpointDoc()
+        {
+            return GetExistingLocalDocument(LOCAL_CHECKPOINT_DOC_ID);
+        }
+
         // This is ONLY FOR TESTS
         internal BlobStoreWriter AttachmentWriterForAttachment(IDictionary<string, object> attachment)
         {
@@ -676,11 +702,6 @@ namespace Couchbase.Lite
             options.IncludeConflicts = true;
 
             return ChangesSince(Int64.Parse(sequence ?? "0"), options, filter, filterParams);
-        }
-
-        internal IDictionary<string, object> GetLocalCheckpointDoc()
-        {
-            return GetExistingLocalDocument(LOCAL_CHECKPOINT_DOC_ID);
         }
 
         internal object GetDesignDocFunction(string fnName, string key, out string language)

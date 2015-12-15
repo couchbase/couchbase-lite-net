@@ -209,7 +209,8 @@ namespace Couchbase.Lite.Tests
         public HashSet<string> AddDocuments(int count, bool withAttachment)
         {
             var docList = new HashSet<string>();
-            var json = CreateDocumentJson(withAttachment ? "attachment.png" : null).Substring(1);
+            var json = Manager.GetObjectMapper().WriteValueAsString(CreateDocumentJson(withAttachment ? "attachment.png" : null))
+                .Substring(1);
             var beginning = Encoding.UTF8.GetBytes(@"{""docs"":[");
 
             var request = new HttpRequestMessage(HttpMethod.Post, _remoteUri.AppendPath("_bulk_docs"));
@@ -241,10 +242,22 @@ namespace Couchbase.Lite.Tests
             return docList;
         }
 
-        public void AddDocument(string docId, string attachmentName)
+        public void AddDocuments(IList<IDictionary<string, object>> properties)
         {
-            string docJson = CreateDocumentJson(attachmentName);
+            var bulkJson = new Dictionary<string, object> {
+                { "docs", properties }
+            };
 
+            var content = Manager.GetObjectMapper().WriteValueAsBytes(bulkJson);
+            var request = new HttpRequestMessage(HttpMethod.Post, _remoteUri.AppendPath("_bulk_docs"));
+            request.Content = new ByteArrayContent(content.ToArray());
+            var response = _httpClient.SendAsync(request).Result;
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+        }
+
+        public void AddDocument(string docId, IDictionary<string, object> properties)
+        {
+            var docJson = Manager.GetObjectMapper().WriteValueAsString(properties);
             // push a document to server
             var replicationUrlTrailingDoc1 = new Uri(string.Format("{0}/{1}", _remoteUri, docId));
             var pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
@@ -273,7 +286,13 @@ namespace Couchbase.Lite.Tests
             WorkaroundSyncGatewayRaceCondition();
         }
 
-        private string CreateDocumentJson(string attachmentName)
+        public void AddDocument(string docId, string attachmentName)
+        {
+            var docJson = CreateDocumentJson(attachmentName);
+            AddDocument(docId, docJson);
+        }
+
+        private IDictionary<string, object> CreateDocumentJson(string attachmentName)
         {
             if (attachmentName != null)
             {
@@ -284,11 +303,23 @@ namespace Couchbase.Lite.Tests
                 attachmentStream.Dispose();
                 var attachmentBase64 = Convert.ToBase64String(baos.ToArray());
                 baos.Dispose();
-                return String.Format("{{\"foo\":1,\"bar\":false, \"_attachments\": {{ \"i_use_couchdb.png\": {{ \"content_type\": \"image/png\", \"data\": \"{0}\" }} }} }}", attachmentBase64);
-            }
-            else
-            {
-                return @"{""foo"":1,""bar"":false}";
+                return new Dictionary<string, object> {
+                    { "foo", 1 },
+                    { "bar", false },
+                    { "_attachments", new Dictionary<string, object> {
+                            { "i_use_couchdb.png", new Dictionary<string, object> {
+                                    { "content_type", "image/png" },
+                                    { "data", attachmentBase64 }
+                                }
+                            }
+                        }
+                    }
+                };
+            } else {
+                return new Dictionary<string, object> { 
+                    { "foo", 1 },
+                    { "bar", false }
+                };
             }
         }
 

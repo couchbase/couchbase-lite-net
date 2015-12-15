@@ -64,6 +64,7 @@ using System.Threading;
 using Couchbase.Lite.Listener.Tcp;
 using System.Text.RegularExpressions;
 using System.Net.Http.Headers;
+using ICSharpCode.SharpZipLib.Zip;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -167,6 +168,53 @@ namespace Couchbase.Lite
             tester(pull);
         }
 
+        private Stream ZipDatabase(Database db, string zipName)
+        {
+            var zipPath = Path.Combine(Path.GetTempPath(), zipName);
+            if (File.Exists(zipPath)) {
+                File.Delete(zipPath);
+            }
+
+            using (var outStream = new ZipOutputStream(File.OpenWrite(zipPath)) { IsStreamOwner = true }) {
+                var fileName = Path.GetFileName(db.DbDirectory);
+                CompressFolder(db.DbDirectory, outStream, db.DbDirectory.Length - fileName.Length);
+            }
+
+            return File.OpenRead(zipPath);
+        }
+
+        private void CompressFolder(string path, ZipOutputStream zipStream, int folderOffset) {
+            ZipEntry dirEntry = new ZipEntry(ZipEntry.CleanName(Path.GetFileName(path) + "/"));
+            zipStream.PutNextEntry(dirEntry);
+            zipStream.CloseEntry();
+
+            string[] files = Directory.GetFiles(path);
+
+            foreach (string filename in files) {
+
+                FileInfo fi = new FileInfo(filename);
+
+                string entryName = filename.Substring(folderOffset); // Makes the name in zip based on the folder
+                entryName = ZipEntry.CleanName(entryName); // Removes drive from name and fixes slash direction
+                ZipEntry newEntry = new ZipEntry(entryName);
+                newEntry.DateTime = fi.LastWriteTime; // Note the zip format stores 2 second granularity
+                newEntry.Size = fi.Length;
+
+                zipStream.PutNextEntry(newEntry);
+
+                // Zip the file in buffered chunks
+                // the "using" will close the stream even if an exception occurs
+                using (FileStream streamReader = File.OpenRead(filename)) {
+                    streamReader.CopyTo(zipStream);
+                }
+                zipStream.CloseEntry();
+            }
+            string[ ] folders = Directory.GetDirectories(path);
+            foreach (string folder in folders) {
+                CompressFolder(folder, zipStream, folderOffset);
+            }
+        }
+
         protected override void SetUp()
         {
             base.SetUp();
@@ -179,6 +227,73 @@ namespace Couchbase.Lite
             Sleep(2000); // Give the replicators a chance to finish up before moving to the next test
 
             base.TearDown();
+        }
+
+        [Test]
+        public void TestReplicationWithReplacedDB()
+        {
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                const int numPrePopulatedDocs = 100;
+                Log.I(Tag, "Creating {0} pre-populated documents", numPrePopulatedDocs);
+
+                var prePopulateDB = EnsureEmptyDatabase("prepobdb");
+                Assert.IsNotNull(prePopulateDB, "Couldn't create pre-populated DB");
+                prePopulateDB.RunInTransaction(() =>
+                {
+                    for(int i = 1; i <= numPrePopulatedDocs; i++) {
+                        var doc = prePopulateDB.GetDocument(String.Format("foo-doc-{0}", i));
+                        Assert.DoesNotThrow(() => doc.PutProperties(new Dictionary<string, object> {
+                            { "index", i },
+                            { "foo", true }
+                        }));
+                    }
+
+                    return true;
+                });
+
+                Log.I(Tag, "Pushing pre-populated documents ...");
+                var pusher = prePopulateDB.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+                Assert.AreEqual(ReplicationStatus.Stopped, pusher.Status);
+                Assert.AreEqual(numPrePopulatedDocs, pusher.CompletedChangesCount);
+                Assert.AreEqual(numPrePopulatedDocs, pusher.ChangesCount);
+
+                Log.I(Tag, "Pulling pre-populated documents ...");
+                var puller = prePopulateDB.CreatePullReplication(remoteDb.RemoteUri);
+                RunReplication(puller);
+                Assert.AreEqual(ReplicationStatus.Stopped, pusher.Status);
+                Assert.AreEqual(numPrePopulatedDocs, puller.CompletedChangesCount);
+                Assert.AreEqual(numPrePopulatedDocs, puller.ChangesCount);
+
+                const int numNonPrepopulatedDocs = 100;
+                var propertiesList = new List<IDictionary<string, object>>();
+                for (int i = 1; i <= numNonPrepopulatedDocs; i++) {
+                    propertiesList.Add(new Dictionary<string, object> {
+                        { "_id", String.Format("bar-doc-{0}", i) },
+                        { "index", i },
+                        { "bar", true }
+                    });
+                }
+
+                remoteDb.AddDocuments(propertiesList);
+
+                using (var zipStream = ZipDatabase(prePopulateDB, "prepopulated.zip")) {
+                    manager.ReplaceDatabase("importdb", zipStream, true);
+                }
+
+                var importDb = manager.GetDatabase("importdb");
+                pusher = importDb.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+                Assert.AreEqual(ReplicationStatus.Stopped, pusher.Status);
+                Assert.AreEqual(0, pusher.CompletedChangesCount);
+                Assert.AreEqual(0, pusher.ChangesCount);
+
+                puller = importDb.CreatePullReplication(remoteDb.RemoteUri);
+                RunReplication(puller);
+                Assert.AreEqual(ReplicationStatus.Stopped, pusher.Status);
+                Assert.AreEqual(numNonPrepopulatedDocs, puller.CompletedChangesCount);
+                Assert.AreEqual(numNonPrepopulatedDocs, puller.ChangesCount);
+            }
         }
 
         [Test]
