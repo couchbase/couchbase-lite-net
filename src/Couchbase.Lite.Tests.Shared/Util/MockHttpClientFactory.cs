@@ -48,6 +48,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
+using System.Net.Http.Headers;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -83,6 +84,7 @@ namespace Couchbase.Lite.Tests
             HttpHandler = new MockHttpRequestHandler(defaultFail);
             HttpHandler.CookieContainer = cookieStore;
             HttpHandler.UseCookies = true;
+            HttpHandler.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
 
             Headers = new Dictionary<string,string>();
         }
@@ -99,6 +101,7 @@ namespace Couchbase.Lite.Tests
                     Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
                 }
             }
+
             return client;
         }
 

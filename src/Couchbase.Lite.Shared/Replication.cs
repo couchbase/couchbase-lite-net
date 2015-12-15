@@ -224,6 +224,7 @@ namespace Couchbase.Lite
         private Task _retryIfReadyTask;
         private readonly Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
         private HashSet<string> _pendingDocumentIDs;
+        private bool _lastSequenceChanged;
 
         #endregion
 
@@ -979,8 +980,6 @@ namespace Couchbase.Lite
                 FireTrigger(ReplicationTrigger.GoOffline);
             }
 
-
-
             if(!LocalDatabase.AddReplication(this) || !LocalDatabase.AddActiveReplication(this)) {
                 Log.W(TAG, "Replication did not start");
                 return;
@@ -1674,6 +1673,13 @@ namespace Couchbase.Lite
             var checkpointId = RemoteCheckpointDocID();
             var localLastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointId);
 
+            if (localLastSequence == null && GetLastSequenceFromLocalCheckpoint() == null) {
+                Log.I(TAG, "No local checkpoint, not getting remote one");
+                MaybeCreateRemoteDB();
+                BeginReplicating();
+                return;
+            }
+
             SendAsyncRequest(HttpMethod.Get, "/_local/" + checkpointId, null, (response, e) => 
             {
                 try {
@@ -1702,6 +1708,14 @@ namespace Couchbase.Lite
 
                         if (remoteLastSequence != null && remoteLastSequence.Equals (localLastSequence)) {
                             LastSequence = localLastSequence;
+                            if(LastSequence == null) {
+                                // Try to get the last sequence from the local checkpoint document
+                                // created only when importing a database. This allows the
+                                // replicator to continue replicating from the current local checkpoint
+                                // of the imported database after importing.
+                                _lastSequence = GetLastSequenceFromLocalCheckpoint();
+                            }
+
                             Log.V (TAG, "Replicating from lastSequence=" + LastSequence);
                         } else {
                             Log.V (TAG, "lastSequence mismatch: I had " + localLastSequence + ", remote had " + remoteLastSequence);
@@ -1713,6 +1727,25 @@ namespace Couchbase.Lite
                     Log.E(TAG, "Error", ex);
                 }
             });
+        }
+
+        // If the local database has been copied from one pre-packaged in the app, this method returns
+        // a pre-existing checkpointed sequence to start from. This allows first-time replication to be
+        // fast and avoid starting over from sequence zero.
+        private string GetLastSequenceFromLocalCheckpoint()
+        {
+            _lastSequenceChanged = false;
+            var db = LocalDatabase;
+            var doc = db.GetLocalCheckpointDoc();
+            if (doc != null) {
+                var localUUID = doc.GetCast<string>(LOCAL_CHECKPOINT_LOCAL_UUID_KEY);
+                if (localUUID != null) {
+                    var checkpointID = RemoteCheckpointDocID(localUUID);
+                    return db.LastSequenceWithCheckpointId(checkpointID);
+                }
+            }
+
+            return null;
         }
 
         private static bool Is404(Exception e)
