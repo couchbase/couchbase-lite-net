@@ -162,12 +162,12 @@ namespace Couchbase.Lite {
                 {
                     if (internalRevision.GetRevId().Equals(Id))
                     {
-                        revisions.AddItem(this);
+                        revisions.Add(this);
                     }
                     else
                     {
                         var revision = Document.GetRevisionFromRev(internalRevision);
-                        revisions.AddItem(revision);
+                        revisions.Add(revision);
                     }
                 }
                 Collections.Reverse(revisions);

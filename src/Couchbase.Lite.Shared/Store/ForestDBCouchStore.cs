@@ -456,8 +456,6 @@ namespace Couchbase.Lite.Store
             foreach(var ptr in connections) {
                 ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
             }
-
-            _fdbConnections.Clear();
         }
 
         public void SetEncryptionKey(SymmetricKey key)
@@ -735,6 +733,7 @@ namespace Couchbase.Lite.Store
                     var conflicts = default(IList<string>);
                     if (options.AllDocsMode >= AllDocsMode.ShowConflicts && next.IsConflicted) {
                         SelectCurrentRevision(next);
+                        ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(next.Document, err));
                         using (var innerEnumerator = new CBForestHistoryEnumerator(next, true, false)) {
                             conflicts = innerEnumerator.Select(x => (string)x.SelectedRev.revID).ToList();
                         }

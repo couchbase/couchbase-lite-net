@@ -932,7 +932,7 @@ namespace Couchbase.Lite
             var strings = new List<String>();
             foreach (var obj in objects)
             {
-                strings.AddItem(obj != null ? obj.ToString() : null);
+                strings.Add(obj != null ? obj.ToString() : null);
             }
             return JoinQuoted(strings);
         }
@@ -1091,7 +1091,7 @@ namespace Couchbase.Lite
                         }
                     }
                     lastRevNo = revNo;
-                    suffixes.AddItem(suffix);
+                    suffixes.Add(suffix);
                 }
                 else {
                     start = -1;
@@ -1104,7 +1104,7 @@ namespace Couchbase.Lite
                 // we failed to build sequence, just stuff all the revs in list
                 suffixes = new List<string>();
                 foreach (RevisionInternal rev_1 in history) {
-                    suffixes.AddItem(rev_1.GetRevId());
+                    suffixes.Add(rev_1.GetRevId());
                 }
             }
             else {
@@ -1132,7 +1132,7 @@ namespace Couchbase.Lite
             var start = Convert.ToInt64(revisions.Get("start"));
             for (var i = 0; i < revIDs.Count; i++) {
                 var revID = revIDs[i];
-                revIDs.Set(i, Sharpen.Extensions.ToString(start--) + "-" + revID);
+                revIDs.Set(i, start-- + "-" + revID);
             }
 
             return revIDs;
@@ -1362,7 +1362,7 @@ namespace Couchbase.Lite
             Uri retval = null;
             try
             {
-                retval = new FilePath(path).ToURI().ToURL();
+                retval = new FilePath(path).ToURI();
             }
             catch (UriFormatException)
             {

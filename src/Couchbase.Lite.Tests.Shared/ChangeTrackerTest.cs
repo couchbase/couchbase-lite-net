@@ -193,7 +193,6 @@ namespace Couchbase.Lite
             var scheduler = new SingleTaskThreadpoolScheduler();
             var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
 
-            changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
             var success = changeReceivedSignal.Await(TimeSpan.FromSeconds(30));
@@ -215,7 +214,6 @@ namespace Couchbase.Lite
             var scheduler = new SingleTaskThreadpoolScheduler();
             var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, false, client, new TaskFactory(scheduler));
 
-            changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
             // sleep for a few seconds
@@ -296,7 +294,6 @@ namespace Couchbase.Lite
             var scheduler = new SingleTaskThreadpoolScheduler();
             var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
 
-            changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
             var success = changeReceivedSignal.Await(TimeSpan.FromSeconds(30));
@@ -318,33 +315,6 @@ namespace Couchbase.Lite
         public void TestChangeTrackerLongPoll() 
         {
             ChangeTrackerTestWithMode(ChangeTrackerMode.LongPoll);
-        }
-
-        [Test]
-        public void TestChangeTrackerWithConflictsIncluded()
-        {
-            Uri testUrl = GetReplicationURL();
-            var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, true, null);
-            Assert.AreEqual("_changes?feed=longpoll&limit=500&heartbeat=300000&style=all_docs&since=0", changeTracker.GetChangesFeedPath());
-        }
-            
-        [Test]
-        public void TestChangeTrackerWithFilterURL()
-        {
-            var testUrl = GetReplicationURL();
-            var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, false, null);
-            
-            // set filter
-            changeTracker.SetFilterName("filter");
-            
-            // build filter map
-            var filterMap = new Dictionary<string, object>();
-            filterMap["param"] = "value";
-
-            // set filter map
-            changeTracker.SetFilterParams(filterMap);
-            Assert.AreEqual("_changes?feed=longpoll&limit=500&heartbeat=300000&since=0&filter=filter&param=value", 
-                changeTracker.GetChangesFeedPath());
         }
 
         [Test]
@@ -400,18 +370,11 @@ namespace Couchbase.Lite
                 .LongPoll, 0, false, null);
 
             var docIds = new List<string>();
-            docIds.AddItem("doc1");
-            docIds.AddItem("doc2");
+            docIds.Add("doc1");
+            docIds.Add("doc2");
             changeTracker.SetDocIDs(docIds);
 
             var docIdsJson = "[\"doc1\",\"doc2\"]";
-            var docIdsEncoded = Uri.EscapeUriString(docIdsJson);
-            var expectedFeedPath = string.Format("_changes?feed=longpoll&limit=500&heartbeat=300000&since=0&filter=_doc_ids&doc_ids={0}", 
-                docIdsEncoded);
-            string changesFeedPath = changeTracker.GetChangesFeedPath();
-            Assert.AreEqual(expectedFeedPath, changesFeedPath);
-
-            changeTracker.UsePost = true;
             var parameters = changeTracker.GetChangesFeedParams();
             Assert.AreEqual("_doc_ids", parameters["filter"]);
             AssertEnumerablesAreEqual(docIds, (IEnumerable)parameters["doc_ids"]);

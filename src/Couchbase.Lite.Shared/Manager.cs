@@ -282,7 +282,7 @@ namespace Couchbase.Lite
                     var path = Path.GetFileNameWithoutExtension(databaseFile.FullName);
                     var replaced = path.Replace('.', '/');
                     replaced = replaced.Replace(':', '/'); //For backwards compatibility
-                    result.AddItem(replaced);
+                    result.Add(replaced);
                 }
 
                 result.Sort();
@@ -882,7 +882,7 @@ namespace Couchbase.Lite
                 ? (Replication)new Pusher (database, url, true, new TaskFactory(new SingleTaskThreadpoolScheduler()))
                 : (Replication)new Puller (database, url, true, new TaskFactory(new SingleTaskThreadpoolScheduler()));
 
-            replications.AddItem(replicator);
+            replications.Add(replicator);
             if (start)
             {
                 replicator.Start();

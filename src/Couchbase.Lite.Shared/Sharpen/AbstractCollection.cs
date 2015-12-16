@@ -47,7 +47,7 @@ namespace Sharpen
     using System.Collections;
     using System.Collections.Generic;
 
-    internal abstract class AbstractCollection<T> : Iterable<T>, IEnumerable, ICollection<T>, IEnumerable<T>
+    internal abstract class AbstractCollection<T> : ICollection<T>, IEnumerable<T>
     {
         protected AbstractCollection ()
         {
@@ -136,5 +136,17 @@ namespace Sharpen
         bool ICollection<T>.IsReadOnly {
             get { return false; }
         }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            return Iterator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return Iterator();
+        }
+
+        public abstract Iterator<T> Iterator ();
     }
 }

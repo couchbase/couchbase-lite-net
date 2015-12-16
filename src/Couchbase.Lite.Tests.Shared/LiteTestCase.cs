@@ -387,7 +387,7 @@ namespace Couchbase.Lite
             var observer = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += observer.Changed;
             replication.Start();
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(600));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
 
             replication.Changed -= observer.Changed;
@@ -545,7 +545,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(attachmentName, attachment.Name);
 
             var attNames = new List<string>();
-            attNames.AddItem(attachmentName);
+            attNames.Add(attachmentName);
             Assert.AreEqual(rev3.AttachmentNames, attNames);
             Assert.AreEqual("text/plain; charset=utf-8", attachment.ContentType);
             Assert.AreEqual(Encoding.UTF8.GetString(attachment.Content.ToArray()), content);

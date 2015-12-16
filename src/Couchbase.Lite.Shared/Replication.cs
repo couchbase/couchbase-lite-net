@@ -293,7 +293,7 @@ namespace Couchbase.Lite
         public IEnumerable<string> Channels {
             get
             {
-                if (FilterParams == null || FilterParams.IsEmpty())
+                if (FilterParams == null || FilterParams.Count == 0)
                 {
                     return new List<string>();
                 }
@@ -395,8 +395,9 @@ namespace Couchbase.Lite
             set
             {
                 if (value != _lastError) {
-                    Log.E(TAG, " Progress: set error = ", value);
-                    _lastError = value;
+                    var newException = value.Flatten();
+                    Log.E(TAG, " Progress: set error = ", newException);
+                    _lastError = newException;
                     NotifyChangeListeners();
 
                 }
@@ -977,6 +978,7 @@ namespace Couchbase.Lite
             }
 
             if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri)) {
+                LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
                 FireTrigger(ReplicationTrigger.GoOffline);
             }
 
@@ -1353,7 +1355,7 @@ namespace Couchbase.Lite
 
                         var status = response.StatusCode;
                         if ((Int32)status.GetStatusCode() >= 300) {
-                            Log.E(TAG, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode()));
+                            Log.E(TAG, "Got error {0}", status.GetStatusCode());
                             Log.E(TAG, "Request was for: " + message);
                             Log.E(TAG, "Status reason: " + response.ReasonPhrase);
                             error = new WebException(response.ReasonPhrase);

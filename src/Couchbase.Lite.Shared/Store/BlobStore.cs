@@ -280,7 +280,7 @@ namespace Couchbase.Lite
 
                 BlobKey attachmentKey = new BlobKey();
                 GetKeyForFilename(attachmentKey, attachment.GetPath());
-                result.AddItem(attachmentKey);
+                result.Add(attachmentKey);
             }
 
             return result;

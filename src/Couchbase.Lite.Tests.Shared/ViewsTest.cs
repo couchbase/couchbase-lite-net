@@ -268,27 +268,27 @@ namespace Couchbase.Lite
             var dict2 = new Dictionary<string, object>();
             dict2["_id"] = "22222";
             dict2["key"] = "two";
-            result.AddItem(PutDoc(db, dict2));
+            result.Add(PutDoc(db, dict2));
 
             var dict4 = new Dictionary<string, object>();
             dict4["_id"] = "44444";
             dict4["key"] = "four";
-            result.AddItem(PutDoc(db, dict4));
+            result.Add(PutDoc(db, dict4));
 
             var dict1 = new Dictionary<string, object>();
             dict1["_id"] = "11111";
             dict1["key"] = "one";
-            result.AddItem(PutDoc(db, dict1));
+            result.Add(PutDoc(db, dict1));
 
             var dict3 = new Dictionary<string, object>();
             dict3["_id"] = "33333";
             dict3["key"] = "three";
-            result.AddItem(PutDoc(db, dict3));
+            result.Add(PutDoc(db, dict3));
 
             var dict5 = new Dictionary<string, object>();
             dict5["_id"] = "55555";
             dict5["key"] = "five";
-            result.AddItem(PutDoc(db, dict5));
+            result.Add(PutDoc(db, dict5));
 
             return result;
         }
@@ -301,19 +301,19 @@ namespace Couchbase.Lite
 
             var dict1 = new Dictionary<string, object>();
             dict1["_id"] = "11111";
-            result.AddItem(PutDoc(db, dict1));
+            result.Add(PutDoc(db, dict1));
 
             var dict2 = new Dictionary<string, object>();
             dict2["_id"] = "22222";
             dict2["value"] = "hello";
             dict2["ancestors"] = new string[] { "11111" };
-            result.AddItem(PutDoc(db, dict2));
+            result.Add(PutDoc(db, dict2));
 
             var dict3 = new Dictionary<string, object>();
             dict3["_id"] = "33333";
             dict3["value"] = "world";
             dict3["ancestors"] = new string[] { "22222", "11111" };
-            result.AddItem(PutDoc(db, dict3));
+            result.Add(PutDoc(db, dict3));
 
             return result;
         }
@@ -329,9 +329,9 @@ namespace Couchbase.Lite
                 var key = new List<string>();
                 for (int j = 0; j < 256; j++)
                 {
-                    key.AddItem("key");
+                    key.Add("key");
                 }
-                key.AddItem(string.Format("key-{0}", i));
+                key.Add(string.Format("key-{0}", i));
                 doc["key"] = key;
 
                 PutDocViaUntitledDoc(db, doc);
@@ -476,27 +476,27 @@ namespace Couchbase.Lite
             var dict5 = new Dictionary<string, object>();
             dict5["id"] = "55555";
             dict5["key"] = "five";
-            expectedRows.AddItem(dict5);
+            expectedRows.Add(dict5);
 
             var dict4 = new Dictionary<string, object>();
             dict4["id"] = "44444";
             dict4["key"] = "four";
-            expectedRows.AddItem(dict4);
+            expectedRows.Add(dict4);
 
             var dict1 = new Dictionary<string, object>();
             dict1["id"] = "11111";
             dict1["key"] = "one";
-            expectedRows.AddItem(dict1);
+            expectedRows.Add(dict1);
 
             var dict3 = new Dictionary<string, object>();
             dict3["id"] = "33333";
             dict3["key"] = "three";
-            expectedRows.AddItem(dict3);
+            expectedRows.Add(dict3);
 
             var dict2 = new Dictionary<string, object>();
             dict2["id"] = "22222";
             dict2["key"] = "two";
-            expectedRows.AddItem(dict2);
+            expectedRows.Add(dict2);
             Assert.AreEqual(5, rows.Count);
             Assert.AreEqual(dict5["key"], rows[0].Key);
             Assert.AreEqual(dict4["key"], rows[1].Key);
@@ -511,9 +511,9 @@ namespace Couchbase.Lite
 
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<object>();
-            expectedRows.AddItem(dict5);
-            expectedRows.AddItem(dict4);
-            expectedRows.AddItem(dict1);
+            expectedRows.Add(dict5);
+            expectedRows.Add(dict4);
+            expectedRows.Add(dict1);
             Assert.AreEqual(3, rows.Count);
             Assert.AreEqual(dict5["key"], rows[0].Key);
             Assert.AreEqual(dict4["key"], rows[1].Key);
@@ -523,8 +523,8 @@ namespace Couchbase.Lite
             options.InclusiveEnd = false;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<object>();
-            expectedRows.AddItem(dict5);
-            expectedRows.AddItem(dict4);
+            expectedRows.Add(dict5);
+            expectedRows.Add(dict4);
             Assert.AreEqual(2, rows.Count);
             Assert.AreEqual(dict5["key"], rows[0].Key);
             Assert.AreEqual(dict4["key"], rows[1].Key);
@@ -536,8 +536,8 @@ namespace Couchbase.Lite
             options.InclusiveEnd = true;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<object>();
-            expectedRows.AddItem(dict4);
-            expectedRows.AddItem(dict5);
+            expectedRows.Add(dict4);
+            expectedRows.Add(dict5);
             Assert.AreEqual(2, rows.Count);
             Assert.AreEqual(dict4["key"], rows[0].Key);
             Assert.AreEqual(dict5["key"], rows[1].Key);
@@ -546,20 +546,20 @@ namespace Couchbase.Lite
             options.InclusiveEnd = false;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<object>();
-            expectedRows.AddItem(dict4);
+            expectedRows.Add(dict4);
             Assert.AreEqual(1, rows.Count);
             Assert.AreEqual(dict4["key"], rows[0].Key);
 
             // Specific keys: (note that rows should be in same order as input keys, not sorted)
             options = new QueryOptions();
             var keys = new List<object>();
-            keys.AddItem("two");
-            keys.AddItem("four");
+            keys.Add("two");
+            keys.Add("four");
             options.Keys = keys;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<object>();
-            expectedRows.AddItem(dict4);
-            expectedRows.AddItem(dict2);
+            expectedRows.Add(dict4);
+            expectedRows.Add(dict2);
             Assert.AreEqual(2, rows.Count);
             Assert.AreEqual(dict2["key"], rows[0].Key);
             Assert.AreEqual(dict4["key"], rows[1].Key);
@@ -1027,9 +1027,9 @@ namespace Couchbase.Lite
             view.SetMapReduce((document, emitter) =>
             {
                     IList<object> key = new List<object>();
-                    key.AddItem(document["artist"]);
-                    key.AddItem(document["album"]);
-                    key.AddItem(document["track"]);
+                    key.Add(document["artist"]);
+                    key.Add(document["album"]);
+                    key.Add(document["track"]);
                     emitter(key, document["time"]);
             }, BuiltinReduceFunctions.Sum, "1");
                 
@@ -1042,7 +1042,7 @@ namespace Couchbase.Lite
             IDictionary<string, object> row1 = new Dictionary<string, object>();
             row1["key"] = null;
             row1["value"] = 1162.0;
-            expectedRows.AddItem(row1);
+            expectedRows.Add(row1);
             Assert.AreEqual(row1["key"], rows[0].Key);
             Assert.AreEqual(row1["value"], rows[0].Value);
 
@@ -1052,48 +1052,48 @@ namespace Couchbase.Lite
             expectedRows = new List<IDictionary<string, object>>();
             row1 = new Dictionary<string, object>();
             IList<string> key1 = new List<string>();
-            key1.AddItem("Gang Of Four");
-            key1.AddItem("Entertainment!");
-            key1.AddItem("Ether");
+            key1.Add("Gang Of Four");
+            key1.Add("Entertainment!");
+            key1.Add("Ether");
             row1["key"] = key1;
             row1["value"] = 231.0;
-            expectedRows.AddItem(row1);
+            expectedRows.Add(row1);
 
             IDictionary<string, object> row2 = new Dictionary<string, object>();
             IList<string> key2 = new List<string>();
-            key2.AddItem("Gang Of Four");
-            key2.AddItem("Entertainment!");
-            key2.AddItem("Natural's Not In It");
+            key2.Add("Gang Of Four");
+            key2.Add("Entertainment!");
+            key2.Add("Natural's Not In It");
             row2["key"] = key2;
             row2["value"] = 187.0;
-            expectedRows.AddItem(row2);
+            expectedRows.Add(row2);
 
             IDictionary<string, object> row3 = new Dictionary<string, object>();
             IList<string> key3 = new List<string>();
-            key3.AddItem("Gang Of Four");
-            key3.AddItem("Entertainment!");
-            key3.AddItem("Not Great Men");
+            key3.Add("Gang Of Four");
+            key3.Add("Entertainment!");
+            key3.Add("Not Great Men");
             row3["key"] = key3;
             row3["value"] = 187.0;
-            expectedRows.AddItem(row3);
+            expectedRows.Add(row3);
 
             IDictionary<string, object> row4 = new Dictionary<string, object>();
             IList<string> key4 = new List<string>();
-            key4.AddItem("Gang Of Four");
-            key4.AddItem("Songs Of The Free");
-            key4.AddItem("I Love A Man In Uniform");
+            key4.Add("Gang Of Four");
+            key4.Add("Songs Of The Free");
+            key4.Add("I Love A Man In Uniform");
             row4["key"] = key4;
             row4["value"] = 248.0;
-            expectedRows.AddItem(row4);
+            expectedRows.Add(row4);
 
             IDictionary<string, object> row5 = new Dictionary<string, object>();
             IList<string> key5 = new List<string>();
-            key5.AddItem("PiL");
-            key5.AddItem("Metal Box");
-            key5.AddItem("Memories");
+            key5.Add("PiL");
+            key5.Add("Metal Box");
+            key5.Add("Memories");
             row5["key"] = key5;
             row5["value"] = 309.0;
-            expectedRows.AddItem(row5);
+            expectedRows.Add(row5);
             Assert.AreEqual(row1["key"], rows[0].Key.AsList<string>());
             Assert.AreEqual(row1["value"], rows[0].Value);
             Assert.AreEqual(row2["key"], rows[1].Key.AsList<string>());
@@ -1111,17 +1111,17 @@ namespace Couchbase.Lite
             expectedRows = new List<IDictionary<string, object>>();
             row1 = new Dictionary<string, object>();
             key1 = new List<string>();
-            key1.AddItem("Gang Of Four");
+            key1.Add("Gang Of Four");
             row1["key"] = key1;
             row1["value"] = 853.0;
 
-            expectedRows.AddItem(row1);
+            expectedRows.Add(row1);
             row2 = new Dictionary<string, object>();
             key2 = new List<string>();
-            key2.AddItem("PiL");
+            key2.Add("PiL");
             row2["key"] = key2;
             row2["value"] = 309.0;
-            expectedRows.AddItem(row2);
+            expectedRows.Add(row2);
             Assert.AreEqual(row1["key"], rows[0].Key.AsList<object>());
             Assert.AreEqual(row1["value"], rows[0].Value);
             Assert.AreEqual(row2["key"], rows[1].Key.AsList<object>());
@@ -1133,25 +1133,25 @@ namespace Couchbase.Lite
             expectedRows = new List<IDictionary<string, object>>();
             row1 = new Dictionary<string, object>();
             key1 = new List<string>();
-            key1.AddItem("Gang Of Four");
-            key1.AddItem("Entertainment!");
+            key1.Add("Gang Of Four");
+            key1.Add("Entertainment!");
             row1["key"] = key1;
             row1["value"] = 605.0;
-            expectedRows.AddItem(row1);
+            expectedRows.Add(row1);
             row2 = new Dictionary<string, object>();
             key2 = new List<string>();
-            key2.AddItem("Gang Of Four");
-            key2.AddItem("Songs Of The Free");
+            key2.Add("Gang Of Four");
+            key2.Add("Songs Of The Free");
             row2["key"] = key2;
             row2["value"] = 248.0;
-            expectedRows.AddItem(row2);
+            expectedRows.Add(row2);
             row3 = new Dictionary<string, object>();
             key3 = new List<string>();
-            key3.AddItem("PiL");
-            key3.AddItem("Metal Box");
+            key3.Add("PiL");
+            key3.Add("Metal Box");
             row3["key"] = key3;
             row3["value"] = 309.0;
-            expectedRows.AddItem(row3);
+            expectedRows.Add(row3);
             Assert.AreEqual(row1["key"], rows[0].Key.AsList<object>());
             Assert.AreEqual(row1["value"], rows[0].Value);
             Assert.AreEqual(row2["key"], rows[1].Key.AsList<object>());
@@ -1199,17 +1199,17 @@ namespace Couchbase.Lite
             IDictionary<string, object> row1 = new Dictionary<string, object>();
             row1["key"] = "A";
             row1["value"] = 2;
-            expectedRows.AddItem(row1);
+            expectedRows.Add(row1);
 
             IDictionary<string, object> row2 = new Dictionary<string, object>();
             row2["key"] = "J";
             row2["value"] = 2;
-            expectedRows.AddItem(row2);
+            expectedRows.Add(row2);
 
             IDictionary<string, object> row3 = new Dictionary<string, object>();
             row3["key"] = "N";
             row3["value"] = 1;
-            expectedRows.AddItem(row3);
+            expectedRows.Add(row3);
 
             Assert.AreEqual(row1["key"], rows[0].Key);
             Assert.AreEqual(row1["value"], rows[0].Value);
@@ -1224,54 +1224,54 @@ namespace Couchbase.Lite
         public void TestViewCollation()
         {
             IList<object> list1 = new List<object>();
-            list1.AddItem("a");
+            list1.Add("a");
             IList<object> list2 = new List<object>();
-            list2.AddItem("b");
+            list2.Add("b");
             IList<object> list3 = new List<object>();
-            list3.AddItem("b");
-            list3.AddItem("c");
+            list3.Add("b");
+            list3.Add("c");
             IList<object> list4 = new List<object>();
-            list4.AddItem("b");
-            list4.AddItem("c");
-            list4.AddItem("a");
+            list4.Add("b");
+            list4.Add("c");
+            list4.Add("a");
             IList<object> list5 = new List<object>();
-            list5.AddItem("b");
-            list5.AddItem("d");
+            list5.Add("b");
+            list5.Add("d");
             IList<object> list6 = new List<object>();
-            list6.AddItem("b");
-            list6.AddItem("d");
-            list6.AddItem("e");
+            list6.Add("b");
+            list6.Add("d");
+            list6.Add("e");
 
             // Based on CouchDB's "view_collation.js" test
             IList<object> testKeys = new List<object>();
-            testKeys.AddItem(null);
-            testKeys.AddItem(false);
-            testKeys.AddItem(true);
-            testKeys.AddItem(0);
-            testKeys.AddItem(2.5);
-            testKeys.AddItem(10);
-            testKeys.AddItem(" ");
-            testKeys.AddItem("_");
-            testKeys.AddItem("~");
-            testKeys.AddItem("a");
-            testKeys.AddItem("A");
-            testKeys.AddItem("aa");
-            testKeys.AddItem("b");
-            testKeys.AddItem("B");
-            testKeys.AddItem("ba");
-            testKeys.AddItem("bb");
-            testKeys.AddItem(list1);
-            testKeys.AddItem(list2);
-            testKeys.AddItem(list3);
-            testKeys.AddItem(list4);
-            testKeys.AddItem(list5);
-            testKeys.AddItem(list6);
+            testKeys.Add(null);
+            testKeys.Add(false);
+            testKeys.Add(true);
+            testKeys.Add(0);
+            testKeys.Add(2.5);
+            testKeys.Add(10);
+            testKeys.Add(" ");
+            testKeys.Add("_");
+            testKeys.Add("~");
+            testKeys.Add("a");
+            testKeys.Add("A");
+            testKeys.Add("aa");
+            testKeys.Add("b");
+            testKeys.Add("B");
+            testKeys.Add("ba");
+            testKeys.Add("bb");
+            testKeys.Add(list1);
+            testKeys.Add(list2);
+            testKeys.Add(list3);
+            testKeys.Add(list4);
+            testKeys.Add(list5);
+            testKeys.Add(list6);
 
             int i = 0;
             foreach (object key in testKeys)
             {
                 IDictionary<string, object> docProperties = new Dictionary<string, object>();
-                docProperties.Put("_id", Sharpen.Extensions.ToString(i++));
+                docProperties.Put("_id", (i++).ToString());
                 docProperties["name"] = key;
                 PutDoc(database, docProperties);
             }
@@ -1294,54 +1294,54 @@ namespace Couchbase.Lite
         public void TestViewCollationRaw()
         {
             IList<object> list1 = new List<object>();
-            list1.AddItem("a");
+            list1.Add("a");
             IList<object> list2 = new List<object>();
-            list2.AddItem("b");
+            list2.Add("b");
             IList<object> list3 = new List<object>();
-            list3.AddItem("b");
-            list3.AddItem("c");
+            list3.Add("b");
+            list3.Add("c");
             IList<object> list4 = new List<object>();
-            list4.AddItem("b");
-            list4.AddItem("c");
-            list4.AddItem("a");
+            list4.Add("b");
+            list4.Add("c");
+            list4.Add("a");
             IList<object> list5 = new List<object>();
-            list5.AddItem("b");
-            list5.AddItem("d");
+            list5.Add("b");
+            list5.Add("d");
             IList<object> list6 = new List<object>();
-            list6.AddItem("b");
-            list6.AddItem("d");
-            list6.AddItem("e");
+            list6.Add("b");
+            list6.Add("d");
+            list6.Add("e");
 
             // Based on CouchDB's "view_collation.js" test
             IList<object> testKeys = new List<object>();
-            testKeys.AddItem(0);
-            testKeys.AddItem(2.5);
-            testKeys.AddItem(10);
-            testKeys.AddItem(false);
-            testKeys.AddItem(null);
-            testKeys.AddItem(true);
-            testKeys.AddItem(list1);
-            testKeys.AddItem(list2);
-            testKeys.AddItem(list3);
-            testKeys.AddItem(list4);
-            testKeys.AddItem(list5);
-            testKeys.AddItem(list6);
-            testKeys.AddItem(" ");
-            testKeys.AddItem("A");
-            testKeys.AddItem("B");
-            testKeys.AddItem("_");
-            testKeys.AddItem("a");
-            testKeys.AddItem("aa");
-            testKeys.AddItem("b");
-            testKeys.AddItem("ba");
-            testKeys.AddItem("bb");
-            testKeys.AddItem("~");
+            testKeys.Add(0);
+            testKeys.Add(2.5);
+            testKeys.Add(10);
+            testKeys.Add(false);
+            testKeys.Add(null);
+            testKeys.Add(true);
+            testKeys.Add(list1);
+            testKeys.Add(list2);
+            testKeys.Add(list3);
+            testKeys.Add(list4);
+            testKeys.Add(list5);
+            testKeys.Add(list6);
+            testKeys.Add(" ");
+            testKeys.Add("A");
+            testKeys.Add("B");
+            testKeys.Add("_");
+            testKeys.Add("a");
+            testKeys.Add("aa");
+            testKeys.Add("b");
+            testKeys.Add("ba");
+            testKeys.Add("bb");
+            testKeys.Add("~");
 
             int i = 0;
             foreach (object key in testKeys)
             {
                 IDictionary<string, object> docProperties = new Dictionary<string, object>();
-                docProperties.Put("_id", Sharpen.Extensions.ToString(i++));
+                docProperties.Put("_id", (i++).ToString());
                 docProperties["name"] = key;
                 PutDoc(database, docProperties);
             }

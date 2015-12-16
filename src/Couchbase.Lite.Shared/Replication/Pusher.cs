@@ -649,7 +649,7 @@ namespace Couchbase.Lite.Replicator
                     revs = new List<String>();
                     diffs[docID] = revs;
                 }
-                revs.AddItem(rev.GetRevId());
+                revs.Add(rev.GetRevId());
                 AddPending(rev);
             }
 
@@ -751,7 +751,7 @@ namespace Couchbase.Lite.Replicator
                                 revsToSend.Add(rev);
 
                                 //now add it to the docs to send
-                                docsToSend.AddItem (properties);
+                                docsToSend.Add (properties);
                             }
 
                             UploadBulkDocs(docsToSend, revsToSend);

@@ -239,7 +239,7 @@ namespace Couchbase.Lite.Auth
 
                 var expObject = (long)component3Json.Get("exp");
                 Log.D(Database.TAG, "PersonaAuthorizer exp: " + expObject + " class: " + expObject.GetType());
-                var expDate = Sharpen.Extensions.CreateDate(expObject);
+                var expDate = Extensions.CreateDate(expObject);
                 result[AssertionFieldExpiration] = expDate;
             }
             catch (IOException e)

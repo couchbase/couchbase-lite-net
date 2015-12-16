@@ -319,7 +319,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(doc.Deleted);
             Assert.IsNull(doc.CurrentRevision);
             var leafRevs = new List<SavedRevision>();
-            leafRevs.AddItem(rev3);
+            leafRevs.Add(rev3);
             Assert.AreEqual(doc.LeafRevisions, leafRevs);
 
             var doc2 = db.GetDocument(doc.Id);
@@ -532,8 +532,8 @@ namespace Couchbase.Lite
             Assert.IsNotNull(rev2b, "Failed to create a a conflict");
 
             var confRevs = new List<SavedRevision>();
-            confRevs.AddItem(rev2b);
-            confRevs.AddItem(rev2a);
+            confRevs.Add(rev2b);
+            confRevs.Add(rev2a);
 
             var gotConflicting = doc.ConflictingRevisions;
             var gotLeaf = doc.LeafRevisions;
@@ -1036,7 +1036,7 @@ namespace Couchbase.Lite
             // these are the keys that we expect to see in the livequery change listener callback
             var expectedKeys = new HashSet<Int64>();
             for (var i = 23; i < 34; i++) {
-                expectedKeys.AddItem(i);
+                expectedKeys.Add(i);
             }
 
             // install a change listener which decrements countdown latch when it sees a new
