@@ -125,6 +125,11 @@ namespace Couchbase.Lite
         public CookieContainer PersistentCookieStore
         {
             get {
+                if (!IsOpen) {
+                    Log.W(TAG, "PersistentCookeStore called on closed database");
+                    return null;
+                }
+
                 if (_persistentCookieStore == null) {
                     _persistentCookieStore = new CookieStore(DbDirectory);
                 }
@@ -153,6 +158,11 @@ namespace Couchbase.Lite
         public int DocumentCount 
         {
             get {
+                if (!IsOpen) {
+                    Log.W(TAG, "DocumentCount called on closed database");
+                    return 0;
+                }
+
                 return Storage.DocumentCount;
             }
         }
@@ -166,6 +176,11 @@ namespace Couchbase.Lite
         public long LastSequenceNumber 
         {
             get {
+                if (!IsOpen) {
+                    Log.W(TAG, "LastSequenceNumber called on closed database");
+                    return 0;
+                }
+
                 return Storage.LastSequence;
             }
         }
@@ -175,6 +190,11 @@ namespace Couchbase.Lite
         /// </summary>
         public long TotalDataSize {
             get {
+                if (!IsOpen) {
+                    Log.W(TAG, "TotalDataSize called on closed database");
+                    return 0L;
+                }
+
                 string dir = DbDirectory;
                 var info = new DirectoryInfo(dir);
 
@@ -194,6 +214,11 @@ namespace Couchbase.Lite
         public IEnumerable<Replication> AllReplications 
         { 
             get { 
+                if (!IsOpen) {
+                    Log.W(TAG, "AllReplications called on closed database");
+                    return null;
+                }
+
                 return AllReplicators.ToList(); 
             } 
         }
@@ -310,6 +335,11 @@ namespace Couchbase.Lite
         /// compacting the <see cref="Couchbase.Lite.Database" /></exception>
         public bool Compact()
         {
+            if (!IsOpen) {
+                Log.W(TAG, "CreatePushReplication called on closed database");
+                return false;
+            }
+
             try {
                 Storage.Compact();
             } catch(CouchbaseLiteException) {
@@ -329,10 +359,7 @@ namespace Couchbase.Lite
         /// Thrown if an issue occurs while deleting the <see cref="Couchbase.Lite.Database" /></exception>
         public void Delete()
         {
-            if (IsOpen) {
-                Close();
-            }
-
+            Close();
             if (!Exists()) {
                 return;
             }
@@ -376,6 +403,10 @@ namespace Couchbase.Lite
         /// <param name="id">Identifier.</param>
         public IDictionary<String, Object> GetExistingLocalDocument(String id) 
         {
+            if (!IsOpen) {
+                throw new InvalidOperationException("Database is closed");
+            }
+
             var gotRev = Storage.GetLocalDocument(MakeLocalDocumentId(id), null);
             return gotRev != null ? gotRev.GetProperties() : null;
         }
@@ -390,6 +421,10 @@ namespace Couchbase.Lite
         /// while setting the contents of the local document.</exception>
         public bool PutLocalDocument(string id, IDictionary<string, object> properties) 
         { 
+            if (!IsOpen) {
+                throw new InvalidOperationException("Database is closed");
+            }
+
             id = MakeLocalDocumentId(id);
             var rev = new RevisionInternal(id, null, properties == null);
             if (properties != null) {
@@ -417,6 +452,10 @@ namespace Couchbase.Lite
         /// <returns>Returns a <see cref="Couchbase.Lite.Query" /> that matches all <see cref="Couchbase.Lite.Document" />s in the <see cref="Couchbase.Lite.Database" />s.</returns>
         public Query CreateAllDocumentsQuery() 
         {
+            if (!IsOpen) {
+                throw new InvalidOperationException("Database is closed");
+            }
+
             return new Query(this, (View)null);
         }
 
@@ -429,8 +468,12 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the <see cref="Couchbase.Lite.View" /> to get or create.</param>
         public View GetView(String name) 
         {
-            View view = null;
+            if (!IsOpen) {
+                Log.W(TAG, "GetView called on closed database");
+                return null;
+            }
 
+            View view = null;
             if (_views != null) {
                 view = _views.Get(name);
             }
@@ -449,6 +492,11 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the View to get.</param>
         public View GetExistingView(String name) 
         {
+            if (!IsOpen) {
+                Log.W(TAG, "GetExistingView called on closed database");
+                return null;
+            }
+
             View view = null;
             if (_views != null) {
                 _views.TryGetValue(name, out view);
@@ -470,6 +518,11 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the validation delegate to get.</param>
         public ValidateDelegate GetValidation(String name) 
         {
+            if (!IsOpen) {
+                Log.W(TAG, "GetValidation called on closed database");
+                return null;
+            }
+
             ValidateDelegate retVal = null;
             if (!Shared.TryGetValue<ValidateDelegate>("validation", name, Name, out retVal)) {
                 return null;
@@ -487,8 +540,13 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name">The name of the validation delegate to set.</param>
         /// <param name="validationDelegate">The validation delegate to set.</param>
-        public void SetValidation(String name, ValidateDelegate validationDelegate)
+        public void SetValidation(string name, ValidateDelegate validationDelegate)
         {
+            if (!IsOpen) {
+                Log.W(TAG, "SetValidation called on closed database");
+                return;
+            }
+
             Shared.SetValue("validation", name, Name, validationDelegate);
         }
 
@@ -500,7 +558,11 @@ namespace Couchbase.Lite
         /// <param name="status">The result of the operation</param>
         public FilterDelegate GetFilter(String name, Status status = null) 
         { 
-            if (name == null) {
+            if (!IsOpen || name == null) {
+                if (!IsOpen) {
+                    Log.W(TAG, "GetFilter called on closed database");
+                }
+
                 return null;
             }
 
@@ -551,6 +613,11 @@ namespace Couchbase.Lite
         /// <param name="filterDelegate">The filter delegate to set.</param>
         public void SetFilter(String name, FilterDelegate filterDelegate) 
         { 
+            if (!IsOpen) {
+                Log.W(TAG, "SetFilter called on closed database");
+                return;
+            }
+
             Shared.SetValue("filter", name, Name, filterDelegate);
         }
 
@@ -572,6 +639,11 @@ namespace Couchbase.Lite
         /// <param name="transactionDelegate">The delegate to run within a transaction.</param>
         public bool RunInTransaction(RunInTransactionDelegate transactionDelegate)
         {
+            if (!IsOpen) {
+                Log.W(TAG, "RunInTransaction called on closed database");
+                return false;
+            }
+
             return Storage.RunInTransaction(transactionDelegate);
         }
 
@@ -583,6 +655,11 @@ namespace Couchbase.Lite
         /// <param name="url">The url of the target Database.</param>
         public Replication CreatePushReplication(Uri url)
         {
+            if (!IsOpen) {
+                Log.W(TAG, "CreatePushReplication called on closed database");
+                return null;
+            }
+
             var scheduler = new SingleTaskThreadpoolScheduler();
             return new Pusher(this, url, false, new TaskFactory(scheduler));
         }
@@ -594,6 +671,11 @@ namespace Couchbase.Lite
         /// <param name="url">The url of the source Database.</param>
         public Replication CreatePullReplication(Uri url)
         {
+            if (!IsOpen) {
+                Log.W(TAG, "CreatePullReplication called on closed database");
+                return null;
+            }
+
             var scheduler = new SingleTaskThreadpoolScheduler();
             return new Puller(this, url, false, new TaskFactory(scheduler));
         }
@@ -800,8 +882,8 @@ namespace Couchbase.Lite
 
         internal void SetLastSequence(string lastSequence, string checkpointId)
         {
-            if (Storage == null) {
-                Log.I(TAG, "Storage is null, so not attempting to set last sequence");
+            if (Storage == null || !Storage.IsOpen) {
+                Log.I(TAG, "Storage is null or closed, so not attempting to set last sequence");
                 return;
             }
 
@@ -810,7 +892,7 @@ namespace Couchbase.Lite
 
         internal string LastSequenceWithCheckpointId(string checkpointId)
         {
-            if (Storage == null) {
+            if (Storage == null || !Storage.IsOpen) {
                 return String.Empty;
             }
 
@@ -1901,21 +1983,20 @@ namespace Couchbase.Lite
                 return;
             }
 
+            IsOpen = false;
             Log.D(TAG, "Closing database at {0}", DbDirectory);
             if (_views != null) {
                 foreach (var view in _views) {
                     view.Value.Close();
                 }
             }
-
-            if (ActiveReplicators != null) {
-                var activeReplicatorCopy = new Replication[ActiveReplicators.Count];
-                ActiveReplicators.CopyTo(activeReplicatorCopy, 0);
+               
+            var activeReplicatorCopy = ActiveReplicators;
+            ActiveReplicators = null;
+            if(activeReplicatorCopy != null && activeReplicatorCopy.Count > 0) {
                 foreach (var repl in activeReplicatorCopy) {
                     repl.DatabaseClosing();
                 }
-
-                ActiveReplicators = null;
             }
 
             try {
@@ -1928,9 +2009,8 @@ namespace Couchbase.Lite
             } finally {
                 Storage = null;
 
-                IsOpen = false;
                 UnsavedRevisionDocumentCache.Clear();
-                DocumentCache = new LruCache<string, Document>(DocumentCache.MaxSize);
+                DocumentCache = null;
                 Manager.ForgetDatabase(this);
             }
         }
@@ -2008,11 +2088,12 @@ namespace Couchbase.Lite
             // Open the storage!
             try {
                 Storage.Open(DbDirectory, Manager, _readonly);
-
-                // HACK: Needed to overcome the read connection not getting the write connection
-                // changes until after the schema is written
-                Storage.Close();
-                Storage.Open(DbDirectory, Manager, _readonly);
+                if(Storage is SqliteCouchStore) {
+                    // HACK: Needed to overcome the read connection not getting the write connection
+                    // changes until after the schema is written
+                    Storage.Close();
+                    Storage.Open(DbDirectory, Manager, _readonly);
+                }
             } catch(CouchbaseLiteException) {
                 Storage.Close();
                 Log.E(TAG, "Failed to open storage for database");
@@ -2080,6 +2161,11 @@ namespace Couchbase.Lite
 
         private void ChangeEncryptionKey(SymmetricKey newKey)
         {
+            if (!IsOpen) {
+                Log.W(TAG, "ChangeEncryptionKey called on closed database");
+                return;
+            }
+
             var action = Storage.ActionToChangeEncryptionKey(newKey);
             action.AddLogic(Attachments.ActionToChangeEncryptionKey(newKey));
             action.AddLogic(() => Shared.SetValue("encryptionKey", "", Name, newKey), null, null);

@@ -787,9 +787,10 @@ namespace Couchbase.Lite.Store
                         lastDocId = rev.GetDocId();
                         Native.c4doc_free(doc);
                         doc = Native.c4doc_get(Forest, lastDocId, true, null);
-                        if(doc == null) {
-                            continue;
-                        }
+                    }
+
+                    if(doc == null) {
+                        continue;
                     }
 
                     if (Native.c4doc_selectRevision(doc, rev.GetRevId(), false, null)) {

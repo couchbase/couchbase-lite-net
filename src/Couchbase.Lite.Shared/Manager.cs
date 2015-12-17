@@ -570,6 +570,7 @@ namespace Couchbase.Lite
 
                 db.Name = name;
                 databases.Put(name, db);
+                Shared.OpenedDatabase(db);
             }
 
             return db;

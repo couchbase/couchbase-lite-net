@@ -2709,8 +2709,8 @@ namespace Couchbase.Lite
                 pusher = database.CreatePushReplication(remoteDb.RemoteUri);
                 RunReplication(pusher);
 
-                database.Close();
-                database = EnsureEmptyDatabase(database.Name);
+                database.Delete();
+                database = manager.GetDatabase(database.Name);
 
                 remoteDb.DisableGuestAccess();
                 var puller = database.CreatePullReplication(remoteDb.RemoteUri);

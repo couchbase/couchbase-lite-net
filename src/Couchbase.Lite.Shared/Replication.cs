@@ -1761,7 +1761,6 @@ namespace Couchbase.Lite
 
         private void SaveLastSequence(SaveLastSequenceCompletionBlock completionHandler)
         {
-            
             if (!lastSequenceChanged) {
                 if (completionHandler != null) {
                     completionHandler();
@@ -1773,6 +1772,7 @@ namespace Couchbase.Lite
                 // If a save is already in progress, don't do anything. (The completion block will trigger
                 // another save after the first one finishes.)
                 Task.Delay(500).ContinueWith(t => SaveLastSequence(completionHandler));
+                return;
             }
 
             lastSequenceChanged = false;
@@ -1820,13 +1820,14 @@ namespace Couchbase.Lite
                     body.Put ("_rev", response.Get ("rev"));
                     _remoteCheckpoint = body;
                     var localDb = LocalDatabase;
-                    if(localDb == null || localDb.Storage == null) {
-                        Log.W(TAG, "Database is null, ignoring remote checkpoint response");
+                    if(localDb == null || !localDb.IsOpen) {
+                        Log.W(TAG, "Database is null or closed, ignoring remote checkpoint response");
                         if(completionHandler != null) {
                             completionHandler();
                         }
                         return;
                     }
+
                     localDb.SetLastSequence(LastSequence, remoteCheckpointDocID);
                 }
 
@@ -1932,7 +1933,7 @@ namespace Couchbase.Lite
             // response arrives _db will be nil, so there won't be any way to save the checkpoint locally.
             // To avoid that, pre-emptively save the local checkpoint now.
             var localDb = LocalDatabase;
-            if (localDb != null && _savingCheckpoint && LastSequence != null) {
+            if (localDb != null && localDb.IsOpen && _savingCheckpoint && LastSequence != null) {
                 localDb.SetLastSequence(LastSequence, RemoteCheckpointDocID());
             }
 

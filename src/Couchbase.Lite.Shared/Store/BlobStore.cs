@@ -175,6 +175,10 @@ namespace Couchbase.Lite
         public byte[] BlobForKey(BlobKey key)
         {
             using (var blobStream = BlobStreamForKey(key)) {
+                if (blobStream == null) {
+                    return null;
+                }
+
                 return blobStream.ReadAllBytes();
             }
         }
