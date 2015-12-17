@@ -72,7 +72,7 @@ namespace Couchbase.Lite.Replicator
     /// </summary>
     internal class ChangeTracker
     {
-        const String Tag = "ChangeTracker";
+        private const string TAG = "ChangeTracker";
 
         const Int32 LongPollModeLimit = 500;
 
@@ -112,6 +112,8 @@ namespace Couchbase.Lite.Replicator
 
         CancellationTokenSource changesFeedRequestTokenSource;
 
+        internal RemoteServerVersion ServerType { get; private set; }
+
         public bool Paused
         {
             get { return !_pauseWait.IsSet; }
@@ -130,8 +132,6 @@ namespace Couchbase.Lite.Replicator
 
         /// <summary>Set Authenticator for BASIC Authentication</summary>
         public IAuthenticator Authenticator { get; set; }
-
-        public bool UsePost { get; set; }
 
         public Exception Error { get; private set; }
 
@@ -182,88 +182,24 @@ namespace Couchbase.Lite.Replicator
             return result;
         }
 
-        public string GetChangesFeedPath()
-        {
-            if (UsePost)
-            {
-                return "_changes";
-            }
-
-            var path = new StringBuilder("_changes?feed=");
-            path.Append(GetFeed());
-
-            if (mode == ChangeTrackerMode.LongPoll)
-            {
-                path.Append(string.Format("&limit={0}", LongPollModeLimit));
-            }
-            path.Append(string.Format("&heartbeat={0}", _heartbeatMilliseconds));
-            if (includeConflicts)
-            {
-                path.Append("&style=all_docs");
-            }
-            if (lastSequenceID != null)
-            {
-                path.Append("&since=");
-                path.Append(Uri.EscapeUriString(lastSequenceID.ToString()));
-            }
-            if (docIDs != null && docIDs.Count > 0)
-            {
-                filterName = "_doc_ids";
-                filterParams = new Dictionary<string, object>();
-                filterParams.Put("doc_ids", docIDs);
-            }
-            if (filterName != null)
-            {
-                path.Append("&filter=");
-                path.Append(Uri.EscapeUriString(filterName));
-                if (filterParams != null)
-                {
-                    foreach (string filterParamKey in filterParams.Keys)
-                    {
-                        var value = filterParams.Get(filterParamKey);
-                        if (!(value is string))
-                        {
-                            try
-                            {
-                                value = Manager.GetObjectMapper().WriteValueAsString(value);
-                            }
-                            catch (IOException e)
-                            {
-                                throw new InvalidOperationException("Unable to JSON-serialize a filter parameter value.", e);
-                            }
-                        }
-                        path.Append("&");
-                        path.Append(Uri.EscapeUriString(filterParamKey));
-                        path.Append("=");
-                        path.Append(Uri.EscapeUriString(value.ToString()));
-                    }
-                }
-            }
-            return path.ToString();
-        }
-
         public Uri GetChangesFeedURL()
         {
             var dbURLString = databaseURL.ToString();
-            if (!dbURLString.EndsWith ("/", StringComparison.Ordinal))
-            {
-                dbURLString += "/";
+            var sb = new StringBuilder(dbURLString);
+            if (!dbURLString.EndsWith("/", StringComparison.Ordinal)) {
+                sb.Append("/");
             }
-            dbURLString += GetChangesFeedPath();
+
+            sb.Append("_changes");
 
             Uri result = null;
-            try
-            {
-                result = new Uri(dbURLString);
+            if (!Uri.TryCreate(sb.ToString(), UriKind.Absolute, out result)) {
+                Log.E(TAG, "Changes feed URL is malformed ({0})", sb);
             }
-            catch (UriFormatException e)
-            {
-                Log.E(Tag, "Changes feed ULR is malformed", e);
-            }
+
             return result;
         }
-
-        // TODO: Needs to refactored into smaller calls. Each continuation could be its own method, for example.
+            
         public void Run()
         {
             IsRunning = true;
@@ -274,7 +210,7 @@ namespace Couchbase.Lite.Replicator
                 // This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
                 // directly afterwards.  What happens is that by the time the Changetracker thread fires up,
                 // the cbpuller has already set this.client to null.  See issue #109
-                Log.W(Tag, "ChangeTracker run() loop aborting because client == null");
+                Log.W(TAG, "ChangeTracker run() loop aborting because client == null");
                 return;
             }
 
@@ -284,31 +220,23 @@ namespace Couchbase.Lite.Replicator
             }
 
             backoff = new ChangeTrackerBackoff();
-                _startTime = DateTime.Now;
-                if (Request != null)
-                {
-                    Request.Dispose();
-                    Request = null;
-                }
-                    
-                var url = GetChangesFeedURL();
-                if (UsePost)
-                {
-                    Request = new HttpRequestMessage(HttpMethod.Post, url);
-                    var body = GetChangesFeedPostBody();
-                    Request.Content = new StringContent(body);
-                    Request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                }
-                else
-                {
-                    Request = new HttpRequestMessage(HttpMethod.Get, url);
-                }
+            _startTime = DateTime.Now;
+            if (Request != null)
+            {
+                Request.Dispose();
+                Request = null;
+            }
+                
+            var url = GetChangesFeedURL();
+            Request = new HttpRequestMessage(HttpMethod.Post, url);
+            var body = GetChangesFeedPostBody();
+            Request.Content = new StringContent(body);
+            Request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            AddRequestHeaders(Request);
 
-                AddRequestHeaders(Request);
-
-                var maskedRemoteWithoutCredentials = url.ToString();
-                maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
-                Log.V(Tag, "Making request to " + maskedRemoteWithoutCredentials);
+            var maskedRemoteWithoutCredentials = url.ToString();
+            maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
+            Log.V(TAG, "Making request to " + maskedRemoteWithoutCredentials);
 
             if (tokenSource.Token.IsCancellationRequested) {
                 return;
@@ -337,31 +265,16 @@ namespace Couchbase.Lite.Replicator
                     changesFeedRequestTokenSource.Token
                 );
 
-                info.ContinueWith(t => {
-                    if(t.IsFaulted) {
-                        var ts = changesFeedRequestTokenSource;
-                        if(ts != null) {
-                            ts.Dispose();
-                            ts = null;
-                        }
-
-                        if(httpClient != null) {
-                            httpClient.Dispose();
-                        }
-
-                        throw t.Exception;
-                    }
-
-                    ChangeFeedResponseHandler(t).ContinueWith(t2 => {
+                info.ContinueWith(t1 => {
+                    ChangeFeedResponseHandler(t1).ContinueWith(t2 =>
+                    {
                         if(httpClient != null) {
                             httpClient.Dispose();
                         }
                     });
-                },
-                    changesFeedRequestTokenSource.Token, 
+                }, changesFeedRequestTokenSource.Token, 
                     TaskContinuationOptions.LongRunning, 
-                    TaskScheduler.Default
-                );
+                    TaskScheduler.Default);
             }
             catch (Exception e)
             {
@@ -374,7 +287,7 @@ namespace Couchbase.Lite.Replicator
                     // in this case, just silently absorb the exception because it
                     // frequently happens when we're shutting down and have to
                     // close the socket underneath our read.
-                    Log.E(Tag, "Exception in change tracker", e);
+                    Log.E(TAG, "Exception in change tracker", e);
                 }
                 backoff.SleepAppropriateAmountOfTime();
             }
@@ -382,17 +295,14 @@ namespace Couchbase.Lite.Replicator
 
         private Task ChangeFeedResponseHandler(Task<HttpResponseMessage> responseTask)
         {
-            if (changesFeedRequestTokenSource != null) {
-                changesFeedRequestTokenSource.Dispose();
-            }
+            Misc.SafeDispose(ref changesFeedRequestTokenSource);
 
             if (responseTask.IsCanceled || responseTask.IsFaulted) {
                 if (!responseTask.IsCanceled) {
                     var err = responseTask.Exception.Flatten();
-                    Log.D(Tag, "ChangeFeedResponseHandler faulted.", err.InnerException ?? err);
+                    Log.D(TAG, "ChangeFeedResponseHandler faulted.", err.InnerException ?? err);
                     Error = err.InnerException ?? err;
-                    backoff.SleepAppropriateAmountOfTime();
-                    responseTask.Result.Dispose();
+                    Stop();
                 }
 
                 return Task.FromResult(false);
@@ -403,13 +313,14 @@ namespace Couchbase.Lite.Replicator
                 return Task.FromResult(false);
             
             var status = response.StatusCode;
+            UpdateServerType(response);
 
             if ((Int32)status >= 300 && !Misc.IsTransientError(status))
             {
                 var msg = response.Content != null 
                     ? String.Format("Change tracker got error with status code: {0}", status)
                     : String.Format("Change tracker got error with status code: {0} and null response content", status);
-                Log.E(Tag, msg);
+                Log.E(TAG, msg);
                 Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
                 Stop();
                 response.Dispose();
@@ -422,7 +333,7 @@ namespace Couchbase.Lite.Replicator
                         throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
                     }
                             
-                    Log.D(Tag, "Getting stream from change tracker response");
+                    Log.D(TAG, "Getting stream from change tracker response");
                     return response.Content.ReadAsStreamAsync().ContinueWith(t => {
                         try {
                             backoff.ResetBackoff();
@@ -453,7 +364,7 @@ namespace Couchbase.Lite.Replicator
 
             //pass the change to the client on the thread that created this change tracker
             if (client != null) {
-                Log.D(Tag, "changed tracker posting change");
+                Log.D(TAG, "changed tracker posting change");
                 client.ChangeTrackerReceivedChange(change);
             }
 
@@ -480,7 +391,7 @@ namespace Couchbase.Lite.Replicator
                     } catch(Exception e) {
                         var ex = e as CouchbaseLiteException;
                         if (ex == null || ex.Code != StatusCode.BadJson) {
-                            Log.E(Tag, "Failure during change tracker JSON parsing", e);
+                            Log.E(TAG, "Failure during change tracker JSON parsing", e);
                             throw;
                         }
                             
@@ -488,7 +399,7 @@ namespace Couchbase.Lite.Replicator
                     }
 
                     if (!ReceivedChange(change)) {
-                        Log.W(Tag,  String.Format("Received unparseable change line from server: {0}", change));
+                        Log.W(TAG,  String.Format("Received unparseable change line from server: {0}", change));
                         return false;
                     }
 
@@ -510,7 +421,7 @@ namespace Couchbase.Lite.Replicator
 
         public void SetUpstreamError(string message)
         {
-            Log.W(Tag, this + string.Format(": Server error: {0}", message));
+            Log.W(TAG, this + string.Format(": Server error: {0}", message));
             this.Error = new Exception(message);
         }
 
@@ -542,7 +453,7 @@ namespace Couchbase.Lite.Replicator
                     return;
                 }
 
-                Log.D(Tag, "changed tracker asked to stop");
+                Log.D(TAG, "changed tracker asked to stop");
 
                 IsRunning = false;
 
@@ -554,10 +465,10 @@ namespace Couchbase.Lite.Replicator
                     }catch(ObjectDisposedException) {
                         //FIXME Run() will often dispose this token source right out from under us since it
                         //is running on a separate thread.
-                        Log.W(Tag, "Race condition on changesFeedRequestTokenSource detected");
+                        Log.W(TAG, "Race condition on changesFeedRequestTokenSource detected");
                     }catch(AggregateException e) {
                         if (e.InnerException is ObjectDisposedException) {
-                            Log.W(Tag, "Race condition on changesFeedRequestTokenSource detected");
+                            Log.W(TAG, "Race condition on changesFeedRequestTokenSource detected");
                         } else {
                             throw;
                         }
@@ -570,14 +481,14 @@ namespace Couchbase.Lite.Replicator
 
         public void Stopped()
         {
-            Log.D(Tag, "change tracker in stopped");
+            Log.D(TAG, "change tracker in stopped");
             if (client != null)
             {
-                Log.D(Tag, "posting stopped");
+                Log.D(TAG, "posting stopped");
                 client.ChangeTrackerStopped(this);
             }
             client = null;
-            Log.D(Tag, "change tracker client should be null now");
+            Log.D(TAG, "change tracker client should be null now");
         }
 
         public void SetDocIDs(IList<string> docIDs)
@@ -597,34 +508,34 @@ namespace Couchbase.Lite.Replicator
 
         private void ProcessLongPollStream(Task<Stream> t)
         {
-            Log.D(Tag, "Got stream from change tracker response");
+            Log.D(TAG, "Got stream from change tracker response");
             bool beforeFirstItem = true;
             bool responseOK = false;
             using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(t.Result)) {
                 responseOK = ReceivedPollResponse(jsonReader, ref beforeFirstItem);
             }
 
-            Log.D(Tag, "Finished polling change tracker");
+            Log.D(TAG, "Finished polling change tracker");
 
             if (responseOK) {
-                Log.V(Tag, "Starting new longpoll");
+                Log.V(TAG, "Starting new longpoll");
                 backoff.ResetBackoff();
                 WorkExecutor.StartNew(Run);
             } else {
                 backoff.SleepAppropriateAmountOfTime();
                 if (beforeFirstItem) {
                     var elapsed = DateTime.Now - _startTime;
-                    Log.W(Tag, "Longpoll connection closed (by proxy?) after {0} sec", elapsed.TotalSeconds);
+                    Log.W(TAG, "Longpoll connection closed (by proxy?) after {0} sec", elapsed.TotalSeconds);
 
                     // Looks like the connection got closed by a proxy (like AWS' load balancer) while the
                     // server was waiting for a change to send, due to lack of activity.
                     // Lower the heartbeat time to work around this, and reconnect:
                     _heartbeatMilliseconds = (int)(elapsed.TotalMilliseconds * 0.75f);
-                    Log.V(Tag, "    Starting new longpoll");
+                    Log.V(TAG, "    Starting new longpoll");
                     backoff.ResetBackoff();
                     WorkExecutor.StartNew(Run);
                 } else {
-                    Log.W(Tag, "Change tracker calling stop");
+                    Log.W(TAG, "Change tracker calling stop");
                     WorkExecutor.StartNew(Stop);
                 }
             }
@@ -659,15 +570,19 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
+        private void UpdateServerType(HttpResponseMessage response)
+        {
+            var server = response.Headers.Server;
+            if (server != null && server.Any()) {
+                var serverString = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null).ToStringArray());
+                ServerType = new RemoteServerVersion(serverString);
+                Log.V(TAG, "Server Version: " + ServerType);
+            }
+        }
+
         internal IDictionary<string, object> GetChangesFeedParams()
         {
-            if (!UsePost)
-            {
-                return null;
-            }
-
-            if (docIDs != null && docIDs.Count > 0)
-            {
+            if (docIDs != null && docIDs.Count > 0) {
                 filterName = "_doc_ids";
                 filterParams = new Dictionary<string, object>();
                 filterParams.Put("doc_ids", docIDs);
@@ -677,29 +592,23 @@ namespace Couchbase.Lite.Replicator
             bodyParams["feed"] = GetFeed();
             bodyParams["heartbeat"] = _heartbeatMilliseconds;
 
-            if (includeConflicts) 
-            {
+            if (includeConflicts) {
                 bodyParams["style"] = "all_docs";
-            }
-            else
-            {
+            } else {
                 bodyParams["style"] = null;
             }
 
-            if (lastSequenceID != null)
-            {
+            if (lastSequenceID != null) {
                 Int64 sequenceAsLong;
                 var success = Int64.TryParse(lastSequenceID.ToString(), out sequenceAsLong);
                 bodyParams["since"] = success ? sequenceAsLong : lastSequenceID;
             }
 
-            if (mode == ChangeTrackerMode.LongPoll)
-            {
+            if (mode == ChangeTrackerMode.LongPoll) {
                 bodyParams["limit"] = LongPollModeLimit;
             }
 
-            if (filterName != null)
-            {
+            if (filterName != null) {
                 bodyParams["filter"] = filterName;
                 bodyParams.PutAll(filterParams);
             }

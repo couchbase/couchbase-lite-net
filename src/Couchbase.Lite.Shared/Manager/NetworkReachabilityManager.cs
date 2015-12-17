@@ -22,6 +22,8 @@ using WebRequest = System.Net.Couchbase.WebRequest;
 using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
 using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
 using WebException = System.Net.Couchbase.WebException;
+#else
+using StringExt = System.String;
 #endif
 
 namespace Couchbase.Lite
@@ -43,13 +45,15 @@ namespace Couchbase.Lite
         private int _startCount = 0;
         private const string TAG = "NetworkReachabilityManager";
 
+        public Exception LastError { get; private set; }
+
         public bool CanReach(string remoteUri)
         {
             HttpWebRequest request;
 
             var uri = new Uri (remoteUri);
             var credentials = uri.UserInfo;
-            if (credentials != null) {
+            if (!StringExt.IsNullOrEmpty(credentials)) {
                 remoteUri = string.Format ("{0}://{1}{2}", uri.Scheme, uri.Authority, uri.PathAndQuery);
                 request = WebRequest.CreateHttp (remoteUri);
                 request.Headers.Add ("Authorization", "Basic " + Convert.ToBase64String (Encoding.UTF8.GetBytes (credentials)));
@@ -75,6 +79,7 @@ namespace Couchbase.Lite
 
                 Log.I(TAG, "Didn't get successful connection to {0}", remoteUri);
                 Log.D(TAG, "   Cause: ", e);
+                LastError = e;
                 return false;
             }
         }

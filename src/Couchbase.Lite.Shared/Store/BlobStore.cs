@@ -175,6 +175,10 @@ namespace Couchbase.Lite
         public byte[] BlobForKey(BlobKey key)
         {
             using (var blobStream = BlobStreamForKey(key)) {
+                if (blobStream == null) {
+                    return null;
+                }
+
                 return blobStream.ReadAllBytes();
             }
         }
@@ -280,7 +284,7 @@ namespace Couchbase.Lite
 
                 BlobKey attachmentKey = new BlobKey();
                 GetKeyForFilename(attachmentKey, attachment.GetPath());
-                result.AddItem(attachmentKey);
+                result.Add(attachmentKey);
             }
 
             return result;

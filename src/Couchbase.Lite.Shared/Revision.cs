@@ -218,11 +218,10 @@ namespace Couchbase.Lite
         public IEnumerable<Attachment> Attachments {
             get {
                 var result = new List<Attachment>();
-
-                foreach (var attachmentName in AttachmentNames)
-                {
-                    result.AddItem(GetAttachment(attachmentName));
+                foreach (var attachmentName in AttachmentNames) {
+                    result.Add(GetAttachment(attachmentName));
                 }
+
                 return result;
             } 
         }

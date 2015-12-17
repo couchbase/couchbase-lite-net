@@ -138,7 +138,7 @@ namespace Couchbase.Lite
                     {
                         if (!cur.Get(key).Equals(nuu.Get(key)) && !key.Equals("_rev"))
                         {
-                            changedKeys.AddItem(key);
+                            changedKeys.Add(key);
                         }
                     }
 
@@ -146,7 +146,7 @@ namespace Couchbase.Lite
                     {
                         if (cur.Get(key) == null && !key.Equals("_rev") && !key.Equals("_id"))
                         {
-                            changedKeys.AddItem(key);
+                            changedKeys.Add(key);
                         }
                     }
                 }

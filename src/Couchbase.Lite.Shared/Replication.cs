@@ -224,6 +224,7 @@ namespace Couchbase.Lite
         private Task _retryIfReadyTask;
         private readonly Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
         private HashSet<string> _pendingDocumentIDs;
+        private bool _lastSequenceChanged;
 
         #endregion
 
@@ -292,7 +293,7 @@ namespace Couchbase.Lite
         public IEnumerable<string> Channels {
             get
             {
-                if (FilterParams == null || FilterParams.IsEmpty())
+                if (FilterParams == null || FilterParams.Count == 0)
                 {
                     return new List<string>();
                 }
@@ -394,8 +395,9 @@ namespace Couchbase.Lite
             set
             {
                 if (value != _lastError) {
-                    Log.E(TAG, " Progress: set error = ", value);
-                    _lastError = value;
+                    var newException = value.Flatten();
+                    Log.E(TAG, " Progress: set error = ", newException);
+                    _lastError = newException;
                     NotifyChangeListeners();
 
                 }
@@ -976,10 +978,9 @@ namespace Couchbase.Lite
             }
 
             if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri)) {
+                LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
                 FireTrigger(ReplicationTrigger.GoOffline);
             }
-
-
 
             if(!LocalDatabase.AddReplication(this) || !LocalDatabase.AddActiveReplication(this)) {
                 Log.W(TAG, "Replication did not start");
@@ -1354,7 +1355,7 @@ namespace Couchbase.Lite
 
                         var status = response.StatusCode;
                         if ((Int32)status.GetStatusCode() >= 300) {
-                            Log.E(TAG, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode()));
+                            Log.E(TAG, "Got error {0}", status.GetStatusCode());
                             Log.E(TAG, "Request was for: " + message);
                             Log.E(TAG, "Status reason: " + response.ReasonPhrase);
                             error = new WebException(response.ReasonPhrase);
@@ -1674,6 +1675,13 @@ namespace Couchbase.Lite
             var checkpointId = RemoteCheckpointDocID();
             var localLastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointId);
 
+            if (localLastSequence == null && GetLastSequenceFromLocalCheckpoint() == null) {
+                Log.I(TAG, "No local checkpoint, not getting remote one");
+                MaybeCreateRemoteDB();
+                BeginReplicating();
+                return;
+            }
+
             SendAsyncRequest(HttpMethod.Get, "/_local/" + checkpointId, null, (response, e) => 
             {
                 try {
@@ -1702,6 +1710,14 @@ namespace Couchbase.Lite
 
                         if (remoteLastSequence != null && remoteLastSequence.Equals (localLastSequence)) {
                             LastSequence = localLastSequence;
+                            if(LastSequence == null) {
+                                // Try to get the last sequence from the local checkpoint document
+                                // created only when importing a database. This allows the
+                                // replicator to continue replicating from the current local checkpoint
+                                // of the imported database after importing.
+                                _lastSequence = GetLastSequenceFromLocalCheckpoint();
+                            }
+
                             Log.V (TAG, "Replicating from lastSequence=" + LastSequence);
                         } else {
                             Log.V (TAG, "lastSequence mismatch: I had " + localLastSequence + ", remote had " + remoteLastSequence);
@@ -1715,6 +1731,25 @@ namespace Couchbase.Lite
             });
         }
 
+        // If the local database has been copied from one pre-packaged in the app, this method returns
+        // a pre-existing checkpointed sequence to start from. This allows first-time replication to be
+        // fast and avoid starting over from sequence zero.
+        private string GetLastSequenceFromLocalCheckpoint()
+        {
+            _lastSequenceChanged = false;
+            var db = LocalDatabase;
+            var doc = db.GetLocalCheckpointDoc();
+            if (doc != null) {
+                var localUUID = doc.GetCast<string>(LOCAL_CHECKPOINT_LOCAL_UUID_KEY);
+                if (localUUID != null) {
+                    var checkpointID = RemoteCheckpointDocID(localUUID);
+                    return db.LastSequenceWithCheckpointId(checkpointID);
+                }
+            }
+
+            return null;
+        }
+
         private static bool Is404(Exception e)
         {
             if (e is Couchbase.Lite.HttpResponseException) {
@@ -1726,7 +1761,6 @@ namespace Couchbase.Lite
 
         private void SaveLastSequence(SaveLastSequenceCompletionBlock completionHandler)
         {
-            
             if (!lastSequenceChanged) {
                 if (completionHandler != null) {
                     completionHandler();
@@ -1738,6 +1772,7 @@ namespace Couchbase.Lite
                 // If a save is already in progress, don't do anything. (The completion block will trigger
                 // another save after the first one finishes.)
                 Task.Delay(500).ContinueWith(t => SaveLastSequence(completionHandler));
+                return;
             }
 
             lastSequenceChanged = false;
@@ -1785,13 +1820,14 @@ namespace Couchbase.Lite
                     body.Put ("_rev", response.Get ("rev"));
                     _remoteCheckpoint = body;
                     var localDb = LocalDatabase;
-                    if(localDb == null || localDb.Storage == null) {
-                        Log.W(TAG, "Database is null, ignoring remote checkpoint response");
+                    if(localDb == null || !localDb.IsOpen) {
+                        Log.W(TAG, "Database is null or closed, ignoring remote checkpoint response");
                         if(completionHandler != null) {
                             completionHandler();
                         }
                         return;
                     }
+
                     localDb.SetLastSequence(LastSequence, remoteCheckpointDocID);
                 }
 
@@ -1897,7 +1933,7 @@ namespace Couchbase.Lite
             // response arrives _db will be nil, so there won't be any way to save the checkpoint locally.
             // To avoid that, pre-emptively save the local checkpoint now.
             var localDb = LocalDatabase;
-            if (localDb != null && _savingCheckpoint && LastSequence != null) {
+            if (localDb != null && localDb.IsOpen && _savingCheckpoint && LastSequence != null) {
                 localDb.SetLastSequence(LastSequence, RemoteCheckpointDocID());
             }
 

@@ -64,6 +64,16 @@ namespace Couchbase.Lite
 
     internal static class Misc
     {
+        public static void SafeDispose<T>(ref T obj) where T : class, IDisposable
+        {
+            var tmp = obj;
+            obj = null;
+
+            if (tmp != null) {
+                tmp.Dispose();
+            }
+        }
+
         public static string QuoteString(string param)
         {
             var sb = new StringBuilder(param);

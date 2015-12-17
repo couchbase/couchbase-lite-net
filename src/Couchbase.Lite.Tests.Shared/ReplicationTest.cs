@@ -1303,8 +1303,8 @@ namespace Couchbase.Lite
             var replicator = database.CreatePullReplication(remote);
 
             var channels = new List<string>();
-            channels.AddItem("chan1");
-            channels.AddItem("chan2");
+            channels.Add("chan1");
+            channels.Add("chan2");
             replicator.Channels = channels;
             Assert.AreEqual(channels, replicator.Channels);
 
@@ -1390,7 +1390,6 @@ namespace Couchbase.Lite
                     }
                 }
                 Assert.IsTrue(foundFooHeader);
-                Sleep(1000);
             }
         }
 
@@ -1892,6 +1891,8 @@ namespace Couchbase.Lite
                 var observer = new ReplicationErrorObserver(signal);
                 pusher.Changed += observer.Changed;
                 pusher.Start();
+
+                CreateDocuments(database, 10);
 
                 var success = signal.Wait(TimeSpan.FromSeconds(30));
                 Assert.IsTrue(success);
@@ -2823,8 +2824,8 @@ namespace Couchbase.Lite
                 pusher = database.CreatePushReplication(remoteDb.RemoteUri);
                 RunReplication(pusher);
 
-                database.Close();
-                database = EnsureEmptyDatabase(database.Name);
+                database.Delete();
+                database = manager.GetDatabase(database.Name);
 
                 remoteDb.DisableGuestAccess();
                 var puller = database.CreatePullReplication(remoteDb.RemoteUri);

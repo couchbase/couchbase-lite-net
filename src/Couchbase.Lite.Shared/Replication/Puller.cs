@@ -160,7 +160,6 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
-            _changeTracker.UsePost = CheckServerCompatVersion("0.93");
             _changeTracker.Start();
         }
 
@@ -253,13 +252,13 @@ namespace Couchbase.Lite.Replicator
                     _deletedRevsToPull = new List<RevisionInternal>(100);
                 }
 
-                _deletedRevsToPull.AddItem(rev);
+                _deletedRevsToPull.Add(rev);
             } else {
                 if (_revsToPull == null) {
                     _revsToPull = new List<RevisionInternal>(100);
                 }
 
-                _revsToPull.AddItem(rev);
+                _revsToPull.Add(rev);
             }
         }
 
@@ -285,7 +284,7 @@ namespace Couchbase.Lite.Replicator
                     if (nBulk == 1) {
                         // Rather than pulling a single revision in 'bulk', just pull it normally:
                         QueueRemoteRevision(_bulkRevsToPull[0]);
-                        _bulkRevsToPull.Remove(0);
+                        _bulkRevsToPull.RemoveAt(0);
                         nBulk = 0;
                     }
 
@@ -304,8 +303,8 @@ namespace Couchbase.Lite.Replicator
                             }
                         }
 
-                        workToStartNow.AddItem(queue[0]);
-                        queue.Remove(0);
+                        workToStartNow.Add(queue[0]);
+                        queue.RemoveAt(0);
                     }
                 }
             }
@@ -470,7 +469,7 @@ namespace Couchbase.Lite.Replicator
                 rev = xformed;
 
                 var attachments = (IDictionary<string, IDictionary<string, object>>)rev.GetProperties().Get("_attachments");
-                foreach (var entry in attachments.EntrySet())
+                foreach (var entry in attachments)
                 {
                     var attachment = entry.Value;
                     attachment.Remove("file");
@@ -522,7 +521,7 @@ namespace Couchbase.Lite.Replicator
                             if (pos > -1) 
                             {
                                 rev.SetSequence(remainingRevs[pos].GetSequence());
-                                remainingRevs.Remove (pos);
+                                remainingRevs.RemoveAt (pos);
                                 QueueDownloadedRevision (rev);
                             }
                         }
@@ -798,7 +797,7 @@ namespace Couchbase.Lite.Replicator
                             _bulkRevsToPull = new List<RevisionInternal>(100);
                         }
 
-                        _bulkRevsToPull.AddItem(rev);
+                        _bulkRevsToPull.Add(rev);
                         ++numBulked;
                     } else {
                         QueueRemoteRevision(rev);
@@ -850,6 +849,10 @@ namespace Couchbase.Lite.Replicator
 
         public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
         {
+            if (ServerType == null) {
+                ServerType = _changeTracker.ServerType;
+            }
+
             var lastSequence = change.Get("seq").ToString();
             var docID = (string)change.Get("id");
             if (docID == null) {

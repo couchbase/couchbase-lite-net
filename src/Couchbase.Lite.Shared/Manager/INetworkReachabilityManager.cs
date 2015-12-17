@@ -15,6 +15,11 @@ namespace Couchbase.Lite
         event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
 
         /// <summary>
+        /// Gets the last error that occured while trying to connect
+        /// </summary>
+        Exception LastError { get; }
+
+        /// <summary>
         /// Returns whether or not a given endpoint is reachable
         /// </summary>
         /// <returns><c>true</c> if this instance can reach the specified endpoint; otherwise, <c>false</c>.</returns>
