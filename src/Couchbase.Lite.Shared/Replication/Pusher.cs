@@ -576,7 +576,7 @@ namespace Couchbase.Lite.Replicator
                 LocalDatabase.Changed += OnChanged;
             } 
 
-            var options = new ChangesOptions();
+            var options = ChangesOptions.Default;
             options.IncludeConflicts = true;
             var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, _filter, FilterParams);
             if (changes.Count > 0) {
@@ -658,8 +658,7 @@ namespace Couchbase.Lite.Replicator
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
             {
                 try {
-                    var localDb = LocalDatabase;
-                    if(localDb == null) {
+                    if(!LocalDatabase.IsOpen) {
                         return;
                     }
 
@@ -699,13 +698,16 @@ namespace Couchbase.Lite.Replicator
                                     contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
                                 }
 
-
                                 RevisionInternal loadedRev;
                                 try {
-                                    loadedRev = localDb.LoadRevisionBody (rev);
+                                    loadedRev = LocalDatabase.LoadRevisionBody (rev);
+                                    if(loadedRev == null) {
+                                        throw new CouchbaseLiteException("DB is closed", StatusCode.DbError);
+                                    }
+
                                     properties = new Dictionary<string, object>(rev.GetProperties());
-                                } catch (CouchbaseLiteException e1) {
-                                    Log.W(TAG, string.Format("{0} Couldn't get local contents of {1}", rev, this), e1);
+                                } catch (Exception e1) {
+                                    Log.W(TAG, String.Format("{0} Couldn't get local contents of", rev), e);
                                     RevisionFailed();
                                     continue;
                                 }
@@ -717,8 +719,20 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 properties = new Dictionary<string, object>(populatedRev.GetProperties());
-                                var history = localDb.GetRevisionHistory(populatedRev, possibleAncestors);
-                                properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
+
+                                try {
+                                    var history = LocalDatabase.GetRevisionHistory(populatedRev, possibleAncestors);
+                                    if(history == null) {
+                                        throw new CouchbaseLiteException("DB closed", StatusCode.DbError);
+                                    }
+
+                                    properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
+                                } catch(Exception e1) {
+                                    Log.W(TAG, "Error getting revision history", e1);
+                                    RevisionFailed();
+                                    continue;
+                                }
+
                                 populatedRev.SetProperties(properties);
                                 if(properties.GetCast<bool>("_removed")) {
                                     RemovePending(rev);
@@ -730,7 +744,7 @@ namespace Couchbase.Lite.Replicator
                                     // Look for the latest common ancestor and stuf out older attachments:
                                     var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
                                     try {
-                                        localDb.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
+                                        LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
                                     } catch(Exception ex) {
                                         Log.W(TAG, "Error expanding attachments!", ex);
                                         RevisionFailed();

@@ -274,7 +274,7 @@ namespace Couchbase.Lite.Replicator
             var bulkWorkToStartNow = new List<RevisionInternal>();
             lock (_locker)
             {
-                while (LocalDatabase != null && _httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections)
+                while (LocalDatabase.IsOpen && _httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections)
                 {
                     int nBulk = 0;
                     if (_bulkRevsToPull != null) {
@@ -329,11 +329,6 @@ namespace Couchbase.Lite.Replicator
 
             Log.D(TAG, "{0} bulk-fetching {1} remote revisions...", this, nRevs);
             Log.V(TAG, "{0} bulk-fetching remote revisions: {1}", this, bulkRevs);
-
-            if (!_canBulkGet) {
-                PullBulkWithAllDocs(bulkRevs);
-                return;
-            }
 
             Log.V(TAG, "POST _bulk_get");
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
@@ -409,6 +404,10 @@ namespace Couchbase.Lite.Replicator
 
 		private bool ShouldRetryDownload(string docId)
         {
+            if (!LocalDatabase.IsOpen) {
+                return false;
+            }
+
             var localDoc = LocalDatabase.GetExistingLocalDocument(docId);
             if (localDoc == null)
             {
@@ -439,26 +438,22 @@ namespace Couchbase.Lite.Replicator
         // This invokes the tranformation block if one is installed and queues the resulting Revision
         private void QueueDownloadedRevision(RevisionInternal rev)
         {
-            if (RevisionBodyTransformationFunction != null)
-            {
+            if (RevisionBodyTransformationFunction != null) {
                 // Add 'file' properties to attachments pointing to their bodies:
-                foreach (var entry in rev.GetProperties().Get("_attachments").AsDictionary<string,object>())
-                {
+                foreach (var entry in rev.GetProperties().Get("_attachments").AsDictionary<string,object>()) {
                     var attachment = entry.Value as IDictionary<string, object>;
                     attachment.Remove("file");
 
-                    if (attachment.Get("follows") != null && attachment.Get("data") == null)
-                    {
+                    if (attachment.Get("follows") != null && attachment.Get("data") == null) {
                         var filePath = LocalDatabase.FileForAttachmentDict(attachment).AbsolutePath;
-                        if (filePath != null)
-                        {
+                        if (filePath != null) {
                             attachment["file"] = filePath;
                         }
                     }
                 }
+
                 var xformed = TransformRevision(rev);
-                if (xformed == null)
-                {
+                if (xformed == null) {
                     Log.V(TAG, "Transformer rejected revision {0}", rev);
                     _pendingSequences.RemoveSequence(rev.GetSequence());
                     LastSequence = _pendingSequences.GetCheckpointedValue();
@@ -469,8 +464,7 @@ namespace Couchbase.Lite.Replicator
                 rev = xformed;
 
                 var attachments = (IDictionary<string, IDictionary<string, object>>)rev.GetProperties().Get("_attachments");
-                foreach (var entry in attachments)
-                {
+                foreach (var entry in attachments) {
                     var attachment = entry.Value;
                     attachment.Remove("file");
                 }
@@ -484,66 +478,6 @@ namespace Couchbase.Lite.Replicator
             else {
                 Log.I(TAG, "downloadsToInsert is null");
             }
-        }
-
-        // Get as many revisions as possible in one _all_docs request.
-        // This is compatible with CouchDB, but it only works for revs of generation 1 without attachments.
-        private void PullBulkWithAllDocs(IList<RevisionInternal> bulkRevs)
-        {
-            // http://wiki.apache.org/couchdb/HTTP_Bulk_Document_API
-            ++_httpConnectionCount;
-
-            var remainingRevs = new List<RevisionInternal>(bulkRevs);
-            var keys = bulkRevs.Select(rev => rev.GetDocId()).ToArray();
-            var body = new Dictionary<string, object>();
-            body.Put("keys", keys);
-
-            SendAsyncRequest(HttpMethod.Post, "/_all_docs?include_docs=true", body, (result, e) =>
-            {
-                var res = result.AsDictionary<string, object>();
-                if (e != null) {
-                    LastError = e;
-                    RevisionFailed();
-                    SafeAddToCompletedChangesCount(bulkRevs.Count);
-                } else {
-                    // Process the resulting rows' documents.
-                    // We only add a document if it doesn't have attachments, and if its
-                    // revID matches the one we asked for.
-                    var rows = res.Get ("rows").AsList<IDictionary<string, object>>();
-                    Log.V (TAG, "Checking {0} bulk-fetched remote revisions", rows.Count);
-
-                    foreach (var row in rows) {
-                        var doc = row.Get ("doc").AsDictionary<string, object>();
-                        if (doc != null && doc.Get ("_attachments") == null)
-                        {
-                            var rev = new RevisionInternal (doc);
-                            var pos = remainingRevs.IndexOf (rev);
-                            if (pos > -1) 
-                            {
-                                rev.SetSequence(remainingRevs[pos].GetSequence());
-                                remainingRevs.RemoveAt (pos);
-                                QueueDownloadedRevision (rev);
-                            }
-                        }
-                    }
-                }
-
-                // Any leftover revisions that didn't get matched will be fetched individually:
-                if (remainingRevs.Count > 0) 
-                {
-                    Log.V (TAG, "Bulk-fetch didn't work for {0} of {1} revs; getting individually", remainingRevs.Count, bulkRevs.Count);
-                    foreach (var rev in remainingRevs) 
-                    {
-                        QueueRemoteRevision (rev);
-                    }
-                    PullRemoteRevisions ();
-                } 
-
-                --_httpConnectionCount;
-
-                // Start another task if there are still revisions waiting to be pulled:
-                PullRemoteRevisions();
-            });
         }
 
         /// <summary>Fetches the contents of a revision from the remote db, including its parent revision ID.
@@ -561,8 +495,13 @@ namespace Couchbase.Lite.Replicator
             // been added since the latest revisions we have locally.
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
             var path = new StringBuilder("/" + Uri.EscapeUriString(rev.GetDocId()) + "?rev=" + Uri.EscapeUriString(rev.GetRevId()) + "&revs=true&attachments=true");
-            var tmp = LocalDatabase.Storage.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
-            var knownRevs = tmp == null ? null : tmp.ToList();
+            var knownRevs = default(IList<string>);
+            try {
+                var tmp = LocalDatabase.Storage.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
+                knownRevs = tmp == null ? null : tmp.ToList();
+            } catch(Exception) {
+                Log.W(TAG, "Error getting possible ancestors (probably database closed)");
+            }
             if (knownRevs == null) {
                 //this means something is wrong, possibly the replicator has shut down
                 _httpConnectionCount--;
@@ -616,14 +555,13 @@ namespace Couchbase.Lite.Replicator
             Log.V(TAG, "Inserting {0} revisions...", downloads.Count);
             var time = DateTime.UtcNow;
             downloads.Sort(new RevisionComparer());
-
-            var localDb = LocalDatabase;
-            if (localDb == null) {
+           
+            if (!LocalDatabase.IsOpen) {
                 return;
             }
 
             try {
-                var success = localDb.RunInTransaction(() =>
+                var success = LocalDatabase.RunInTransaction(() =>
                 {
                     foreach (var rev in downloads) {
                         var fakeSequence = rev.GetSequence();
@@ -640,7 +578,7 @@ namespace Couchbase.Lite.Replicator
 
                         // Insert the revision:
                         try {
-                            localDb.ForceInsert(rev, history, RemoteUrl);
+                            LocalDatabase.ForceInsert(rev, history, RemoteUrl);
                         } catch (CouchbaseLiteException e) {
                             if (e.Code == StatusCode.Forbidden) {
                                 Log.I(TAG, "Remote rev failed validation: " + rev);
@@ -859,7 +797,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            if (!LocalDatabase.IsValidDocumentId(docID)) {
+            if (!Document.IsValidDocumentId(docID)) {
                 if (!docID.StartsWith("_user/", StringComparison.InvariantCultureIgnoreCase)) {
                     Log.W(TAG, string.Format("{0}: Received invalid doc ID from _changes: {1} ({2})", this, docID, Manager.GetObjectMapper().WriteValueAsString(change)));
                 }

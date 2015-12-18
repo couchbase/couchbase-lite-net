@@ -188,7 +188,7 @@ namespace Couchbase.Lite
         {
             if (database != null)
             {
-                database.Close();
+                database.Close().Wait();
             }
         }
 

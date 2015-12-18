@@ -460,7 +460,7 @@ namespace Couchbase.Lite
                 GetNumberOfRounds(TEST_NAME)), () =>
             {
                 for(int i = 0; i < GetNumberOfRounds(TEST_NAME); i++) {
-                    Assert.DoesNotThrow(database.Close);
+                    Assert.DoesNotThrow(() => database.Close().Wait(15000));
                     database = manager.GetDatabase(DefaultTestDb);
                     Assert.IsNotNull(database);
                 }

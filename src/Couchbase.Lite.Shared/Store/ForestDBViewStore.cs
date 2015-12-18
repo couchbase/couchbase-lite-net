@@ -437,7 +437,7 @@ namespace Couchbase.Lite.Store
                         }
 
                         WithC4Keys(keys.ToArray(), true, c4keys =>
-                            ForestDBBridge.Check(err => Native.c4indexer_emit(indexer, next.Document, (uint)i, c4keys, values.ToArray(), err))
+                            ForestDBBridge.Check(err => Native.c4indexer_emit(indexer, next.GetDocument(), (uint)i, c4keys, values.ToArray(), err))
                         );
                     }
                 }

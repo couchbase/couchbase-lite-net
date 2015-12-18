@@ -146,7 +146,7 @@ namespace Couchbase.Lite
             });
 
             // Close and re-open the db using SQLite storage type. Should fail if it used to be ForestDB:
-            Assert.DoesNotThrow(replacedb.Close);
+            Assert.DoesNotThrow(() => replacedb.Close().Wait(15000));
             options.StorageType = DatabaseOptions.SQLITE_STORAGE;
             if (_storageType == DatabaseOptions.SQLITE_STORAGE) {
                 Assert.DoesNotThrow(() => replacedb = manager.OpenDatabase("replacedb", options));

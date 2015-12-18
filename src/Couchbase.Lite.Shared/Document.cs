@@ -74,6 +74,16 @@ namespace Couchbase.Lite {
         }
 
     #endregion
+
+        internal static bool IsValidDocumentId(string id)
+        {
+            // http://wiki.apache.org/couchdb/HTTP_Document_API#Documents
+            if (String.IsNullOrEmpty (id)) {
+                return false;
+            }
+
+            return id [0] != '_' || id.StartsWith ("_design/", StringComparison.InvariantCultureIgnoreCase);
+        }
     
     #region Instance Members
 

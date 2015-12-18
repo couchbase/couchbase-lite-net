@@ -276,6 +276,10 @@ namespace Couchbase.Lite.Replicator
         {
             Func<RevisionInternal, IDictionary<String, Object>> invoke = source =>
             {
+                if(!database.IsOpen) {
+                    return null;
+                }
+
                 var attsSince = database.Storage.GetPossibleAncestors(source, Puller.MAX_ATTS_SINCE, true);
 
 
@@ -291,7 +295,7 @@ namespace Couchbase.Lite.Replicator
             IEnumerable<IDictionary<string, object>> keys = null;
             try
             {
-                keys = revs.Select(invoke);
+                keys = revs.Select(invoke).Where(x => x != null);
             } 
             catch (Exception ex)
             {

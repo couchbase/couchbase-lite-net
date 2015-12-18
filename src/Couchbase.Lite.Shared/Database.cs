@@ -56,6 +56,7 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using System.Collections.Concurrent;
 using Couchbase.Lite.Db;
+using System.Threading;
 
 
 #if !NET_3_5
@@ -107,6 +108,7 @@ namespace Couchbase.Lite
         private bool                                    _isPostingChangeNotifications;
         private object                                  _allReplicatorsLocker = new object();
         private bool                                    _readonly;
+        private Task                                    _closingTask;
 
         #endregion
 
@@ -155,7 +157,8 @@ namespace Couchbase.Lite
         /// Gets the number of <see cref="Couchbase.Lite.Document" /> in the <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
         /// <value>The document count.</value>
-        /// TODO: Convert this to a standard method call.
+        [Obsolete("This property is heavy and will be converted to a method")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public int DocumentCount 
         {
             get {
@@ -174,6 +177,8 @@ namespace Couchbase.Lite
         /// check whether the <see cref="Couchbase.Lite.Database" /> has changed between two points in time.
         /// </summary>
         /// <value>The last sequence number.</value>
+        [Obsolete("This property is heavy and will be converted to a method")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public long LastSequenceNumber 
         {
             get {
@@ -189,6 +194,8 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the total size of the database on the filesystem.
         /// </summary>
+        [Obsolete("This property is heavy and will be converted to a method")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public long TotalDataSize {
             get {
                 if (!IsOpen) {
@@ -233,6 +240,8 @@ namespace Couchbase.Lite
         /// Revisions older than this limit will be deleted during a -compact: operation.
         /// Smaller values save space, at the expense of making document conflicts somewhat more likely.
         /// </remarks>
+        [Obsolete("This property is heavy and will be converted to a method")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public int MaxRevTreeDepth 
         {
             get {
@@ -328,6 +337,67 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        public int GetDocumentCount()
+        {
+            if (!IsOpen) {
+                Log.W(TAG, "GetDocumentCount called on closed database");
+                return 0;
+            }
+
+            return Storage.DocumentCount;
+        }
+
+        public long GetLastSequenceNumber()
+        {
+            if (!IsOpen) {
+                Log.W(TAG, "GetLastSequenceNumber called on closed database");
+                return 0;
+            }
+
+            return Storage.LastSequence;
+        }
+
+        public long GetTotalDataSize()
+        {
+            if (!IsOpen) {
+                Log.W(TAG, "TotalDataSize called on closed database");
+                return 0L;
+            }
+
+            string dir = DbDirectory;
+            var info = new DirectoryInfo(dir);
+
+            // Database files
+            return info.EnumerateFiles("*", SearchOption.AllDirectories).Sum(x => x.Length);
+        }
+
+        public int GetMaxRevTreeDepth()
+        {
+            return Storage != null ? Storage.MaxRevTreeDepth : _maxRevTreeDepth;
+        }
+
+        public void SetMaxRevTreeDepth(int value)
+        {
+            if (value == 0) {
+                value = DEFAULT_MAX_REVS;
+            }
+
+            _maxRevTreeDepth = value;
+            if (Storage != null && value != Storage.MaxRevTreeDepth) {
+                var last = Storage.MaxRevTreeDepth;
+                Storage.MaxRevTreeDepth = value;
+                if (last == 0) {
+                    var saved = Storage.GetInfo("max_revs");
+                    var savedInt = 0;
+                    if (saved != null && Int32.TryParse(saved, out savedInt) && savedInt == value) {
+                        return;
+                    }
+
+                    Storage.SetInfo("max_revs", value.ToString());
+                }
+            }
+        }
+
         /// <summary>
         /// Compacts the <see cref="Couchbase.Lite.Database" /> file by purging non-current 
         /// <see cref="Couchbase.Lite.Revision" />s and deleting unused <see cref="Couchbase.Lite.Attachment" />s.
@@ -360,7 +430,7 @@ namespace Couchbase.Lite
         /// Thrown if an issue occurs while deleting the <see cref="Couchbase.Lite.Database" /></exception>
         public void Delete()
         {
-            Close();
+            Close().Wait();
             if (!Exists()) {
                 return;
             }
@@ -405,7 +475,8 @@ namespace Couchbase.Lite
         public IDictionary<String, Object> GetExistingLocalDocument(String id) 
         {
             if (!IsOpen) {
-                throw new InvalidOperationException("Database is closed");
+                Log.W(TAG, "GetExistingLocalDocument called on closed database");
+                return null;
             }
 
             var gotRev = Storage.GetLocalDocument(MakeLocalDocumentId(id), null);
@@ -423,7 +494,8 @@ namespace Couchbase.Lite
         public bool PutLocalDocument(string id, IDictionary<string, object> properties) 
         { 
             if (!IsOpen) {
-                throw new InvalidOperationException("Database is closed");
+                Log.W(TAG, "PutLocalDocument called on closed database");
+                return false;
             }
 
             id = MakeLocalDocumentId(id);
@@ -454,7 +526,8 @@ namespace Couchbase.Lite
         public Query CreateAllDocumentsQuery() 
         {
             if (!IsOpen) {
-                throw new InvalidOperationException("Database is closed");
+                Log.W(TAG, "CreateAllDocumentsQuery called on closed database");
+                return null;
             }
 
             return new Query(this, (View)null);
@@ -819,6 +892,10 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">When attempting to add an invalid revision</exception>
         internal void ForceInsert(RevisionInternal inRev, IList<string> revHistory, Uri source)
         {
+            if (!IsOpen) {
+                throw new CouchbaseLiteException("DB is closed", StatusCode.DbError);
+            }
+
             if (revHistory == null) {
                 revHistory = new List<string>(0);
             }
@@ -826,7 +903,7 @@ namespace Couchbase.Lite
             var rev = inRev.CopyWithDocID(inRev.GetDocId(), inRev.GetRevId());
             rev.SetSequence(0);
             string revID = rev.GetRevId();
-            if (!IsValidDocumentId(rev.GetDocId()) || revID == null) {
+            if (!Document.IsValidDocumentId(rev.GetDocId()) || revID == null) {
                 throw new CouchbaseLiteException(StatusCode.BadId);
             }
 
@@ -1445,37 +1522,41 @@ namespace Couchbase.Lite
 
         internal Uri FileForAttachmentDict(IDictionary<String, Object> attachmentDict)
         {
-            var digest = (string)attachmentDict.Get("digest");
-            if (digest == null)
-            {
+            if (!IsOpen) {
+                Log.W(TAG, "FileForAttachmentDict called on closed database");
                 return null;
             }
+
+            var digest = (string)attachmentDict.Get("digest");
+            if (digest == null) {
+                return null;
+            }
+
             string path = null;
             var pending = PendingAttachmentsByDigest.Get(digest);
-            if (pending != null)
-            {
+            if (pending != null) {
                 path = pending.FilePath;
-            }
-            else
-            {
+            } else {
                 // If it's an installed attachment, ask the blob-store for it:
                 var key = new BlobKey(digest);
                 path = Attachments.PathForKey(key);
             }
-            Uri retval = null;
-            try
-            {
-                retval = new FilePath(path).ToURI();
+
+            Uri retVal = null;
+            if (!Uri.TryCreate(path, UriKind.RelativeOrAbsolute, out retVal)) {
+                return null;
             }
-            catch (UriFormatException)
-            {
-            }
-            //NOOP: retval will be null
-            return retval;
+
+            return retVal;
         }
 
         internal IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds)
         {
+            if (!IsOpen) {
+                Log.W(TAG, "GetRevisionHistory called on closed database");
+                return null;
+            }
+
             HashSet<string> ancestors = ancestorRevIds != null ? new HashSet<string>(ancestorRevIds) : null;
             return Storage.GetRevisionHistory(rev, ancestors);
         }
@@ -1483,6 +1564,10 @@ namespace Couchbase.Lite
         internal void ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
             bool decodeAttachments)
         {
+            if (!IsOpen) {
+                throw new CouchbaseLiteException("DB is closed", StatusCode.DbError);
+            }
+
             rev.MutateAttachments((name, attachment) =>
             {
                 var revPos = attachment.GetCast<long>("revpos");
@@ -1869,6 +1954,11 @@ namespace Couchbase.Lite
         //Doesn't handle CouchbaseLiteException
         internal RevisionInternal LoadRevisionBody(RevisionInternal rev)
         {
+            if (!IsOpen) {
+                Log.W(TAG, "LoadRevisionBody called on closed database");
+                return null;
+            }
+
             if (rev.GetSequence() > 0) {
                 var props = rev.GetProperties();
                 if (props != null && props.GetCast<string>("_rev") != null && props.GetCast<string>("_id") != null) {
@@ -1876,19 +1966,11 @@ namespace Couchbase.Lite
                 }
             }
 
+
+
             Debug.Assert(rev.GetDocId() != null && rev.GetRevId() != null);
             Storage.LoadRevisionBody(rev);
             return rev;
-        }
-
-        internal Boolean IsValidDocumentId(string id)
-        {
-            // http://wiki.apache.org/couchdb/HTTP_Document_API#Documents
-            if (String.IsNullOrEmpty (id)) {
-                return false;
-            }
-
-            return id [0] != '_' || id.StartsWith ("_design/", StringComparison.InvariantCultureIgnoreCase);
         }
 
         /// <summary>Updates or deletes an attachment, creating a new document revision in the process.
@@ -1998,13 +2080,20 @@ namespace Couchbase.Lite
             }
         }
 
-        internal void Close()
+        internal Task Close()
         {
-            if (!IsOpen) {
-                return;
+            if (_closingTask != null) {
+                return _closingTask;
+            } else if (!IsOpen) {
+                return Task.FromResult(true);
             }
 
             IsOpen = false;
+                
+            var tcs = new TaskCompletionSource<bool>();
+            _closingTask = tcs.Task;
+            var retVal = _closingTask; // Will be nulled later
+
             Log.D(TAG, "Closing database at {0}", DbDirectory);
             if (_views != null) {
                 foreach (var view in _views) {
@@ -2014,18 +2103,34 @@ namespace Couchbase.Lite
                
             var activeReplicatorCopy = ActiveReplicators;
             ActiveReplicators = null;
-            if(activeReplicatorCopy != null && activeReplicatorCopy.Count > 0) {
+            if (activeReplicatorCopy != null && activeReplicatorCopy.Count > 0) {
+                // Give a chance for replicators to clean up before closing the DB
+                var evt = new CountdownEvent(activeReplicatorCopy.Count);
                 foreach (var repl in activeReplicatorCopy) {
-                    repl.DatabaseClosing();
+                    repl.DatabaseClosing(evt);
                 }
+
+                ThreadPool.RegisterWaitForSingleObject(evt.WaitHandle, (state, timedOut) =>
+                {
+                    CloseStorage();
+                    tcs.SetResult(!timedOut);
+                }, null, 15000, true);
+            } else {
+                CloseStorage();
+                tcs.SetResult(true);
             }
 
+            return retVal;
+        }
+
+        internal void CloseStorage()
+        {
             try {
                 Storage.Close();
-            } catch(CouchbaseLiteException) {
+            } catch (CouchbaseLiteException) {
                 Log.E(TAG, "Failed to close database");
                 throw;
-            } catch(Exception e) {
+            } catch (Exception e) {
                 throw new CouchbaseLiteException("Error closing database", e) { Code = StatusCode.Exception };
             } finally {
                 Storage = null;
@@ -2033,6 +2138,7 @@ namespace Couchbase.Lite
                 UnsavedRevisionDocumentCache.Clear();
                 DocumentCache = null;
                 Manager.ForgetDatabase(this);
+                _closingTask = null;
             }
         }
 

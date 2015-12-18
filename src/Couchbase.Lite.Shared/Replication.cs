@@ -224,7 +224,7 @@ namespace Couchbase.Lite
         private Task _retryIfReadyTask;
         private readonly Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
         private HashSet<string> _pendingDocumentIDs;
-        private bool _lastSequenceChanged;
+        private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
 
         #endregion
 
@@ -606,6 +606,7 @@ namespace Couchbase.Lite
         protected Replication(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor)
         {
             LocalDatabase = db;
+            _eventContext = LocalDatabase.Manager.CapturedContext;
             Continuous = continuous;
             // NOTE: Consider running a separate scheduler for all http requests.
             WorkExecutor = workExecutor;
@@ -729,8 +730,8 @@ namespace Couchbase.Lite
                 }
             }
 
-            if (LocalDatabase == null) {
-                Log.D(TAG, "LocalDatabase is null, so ruling Replication as stopped.  Returning empty pending ID set");
+            if (!LocalDatabase.IsOpen) {
+                Log.D(TAG, "LocalDatabase is not open, so ruling Replication as stopped.  Returning empty pending ID set");
                 return new HashSet<string>();
             }
 
@@ -759,9 +760,8 @@ namespace Couchbase.Lite
         /// </summary>
         public void Restart()
         {
-            // TODO: add the "started" flag and check it here
+            Changed += WaitForStopped;
             Stop();
-            Start();
         }
 
         /// <summary>Sets an HTTP cookie for the Replication.</summary>
@@ -964,15 +964,8 @@ namespace Couchbase.Lite
         protected virtual void StartInternal()
         {
             Log.V(TAG, "Replication Start");
-            if (LocalDatabase == null) {
-                Log.W(TAG, "Not starting replication because LocalDatabase is null.");
-                FireTrigger(ReplicationTrigger.StopImmediate);
-                return;
-            }
-
-            if (!LocalDatabase.Storage.IsOpen) {
-                // Race condition: db closed before replication starts
-                Log.W(TAG, "Not starting replication because db.isOpen() returned false.");
+            if (!LocalDatabase.IsOpen) {
+                Log.W(TAG, "Not starting replication because database is closed");
                 FireTrigger(ReplicationTrigger.StopImmediate);
                 return;
             }
@@ -984,9 +977,9 @@ namespace Couchbase.Lite
 
             if(!LocalDatabase.AddReplication(this) || !LocalDatabase.AddActiveReplication(this)) {
                 Log.W(TAG, "Replication did not start");
+                FireTrigger(ReplicationTrigger.StopImmediate);
                 return;
             }
-
 
             SetupRevisionBodyTransformationFunction();
 
@@ -1162,24 +1155,20 @@ namespace Couchbase.Lite
         internal virtual void Stopping()
         {
             Log.V(TAG, "Stopping");
+            if (!LocalDatabase.IsOpen) {
+                return; // This logic has already been handled by DatabaseClosing()
+            }
 
             lastSequenceChanged = true; // force save the sequence
             SaveLastSequence (() => 
             {
-                Log.V (TAG, "Set batcher to null");
-                Batcher = null;
-                var localDb = LocalDatabase;
-                if (localDb != null) {
-                    var reachabilityManager = localDb.Manager.NetworkReachabilityManager;
-                    if (reachabilityManager != null) {
-                        reachabilityManager.StatusChanged -= NetworkStatusChanged;
-                        reachabilityManager.StopListening ();
-                    }
-
-                    localDb.ForgetReplication(this);
+                var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+                if (reachabilityManager != null) {
+                    reachabilityManager.StatusChanged -= NetworkStatusChanged;
+                    reachabilityManager.StopListening ();
                 }
 
-                ClearDbRef ();
+                LocalDatabase.ForgetReplication(this);
             });
         }
 
@@ -1517,7 +1506,7 @@ namespace Couchbase.Lite
         /// </remarks>
         internal string RemoteCheckpointDocID(string localUUID)
         {
-            if (LocalDatabase == null) {
+            if (!LocalDatabase.IsOpen) {
                 return null;
             }
 
@@ -1641,12 +1630,20 @@ namespace Couchbase.Lite
             }
         }
 
-        internal void DatabaseClosing()
+        internal void DatabaseClosing(CountdownEvent evt)
         {
+            Log.I(TAG, "Database closed while replication running, shutting down");
             lastSequenceChanged = true; // force save the sequence
-            SaveLastSequence(null);
-            Stop();
-            ClearDbRef();
+            SaveLastSequence(() => {
+                var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+                if (reachabilityManager != null) {
+                    reachabilityManager.StatusChanged -= NetworkStatusChanged;
+                    reachabilityManager.StopListening();
+                }
+
+                Stop();
+                evt.Signal();
+            });
         }
 
         internal void AddToInbox(RevisionInternal rev)
@@ -1668,6 +1665,16 @@ namespace Couchbase.Lite
         #endregion
 
         #region Private Methods
+
+        private void WaitForStopped (object sender, ReplicationChangeEventArgs e)
+        {
+            if (e.Status != ReplicationStatus.Stopped) {
+                return;
+            }
+                
+            Changed -= WaitForStopped;
+            Start();
+        }
 
         private void FetchRemoteCheckpointDoc()
         {
@@ -1736,7 +1743,7 @@ namespace Couchbase.Lite
         // fast and avoid starting over from sequence zero.
         private string GetLastSequenceFromLocalCheckpoint()
         {
-            _lastSequenceChanged = false;
+            lastSequenceChanged = false;
             var db = LocalDatabase;
             var doc = db.GetLocalCheckpointDoc();
             if (doc != null) {
@@ -1820,7 +1827,7 @@ namespace Couchbase.Lite
                     body.Put ("_rev", response.Get ("rev"));
                     _remoteCheckpoint = body;
                     var localDb = LocalDatabase;
-                    if(localDb == null || !localDb.IsOpen) {
+                    if(localDb.Storage == null) {
                         Log.W(TAG, "Database is null or closed, ignoring remote checkpoint response");
                         if(completionHandler != null) {
                             completionHandler();
@@ -1881,8 +1888,8 @@ namespace Couchbase.Lite
 
             SendAsyncRequest(HttpMethod.Get, "/_local/" + RemoteCheckpointDocID(), null, (result, e) =>
             {
-                if (LocalDatabase == null) {
-                    Log.W(TAG, "db == null while refreshing remote checkpoint.  aborting");
+                if (!LocalDatabase.IsOpen) {
+                    Log.W(TAG, "Db closed while refreshing remote checkpoint.  Aborting");
                     return;
                 }
 
@@ -1925,19 +1932,6 @@ namespace Couchbase.Lite
                     return rev;
                 };
             }
-        }
-
-        private void ClearDbRef()
-        {
-            // If we're in the middle of saving the checkpoint and waiting for a response, by the time the
-            // response arrives _db will be nil, so there won't be any way to save the checkpoint locally.
-            // To avoid that, pre-emptively save the local checkpoint now.
-            var localDb = LocalDatabase;
-            if (localDb != null && localDb.IsOpen && _savingCheckpoint && LastSequence != null) {
-                localDb.SetLastSequence(LastSequence, RemoteCheckpointDocID());
-            }
-
-            LocalDatabase = null;
         }
 
         private void CheckSessionAtPath(string sessionPath)
@@ -2111,8 +2105,8 @@ namespace Couchbase.Lite
                 _eventQueue.Enqueue(args);
             }
 
-            if (LocalDatabase != null) {
-                LocalDatabase.Manager.CapturedContext.StartNew(() =>
+            if (_eventContext != null) {
+                _eventContext.StartNew(() =>
                 {
                     lock (_eventQueue) { 
                         while (_eventQueue.Count > 0) {

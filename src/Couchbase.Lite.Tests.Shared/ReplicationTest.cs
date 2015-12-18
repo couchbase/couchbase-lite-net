@@ -164,7 +164,7 @@ namespace Couchbase.Lite
             var pull = database.CreatePullReplication(db.RemoteUri);
             RunReplication(pull);
 
-            Log.D("TestPullManyDocuments", "Document count at end {0}", database.DocumentCount);
+            Log.D("TestPullManyDocuments", "Document count at end {0}", database.GetDocumentCount());
             tester(pull);
         }
 
@@ -222,11 +222,46 @@ namespace Couchbase.Lite
             _sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
         }
 
-        protected override void TearDown()
+        /*protected override void TearDown()
         {
             Sleep(2000); // Give the replicators a chance to finish up before moving to the next test
 
             base.TearDown();
+        }*/
+
+        [Test]
+        public void TestCloseDatabaseWhileReplicating()
+        {
+            var signal = new CountdownEvent(1);
+            var rso = new ReplicationStoppedObserver(signal);
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                CreateDocuments(database, 100);
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Changed += rso.Changed;
+                pusher.Start();
+                Sleep(500);
+                Assert.IsTrue(database.Close().Wait(15000));
+                Assert.IsFalse(database.IsOpen);
+                Assert.IsNull(database.Storage);
+                Assert.IsTrue(signal.Wait(10000));
+            }
+        }
+
+        [Test]
+        public void TestRestartReplicator()
+        {
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                CreateDocuments(database, 10);
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+
+                CreateDocuments(database, 10);
+                RunReplication(pusher);
+                Assert.AreEqual(20, pusher.CompletedChangesCount);
+                Assert.AreEqual(20, pusher.ChangesCount);
+                Assert.IsNull(pusher.LastError);
+            }
         }
 
         [Test]
@@ -408,7 +443,7 @@ namespace Couchbase.Lite
                     Assert.IsNull(pull1.LastError);
                     Assert.IsNull(pull2.LastError);
 
-                    Assert.AreEqual(100, database.DocumentCount);
+                    Assert.AreEqual(100, database.GetDocumentCount());
                 } finally {
                     StopReplication(pull1);
                 }
@@ -612,7 +647,7 @@ namespace Couchbase.Lite
                 database = EnsureEmptyDatabase(database.Name);
                 var pull = database.CreatePullReplication(push.RemoteUrl);
                 RunReplication(pull);
-                Assert.AreEqual(3, database.DocumentCount);
+                Assert.AreEqual(3, database.GetDocumentCount());
                 attachDoc = database.GetExistingDocument(attachDoc.Id);
                 Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
                 Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
@@ -629,7 +664,7 @@ namespace Couchbase.Lite
                 Assert.IsNull(push.LastError);
                 Assert.AreEqual(1, push.ChangesCount);
                 Assert.AreEqual(1, push.CompletedChangesCount);
-                Assert.AreEqual(3, database.DocumentCount);
+                Assert.AreEqual(3, database.GetDocumentCount());
             }
         }
 
@@ -1583,7 +1618,7 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
-            Assert.AreEqual(0, database.LastSequenceNumber);
+            Assert.AreEqual(0, database.GetLastSequenceNumber());
 
             var properties1 = new Dictionary<string, object>();
             properties1["doc1"] = "testPushReplicationCanMissDocs";
@@ -1799,7 +1834,7 @@ namespace Couchbase.Lite
             }
 
             // make sure we are starting empty
-            Assert.AreEqual(0, database.LastSequenceNumber);
+            Assert.AreEqual(0, database.GetLastSequenceNumber());
 
             // add docs
             var properties1 = new Dictionary<string, object>();
@@ -2174,7 +2209,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Assert.AreEqual(0, database.LastSequenceNumber);
+            Assert.AreEqual(0, database.GetLastSequenceNumber());
 
             var properties1 = new Dictionary<string, object>() {
                 { "dynamic", 1 }
@@ -2252,7 +2287,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Assert.AreEqual(0, database.LastSequenceNumber);
+            Assert.AreEqual(0, database.GetLastSequenceNumber());
 
             var properties1 = new Dictionary<string, object>() {
                 { "dynamic", 1 }
@@ -2411,7 +2446,7 @@ namespace Couchbase.Lite
                         return;
                     Log.D(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
                 };
-                int numDocsBeforePull = database.DocumentCount;
+                int numDocsBeforePull = database.GetDocumentCount();
                 View view = database.GetView("testPullerWithLiveQueryView");
                 view.SetMapReduce((document, emitter) =>
                 {
@@ -2482,7 +2517,7 @@ namespace Couchbase.Lite
                         return;
                     Log.D(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
                 };
-                int numDocsBeforePull = database.DocumentCount;
+                int numDocsBeforePull = database.GetDocumentCount();
                 View view = database.GetView("testPullerWithLiveQueryView");
                 view.SetMapReduce((document, emitter) =>
                 {
@@ -2672,7 +2707,7 @@ namespace Couchbase.Lite
             ManagerOptions.Default.RequestTimeout = TimeSpan.FromSeconds(5);
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
-                CreatePullAndTest(20, remoteDb, (repl) => Assert.AreEqual(20, database.DocumentCount, "Didn't recover from the error"));
+                CreatePullAndTest(20, remoteDb, (repl) => Assert.AreEqual(20, database.GetDocumentCount(), "Didn't recover from the error"));
             }
         }
 
@@ -2696,7 +2731,7 @@ namespace Couchbase.Lite
             ManagerOptions.Default.RequestTimeout = TimeSpan.FromSeconds(5);
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
-                CreatePullAndTest(20, remoteDb, repl => Assert.IsTrue(database.DocumentCount < 20, "Somehow got all the docs"));
+                CreatePullAndTest(20, remoteDb, repl => Assert.IsTrue(database.GetDocumentCount() < 20, "Somehow got all the docs"));
             }
         }
 
@@ -2748,8 +2783,8 @@ namespace Couchbase.Lite
 
                 CreatePullAndTest((int)(Manager.DefaultOptions.MaxRevsToGetInBulk * 1.5), remoteDb, repl =>
                 {
-                    Log.D(Tag, "Document count increased to {0} with last sequence '{1}'", database.DocumentCount, repl.LastSequence);
-                    Assert.IsTrue(database.DocumentCount > 0, "Didn't get docs from second bulk get batch");
+                    Log.D(Tag, "Document count increased to {0} with last sequence '{1}'", database.GetDocumentCount(), repl.LastSequence);
+                    Assert.IsTrue(database.GetDocumentCount() > 0, "Didn't get docs from second bulk get batch");
                     Assert.AreEqual(gotSequence, Int32.Parse(repl.LastSequence), "LastSequence was advanced");
                 });
 
@@ -2832,7 +2867,7 @@ namespace Couchbase.Lite
                 puller.Authenticator = new BasicAuthenticator("test_user", "1234");
                 RunReplication(puller);
                 Assert.IsNull(puller.LastError);
-                Assert.AreEqual(1, database.DocumentCount);
+                Assert.AreEqual(1, database.GetDocumentCount());
                 Assert.DoesNotThrow(() => doc = database.GetExistingDocument("channel_walker"));
                 Assert.IsTrue(doc.Properties.GetCast<bool>("_removed"));
             }

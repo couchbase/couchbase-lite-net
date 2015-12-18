@@ -85,13 +85,12 @@ namespace Couchbase.Lite.Store
 
         #region Variables
 
-        private static ConcurrentDictionary<int, IntPtr> _fdbConnections =
+        private ConcurrentDictionary<int, IntPtr> _fdbConnections =
             new ConcurrentDictionary<int, IntPtr>();
 
         private C4DatabaseFlags _config;
         private SymmetricKey _encryptionKey;
         private LruCache<string, ForestDBViewStore> _views = new LruCache<string, ForestDBViewStore>(100);
-        private bool _isClosed;
 
         #endregion
 
@@ -159,7 +158,7 @@ namespace Couchbase.Lite.Store
 
         static ForestDBCouchStore()
         {
-            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (56eab40f3c1f0ce7968c93356c9144bb3828f479))");
+            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (4bbbdc5d1140ebb7f1f4525ec41defb437591625))");
         }
 
         public ForestDBCouchStore()
@@ -195,6 +194,26 @@ namespace Couchbase.Lite.Store
         #endregion
 
         #region Private Methods
+
+        private long[] GetLastSequenceNumbers()
+        {
+            List<long> foo = new List<long>();
+            foreach (var connection in _fdbConnections) {
+                foo.Add((long)Native.c4db_getLastSequence((C4Database *)connection.Value.ToPointer()));
+            }
+
+            return foo.ToArray();
+        }
+
+        private bool[] GetIsInTransactions()
+        {
+            List<bool> foo = new List<bool>();
+            foreach (var connection in _fdbConnections) {
+                foo.Add(Native.c4db_isInTransaction((C4Database *)connection.Value.ToPointer()));
+            }
+
+            return foo.ToArray();
+        }
 
         private CBForestDocEnumerator GetDocEnumerator(QueryOptions options, out List<string> remainingIDs)
         {
@@ -392,7 +411,7 @@ namespace Couchbase.Lite.Store
 
         private void SelectCurrentRevision(CBForestDocStatus status)
         {
-            ForestDBBridge.Check(err => Native.c4doc_selectCurrentRevision(status.Document));
+            ForestDBBridge.Check(err => Native.c4doc_selectCurrentRevision(status.GetDocument()));
         }
 
         private IDictionary<string, object> GetAllDocsEntry(string docId)
@@ -588,7 +607,7 @@ namespace Couchbase.Lite.Store
             WithC4Document(docId, null, false, false, doc =>
             {
                 using(var enumerator = new CBForestHistoryEnumerator(doc, onlyCurrent, false)) {
-                    retVal = new RevisionList(enumerator.Select(x => new RevisionInternal(x.Document, false)).ToList());
+                    retVal = new RevisionList(enumerator.Select(x => new RevisionInternal(x.GetDocument(), false)).ToList());
                 }
             });
 
@@ -650,12 +669,12 @@ namespace Couchbase.Lite.Store
             {
                 var enumerator = new CBForestHistoryEnumerator(doc, false);
                 foreach(var next in enumerator) {
-                    if(ancestorRevIds != null && ancestorRevIds.Contains((string)next.Document->selectedRev.revID)) {
+                    if(ancestorRevIds != null && ancestorRevIds.Contains((string)next.SelectedRev.revID)) {
                         break;
                     }
 
-                    var newRev = new RevisionInternal(next.Document, false);
-                    newRev.SetMissing(!Native.c4doc_hasRevisionBody(next.Document));
+                    var newRev = new RevisionInternal(next.GetDocument(), false);
+                    newRev.SetMissing(!Native.c4doc_hasRevisionBody(next.GetDocument()));
                     history.Add(newRev);
                 }
             });
@@ -681,15 +700,14 @@ namespace Couchbase.Lite.Store
             var changes = new RevisionList();
             var e = new CBForestDocEnumerator(Forest, lastSequence, forestOps);
             foreach (var next in e) {
-                var doc = next.Document;
                 var revs = default(IEnumerable<RevisionInternal>);
                 if (options.IncludeConflicts) {
-                    using (var enumerator = new CBForestHistoryEnumerator(doc, true, false)) {
+                    using (var enumerator = new CBForestHistoryEnumerator(next.GetDocument(), true, false)) {
                         var includeBody = forestOps.flags.HasFlag(C4EnumeratorFlags.IncludeBodies);
-                        revs = enumerator.Select(x => new RevisionInternal(x.Document, includeBody)).ToList();
+                        revs = enumerator.Select(x => new RevisionInternal(x.GetDocument(), includeBody)).ToList();
                     }
                 } else {
-                    revs = new List<RevisionInternal> { new RevisionInternal(doc, forestOps.flags.HasFlag(C4EnumeratorFlags.IncludeBodies)) };
+                    revs = new List<RevisionInternal> { new RevisionInternal(next.GetDocument(), forestOps.flags.HasFlag(C4EnumeratorFlags.IncludeBodies)) };
                 }
 
                 foreach (var rev in revs) {
@@ -733,7 +751,7 @@ namespace Couchbase.Lite.Store
                     var conflicts = default(IList<string>);
                     if (options.AllDocsMode >= AllDocsMode.ShowConflicts && next.IsConflicted) {
                         SelectCurrentRevision(next);
-                        ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(next.Document, err));
+                        ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(next.GetDocument(), err));
                         using (var innerEnumerator = new CBForestHistoryEnumerator(next, true, false)) {
                             conflicts = innerEnumerator.Select(x => (string)x.SelectedRev.revID).ToList();
                         }
@@ -813,11 +831,12 @@ namespace Couchbase.Lite.Store
             options.flags |= C4EnumeratorFlags.IncludeDeleted;
             var e = new CBForestDocEnumerator(Forest, null, null, options);
             foreach(var next in e) {
-                var doc = next.Document;
-                if (!doc->HasAttachments || (doc->IsDeleted && !doc->IsConflicted)) {
+                var docInfo = next.DocumentInfo;
+                if (!docInfo->HasAttachments || (docInfo->IsDeleted && !docInfo->IsConflicted)) {
                     continue;
                 }
 
+                var doc = next.GetDocument();
                 // Since db is assumed to have just been compacted, we know that non-current revisions
                 // won't have any bodies. So only scan the current revs.
                 do {
