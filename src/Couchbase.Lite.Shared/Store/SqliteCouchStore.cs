@@ -430,7 +430,7 @@ namespace Couchbase.Lite.Store
             }
 
             var path = Path.Combine(_directory, DB_FILENAME);
-            if (StorageEngine == null || !StorageEngine.Open(path, _readOnly, _encryptionKey)) {
+            if (StorageEngine == null || !StorageEngine.Open(path, _readOnly, SCHEMA, _encryptionKey)) {
                 throw new CouchbaseLiteException("Unable to create a storage engine", StatusCode.DbError);
             }
 
@@ -440,7 +440,7 @@ namespace Couchbase.Lite.Store
 
                 // Check the user_version number we last stored in the sqliteDb:
                 var dbVersion = StorageEngine.GetVersion();
-                bool isNew = dbVersion == 0;
+                bool isNew = dbVersion == 17;
                 if (isNew) {
                     RunStatements("BEGIN TRANSACTION");
                 }
@@ -451,13 +451,8 @@ namespace Couchbase.Lite.Store
                 }
 
                 if (dbVersion < 17) {
-                    if (!isNew) {
-                        throw new CouchbaseLiteException("Database version ({0}) is older " +
-                            "than I know how to work with", dbVersion) { Code = StatusCode.DbError };
-                    }
-
-                    RunStatements(SCHEMA);
-                    dbVersion = 17;
+                    throw new CouchbaseLiteException("Database version ({0}) is older " +
+                        "than I know how to work with", dbVersion) { Code = StatusCode.DbError };
                 }
 
                 if (dbVersion < 18) {
@@ -486,6 +481,7 @@ namespace Couchbase.Lite.Store
                 StorageEngine.Close();
                 throw;
             } catch(Exception e) {
+                StorageEngine.Close();
                 throw new CouchbaseLiteException("Unknown error initializing SQLite storage engine", e) { Code = StatusCode.Exception };
             }
         }

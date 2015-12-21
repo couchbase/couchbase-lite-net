@@ -131,7 +131,7 @@ namespace Couchbase.Lite
             return true;
         }
 
-        public bool Open(String path, bool readOnly, SymmetricKey encryptionKey = null)
+        public bool Open(String path, bool readOnly, string schema, SymmetricKey encryptionKey)
         {
             if (IsOpen)
                 return true;
@@ -145,6 +145,12 @@ namespace Couchbase.Lite
                 int readFlag = readOnly ? SQLITE_OPEN_READONLY : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
                 int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | readFlag | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(writer_flags, encryptionKey, out _writeConnection);
+
+                if(schema != null && GetVersion() == 0) {
+                    foreach (var statement in schema.Split(';')) {
+                        ExecSQL(statement);
+                    }
+                }
 
                 const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(reader_flags, encryptionKey, out _readConnection);
@@ -260,10 +266,10 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException("Transactions not allowed on a readonly database", StatusCode.Forbidden);
             }
 
-            if (!IsOpen)
-            {
-                Open(Path, _readOnly);
+            if (!IsOpen) {
+                throw new CouchbaseLiteException("BeginTransaction called on closed database", StatusCode.BadRequest);
             }
+
             // NOTE.ZJG: Seems like we should really be using TO SAVEPOINT
             //           but this is how Android SqliteDatabase does it,
             //           so I'm matching that for now.
@@ -295,8 +301,9 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException("Transactions not allowed on a readonly database", StatusCode.Forbidden);
             }
 
-            if (_writeConnection == null)
-                throw new InvalidOperationException("Database is not open.");
+            if (!IsOpen) {
+                throw new CouchbaseLiteException("EndTransaction called on closed database", StatusCode.BadRequest);
+            }
 
             var count = Interlocked.Decrement(ref transactionCount);
             if (count > 0)
@@ -354,9 +361,8 @@ namespace Couchbase.Lite
         /// <param name="paramArgs">Parameter arguments.</param>
         public Cursor IntransactionRawQuery(String sql, params Object[] paramArgs)
         {
-            if (!IsOpen)
-            {
-                Open(Path, _readOnly);
+            if (!IsOpen) {
+                throw new CouchbaseLiteException("InTransactionRawQuery called on closed database", StatusCode.BadRequest);
             }
 
             if (transactionCount == 0) 
@@ -399,9 +405,8 @@ namespace Couchbase.Lite
         /// <param name="paramArgs">Parameter arguments.</param>
         public Cursor RawQuery(String sql, params Object[] paramArgs)
         {
-            if (!IsOpen)
-            {
-                Open(Path, _readOnly);
+            if (!IsOpen) {
+                throw new CouchbaseLiteException("RawQuery called on closed database", StatusCode.BadRequest);
             }
 
             Cursor cursor = null;
@@ -654,38 +659,36 @@ namespace Couchbase.Lite
         #endregion
 
         #region Non-public Members
+
         private sqlite3_stmt BuildCommand(sqlite3 db, string sql, object[] paramArgs)
         {
             if (db == null) {
                 throw new ArgumentNullException("db");
             }
 
-            sqlite3_stmt command = null;
-            try
-            {
-                if (!IsOpen) {
-                    Open(Path, _readOnly);
-                }
+            if (!IsOpen) {
+                throw new CouchbaseLiteException("BuildCommand called on closed database", StatusCode.BadRequest);
+            }
 
-                lock(Cursor.StmtDisposeLock)
-                {
+            sqlite3_stmt command = null;
+            try {
+                lock(Cursor.StmtDisposeLock) {
                     LastErrorCode = raw.sqlite3_prepare_v2(db, sql, out command);
                 }
 
-                if (LastErrorCode != raw.SQLITE_OK || command == null)
-                {
+                if (LastErrorCode != raw.SQLITE_OK || command == null) {
                     Log.E(TAG, "sqlite3_prepare_v2: " + LastErrorCode);
                 }
 
-                if (paramArgs != null && paramArgs.Length > 0 && command != null && LastErrorCode != raw.SQLITE_ERROR)
-                {
+                if (paramArgs != null && paramArgs.Length > 0 && command != null && LastErrorCode != raw.SQLITE_ERROR) {
                     command.bind(paramArgs);
                 }
-            }
-            catch (Exception e)
-            {
-                Log.E(TAG, "Error when build a sql " + sql + " with params " + paramArgs, e);
+            } catch (CouchbaseLiteException) {
+                Log.E(TAG, "Error when building sql '{0}' with params {1}", sql, Manager.GetObjectMapper().WriteValueAsString(paramArgs));
                 throw;
+            } catch (Exception e) {
+                throw new CouchbaseLiteException(String.Format("Error when building sql '{0}' with params {1}", sql, 
+                    Manager.GetObjectMapper().WriteValueAsString(paramArgs)), e);
             }
 
             return command;
@@ -701,10 +704,10 @@ namespace Couchbase.Lite
         /// <param name="whereArgs">Where arguments.</param>
         sqlite3_stmt GetUpdateCommand(string table, ContentValues values, string whereClause, string[] whereArgs)
         {
-            if (!IsOpen)
-            {
-                Open(Path, _readOnly);
+            if (!IsOpen) {
+                throw new CouchbaseLiteException("GetUpdateCommand called on closed database", StatusCode.BadRequest);
             }
+
             var builder = new StringBuilder("UPDATE ");
 
             builder.Append(table);
@@ -752,10 +755,10 @@ namespace Couchbase.Lite
         /// <param name="conflictResolutionStrategy">Conflict resolution strategy.</param>
         sqlite3_stmt GetInsertCommand(String table, ContentValues values, ConflictResolutionStrategy conflictResolutionStrategy)
         {
-            if (!IsOpen)
-            {
-                Open(Path, _readOnly);
+            if (!IsOpen) {
+                throw new CouchbaseLiteException("GetInsertCommand called on closed database", StatusCode.BadRequest);
             }
+
             var builder = new StringBuilder("INSERT");
 
             if (conflictResolutionStrategy != ConflictResolutionStrategy.None)
@@ -820,10 +823,10 @@ namespace Couchbase.Lite
         /// <param name="whereArgs">Where arguments.</param>
         sqlite3_stmt GetDeleteCommand(string table, string whereClause, string[] whereArgs)
         {
-            if (!IsOpen)
-            {
-                Open(Path, _readOnly);
+            if (!IsOpen) {
+                throw new CouchbaseLiteException("GetDeleteCommand called on closed database", StatusCode.BadRequest);
             }
+
             var builder = new StringBuilder("DELETE FROM ");
             builder.Append(table);
             if (!StringEx.IsNullOrWhiteSpace(whereClause))

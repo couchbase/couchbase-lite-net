@@ -2215,12 +2215,6 @@ namespace Couchbase.Lite
             // Open the storage!
             try {
                 Storage.Open(DbDirectory, Manager, _readonly);
-                if(Storage is SqliteCouchStore) {
-                    // HACK: Needed to overcome the read connection not getting the write connection
-                    // changes until after the schema is written
-                    Storage.Close();
-                    Storage.Open(DbDirectory, Manager, _readonly);
-                }
             } catch(CouchbaseLiteException) {
                 Storage.Close();
                 Log.E(TAG, "Failed to open storage for database");
@@ -2239,9 +2233,9 @@ namespace Couchbase.Lite
             var savedMaxRevDepth = _maxRevTreeDepth != 0 ? _maxRevTreeDepth.ToString() : Storage.GetInfo("max_revs");
             int maxRevTreeDepth = 0;
             if (savedMaxRevDepth != null && int.TryParse(savedMaxRevDepth, out maxRevTreeDepth)) {
-                MaxRevTreeDepth = maxRevTreeDepth;
+                SetMaxRevTreeDepth(maxRevTreeDepth);
             } else {
-                MaxRevTreeDepth = DEFAULT_MAX_REVS;
+                SetMaxRevTreeDepth(DEFAULT_MAX_REVS);
             }
 
             // Open attachment store:
