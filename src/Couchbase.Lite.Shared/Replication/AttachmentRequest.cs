@@ -9,6 +9,7 @@ namespace Couchbase.Lite.Internal
     {
         private ManualResetEvent completeEvent;
         private MemoryStream stream;
+        private bool error = false;
         private readonly object _locker = new object ();
 
         public Attachment attachment { get; private set; }
@@ -31,6 +32,11 @@ namespace Couchbase.Lite.Internal
             completeEvent.Set();
         }
 
+        public void SetError()
+        {
+            error = true;
+        }
+
         public void AppendData(byte[] buffer, int bytesRead)
         {
             lock(_locker)
@@ -41,6 +47,11 @@ namespace Couchbase.Lite.Internal
 
         public MemoryStream GetStream()
         {
+            if (error == true)
+            {
+                return null;
+            }
+
             byte[] buffer = new byte[4096];
             int read;
 

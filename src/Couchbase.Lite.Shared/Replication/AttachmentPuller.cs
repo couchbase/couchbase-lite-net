@@ -183,6 +183,10 @@ namespace Couchbase.Lite.Replicator
                             blobWriter.Finish();
                             blobWriter.Install();
                         }
+                        else
+                        {
+                            req.SetError();
+                        }
 
                         string digest = req.attachment.Metadata.Get("digest").ToString();
                         lock(_locker)

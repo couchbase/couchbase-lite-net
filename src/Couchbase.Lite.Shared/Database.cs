@@ -737,7 +737,12 @@ namespace Couchbase.Lite
         }
 
         internal bool AddReplication(Replication replication)
-        {
+		{
+			if(replication.IsAttachmentPull)
+			{
+				return true;
+			}
+
             lock (_allReplicatorsLocker) {
                 if (AllReplications.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
                     AllReplicators.Add(replication);

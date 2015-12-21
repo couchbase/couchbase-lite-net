@@ -541,17 +541,22 @@ namespace Couchbase.Lite.Replicator
         /// The contents are stored into rev.properties.
         /// </remarks>
         private void PullRemoteRevision(RevisionInternal rev)
-        {
-            Log.D(TAG, "PullRemoteRevision with rev: {0}", rev);
-            _httpConnectionCount++;
+		{
+			Log.D(TAG, "PullRemoteRevision with rev: {0}", rev);
+			_httpConnectionCount++;
 
-            // Construct a query. We want the revision history, and the bodies of attachments that have
-            // been added since the latest revisions we have locally.
-            // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
-            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.GetDocId()) + "?rev=" + Uri.EscapeUriString(rev.GetRevId())
-                        + string.Format("&revs=true&attachments={0}", ManagerOptions.Default.DownloadAttachmentsOnSync.ToString().ToLower()));
-            var tmp = LocalDatabase.Storage.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
-            var knownRevs = tmp == null ? null : tmp.ToList();
+			// Construct a query. We want the revision history, and the bodies of attachments that have
+			// been added since the latest revisions we have locally.
+			// See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
+			var path = new StringBuilder("/" + Uri.EscapeUriString(rev.GetDocId()) + "?rev=" + Uri.EscapeUriString(rev.GetRevId())
+			                    + string.Format("&revs=true&attachments={0}", ManagerOptions.Default.DownloadAttachmentsOnSync.ToString().ToLower()));
+			var tmp = LocalDatabase.Storage.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
+			var knownRevs = tmp == null ? null : tmp.ToList();
+
+			if(knownRevs == null)
+			{
+				knownRevs = new List<string>();
+			}
             if (knownRevs == null) {
                 //this means something is wrong, possibly the replicator has shut down
                 _httpConnectionCount--;
