@@ -40,6 +40,7 @@ namespace Couchbase.Lite
     {
         private int _startCount = 0;
         private const string TAG = "NetworkReachabilityManager";
+        internal static bool AllowLoopback = false; // Unit tests are 
 
         public bool CanReach(string remoteUri)
         {
@@ -155,7 +156,7 @@ namespace Couchbase.Lite
             if (_isListening) {
                 return;
             }
-            NetworkChange.NetworkAvailabilityChanged += OnNetworkChange;
+            NetworkChange.NetworkAddressChanged += OnNetworkChange;
             _isListening = true;
             #endif
         }
@@ -186,9 +187,10 @@ namespace Couchbase.Lite
             if (!_isListening) {
                 return;
             }
-            NetworkChange.NetworkAvailabilityChanged -= OnNetworkChange;          
+            NetworkChange.NetworkAddressChanged -= OnNetworkChange;          
             #endif
         }
+
         #endregion
 
         #region Private Members
@@ -199,12 +201,54 @@ namespace Couchbase.Lite
 
         #endregion
 
-        /// <summary>Notify listeners that the network is now reachable/unreachable.</summary>
-        internal void OnNetworkChange(Object sender, NetworkAvailabilityEventArgs args)
+        
+        internal void OnNetworkChange(object sender, EventArgs args)
         {
-            var status = args.IsAvailable
-                ? NetworkReachabilityStatus.Reachable
-                : NetworkReachabilityStatus.Unreachable;
+            Log.I(TAG, "Network change detected, analyzing connection status...");
+            var status = NetworkReachabilityStatus.Unknown;
+            do {
+                // https://social.msdn.microsoft.com/Forums/vstudio/en-US/a6b3541b-b7de-49e2-a7a6-ba0687761af5/networkavailabilitychanged-event-does-not-fire
+                // plus some tweaks
+                if(!NetworkInterface.GetIsNetworkAvailable()) {
+                    Log.I(TAG, "NetworkInterface.GetIsNetworkAvailable() indicated no network available");
+                    status = NetworkReachabilityStatus.Unreachable;
+                    break;
+                }
+
+                foreach(NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
+                    // discard because of standard reasons
+                    if((ni.OperationalStatus != OperationalStatus.Up) ||
+                        (!AllowLoopback && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) ||
+                        (ni.NetworkInterfaceType == NetworkInterfaceType.Tunnel)) {
+                        Log.V(TAG, "Disregarding {0} ({1} because it is not up or not outward facing", ni.Name, ni.Description);
+                        continue;
+                    }
+
+                    // discard virtual cards (virtual box, virtual pc, etc.)
+                    if((ni.Description.IndexOf("virtual", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                        (ni.Name.IndexOf("virtual", StringComparison.OrdinalIgnoreCase) >= 0)) {
+                        Log.V(TAG, "Disregarding virtual NIC {0} ({1}", ni.Name, ni.Description);
+                        continue;
+                    }
+
+                    // discard "Microsoft Loopback Adapter," etc, it will not show as NetworkInterfaceType.Loopback but as Ethernet Card.
+                    if(ni.Description.IndexOf("Loopback Adapter", StringComparison.OrdinalIgnoreCase) >= 0) {
+                        Log.V(TAG, "Disregarding Microsoft Loopback Adapter");
+                        continue;
+                    }
+
+                    Log.I(TAG, "Found acceptable NIC {0} ({1})", ni.Name, ni.Description);
+                    status = NetworkReachabilityStatus.Reachable;
+                    break;
+                }
+
+                if(status == NetworkReachabilityStatus.Reachable) {
+                    break;
+                }
+
+                Log.I(TAG, "No acceptable NIC found");
+                status = NetworkReachabilityStatus.Unreachable;
+            } while(false);
             
             InvokeNetworkChangeEvent(status);
         }
@@ -212,10 +256,10 @@ namespace Couchbase.Lite
         void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
         {
             var evt = _statusChanged;
-            if (evt == null)
-            {
+            if(evt == null) {
                 return;
             }
+
             var eventArgs = new NetworkReachabilityChangeEventArgs(status);
             evt(this, eventArgs);
         }

@@ -2546,5 +2546,28 @@ namespace Couchbase.Lite
             }
         }
 
+        [Test]
+        //Note: requires manual intervention (unplugging network cable, etc)
+        public void TestReactToNetworkChange()
+        {
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull.Continuous = true;
+                var countdown = new CountdownEvent(7);
+                pull.Changed += (sender, args) =>
+                {
+                    if(args.Status == ReplicationStatus.Offline) {
+                        Log.I(Tag, "Replication went offline");
+                        countdown.Signal();
+                    } else if(args.Status == ReplicationStatus.Idle) {
+                        Log.I(Tag, "Replication started or resumed");
+                        countdown.Signal();
+                    }
+                };
+
+                pull.Start();
+                Assert.True(countdown.Wait(TimeSpan.FromSeconds(600)));
+            }
+        }
     }
 }
