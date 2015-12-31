@@ -2872,5 +2872,89 @@ namespace Couchbase.Lite
                 Assert.IsTrue(doc.Properties.GetCast<bool>("_removed"));
             }
         }
+
+        //Note: requires manual intervention (unplugging network cable, etc)
+        public void TestReactToNetworkChange()
+        {
+            CreateDocuments(database, 10);
+            var offlineEvent = new ManualResetEvent(false);
+            var resumedEvent = new ManualResetEvent(false);
+            var finishedEvent = new ManualResetEvent(false);
+
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                push.Continuous = true;
+                push.Changed += (sender, args) =>
+                {
+                    if(args.Status == ReplicationStatus.Offline) {
+                        Log.I(Tag, "Replication went offline");
+                        offlineEvent.Set();
+                    } else if(args.Status == ReplicationStatus.Active) {
+                        Log.I(Tag, "Replication resumed");
+                        resumedEvent.Set();
+                    } else if(args.Status == ReplicationStatus.Idle) {
+                        Log.I(Tag, "Replication finished");
+                        finishedEvent.Set();
+                    }
+                };
+
+                push.Start();
+
+                // ***** PULL OUT NETWORK CABLE OR SOMETHING HERE ***** //
+                Task.Delay(1000).ContinueWith(t => Log.W(Tag, "***** Test will continue when network connectivity is lost... *****"));
+                Assert.True(offlineEvent.WaitOne(TimeSpan.FromSeconds(60)));
+                CreateDocuments(database, 10);
+
+                // ***** UNDO THE ABOVE CHANGES AND RESTORE CONNECTIVITY ***** //
+                Log.W(Tag, "***** Test will continue when network connectivity is restored... *****");
+                resumedEvent.Reset();
+                Assert.True(resumedEvent.WaitOne(TimeSpan.FromSeconds(60)));
+                finishedEvent.Reset();
+                Assert.True(finishedEvent.WaitOne(TimeSpan.FromSeconds(15)));
+                Assert.AreEqual(20, push.ChangesCount);
+                Assert.AreEqual(20, push.CompletedChangesCount);
+                push.Stop();
+            }
+
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.AddDocuments(10, false);
+                var secondDb = manager.GetDatabase("foo");
+                var pull = secondDb.CreatePullReplication(remoteDb.RemoteUri);
+                pull.Continuous = true;
+                pull.Changed += (sender, args) =>
+                {
+                    if(args.Status == ReplicationStatus.Offline) {
+                        Log.I(Tag, "Replication went offline");
+                        offlineEvent.Set();
+                    } else if(args.Status == ReplicationStatus.Active) {
+                        Log.I(Tag, "Replication resumed");
+                        resumedEvent.Set();
+                    } else if(args.Status == ReplicationStatus.Idle) {
+                        Log.I(Tag, "Replication finished");
+                        finishedEvent.Set();
+                    }
+                };
+
+                offlineEvent.Reset();
+                pull.Start();
+                // ***** PULL OUT NETWORK CABLE OR SOMETHING HERE ***** //
+                Task.Delay(2000).ContinueWith(t => Log.W(Tag, "***** Test will continue when network connectivity is lost... *****"));
+                Assert.True(offlineEvent.WaitOne(TimeSpan.FromSeconds(60)));
+
+                remoteDb.AddDocuments(10, false);
+
+                // ***** UNDO THE ABOVE CHANGES AND RESTORE CONNECTIVITY ***** //
+                Log.W(Tag, "***** Test will continue when network connectivity is restored... *****");
+                resumedEvent.Reset();
+                Assert.True(resumedEvent.WaitOne(TimeSpan.FromSeconds(60)));
+                finishedEvent.Reset();
+                Assert.True(finishedEvent.WaitOne(TimeSpan.FromSeconds(15)));
+                Assert.AreEqual(20, secondDb.DocumentCount);
+                Assert.AreEqual(20, pull.ChangesCount);
+                Assert.AreEqual(20, pull.CompletedChangesCount);
+                pull.Stop();
+
+            }
+        }
     }
 }
