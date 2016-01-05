@@ -89,7 +89,7 @@ namespace Couchbase.Lite.Replicator
         {
             get
             {
-                return Batcher.Count() == 0;
+                return Batcher == null || Batcher.Count() == 0;
             }
         }
 
