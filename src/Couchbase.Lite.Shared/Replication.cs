@@ -924,7 +924,6 @@ namespace Couchbase.Lite
 
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
             reachabilityManager.StatusChanged += NetworkStatusChanged;
-            reachabilityManager.StartListening();
         }
 
         /// <summary>
@@ -1091,7 +1090,6 @@ namespace Couchbase.Lite
                     var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
                     if (reachabilityManager != null) {
                         reachabilityManager.StatusChanged -= NetworkStatusChanged;
-                        reachabilityManager.StopListening ();
                     }
 
                     LocalDatabase.ForgetReplication(this);

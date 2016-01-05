@@ -20,16 +20,6 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if this instance can reach the specified endpoint; otherwise, <c>false</c>.</returns>
         /// <param name="remoteUri">The endpoint to test</param>
         bool CanReach(string remoteUri);
-
-        /// <summary>
-        /// Start listening for changes in network reachability
-        /// </summary>
-        void StartListening();
-
-        /// <summary>
-        /// Stop listening for changes in network reachability
-        /// </summary>
-        void StopListening();
     }
 
     #region Enum

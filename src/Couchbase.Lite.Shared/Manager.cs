@@ -243,7 +243,8 @@ namespace Couchbase.Lite
             workExecutor = new TaskFactory(new SingleTaskThreadpoolScheduler());
             Log.D(TAG, "New Manager uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
 
-            this.NetworkReachabilityManager = new NetworkReachabilityManager();
+            _networkReachabilityManager = new NetworkReachabilityManager();
+            _networkReachabilityManager.StartListening();
 
             SharedCookieStore = new CookieStore(this.directoryFile.FullName);
             StorageType = "SQLite";
@@ -298,6 +299,7 @@ namespace Couchbase.Lite
         public void Close() 
         {
             Log.I(TAG, "Closing " + this);
+            _networkReachabilityManager.StopListening();
             foreach (var database in databases.Values.ToArray()) {
                 var replicators = database.AllReplications;
 
@@ -486,12 +488,13 @@ namespace Couchbase.Lite
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;
         private readonly List<Replication> replications;
+        private readonly NetworkReachabilityManager _networkReachabilityManager;
         internal readonly TaskFactory workExecutor;
 
         // Instance Properties
         internal TaskFactory CapturedContext { get; private set; }
         internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
-        internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
+        internal INetworkReachabilityManager NetworkReachabilityManager { get { return _networkReachabilityManager; } }
         internal CookieStore SharedCookieStore { get; set; } 
         internal string StorageType { get; set; } // @"SQLite" (default) or @"ForestDB"
         internal SharedState Shared { get; private set; }
