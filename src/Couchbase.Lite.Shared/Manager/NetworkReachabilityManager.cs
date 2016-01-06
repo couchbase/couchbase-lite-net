@@ -42,7 +42,6 @@ namespace Couchbase.Lite
     {
         private const string TAG = "NetworkReachabilityManager";
         internal static bool AllowLoopback = false; // For unit tests
-        private NetworkReachabilityStatus _currentStatus = NetworkReachabilityStatus.Unknown;
 
         public Exception LastError { get; private set; }
 
@@ -235,11 +234,6 @@ namespace Couchbase.Lite
 
         void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
         {
-            if(_currentStatus == status) {
-                return;
-            }
-
-            _currentStatus = status;
             var evt = _statusChanged;
             if(evt == null) {
                 return;
