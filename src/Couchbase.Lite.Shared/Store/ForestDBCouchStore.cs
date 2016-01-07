@@ -414,6 +414,11 @@ namespace Couchbase.Lite.Store
             ForestDBBridge.Check(err => Native.c4doc_selectCurrentRevision(status.GetDocument()));
         }
 
+        private void LoadRevisionBody(CBForestDocStatus status)
+        {
+            ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(status.GetDocument(), err));
+        }
+
         private IDictionary<string, object> GetAllDocsEntry(string docId)
         {
             var value = default(IDictionary<string, object>);
@@ -751,7 +756,7 @@ namespace Couchbase.Lite.Store
                     var conflicts = default(IList<string>);
                     if (options.AllDocsMode >= AllDocsMode.ShowConflicts && next.IsConflicted) {
                         SelectCurrentRevision(next);
-                        ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(next.GetDocument(), err));
+                        LoadRevisionBody(next);
                         using (var innerEnumerator = new CBForestHistoryEnumerator(next, true, false)) {
                             conflicts = innerEnumerator.Select(x => (string)x.SelectedRev.revID).ToList();
                         }

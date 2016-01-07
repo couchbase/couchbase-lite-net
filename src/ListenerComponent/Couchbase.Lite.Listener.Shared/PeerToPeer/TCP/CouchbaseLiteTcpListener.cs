@@ -59,7 +59,6 @@ namespace Couchbase.Lite.Listener.Tcp
 
         #endregion
 
-
         #region Constructors
 
         /// <summary>

@@ -2027,7 +2027,7 @@ namespace Couchbase.Lite
             });
 
             _stateMachine.Configure(ReplicationState.Running).OnExit(transition =>
-               Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+               Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID));
 
             _stateMachine.Configure(ReplicationState.Idle).OnEntry(transition =>
             {
