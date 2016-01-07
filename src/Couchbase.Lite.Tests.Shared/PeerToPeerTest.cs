@@ -31,7 +31,6 @@ using Couchbase.Lite.Util;
 using Mono.Zeroconf.Providers.Bonjour;
 using NUnit.Framework;
 using System.Security.Cryptography;
-using Mono.Security.X509.Extensions;
 using Couchbase.Lite.Listener.Security;
 
 namespace Couchbase.Lite
@@ -56,7 +55,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestSsl()
         {
-            SSLGenerator.GenerateTempCert(59840, "127.0.0.1");
+            SSLGenerator.GenerateTempKeyAndCert("127.0.0.1", 59841);
         }
 
         [Test]
