@@ -24,6 +24,7 @@ using System.IO;
 using Mono.Security.X509;
 using System.Collections;
 using Mono.Security.Authenticode;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Couchbase.Lite.Listener.Security
 {
@@ -31,10 +32,20 @@ namespace Couchbase.Lite.Listener.Security
     internal static class SSLGenerator
     {
         //adapted from https://github.com/mono/mono/blob/master/mcs/tools/security/makecert.cs
-        public static void GenerateTempKeyAndCert(string certificateName, ushort port)
+        public static void GenerateTempKeyAndCert(string certificateName, ushort port, bool overwrite = false)
         {
             if(Type.GetType("Mono.Runtime") == null) {
                 throw new PlatformNotSupportedException("Windows is not supported via this method, please install your certificate using netsh.exe");
+            }
+
+            string dirname = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string path = Path.Combine(dirname, ".mono");
+            path = Path.Combine(path, "httplistener");
+
+            string cert_file = Path.Combine(path, String.Format("{0}.cer", port));
+            string pvk_file = Path.Combine(path, String.Format("{0}.pvk", port));
+            if (!overwrite && File.Exists(cert_file) && File.Exists(pvk_file)) {
+                return;
             }
 
             byte[] sn = GenerateSerialNumber();
@@ -59,15 +70,55 @@ namespace Couchbase.Lite.Listener.Security
             cb.Hash = hashName;
 
             byte[] rawcert = cb.Sign(subjectKey);
-            string dirname = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string path = Path.Combine(dirname, ".mono");
-            path = Path.Combine(path, "httplistener");
+            
             Directory.CreateDirectory(path);
-            string cert_file = Path.Combine(path, String.Format("{0}.cer", port));
             WriteCertificate(cert_file, rawcert);
-
-            string pvk_file = Path.Combine(path, String.Format("{0}.pvk", port));
             privKey.Save(pvk_file);
+        }
+
+        public static X509Certificate2 GetOrCreateClientCert(string password)
+        {
+            string dirname = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string path = Path.Combine(dirname, ".couchbase");
+            Directory.CreateDirectory(path);
+            path = Path.Combine(path, "client.pfx");
+            if (File.Exists(path)) {
+                return new X509Certificate2(path, password);
+            }
+
+            byte[] sn = GenerateSerialNumber();
+            string subject = string.Format("CN=CouchbaseClient");
+
+            DateTime notBefore = DateTime.Now;
+            DateTime notAfter = DateTime.Now.AddYears(20);
+
+            RSA subjectKey = new RSACryptoServiceProvider(2048);
+            PrivateKey privKey = new PrivateKey();
+            privKey.RSA = subjectKey;
+
+            string hashName = "SHA512";
+
+            X509CertificateBuilder cb = new X509CertificateBuilder(3);
+            cb.SerialNumber = sn;
+            cb.IssuerName = subject;
+            cb.NotBefore = notBefore;
+            cb.NotAfter = notAfter;
+            cb.SubjectName = subject;
+            cb.SubjectPublicKey = subjectKey;
+            cb.Hash = hashName;
+
+            byte[] rawcert = cb.Sign(subjectKey);
+
+            PKCS12 p12 = new PKCS12();
+            p12.Password = password;
+            Hashtable attributes = GetAttributes();
+            p12.AddCertificate(new Mono.Security.X509.X509Certificate(rawcert),attributes);
+            p12.AddPkcs8ShroudedKeyBag(subjectKey,attributes);
+
+            rawcert = p12.GetBytes();
+            WriteCertificate(path, rawcert);
+
+            return new X509Certificate2(rawcert, password);
         }
 
         private static void WriteCertificate(string filename, byte[] rawcert)
@@ -76,7 +127,6 @@ namespace Couchbase.Lite.Listener.Security
             fs.Write(rawcert, 0, rawcert.Length);
             fs.Close();
         }
-
 
         private static Hashtable GetAttributes()
         {

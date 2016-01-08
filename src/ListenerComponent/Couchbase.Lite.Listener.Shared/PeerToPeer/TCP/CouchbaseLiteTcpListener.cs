@@ -81,7 +81,8 @@ namespace Couchbase.Lite.Listener.Tcp
             _manager = manager;
             _realm = realm;
             _listener = new HttpListener();
-            string prefix = String.Format("http://*:{0}/", port);
+            string prefix = options.HasFlag(CouchbaseLiteTcpOptions.UseTLS) ? String.Format("https://*:{0}/", port) :
+                String.Format("http://*:{0}/", port);
             _listener.Prefixes.Add(prefix);
             _allowBasicAuth = options.HasFlag(CouchbaseLiteTcpOptions.AllowBasicAuth);
         }
