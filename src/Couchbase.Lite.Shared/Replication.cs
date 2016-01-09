@@ -152,6 +152,8 @@ namespace Couchbase.Lite
 
         #region Constants
 
+        public const string SYNC_PROTOCOL_VERSION = "1.2";
+
         internal const string CHANNELS_QUERY_PARAM = "channels";
         internal const string BY_CHANNEL_FILTER_NAME = "sync_gateway/bychannel";
         internal const string REPLICATOR_DATABASE_NAME = "_replicator";
