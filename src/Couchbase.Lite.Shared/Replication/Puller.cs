@@ -587,10 +587,17 @@ namespace Couchbase.Lite.Replicator
                     Log.E (TAG, "Error pulling remote revision", e);
                     LastError = e;
                     RevisionFailed();
+
                     Log.D(TAG, "PullRemoteRevision updating completedChangesCount from " + 
                         CompletedChangesCount + " -> " + (CompletedChangesCount + 1) 
                         + " due to error pulling remote revision");
                     SafeIncrementCompletedChangesCount();
+                    if(IsDocumentError(e)) {
+                        // Make sure this document is skipped because it is not available
+                        // even though the server is functioning
+                        _pendingSequences.RemoveSequence(rev.GetSequence());
+                        LastSequence = _pendingSequences.GetCheckpointedValue();
+                    }
                 } else {
                     var properties = result.AsDictionary<string, object>();
                     var gotRev = new PulledRevision(properties);
@@ -609,6 +616,17 @@ namespace Couchbase.Lite.Replicator
                 --_httpConnectionCount;
                 PullRemoteRevisions ();
             });
+        }
+
+        private static bool IsDocumentError(Exception e)
+        {
+            var we = e as HttpResponseException;
+            if (we == null) {
+                return false;
+            }
+
+            return we.StatusCode == System.Net.HttpStatusCode.NotFound ||
+            we.StatusCode == System.Net.HttpStatusCode.Forbidden || we.StatusCode == System.Net.HttpStatusCode.Gone;
         }
 
         /// <summary>This will be called when _revsToInsert fills up:</summary>

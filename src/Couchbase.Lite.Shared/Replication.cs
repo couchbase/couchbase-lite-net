@@ -1266,16 +1266,28 @@ namespace Couchbase.Lite
                     object fullBody = null;
                     Exception error = null;
                     try {
+                        if(responseMessage.IsFaulted) {
+                            error = responseMessage.Exception.InnerException;
+                            if(onCompletion != null) {
+                                onCompletion(null, error);
+                            }
+
+                            return;
+                        }
+
                         var response = responseMessage.Result;
                         // add in cookies to global store
                         //CouchbaseLiteHttpClientFactory.Instance.AddCookies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
 
                         var status = response.StatusCode;
                         if ((Int32)status.GetStatusCode() >= 300) {
-                            Log.E(TAG, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode()));
+                            Log.E(TAG, "Got error " + status.GetStatusCode());
                             Log.E(TAG, "Request was for: " + message);
                             Log.E(TAG, "Status reason: " + response.ReasonPhrase);
-                            error = new WebException(response.ReasonPhrase);
+                            error = new HttpResponseException(status);
+                            if(onCompletion != null) {
+                                onCompletion(null, error);
+                            }
                         } else {
                             var entity = response.Content;
                             var contentTypeHeader = response.Content.Headers.ContentType;
