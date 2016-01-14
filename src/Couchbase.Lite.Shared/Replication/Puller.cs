@@ -360,9 +360,14 @@ namespace Couchbase.Lite.Replicator
                         QueueDownloadedRevision(rev);
                     } else {
                         var status = StatusFromBulkDocsResponseItem(props);
-                        LastError = new CouchbaseLiteException(status.Code);
+                        Log.W(TAG, "Error downloading {0}", rev);
+                        var error = new CouchbaseLiteException(status.Code);
+                        LastError = error;
                         RevisionFailed();
                         SafeIncrementCompletedChangesCount();
+                        if(IsDocumentError(error)) {
+                            _pendingSequences.RemoveSequence(rev.GetSequence());
+                        }
                     }
                 };
 
@@ -389,7 +394,7 @@ namespace Couchbase.Lite.Replicator
                     }
 
                     SafeAddToCompletedChangesCount(remainingRevs.Count);
-
+                    LastSequence = _pendingSequences.GetCheckpointedValue();
                     --_httpConnectionCount;
 
                     PullRemoteRevisions();
@@ -529,6 +534,12 @@ namespace Couchbase.Lite.Replicator
                         CompletedChangesCount + " -> " + (CompletedChangesCount + 1) 
                         + " due to error pulling remote revision");
                     SafeIncrementCompletedChangesCount();
+                    if(IsDocumentError(e as HttpResponseException)) {
+                        // Make sure this document is skipped because it is not available
+                        // even though the server is functioning
+                        _pendingSequences.RemoveSequence(rev.GetSequence());
+                        LastSequence = _pendingSequences.GetCheckpointedValue();
+                    }
                 } else {
                     var properties = result.AsDictionary<string, object>();
                     var gotRev = new PulledRevision(properties);
@@ -547,6 +558,25 @@ namespace Couchbase.Lite.Replicator
                 --_httpConnectionCount;
                 PullRemoteRevisions ();
             });
+        }
+
+        private static bool IsDocumentError(HttpResponseException e)
+        {
+            if (e == null) {
+                return false;
+            }
+
+            return e.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                e.StatusCode == System.Net.HttpStatusCode.Forbidden || e.StatusCode == System.Net.HttpStatusCode.Gone;
+        }
+
+        private static bool IsDocumentError(CouchbaseLiteException e)
+        {
+            if (e == null) {
+                return false;
+            }
+
+            return e.Code == StatusCode.NotFound || e.Code == StatusCode.Forbidden;
         }
 
         /// <summary>This will be called when _revsToInsert fills up:</summary>
@@ -794,6 +824,11 @@ namespace Couchbase.Lite.Replicator
             var lastSequence = change.Get("seq").ToString();
             var docID = (string)change.Get("id");
             if (docID == null) {
+                return;
+            }
+
+            var removed = change.Get("removed") != null;
+            if (removed) {
                 return;
             }
 

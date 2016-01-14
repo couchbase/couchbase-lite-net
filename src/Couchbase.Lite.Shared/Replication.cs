@@ -853,12 +853,9 @@ namespace Couchbase.Lite
                 }
 
                 // 'status' property is nonstandard; TouchDB returns it, others don't.
-                var statusString = item.Get("status") as string;
-                if (StringEx.IsNullOrWhiteSpace(statusString)) {
-                    var status = Convert.ToInt32(statusString);
-                    if (status >= 400) {
-                        return new Status((StatusCode)status);
-                    }
+                var status = item.GetCast<int>("status");
+                if (status >= 400) {
+                    return new Status((StatusCode)status);
                 }
 
                 // If no 'status' present, interpret magic hardcoded CouchDB error strings:
@@ -1345,6 +1342,15 @@ namespace Couchbase.Lite
                     object fullBody = null;
                     Exception error = null;
                     try {
+                        if(responseMessage.IsFaulted) {
+                            error = responseMessage.Exception.InnerException;
+                            if(onCompletion != null) {
+                                onCompletion(null, error);
+                            }
+
+                            return;
+                        }
+
                         var response = responseMessage.Result;
                         // add in cookies to global store
                         //CouchbaseLiteHttpClientFactory.Instance.AddCookies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
@@ -1354,7 +1360,10 @@ namespace Couchbase.Lite
                             Log.E(TAG, "Got error {0}", status.GetStatusCode());
                             Log.E(TAG, "Request was for: " + message);
                             Log.E(TAG, "Status reason: " + response.ReasonPhrase);
-                            error = new WebException(response.ReasonPhrase);
+                            error = new HttpResponseException(status);
+                            if(onCompletion != null) {
+                                onCompletion(null, error);
+                            }
                         } else {
                             var entity = response.Content;
                             var contentTypeHeader = response.Content.Headers.ContentType;

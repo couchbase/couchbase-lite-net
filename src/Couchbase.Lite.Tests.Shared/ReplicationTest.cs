@@ -41,30 +41,29 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
-
-using NUnit.Framework;
-
-using Sharpen;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Tests;
-using Newtonsoft.Json.Linq;
-using System.Threading;
 using Couchbase.Lite.Listener.Tcp;
-using System.Text.RegularExpressions;
-using System.Net.Http.Headers;
+using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Tests;
+using Couchbase.Lite.Util;
 using ICSharpCode.SharpZipLib.Zip;
+using Newtonsoft.Json.Linq;
+using NUnit.Framework;
+using Sharpen;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -1560,6 +1559,128 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        // Note that this should not happen anymore but this test will remain just to verify
+        // the correct behavior if it does
+        public void TestBulkGet404()
+        {
+            var factory = new MockHttpClientFactory(false);
+            factory.HttpHandler.SetResponder("_changes", req =>
+            {
+                var response = new HttpResponseMessage(HttpStatusCode.OK);
+                response.Content = new StringContent(@"{""results"":[{""seq"":3,""id"":""somedoc"",""changes"":
+                [{""rev"":""2-cafebabe""}]},{""seq"":4,""id"":""otherdoc"",""changes"":[{""rev"":""5-bedbedbe""}]},
+                {""seq"":5,""id"":""realdoc"",""changes"":[{""rev"":""1-12345abc""}]}]}");
+
+                return response;
+            });
+
+            factory.HttpHandler.SetResponder("_bulk_get", req =>
+            {
+                var response = new HttpResponseMessage(HttpStatusCode.OK);
+                response.Content = new StringContent("--67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\r\n" +
+                    "Content-Type: application/json; error=\"true\"\r\n\r\n" +
+                    "{\"error\":\"not_found\",\"id\":\"somedoc\",\"reason\":\"missing\",\"rev\":\"2-cafebabe\",\"status\":404}\r\n" +
+                    "--67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\r\n" +
+                    "Content-Type: application/json; error=\"true\"\r\n\r\n" +
+                    "{\"error\":\"not_found\",\"id\":\"otherdoc\",\"reason\":\"missing\",\"rev\":\"5-bedbedbe\",\"status\":404}\r\n" +
+                    "--67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\r\n" +
+                    "Content-Type: application/json\r\n\r\n" +
+                    "{\"_id\":\"realdoc\",\"_rev\":\"1-12345abc\",\"channels\":[\"unit_test\"],\"foo\":\"bar\"}\r\n" +
+                    "--67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f--");
+
+                response.Content.Headers.TryAddWithoutValidation("Content-Type", "multipart/mixed; boundary=\"67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\"");
+                return response;
+            });
+            manager.DefaultHttpClientFactory = factory;
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
+                RunReplication(puller);
+                Assert.IsNotNull(puller.LastError);
+                Assert.AreEqual(StatusCode.NotFound, (puller.LastError as CouchbaseLiteException).Code);
+                Assert.AreEqual(3, puller.ChangesCount);
+                Assert.AreEqual(3, puller.CompletedChangesCount);
+                Assert.AreEqual("5", puller.LastSequence);
+            }
+        }
+
+        [Test]
+        public void TestLongRemovedChangesFeed()
+        {
+            var random = new Random();
+            var changesFeed = new StringBuilder("{\"results\":[");
+            const int limit = 100000;
+            HashSet<string> removedIDSet = new HashSet<string>();
+            for (var i = 1; i < limit; i++) {
+                var removed = random.NextDouble() >= 0.5;
+                if (removed) {
+                    var removedID = Misc.CreateGUID();
+                    changesFeed.AppendFormat("{{\"seq\":\"{0}\",\"id\":\"{1}\",\"removed\":[\"fake\"]," +
+                        "\"changes\":[{{\"rev\":\"1-deadbeef\"}}]}},",
+                        i, removedID);
+                    removedIDSet.Add(removedID);
+                } else {
+                    changesFeed.AppendFormat("{{\"seq\":\"{0}\",\"id\":\"{1}\",\"changes\":[{{\"rev\":\"1-deadbeef\"}}]}},",
+                        i, Misc.CreateGUID());
+                }
+            }
+
+            changesFeed.AppendFormat("{{\"seq\":\"{0}\",\"id\":\"{1}\",\"changes\":[{{\"rev\":\"1-deadbeef\"}}]}}]," +
+                "last_seq: \"{0}\"}}",
+                limit, Misc.CreateGUID());
+
+            var factory = new MockHttpClientFactory(false);
+            factory.HttpHandler.SetResponder("_changes", req =>
+            {
+                var response = new HttpResponseMessage(HttpStatusCode.OK);
+                var changesString = changesFeed.ToString();
+                response.Content = new StringContent(changesString);
+
+                return response;
+            });
+
+            factory.HttpHandler.SetResponder("_bulk_get", req =>
+            {
+                var contentStream = req.Content.ReadAsStreamAsync().Result;
+                var content = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(contentStream);
+
+                var responseBody = new StringBuilder("--67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\r\n");
+                foreach(var obj in content["docs"] as IEnumerable) {
+                    var dict = obj.AsDictionary<string, object>();
+                    var nonexistent = removedIDSet.Contains(dict["id"]);
+                    if(nonexistent) {
+                        return new HttpResponseMessage(HttpStatusCode.InternalServerError); // Just so we can know
+                    } else {
+                        responseBody.Append("Content-Type: application/json\r\n\r\n");
+                        responseBody.AppendFormat("{{\"_id\":\"{0}\",\"_rev\":\"1-deadbeef\",\"foo\":\"bar\"}}\r\n", dict["id"]);
+                    }
+
+                    responseBody.Append("--67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\r\n");
+                }
+
+                responseBody.Remove(responseBody.Length - 2, 2);
+                responseBody.Append("--");
+
+                var retVal = new HttpResponseMessage(HttpStatusCode.OK);
+                var responseString = responseBody.ToString();
+                retVal.Content = new StringContent(responseString);
+                retVal.Content.Headers.TryAddWithoutValidation("Content-Type", "multipart/mixed; boundary=\"67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\"");
+
+                return retVal;
+            });
+
+            manager.DefaultHttpClientFactory = factory;
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
+                RunReplication(puller);
+                Assert.AreEqual(ReplicationStatus.Stopped, puller.Status);
+                Assert.AreNotEqual(limit, puller.ChangesCount);
+                Assert.AreNotEqual(limit, puller.CompletedChangesCount);
+                Assert.AreEqual(limit.ToString(), puller.LastSequence);
+            }
+        }
+
+        [Test]
         public void TestSetAndDeleteCookies()
         {
             if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
@@ -2827,52 +2948,6 @@ namespace Couchbase.Lite
             }
         }
 
-        [Test]
-        public void TestRemovedChangesFeed()
-        {
-            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
-            {
-                Assert.Inconclusive("Replication tests disabled.");
-                return;
-            }
-
-            using (var remoteDb = _sg.CreateDatabase(TempDbName(), "test_user", "1234")) {
-                
-                var doc = database.GetDocument("channel_walker");
-                doc.PutProperties(new Dictionary<string, object> {
-                    { "foo", "bar" },
-                    { "channels", new List<object> { "unit_test" } }
-                });
-
-                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
-                RunReplication(pusher);
-
-                doc.Update(rev =>
-                {
-                    var props = rev.UserProperties;
-                    props["channels"] = new List<object> { "no_mans_land" };
-                    props.Remove("foo");
-                    rev.SetUserProperties(props);
-                    return true;
-                });
-
-                pusher = database.CreatePushReplication(remoteDb.RemoteUri);
-                RunReplication(pusher);
-
-                database.Delete();
-                database = manager.GetDatabase(database.Name);
-
-                remoteDb.DisableGuestAccess();
-                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
-                puller.Authenticator = new BasicAuthenticator("test_user", "1234");
-                RunReplication(puller);
-                Assert.IsNull(puller.LastError);
-                Assert.AreEqual(1, database.GetDocumentCount());
-                Assert.DoesNotThrow(() => doc = database.GetExistingDocument("channel_walker"));
-                Assert.IsTrue(doc.Properties.GetCast<bool>("_removed"));
-            }
-        }
-
         //Note: requires manual intervention (unplugging network cable, etc)
         public void TestReactToNetworkChange()
         {
@@ -2881,18 +2956,18 @@ namespace Couchbase.Lite
             var resumedEvent = new ManualResetEvent(false);
             var finishedEvent = new ManualResetEvent(false);
 
-            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var push = database.CreatePushReplication(remoteDb.RemoteUri);
                 push.Continuous = true;
                 push.Changed += (sender, args) =>
                 {
-                    if(args.Status == ReplicationStatus.Offline) {
+                    if (args.Status == ReplicationStatus.Offline) {
                         Log.I(Tag, "Replication went offline");
                         offlineEvent.Set();
-                    } else if(args.Status == ReplicationStatus.Active) {
+                    } else if (args.Status == ReplicationStatus.Active) {
                         Log.I(Tag, "Replication resumed");
                         resumedEvent.Set();
-                    } else if(args.Status == ReplicationStatus.Idle) {
+                    } else if (args.Status == ReplicationStatus.Idle) {
                         Log.I(Tag, "Replication finished");
                         finishedEvent.Set();
                     }
@@ -2916,20 +2991,20 @@ namespace Couchbase.Lite
                 push.Stop();
             }
 
-            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 remoteDb.AddDocuments(10, false);
                 var secondDb = manager.GetDatabase("foo");
                 var pull = secondDb.CreatePullReplication(remoteDb.RemoteUri);
                 pull.Continuous = true;
                 pull.Changed += (sender, args) =>
                 {
-                    if(args.Status == ReplicationStatus.Offline) {
+                    if (args.Status == ReplicationStatus.Offline) {
                         Log.I(Tag, "Replication went offline");
                         offlineEvent.Set();
-                    } else if(args.Status == ReplicationStatus.Active) {
+                    } else if (args.Status == ReplicationStatus.Active) {
                         Log.I(Tag, "Replication resumed");
                         resumedEvent.Set();
-                    } else if(args.Status == ReplicationStatus.Idle) {
+                    } else if (args.Status == ReplicationStatus.Idle) {
                         Log.I(Tag, "Replication finished");
                         finishedEvent.Set();
                     }
@@ -2949,11 +3024,67 @@ namespace Couchbase.Lite
                 Assert.True(resumedEvent.WaitOne(TimeSpan.FromSeconds(60)));
                 finishedEvent.Reset();
                 Assert.True(finishedEvent.WaitOne(TimeSpan.FromSeconds(15)));
-                Assert.AreEqual(20, secondDb.DocumentCount);
+                Assert.AreEqual(20, secondDb.GetDocumentCount());
                 Assert.AreEqual(20, pull.ChangesCount);
                 Assert.AreEqual(20, pull.CompletedChangesCount);
                 pull.Stop();
+            }
+        }
 
+        [Test]
+        public void TestRemovedChangesFeed()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName(), "test_user", "1234")) {
+
+                var doc = database.GetDocument("channel_walker");
+                doc.PutProperties(new Dictionary<string, object> {
+                    { "foo", "bar" },
+                    { "channels", new List<object> { "unit_test" } }
+                });
+
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+
+                doc.Update(rev =>
+                {
+                    var props = rev.UserProperties;
+                    props["channels"] = new List<object> { "no_mans_land" };
+                    props.Remove("foo");
+                    rev.SetUserProperties(props);
+                    return true;
+                });
+
+                pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+
+                doc.Update(rev =>
+                {
+                    var props = rev.UserProperties;
+                    props["magic"] = true;
+                    rev.SetUserProperties(props);
+                    return true;
+                });
+
+                pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(pusher);
+
+                database.Delete();
+                database = manager.GetDatabase(database.Name);
+
+                remoteDb.DisableGuestAccess();
+                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
+                puller.Authenticator = new BasicAuthenticator("test_user", "1234");
+                RunReplication(puller);
+                Assert.IsNull(puller.LastError);
+                Assert.AreEqual(0, database.GetDocumentCount());
+                Assert.DoesNotThrow(() => doc = database.GetExistingDocument("channel_walker"));
+                Assert.IsNull(doc);
             }
         }
     }
