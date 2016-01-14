@@ -69,7 +69,8 @@ namespace Couchbase.Lite.Tests
             putRequest.Content = new StringContent(@"{""server"":""walrus:"",
                  ""users"": {
                     ""GUEST"": {""disabled"": false, ""admin_channels"": [""*""]},
-                    ""jim"" : { ""password"": ""borden"", ""admin_channels"": [""*""]}
+                    ""jim"" : { ""password"": ""borden"", ""admin_channels"": [""*""]},
+                    ""test_user"" : { ""password"": ""1234"", ""admin_channels"": [""unit_test""]}
                   },
                  ""bucket"":""" + Name + @""",
                  ""sync"":""function(doc) {channel(doc.channels);}""}");

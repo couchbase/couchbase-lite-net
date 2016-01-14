@@ -783,12 +783,9 @@ namespace Couchbase.Lite
                 }
 
                 // 'status' property is nonstandard; TouchDB returns it, others don't.
-                var statusString = item.Get("status") as string;
-                if (StringEx.IsNullOrWhiteSpace(statusString)) {
-                    var status = Convert.ToInt32(statusString);
-                    if (status >= 400) {
-                        return new Status((StatusCode)status);
-                    }
+                var status = item.GetCast<int>("status");
+                if (status >= 400) {
+                    return new Status((StatusCode)status);
                 }
 
                 // If no 'status' present, interpret magic hardcoded CouchDB error strings:

@@ -90,7 +90,7 @@ namespace Couchbase.Lite {
         /// Constructor
         /// </summary>
         /// <param name="code">The status code representing the details of the error</param>
-        public CouchbaseLiteException (StatusCode code) : base(String.Format("Coucbase Lite error: {0}", code)) { Code = code; }
+        public CouchbaseLiteException (StatusCode code) : base(String.Format("Couchbase Lite error: {0}", code)) { Code = code; }
 
         /// <summary>
         /// Constructor

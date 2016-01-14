@@ -22,6 +22,7 @@ using System;
 using System.Net.Http;
 using System.Net;
 using NUnit.Framework;
+using System.Collections.Generic;
 
 #if NET_3_5
 using WebException = System.Net.Couchbase.WebException;
@@ -72,9 +73,9 @@ namespace Couchbase.Lite.Tests
             }
         }
 
-        public virtual RemoteDatabase CreateDatabase(string name)
+        public virtual RemoteDatabase CreateDatabase(string name, string user = "jim", string password = "borden")
         {
-            var retVal = new RemoteDatabase(this, name, "jim", "borden");
+            var retVal = new RemoteDatabase(this, name, user, password);
             retVal.Create();
             return retVal;
         }

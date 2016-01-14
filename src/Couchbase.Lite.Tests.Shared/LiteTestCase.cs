@@ -313,7 +313,7 @@ namespace Couchbase.Lite
             var observer = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += observer.Changed;
             replication.Start();
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(60));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(600));
             Assert.IsTrue(success);
 
             replication.Changed -= observer.Changed;
