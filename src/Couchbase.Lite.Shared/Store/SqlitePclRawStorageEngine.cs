@@ -90,7 +90,7 @@ namespace Couchbase.Lite
         public int LastErrorCode { get; private set; }
 
         // Returns true on success, false if encryption key is wrong, throws exception for other cases
-        public bool Decrypt(SymmetricKey encryptionKey)
+        public bool Decrypt(SymmetricKey encryptionKey, sqlite3 connection)
         {
             var hasRealEncryption = false;
             try {
@@ -108,8 +108,7 @@ namespace Couchbase.Lite
                 // http://sqlcipher.net/sqlcipher-api/#key
                 var sql = String.Format("PRAGMA key = \"x'{0}'\"", encryptionKey.HexData);
                 try {
-                    ExecSQL(sql, _writeConnection);
-                    ExecSQL(sql, _readConnection);
+                    ExecSQL(sql, connection);
                 } catch(CouchbaseLiteException) {
                     Log.W(TAG, "Decryption operation failed");
                     throw;
@@ -119,7 +118,7 @@ namespace Couchbase.Lite
             }
 
             // Verify that encryption key is correct (or db is unencrypted, if no key given):
-            var result = raw.sqlite3_exec(_readConnection, "SELECT count(*) FROM sqlite_master");
+            var result = raw.sqlite3_exec(connection, "SELECT count(*) FROM sqlite_master");
             if (result != raw.SQLITE_OK) {
                 if (result == raw.SQLITE_NOTADB) {
                     return false;
@@ -146,18 +145,22 @@ namespace Couchbase.Lite
                 int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | readFlag | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(writer_flags, encryptionKey, out _writeConnection);
 
-                if(schema != null && GetVersion() == 0) {
-                    foreach (var statement in schema.Split(';')) {
-                        ExecSQL(statement);
-                    }
-                }
-
-                const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
-                OpenSqliteConnection(reader_flags, encryptionKey, out _readConnection);
-
-                if (!Decrypt(encryptionKey)) {
+                if (!Decrypt(encryptionKey, _writeConnection)) {
                     throw new CouchbaseLiteException(StatusCode.Unauthorized);
                 }
+
+				if(schema != null && GetVersion() == 0) {
+					foreach (var statement in schema.Split(';')) {
+						ExecSQL(statement);
+					}
+				}
+
+				const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
+				OpenSqliteConnection(reader_flags, encryptionKey, out _readConnection);
+
+				if(!Decrypt(encryptionKey, _readConnection)) {
+					throw new CouchbaseLiteException(StatusCode.Unauthorized);
+				}
             } catch(CouchbaseLiteException) {
                 Log.W(TAG, "Error opening SQLite storage engine");
                 throw;
