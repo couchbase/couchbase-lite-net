@@ -160,6 +160,7 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
+            _changeTracker.UsePost = CheckServerCompatVersion("0.93");
             _changeTracker.Start();
         }
 
@@ -327,6 +328,11 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
+            if(!_canBulkGet) {
+                PullBulkWithAllDocs(bulkRevs);
+                return;
+            }
+
             Log.D(TAG, "{0} bulk-fetching {1} remote revisions...", this, nRevs);
             Log.V(TAG, "{0} bulk-fetching remote revisions: {1}", this, bulkRevs);
 
@@ -406,6 +412,63 @@ namespace Couchbase.Lite.Replicator
             dl.Authenticator = Authenticator;
             WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.None, WorkExecutor.Scheduler);
         }
+
+        // Get as many revisions as possible in one _all_docs request.
+        // This is compatible with CouchDB, but it only works for revs of generation 1 without attachments.
+        private void PullBulkWithAllDocs(IList<RevisionInternal> bulkRevs)
+        {
+            // http://wiki.apache.org/couchdb/HTTP_Bulk_Document_API
+            ++_httpConnectionCount;
+
+            var remainingRevs = new List<RevisionInternal>(bulkRevs);
+            var keys = bulkRevs.Select(rev => rev.GetDocId()).ToArray();
+            var body = new Dictionary<string, object>();
+            body.Put("keys", keys);
+
+            SendAsyncRequest(HttpMethod.Post, "/_all_docs?include_docs=true", body, (result, e) =>
+            {
+                var res = result.AsDictionary<string, object>();
+                if(e != null) {
+                    LastError = e;
+                    RevisionFailed();
+                    SafeAddToCompletedChangesCount(bulkRevs.Count);
+                } else {
+                    // Process the resulting rows' documents.
+                    // We only add a document if it doesn't have attachments, and if its
+                    // revID matches the one we asked for.
+                    var rows = res.Get("rows").AsList<IDictionary<string, object>>();
+                    Log.V(TAG, "Checking {0} bulk-fetched remote revisions", rows.Count);
+
+                    foreach(var row in rows) {
+                        var doc = row.Get("doc").AsDictionary<string, object>();
+                        if(doc != null && doc.Get("_attachments") == null) {
+                            var rev = new RevisionInternal(doc);
+                            var pos = remainingRevs.IndexOf(rev);
+                            if(pos > -1) {
+                                rev.SetSequence(remainingRevs[pos].GetSequence());
+                                remainingRevs.RemoveAt(pos);
+                                QueueDownloadedRevision(rev);
+                            }
+                        }
+                    }
+                }
+
+                // Any leftover revisions that didn't get matched will be fetched individually:
+                if(remainingRevs.Count > 0) {
+                    Log.V(TAG, "Bulk-fetch didn't work for {0} of {1} revs; getting individually", remainingRevs.Count, bulkRevs.Count);
+                    foreach(var rev in remainingRevs) {
+                        QueueRemoteRevision(rev);
+                    }
+                    PullRemoteRevisions();
+                }
+
+                --_httpConnectionCount;
+
+                // Start another task if there are still revisions waiting to be pulled:
+                PullRemoteRevisions();
+            });
+        }
+
 
 		private bool ShouldRetryDownload(string docId)
         {

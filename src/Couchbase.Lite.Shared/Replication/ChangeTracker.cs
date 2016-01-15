@@ -133,6 +133,8 @@ namespace Couchbase.Lite.Replicator
         /// <summary>Set Authenticator for BASIC Authentication</summary>
         public IAuthenticator Authenticator { get; set; }
 
+        public bool UsePost { get; set; }
+
         public Exception Error { get; private set; }
 
         public ChangeTracker(Uri databaseURL, ChangeTrackerMode mode, object lastSequenceID, 
@@ -182,19 +184,80 @@ namespace Couchbase.Lite.Replicator
             return result;
         }
 
+        public string GetChangesFeedPath()
+        {
+            if (UsePost)
+            {
+                return "_changes";
+            }
+
+            var path = new StringBuilder("_changes?feed=");
+            path.Append(GetFeed());
+
+            if (mode == ChangeTrackerMode.LongPoll)
+            {
+                path.Append(string.Format("&limit={0}", LongPollModeLimit));
+            }
+            path.Append(string.Format("&heartbeat={0}", _heartbeatMilliseconds));
+            if (includeConflicts)
+            {
+                path.Append("&style=all_docs");
+            }
+            if (lastSequenceID != null)
+            {
+                path.Append("&since=");
+                path.Append(Uri.EscapeUriString(lastSequenceID.ToString()));
+            }
+            if (docIDs != null && docIDs.Count > 0)
+            {
+                filterName = "_doc_ids";
+                filterParams = new Dictionary<string, object>();
+                filterParams.Put("doc_ids", docIDs);
+            }
+            if (filterName != null)
+            {
+                path.Append("&filter=");
+                path.Append(Uri.EscapeUriString(filterName));
+                if (filterParams != null)
+                {
+                    foreach (string filterParamKey in filterParams.Keys)
+                    {
+                        var value = filterParams.Get(filterParamKey);
+                        if (!(value is string))
+                        {
+                            try
+                            {
+                                value = Manager.GetObjectMapper().WriteValueAsString(value);
+                            }
+                            catch (IOException e)
+                            {
+                                throw new InvalidOperationException("Unable to JSON-serialize a filter parameter value.", e);
+                            }
+                        }
+                        path.Append("&");
+                        path.Append(Uri.EscapeUriString(filterParamKey));
+                        path.Append("=");
+                        path.Append(Uri.EscapeUriString(value.ToString()));
+                    }
+                }
+            }
+            return path.ToString();
+        }
+
         public Uri GetChangesFeedURL()
         {
             var dbURLString = databaseURL.ToString();
-            var sb = new StringBuilder(dbURLString);
-            if (!dbURLString.EndsWith("/", StringComparison.Ordinal)) {
-                sb.Append("/");
+            if(!dbURLString.EndsWith("/", StringComparison.Ordinal)) {
+                dbURLString += "/";
             }
 
-            sb.Append("_changes");
+            dbURLString += GetChangesFeedPath();
 
             Uri result = null;
-            if (!Uri.TryCreate(sb.ToString(), UriKind.Absolute, out result)) {
-                Log.E(TAG, "Changes feed URL is malformed ({0})", sb);
+            try {
+                result = new Uri(dbURLString);
+            } catch(UriFormatException e) {
+                Log.E(TAG, "Changes feed ULR is malformed", e);
             }
 
             return result;
@@ -226,12 +289,16 @@ namespace Couchbase.Lite.Replicator
                 Request.Dispose();
                 Request = null;
             }
-                
+
             var url = GetChangesFeedURL();
-            Request = new HttpRequestMessage(HttpMethod.Post, url);
-            var body = GetChangesFeedPostBody();
-            Request.Content = new StringContent(body);
-            Request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            if(UsePost) {
+                Request = new HttpRequestMessage(HttpMethod.Post, url);
+                var body = GetChangesFeedPostBody();
+                Request.Content = new StringContent(body);
+                Request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            } else {
+                Request = new HttpRequestMessage(HttpMethod.Get, url);
+            }
             AddRequestHeaders(Request);
 
             var maskedRemoteWithoutCredentials = url.ToString();
