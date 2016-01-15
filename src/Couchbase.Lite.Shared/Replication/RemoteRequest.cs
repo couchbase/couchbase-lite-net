@@ -112,27 +112,31 @@ namespace Couchbase.Lite.Replicator
             HttpClient httpClient = null;
             var requestMessage = CreateConcreteRequest();
 
-                httpClient = clientFactory.GetHttpClient(false);
-                var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
-                if (challengeResponseAuth != null) {
-                    var authHandler = clientFactory.Handler as DefaultAuthHandler;
-                    if (authHandler != null) {
-                        authHandler.Authenticator = challengeResponseAuth;
-                    }
-
-                    challengeResponseAuth.PrepareWithRequest(requestMessage);
+            httpClient = clientFactory.GetHttpClient(false);
+            var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+            if (challengeResponseAuth != null) {
+                var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                if (authHandler != null) {
+                    authHandler.Authenticator = challengeResponseAuth;
                 }
+
+                challengeResponseAuth.PrepareWithRequest(requestMessage);
+            }
                    
-                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
-                if (authHeader != null)
-                {
-                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
-                }
+            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
+            if (authHeader != null)
+            {
+                httpClient.DefaultRequestHeaders.Authorization = authHeader;
+            }
 
-                requestMessage.Headers.Add("Accept", "multipart/related, application/json");           
-                AddRequestHeaders(requestMessage);
+            if(!requestMessage.Headers.Contains("User-Agent")) {
+                requestMessage.Headers.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SYNC_PROTOCOL_VERSION, Manager.VersionString));
+            }
 
-                SetBody(requestMessage);
+            requestMessage.Headers.Add("Accept", "multipart/related, application/json");           
+            AddRequestHeaders(requestMessage);
+
+            SetBody(requestMessage);
 
             ExecuteRequest(httpClient, requestMessage).ContinueWith(t => 
             {
