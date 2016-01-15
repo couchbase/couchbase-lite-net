@@ -179,6 +179,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteServerVersion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CompressedContent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseOptions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Platform.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

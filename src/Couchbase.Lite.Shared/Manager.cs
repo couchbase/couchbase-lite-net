@@ -80,11 +80,10 @@ namespace Couchbase.Lite
         /// The version of Couchbase Lite that is running
         /// </summary>
         public static readonly string VersionString;
-        private const string TAG = "Manager";
 
-        /// <summary>
-        /// The error domain used for HTTP status codes.
-        /// </summary>
+        internal static readonly string PLATFORM = Platform.Name;
+
+        private const string TAG = "Manager";
         private const string HttpErrorDomain = "CBLHTTP";
 
         internal const string DatabaseSuffixv0 = ".touchdb";
@@ -173,15 +172,19 @@ namespace Couchbase.Lite
                 }
             }
 
-            #if !OFFICIAL
-            VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
-            #else
+
             var colonPos = gitVersion.IndexOf(':');
+            var branchName = "no branch";
             if(colonPos != -1) {
+                branchName = gitVersion.Substring(0, colonPos);
                 gitVersion = gitVersion.Substring(colonPos + 2);
             }
 
-            VersionString = String.Format("1.1.1 ({0})", gitVersion.TrimEnd());
+            #if !OFFICIAL
+            VersionString = String.Format(".NET {0}/{1} Unofficial ({2})/{3}", PLATFORM, Platform.Architecture, branchName.Replace('/', '\\'), 
+                gitVersion.TrimEnd());
+            #else
+            VersionString = String.Format(".NET {0}/{1} 1.2/{2}", PLATFORM, Platform.Architecture, gitVersion.TrimEnd());
             #endif
 
             Log.I(TAG, "Starting Manager version: " + VersionString);

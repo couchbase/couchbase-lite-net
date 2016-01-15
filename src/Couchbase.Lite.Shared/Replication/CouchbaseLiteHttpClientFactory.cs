@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Support
         public CouchbaseLiteHttpClientFactory(CookieStore cookieStore)
         {
             this.cookieStore = cookieStore;
-            Headers = new ConcurrentDictionary<string,string>();
+            Headers = new ConcurrentDictionary<string, string>();
 
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
             ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
@@ -162,6 +162,8 @@ namespace Couchbase.Lite.Support
             {
                 Timeout = ManagerOptions.Default.RequestTimeout
             };
+
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SYNC_PROTOCOL_VERSION, Manager.VersionString));
 
             foreach(var header in Headers)
             {
