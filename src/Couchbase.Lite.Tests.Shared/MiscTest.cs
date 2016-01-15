@@ -66,15 +66,15 @@ namespace Couchbase.Lite
             Assert.IsTrue(oldVersion.IsSyncGateway);
             Assert.AreEqual("Couchbase Sync Gateway", oldVersion.Name);
             Assert.AreEqual("1.1.0", oldVersion.Version);
-            Assert.IsNullOrEmpty(oldVersion.Branch);
-            Assert.IsNullOrEmpty(oldVersion.Commit);
+            Assert.AreEqual(String.Empty, oldVersion.Branch);
+            Assert.AreEqual(String.Empty, oldVersion.Commit);
 
             var nonSGVersion = new RemoteServerVersion("CouchDB/1.6.1");
             Assert.IsFalse(nonSGVersion.IsSyncGateway);
             Assert.AreEqual("CouchDB", nonSGVersion.Name);
             Assert.AreEqual("1.6.1", nonSGVersion.Version);
-            Assert.IsNullOrEmpty(nonSGVersion.Branch);
-            Assert.IsNullOrEmpty(nonSGVersion.Commit);
+            Assert.AreEqual(String.Empty, nonSGVersion.Branch);
+            Assert.AreEqual(String.Empty, nonSGVersion.Commit);
 
             var newVersion = new RemoteServerVersion("Couchbase Sync Gateway/1.2 branch/fix/server_header commit/5bfcf79");
             Assert.IsTrue(newVersion.IsSyncGateway);

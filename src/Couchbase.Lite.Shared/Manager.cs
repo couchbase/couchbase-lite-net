@@ -81,13 +81,7 @@ namespace Couchbase.Lite
         /// </summary>
         public static readonly string VersionString;
 
-        #if __IOS__
-        internal const string PLATFORM = "iOS";
-        #elif __ANDROID__
-        internal const string PLATFORM = "Android";
-        #else
-        internal static readonly string PLATFORM = Couchbase.Lite.Util.Platform.Name;
-        #endif
+        internal static readonly string PLATFORM = Platform.Name;
 
         private const string TAG = "Manager";
         private const string HttpErrorDomain = "CBLHTTP";
@@ -178,14 +172,18 @@ namespace Couchbase.Lite
                 }
             }
 
-            #if !OFFICIAL
-            VersionString = String.Format(".NET {0}/{1}/Unofficial/{2}", PLATFORM, Platform.Architecture, gitVersion.TrimEnd());
-            #else
+
             var colonPos = gitVersion.IndexOf(':');
+            var branchName = "no branch";
             if(colonPos != -1) {
+                branchName = gitVersion.Substring(0, colonPos);
                 gitVersion = gitVersion.Substring(colonPos + 2);
             }
 
+            #if !OFFICIAL
+            VersionString = String.Format(".NET {0}/{1}/Unofficial ({2})/{3}", PLATFORM, Platform.Architecture, branchName, 
+                gitVersion.TrimEnd());
+            #else
             VersionString = String.Format(".NET {0}/{1}/1.2/{2}", PLATFORM, Platform.Architecture, gitVersion.TrimEnd());
             #endif
 
