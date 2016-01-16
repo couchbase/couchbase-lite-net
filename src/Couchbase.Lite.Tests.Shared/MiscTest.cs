@@ -50,6 +50,7 @@ using System.Net.Http;
 using System.Collections.Generic;
 using System;
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite
 {
@@ -111,6 +112,17 @@ namespace Couchbase.Lite
             string expected = "attachment; filename=attach";
             string result = Misc.UnquoteString(testString);
             Assert.AreEqual(expected, result);
+        }
+
+        [Test]
+        public void TestForestDBViewNameEscaping()
+        {
+            var invalidName = "#@vuName!!/crazy:–¼";
+            var escapedName = ForestDBViewStore.ViewNameToFilename(invalidName);
+            Assert.AreEqual("@23@40vuName@21@21@2fcrazy@3a–¼.viewindex", escapedName);
+
+            var unescapedName = ForestDBViewStore.FileNameToViewName(escapedName);
+            Assert.AreEqual(invalidName, unescapedName);
         }
 
         [Test]

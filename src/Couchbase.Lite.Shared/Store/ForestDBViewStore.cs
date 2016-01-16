@@ -32,6 +32,7 @@ using CBForest;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
+using System.Text;
 
 namespace Couchbase.Lite.Store
 {
@@ -155,12 +156,8 @@ namespace Couchbase.Lite.Store
                 return null;
             }
 
-            if (filename.StartsWith(".")) {
-                return null;
-            }
-
             var viewName = Path.ChangeExtension(filename, String.Empty);
-            return viewName.Replace(":", "/").TrimEnd('.');
+            return UnescapeString(viewName).TrimEnd('.');
         }
 
         private void CloseIndex()
@@ -211,13 +208,67 @@ namespace Couchbase.Lite.Store
             return OpenIndexWithOptions((C4DatabaseFlags)0);
         }
 
-        private static string ViewNameToFilename(string viewName)
+        internal static string ViewNameToFilename(string viewName)
         {
-            if (viewName.StartsWith(".") || viewName.Contains(":")) {
-                return null;
+            return Path.ChangeExtension(EscapeString(viewName), VIEW_INDEX_PATH_EXTENSION);
+        }
+
+        private static bool IsLegalChar(byte c)
+        {
+            // POSIX legal characters
+            return (c > 47 && c < 58) ||
+                (c > 64 && c < 91) ||
+                (c > 96 && c < 123) ||
+                c == 45 || c == 46 || c == 95 || c > 127;
+        }
+
+        private unsafe static string EscapeString(string unescaped)
+        {
+            var sb = new StringBuilder();
+            var length = 0;
+            var buffer = new byte[6];
+            fixed(byte* bufPtr = buffer)
+            fixed(char* ptr = unescaped) {
+                var currentCharPtr = ptr;
+                while(length < unescaped.Length) {
+                    var bytesWritten = Encoding.UTF8.GetBytes(currentCharPtr, 1, bufPtr, 6);
+                    if(IsLegalChar(buffer[0])) {
+                        sb.Append(*currentCharPtr);
+                    } else {
+                        sb.AppendFormat("@{0}", Misc.ConvertToHex(buffer, bytesWritten));
+                    }
+
+                    currentCharPtr++;
+                    length++;
+                }
             }
 
-            return Path.ChangeExtension(viewName.Replace('/', ':'), VIEW_INDEX_PATH_EXTENSION);
+            return sb.ToString();
+        }
+
+        private static string UnescapeString(string escaped)
+        {
+            var sb = new StringBuilder();
+            var buffer = new char[2];
+            var charCounter = 0;
+            foreach(var c in escaped) {
+                if(c == '@') {
+                    charCounter = 1;
+                    continue;
+                } else if(charCounter > 0) {
+                    buffer[charCounter - 1] = c;
+                    if(charCounter == 2) {
+                        sb.Append((char)Convert.ToByte(new string(buffer), 16));
+                        charCounter = 0;
+                    } else {
+                        charCounter++;
+                    }
+                } else {
+                    sb.Append(c);
+                }
+            }
+
+            return sb.ToString();
         }
 
         private static string ViewNames(IEnumerable<IViewStore> inputViews)
