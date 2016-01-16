@@ -536,31 +536,8 @@ namespace Couchbase.Lite
                 if (value != null) {
                     _clientFactory = value;
                 } else {
-                    Manager manager = null;
-                    if (LocalDatabase != null) {
-                        manager = LocalDatabase.Manager;
-                    }
-
-                    IHttpClientFactory managerClientFactory = null;
-                    if (manager != null) {
-                        managerClientFactory = manager.DefaultHttpClientFactory;
-                    }
-
-                    if (managerClientFactory != null) {
-                        _clientFactory = managerClientFactory;
-                    }
-                    else {
-                        CookieStore cookieStore = null;
-                        if (manager != null) {
-                            cookieStore = manager.SharedCookieStore;
-                        }
-
-                        if (cookieStore == null) {
-                            cookieStore = new CookieStore();
-                        }
-
-                        _clientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
-                    }
+                    var cookieStore = new CookieStore(LocalDatabase, RemoteCheckpointDocID());
+                    _clientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
                 }
             }
         }

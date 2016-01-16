@@ -63,7 +63,9 @@ namespace Couchbase.Lite.Util
 
         #region Constants
 
+        private const string TAG = "CookieStore";
         private const string FileName = "cookies.json";
+        private const string LOCAL_DOC_KEY_PREFIX = "cbl_cookie_storage";
 
         #endregion
 
@@ -71,7 +73,20 @@ namespace Couchbase.Lite.Util
 
         private readonly object locker = new object();
         private readonly DirectoryInfo directory;
+        private readonly Database _db;
+        private readonly string _storageKey;
         private HashSet<Uri> _cookieUriReference = new HashSet<Uri>();
+
+        #endregion
+
+        #region Properties
+
+        private string LocalDocKey 
+        {
+            get {
+                return String.Format("{0}_{1}", LOCAL_DOC_KEY_PREFIX, _storageKey);
+            }
+        }
 
         #endregion
 
@@ -86,13 +101,22 @@ namespace Couchbase.Lite.Util
         /// Default constructor
         /// </summary>
         /// <param name="directory">The directory to serialize the cookies to</param>
-        public CookieStore(String directory) 
+        [Obsolete("Use the database constructor")]
+        public CookieStore(string directory) 
         {
             if (directory != null) {
                 this.directory = new DirectoryInfo(directory);
             }
 
             DeserializeFromDisk();
+        }
+
+        public CookieStore(Database db, string storageKey)
+        {
+            _db = db;
+            _storageKey = storageKey;
+            DeserializeFromDisk();
+            DeserializeFromDB();
         }
 
         #endregion
@@ -105,10 +129,8 @@ namespace Couchbase.Lite.Util
         /// <param name="cookies">The cookies to add</param>
         public new void Add(CookieCollection cookies)
         {
-            base.Add(cookies);
             foreach (Cookie cookie in cookies) {
-                var urlString = String.Format("http://{0}{1}", cookie.Domain, cookie.Path);
-                _cookieUriReference.Add(new Uri(urlString));
+                Add(cookie, false);
             }
 
             Save();
@@ -120,9 +142,7 @@ namespace Couchbase.Lite.Util
         /// <param name="cookie">The cookie to add</param>
         public new void Add(Cookie cookie)
         {
-            base.Add(cookie);
-            var urlString = String.Format("http://{0}{1}", cookie.Domain, cookie.Path);
-            _cookieUriReference.Add(new Uri(urlString));
+            Add(cookie, true);
         }
 
         /// <summary>
@@ -165,13 +185,60 @@ namespace Couchbase.Lite.Util
         public void Save()
         {
             lock (locker) {
-                SerializeToDisk();
+                PruneExpiredCookies();
+                if (_db != null) {
+                    SerializeToDB();
+                } else {
+                    SerializeToDisk();
+                }
             }
         }
 
         #endregion
 
         #region Private Methods
+
+        private void PruneExpiredCookies()
+        {
+            foreach (var uri in _cookieUriReference) {
+                var found = false;
+                var collection = GetCookies(uri);
+                for (int i = collection.Count - 1; i >= 0; i--) {
+                    var cookie = collection[i];
+                    if (IsNotSessionOnly(cookie) && (cookie.Expired || cookie.Expires < DateTime.Now)) {
+                        cookie.Expired = true;
+                        found = true;
+                    }
+                }
+
+                if (found) {
+                    //Refresh
+                    GetCookies(uri);
+                }
+            }    
+        }
+
+        private void Add(Cookie cookie, bool save)
+        {
+            var urlString = String.Format("http://{0}{1}", cookie.Domain.TrimStart('.'), cookie.Path);
+            var url = new Uri(urlString);
+            _cookieUriReference.Add(url);
+
+            var existing = GetCookies(url);
+            foreach(Cookie existingCookie in existing) {
+                if (existingCookie.Name == cookie.Name && existingCookie.Domain == cookie.Domain 
+                    && existingCookie.Path == cookie.Path) {
+                    existingCookie.Expired = true;
+                    break;
+                }
+            }
+
+            base.Add(cookie);
+
+            if (save) {
+                Save();
+            }
+        }
 
         private string GetSaveCookiesFilePath()
         {
@@ -187,6 +254,11 @@ namespace Couchbase.Lite.Util
             return Path.Combine(directory.FullName, FileName);
         }
 
+        private bool IsNotSessionOnly(Cookie cookie)
+        {
+            return cookie.Expires != DateTime.MinValue;
+        }
+
         private void SerializeToDisk()
         {
             var filePath = GetSaveCookiesFilePath();
@@ -197,7 +269,7 @@ namespace Couchbase.Lite.Util
             List<Cookie> aggregate = new List<Cookie>();
             foreach (var uri in _cookieUriReference) {
                 var collection = GetCookies(uri);
-                aggregate.AddRange(collection.Cast<Cookie>());
+                aggregate.AddRange(collection.Cast<Cookie>().Where(IsNotSessionOnly));
             }
 
             using (var writer = new StreamWriter(filePath)) {
@@ -225,8 +297,43 @@ namespace Couchbase.Lite.Util
                 cookies = cookies ?? new List<Cookie>();
 
                 foreach (Cookie cookie in cookies) {
-                    Add(cookie);
+                    Add(cookie, false);
                 }
+            }
+        }
+
+        private void SerializeToDB()
+        {
+            if (_db == null || _storageKey == null) {
+                Log.V(TAG, "Database or storage key null, so skipping serialization");
+                return;
+            }
+
+            var key = LocalDocKey;
+            List<Cookie> aggregate = new List<Cookie>();
+            foreach (var uri in _cookieUriReference) {
+                var collection = GetCookies(uri);
+                aggregate.AddRange(collection.Cast<Cookie>().Where(IsNotSessionOnly));
+            }
+
+            _db.PutLocalCheckpointDoc(key, aggregate);
+        }
+
+        private void DeserializeFromDB()
+        {
+            if (_db == null || _storageKey == null) {
+                Log.V(TAG, "Database or storage key null, so skipping deserialization");
+                return;
+            }
+
+            var key = LocalDocKey;
+            var val = _db.GetLocalCheckpointDocValue(key).AsList<Cookie>();
+            if (val == null) {
+                return;
+            }
+
+            foreach (var cookie in val) {
+                Add(cookie, false);
             }
         }
 

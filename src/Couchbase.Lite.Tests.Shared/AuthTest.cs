@@ -159,8 +159,6 @@ namespace Couchbase.Lite
             AddUser(username, password);
 
             var url = GetReplicationURLWithoutCredentials();
-            var httpClientFactory = new CouchbaseLiteHttpClientFactory(new CookieStore());
-            manager.DefaultHttpClientFactory = httpClientFactory;
             var replicator = database.CreatePushReplication(url);
             replicator.Authenticator = AuthenticatorFactory.CreateBasicAuthenticator(username, password);
 
@@ -205,8 +203,6 @@ namespace Couchbase.Lite
             AddUser(username, password);
 
             var url = GetReplicationURLWithoutCredentials();
-            var httpClientFactory = new CouchbaseLiteHttpClientFactory(new CookieStore());
-            manager.DefaultHttpClientFactory = httpClientFactory;
 
             var replicator = database.CreatePushReplication(url);
             replicator.Authenticator = AuthenticatorFactory.CreateBasicAuthenticator(username, wrongPassword);

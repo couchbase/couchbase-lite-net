@@ -60,28 +60,165 @@ namespace Couchbase.Lite
 
         public CookieStoreTest(string storageType) : base(storageType) {}
 
-        private DirectoryInfo GetCookiesDirectory()
+        [Test]
+        public void TestSetCookiePersistent()
         {
-            return new DirectoryInfo(Path.Combine(manager.Directory, "test"));
+            var cookieStore = new CookieStore(database, "cookie_store_unit_test");
+            Assert.AreEqual(0, cookieStore.Count);
+
+            var cookie1 = new Cookie("whitechoco", "sweet", "/", "mycookie.com") {
+                Comment = "yummy",
+                CommentUri = new Uri("http://www.mycookie.com"),
+                Expires = DateTime.Now.AddSeconds(60),
+            };
+            cookieStore.Add(cookie1);
+
+            var cookie2 = new Cookie("darkchoco", "sweet", "/", "mycookie.com") {
+                Comment = "yummy",
+                CommentUri = new Uri("http://www.mycookie.com"),
+                Expires = DateTime.Now.AddSeconds(60)
+            };
+            cookieStore.Add(cookie2);
+
+            var cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
+            Assert.AreEqual(2, cookieStore.Count);
+            Assert.AreEqual(cookie1, cookies[0]);
+            Assert.AreEqual(cookie2, cookies[1]);
+
+            // Set cookie with same name, domain, and path
+            // with one of the previously set cookies:
+            var cookie3 = new Cookie("darkchoco", "bitter sweet", "/", "mycookie.com") {
+                Comment = "yummy",
+                CommentUri = new Uri("http://www.mycookie.com"),
+                Expires = DateTime.Now.AddSeconds(60)
+            };
+            cookieStore.Add(cookie3);
+            Assert.AreEqual(2, cookieStore.Count);
+            cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
+            Assert.AreEqual(cookie1, cookies[0]);
+            Assert.AreEqual(cookie3, cookies[1]);
+
+            cookieStore = new CookieStore(database, "cookie_store_unit_test");
+            cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
+            Assert.AreEqual(2, cookieStore.Count);
+            Assert.AreEqual(cookie1, cookies[0]);
+            Assert.AreEqual(cookie3, cookies[1]);
         }
 
-        private void CleanUpCookiesDirectory()
+        [Test]
+        public void TestSetCookieNameDomainPath()
         {
-            Directory.Delete(GetCookiesDirectory().FullName, true);
-            Assert.AreEqual(false, GetCookiesDirectory().Exists);
+            var cookieStore = new CookieStore(database, "cookie_store_unit_test");
+            Assert.AreEqual(0, cookieStore.Count);
+            var cookie1 = new Cookie("cookie1", "sweet", "/", "mycookie.com");
+            cookieStore.Add(cookie1);
+            var cookie2 = new Cookie("cookie1", "sweet", "", "mycookie.com");
+            cookieStore.Add(cookie2);
+            var cookie3 = new Cookie("cookie1", "sweet", "/path", "mycookie.com");
+            cookieStore.Add(cookie3);
+            var cookie4 = new Cookie("cookie1", "sweet", "/path/", "mycookie.com");
+            cookieStore.Add(cookie4);
+            var cookie5 = new Cookie("cookie1", "sweet", "/", "www.mycookie.com");
+            cookieStore.Add(cookie5);
+            var cookie6 = new Cookie("cookie7", "sweet", "/", "www.mycookie.com");
+            cookieStore.Add(cookie6);
+
+            Assert.AreEqual(6, cookieStore.Count);
+            var cookies = cookieStore.GetCookies(new Uri("http://www.mycookie.com/path/"));
+            Assert.AreEqual(6, cookies.Count);
+            CollectionAssert.Contains(cookies, cookie1);
+            CollectionAssert.Contains(cookies, cookie2);
+            CollectionAssert.Contains(cookies, cookie3);
+            CollectionAssert.Contains(cookies, cookie4);
+            CollectionAssert.Contains(cookies, cookie5);
+            CollectionAssert.Contains(cookies, cookie6);
+
+            var cookie8 = new Cookie("cookie1", "bitter. sweet", "/", "mycookie.com");
+            cookieStore.Add(cookie8);
+
+            Assert.AreEqual(6, cookieStore.Count);
+            cookies = cookieStore.GetCookies(new Uri("http://www.mycookie.com/path/"));
+            Assert.AreEqual(6, cookies.Count);
+            CollectionAssert.DoesNotContain(cookies, cookie1);
+            CollectionAssert.Contains(cookies, cookie8);
         }
 
-        [TearDown]
-        protected override void TearDown()
+        [Test]
+        public void TestSetCookieSessionOnly()
         {
-            CleanUpCookiesDirectory();
-            base.TearDown();
+            var cookieStore = new CookieStore(database, "cookie_store_unit_test");
+            Assert.AreEqual(0, cookieStore.Count);
+
+            // No expires date specified for a cookie v0:
+            var cookie1 = new Cookie("whitechoco", "sweet", "/", "mycookie.com");
+            Assert.AreEqual(DateTime.MinValue, cookie1.Expires);
+            cookieStore.Add(cookie1);
+
+            // No max age specified for a cookie v1:
+            var cookie2 = new Cookie("oatmeal_raisin", "sweet", "/", ".mycookie.com") { Version = 1 };
+            Assert.AreEqual(DateTime.MinValue, cookie2.Expires);
+            cookieStore.Add(cookie2);
+
+            Assert.AreEqual(2, cookieStore.Count);
+            var cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
+            Assert.AreEqual(cookie1, cookies[0]);
+            Assert.AreEqual(cookie2, cookies[1]);
+
+            cookieStore = new CookieStore(database, "cookie_store_unit_test");
+            Assert.AreEqual(0, cookieStore.Count);
+        }
+
+        [Test]
+        public void TestDeleteCookie()
+        {
+            var cookieStore = new CookieStore(database, "cookie_store_unit_test");
+            Assert.AreEqual(0, cookieStore.Count);
+
+            var cookie1 = new Cookie("whitechoco", "sweet", "/", "mycookie.com") {
+                Expires = DateTime.Now.AddSeconds(3600),
+            };
+            cookieStore.Add(cookie1);
+
+            var cookie2 = new Cookie("oatmeal_raisin", "sweet", "/", "mycookie.com") {
+                Expires = DateTime.Now.AddSeconds(3600),
+            };
+            cookieStore.Add(cookie2);
+
+            var cookie3 = new Cookie("darkchoco", "sweet", "/", "mycookie.com") {
+                Expires = DateTime.Now.AddSeconds(3600),
+            };
+            cookieStore.Add(cookie3);
+
+            Assert.AreEqual(3, cookieStore.Count);
+            var cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
+            CollectionAssert.Contains(cookies, cookie1);
+            CollectionAssert.Contains(cookies, cookie2);
+            CollectionAssert.Contains(cookies, cookie3);
+
+            cookieStore.Delete(new Uri("http://mycookie.com"), cookie2.Name);
+            Assert.AreEqual(2, cookieStore.Count);
+            cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
+            CollectionAssert.Contains(cookies, cookie1);
+            CollectionAssert.Contains(cookies, cookie3);
+
+            cookieStore = new CookieStore(database, "cookie_store_unit_test");
+            Assert.AreEqual(2, cookieStore.Count);
+            cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
+            CollectionAssert.Contains(cookies, cookie1);
+            CollectionAssert.Contains(cookies, cookie3);
+
+            cookieStore.Delete(new Uri("http://mycookie.com"), cookie1.Name);
+            cookieStore.Delete(new Uri("http://mycookie.com"), cookie3.Name);
+            Assert.AreEqual(0, cookieStore.Count);
+
+            cookieStore = new CookieStore(database, "cookie_store_unit_test");
+            Assert.AreEqual(0, cookieStore.Count);
         }
 
         [Test]
         public void TestSaveCookieStore()
         {
-            var cookieStore = new CookieStore(GetCookiesDirectory().FullName);
+            var cookieStore = new CookieStore(database, "cookie_store_unit_test");
             Assert.AreEqual(0, cookieStore.Count);
 
             var name = "foo";
@@ -103,7 +240,7 @@ namespace Couchbase.Lite
             cookieStore.Add(cookie);
             cookieStore.Save();
 
-            cookieStore = new CookieStore(GetCookiesDirectory().FullName);
+            cookieStore = new CookieStore(database, "cookie_store_unit_test");
             Assert.AreEqual(1, cookieStore.Count);
 
             var cookies = cookieStore.GetCookies(uri);
@@ -118,11 +255,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestSaveEmptyCookieStore()
         {
-            var cookieStore = new CookieStore(GetCookiesDirectory().FullName);
+            var cookieStore = new CookieStore(database, "cookie_store_unit_test");
             Assert.AreEqual(0, cookieStore.Count);
             cookieStore.Save();
 
-            cookieStore = new CookieStore(GetCookiesDirectory().FullName);
+            cookieStore = new CookieStore(database, "cookie_store_unit_test");
             Assert.AreEqual(0, cookieStore.Count);
         }
     }
