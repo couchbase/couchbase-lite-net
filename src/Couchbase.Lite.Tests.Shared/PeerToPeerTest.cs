@@ -58,7 +58,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestSsl()
         {
-            SSLGenerator.GenerateTempKeyAndCert("127.0.0.1", 59841);
+            var cert = SSLGenerator.GetExistingCertificate("127.0.0.1", 59841);
+            if (cert == null) {
+                cert = SSLGenerator.GenerateCert("127.0.0.1", new RSACryptoServiceProvider(2048));
+                SSLGenerator.InstallCertificateForListener(cert, 59841);
+            }
+
             var sslListener = new CouchbaseLiteTcpListener(manager, 59841, CouchbaseLiteTcpOptions.UseTLS);
             sslListener.Start();
 
