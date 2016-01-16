@@ -193,7 +193,10 @@ namespace Couchbase.Lite
         /// <summary>
         /// The client factory responsible for creating HttpClient instances
         /// </summary>
-        protected IHttpClientFactory clientFactory;
+        [Obsolete("Use the ClientFactory property")]
+        protected IHttpClientFactory clientFactory { get { return _clientFactory; } set { ClientFactory = value; } }
+
+        private IHttpClientFactory _clientFactory;
 
         /// <summary>
         /// The list of currently active HTTP requests
@@ -528,10 +531,10 @@ namespace Couchbase.Lite
         /// for connected to remote databases
         /// </summary>
         protected IHttpClientFactory ClientFactory {
-            get { return clientFactory; }
+            get { return _clientFactory; }
             set { 
                 if (value != null) {
-                    clientFactory = value;
+                    _clientFactory = value;
                 } else {
                     Manager manager = null;
                     if (LocalDatabase != null) {
@@ -544,7 +547,7 @@ namespace Couchbase.Lite
                     }
 
                     if (managerClientFactory != null) {
-                        this.clientFactory = managerClientFactory;
+                        _clientFactory = managerClientFactory;
                     }
                     else {
                         CookieStore cookieStore = null;
@@ -556,7 +559,7 @@ namespace Couchbase.Lite
                             cookieStore = new CookieStore();
                         }
 
-                        clientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
+                        _clientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
                     }
                 }
             }
@@ -1215,10 +1218,10 @@ namespace Couchbase.Lite
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
 
-            var client = clientFactory.GetHttpClient(false);
+            var client = _clientFactory.GetHttpClient(false);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
-                var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                var authHandler = _clientFactory.Handler as DefaultAuthHandler;
                 if (authHandler != null) {
                     authHandler.Authenticator = challengeResponseAuth;
                 }

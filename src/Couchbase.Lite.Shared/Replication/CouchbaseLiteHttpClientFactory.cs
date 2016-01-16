@@ -49,6 +49,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Security;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using System.Net.Http.Headers;
@@ -134,13 +135,16 @@ namespace Couchbase.Lite.Support
         /// </summary>
         internal HttpMessageHandler BuildHandlerPipeline (bool chunkedMode)
         {
-            var handler = new HttpClientHandler {
+            var handler = new WebRequestHandler {
                 CookieContainer = cookieStore,
                 UseCookies = true
             };
 
-            if (handler.SupportsAutomaticDecompression)
-            {
+            // For now, we are not using the client cert for identity verification, just to
+            // satisfy Mono so it doesn't matter if the user doesn't choose it.
+            handler.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
+
+            if(handler.SupportsAutomaticDecompression) {
                 handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             }
 
