@@ -142,7 +142,7 @@ namespace Couchbase.Lite.Support
 
             // For now, we are not using the client cert for identity verification, just to
             // satisfy Mono so it doesn't matter if the user doesn't choose it.
-            handler.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
+            //handler.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
 
             if(handler.SupportsAutomaticDecompression) {
                 handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
