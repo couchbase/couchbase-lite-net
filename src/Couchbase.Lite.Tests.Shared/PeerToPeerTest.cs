@@ -31,10 +31,10 @@ using Couchbase.Lite.Util;
 using Mono.Zeroconf.Providers.Bonjour;
 using NUnit.Framework;
 using System.Security.Cryptography;
-using Couchbase.Lite.Listener.Security;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
+using Couchbase.Lite.Security;
 
 namespace Couchbase.Lite
 {
@@ -109,7 +109,7 @@ namespace Couchbase.Lite
             };
 
             var request = (HttpWebRequest)WebRequest.Create("https://127.0.0.1:59841");
-            request.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert("123abc"));
+            request.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
             var response = (HttpWebResponse)request.GetResponse();
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         }
@@ -163,7 +163,7 @@ namespace Couchbase.Lite
             base.SetUp();
 
             _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
-            _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.UseTLS);
+            _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.Default);
             #if USE_AUTH
             _listener.SetPasswords(new Dictionary<string, string> { { "bob", "slack" } });
             #endif

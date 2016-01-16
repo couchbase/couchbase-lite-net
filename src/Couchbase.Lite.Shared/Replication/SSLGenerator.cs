@@ -19,45 +19,26 @@
 // limitations under the License.
 //
 using System;
-using System.Security.Cryptography;
-using System.IO;
-using Mono.Security.X509;
 using System.Collections;
-using Mono.Security.Authenticode;
+using System.Diagnostics;
+using System.IO;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Couchbase.Lite.Listener.Security
+using Mono.Security.Authenticode;
+using Mono.Security.X509;
+
+namespace Couchbase.Lite.Security
 {
     //http://www.freekpaans.nl/2015/04/creating-self-signed-x-509-certificates-using-mono-security/
     internal static class SSLGenerator
     {
-        //adapted from https://github.com/mono/mono/blob/master/mcs/tools/security/makecert.cs
-        public static void GenerateTempKeyAndCert(string certificateName, ushort port, bool overwrite = false)
+        public static X509Certificate2 GenerateCert(string certificateName, RSA key, string password)
         {
-            if(Type.GetType("Mono.Runtime") == null) {
-                throw new PlatformNotSupportedException("Windows is not supported via this method, please install your certificate using netsh.exe");
-            }
-
-            string dirname = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string path = Path.Combine(dirname, ".mono");
-            path = Path.Combine(path, "httplistener");
-
-            string cert_file = Path.Combine(path, String.Format("{0}.cer", port));
-            string pvk_file = Path.Combine(path, String.Format("{0}.pvk", port));
-            if (!overwrite && File.Exists(cert_file) && File.Exists(pvk_file)) {
-                return;
-            }
-
             byte[] sn = GenerateSerialNumber();
             string subject = string.Format("CN={0}", certificateName);
-
             DateTime notBefore = DateTime.Now;
             DateTime notAfter = DateTime.Now.AddYears(20);
-
-            RSA subjectKey = new RSACryptoServiceProvider(2048);
-            PrivateKey privKey = new PrivateKey();
-            privKey.RSA = subjectKey;
-
             string hashName = "SHA512";
 
             X509CertificateBuilder cb = new X509CertificateBuilder(3);
@@ -66,24 +47,36 @@ namespace Couchbase.Lite.Listener.Security
             cb.NotBefore = notBefore;
             cb.NotAfter = notAfter;
             cb.SubjectName = subject;
-            cb.SubjectPublicKey = subjectKey;
+            cb.SubjectPublicKey = key;
             cb.Hash = hashName;
 
-            byte[] rawcert = cb.Sign(subjectKey);
-            
-            Directory.CreateDirectory(path);
-            WriteCertificate(cert_file, rawcert);
-            privKey.Save(pvk_file);
+            byte[] rawcert = cb.Sign(key);
+            PKCS12 p12 = new PKCS12();
+            p12.Password = password;
+            Hashtable attributes = GetAttributes();
+            p12.AddCertificate(new Mono.Security.X509.X509Certificate(rawcert), attributes);
+            p12.AddPkcs8ShroudedKeyBag(key, attributes);
+            rawcert = p12.GetBytes();
+            return new X509Certificate2(rawcert, password, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
         }
 
-        public static X509Certificate2 GetOrCreateClientCert(string password)
+        public static void InstallCertificateForListener(X509Certificate2 cert, ushort port)
+        {
+            if(Type.GetType("Mono.Runtime") == null) {
+                InstallCertificateMSFT(cert, port);
+            } else {
+                InstallCertificateMono(cert, port);
+            }
+        }
+
+        public static X509Certificate2 GetOrCreateClientCert()
         {
             string dirname = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             string path = Path.Combine(dirname, ".couchbase");
             Directory.CreateDirectory(path);
             path = Path.Combine(path, "client.pfx");
             if (File.Exists(path)) {
-                return new X509Certificate2(path, password);
+                return new X509Certificate2(path);
             }
 
             byte[] sn = GenerateSerialNumber();
@@ -110,7 +103,6 @@ namespace Couchbase.Lite.Listener.Security
             byte[] rawcert = cb.Sign(subjectKey);
 
             PKCS12 p12 = new PKCS12();
-            p12.Password = password;
             Hashtable attributes = GetAttributes();
             p12.AddCertificate(new Mono.Security.X509.X509Certificate(rawcert),attributes);
             p12.AddPkcs8ShroudedKeyBag(subjectKey,attributes);
@@ -118,7 +110,51 @@ namespace Couchbase.Lite.Listener.Security
             rawcert = p12.GetBytes();
             WriteCertificate(path, rawcert);
 
-            return new X509Certificate2(rawcert, password);
+            return new X509Certificate2(rawcert);
+        }
+
+        private static void InstallCertificateMSFT(X509Certificate2 cert, ushort port)
+        {
+            var store = new System.Security.Cryptography.X509Certificates.X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine);
+            try {
+                store.Open(OpenFlags.ReadWrite);
+            } catch(CryptographicException e) {
+                throw new InvalidOperationException("The process does not have the appropriate permissions to install an SSL certificate.  Please run the process as an administrator");
+            }
+
+            var existingCert = store.Certificates.Find(X509FindType.FindByThumbprint, cert.Thumbprint, false);
+            if(existingCert.Count == 0) {
+                store.Add(cert);
+            }
+
+            store.Close();
+
+            var process = new Process {
+                StartInfo = new ProcessStartInfo {
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    FileName = "cmd.exe",
+                    Verb = "runas",
+                    Arguments = String.Format("/c netsh http add sslcert ipport=0.0.0.0:{0} appid={{{1}}} certhash={2}",
+                    port, Guid.NewGuid().ToString(), cert.Thumbprint)
+                }
+            };
+            process.Start();
+            process.WaitForExit();
+        }
+
+        private static void InstallCertificateMono(X509Certificate2 cert, ushort port)
+        {
+            string dirname = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string path = Path.Combine(dirname, ".mono");
+            path = Path.Combine(path, "httplistener");
+
+            string cert_file = Path.Combine(path, String.Format("{0}.cer", port));
+            string pvk_file = Path.Combine(path, String.Format("{0}.pvk", port));
+            Directory.CreateDirectory(path);
+            WriteCertificate(cert_file, cert.GetRawCertData());
+            var privKey = new PrivateKey();
+            privKey.RSA = (RSA)cert.PrivateKey;
+            privKey.Save(pvk_file);
         }
 
         private static void WriteCertificate(string filename, byte[] rawcert)

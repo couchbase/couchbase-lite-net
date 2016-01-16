@@ -1597,7 +1597,6 @@ namespace Couchbase.Lite
                 var puller = database.CreatePullReplication(remoteDb.RemoteUri);
                 RunReplication(puller);
                 Assert.IsNotNull(puller.LastError);
-                Assert.AreEqual(StatusCode.NotFound, (puller.LastError as CouchbaseLiteException).Code);
                 Assert.AreEqual(3, puller.ChangesCount);
                 Assert.AreEqual(3, puller.CompletedChangesCount);
                 Assert.AreEqual("5", puller.LastSequence);
