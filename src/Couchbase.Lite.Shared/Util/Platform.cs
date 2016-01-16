@@ -269,7 +269,7 @@ namespace Couchbase.Lite.Util
                 if (hardware == "iPod7,1")
                     return Tuple.Create("iPod touch 6G", "ARM64");
 
-                return Tuple.Create(String.Format("Unknown iPod ({0})", hardware.Substring(6)), "Unknown");
+                return Tuple.Create(String.Format("Unknown iPod ({0})", hardware.Substring(4)), "Unknown");
             }
 
             if (hardware.StartsWith("iPad"))
@@ -405,7 +405,26 @@ namespace Couchbase.Lite.Util
                 if (hardware == "iPad5,1" || hardware == "iPad5,2")
                     return Tuple.Create("iPad mini 4", "ARM64");
 
-                return Tuple.Create(String.Format("Unknown iPad ({0})", hardware.Substring(6)), "Unknown");
+                return Tuple.Create(String.Format("Unknown iPad ({0})", hardware.Substring(4)), "Unknown");
+            }
+
+            if(hardware.StartsWith("Watch")) {
+                if(hardware == "Watch1,1") {
+                    return Tuple.Create("Apple Watch 38mm", "ARMv7");
+                }
+
+                if(hardware == "Watch1,2") {
+                    return Tuple.Create("Apple Watch 42mm", "ARMv7");
+                }
+
+                return Tuple.Create(String.Format("Unknown Watch ({0})", hardware.Substring(5)), "Unknown");
+            }
+
+            if(hardware.StartsWith("AppleTV")) {
+                if(hardware == "AppleTV5,3")
+                    return Tuple.Create("Apple TV 4G", "ARM64");
+
+                return Tuple.Create(String.Format("Unknown Apple TV ({0})", hardware.Substring(7)), "Unknown");
             }
 
             if (hardware == "i386" || hardware == "x86_64")
