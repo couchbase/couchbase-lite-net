@@ -235,7 +235,7 @@ namespace Couchbase.Lite.Store
                     if(IsLegalChar(buffer[0])) {
                         sb.Append(*currentCharPtr);
                     } else {
-                        sb.AppendFormat("@{0}", Misc.ConvertToHex(buffer, bytesWritten));
+                        sb.AppendFormat("@{0}", Misc.ConvertToHex(buffer));
                     }
 
                     currentCharPtr++;
