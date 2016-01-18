@@ -251,9 +251,6 @@ namespace Couchbase.Lite
 
             _networkReachabilityManager = new NetworkReachabilityManager();
             _networkReachabilityManager.StartListening();
-
-
-            SharedCookieStore = new CookieStore(this.directoryFile.FullName);
             StorageType = "SQLite";
         }
 
@@ -551,7 +548,6 @@ namespace Couchbase.Lite
         internal TaskFactory CapturedContext { get; private set; }
         internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
         internal INetworkReachabilityManager NetworkReachabilityManager { get { return _networkReachabilityManager; } }
-        internal CookieStore SharedCookieStore { get; set; } 
         internal SharedState Shared { get; private set; }
 
         // Instance Methods

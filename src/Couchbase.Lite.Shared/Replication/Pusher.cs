@@ -642,6 +642,7 @@ namespace Couchbase.Lite.Replicator
             // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
             // <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
             var diffs = new Dictionary<String, IList<String>>();
+            var inboxCount = inbox.Count;
             foreach (var rev in inbox) {
                 var docID = rev.GetDocId();
                 var revs = diffs.Get(docID);
@@ -668,7 +669,11 @@ namespace Couchbase.Lite.Replicator
 
                     if (e != null) {
                         LastError = e;
-                        RevisionFailed();
+                        for(int i = 0; i < inboxCount; i++) {
+                            RevisionFailed();
+                        }
+
+                        FireTrigger(ReplicationTrigger.StopImmediate);
                     } else {
                         if (results.Count != 0)  {
                             // Go through the list of local changes again, selecting the ones the destination server

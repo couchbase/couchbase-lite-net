@@ -69,6 +69,8 @@ namespace Couchbase.Lite.Replicator
 
         protected internal IAuthenticator Authenticator { get; set; }
 
+        internal CookieStore CookieStore { get; set; }
+
 //        public event EventHandler<RemoteRequestEventArgs> WillComplete;
 
         public event EventHandler<RemoteRequestEventArgs> Complete
@@ -112,7 +114,7 @@ namespace Couchbase.Lite.Replicator
             HttpClient httpClient = null;
             var requestMessage = CreateConcreteRequest();
 
-            httpClient = clientFactory.GetHttpClient(false);
+            httpClient = clientFactory.GetHttpClient(CookieStore);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = clientFactory.Handler as DefaultAuthHandler;

@@ -67,11 +67,8 @@ namespace Couchbase.Lite.Support
     {
         const string Tag = "CouchbaseLiteHttpClientFactory";
 
-        private readonly CookieStore cookieStore;
-
-        public CouchbaseLiteHttpClientFactory(CookieStore cookieStore)
+        public CouchbaseLiteHttpClientFactory()
         {
-            this.cookieStore = cookieStore;
             Headers = new ConcurrentDictionary<string, string>();
 
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
@@ -133,10 +130,10 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        internal HttpMessageHandler BuildHandlerPipeline (bool chunkedMode)
+        internal HttpMessageHandler BuildHandlerPipeline (CookieStore store)
         {
-            var handler = new WebRequestHandler {
-                CookieContainer = cookieStore,
+            var handler = new HttpClientHandler {
+                CookieContainer = store,
                 UseCookies = true
             };
 
@@ -148,16 +145,16 @@ namespace Couchbase.Lite.Support
                 handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             }
 
-            Handler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
+            Handler = new DefaultAuthHandler (handler, store);
 
             var retryHandler = new TransientErrorRetryHandler(Handler);
 
             return retryHandler;
         }
 
-        public HttpClient GetHttpClient(bool chunkedMode)
+        public HttpClient GetHttpClient(CookieStore cookieStore)
         {
-            var authHandler = BuildHandlerPipeline(chunkedMode);
+            var authHandler = BuildHandlerPipeline(cookieStore);
 
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 
@@ -182,20 +179,6 @@ namespace Couchbase.Lite.Support
         public MessageProcessingHandler Handler { get; private set; }
 
         public IDictionary<string, string> Headers { get; set; }
-
-        public void AddCookies(CookieCollection cookies)
-        {
-            cookieStore.Add(cookies);
-        }
-
-        public void DeleteCookie(Uri uri, string name)
-        {
-            cookieStore.Delete(uri, name);
-        }
-
-        public CookieContainer GetCookieContainer()
-        {
-            return cookieStore;
-        }
+       
     }
 }

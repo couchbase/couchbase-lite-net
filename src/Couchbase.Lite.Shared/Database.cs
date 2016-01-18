@@ -815,6 +815,26 @@ namespace Couchbase.Lite
             }
         }
 
+        internal object GetLocalCheckpointDocValue(string key)
+        {
+            if (key == null) {
+                return null;
+            }
+
+            var document = GetExistingLocalDocument(LOCAL_CHECKPOINT_DOC_ID) ?? new Dictionary<string, object>();
+            return document.Get(key);
+        }
+
+        internal void PutLocalCheckpointDoc(string key, object value) {
+            if (key == null || value == null) {
+                return;
+            }
+
+            var document = GetExistingLocalDocument(LOCAL_CHECKPOINT_DOC_ID) ?? new Dictionary<string, object>();
+            document[key] = value;
+            PutLocalDocument(LOCAL_CHECKPOINT_DOC_ID, document);
+        }
+
         /* Returns local checkpoint document if it exists. Otherwise returns null. */
         internal IDictionary<string, object> GetLocalCheckpointDoc()
         {
