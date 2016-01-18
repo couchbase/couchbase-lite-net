@@ -75,6 +75,11 @@ namespace Couchbase.Lite
 
         #if __IOS__
 
+        /// <summary>
+        /// Specify the file protection to be placed on database files
+        /// created by this managed (iOS only)
+        /// </summary>
+        /// <value>The file protection.</value>
         public Foundation.NSDataWritingOptions FileProtection { get; set; }
 
         #endif
