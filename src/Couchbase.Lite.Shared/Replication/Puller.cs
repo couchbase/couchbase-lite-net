@@ -357,7 +357,7 @@ namespace Couchbase.Lite.Replicator
             try
             {
                 dl = new BulkDownloader(WorkExecutor, ClientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
-                dl.CookieStore = _cookieStore;
+                dl.CookieStore = CookieContainer;
                 dl.DocumentDownloaded += (sender, args) =>
                 {
                     var props = args.DocumentProperties;
@@ -960,7 +960,7 @@ namespace Couchbase.Lite.Replicator
 
         public HttpClient GetHttpClient()
         {
-            var client = ClientFactory.GetHttpClient(_cookieStore);
+            var client = ClientFactory.GetHttpClient(CookieContainer);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = ClientFactory.Handler as DefaultAuthHandler;

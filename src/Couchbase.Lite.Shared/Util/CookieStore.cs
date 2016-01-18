@@ -88,6 +88,8 @@ namespace Couchbase.Lite.Util
             }
         }
 
+        #pragma warning disable 1591
+
         public new int Count 
         {
             get {
@@ -96,6 +98,8 @@ namespace Couchbase.Lite.Util
             }
         }
 
+        #pragma warning restore 1591
+
         #endregion
 
         #region Constructors
@@ -103,10 +107,10 @@ namespace Couchbase.Lite.Util
         /// <summary>
         /// Convenience constructor
         /// </summary>
-        public CookieStore() : this (null) { }
+        public CookieStore() : this (null, null) { }
 
         /// <summary>
-        /// Default constructor
+        /// Default constructor (obsolete)
         /// </summary>
         /// <param name="directory">The directory to serialize the cookies to</param>
         [Obsolete("Use the database constructor")]
@@ -119,6 +123,12 @@ namespace Couchbase.Lite.Util
             DeserializeFromDisk();
         }
 
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        /// <param name="db">The database to serialize cookies to</param>
+        /// <param name="storageKey">The key inside the database to use (allows for multiple
+        /// replicators to save to the same DB independently of each other)</param>
         public CookieStore(Database db, string storageKey)
         {
             _db = db;
@@ -130,6 +140,8 @@ namespace Couchbase.Lite.Util
         #endregion
 
         #region Public Methods
+
+        #pragma warning disable 1591
 
         public new CookieCollection GetCookies(Uri uri)
         {
@@ -158,6 +170,8 @@ namespace Couchbase.Lite.Util
         {
             Add(cookie, true);
         }
+
+        #pragma warning restore 1591
 
         /// <summary>
         /// Delete the cookie with the specified uri and name.

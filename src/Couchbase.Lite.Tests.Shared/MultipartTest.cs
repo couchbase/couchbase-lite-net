@@ -162,9 +162,6 @@ namespace Couchbase.Lite
         private const string EXPECTED_OUTPUT = "<part the first, let us make it a bit longer for greater interest>" +
             "<2nd part, again unnecessarily prolonged for testing purposes beyond any reasonable length...>";
 
-        private IList<byte> _output;
-        private bool _finished;
-
         public MultiStreamWriterTest(string storageType) : base(storageType) {}
 
         private MultiStreamWriter CreateWriter(int bufferSize)

@@ -122,7 +122,7 @@ namespace Couchbase.Lite {
         /// Gets if the <see cref="Couchbase.Lite.View"/>'s indices are currently out of date.
         /// </summary>
         /// <value><c>true</c> if this instance is stale; otherwise, <c>false</c>.</value>
-        public bool IsStale { get { return (LastSequenceIndexed < Database.LastSequenceNumber); } }
+        public bool IsStale { get { return (LastSequenceIndexed < Database.GetLastSequenceNumber()); } }
 
         /// <summary>
         /// Gets the last sequence number indexed so far.

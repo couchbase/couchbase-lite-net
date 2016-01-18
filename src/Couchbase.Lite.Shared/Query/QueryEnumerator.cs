@@ -89,7 +89,7 @@ namespace Couchbase.Lite {
         public bool Stale
         { 
             get { 
-                return SequenceNumber < Database.LastSequenceNumber; 
+                return SequenceNumber < Database.GetLastSequenceNumber(); 
             } 
         }
 

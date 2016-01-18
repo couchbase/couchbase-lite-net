@@ -42,7 +42,7 @@ namespace Couchbase.Lite.Db
             public int NumDocs
             {
                 get {
-                    return _db.DocumentCount;
+                    return _db.GetDocumentCount();
                 }
             }
 

@@ -712,7 +712,7 @@ namespace Couchbase.Lite.Replicator
 
                                     properties = new Dictionary<string, object>(rev.GetProperties());
                                 } catch (Exception e1) {
-                                    Log.W(TAG, String.Format("{0} Couldn't get local contents of", rev), e);
+                                    Log.W(TAG, String.Format("{0} Couldn't get local contents of", rev), e1);
                                     RevisionFailed();
                                     continue;
                                 }

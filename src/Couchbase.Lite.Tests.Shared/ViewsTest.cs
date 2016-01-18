@@ -86,7 +86,7 @@ namespace Couchbase.Lite
                 Assert.IsTrue(push.CompletedChangesCount==40);
 
                 Assert.IsNull(push.LastError);
-                Assert.AreEqual(40, database.DocumentCount);
+                Assert.AreEqual(40, database.GetDocumentCount());
 
                 for (int i = 0; i <= 5; i++) {
                     pull = database.CreatePullReplication(remoteDb.RemoteUri);
@@ -1534,7 +1534,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
             query1.Stop();
 
-            Assert.AreEqual((2 * numDocs) + 5, database.DocumentCount);
+            Assert.AreEqual((2 * numDocs) + 5, database.GetDocumentCount());
         }
 
         [Test]
@@ -1770,8 +1770,7 @@ namespace Couchbase.Lite
             properties["tag"] = "3";
             newRev = rev1.CreateRevision();
             newRev.SetProperties(properties);
-            var rev2c = default(SavedRevision);
-            Assert.DoesNotThrow(() => rev2c = newRev.Save(true));
+            Assert.DoesNotThrow(() => newRev.Save(true));
 
             rows = query.Run();
             Assert.AreEqual(1, rows.Count);

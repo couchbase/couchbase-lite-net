@@ -89,6 +89,10 @@ namespace Couchbase.Lite.Support
 
         #region Constructors
 
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        /// <param name="bufferSize">The size of the buffer to use when copying from streams</param>
         public MultiStreamWriter(int bufferSize = DEFAULT_BUFFER_SIZE)
         {
             _bufferSize = bufferSize;

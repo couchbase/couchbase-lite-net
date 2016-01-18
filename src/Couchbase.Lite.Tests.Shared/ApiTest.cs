@@ -76,7 +76,7 @@ namespace Couchbase.Lite
             foreach (string dbName in manager.AllDatabaseNames)
             {
                 Database db = manager.GetDatabase(dbName);
-                Log.I(TAG, "Database '" + dbName + "':" + db.DocumentCount + " documents");
+                Log.I(TAG, "Database '" + dbName + "':" + db.GetDocumentCount() + " documents");
             }
 
             var options = new ManagerOptions();
@@ -638,7 +638,7 @@ namespace Couchbase.Lite
             // and fails the final assert.
             success = task.Wait(TimeSpan.FromSeconds(5)); 
             Assert.IsTrue(success);
-            Assert.AreEqual(5, db.LastSequenceNumber);
+            Assert.AreEqual(5, db.GetLastSequenceNumber());
             Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
         }
 

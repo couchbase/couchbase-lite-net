@@ -71,13 +71,13 @@ namespace Couchbase.Lite.Listener
 
                 if(options.Stale == IndexUpdateMode.Before || view.LastSequenceIndexed <= 0) {
                     view.UpdateIndex();
-                } else if(options.Stale == IndexUpdateMode.After && view.LastSequenceIndexed < db.LastSequenceNumber) {
+                } else if(options.Stale == IndexUpdateMode.After && view.LastSequenceIndexed < db.GetLastSequenceNumber()) {
                     db.RunAsync(_ => view.UpdateIndex());
                 }
 
                 // Check for conditional GET and set response Etag header:
                 if(keys == null) {
-                    long eTag = options.IncludeDocs ? db.LastSequenceNumber : view.LastSequenceIndexed;
+                    long eTag = options.IncludeDocs ? db.GetLastSequenceNumber() : view.LastSequenceIndexed;
                     if(context.CacheWithEtag(eTag.ToString())) {
                         return context.CreateResponse(StatusCode.NotModified);
                     }

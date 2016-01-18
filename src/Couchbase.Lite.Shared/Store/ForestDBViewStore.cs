@@ -231,7 +231,7 @@ namespace Couchbase.Lite.Store
             fixed(char* ptr = unescaped) {
                 var currentCharPtr = ptr;
                 while(length < unescaped.Length) {
-                    var bytesWritten = Encoding.UTF8.GetBytes(currentCharPtr, 1, bufPtr, 6);
+                    Encoding.UTF8.GetBytes(currentCharPtr, 1, bufPtr, 6);
                     if(IsLegalChar(buffer[0])) {
                         sb.Append(*currentCharPtr);
                     } else {

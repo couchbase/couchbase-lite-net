@@ -50,8 +50,6 @@ namespace Sharpen
     {
         private InputStream ist;
         private OutputStream ost;
-        int position;
-        int markedPosition;
 
         public WrappedSystemStream (InputStream ist)
         {
@@ -90,7 +88,7 @@ namespace Sharpen
         {
             int res = this.ist.Read (buffer, offset, count);
             if (res != -1) {
-                position += res;
+                Position += res;
                 return res;
             } else
                 return 0;
@@ -100,7 +98,7 @@ namespace Sharpen
         {
             int res = this.ist.Read ();
             if (res != -1)
-                position++;
+                Position++;
             return res;
         }
 
@@ -123,13 +121,13 @@ namespace Sharpen
         public override void Write (byte[] buffer, int offset, int count)
         {
             this.ost.Write (buffer, offset, count);
-            position += count;
+            Position += count;
         }
 
         public override void WriteByte (byte value)
         {
             this.ost.Write (value);
-            position++;
+            Position++;
         }
 
         public override bool CanRead {
@@ -149,31 +147,7 @@ namespace Sharpen
                 return ist.Wrapped.Length;
             }
         }
-        
-        internal void OnMark (int nb)
-        {
-            markedPosition = position;
-            ist.Mark (nb);
-        }
-        
-        public override long Position {
-            get {
-                if (ist != null && ist.CanSeek ())
-                    return ist.Position;
-                else
-                    return position;
-            }
-            set {
-                if (value == position)
-                    return;
-                else if (value == markedPosition)
-                    ist.Reset ();
-                else if (ist != null && ist.CanSeek ()) {
-                    ist.Position = value;
-                }
-                else
-                    throw new NotSupportedException ();
-            }
-        }
+
+        public override long Position { get; set; }
     }
 }

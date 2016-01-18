@@ -30,38 +30,56 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    public class CompressedContent : HttpContent
+    // https://github.com/WebApiContrib/WebAPIContrib/blob/master/src/WebApiContrib/Content/CompressedContent.cs
+
+    /// <summary>
+    /// An HttpContent class that works with gzipped or zipped content
+    /// </summary>
+    public sealed class CompressedContent : HttpContent
     {
+
+        #region Variables
+
         private readonly HttpContent originalContent;
         private readonly string encodingType;
 
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Default Constructor
+        /// </summary>
+        /// <param name="content">The content to compress.</param>
+        /// <param name="encodingType">The compression type to use (gzip or deflate).</param>
         public CompressedContent(HttpContent content, string encodingType)
         {
-            if (content == null)
-            {
+            if (content == null) {
                 throw new ArgumentNullException("content");
             }
 
-            if (encodingType == null)
-            {
+            if (encodingType == null) {
                 throw new ArgumentNullException("encodingType");
             }
 
             originalContent = content;
             this.encodingType = encodingType.ToLowerInvariant();
 
-            if (this.encodingType != "gzip" && this.encodingType != "deflate")
-            {
+            if (this.encodingType != "gzip" && this.encodingType != "deflate") {
                 throw new InvalidOperationException(string.Format("Encoding '{0}' is not supported. Only supports gzip or deflate encoding.", this.encodingType));
             }
 
-            foreach (KeyValuePair<string, IEnumerable<string>> header in originalContent.Headers)
-            {
+            foreach (KeyValuePair<string, IEnumerable<string>> header in originalContent.Headers) {
                 Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
             Headers.ContentEncoding.Add(encodingType);
         }
+
+        #endregion
+
+        #region Overrides
+        #pragma warning disable 1591
 
         protected override bool TryComputeLength(out long length)
         {
@@ -99,6 +117,9 @@ namespace Couchbase.Lite
 
             return retVal;
         }
+
+        #pragma warning restore 1591
+        #endregion
     }
 }
 

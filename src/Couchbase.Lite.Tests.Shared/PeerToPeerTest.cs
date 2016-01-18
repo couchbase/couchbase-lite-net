@@ -279,7 +279,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            Assert.AreEqual(DOCUMENT_COUNT, db.DocumentCount);
+            Assert.AreEqual(DOCUMENT_COUNT, db.GetDocumentCount());
         }
 
     }

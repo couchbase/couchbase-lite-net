@@ -125,6 +125,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the container the holds cookie information received from the remote replicator
         /// </summary>
+        [Obsolete("This will be removed in a future version.  Replicators now have their own cookie stores")]
         public CookieContainer PersistentCookieStore
         {
             get {
@@ -134,7 +135,7 @@ namespace Couchbase.Lite
                 }
 
                 if (_persistentCookieStore == null) {
-                    _persistentCookieStore = new CookieStore(DbDirectory);
+                    _persistentCookieStore = new CookieStore(this, "Shared");
                 }
 
                 return _persistentCookieStore;
@@ -162,12 +163,7 @@ namespace Couchbase.Lite
         public int DocumentCount 
         {
             get {
-                if (!IsOpen) {
-                    Log.W(TAG, "DocumentCount called on closed database");
-                    return 0;
-                }
-
-                return Storage.DocumentCount;
+                return GetDocumentCount();
             }
         }
 
@@ -182,12 +178,7 @@ namespace Couchbase.Lite
         public long LastSequenceNumber 
         {
             get {
-                if (!IsOpen) {
-                    Log.W(TAG, "LastSequenceNumber called on closed database");
-                    return 0;
-                }
-
-                return Storage.LastSequence;
+                return GetLastSequenceNumber();
             }
         }
 
@@ -198,16 +189,7 @@ namespace Couchbase.Lite
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public long TotalDataSize {
             get {
-                if (!IsOpen) {
-                    Log.W(TAG, "TotalDataSize called on closed database");
-                    return 0L;
-                }
-
-                string dir = DbDirectory;
-                var info = new DirectoryInfo(dir);
-
-                // Database files
-                return info.EnumerateFiles("*", SearchOption.AllDirectories).Sum(x => x.Length);
+                return GetTotalDataSize();
             }
         }
 
@@ -244,29 +226,8 @@ namespace Couchbase.Lite
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public int MaxRevTreeDepth 
         {
-            get {
-                return Storage != null ? Storage.MaxRevTreeDepth : _maxRevTreeDepth;
-            }
-            set {
-                if (value == 0) {
-                    value = DEFAULT_MAX_REVS;
-                }
-
-                _maxRevTreeDepth = value;
-                if (Storage != null && value != Storage.MaxRevTreeDepth) {
-                    var last = Storage.MaxRevTreeDepth;
-                    Storage.MaxRevTreeDepth = value;
-                    if (last == 0) {
-                        var saved = Storage.GetInfo("max_revs");
-                        var savedInt = 0;
-                        if (saved != null && Int32.TryParse(saved, out savedInt) && savedInt == value) {
-                            return;
-                        }
-
-                        Storage.SetInfo("max_revs", value.ToString());
-                    }
-                }
-            }
+            get { return GetMaxRevTreeDepth(); }
+            set { SetMaxRevTreeDepth(value); }
         }
         private int _maxRevTreeDepth;
 
@@ -337,6 +298,10 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        /// <summary>
+        /// Gets the number of <see cref="Couchbase.Lite.Document" /> in the <see cref="Couchbase.Lite.Database"/>.
+        /// </summary>
+        /// <returns>The document count.</returns>
         public int GetDocumentCount()
         {
             if (!IsOpen) {
@@ -347,6 +312,12 @@ namespace Couchbase.Lite
             return Storage.DocumentCount;
         }
 
+        /// <summary>
+        /// Gets the latest sequence number used by the <see cref="Couchbase.Lite.Database" />.  Every new <see cref="Couchbase.Lite.Revision" /> is assigned a new sequence 
+        /// number, so this property increases monotonically as changes are made to the <see cref="Couchbase.Lite.Database" />. This can be used to 
+        /// check whether the <see cref="Couchbase.Lite.Database" /> has changed between two points in time.
+        /// </summary>
+        /// <returns>The last sequence number.</returns>
         public long GetLastSequenceNumber()
         {
             if (!IsOpen) {
@@ -357,6 +328,10 @@ namespace Couchbase.Lite
             return Storage.LastSequence;
         }
 
+        /// <summary>
+        /// Gets the total size of the database on the filesystem.
+        /// </summary>
+        /// <returns>The total size of the database on the filesystem.</returns>
         public long GetTotalDataSize()
         {
             if (!IsOpen) {
@@ -371,11 +346,31 @@ namespace Couchbase.Lite
             return info.EnumerateFiles("*", SearchOption.AllDirectories).Sum(x => x.Length);
         }
 
+        /// <summary>
+        /// Maximum depth of a document's revision tree (or, max length of its revision history.)
+        /// Revisions older than this limit will be deleted during a -compact: operation.
+        /// </summary>
+        /// <remarks>
+        /// Maximum depth of a document's revision tree (or, max length of its revision history.)
+        /// Revisions older than this limit will be deleted during a -compact: operation.
+        /// Smaller values save space, at the expense of making document conflicts somewhat more likely.
+        /// </remarks>
+        /// <returns>The maximum depth set on this Database</returns>
         public int GetMaxRevTreeDepth()
         {
             return Storage != null ? Storage.MaxRevTreeDepth : _maxRevTreeDepth;
         }
 
+        /// <summary>
+        /// Sets the maximum depth of a document's revision tree (or, max length of its revision history.)
+        /// Revisions older than this limit will be deleted during a -compact: operation.
+        /// </summary>
+        /// <remarks>
+        /// Maximum depth of a document's revision tree (or, max length of its revision history.)
+        /// Revisions older than this limit will be deleted during a -compact: operation.
+        /// Smaller values save space, at the expense of making document conflicts somewhat more likely.
+        /// </remarks>
+        /// <param name="value">The new maximum depth to use for this Database</param> 
         public void SetMaxRevTreeDepth(int value)
         {
             if (value == 0) {
@@ -1036,7 +1031,7 @@ namespace Couchbase.Lite
                     }
 
                     lastIndexedSequence = view.LastSequenceIndexed;
-                } else if(options.Stale == IndexUpdateMode.After && lastIndexedSequence <= LastSequenceNumber) {
+                } else if(options.Stale == IndexUpdateMode.After && lastIndexedSequence <= GetLastSequenceNumber()) {
                     RunAsync(d => view.UpdateIndex());
                 }
 
@@ -1044,7 +1039,7 @@ namespace Couchbase.Lite
                 iterator = view.QueryWithOptions(options);
             } else { // null view means query _all_docs
                 iterator = GetAllDocs(options);
-                lastIndexedSequence = lastChangedSequence = LastSequenceNumber;
+                lastIndexedSequence = lastChangedSequence = GetLastSequenceNumber();
             }
 
             outLastSequence.Value = lastIndexedSequence;

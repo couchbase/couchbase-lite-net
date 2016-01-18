@@ -152,6 +152,11 @@ namespace Couchbase.Lite
 
         #region Constants
 
+        /// <summary>
+        /// The protocol version to use when syncing with Sync Gateway.
+        /// This value is also included in all HTTP requests as the
+        /// User-Agent version.
+        /// </summary>
         public const string SYNC_PROTOCOL_VERSION = "1.2";
 
         internal const string CHANNELS_QUERY_PARAM = "channels";
@@ -225,7 +230,7 @@ namespace Couchbase.Lite
         private HashSet<string> _pendingDocumentIDs;
         private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
         private Guid _replicatorID = Guid.NewGuid();
-        protected CookieStore _cookieStore;
+        private CookieStore _cookieStore;
 
         #endregion
 
@@ -563,11 +568,12 @@ namespace Couchbase.Lite
         /// </summary>
         protected internal IDictionary<String, Object> RequestHeaders { get; set; }
 
-        internal CookieStore CookieContainer
-        { 
-            get {
-                return _cookieStore;
-            }
+        /// <summary>
+        /// The container for storing cookies specific to this replication
+        /// </summary>
+        protected internal CookieStore CookieContainer
+        {
+            get { return _cookieStore; }
         }
 
         internal RemoteServerVersion ServerType { get; set; }
@@ -1349,7 +1355,7 @@ namespace Couchbase.Lite
                         } else {
                             var entity = response.Content;
                             var contentTypeHeader = response.Content.Headers.ContentType;
-                            InputStream inputStream = null;
+                            Stream inputStream = null;
                             if (contentTypeHeader != null && contentTypeHeader.ToString().Contains("multipart/related")) {
                                 try {
                                     var reader = new MultipartDocumentReader(LocalDatabase);
@@ -1364,7 +1370,7 @@ namespace Couchbase.Lite
                                     var buffer = new byte[bufLen];
 
                                     int numBytesRead = 0;
-                                    while ((numBytesRead = inputStream.Read(buffer)) != -1) {
+                                    while ((numBytesRead = inputStream.Read(buffer, 0, buffer.Length)) != -1) {
                                         if (numBytesRead != bufLen) {
                                             var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<Byte>(buffer, 0, numBytesRead);
                                             reader.AppendData(bufferToAppend);

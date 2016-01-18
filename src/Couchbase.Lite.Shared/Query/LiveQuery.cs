@@ -331,7 +331,7 @@ namespace Couchbase.Lite
         private void Update()
         {
             _willUpdate = false;
-            long lastSequence = Database.LastSequenceNumber;
+            long lastSequence = Database.GetLastSequenceNumber();
             if (_rows != null && _lastSequence >= lastSequence) {
                 return; // db hasn't changed since last query
             }
