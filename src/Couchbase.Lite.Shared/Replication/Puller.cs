@@ -56,6 +56,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Net;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -160,8 +161,21 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
-            _changeTracker.UsePost = CheckServerCompatVersion("0.93");
-            _changeTracker.Start();
+            if (ServerType == null) {
+                var initialRequest = WebRequest.CreateHttp(RemoteUrl.GetLeftPart(UriPartial.Authority));
+                initialRequest.Method = "HEAD";
+                initialRequest.GetResponseAsync().ContinueWith(t =>
+                {
+                    var result = t.Result;
+                    ServerType = new RemoteServerVersion(result.Headers["Server"]);
+                    _changeTracker.UsePost = CheckServerCompatVersion("0.93");
+                    _changeTracker.Start();
+                });
+
+            } else {
+                _changeTracker.UsePost = CheckServerCompatVersion("0.93");
+                _changeTracker.Start();
+            }
         }
 
 
@@ -343,6 +357,7 @@ namespace Couchbase.Lite.Replicator
             try
             {
                 dl = new BulkDownloader(WorkExecutor, ClientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
+                dl.CookieStore = _cookieStore;
                 dl.DocumentDownloaded += (sender, args) =>
                 {
                     var props = args.DocumentProperties;
@@ -725,8 +740,8 @@ namespace Couchbase.Lite.Replicator
 
         public override IDictionary<string, string> Headers 
         {
-            get { return clientFactory.Headers; } 
-            set { clientFactory.Headers = value; } 
+            get { return ClientFactory.Headers; } 
+            set { ClientFactory.Headers = value; } 
         }
 
         protected override void StopGraceful()
@@ -943,9 +958,9 @@ namespace Couchbase.Lite.Replicator
             WorkExecutor.StartNew(() => ProcessChangeTrackerStopped(tracker));
         }
 
-        public HttpClient GetHttpClient(bool longPoll)
+        public HttpClient GetHttpClient()
         {
-            var client = ClientFactory.GetHttpClient(longPoll);
+            var client = ClientFactory.GetHttpClient(_cookieStore);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = ClientFactory.Handler as DefaultAuthHandler;

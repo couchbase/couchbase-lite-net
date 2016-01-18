@@ -70,6 +70,11 @@ namespace Couchbase.Lite
             return false;
         }
 
+        protected override Task<Stream> CreateContentReadStreamAsync()
+        {
+            return originalContent.ReadAsStreamAsync();
+        }
+
         protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
         {
             Stream compressedStream = null;

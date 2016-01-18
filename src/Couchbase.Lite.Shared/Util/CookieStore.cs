@@ -88,6 +88,14 @@ namespace Couchbase.Lite.Util
             }
         }
 
+        public new int Count 
+        {
+            get {
+                PruneExpiredCookies(true);
+                return base.Count;
+            }
+        }
+
         #endregion
 
         #region Constructors
@@ -122,6 +130,12 @@ namespace Couchbase.Lite.Util
         #endregion
 
         #region Public Methods
+
+        public new CookieCollection GetCookies(Uri uri)
+        {
+            PruneExpiredCookies(false);
+            return base.GetCookies(uri);
+        }
 
         /// <summary>
         /// Add the specified cookies, force overrides CookieCollection
@@ -185,7 +199,7 @@ namespace Couchbase.Lite.Util
         public void Save()
         {
             lock (locker) {
-                PruneExpiredCookies();
+                PruneExpiredCookies(true);
                 if (_db != null) {
                     SerializeToDB();
                 } else {
@@ -198,11 +212,11 @@ namespace Couchbase.Lite.Util
 
         #region Private Methods
 
-        private void PruneExpiredCookies()
+        private void PruneExpiredCookies(bool refresh)
         {
             foreach (var uri in _cookieUriReference) {
                 var found = false;
-                var collection = GetCookies(uri);
+                var collection = base.GetCookies(uri);
                 for (int i = collection.Count - 1; i >= 0; i--) {
                     var cookie = collection[i];
                     if (IsNotSessionOnly(cookie) && (cookie.Expired || cookie.Expires < DateTime.Now)) {
@@ -211,7 +225,7 @@ namespace Couchbase.Lite.Util
                     }
                 }
 
-                if (found) {
+                if (found && refresh) {
                     //Refresh
                     GetCookies(uri);
                 }
@@ -220,20 +234,35 @@ namespace Couchbase.Lite.Util
 
         private void Add(Cookie cookie, bool save)
         {
-            var urlString = String.Format("http://{0}{1}", cookie.Domain.TrimStart('.'), cookie.Path);
+            // There is no way to explicitly remove a port setting on a Cookie,
+            // And the serialization process will cause it to be set to an empty string
+            // Which causes it to only be valid on port 80 (the default) so we need to make
+            // a new Cookie with the same settings, being careful not to set the Port.
+            var newCookie = new Cookie(cookie.Name, cookie.Value, cookie.Path, cookie.Domain) {
+                Comment = cookie.Comment,
+                CommentUri = cookie.CommentUri,
+                Discard = cookie.Discard,
+                Expired = cookie.Expired,
+                Expires = cookie.Expires,
+                HttpOnly = cookie.HttpOnly,
+                Secure = cookie.Secure,
+                Version = cookie.Version,
+            };
+
+            var urlString = String.Format("http://{0}{1}", newCookie.Domain.TrimStart('.'), newCookie.Path);
             var url = new Uri(urlString);
             _cookieUriReference.Add(url);
 
             var existing = GetCookies(url);
             foreach(Cookie existingCookie in existing) {
-                if (existingCookie.Name == cookie.Name && existingCookie.Domain == cookie.Domain 
-                    && existingCookie.Path == cookie.Path) {
+                if (existingCookie.Name == newCookie.Name && existingCookie.Domain == newCookie.Domain 
+                    && existingCookie.Path == newCookie.Path) {
                     existingCookie.Expired = true;
                     break;
                 }
             }
 
-            base.Add(cookie);
+            base.Add(newCookie);
 
             if (save) {
                 Save();

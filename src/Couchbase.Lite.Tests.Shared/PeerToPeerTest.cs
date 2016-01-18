@@ -173,7 +173,7 @@ namespace Couchbase.Lite
             _listener.SetPasswords(new Dictionary<string, string> { { "bob", "slack" } });
             #endif
 
-            _listenerDBUri = new Uri("https://localhost:" + _port + "/" + LISTENER_DB_NAME);
+            _listenerDBUri = new Uri("http://localhost:" + _port + "/" + LISTENER_DB_NAME);
             _listener.Start();
         }
 

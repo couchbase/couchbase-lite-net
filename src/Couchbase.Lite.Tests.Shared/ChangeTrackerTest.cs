@@ -71,6 +71,7 @@ namespace Couchbase.Lite
 
         private class ChangeTrackerTestClient : IChangeTrackerClient
         {
+
             #region IChangeTrackerClient implementation
 
             public delegate void ChangeTrackerStoppedDelegate(ChangeTracker tracker);
@@ -142,9 +143,9 @@ namespace Couchbase.Lite
 
             #region IHttpClientFactory implementation
 
-            public HttpClient GetHttpClient(bool longPoll)
+            public HttpClient GetHttpClient()
             {
-                return HttpClientFactory.GetHttpClient(longPoll);
+                return HttpClientFactory.GetHttpClient(null);
             }
 
             public IDictionary<string, string> Headers

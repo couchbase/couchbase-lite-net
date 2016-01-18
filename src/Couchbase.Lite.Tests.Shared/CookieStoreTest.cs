@@ -216,6 +216,28 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestCookieExpires()
+        {
+            var cookieStore = new CookieStore(database, "cookie_store_unit_test");
+            Assert.AreEqual(0, cookieStore.Count);
+
+            var cookie1 = new Cookie("whitechoco", "sweet", "/", ".mycookie.com") {
+                Expires = DateTime.Now.AddSeconds(1),
+                Version = 1
+            };
+            cookieStore.Add(cookie1);
+
+            Assert.AreEqual(1, cookieStore.Count);
+            var cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
+            Assert.AreEqual(1, cookies.Count);
+            Assert.AreEqual(cookie1, cookies[0]);
+
+            Sleep(1500);
+
+            Assert.AreEqual(0, cookieStore.Count);
+        }
+
+        [Test]
         public void TestSaveCookieStore()
         {
             var cookieStore = new CookieStore(database, "cookie_store_unit_test");

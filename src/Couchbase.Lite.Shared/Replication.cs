@@ -190,12 +190,6 @@ namespace Couchbase.Lite
         /// </summary>
         protected readonly TaskFactory WorkExecutor;
 
-        /// <summary>
-        /// The client factory responsible for creating HttpClient instances
-        /// </summary>
-        [Obsolete("Use the ClientFactory property")]
-        protected IHttpClientFactory clientFactory { get { return _clientFactory; } set { ClientFactory = value; } }
-
         private IHttpClientFactory _clientFactory;
 
         /// <summary>
@@ -231,6 +225,7 @@ namespace Couchbase.Lite
         private HashSet<string> _pendingDocumentIDs;
         private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
         private Guid _replicatorID = Guid.NewGuid();
+        protected CookieStore _cookieStore;
 
         #endregion
 
@@ -530,14 +525,30 @@ namespace Couchbase.Lite
         /// Gets or sets the client factory used to create HttpClient objects 
         /// for connected to remote databases
         /// </summary>
-        protected IHttpClientFactory ClientFactory {
+        internal IHttpClientFactory ClientFactory {
             get { return _clientFactory; }
             set { 
                 if (value != null) {
                     _clientFactory = value;
                 } else {
-                    var cookieStore = new CookieStore(LocalDatabase, RemoteCheckpointDocID());
-                    _clientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
+                    Manager manager = null;
+                    if (LocalDatabase != null) {
+                        manager = LocalDatabase.Manager;
+                    }
+
+                    IHttpClientFactory managerClientFactory = null;
+                    if (manager != null) {
+                        managerClientFactory = manager.DefaultHttpClientFactory;
+                    }
+
+                    if (managerClientFactory != null) {
+                        _clientFactory = managerClientFactory;
+                    }
+                    else {
+                        var id = LocalDatabase == null ? null : RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
+                        _cookieStore = new CookieStore(LocalDatabase, id);
+                        _clientFactory = new CouchbaseLiteHttpClientFactory();
+                    }
                 }
             }
         }
@@ -552,10 +563,10 @@ namespace Couchbase.Lite
         /// </summary>
         protected internal IDictionary<String, Object> RequestHeaders { get; set; }
 
-        internal CookieContainer CookieContainer
+        internal CookieStore CookieContainer
         { 
             get {
-                return ClientFactory.GetCookieContainer();
+                return _cookieStore;
             }
         }
 
@@ -586,7 +597,7 @@ namespace Couchbase.Lite
         /// <param name="continuous">If set to <c>true</c> continuous.</param>
         /// <param name="clientFactory">The client factory for instantiating the HttpClient used to create web requests</param>
         /// <param name="workExecutor">The TaskFactory to execute work on</param>
-        protected Replication(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor)
+        internal Replication(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor)
         {
             LocalDatabase = db;
             _eventContext = LocalDatabase.Manager.CapturedContext;
@@ -770,9 +781,8 @@ namespace Couchbase.Lite
             cookie.Path = !string.IsNullOrEmpty(path) 
                 ? path 
                 : RemoteUrl.PathAndQuery;
-
-            var cookies = new CookieCollection { cookie };
-            clientFactory.AddCookies(cookies);
+            
+            _cookieStore.Add(cookie);
         }
 
         /// <summary>
@@ -781,7 +791,7 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the cookie</param>
         public void DeleteCookie(String name)
         {
-            clientFactory.DeleteCookie(RemoteUrl, name);
+            _cookieStore.Delete(RemoteUrl, name);
         }
             
         #endregion
@@ -1115,16 +1125,6 @@ namespace Couchbase.Lite
             CancelPendingRetryIfReady();
         }
 
-        /// <summary>
-        /// Sets the client factory used to generate HttpClient objects
-        /// </summary>
-        /// <param name="clientFactory">The client factory to use</param>
-        [Obsolete("Use the ClientFactory property instead")]
-        protected void SetClientFactory(IHttpClientFactory clientFactory)
-        {
-            ClientFactory = clientFactory;
-        }
-
         #endregion
 
         #region Internal Methods
@@ -1195,7 +1195,7 @@ namespace Couchbase.Lite
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
 
-            var client = _clientFactory.GetHttpClient(false);
+            var client = _clientFactory.GetHttpClient(_cookieStore);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = _clientFactory.Handler as DefaultAuthHandler;
@@ -1303,10 +1303,10 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                var client = clientFactory.GetHttpClient(false);
+                var client = _clientFactory.GetHttpClient(_cookieStore);
                 var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
                 if (challengeResponseAuth != null) {
-                    var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                    var authHandler = _clientFactory.Handler as DefaultAuthHandler;
                     if (authHandler != null) {
                         authHandler.Authenticator = challengeResponseAuth;
                     }
@@ -1435,10 +1435,10 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            var client = clientFactory.GetHttpClient(false);
+            var client = _clientFactory.GetHttpClient(_cookieStore);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if(challengeResponseAuth != null) {
-                var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                var authHandler = _clientFactory.Handler as DefaultAuthHandler;
                 if(authHandler != null) {
                     authHandler.Authenticator = challengeResponseAuth;
                 }

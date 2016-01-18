@@ -62,7 +62,6 @@ namespace Couchbase.Lite.Replicator
 
         #region Variables
 
-        private bool _chunkedMode = false;
         private object _locker = new object();
         private readonly CookieStore _cookieStore;
         private readonly ConcurrentDictionary<HttpResponseMessage, int> _retryMessages = new ConcurrentDictionary<HttpResponseMessage,int>();
@@ -78,9 +77,8 @@ namespace Couchbase.Lite.Replicator
 
         #region Constructors
 
-        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore, bool chunkedMode)
+        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore)
         {
-            _chunkedMode = chunkedMode;
             _cookieStore = cookieStore;
             InnerHandler = context;
         }

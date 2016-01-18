@@ -202,6 +202,8 @@ namespace Couchbase.Lite
             var wrongPassword = "password2";
             AddUser(username, password);
 
+            CreateDocuments(database, 10);
+
             var url = GetReplicationURLWithoutCredentials();
 
             var replicator = database.CreatePushReplication(url);
@@ -211,23 +213,8 @@ namespace Couchbase.Lite
             Assert.IsNotNull(replicator.Authenticator);
             Assert.IsTrue(replicator.Authenticator is BasicAuthenticator);
 
-            replicator.Start();
+            RunReplication(replicator);
 
-            var doneEvent = new ManualResetEvent(false);
-
-            Task.Factory.StartNew(()=>
-            {
-                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-                var stop = false;
-                while (DateTime.UtcNow < timeout && !stop)
-                {
-                    stop |= replicator.Status != ReplicationStatus.Active;
-                    Sleep(TimeSpan.FromMilliseconds(10));
-                }
-                doneEvent.Set();
-            });
-            doneEvent.WaitOne(TimeSpan.FromSeconds(10));
-            Sleep(1000);
             var lastError = replicator.LastError;
             Assert.IsNotNull(lastError);
         }
