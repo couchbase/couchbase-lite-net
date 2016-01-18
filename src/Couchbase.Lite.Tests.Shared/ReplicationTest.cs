@@ -1646,7 +1646,7 @@ namespace Couchbase.Lite
                 var responseBody = new StringBuilder("--67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\r\n");
                 foreach(var obj in content["docs"] as IEnumerable) {
                     var dict = obj.AsDictionary<string, object>();
-                    var nonexistent = removedIDSet.Contains(dict["id"]);
+                    var nonexistent = removedIDSet.Contains(dict.GetCast<string>("id"));
                     if(nonexistent) {
                         return new HttpResponseMessage(HttpStatusCode.InternalServerError); // Just so we can know
                     } else {

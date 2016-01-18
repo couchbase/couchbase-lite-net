@@ -22,8 +22,6 @@ using WebRequest = System.Net.Couchbase.WebRequest;
 using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
 using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
 using WebException = System.Net.Couchbase.WebException;
-#else
-using StringExt = System.String;
 #endif
 
 namespace Couchbase.Lite
@@ -54,7 +52,7 @@ namespace Couchbase.Lite
 
             var uri = new Uri (remoteUri);
             var credentials = uri.UserInfo;
-            if (!StringExt.IsNullOrEmpty(credentials)) {
+            if (!String.IsNullOrEmpty(credentials)) {
                 remoteUri = string.Format ("{0}://{1}{2}", uri.Scheme, uri.Authority, uri.PathAndQuery);
                 request = WebRequest.CreateHttp (remoteUri);
                 request.Headers.Add ("Authorization", "Basic " + Convert.ToBase64String (Encoding.UTF8.GetBytes (credentials)));

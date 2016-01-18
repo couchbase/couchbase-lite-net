@@ -142,7 +142,7 @@ namespace Couchbase.Lite.Support
             //handler.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
 
             if(handler.SupportsAutomaticDecompression) {
-                handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
             }
 
             Handler = new DefaultAuthHandler (handler, store);

@@ -57,7 +57,9 @@ using Couchbase.Lite.Tests;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections;
+#if !NET_3_5
 using CBForest;
+#endif
 using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite

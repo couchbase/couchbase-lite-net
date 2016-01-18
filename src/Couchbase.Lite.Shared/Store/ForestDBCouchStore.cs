@@ -1168,7 +1168,7 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<string> GetAllViews()
         {
-            return System.IO.Directory.EnumerateFiles(Directory, "*."+ForestDBViewStore.VIEW_INDEX_PATH_EXTENSION).
+            return System.IO.Directory.GetFiles(Directory, "*."+ForestDBViewStore.VIEW_INDEX_PATH_EXTENSION).
                 Select(x => ForestDBViewStore.FileNameToViewName(Path.GetFileName(x)));
         }
 

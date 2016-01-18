@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Tests
             HttpHandler = new MockHttpRequestHandler(defaultFail);
             HttpHandler.CookieContainer = new CookieStore(db, "MockHttpClient");
             HttpHandler.UseCookies = true;
-            HttpHandler.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+            HttpHandler.AutomaticDecompression = System.Net.DecompressionMethods.Deflate | System.Net.DecompressionMethods.GZip;
 
             Headers = new Dictionary<string,string>();
         }
