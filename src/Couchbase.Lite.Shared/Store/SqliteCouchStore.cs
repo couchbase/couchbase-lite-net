@@ -1770,8 +1770,10 @@ namespace Couchbase.Lite.Store
                     docType = properties.GetCast<string>("type");
                 }
 
-                var sequence = InsertRevision(newRev, docNumericId, parentSequence, true, hasAttachments, json, docType);
-                if(sequence == 0L) {
+                var sequence = 0L;
+                try {
+                    sequence = InsertRevision(newRev, docNumericId, parentSequence, true, hasAttachments, json, docType);
+                } catch(Exception) {
                     if(StorageEngine.LastErrorCode != raw.SQLITE_CONSTRAINT) {
                         throw new CouchbaseLiteException(String.Format("Failed to insert revision {0}", newRev),
                             LastDbError.Code);

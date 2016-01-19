@@ -158,7 +158,7 @@ namespace Couchbase.Lite.Store
 
         static ForestDBCouchStore()
         {
-            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (38c4e2d5e3b224b92b8b0155f42e251df583175f))");
+            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (0dde5499bd15571841b8ea2725eedb3f99e4049f))");
         }
 
         public ForestDBCouchStore()
@@ -757,7 +757,7 @@ namespace Couchbase.Lite.Store
                     if (options.AllDocsMode >= AllDocsMode.ShowConflicts && next.IsConflicted) {
                         SelectCurrentRevision(next);
                         LoadRevisionBody(next);
-                        using (var innerEnumerator = new CBForestHistoryEnumerator(next, true, false)) {
+                        using (var innerEnumerator = new CBForestHistoryEnumerator(Forest, next.Sequence, true)) {
                             conflicts = innerEnumerator.Select(x => (string)x.SelectedRev.revID).ToList();
                         }
 

@@ -120,10 +120,14 @@ namespace Couchbase.Lite
             return ConvertToHex(sha1hash);
         }
 
-        public static string ConvertToHex(byte[] data)
+        public static string ConvertToHex(byte[] data, int numBytes = -1)
         {
             StringBuilder buf = new StringBuilder();
-            for (int i = 0; i < data.Length; i++)
+            if (numBytes == -1) {
+                numBytes = data.Length;
+            }
+
+            for (int i = 0; i < numBytes; i++)
             {
                 int halfbyte = (data[i] >> 4) & unchecked((0x0F));
                 int two_halfs = 0;

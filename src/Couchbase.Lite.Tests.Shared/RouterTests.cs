@@ -571,7 +571,7 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
+                                    { "_rev", "1-cfdd78e822bbcbc25c91e9deb9537c4b" },
                                     { "message", "hi" }
                                 }
                             }
@@ -589,10 +589,10 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
+                                    { "_rev", "1-cfdd78e822bbcbc25c91e9deb9537c4b" },
                                     { "_revisions", new Dictionary<string, object> {
                                             { "start", 1L },
-                                            { "ids", new List<object> { "66d2a05927e5851025c6d204956afff4" } }
+                                            { "ids", new List<object> { "cfdd78e822bbcbc25c91e9deb9537c4b" } }
                                         }
                                     },
                                     { "message", "hi" }

@@ -282,7 +282,10 @@ namespace Couchbase.Lite.Replicator
                 tokenSource = new CancellationTokenSource();
             }
 
-            backoff = new ChangeTrackerBackoff();
+            if (backoff == null) {
+                backoff = new ChangeTrackerBackoff();
+            }
+
             _startTime = DateTime.Now;
             if (Request != null)
             {
@@ -357,6 +360,9 @@ namespace Couchbase.Lite.Replicator
                     Log.E(TAG, "Exception in change tracker", e);
                 }
                 backoff.SleepAppropriateAmountOfTime();
+                if (IsRunning) {
+                    Run();
+                }
             }
         }
 
@@ -369,7 +375,12 @@ namespace Couchbase.Lite.Replicator
                     var err = responseTask.Exception.Flatten();
                     Log.D(TAG, "ChangeFeedResponseHandler faulted.", err.InnerException ?? err);
                     Error = err.InnerException ?? err;
-                    Stop();
+                    if (mode != ChangeTrackerMode.LongPoll) {
+                        Stop();
+                    } else if(IsRunning) {
+                        backoff.SleepAppropriateAmountOfTime();
+                        WorkExecutor.StartNew(Run);
+                    }
                 }
 
                 return Task.FromResult(false);
@@ -382,8 +393,14 @@ namespace Couchbase.Lite.Replicator
             var status = response.StatusCode;
             UpdateServerType(response);
 
-            if ((Int32)status >= 300 && !Misc.IsTransientError(status))
+            if ((Int32)status >= 300)
             {
+                if (Misc.IsTransientError(status) && mode == ChangeTrackerMode.LongPoll) {
+                    backoff.SleepAppropriateAmountOfTime();
+                    WorkExecutor.StartNew(Run);
+                    return Task.FromResult(false);
+                }
+
                 var msg = response.Content != null 
                     ? String.Format("Change tracker got error with status code: {0}", status)
                     : String.Format("Change tracker got error with status code: {0} and null response content", status);
@@ -403,8 +420,12 @@ namespace Couchbase.Lite.Replicator
                     Log.D(TAG, "Getting stream from change tracker response");
                     return response.Content.ReadAsStreamAsync().ContinueWith(t => {
                         try {
-                            backoff.ResetBackoff();
                             ProcessLongPollStream(t);
+                            backoff.ResetBackoff();
+                        } catch(CouchbaseLiteException e) {
+                            Log.W(TAG, "Exception during changes feed processing", e);
+                            backoff.SleepAppropriateAmountOfTime();
+                            WorkExecutor.StartNew(Run);
                         } finally {
                             response.Dispose();
                         }
@@ -413,8 +434,8 @@ namespace Couchbase.Lite.Replicator
                     return response.Content.ReadAsStreamAsync().ContinueWith(t => {
                         
                         try {
-                            backoff.ResetBackoff();
                             ProcessOneShotStream(t);
+                            backoff.ResetBackoff();
                         } finally {
                             response.Dispose();
                         }

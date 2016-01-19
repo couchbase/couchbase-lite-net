@@ -113,10 +113,14 @@ namespace Couchbase.Lite
                 }
             };
 
-            var request = (HttpWebRequest)WebRequest.Create("https://127.0.0.1:59841");
-            request.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
-            var response = (HttpWebResponse)request.GetResponse();
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            try {
+                var request = (HttpWebRequest)WebRequest.Create("https://127.0.0.1:59841");
+                request.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
+                var response = (HttpWebResponse)request.GetResponse();
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            } finally {
+                sslListener.Stop();
+            }
         }
 
         [Test]

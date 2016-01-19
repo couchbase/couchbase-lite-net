@@ -233,7 +233,7 @@ namespace Couchbase.Lite
             view.SetMap((doc, emit) => { if(doc.ContainsKey("sequence")) { emit(doc["sequence"], null); }}, "1");
             var query = view.CreateQuery();
             Assert.AreEqual(100, query.Run().Count);
-            Assert.DoesNotThrow(() => seekrit.ChangeEncryptionKey(_letmeout.KeyData), "Error changing encryption key");
+            Assert.DoesNotThrow(() => seekrit.ChangeEncryptionKey(_letmeout), "Error changing encryption key");
 
             // Close & reopen seekrit:
             var dbName = seekrit.Name;

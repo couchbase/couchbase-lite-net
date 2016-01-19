@@ -315,7 +315,7 @@ namespace Couchbase.Lite
                 AssertDictionariesAreEqual(firstDic, secondDic);
             } else {
                 var firstEnum = first as IEnumerable;
-                var secondEnum = first as IEnumerable;
+                var secondEnum = second as IEnumerable;
                 if (firstEnum != null && secondEnum != null) {
                     AssertEnumerablesAreEquivalent(firstEnum, secondEnum);
                 } else {

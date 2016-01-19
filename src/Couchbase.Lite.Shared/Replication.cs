@@ -1370,7 +1370,7 @@ namespace Couchbase.Lite
                                     var buffer = new byte[bufLen];
 
                                     int numBytesRead = 0;
-                                    while ((numBytesRead = inputStream.Read(buffer, 0, buffer.Length)) != -1) {
+                                    while ((numBytesRead = inputStream.Read(buffer, 0, buffer.Length)) > 0) {
                                         if (numBytesRead != bufLen) {
                                             var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<Byte>(buffer, 0, numBytesRead);
                                             reader.AppendData(bufferToAppend);
@@ -2130,6 +2130,7 @@ namespace Couchbase.Lite
         private readonly int _changesCount;
         private readonly int _completedChangesCount;
         private readonly ReplicationStatus _status;
+        private readonly Exception _lastError;
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.  Do not
@@ -2178,6 +2179,15 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Gets the most recent error that occured at the time of this change
+        /// </summary>
+        /// <value>The last error.</value>
+        public Exception LastError
+        {
+            get { return _lastError; }
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Couchbase.Lite.ReplicationChangeEventArgs"/> class.
         /// </summary>
         /// <param name="sender">The <see cref="Couchbase.Lite.Replication"/> that raised the event.</param>
@@ -2189,6 +2199,7 @@ namespace Couchbase.Lite
             _changesCount = sender.ChangesCount;
             _completedChangesCount = sender.CompletedChangesCount;
             _status = sender.Status;
+            _lastError = sender.LastError;
         }
     }
 

@@ -231,11 +231,11 @@ namespace Couchbase.Lite.Store
             fixed(char* ptr = unescaped) {
                 var currentCharPtr = ptr;
                 while(length < unescaped.Length) {
-                    Encoding.UTF8.GetBytes(currentCharPtr, 1, bufPtr, 6);
+                    var numBytes = Encoding.UTF8.GetBytes(currentCharPtr, 1, bufPtr, 6);
                     if(IsLegalChar(buffer[0])) {
                         sb.Append(*currentCharPtr);
                     } else {
-                        sb.AppendFormat("@{0}", Misc.ConvertToHex(buffer));
+                        sb.AppendFormat("@{0}", Misc.ConvertToHex(buffer, numBytes));
                     }
 
                     currentCharPtr++;
@@ -440,6 +440,7 @@ namespace Couchbase.Lite.Store
                     var seq = next.Sequence;
 
                     for (int i = 0; i < viewInfo.Length; i++) {
+                        
                         var info = viewInfo[i];
                         if (seq <= info.Item2) {
                             continue; // This view has already indexed this sequence
@@ -456,7 +457,7 @@ namespace Couchbase.Lite.Store
                         var values = new List<string>();
 
                         var conflicts = default(List<string>);
-                        foreach(var leaf in new CBForestHistoryEnumerator(next, true, false)) {
+                        foreach(var leaf in new CBForestHistoryEnumerator(_dbStorage.Forest, next.Sequence, true)) {
                             if(leaf.SelectedRev.revID.Equals(leaf.CurrentRevID)) {
                                 continue;
                             }

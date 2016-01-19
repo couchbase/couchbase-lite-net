@@ -111,8 +111,7 @@ namespace Couchbase.Lite
             }
 
             public void Changed(object sender, ReplicationChangeEventArgs args) {
-                var replicator = args.Source;
-                if (replicator.LastError != null && doneSignal.CurrentCount > 0) {
+                if (args.LastError != null && doneSignal.CurrentCount > 0) {
                     doneSignal.Signal();
                 }
             }
@@ -1677,6 +1676,8 @@ namespace Couchbase.Lite
                 Assert.AreNotEqual(limit, puller.CompletedChangesCount);
                 Assert.AreEqual(limit.ToString(), puller.LastSequence);
             }
+
+            Sleep(1000);
         }
 
         [Test]

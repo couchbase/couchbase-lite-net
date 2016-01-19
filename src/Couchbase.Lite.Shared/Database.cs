@@ -770,21 +770,18 @@ namespace Couchbase.Lite
         /// <summary>
         /// Change the encryption key used to secure this database
         /// </summary>
-        /// <param name="newPassword">The new password to derive the key from</param>
-        public void ChangeEncryptionPassword(string newPassword)
+        /// <param name="newKey">The new key to use</param>
+        public void ChangeEncryptionKey(SymmetricKey newKey)
         {
-            var newKey = new SymmetricKey(newPassword);
-            ChangeEncryptionKey(newKey);
-        }
+            if (!IsOpen) {
+                Log.W(TAG, "ChangeEncryptionKey called on closed database");
+                return;
+            }
 
-        /// <summary>
-        /// Change the encryption key used to secure this database
-        /// </summary>
-        /// <param name="newPassKey">The new password to derive the key from</param>
-        public void ChangeEncryptionKey(IEnumerable<byte> newPassKey)
-        {
-            var newKey = new SymmetricKey(newPassKey.ToArray());
-            ChangeEncryptionKey(newKey);
+            var action = Storage.ActionToChangeEncryptionKey(newKey);
+            action.AddLogic(Attachments.ActionToChangeEncryptionKey(newKey));
+            action.AddLogic(() => Shared.SetValue("encryptionKey", "", Name, newKey), null, null);
+            action.Run();
         }
 
         #endregion
@@ -957,7 +954,9 @@ namespace Couchbase.Lite
 
         internal void ForgetReplication(Replication replication)
         {
-            lock (_allReplicatorsLocker) { AllReplicators.Remove(replication); }
+            lock (_allReplicatorsLocker) { 
+                AllReplicators.Remove(replication); 
+            }
         }
 
         internal bool AddActiveReplication(Replication replication)
@@ -974,8 +973,7 @@ namespace Couchbase.Lite
             }
 
             replication.Changed += (sender, e) => {
-                if (e.Source != null && !e.Source.IsRunning && ActiveReplicators != null)
-                {
+                if (e.Source != null && !e.Source.IsRunning && ActiveReplicators != null) {
                     ActiveReplicators.Remove(e.Source);
                 }
             };
@@ -2294,19 +2292,6 @@ namespace Couchbase.Lite
         #endregion
 
         #region Private Methods
-
-        private void ChangeEncryptionKey(SymmetricKey newKey)
-        {
-            if (!IsOpen) {
-                Log.W(TAG, "ChangeEncryptionKey called on closed database");
-                return;
-            }
-
-            var action = Storage.ActionToChangeEncryptionKey(newKey);
-            action.AddLogic(Attachments.ActionToChangeEncryptionKey(newKey));
-            action.AddLogic(() => Shared.SetValue("encryptionKey", "", Name, newKey), null, null);
-            action.Run();
-        }
 
         private static long SmallestLength(IDictionary<string, object> attachment)
         {
