@@ -64,6 +64,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Sharpen;
+using System.IO.Compression;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -2870,7 +2871,14 @@ namespace Couchbase.Lite
                 var fakeFactory = new MockHttpClientFactory(false);
                 fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) =>
                 {
-                    var str = request.Content.ReadAsStringAsync().Result;
+                    var str = default(string);
+                    if(request.Content is CompressedContent) {
+                        var stream = request.Content.ReadAsStreamAsync().Result;
+                        str = Encoding.UTF8.GetString(stream.ReadAllBytes());
+                    } else {
+                        str = request.Content.ReadAsStringAsync().Result;
+                    }
+
                     if (firstBulkGet == null || firstBulkGet.Equals(str)) {
                         Log.D(Tag, "Rejecting this bulk get because it looks like the first batch");
                         firstBulkGet = str;
@@ -2888,7 +2896,7 @@ namespace Couchbase.Lite
                     var m = r.Match(request.RequestUri.PathAndQuery);
                     if(m.Success) {
                         var str = m.Captures[0].Value;
-                        var converted = Int32.Parse(str.Substring(3)) + 3;
+                        var converted = Int32.Parse(str.Substring(3)) + 4;
                         if(gotSequence == 0 || converted - gotSequence == 1) {
                             gotSequence = converted;
                         }

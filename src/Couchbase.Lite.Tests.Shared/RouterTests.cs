@@ -750,9 +750,9 @@ namespace Couchbase.Lite
                                     { "_revisions", new Dictionary<string, object> {
                                             { "start", 3L },
                                             { "ids", new List<object> { 
-                                                    "849ef0cb3227570b179053f30435c834",
-                                                    "f4aa17f89f2d613c362f23148b74b794",
-                                                    "73f49cb1381a29e8d6d50e840c51cfa5"
+                                                    "69e1c04b38d144220169834e4a1d6b65",
+                                                    "641a9554032af9bcb2351b2780161a4d",
+                                                    "9c7ff8308d0c89a7f1fe0f4b683655c2"
                                                 } 
                                             }
                                         }

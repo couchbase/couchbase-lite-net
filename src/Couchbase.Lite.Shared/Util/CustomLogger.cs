@@ -67,7 +67,7 @@ namespace Couchbase.Lite.Util
             try {
                 Trace.Listeners.Add(_ts);
             } catch(NotSupportedException e) {
-                throw new ExecutionEngineException("It appears that needed classes for Couchbase Lite .NET have been " +
+                throw new MethodAccessException("It appears that needed classes for Couchbase Lite .NET have been " +
                 "linked away, please ensure that in your Project Options under iOS Build that Linker Behavior " +
                 "is set to 'Don't Link'", e);
             }
