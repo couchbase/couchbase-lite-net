@@ -29,6 +29,9 @@
     <MtouchProfiling>true</MtouchProfiling>
     <MtouchUseRefCounting>true</MtouchUseRefCounting>
     <MtouchNoSymbolStrip>true</MtouchNoSymbolStrip>
+    <CodesignKey>iPhone Developer</CodesignKey>
+    <DeviceSpecificBuild>true</DeviceSpecificBuild>
+    <MtouchFastDev>true</MtouchFastDev>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhoneSimulator' ">
     <DebugType>pdbonly</DebugType>
@@ -40,13 +43,13 @@
     <ConsolePause>false</ConsolePause>
     <DebugSymbols>true</DebugSymbols>
     <MtouchExtraArgs>--registrar=static</MtouchExtraArgs>
-    <MtouchI18n>
-    </MtouchI18n>
     <MtouchArch>i386, x86_64</MtouchArch>
     <Platform>iPhone</Platform>
     <MtouchUseLlvm>true</MtouchUseLlvm>
     <MtouchUseThumb>true</MtouchUseThumb>
     <MtouchUseRefCounting>true</MtouchUseRefCounting>
+    <CodesignKey>iPhone Developer</CodesignKey>
+    <MtouchFastDev>true</MtouchFastDev>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhone' ">
     <DebugSymbols>true</DebugSymbols>
@@ -61,10 +64,12 @@
     <CodesignKey>iPhone Developer</CodesignKey>
     <IpaPackageName>
     </IpaPackageName>
-    <MtouchArch>ARMv7, ARMv7s, ARM64</MtouchArch>
+    <MtouchArch>ARMv7, ARM64</MtouchArch>
     <MtouchExtraArgs>--registrar=static</MtouchExtraArgs>
     <MtouchNoSymbolStrip>true</MtouchNoSymbolStrip>
     <MtouchLink>None</MtouchLink>
+    <DeviceSpecificBuild>true</DeviceSpecificBuild>
+    <MtouchFloat32>true</MtouchFloat32>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhone' ">
     <DebugType>pdbonly</DebugType>
@@ -75,13 +80,13 @@
     <CodesignKey>iPhone Developer</CodesignKey>
     <ConsolePause>false</ConsolePause>
     <MtouchExtraArgs>--registrar=static</MtouchExtraArgs>
-    <MtouchArch>ARMv7, ARMv7s, ARM64</MtouchArch>
+    <MtouchArch>ARMv7, ARM64</MtouchArch>
     <Platform>iPhone</Platform>
     <MtouchUseRefCounting>true</MtouchUseRefCounting>
     <IpaPackageName>
     </IpaPackageName>
     <MtouchLink>None</MtouchLink>
-    <MtouchUseLlvm>true</MtouchUseLlvm>
+    <MtouchFloat32>true</MtouchFloat32>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>false</Optimize>
@@ -128,9 +133,6 @@
     </Reference>
     <Reference Include="Stateless">
       <HintPath>..\..\src\packages\Stateless.2.5.21.0\lib\portable-net40+sl50+win+wp80\Stateless.dll</HintPath>
-    </Reference>
-    <Reference Include="Couchbase.Lite">
-      <HintPath>..\..\src\packages\Couchbase.Lite.1.1.1.1\lib\Xamarin.iOS10\Couchbase.Lite.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup />
@@ -187,4 +189,14 @@
   </ProjectExtensions>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="..\..\src\packages\SQLitePCL.raw.0.8.1\build\Xamarin.iOS10\SQLitePCL.raw.targets" Condition="Exists('..\..\src\packages\SQLitePCL.raw.0.8.1\build\Xamarin.iOS10\SQLitePCL.raw.targets')" />
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
+      <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
+      <Name>Couchbase.Lite.iOS</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS\cbforest-sharp.iOS.csproj">
+      <Project>{A5757777-CDFE-43BF-8260-D342BF83B773}</Project>
+      <Name>cbforest-sharp.iOS</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>

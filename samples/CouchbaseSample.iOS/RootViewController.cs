@@ -89,13 +89,6 @@ namespace CouchbaseSample
       newLocation.Y = -65f;
             background.Frame = new CGRect(newLocation, background.Frame.Size);
 
-      // Handle iOS 7 specific code.
-      if (AppDelegate.CurrentSystemVersion < AppDelegate.iOS7) {
-        TableView.BackgroundColor = UIColor.Clear;
-        TableView.BackgroundView = null;
-        NavigationController.NavigationBar.TintColor = UIColor.FromRGB (0.564f, 0.0f, 0.015f);
-      }
-
       View.InsertSubviewBelow (background, View.Subviews [0]);
     }
 
@@ -109,6 +102,7 @@ namespace CouchbaseSample
 
     void InitializeDatabase ()
     {
+
         var db = Manager.SharedInstance.GetDatabase ("grocery-sync");
         if (db == null)
             throw new ApplicationException ("Could not create database");
@@ -306,9 +300,7 @@ namespace CouchbaseSample
     {
       var navController = ParentViewController as UINavigationController;
       var controller = new ConfigViewController ();
-      if (AppDelegate.CurrentSystemVersion >= AppDelegate.iOS7) {
-        controller.EdgesForExtendedLayout = UIRectEdge.None;
-      }
+      controller.EdgesForExtendedLayout = UIRectEdge.None;
       navController.PushViewController (controller, true);
     }
 
@@ -368,19 +360,14 @@ namespace CouchbaseSample
       Debug.WriteLine (String.Format ("Sync: {2} Progress: {0}/{1};", active.CompletedChangesCount - lastTotal, active.ChangesCount - lastTotal, active == push ? "Push" : "Pull"));
 
       var progress = (float)(active.CompletedChangesCount - lastTotal) / (float)(Math.Max (active.ChangesCount - lastTotal, 1));
-
-      if (AppDelegate.CurrentSystemVersion < AppDelegate.iOS7) {
-        ShowSyncStatusLegacy ();
-      } else {
-        ShowSyncStatus ();
-      }
+       ShowSyncStatus ();
 
             Debug.WriteLine (String.Format ("({0:F})", progress));
 
       if (active == pull) {
-        if (AppDelegate.CurrentSystemVersion >= AppDelegate.iOS7) Progress.TintColor = UIColor.White;
+        Progress.TintColor = UIColor.White;
       } else {
-        if (AppDelegate.CurrentSystemVersion >= AppDelegate.iOS7) Progress.TintColor = UIColor.LightGray;
+        Progress.TintColor = UIColor.LightGray;
       }
 
       Progress.Hidden = false;

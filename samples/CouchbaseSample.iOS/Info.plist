@@ -16,7 +16,7 @@
 		<string>Icon@2x</string>
 	</array>
 	<key>MinimumOSVersion</key>
-	<string>6.1</string>
+	<string>7.0</string>
 	<key>CFBundleDisplayName</key>
 	<string>Grocery Sync</string>
 	<key>CFBundleIdentifier</key>

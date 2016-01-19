@@ -12,14 +12,6 @@ namespace CouchbaseSample
     [Register ("AppDelegate")]
     public partial class AppDelegate : UIApplicationDelegate
     {
-        static AppDelegate()
-        {
-            CurrentSystemVersion = new Version (UIDevice.CurrentDevice.SystemVersion);
-            iOS7 = new Version (7, 0);
-        }
-
-        public static readonly Version CurrentSystemVersion;
-        public static readonly Version iOS7;
 
         // class-level declarations
         UINavigationController navigationController;
@@ -37,12 +29,8 @@ namespace CouchbaseSample
             window = new UIWindow (UIScreen.MainScreen.Bounds);
 
             var controller = new RootViewController();
-
-            if (CurrentSystemVersion >= iOS7)
-            {
-                window.TintColor = UIColor.FromRGB(0.564f, 0.0f, 0.015f);
-                controller.EdgesForExtendedLayout = UIRectEdge.None;
-            }
+            window.TintColor = UIColor.FromRGB(0.564f, 0.0f, 0.015f);
+            controller.EdgesForExtendedLayout = UIRectEdge.None;
 
             navigationController = new UINavigationController (controller);
 
