@@ -55,7 +55,6 @@ namespace Couchbase.Lite.Support
         private int _nextInputIndex;
         private Stream _currentInput;
         private Stream _output;
-        private ManualResetEventSlim _mre;
         private bool _isDisposed;
         private readonly int _bufferSize;
 
@@ -81,7 +80,7 @@ namespace Couchbase.Lite.Support
         /// <value><c>true</c> if this instance is open; otherwise, <c>false</c>.</value>
         public bool IsOpen { 
             get {
-                return _mre != null && !_mre.IsSet && !_isDisposed;
+                return _output != null && !_isDisposed;
             }
         }
 
@@ -177,17 +176,13 @@ namespace Couchbase.Lite.Support
             }
 
             Debug.Assert(output != null);
-            Debug.Assert(_output == null, "Already open");
             _output = output;
-            Opened();
-
-            if (_mre == null) {
-                _mre = new ManualResetEventSlim();
-            }
+            var mre = new ManualResetEventSlim();
+            Opened(mre);
 
             var tcs = new TaskCompletionSource<bool>();
             try {
-                ThreadPool.RegisterWaitForSingleObject(_mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
+                ThreadPool.RegisterWaitForSingleObject(mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
                     null, TimeSpan.FromSeconds(30), true);
             } catch(ObjectDisposedException) {
                 tcs.SetResult(false);
@@ -239,7 +234,7 @@ namespace Couchbase.Lite.Support
                     Log.W(TAG, "Unable to get output!");
                     return null;
                 }
-
+                    
                 return ms.ToArray();
             }
         }
@@ -253,9 +248,7 @@ namespace Couchbase.Lite.Support
         /// </summary>
         protected virtual void Opened()
         {
-            _totalBytesWritten = 0;
-            _mre = new ManualResetEventSlim();
-            StartWriting();
+
         }
 
         /// <summary>
@@ -273,15 +266,21 @@ namespace Couchbase.Lite.Support
 
         #region Private Methods
 
-        private void StartWriting()
+        private void Opened(ManualResetEventSlim doneSignal)
+        {
+            Opened();
+            _totalBytesWritten = 0;
+            StartWriting(doneSignal);
+        }
+
+        private void StartWriting(ManualResetEventSlim doneSignal)
         {
             var gotInput = OpenNextInput();
             if (gotInput) {
-                _currentInput.CopyToAsync(_output, _bufferSize).ContinueWith(t => StartWriting());
+                _currentInput.CopyToAsync(_output, _bufferSize).ContinueWith(t => StartWriting(doneSignal));
             } else {
-                _mre.Set();
-                _mre.Dispose();
-                _mre = null;
+                doneSignal.Set();
+                doneSignal.Dispose();
             }
         }
 

@@ -40,8 +40,6 @@
     <ConsolePause>false</ConsolePause>
     <AndroidSupportedAbis>armeabi;armeabi-v7a;x86;arm64-v8a;x86_64</AndroidSupportedAbis>
     <DebugType>full</DebugType>
-    <AotAssemblies>true</AotAssemblies>
-    <EnableLLVM>true</EnableLLVM>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -158,6 +156,25 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
       <Link>Assets\perftest.properties</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\Multipart1.mime">
+      <Link>Assets\Multipart1.mime</Link>
+      <LogicalName>Multipart1.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartBinary.mime">
+      <Link>Assets\MultipartBinary.mime</Link>
+      <LogicalName>MultipartBinary.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartGZipped.mime">
+      <Link>Assets\MultipartGZipped.mime</Link>
+      <LogicalName>MultipartGZipped.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartStars.mime">
+      <Link>Assets\MultipartStars.mime</Link>
+      <LogicalName>MultipartStars.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120.zip">
+      <Link>Assets\ios120.zip</Link>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
