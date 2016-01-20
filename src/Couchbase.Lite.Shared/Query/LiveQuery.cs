@@ -59,7 +59,7 @@ namespace Couchbase.Lite
 
         private const string TAG = "LiveQuery";
         private const int DEFAULT_QUERY_TIMEOUT = 90000; // milliseconds.
-        private const double DEFAULT_UPDATE_INTERVAL = 0.5;
+        private const double DEFAULT_UPDATE_INTERVAL = 0.2;
 
         #endregion
 
@@ -82,6 +82,7 @@ namespace Couchbase.Lite
         private bool _willUpdate;
         private bool _updateAgain;
         private double _updateInterval = DEFAULT_UPDATE_INTERVAL;
+        private DateTime _lastUpdatedAt = DateTime.MinValue;
         private volatile bool _observing;
         private bool _runningState;
 
@@ -286,8 +287,10 @@ namespace Couchbase.Lite
             }
 
             _willUpdate = true;
-            Log.D(TAG, "Will update after {0} sec...", updateInterval);
-            Task.Delay(TimeSpan.FromSeconds(updateInterval)).ContinueWith(t =>
+            var updateDelay = ((_lastUpdatedAt + TimeSpan.FromSeconds(updateInterval)) - DateTime.Now).TotalSeconds;
+            updateDelay = Math.Max(0, Math.Min(_updateInterval, updateDelay));
+            Log.D(TAG, "Will update after {0} sec...", updateDelay);
+            Task.Delay(TimeSpan.FromSeconds(updateDelay)).ContinueWith(t =>
             {
                 if(_willUpdate) {
                     Update();
@@ -353,6 +356,7 @@ namespace Couchbase.Lite
 
             _updateAgain = false;
             _isUpdatingAtSequence = lastSequence;
+            _lastUpdatedAt = DateTime.Now;
             UpdateQueryTokenSource = new CancellationTokenSource();
 
             UpdateQueryTask = Task.Factory.StartNew<QueryEnumerator>(base.Run, UpdateQueryTokenSource.Token)
