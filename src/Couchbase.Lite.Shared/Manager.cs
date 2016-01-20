@@ -479,7 +479,7 @@ namespace Couchbase.Lite
                     }
 
                     using (var destStream = File.OpenWrite(path)) {
-                        if (entry.CompressedSize > 0) {
+                        if (entry.CompressedSize != 0) {
                             zipStream.CopyTo(destStream);
                         }
                     }
