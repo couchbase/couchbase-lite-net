@@ -33,7 +33,10 @@ namespace SimpleAndroidSync
 
             RequestWindowFeature(WindowFeatures.IndeterminateProgress);
 
-            Database = Manager.SharedInstance.GetDatabase(Tag.ToLower());
+            var opts = new DatabaseOptions();
+            opts.Create = true;
+            opts.StorageType = DatabaseOptions.FORESTDB_STORAGE;
+            Database = Manager.SharedInstance.OpenDatabase(Tag.ToLower(), opts);
 
             Query = List.GetQuery(Database);
             Query.Completed += (sender, e) => 
@@ -218,20 +221,26 @@ namespace SimpleAndroidSync
                 var text = view.FindViewById<TextView>(Resource.Id.text);
                 text.Text = (string)document.GetProperty("text");
 
-                var checkBox = view.FindViewById<CheckBox>(Resource.Id.check);
+                var checkBox = view.FindViewById<ContextCheckBox>(Resource.Id.check);
+                checkBox.DataContext = document;
                 var isChecked = (bool)document.GetProperty("checked");
+                checkBox.Click -= OnClick;
                 checkBox.Checked = isChecked;
-                checkBox.Click += (object sender, EventArgs e) => 
-                {
-                    var props = new Dictionary<string, object>(document.Properties);
-                    if ((bool)props["checked"] != checkBox.Checked)
-                    {
-                        props["checked"] = checkBox.Checked;
-                        document.PutProperties(props);
-                    }
-                };
+                checkBox.Click += OnClick;
 
                 return view;
+            }
+
+            private void OnClick(object sender, EventArgs e)
+            {
+                var checkBox = sender as ContextCheckBox;
+                var dataSource = checkBox.DataContext as Document;
+                var props = new Dictionary<string, object>(dataSource.Properties);
+                if ((bool)props["checked"] != checkBox.Checked)
+                {
+                    props["checked"] = checkBox.Checked;
+                    dataSource.PutProperties(props);
+                }
             }
         }
     }

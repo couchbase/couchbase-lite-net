@@ -58,9 +58,6 @@
     <Reference Include="Stateless">
       <HintPath>packages\Stateless.2.5.21.0\lib\portable-net40+sl50+win+wp80\Stateless.dll</HintPath>
     </Reference>
-    <Reference Include="Couchbase.Lite">
-      <HintPath>packages\Couchbase.Lite.1.1.1.1\lib\MonoAndroid\Couchbase.Lite.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MainActivity.cs" />
@@ -71,6 +68,7 @@
     <Compile Include="LiveQueryAdapter.cs" />
     <Compile Include="List.cs" />
     <Compile Include="DelegatedMenuItemListener.cs" />
+    <Compile Include="ContextCheckBox.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -85,7 +83,17 @@
     <AndroidResource Include="Resources\layout\ListItemView.axml" />
     <AndroidResource Include="Resources\layout\Config.axml" />
   </ItemGroup>
-  <Import Project="$(MSBuildExtensionsPath)\Novell\Novell.MonoDroid.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="packages\SQLitePCL.raw.0.8.1\build\MonoAndroid\SQLitePCL.raw.targets" Condition="Exists('packages\SQLitePCL.raw.0.8.1\build\MonoAndroid\SQLitePCL.raw.targets')" />
+  <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Android\Couchbase.Lite.Android.csproj">
+      <Project>{5615E423-D0FD-4F99-A99C-061679615CEE}</Project>
+      <Name>Couchbase.Lite.Android</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Droid\cbforest-sharp.Droid.csproj">
+      <Project>{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}</Project>
+      <Name>cbforest-sharp.Droid</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>

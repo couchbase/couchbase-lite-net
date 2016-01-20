@@ -112,6 +112,18 @@ namespace Couchbase.Lite
         /// <value>The last error.</value>
         public Exception LastError { get; private set; }
 
+        /// <summary>
+        /// The shortest interval at which the query will update, regardless of how often the
+        /// database changes. Defaults to 200ms. Increase this if the query is expensive and
+        /// the database updates frequently, to limit CPU consumption.
+        /// </summary>
+        /// <value>The update interval.</value>
+        public TimeSpan UpdateInterval 
+        {
+            get { return TimeSpan.FromSeconds(_updateInterval); }
+            set { _updateInterval = value.TotalSeconds; }
+        }
+
         // If a query is running and the user calls Stop() on this query, the Task
         // will be used in order to cancel the query in progress.
         private Task UpdateQueryTask { get; set; }
