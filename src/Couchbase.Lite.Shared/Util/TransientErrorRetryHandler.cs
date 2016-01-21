@@ -12,10 +12,14 @@ namespace Couchbase.Lite.Util
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var strategy = new ExponentialBackoffStrategy(request, ManagerOptions.Default.MaxRetries, cancellationToken);
-            strategy.Send += base.SendAsync;
+            strategy.Send = ResendHandler;
+            return ResendHandler(request, strategy);
+        }
 
-            return base.SendAsync(request, cancellationToken)
-                .ContinueWith(t => HandleTransientErrors(t, strategy), cancellationToken)
+        private Task<HttpResponseMessage> ResendHandler(HttpRequestMessage request, IRetryStrategy strategy)
+        {
+            return base.SendAsync(request, strategy.Token)
+                .ContinueWith(t => HandleTransientErrors(t, strategy), strategy.Token)
                 .Unwrap();
         }
 
@@ -25,13 +29,22 @@ namespace Couchbase.Lite.Util
             var strategy = (IRetryStrategy)state;
             if (!request.IsFaulted) 
             {
+                var response = request.Result;
+                if (strategy.RetriesRemaining > 0 && Misc.IsTransientError(response)) {
+                    return strategy.Retry();
+                }
+
+                if (!response.IsSuccessStatusCode) {
+                    throw new HttpResponseException(response.StatusCode);
+                }
+
                 // If it's not faulted, there's nothing here to do.
                 return request;
             }
 
             var error = request.Exception.Flatten().InnerException;
 
-            if (!Misc.IsTransientNetworkError(error) || (request.Exception.Flatten().InnerException is HttpRequestException && Misc.IsTransientError(request.Result) && strategy.RetriesRemaining == 0))
+            if (!Misc.IsTransientNetworkError(error) || strategy.RetriesRemaining == 0)
             {
                 // If it's not transient, pass the exception along
                 // for any other handlers to respond to.
@@ -39,10 +52,7 @@ namespace Couchbase.Lite.Util
             }
 
             // Retry again.
-            return strategy
-                .Retry()
-                .ContinueWith(t => HandleTransientErrors(t, strategy), strategy.Token)
-                .Unwrap();
+            return strategy.Retry();
         }
     }
 }

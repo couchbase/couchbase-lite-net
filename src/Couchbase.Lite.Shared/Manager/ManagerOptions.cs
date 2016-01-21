@@ -99,7 +99,7 @@ namespace Couchbase.Lite
 
         internal void RestoreDefaults()
         {
-            MaxRetries = 10;
+            MaxRetries = 2;
 
             #if __IOS__ || __ANDROID__
             MaxOpenHttpConnections = 8;

@@ -3135,5 +3135,46 @@ namespace Couchbase.Lite
                 Assert.AreEqual(0, puller2.CookieContainer.Count);
             }
         }
+
+        [Test]
+        public void TestGatewayTemporarilyGoesOffline()
+        {
+            CreateDocuments(database, 10);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Continuous = true;
+                pusher.Start();
+                _sg.SetOffline(remoteDb.Name);
+                Sleep(3000);
+                _sg.SetOnline(remoteDb.Name);
+
+                while (pusher.Status == ReplicationStatus.Active) {
+                    Thread.Sleep(100);
+                }
+
+                Assert.AreEqual(ReplicationStatus.Idle, pusher.Status);
+                pusher.Stop();
+            }
+        }
+
+        [Test]
+        public void TestGatewayGoesOfflineTooLong()
+        {
+            CreateDocuments(database, 10);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Continuous = true;
+                pusher.Start();
+                _sg.SetOffline(remoteDb.Name);
+                Sleep(10000);
+                _sg.SetOnline(remoteDb.Name);
+
+                while (pusher.Status == ReplicationStatus.Active) {
+                    Thread.Sleep(100);
+                }
+
+                Assert.AreEqual(ReplicationStatus.Stopped, pusher.Status);
+            }
+        }
     }
 }

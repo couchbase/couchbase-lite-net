@@ -161,17 +161,23 @@ namespace Couchbase.Lite
 
         public static bool IsTransientNetworkError(Exception error)
         {
-            return error is IOException
+            if (error is IOException
                 || error is TimeoutException
-                || error is WebException
-                || error is SocketException;
-                //|| error is WebSocketException;
+                || error is SocketException) {
+                return true;
+            }
+
+            var we = error as WebException;
+            if (we == null) {
+                return false;
+            }
+
+            return IsTransientError(((HttpWebResponse)we.Response).StatusCode);
         }
 
         public static bool IsTransientError(HttpResponseMessage response)
         {
-            if (response == null)
-            {
+            if (response == null) {
                 return false;
             }
 
@@ -180,30 +186,11 @@ namespace Couchbase.Lite
 
         public static bool IsTransientError(HttpStatusCode status)
         {
-            if (status == HttpStatusCode.InternalServerError || 
+            return status == HttpStatusCode.InternalServerError || 
                 status == HttpStatusCode.BadGateway || 
                 status == HttpStatusCode.ServiceUnavailable || 
-                status == HttpStatusCode.GatewayTimeout)
-            {
-                return true;
-            }
-            return false;
+                status == HttpStatusCode.GatewayTimeout;
         }
-
-        /// <exception cref="Couchbase.Lite.Store.SQLException"></exception>
-        /*public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
-        {
-            byte[] result = null;
-            using (var cursor = database.IntransactionRawQuery(query, args))
-            {
-                if (cursor.MoveToNext())
-                {
-                    result = cursor.GetBlob(0);
-                }
-                return result;
-            }
-        }*/
-
 
         /// <summary>Like equals, but works even if either/both are null</summary>
         /// <param name="obj1">object1 being compared</param>
