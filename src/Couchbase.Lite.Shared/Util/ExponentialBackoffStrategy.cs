@@ -19,8 +19,7 @@ namespace Couchbase.Lite.Util
         private HttpRequestMessage _request;
         private byte[] _content;
         private ManualResetEvent _mre = new ManualResetEvent(false);
-
-        public readonly CancellationToken Token;
+        private readonly CancellationToken _token;
 
         #endregion
 
@@ -29,6 +28,11 @@ namespace Couchbase.Lite.Util
         public int RetriesRemaining { get { return _maxTries - _tries; } }
 
         public Func<HttpRequestMessage, IRetryStrategy, Task<HttpResponseMessage>> Send { get; set; }
+
+        public CancellationToken Token
+        {
+            get { return _token; }
+        }
 
         #endregion
 
@@ -44,7 +48,7 @@ namespace Couchbase.Lite.Util
                 throw new ArgumentOutOfRangeException("maxTries", maxTries, "Max tries must be at least 1");
             }
 
-            Token = token;
+            _token = token;
             if (request.Content != null) {
                 request.Content.ReadAsByteArrayAsync().ContinueWith(t =>
                 {
