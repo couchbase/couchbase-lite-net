@@ -105,8 +105,8 @@ namespace CouchbaseSample
             var props = (IDictionary<string, object>)row.Value;
             var isChecked = (bool)props[RootViewController.CheckboxPropertyName];
 //          props.TryGetValue (RootViewController.CheckboxPropertyName, out isChecked);
-          cell.TextLabel.TextColor = (bool)isChecked ? UIColor.Gray : UIColor.Black;
-          cell.ImageView.Image = UIImage.FromBundle ((bool)isChecked 
+            cell.TextLabel.TextColor = (bool)isChecked ? UIColor.Gray : UIColor.Black;
+            cell.ImageView.Image = UIImage.FromBundle ((bool)isChecked 
                 ? "list_area___checkbox___checked" 
                 : "list_area___checkbox___unchecked");
         }

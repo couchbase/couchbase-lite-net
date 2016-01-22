@@ -126,9 +126,11 @@ namespace SimpleAndroidSync
 
         private void AddItem(string text)
         {
+            var jsonDate = DateTime.UtcNow.ToString ("o"); // ISO 8601 date/time format.
             var doc = Database.CreateDocument();
             var props = new Dictionary<string, object>
             {
+                { "created_at", jsonDate },
                 { "type", "list" },
                 { "text", text },
                 { "checked", false}

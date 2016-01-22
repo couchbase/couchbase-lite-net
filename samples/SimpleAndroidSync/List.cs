@@ -36,12 +36,7 @@ namespace CouchbaseSample.Android.Document
             {
                 view.SetMap((document, emitter) => 
                     {
-                        object type;
-                        document.TryGetValue("type", out type);
-
-                        if (List.DocType.Equals ((string)type)) {
-                            emitter (document["text"], document);
-                        }
+                       emitter (document["text"], document);
                     }, "1");
             }
             var query = view.CreateQuery();

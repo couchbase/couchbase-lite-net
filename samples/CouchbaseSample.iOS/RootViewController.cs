@@ -17,7 +17,7 @@ namespace CouchbaseSample
     private  const string ReplicationChangeNotification = "CBLReplicationChange";
     private  const string DefaultViewName = "byDate";
     private  const string DocumentDisplayPropertyName = "text";
-    internal const string CheckboxPropertyName = "check";
+    internal const string CheckboxPropertyName = "checked";
     internal const String CreationDatePropertyName = "created_at";
     internal const String DeletedKey = "_deleted";
     Boolean showingSyncButton;
