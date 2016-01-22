@@ -3166,7 +3166,7 @@ namespace Couchbase.Lite
                 pusher.Continuous = true;
                 pusher.Start();
                 _sg.SetOffline(remoteDb.Name);
-                Sleep(10000);
+                Sleep(15000);
                 _sg.SetOnline(remoteDb.Name);
 
                 while (pusher.Status == ReplicationStatus.Active) {

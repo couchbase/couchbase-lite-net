@@ -58,6 +58,7 @@ using Sharpen;
 using Couchbase.Lite.Replicator;
 using Stateless;
 using System.Collections.Concurrent;
+using System.Text;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -1217,8 +1218,9 @@ namespace Couchbase.Lite
                 client.DefaultRequestHeaders.Authorization = authHeader;
             }
 
+            var bytes = default(byte[]);
             if (body != null) {
-                var bytes = mapper.WriteValueAsBytes(body).ToArray();
+                bytes = mapper.WriteValueAsBytes(body).ToArray();
                 var byteContent = new ByteArrayContent(bytes);
                 message.Content = byteContent;
                 message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
@@ -1241,9 +1243,9 @@ namespace Couchbase.Lite
                         error = response.Exception.InnerException;
                         Log.E(TAG, "Http Message failed to send: {0}", message);
                         Log.E(TAG, "Http exception", response.Exception.InnerException);
-                        if(message.Content != null) {
+                        if(bytes != null) {
                             try {
-                                Log.E(TAG, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
+                                Log.E(TAG, "\tFailed content: {0}", Encoding.UTF8.GetString(bytes));
                             } catch(ObjectDisposedException) {}
                         }
                     }
