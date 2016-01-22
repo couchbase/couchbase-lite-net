@@ -1752,79 +1752,6 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        public void TestPushReplicationCanMissDocs()
-        {
-            Assert.Inconclusive("Not sure this is a valid test.");
-            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
-            {
-                Assert.Inconclusive("Replication tests disabled.");
-                return;
-            }
-            Assert.AreEqual(0, database.GetLastSequenceNumber());
-
-            var properties1 = new Dictionary<string, object>();
-            properties1["doc1"] = "testPushReplicationCanMissDocs";
-            CreateDocumentWithProperties(database, properties1);
-
-            var properties2 = new Dictionary<string, object>();
-            properties2["doc2"] = "testPushReplicationCanMissDocs";
-            var doc2 = CreateDocumentWithProperties(database, properties2);
-
-            var doc2UnsavedRev = doc2.CreateRevision();
-            var attachmentStream = GetAsset("attachment.png");
-            doc2UnsavedRev.SetAttachment("attachment.png", "image/png", attachmentStream);
-            var doc2Rev = doc2UnsavedRev.Save();
-            Assert.IsNotNull(doc2Rev);
-
-            var httpClientFactory = new MockHttpClientFactory();
-            manager.DefaultHttpClientFactory = httpClientFactory;
-
-            var httpHandler = httpClientFactory.HttpHandler; 
-            httpHandler.AddResponderFakeLocalDocumentUpdate404();
-
-            var json = "{\"error\":\"not_found\",\"reason\":\"missing\"}";
-            MockHttpRequestHandler.HttpResponseDelegate bulkDocsResponder = (request) =>
-            {
-                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.NotFound, null, json);
-            };
-            httpHandler.SetResponder("_bulk_docs", bulkDocsResponder);
-
-            MockHttpRequestHandler.HttpResponseDelegate doc2Responder = (request) =>
-            {
-                var responseObject = new Dictionary<string, object>();
-                responseObject["id"] = doc2.Id;
-                responseObject["ok"] = true;
-                responseObject["rev"] = doc2.CurrentRevisionId;
-                return  MockHttpRequestHandler.GenerateHttpResponseMessage(responseObject);
-            };
-            httpHandler.SetResponder(doc2.Id, doc2Responder);
-
-            var replicationDoneSignal = new CountdownEvent(1);
-            var observer = new ReplicationObserver(replicationDoneSignal);
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            pusher.Changed += observer.Changed;
-            pusher.Start();
-
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(5));
-            Assert.IsTrue(success);
-
-            Assert.IsNotNull(pusher.LastError);
-
-            Sleep(TimeSpan.FromMilliseconds(500));
-
-            var localLastSequence = database.LastSequenceWithCheckpointId(pusher.RemoteCheckpointDocID());
-
-            Log.D(Tag, "dtabase.lastSequenceWithCheckpointId(): " + localLastSequence);
-            Log.D(Tag, "doc2.getCUrrentRevision().getSequence(): " + doc2.CurrentRevision.Sequence);
-
-            // Since doc1 failed, the database should _not_ have had its lastSequence bumped to doc2's sequence number.
-            // If it did, it's bug: github.com/couchbase/couchbase-lite-java-core/issues/95
-            Assert.IsFalse(doc2.CurrentRevision.Sequence.ToString().Equals(localLastSequence));
-            Assert.IsNull(localLastSequence);
-            Assert.IsTrue(doc2.CurrentRevision.Sequence > 0);
-        }
-
-        [Test]
         public void TestCheckServerCompatVersion()
         {
             if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
@@ -2251,9 +2178,8 @@ namespace Couchbase.Lite
             };
             CreateDocumentWithProperties(database, properties1);
 
-            var httpClientFactory = new MockHttpClientFactory();
+            var httpClientFactory = new MockHttpClientFactory(false);
             var httpHandler = httpClientFactory.HttpHandler; 
-            httpHandler.AddResponderFakeLocalDocumentUpdate404();
             manager.DefaultHttpClientFactory = httpClientFactory;
 
             MockHttpRequestHandler.HttpResponseDelegate sentinal = MockHttpRequestHandler.FakeBulkDocs;
@@ -2310,22 +2236,18 @@ namespace Couchbase.Lite
                 }
             }
         }
-
-        // Failed : https://github.com/couchbase/couchbase-lite-net/issues/320
+            
         [Test]
         public void TestPushReplicationRecoverableError()
         {
-            Assert.Inconclusive("Not sure this is a valid test.");
             var statusCode = 503;
             var statusMessage = "Transient Error";
             var expectError = false;
             RunPushReplicationWithTransientError(statusCode, statusMessage, expectError);
         }
 
-        // Failed : https://github.com/couchbase/couchbase-lite-net/issues/320
         [Test]
         public void TestPushReplicationRecoverableIOException() {
-            Assert.Inconclusive("Not sure this is a valid test.");
             var statusCode = -1; // code to tell it to throw an IOException
             string statusMessage = null;
             var expectError = false;
@@ -2335,7 +2257,6 @@ namespace Couchbase.Lite
         [Test]
         public void TestPushReplicationNonRecoverableError()
         {
-            Assert.Inconclusive("Not sure this is a valid test.");
             var statusCode = 404;
             var statusMessage = "NOT FOUND";
             var expectError = true;

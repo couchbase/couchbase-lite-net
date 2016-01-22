@@ -86,7 +86,8 @@ namespace Couchbase.Lite.Tests
 
         public HttpClient GetHttpClient(CookieStore cookieStore)
         {
-            var client = new HttpClient(HttpHandler, false);
+            var handler = new TransientErrorRetryHandler(HttpHandler);
+            var client = new HttpClient(handler, false);
             foreach (var header in Headers) {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
                 if (!success) {

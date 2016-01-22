@@ -993,6 +993,11 @@ namespace Couchbase.Lite
 
         internal void SetLastSequence(string lastSequence, string checkpointId)
         {
+            if (lastSequence == "0") {
+                Log.I(TAG, "SetLastSequence called with 0 for {0}, ignoring", checkpointId);
+                return;
+            }
+
             if (Storage == null || !Storage.IsOpen) {
                 Log.I(TAG, "Storage is null or closed, so not attempting to set last sequence");
                 return;
