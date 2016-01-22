@@ -19,15 +19,8 @@
  * and limitations under the License.
  */
 
-using System.Collections.Generic;
-using CouchbaseSample.Android;
-using CouchbaseSample.Android.Document;
 using Couchbase.Lite;
-using Couchbase.Lite.Util;
-using Sharpen;
-using System.Globalization;
-using System;
-using System.Reflection;
+using CouchbaseSample.Android.Document;
 
 namespace CouchbaseSample.Android.Document
 {
@@ -54,77 +47,5 @@ namespace CouchbaseSample.Android.Document
             var query = view.CreateQuery();
             return query;
         }
-
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-//      public static Couchbase.Lite.Document CreateNewList(Database database, string title, string userId)
-//      {
-//            var currentTimeString = DateTime.UtcNow.ToString("O");
-//            var properties = new Dictionary<string, object>();
-//            properties["type"] = "list";
-//            properties["title"] = title;
-//            properties["created_at"] = currentTimeString;
-//            properties["owner"] = "profile:" + userId;
-//            properties["members"] = new List<string>();
-//          Couchbase.Lite.Document document = database.CreateDocument();
-//          document.PutProperties(properties);
-//          return document;
-//      }
-
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-//      public static void AssignOwnerToListsIfNeeded(Database database, Couchbase.Lite.Document
-//           user)
-//      {
-//          QueryEnumerator enumerator = GetQuery(database).Run();
-//          if (enumerator == null)
-//          {
-//              return;
-//          }
-//            foreach (var row in enumerator)
-//            {
-//                Couchbase.Lite.Document document = row.Document;
-//                string owner = (string)document.GetProperty("owner");
-//                if (owner != null)
-//                {
-//                    continue;
-//                }
-//                var properties = new Dictionary<string, object>(document.Properties);
-//                properties["owner"] = user.Id;
-//                document.PutProperties(properties);
-//            }
-//      }
-
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-//        public static void AddMemberToList(Couchbase.Lite.Document list, Couchbase.Lite.Document user)
-//      {
-//            var newProperties = new Dictionary<string, object>(list.Properties);
-//            var members = (IList<string>)newProperties["members"];
-//          if (members == null)
-//          {
-//              members = new List<string>();
-//          }
-//          members.Add(user.Id);
-//            newProperties["members"] = members;
-//          try
-//          {
-//              list.PutProperties(newProperties);
-//          }
-//          catch (CouchbaseLiteException e)
-//          {
-//                Log.E(Tag, "Cannot add member to the list", e);
-//          }
-//      }
-//
-//      /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-//        public static void RemoveMemberFromList(Couchbase.Lite.Document list, Couchbase.Lite.Document user)
-//      {
-//            var newProperties = new Dictionary<string, object>(list.Properties);
-//          var members = (IList<string>)newProperties["members"];
-//          if (members != null)
-//          {
-//              members.Remove(user.Id);
-//          }
-//            newProperties["members"] = members;
-//          list.PutProperties(newProperties);
-//      }
     }
 }

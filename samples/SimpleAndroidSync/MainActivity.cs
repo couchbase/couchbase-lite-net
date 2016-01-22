@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using Android.App;
 using Android.Content;
-using Android.Views;
-using Android.Widget;
+using Android.Net.Wifi;
 using Android.OS;
 using Android.Preferences;
 using Android.Util;
-using CouchbaseSample.Android.Helper;
+using Android.Views;
+using Android.Widget;
 using Couchbase.Lite;
 using CouchbaseSample.Android.Document;
-using Org.Apache.Http.Conn;
-using Android.Net;
-using Android.Net.Wifi;
+using CouchbaseSample.Android.Helper;
 
 namespace SimpleAndroidSync
 {

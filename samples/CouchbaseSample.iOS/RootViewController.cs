@@ -34,6 +34,7 @@ namespace CouchbaseSample
     LiveQuery DoneQuery { get; set; }
 
     #region Initialization/Configuration
+
     public RootViewController () : base ("RootViewController", null)
     {
       Title = NSBundle.MainBundle.LocalizedString ("Grocery Sync", "Grocery Sync");

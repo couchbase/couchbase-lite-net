@@ -19,17 +19,17 @@
  * and limitations under the License.
  */
 
+using System;
+using System.Linq;
+
 using Android.App;
 using Android.Content;
 using Android.Views;
 using Android.Widget;
 using Couchbase.Lite;
-using Sharpen;
-using System;
-using System.Linq;
-using JObject = Java.Lang.Object;
+
 using CBDocument = Couchbase.Lite.Document;
-using Java.Lang.Annotation;
+using JObject = Java.Lang.Object;
 
 namespace CouchbaseSample.Android.Helper
 {
@@ -65,17 +65,17 @@ namespace CouchbaseSample.Android.Helper
             }
         }
 
-        public override CBDocument this[int i]
+        public override CBDocument this[int index]
         {
             get {
-                var val = enumerator != null ? enumerator.GetRow(i).Document : null;
+                var val = enumerator != null ? enumerator.ElementAt(index).Document : null;
                 return val;
             }
         }
 
-        public override long GetItemId(int i)
+        public override long GetItemId(int position)
         {
-            return enumerator.GetRow(i).SequenceNumber;
+            return enumerator.ElementAt(position).SequenceNumber;
         }
 
         public override global::Android.Views.View GetView(int position, global::Android.Views.View convertView, ViewGroup parent)
