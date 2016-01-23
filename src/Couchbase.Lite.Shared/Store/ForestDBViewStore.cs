@@ -519,7 +519,7 @@ namespace Couchbase.Lite.Store
                 var docRevision = _dbStorage.GetDocument(next.DocID, null, options.IncludeDocs);
                 var key = Manager.GetObjectMapper().DeserializeKey<object>(next.Key);
                 var value = (next.Value as IEnumerable<byte>).ToArray();
-                yield return new QueryRow(docRevision.GetDocId(), docRevision.GetSequence(), key, value, docRevision, this);
+                yield return new QueryRow(next.DocID, next.DocSequence, key, value, docRevision, this);
             }
         }
 

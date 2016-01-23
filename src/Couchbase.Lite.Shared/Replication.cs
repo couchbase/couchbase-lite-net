@@ -1253,7 +1253,7 @@ namespace Couchbase.Lite
 
                         try {
                             if(response.Status != TaskStatus.RanToCompletion) {
-                                Log.D(TAG, "SendAsyncRequest did not run to completion.", response.Exception);
+                                Log.D(TAG, "SendAsyncRequest did not run to completion.");
                             }
 
                             if(response.IsCanceled) {
