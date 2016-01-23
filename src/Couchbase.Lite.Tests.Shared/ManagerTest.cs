@@ -211,7 +211,7 @@ namespace Couchbase.Lite
                 using (var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
                     Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
                 }
-
+                    
                 view = db.GetView("view");
                 view.SetMap((d, emit) =>
                 {
@@ -325,6 +325,8 @@ namespace Couchbase.Lite
                 using (var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
                     Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
                 }
+
+                Assert.IsNotNull(db.GetExistingLocalDocument("local1"));
 
                 view = db.GetView("view");
                 view.SetMap((d, emit) =>

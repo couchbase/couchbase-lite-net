@@ -69,8 +69,7 @@ namespace Couchbase.Lite
 
             Assert.DoesNotThrow(() => seekrit.Close().Wait(15000));
 
-            var key = new SymmetricKey(_wrong.KeyData);
-            options.EncryptionKey = key;
+            options.EncryptionKey = _wrong;
             var e = Assert.Throws<CouchbaseLiteException>(() => seekrit = manager.OpenDatabase("seekrit", options), 
                 "Shouldn't have been able to reopen encrypted db with wrong password");
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
@@ -87,7 +86,7 @@ namespace Couchbase.Lite
         {
             var options = new DatabaseOptions();
             options.Create = true;
-            options.EncryptionKey = new SymmetricKey(_letmein.KeyData);
+            options.EncryptionKey = _letmein;
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.OpenDatabase("seekrit", options),
                 "Failed to create encrypted DB");
@@ -101,13 +100,13 @@ namespace Couchbase.Lite
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
 
             // Try to reopen with wrong password (fails):
-            options.EncryptionKey = new SymmetricKey(_wrong.KeyData);
+            options.EncryptionKey = _wrong;
             e = Assert.Throws<CouchbaseLiteException>(() => seekrit = manager.OpenDatabase("seekrit", options),
                 "Shouldn't have been able to reopen encrypted db with wrong password");
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
 
             // Reopen with correct password:
-            options.EncryptionKey = new SymmetricKey(_letmein.KeyData);
+            options.EncryptionKey = _letmein;
             seekrit = manager.OpenDatabase("seekrit", options);
             Assert.IsNotNull(seekrit, "Failed to reopen encrypted db");
             Assert.AreEqual(1, seekrit.GetDocumentCount());
@@ -119,7 +118,7 @@ namespace Couchbase.Lite
         {
             var options = new DatabaseOptions();
             options.Create = true;
-            options.EncryptionKey = new SymmetricKey(_letmein.KeyData);
+            options.EncryptionKey = _letmein;
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.OpenDatabase("seekrit", options),
                 "Failed to create encrypted DB");
@@ -142,7 +141,7 @@ namespace Couchbase.Lite
             Assert.DoesNotThrow(() => seekrit.Close().Wait(15000));
 
             // Make sure old password doesn't work:
-            options.EncryptionKey = new SymmetricKey(_letmein.KeyData);
+            options.EncryptionKey = _letmein;
             var e = Assert.Throws<CouchbaseLiteException>(() => seekrit = manager.OpenDatabase("seekrit", options),
                         "Password opened unencrypted db or unexpected exception occurred!");
             Assert.AreEqual(StatusCode.Unauthorized, e.Code);
@@ -153,7 +152,7 @@ namespace Couchbase.Lite
         {
             var options = new DatabaseOptions();
             options.Create = true;
-            options.EncryptionKey = new SymmetricKey(_letmein.KeyData);
+            options.EncryptionKey = _letmein;
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.OpenDatabase("seekrit", options),
                 "Failed to create encrypted DB");
@@ -190,7 +189,7 @@ namespace Couchbase.Lite
         {
             var options = new DatabaseOptions();
             options.Create = true;
-            options.EncryptionKey = new SymmetricKey(_letmein.KeyData);
+            options.EncryptionKey = _letmein;
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.OpenDatabase("seekrit", options),
                 "Failed to create encrypted DB");
@@ -223,7 +222,7 @@ namespace Couchbase.Lite
             TestEncryptedAttachments();
             var options = new DatabaseOptions();
             options.Create = true;
-            options.EncryptionKey = new SymmetricKey(_letmein.KeyData);
+            options.EncryptionKey = _letmein;
 
             var seekrit = default(Database);
             Assert.DoesNotThrow(() => seekrit = manager.OpenDatabase("seekrit", options),
@@ -239,7 +238,7 @@ namespace Couchbase.Lite
             var dbName = seekrit.Name;
             Assert.DoesNotThrow(() => seekrit.Close().Wait(15000), "Couldn't close seekrit");
             seekrit = null;
-            options.EncryptionKey = new SymmetricKey(_letmeout.KeyData);
+            options.EncryptionKey = _letmeout;
             var seekrit2 = default(Database);
             Assert.DoesNotThrow(() => seekrit2 = manager.OpenDatabase(dbName, options));
             seekrit = seekrit2;

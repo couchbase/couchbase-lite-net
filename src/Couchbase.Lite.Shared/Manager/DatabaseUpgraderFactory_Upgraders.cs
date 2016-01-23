@@ -311,6 +311,10 @@ namespace Couchbase.Lite.Db
                     Log.D(TAG, "Upgrading local doc '{0}'", docID);
                     if (props != null) {
                         try {
+                            if(docID.StartsWith("_local/")) {
+                                docID = docID.Substring(7);
+                            }
+
                             _db.PutLocalDocument(docID, props);
                         } catch(CouchbaseLiteException e) {
                             Log.W(TAG, "Couldn't import local doc '{0}': {1}", docID, e.CBLStatus);
