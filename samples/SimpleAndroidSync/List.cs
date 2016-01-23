@@ -29,13 +29,19 @@ namespace CouchbaseSample.Android.Document
         private const string DocType = "list";
         private const string ViewName = "lists";
 
+        private const string DeletedKey = "_deleted";
+
         public static Query GetQuery(Database database)
         {
             var view = database.GetView(ViewName);
             if (view.Map == null)
             {
                 view.SetMap((document, emitter) => 
-                    {
+                   {
+                    object deleted;
+                    document.TryGetValue(DeletedKey, out deleted);
+
+                    if(deleted == null)
                        emitter (document["text"], document);
                     }, "1");
             }
