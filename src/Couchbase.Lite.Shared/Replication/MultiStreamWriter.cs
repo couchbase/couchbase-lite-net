@@ -178,15 +178,10 @@ namespace Couchbase.Lite.Support
             Debug.Assert(output != null);
             _output = output;
             var mre = new ManualResetEventSlim();
-            Opened(mre);
-
             var tcs = new TaskCompletionSource<bool>();
-            try {
-                ThreadPool.RegisterWaitForSingleObject(mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
-                    null, TimeSpan.FromSeconds(30), true);
-            } catch(ObjectDisposedException) {
-                tcs.SetResult(false);
-            }
+            ThreadPool.RegisterWaitForSingleObject(mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
+                null, TimeSpan.FromSeconds(30), true);
+            Opened(mre);
 
             return tcs.Task;
         }
