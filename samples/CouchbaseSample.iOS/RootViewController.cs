@@ -75,7 +75,7 @@ namespace CouchbaseSample
       case 960:
         backgroundImage = UIImage.FromBundle ("Default@2x");
         break;
-      case 1136:
+      default:
         backgroundImage = UIImage.FromBundle ("Default-568h@2x");
         break;
       }
@@ -154,7 +154,7 @@ namespace CouchbaseSample
                     doc.TryGetValue (CreationDatePropertyName, out date);
 
                     object checkedOff;
-                    doc.TryGetValue ("check", out checkedOff);
+                    doc.TryGetValue (CheckboxPropertyName, out checkedOff);
 
                     if (date != null) {
                        emit (new[] { checkedOff, date }, null);

@@ -679,13 +679,13 @@ namespace Couchbase.Lite.Store
             {
                 var enumerator = new CBForestHistoryEnumerator(doc, false);
                 foreach(var next in enumerator) {
-                    if(ancestorRevIds != null && ancestorRevIds.Contains((string)next.SelectedRev.revID)) {
-                        break;
-                    }
-
                     var newRev = new RevisionInternal(next.GetDocument(), false);
                     newRev.SetMissing(!Native.c4doc_hasRevisionBody(next.GetDocument()));
                     history.Add(newRev);
+
+                    if(ancestorRevIds != null && ancestorRevIds.Contains((string)next.SelectedRev.revID)) {
+                        break;
+                    }
                 }
             });
 
