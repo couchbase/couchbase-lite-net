@@ -429,7 +429,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             dl.Authenticator = Authenticator;
-            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.None, WorkExecutor.Scheduler);
+            WorkExecutor.StartNew(dl.Start, CancellationTokenSource.Token, TaskCreationOptions.None, WorkExecutor.Scheduler);
         }
 
         // Get as many revisions as possible in one _all_docs request.

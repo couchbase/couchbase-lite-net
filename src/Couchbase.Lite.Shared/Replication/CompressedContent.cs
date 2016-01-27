@@ -102,25 +102,29 @@ namespace Couchbase.Lite
         {
             Stream compressedStream = null;
 
-            if (encodingType == "gzip")
-            {
-                compressedStream = new GZipStream(stream, CompressionMode.Compress, leaveOpen: true);
-            }
-            else if (encodingType == "deflate")
-            {
-                compressedStream = new DeflateStream(stream, CompressionMode.Compress, leaveOpen: true);
+            if (encodingType == "gzip") {
+                compressedStream = new GZipStream(stream, CompressionMode.Compress, true);
+                compressedStream = new BufferedStream(compressedStream, 8192);
+            } else if (encodingType == "deflate") {
+                compressedStream = new DeflateStream(stream, CompressionMode.Compress, true);
+                compressedStream = new BufferedStream(compressedStream, 8192);
             }
 
-            var retVal = originalContent.CopyToAsync(compressedStream);
-            retVal.ConfigureAwait(false).GetAwaiter().OnCompleted(() =>
+            var retVal = originalContent.CopyToAsync(compressedStream).ContinueWith(t =>
             {
-                if (compressedStream != null)
-                {
+                if (compressedStream != null)  {
                     compressedStream.Dispose();
                 }
             });
 
             return retVal;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            originalContent.Dispose();
         }
 
         #pragma warning restore 1591

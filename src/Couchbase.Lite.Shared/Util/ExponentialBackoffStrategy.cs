@@ -17,8 +17,6 @@ namespace Couchbase.Lite.Util
         private int _tries;
         private int _millis = 2000; // Wil be multiplied by 2 prior to use, so actually 4000
         private HttpRequestMessage _request;
-        private byte[] _content;
-        private ManualResetEvent _mre = new ManualResetEvent(false);
         private readonly CancellationToken _token;
 
         #endregion
@@ -49,16 +47,6 @@ namespace Couchbase.Lite.Util
             }
 
             _token = token;
-            if (request.Content != null) {
-                request.Content.ReadAsByteArrayAsync().ContinueWith(t =>
-                {
-                    _content = t.Result;
-                    _mre.Set();
-                });
-            } else {
-                _mre.Set();
-            }
-
             _request = request;
             _maxTries = maxTries;
             _tries = 0;
@@ -72,34 +60,35 @@ namespace Couchbase.Lite.Util
         {
             // If we send the same request again, then Mono (at least) will think it is already sent
             // and somehow get confused with the old one that is already finished sending.  This leads
-            // to blocking until the request finally times out.
+            // to blocking until the request finally times out.  The same seems to apply if the content
+            // is the same as well
             var newRequest = new HttpRequestMessage(_request.Method, _request.RequestUri);
-            if (_content != null) {
-                _mre.WaitOne();
-                newRequest.Content = new ByteArrayContent(_content);
+            return _request.Content.ReadAsByteArrayAsync().ContinueWith(t =>
+            {
+                newRequest.Content = new ByteArrayContent(t.Result);
                 foreach (var header in _request.Content.Headers) {
                     newRequest.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
                 }
-            }
-                
-            foreach (var header in _request.Headers) {
-                newRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
-            }
+                    
+                foreach (var header in _request.Headers) {
+                    newRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
 
-            foreach (var property in _request.Properties) {
-                newRequest.Properties[property.Key] = property.Value;
-            }
+                foreach (var property in _request.Properties) {
+                    newRequest.Properties[property.Key] = property.Value;
+                }
 
-            newRequest.Version = _request.Version;
-            _request.Dispose();
-            _request = newRequest;
+                newRequest.Version = _request.Version;
+                _request.Dispose();
+                _request = newRequest;
 
-            _tries++;
-            _millis *= 2; // Double the wait backoff.
-            return Task
-                .Delay(_millis)
-                .ContinueWith(t => Send(newRequest, this))
-                .Unwrap();
+                _tries++;
+                _millis *= 2; // Double the wait backoff.
+                return Task
+                    .Delay(_millis)
+                    .ContinueWith(t1 => Send(newRequest, this))
+                    .Unwrap();
+            }).Unwrap();
         }
 
         #endregion
