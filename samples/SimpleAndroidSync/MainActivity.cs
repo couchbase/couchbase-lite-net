@@ -114,6 +114,10 @@ namespace SimpleAndroidSync
             addMenu.SetShowAsAction(ShowAsAction.Always);
             addMenu.SetOnMenuItemClickListener(new DelegatedMenuItemListener(OnConfigClicked));
 
+            var cleanMenu = menu.Add("Clean");
+            cleanMenu.SetShowAsAction(ShowAsAction.Always);
+            cleanMenu.SetOnMenuItemClickListener(new DelegatedMenuItemListener(OnCleanClicked));
+
             return true;
         }
 
@@ -121,6 +125,24 @@ namespace SimpleAndroidSync
         {
             var activity = new Intent (this, typeof(ConfigActivity));
             StartActivity(activity);
+            return true;
+        }
+
+        private bool OnCleanClicked(IMenuItem menuItem)
+        {
+            Console.WriteLine("Cleaning!");
+            var allDocsQuery = Database.CreateAllDocumentsQuery();
+            allDocsQuery.AllDocsMode = AllDocsMode.AllDocs;
+            var rows = allDocsQuery.Run();
+
+            foreach (var row in rows) {
+                var doc = row.Document;
+                Console.WriteLine(doc.Id);
+                if ((bool)doc.Properties["checked"]) {
+                    doc.Delete();
+                }
+            }
+
             return true;
         }
 
