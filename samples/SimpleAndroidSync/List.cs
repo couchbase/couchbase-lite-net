@@ -42,8 +42,8 @@ namespace CouchbaseSample.Android.Document
                     document.TryGetValue(DeletedKey, out deleted);
 
                     if(deleted == null)
-                       emitter (document["text"], document);
-                    }, "1");
+                        emitter (document["text"], document["checked"]);
+                    }, "2");
             }
             var query = view.CreateQuery();
             return query;

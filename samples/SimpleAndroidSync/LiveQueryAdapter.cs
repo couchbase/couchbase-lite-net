@@ -33,11 +33,11 @@ using JObject = Java.Lang.Object;
 
 namespace CouchbaseSample.Android.Helper
 {
-    public class LiveQueryAdapter : BaseAdapter <CBDocument>
+    public class LiveQueryAdapter : BaseAdapter<QueryRow>
     {
         private LiveQuery query;
 
-        private QueryEnumerator enumerator;
+        protected QueryEnumerator enumerator;
 
         protected Context Context;
 
@@ -65,10 +65,10 @@ namespace CouchbaseSample.Android.Helper
             }
         }
 
-        public override CBDocument this[int index]
+        public override QueryRow this[int index]
         {
             get {
-                var val = enumerator != null ? enumerator.ElementAt(index).Document : null;
+                var val = enumerator != null ? enumerator.ElementAt(index) : null;
                 return val;
             }
         }
@@ -90,5 +90,6 @@ namespace CouchbaseSample.Android.Helper
                 query.Stop();
             }
         }
+           
     }
 }
