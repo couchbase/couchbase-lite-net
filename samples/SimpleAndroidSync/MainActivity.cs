@@ -146,7 +146,7 @@ namespace SimpleAndroidSync
                 { "created_at", jsonDate },
                 { "type", "list" },
                 { "text", text },
-                { "checked", false}
+                { "check", false}
             };
             doc.PutProperties(props);
         }
@@ -253,7 +253,7 @@ namespace SimpleAndroidSync
                 if ((bool)dataSource.Value != checkBox.Checked)
                 {
                     var props = dataSource.Document.Properties;
-                    props["checked"] = checkBox.Checked;
+                    props["check"] = checkBox.Checked;
                     dataSource.Document.PutProperties(props);
                 }
             }
