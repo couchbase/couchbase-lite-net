@@ -12,6 +12,7 @@ using Android.Widget;
 using Couchbase.Lite;
 using CouchbaseSample.Android.Document;
 using CouchbaseSample.Android.Helper;
+using System.Linq;
 
 namespace SimpleAndroidSync
 {
@@ -25,6 +26,8 @@ namespace SimpleAndroidSync
         Database Database { get; set; }
         Replication Pull { get; set; }
         Replication Push { get; set; }
+
+        private ListView listView;
 
         protected override void OnCreate (Bundle bundle)
         {
@@ -72,7 +75,7 @@ namespace SimpleAndroidSync
             layout.AddView(newItemText);
 
             // Create our table
-            var listView = new ListView(this);
+            listView = new ListView(this);
             listView.LayoutParameters = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MatchParent, 
                 ViewGroup.LayoutParams.MatchParent);
@@ -114,6 +117,10 @@ namespace SimpleAndroidSync
             addMenu.SetShowAsAction(ShowAsAction.Always);
             addMenu.SetOnMenuItemClickListener(new DelegatedMenuItemListener(OnConfigClicked));
 
+            var cleanMenu = menu.Add("Clean");
+            cleanMenu.SetShowAsAction(ShowAsAction.Always);
+            cleanMenu.SetOnMenuItemClickListener(new DelegatedMenuItemListener(OnCleanClicked));
+
             return true;
         }
 
@@ -121,6 +128,12 @@ namespace SimpleAndroidSync
         {
             var activity = new Intent (this, typeof(ConfigActivity));
             StartActivity(activity);
+            return true;
+        }
+
+        private bool OnCleanClicked(IMenuItem menuItem)
+        {
+            ((ListLiveQueryAdapter)listView.Adapter).Clean();
             return true;
         }
 
@@ -217,14 +230,15 @@ namespace SimpleAndroidSync
                         Resource.Layout.ListItemView, null);
                 }
 
-                var document = this[position];
+                var queryRow = this[position];
 
                 var text = view.FindViewById<TextView>(Resource.Id.text);
-                text.Text = (string)document.GetProperty("text");
+                text.Text = (string)queryRow.Key;
 
                 var checkBox = view.FindViewById<ContextCheckBox>(Resource.Id.check);
-                checkBox.DataContext = document;
-                var isChecked = (bool)document.GetProperty("checked");
+                checkBox.DataContext = queryRow;
+
+                var isChecked = (bool)queryRow.Value;
                 checkBox.Click -= OnClick;
                 checkBox.Checked = isChecked;
                 checkBox.Click += OnClick;
@@ -235,12 +249,20 @@ namespace SimpleAndroidSync
             private void OnClick(object sender, EventArgs e)
             {
                 var checkBox = sender as ContextCheckBox;
-                var dataSource = checkBox.DataContext as Document;
-                var props = new Dictionary<string, object>(dataSource.Properties);
-                if ((bool)props["checked"] != checkBox.Checked)
+                var dataSource = checkBox.DataContext as QueryRow;
+                if ((bool)dataSource.Value != checkBox.Checked)
                 {
+                    var props = dataSource.Document.Properties;
                     props["checked"] = checkBox.Checked;
-                    dataSource.PutProperties(props);
+                    dataSource.Document.PutProperties(props);
+                }
+            }
+
+            public void Clean()
+            {
+                var checkedRows = base.enumerator.Where(row => row.ValueAs<bool>()).Select(row => row.Document);
+                foreach (var checkedRow in checkedRows) {
+                    checkedRow.Delete();
                 }
             }
         }
