@@ -199,15 +199,18 @@ namespace Couchbase.Lite.Replicator
                 path.Append(string.Format("&limit={0}", LongPollModeLimit));
             }
             path.Append(string.Format("&heartbeat={0}", _heartbeatMilliseconds));
-            if (includeConflicts)
-            {
+            if (includeConflicts) {
                 path.Append("&style=all_docs");
             }
-            if (lastSequenceID != null)
-            {
+
+            if (lastSequenceID != null) {
                 path.Append("&since=");
                 path.Append(Uri.EscapeUriString(lastSequenceID.ToString()));
+            } else {
+                // On first replication we can skip getting deleted docs. (SG enhancement in ver. 1.2)
+                path.Append("&active_only=true");
             }
+
             if (docIDs != null && docIDs.Count > 0)
             {
                 filterName = "_doc_ids";
@@ -682,14 +685,15 @@ namespace Couchbase.Lite.Replicator
 
             if (includeConflicts) {
                 bodyParams["style"] = "all_docs";
-            } else {
-                bodyParams["style"] = null;
             }
 
             if (lastSequenceID != null) {
                 Int64 sequenceAsLong;
                 var success = Int64.TryParse(lastSequenceID.ToString(), out sequenceAsLong);
                 bodyParams["since"] = success ? sequenceAsLong : lastSequenceID;
+            } else {
+                // On first replication we can skip getting deleted docs. (SG enhancement in ver. 1.2)
+                bodyParams["active_only"] = true;
             }
 
             if (mode == ChangeTrackerMode.LongPoll) {
