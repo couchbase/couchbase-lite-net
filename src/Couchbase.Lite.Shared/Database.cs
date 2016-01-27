@@ -1678,40 +1678,7 @@ namespace Couchbase.Lite
                 return editedAttachment;
             });
         }
-
-        // Replaces the "follows" key with the real attachment data in all attachments to 'doc'.
-        internal bool InlineFollowingAttachmentsIn(RevisionInternal rev)
-        {
-            return rev.MutateAttachments((s, attachment)=>
-            {
-                if (!attachment.ContainsKey("follows"))
-                {
-                    return attachment;
-                }
-
-                var fileURL = FileForAttachmentDict(attachment);
-                byte[] fileData = null;
-                try
-                {
-                    var inputStream = fileURL.OpenConnection().GetInputStream();
-                    var os = new MemoryStream();
-                    inputStream.CopyTo(os);
-                    fileData = os.ToArray();
-                }
-                catch (IOException e)
-                {
-                    Log.E(TAG, "could not retrieve attachment data: {0}".Fmt(fileURL.ToString()), e);
-                    return null;
-                }
-
-                var editedAttachment = new Dictionary<string, object>(attachment);
-                editedAttachment.Remove("follows");
-                editedAttachment.Put("data", Convert.ToBase64String(fileData));
-
-                return editedAttachment;
-            });
-        }
-
+            
         internal bool ProcessAttachmentsForRevision(RevisionInternal rev, IList<string> ancestry)
         {
             var revAttachments = rev.GetAttachments();
@@ -1828,104 +1795,7 @@ namespace Couchbase.Lite
             LoadRevisionBody(rev);
             return rev.GetAttachments();
         }
-
-        /// <summary>
-        /// Given a revision, read its _attachments dictionary (if any), convert each attachment to a
-        /// AttachmentInternal object, and return a dictionary mapping names-&gt;CBL_Attachments.
-        /// </summary>
-        /// <remarks>
-        /// Given a revision, read its _attachments dictionary (if any), convert each attachment to a
-        /// AttachmentInternal object, and return a dictionary mapping names-&gt;CBL_Attachments.
-        /// </remarks>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal IDictionary<String, AttachmentInternal> GetAttachmentsFromRevision(RevisionInternal rev)
-        {
-            var revAttachments = rev.GetPropertyForKey("_attachments").AsDictionary<string, object>();
-            if (revAttachments == null || revAttachments.Count == 0 || rev.IsDeleted())
-            {
-                return new Dictionary<string, AttachmentInternal>();
-            }
-
-            var attachments = new Dictionary<string, AttachmentInternal>();
-            foreach (var name in revAttachments.Keys)
-            {
-                var attachInfo = revAttachments.Get(name).AsDictionary<string, object>();
-                var contentType = (string)attachInfo.Get("content_type");
-                var attachment = new AttachmentInternal(name, contentType);
-                var newContentBase64 = (string)attachInfo.Get("data");
-                if (newContentBase64 != null)
-                {
-                    // If there's inline attachment data, decode and store it:
-                    byte[] newContents;
-                    try
-                    {
-                        newContents = StringUtils.ConvertFromUnpaddedBase64String (newContentBase64);
-                    }
-                    catch (IOException e)
-                    {
-                        throw new CouchbaseLiteException(e, StatusCode.BadEncoding);
-                    }
-                    attachment.Length = newContents.Length;
-                    var outBlobKey = new BlobKey();
-                    var storedBlob = Attachments.StoreBlob(newContents, outBlobKey);
-                    attachment.BlobKey = outBlobKey;
-                    if (!storedBlob)
-                    {
-                        throw new CouchbaseLiteException(StatusCode.AttachmentError);
-                    }
-                }
-                else
-                {
-                    if (attachInfo.ContainsKey("follows") && ((bool)attachInfo.Get("follows")))
-                    {
-                        // "follows" means the uploader provided the attachment in a separate MIME part.
-                        // This means it's already been registered in _pendingAttachmentsByDigest;
-                        // I just need to look it up by its "digest" property and install it into the store:
-                        InstallAttachment(attachment);
-                    }
-                    else
-                    {
-                        // This item is just a stub; validate and skip it
-                        if (((bool)attachInfo.Get("stub")) == false)
-                        {
-                            throw new CouchbaseLiteException("Expected this attachment to be a stub", StatusCode.
-                                                             BadAttachment);
-                        }
-
-                        var revPos = Convert.ToInt64(attachInfo.Get("revpos"));
-                        if (revPos <= 0)
-                        {
-                            throw new CouchbaseLiteException("Invalid revpos: " + revPos, StatusCode.BadAttachment);
-                        }
-
-                        continue;
-                    }
-                }
-                // Handle encoded attachment:
-                string encodingStr = (string)attachInfo.Get("encoding");
-                if (!string.IsNullOrEmpty(encodingStr)) {
-                    if ("gzip".Equals(encodingStr, StringComparison.CurrentCultureIgnoreCase)) {
-                        attachment.Encoding = AttachmentEncoding.GZIP;
-                    }
-                    else {
-                        throw new CouchbaseLiteException("Unnkown encoding: " + encodingStr, StatusCode.BadEncoding
-                        );
-                    }
-                    attachment.EncodedLength = attachment.Length;
-                    if (attachInfo.ContainsKey("length")) {
-                        attachment.Length = attachInfo.GetCast<long>("length");
-                    }
-                }
-                if (attachInfo.ContainsKey("revpos"))
-                {
-                    var revpos = Convert.ToInt32(attachInfo.Get("revpos"));
-                    attachment.RevPos = revpos;
-                }
-                attachments[name] = attachment;
-            }
-            return attachments;
-        }
-
+            
         internal AttachmentInternal GetAttachmentForRevision(RevisionInternal rev, string name)
         {
             Debug.Assert(name != null);

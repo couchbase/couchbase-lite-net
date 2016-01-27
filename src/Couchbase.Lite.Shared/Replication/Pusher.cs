@@ -444,21 +444,16 @@ namespace Couchbase.Lite.Replicator
 
             return true;
         }
-
-        /// <summary>
-        /// Uploads the revision as JSON instead of multipart.
-        /// </summary>
-        /// <remarks>
-        /// Fallback to upload a revision if UploadMultipartRevision failed due to the server's rejecting
-        /// multipart format.
-        /// </remarks>
-        /// <param name="rev">Rev.</param>
-        private void UploadJsonRevision(RevisionInternal rev)
+            
+        // Uploads the revision as JSON instead of multipart.
+        private void UploadJsonRevision(RevisionInternal originalRev)
         {
-            // Get the revision's properties:
-            if (!LocalDatabase.InlineFollowingAttachmentsIn(rev))
-            {
-                LastError = new CouchbaseLiteException(StatusCode.BadAttachment);
+            // Expand all attachments inline:
+            var rev = originalRev.CopyWithDocID(originalRev.GetDocId(), originalRev.GetRevId());
+            try {
+                LocalDatabase.ExpandAttachments(rev, 0, false, false);
+            } catch(Exception e) {
+                LastError = e;
                 RevisionFailed();
                 return;
             }

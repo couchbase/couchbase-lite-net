@@ -2410,7 +2410,7 @@ namespace Couchbase.Lite
 
                 var count = 0;
                 foreach (var request in httpHandler.CapturedRequests) {
-                    if (request.Method == HttpMethod.Put) {
+                    if (request.Method == HttpMethod.Put && request.RequestUri.PathAndQuery.Contains(doc.Id)) {
                         var isMultipartContent = (request.Content is MultipartContent);
                         if (count == 0) {
                             Assert.IsTrue(isMultipartContent);
@@ -2772,6 +2772,8 @@ namespace Couchbase.Lite
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 CreatePullAndTest(20, remoteDb, (repl) => Assert.AreEqual(20, database.GetDocumentCount(), "Didn't recover from the error"));
             }
+
+            Thread.Sleep(1000);
         }
 
         [Test]

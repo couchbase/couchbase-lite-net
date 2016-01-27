@@ -172,6 +172,10 @@ namespace Couchbase.Lite
                 return false;
             }
 
+            if (we.Response == null) {
+                return false;
+            }
+
             return IsTransientError(((HttpWebResponse)we.Response).StatusCode);
         }
 

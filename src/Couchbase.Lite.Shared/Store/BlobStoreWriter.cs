@@ -81,11 +81,11 @@ namespace Couchbase.Lite
 
         private Stream outStream;
 
-        private FilePath tempFile;
+        private FileInfo tempFile;
 
         public string FilePath
         {
-            get { return tempFile.GetPath(); }
+            get { return tempFile == null ? null : tempFile.FullName; }
         }
 
         public BlobStoreWriter(BlobStore store)
@@ -120,10 +120,10 @@ namespace Couchbase.Lite
             FilePath tempDir = store.TempDir();
             tempFile = new FilePath(tempDir, filename);
             if (store.EncryptionKey == null) {
-                outStream = new BufferedStream(File.Open (tempFile.GetAbsolutePath(), FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite));
+                outStream = new BufferedStream(File.Open (tempFile.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite));
             } else {
                 outStream = store.EncryptionKey.CreateStream(
-                    new BufferedStream(File.Open(tempFile.GetAbsolutePath(), FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)));
+                    new BufferedStream(File.Open(tempFile.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)));
             }
         }
 
@@ -206,21 +206,22 @@ namespace Couchbase.Lite
         /// <summary>Installs a finished blob into the store.</summary>
         public void Install()
         {
-            if (tempFile == null)
-            {
+            if (tempFile == null) {
+                // already installed
                 return;
             }
-            // already installed
+
             // Move temp file to correct location in blob store:
             string destPath = store.PathForKey(blobKey);
             FilePath destPathFile = new FilePath(destPath);
-            bool result = tempFile.RenameTo(destPathFile);
-            // If the move fails, assume it means a file with the same name already exists; in that
-            // case it must have the identical contents, so we're still OK.
-            if (result == false)
-            {
+            try {
+                tempFile.MoveTo(destPathFile);
+            } catch(Exception) {
+                // If the move fails, assume it means a file with the same name already exists; in that
+                // case it must have the identical contents, so we're still OK.
                 Cancel();
             }
+
             tempFile = null;
         }
             

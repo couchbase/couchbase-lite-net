@@ -1465,15 +1465,16 @@ namespace Couchbase.Lite
                 multiPartEntity.Dispose();
                 if (response.Status != TaskStatus.RanToCompletion)
                 {
-                    Log.E(TAG, "SendAsyncRequest did not run to completion.", response.Exception);
+                    LastError = response.Exception;
+                    Log.E(TAG, "SendAsyncRequest did not run to completion.");
                     client.Dispose();
-                    return null;
+                    return Task.FromResult((Stream)null);
                 }
                 if ((Int32)response.Result.StatusCode > 300) {
                     LastError = new HttpResponseException(response.Result.StatusCode);
                     Log.E(TAG, "Server returned HTTP Error", LastError);
                     client.Dispose();
-                    return null;
+                    return Task.FromResult((Stream)null);
                 }
                 return response.Result.Content.ReadAsStreamAsync();
             }, CancellationTokenSource.Token).ContinueWith(response=> 
@@ -1481,9 +1482,9 @@ namespace Couchbase.Lite
                 try {
                     var hasEmptyResult = response.Result == null || response.Result.Result == null || response.Result.Result.Length == 0;
                     if (response.Status != TaskStatus.RanToCompletion) {
-                        Log.E (TAG, "SendAsyncRequest did not run to completion.", response.Exception);
+                        Log.E (TAG, "SendAsyncRequest did not run to completion.");
                     } else if (hasEmptyResult) {
-                        Log.E (TAG, "Server returned an empty response.", response.Exception ?? LastError);
+                        Log.E (TAG, "Server returned an empty response.");
                     }
 
                     if (completionHandler != null) {
@@ -1493,7 +1494,7 @@ namespace Couchbase.Lite
                             fullBody = mapper.ReadValue<Object> (response.Result.Result);
                         }
 
-                        completionHandler (fullBody, response.Exception);
+                        completionHandler (fullBody, response.Exception ?? LastError);
                     }
                 } finally {
                     Task dummy;
