@@ -321,11 +321,17 @@ namespace CouchbaseSample
 
         Uri newRemoteUrl = null;
         var syncPoint = NSUserDefaults.StandardUserDefaults.StringForKey (ConfigViewController.SyncUrlKey);
+            if (pull != null && pull.RemoteUrl.AbsoluteUri == syncPoint)
+            {
+                return;
+            }
+
+            ForgetSync ();
         if (!String.IsNullOrWhiteSpace (syncPoint))
             newRemoteUrl = new Uri (syncPoint);
         else
             return;
-        ForgetSync ();
+        
 
         pull = Database.CreatePullReplication (newRemoteUrl);
             push = Database.CreatePushReplication (newRemoteUrl);
@@ -445,8 +451,6 @@ namespace CouchbaseSample
 
     void ForgetSync ()
     {
-      var nctr = NSNotificationCenter.DefaultCenter;
-
       if (pull != null) {
         pull.Changed -= ReplicationProgress;
         pull.Stop();
