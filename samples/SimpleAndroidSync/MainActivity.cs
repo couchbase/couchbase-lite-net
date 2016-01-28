@@ -238,7 +238,7 @@ namespace SimpleAndroidSync
                 var checkBox = view.FindViewById<ContextCheckBox>(Resource.Id.check);
                 checkBox.DataContext = queryRow;
 
-                var isChecked = (bool)queryRow.Value;
+                var isChecked = Convert.ToBoolean(queryRow.Value);
                 checkBox.Click -= OnClick;
                 checkBox.Checked = isChecked;
                 checkBox.Click += OnClick;
@@ -250,7 +250,7 @@ namespace SimpleAndroidSync
             {
                 var checkBox = sender as ContextCheckBox;
                 var dataSource = checkBox.DataContext as QueryRow;
-                if ((bool)dataSource.Value != checkBox.Checked)
+                if (Convert.ToBoolean(dataSource.Value) != checkBox.Checked)
                 {
                     var props = dataSource.Document.Properties;
                     props["check"] = checkBox.Checked;
