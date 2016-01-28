@@ -103,7 +103,7 @@ namespace CouchbaseSample
           cell.TextLabel.BackgroundColor = UIColor.Clear;
 
             var props = (IDictionary<string, object>)row.Value;
-            var isChecked = (bool)props[RootViewController.CheckboxPropertyName];
+            var isChecked = Convert.ToBoolean(props[RootViewController.CheckboxPropertyName]);
 //          props.TryGetValue (RootViewController.CheckboxPropertyName, out isChecked);
             cell.TextLabel.TextColor = (bool)isChecked ? UIColor.Gray : UIColor.Black;
             cell.ImageView.Image = UIImage.FromBundle ((bool)isChecked 
