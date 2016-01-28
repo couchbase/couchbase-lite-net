@@ -687,7 +687,7 @@ namespace Couchbase.Lite.Replicator
                 bodyParams["style"] = "all_docs";
             }
 
-            if (lastSequenceID != null) {
+            if (lastSequenceID != null && lastSequenceID != "0") {
                 Int64 sequenceAsLong;
                 var success = Int64.TryParse(lastSequenceID.ToString(), out sequenceAsLong);
                 bodyParams["since"] = success ? sequenceAsLong : lastSequenceID;

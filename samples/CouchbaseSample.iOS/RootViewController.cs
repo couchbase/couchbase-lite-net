@@ -146,7 +146,7 @@ namespace CouchbaseSample
 
     void InitializeCouchbaseSummaryView ()
     {
-            var view = Database.GetExistingView("Done") ?? Database.GetView ("Done");
+            var view = Database.GetView ("Done");
                 
             var mapBlock = new MapDelegate ((doc, emit) => 
                 {

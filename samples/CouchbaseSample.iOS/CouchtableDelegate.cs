@@ -73,7 +73,7 @@ namespace CouchbaseSample
             var docContent = doc.Properties;
             object checkedVal;
             docContent.TryGetValue (RootViewController.CheckboxPropertyName, out checkedVal);
-            var wasChecked = (bool)checkedVal;
+            var wasChecked = Convert.ToBoolean(checkedVal);
             docContent[RootViewController.CheckboxPropertyName] = !wasChecked;
 
             SavedRevision newRevision = null;
