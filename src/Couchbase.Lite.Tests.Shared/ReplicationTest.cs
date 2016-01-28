@@ -1403,7 +1403,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var mockHttpClientFactory = new MockHttpClientFactory();
+            var mockHttpClientFactory = new MockHttpClientFactory(false);
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
             var mockHttpHandler = mockHttpClientFactory.HttpHandler;
@@ -1416,7 +1416,7 @@ namespace Couchbase.Lite
                 headers["foo"] = "bar";
                 puller.Headers = headers;
                 RunReplication(puller);
-                Assert.IsNotNull(puller.LastError);
+                Assert.IsNull(puller.LastError);
 
                 var foundFooHeader = false;
                 var requests = mockHttpHandler.CapturedRequests;
