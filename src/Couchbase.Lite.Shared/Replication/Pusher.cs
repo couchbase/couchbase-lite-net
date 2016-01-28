@@ -668,7 +668,11 @@ namespace Couchbase.Lite.Replicator
                             RevisionFailed();
                         }
 
-                        FireTrigger(ReplicationTrigger.StopImmediate);
+                        if(Continuous) {
+                            FireTrigger(ReplicationTrigger.WaitingForChanges);
+                        } else {
+                            FireTrigger(ReplicationTrigger.StopImmediate);
+                        }
                     } else {
                         if (results.Count != 0)  {
                             // Go through the list of local changes again, selecting the ones the destination server

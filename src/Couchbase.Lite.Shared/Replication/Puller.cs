@@ -964,7 +964,7 @@ namespace Couchbase.Lite.Replicator
 
         public HttpClient GetHttpClient()
         {
-            var client = ClientFactory.GetHttpClient(CookieContainer);
+            var client = ClientFactory.GetHttpClient(CookieContainer, false);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = ClientFactory.Handler as DefaultAuthHandler;

@@ -998,7 +998,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            if (Storage == null || !Storage.IsOpen) {
+            if (!IsOpen || Storage == null || !Storage.IsOpen) {
                 Log.I(TAG, "Storage is null or closed, so not attempting to set last sequence");
                 return;
             }

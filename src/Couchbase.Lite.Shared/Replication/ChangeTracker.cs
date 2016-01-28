@@ -130,8 +130,6 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-
-        /// <summary>Set Authenticator for BASIC Authentication</summary>
         public IAuthenticator Authenticator { get; set; }
 
         public bool UsePost { get; set; }
@@ -354,20 +352,17 @@ namespace Couchbase.Lite.Replicator
             }
             catch (Exception e)
             {
-                if (!IsRunning && e.InnerException is IOException)
-                {
-                    // swallow
-                }
-                else
-                {
-                    // in this case, just silently absorb the exception because it
-                    // frequently happens when we're shutting down and have to
-                    // close the socket underneath our read.
-                    Log.E(TAG, "Exception in change tracker", e);
-                }
-                backoff.SleepAppropriateAmountOfTime();
-                if (IsRunning) {
-                    Run();
+                if (Misc.IsTransientNetworkError(e)) {
+                    Log.I(TAG, "Connection error #{0}, retrying in {1}ms: {2}", backoff.NumAttempts,
+                        backoff.GetSleepTime(), e);
+                    backoff.SleepAppropriateAmountOfTime();
+                    if (IsRunning) {
+                        Run();
+                    }
+                } else {
+                    Log.I(TAG, "Can't connect; giving up: {0}", e);
+                    Error = e;
+                    Stop();
                 }
             }
         }
@@ -380,10 +375,9 @@ namespace Couchbase.Lite.Replicator
                 if (!responseTask.IsCanceled) {
                     var err = responseTask.Exception.Flatten();
                     Log.D(TAG, "ChangeFeedResponseHandler faulted.", err.InnerException ?? err);
-                    Error = err.InnerException ?? err;
-                    if (mode != ChangeTrackerMode.LongPoll) {
+                    if (mode != ChangeTrackerMode.LongPoll || !Misc.IsTransientNetworkError(err)) {
                         Stop();
-                    } else if(IsRunning) {
+                    } else if(IsRunning ) {
                         backoff.SleepAppropriateAmountOfTime();
                         WorkExecutor.StartNew(Run);
                     }
@@ -428,10 +422,14 @@ namespace Couchbase.Lite.Replicator
                         try {
                             ProcessLongPollStream(t);
                             backoff.ResetBackoff();
-                        } catch(CouchbaseLiteException e) {
-                            Log.W(TAG, "Exception during changes feed processing", e);
-                            backoff.SleepAppropriateAmountOfTime();
-                            WorkExecutor.StartNew(Run);
+                        } catch(Exception e) {
+                            if(Misc.IsTransientNetworkError(e)) {
+                                Log.W(TAG, "Exception during changes feed processing", e);
+                                backoff.SleepAppropriateAmountOfTime();
+                                WorkExecutor.StartNew(Run);
+                            } else {
+                                Stop();
+                            }
                         } finally {
                             response.Dispose();
                         }
@@ -629,7 +627,7 @@ namespace Couchbase.Lite.Replicator
                     backoff.ResetBackoff();
                     WorkExecutor.StartNew(Run);
                 } else {
-                    Log.W(TAG, "Change tracker calling stop");
+                    Log.W(TAG, "Received improper _changes feed response");
                     WorkExecutor.StartNew(Stop);
                 }
             }

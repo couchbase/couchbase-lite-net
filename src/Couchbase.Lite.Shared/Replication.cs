@@ -402,11 +402,10 @@ namespace Couchbase.Lite
             set
             {
                 if (value != _lastError) {
-                    var newException = value.Flatten();
-                    Log.E(TAG, " Progress: set error = ", newException);
+                    var newException = value == null ? null : value.Flatten();
+                    Log.E(TAG, " Progress: set error = {0}", (object)newException);
                     _lastError = newException;
                     NotifyChangeListeners();
-
                 }
             }
         }
@@ -889,6 +888,7 @@ namespace Couchbase.Lite
         protected virtual void Retry()
         {
             LastError = null;
+            CheckSession();
         }
 
         /// <summary>
@@ -936,7 +936,7 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void CancelPendingRetryIfReady()
         {
-            if (_retryIfReadyTask != null && !_retryIfReadyTask.IsCanceled && _retryIfReadyTokenSource != null) {
+            if (_retryIfReadyTokenSource != null) {
                 _retryIfReadyTokenSource.Cancel();
             }
         }
@@ -947,12 +947,13 @@ namespace Couchbase.Lite
         protected virtual void ScheduleRetryIfReady()
         {
             _retryIfReadyTokenSource = new CancellationTokenSource();
-            _retryIfReadyTask = Task.Delay(RETRY_DELAY * 1000)
-                .ContinueWith(task =>
-                {
-                    if (_retryIfReadyTokenSource != null && !_retryIfReadyTokenSource.IsCancellationRequested)
-                        RetryIfReady();
-                }, _retryIfReadyTokenSource.Token);
+            var token = _retryIfReadyTokenSource.Token;
+            Task.Delay(TimeSpan.FromSeconds(RETRY_DELAY)).ContinueWith(task =>
+            {
+                if (!token.IsCancellationRequested) {
+                    RetryIfReady();
+                }
+            }, token);
         }
 
         /// <summary>
@@ -1202,7 +1203,7 @@ namespace Couchbase.Lite
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
 
-            var client = _clientFactory.GetHttpClient(_cookieStore);
+            var client = _clientFactory.GetHttpClient(_cookieStore, true);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = _clientFactory.Handler as DefaultAuthHandler;
@@ -1313,7 +1314,7 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                var client = _clientFactory.GetHttpClient(_cookieStore);
+                var client = _clientFactory.GetHttpClient(_cookieStore, true);
                 var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
                 if (challengeResponseAuth != null) {
                     var authHandler = _clientFactory.Handler as DefaultAuthHandler;
@@ -1445,7 +1446,7 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            var client = _clientFactory.GetHttpClient(_cookieStore);
+            var client = _clientFactory.GetHttpClient(_cookieStore, true);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if(challengeResponseAuth != null) {
                 var authHandler = _clientFactory.Handler as DefaultAuthHandler;
@@ -2036,6 +2037,10 @@ namespace Couchbase.Lite
                 Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 if(transition.Source == transition.Destination) {
                     return;
+                }
+
+                if(_revisionsFailed > 0) {
+                    ScheduleRetryIfReady();
                 }
 
                 NotifyChangeListenersStateTransition(transition);
