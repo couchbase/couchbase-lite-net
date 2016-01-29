@@ -192,7 +192,7 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
+            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, true, client, new TaskFactory(scheduler));
 
             changeTracker.Start();
 
@@ -213,7 +213,7 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, false, client, new TaskFactory(scheduler));
+            var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, true, false, client, new TaskFactory(scheduler));
 
             changeTracker.Start();
 
@@ -293,7 +293,7 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
+            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, true, client, new TaskFactory(scheduler));
 
             changeTracker.Start();
 
@@ -368,7 +368,7 @@ namespace Couchbase.Lite
         {
             var testURL = GetReplicationURL();
             var changeTracker = new ChangeTracker(testURL, ChangeTrackerMode
-                .LongPoll, 0, false, null);
+                .LongPoll, 0, false, true, null);
 
             var docIds = new List<string>();
             docIds.Add("doc1");

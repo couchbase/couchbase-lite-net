@@ -1559,6 +1559,17 @@ namespace Couchbase.Lite
 
                     // Make sure the conflict was resolved locally.
                     Assert.AreEqual(1, doc.ConflictingRevisions.Count());
+
+                    var freshDb = manager.GetDatabase("fresh");
+                    puller = freshDb.CreatePullReplication(remoteDb.RemoteUri);
+                    RunReplication(puller);
+                    Assert.IsNull(puller.LastError);
+
+                    doc = freshDb.GetExistingDocument(doc.Id);
+                    Assert.IsNotNull(doc);
+
+                    // Make sure the conflict was resolved locally.
+                    Assert.AreEqual(1, doc.ConflictingRevisions.Count());
                 }
             }
         }

@@ -147,7 +147,8 @@ namespace Couchbase.Lite.Replicator
                 ? ChangeTrackerMode.LongPoll 
                 : ChangeTrackerMode.OneShot;
 
-            _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
+            var initialSync = LocalDatabase.IsOpen && LocalDatabase.GetDocumentCount() == 0;
+            _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, initialSync, this, WorkExecutor);
             _changeTracker.Authenticator = Authenticator;
             if(DocIds != null) {
                 if(ServerType != null && ServerType.Name == "CouchDB") {

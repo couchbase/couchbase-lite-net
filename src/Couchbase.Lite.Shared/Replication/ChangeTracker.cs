@@ -109,6 +109,7 @@ namespace Couchbase.Lite.Replicator
         protected internal IDictionary<string, object> RequestHeaders;
 
         private CancellationTokenSource tokenSource;
+        private bool _initialSync;
 
         CancellationTokenSource changesFeedRequestTokenSource;
 
@@ -138,7 +139,7 @@ namespace Couchbase.Lite.Replicator
         public Exception Error { get; private set; }
 
         public ChangeTracker(Uri databaseURL, ChangeTrackerMode mode, object lastSequenceID, 
-            Boolean includeConflicts, IChangeTrackerClient client, TaskFactory workExecutor = null)
+            bool includeConflicts, bool initialSync, IChangeTrackerClient client, TaskFactory workExecutor = null)
         {
             // does not work, do not use it.
             this.databaseURL = databaseURL;
@@ -148,6 +149,7 @@ namespace Couchbase.Lite.Replicator
             this.client = client;
             this.RequestHeaders = new Dictionary<string, object>();
             this.tokenSource = new CancellationTokenSource();
+            _initialSync = initialSync;
             WorkExecutor = workExecutor ?? Task.Factory;
         }
 
@@ -203,10 +205,11 @@ namespace Couchbase.Lite.Replicator
                 path.Append("&style=all_docs");
             }
 
-            if (lastSequenceID != null) {
+            if (lastSequenceID != null && lastSequenceID.ToString() != "0") {
                 path.Append("&since=");
                 path.Append(Uri.EscapeUriString(lastSequenceID.ToString()));
-            } else {
+            } else if(_initialSync) {
+                _initialSync = false;
                 // On first replication we can skip getting deleted docs. (SG enhancement in ver. 1.2)
                 path.Append("&active_only=true");
             }
@@ -687,11 +690,12 @@ namespace Couchbase.Lite.Replicator
                 bodyParams["style"] = "all_docs";
             }
 
-            if (lastSequenceID != null && lastSequenceID != "0") {
+            if (lastSequenceID != null && lastSequenceID.ToString() != "0") {
                 Int64 sequenceAsLong;
                 var success = Int64.TryParse(lastSequenceID.ToString(), out sequenceAsLong);
                 bodyParams["since"] = success ? sequenceAsLong : lastSequenceID;
-            } else {
+            } else if(_initialSync) {
+                _initialSync = false;
                 // On first replication we can skip getting deleted docs. (SG enhancement in ver. 1.2)
                 bodyParams["active_only"] = true;
             }
