@@ -163,7 +163,7 @@ namespace Couchbase.Lite
         {
             var ae = error as AggregateException;
             if (ae != null) {
-                error = Extensions.Flatten(ae);
+                error = Sharpen.Extensions.Flatten(ae);
             }
 
             if (error is IOException
