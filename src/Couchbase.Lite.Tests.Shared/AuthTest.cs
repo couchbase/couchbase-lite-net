@@ -169,6 +169,7 @@ namespace Couchbase.Lite
 
             var lastError = replicator.LastError;
             Assert.IsNull(lastError);
+            Thread.Sleep(200);
         }
 
         [Test]

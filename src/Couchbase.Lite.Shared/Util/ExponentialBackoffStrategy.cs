@@ -62,14 +62,17 @@ namespace Couchbase.Lite.Util
             // and somehow get confused with the old one that is already finished sending.  This leads
             // to blocking until the request finally times out.  The same seems to apply if the content
             // is the same as well
+            var initial = _request.Content == null ? Task.FromResult<byte[]>(null) : _request.Content.ReadAsByteArrayAsync();
             var newRequest = new HttpRequestMessage(_request.Method, _request.RequestUri);
-            return _request.Content.ReadAsByteArrayAsync().ContinueWith(t =>
+            return initial.ContinueWith(t =>
             {
-                newRequest.Content = new ByteArrayContent(t.Result);
-                foreach (var header in _request.Content.Headers) {
-                    newRequest.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                if(t.Result != null) {
+                    newRequest.Content = new ByteArrayContent(t.Result);
+                    foreach (var header in _request.Content.Headers) {
+                        newRequest.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                    }
                 }
-                    
+                
                 foreach (var header in _request.Headers) {
                     newRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
                 }
@@ -85,9 +88,9 @@ namespace Couchbase.Lite.Util
                 _tries++;
                 _millis *= 2; // Double the wait backoff.
                 return Task
-                    .Delay(_millis)
-                    .ContinueWith(t1 => Send(newRequest, this))
-                    .Unwrap();
+                .Delay(_millis)
+                .ContinueWith(t1 => Send(newRequest, this))
+                .Unwrap();
             }).Unwrap();
         }
 

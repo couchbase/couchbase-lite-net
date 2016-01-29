@@ -423,13 +423,9 @@ namespace Couchbase.Lite.Replicator
                             ProcessLongPollStream(t);
                             backoff.ResetBackoff();
                         } catch(Exception e) {
-                            if(Misc.IsTransientNetworkError(e)) {
-                                Log.W(TAG, "Exception during changes feed processing", e);
-                                backoff.SleepAppropriateAmountOfTime();
-                                WorkExecutor.StartNew(Run);
-                            } else {
-                                Stop();
-                            }
+                            Log.W(TAG, "Exception during changes feed processing", e);
+                            backoff.SleepAppropriateAmountOfTime();
+                            WorkExecutor.StartNew(Run);
                         } finally {
                             response.Dispose();
                         }

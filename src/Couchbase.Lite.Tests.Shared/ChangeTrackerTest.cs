@@ -145,7 +145,7 @@ namespace Couchbase.Lite
 
             public HttpClient GetHttpClient()
             {
-                return HttpClientFactory.GetHttpClient(null, true);
+                return HttpClientFactory.GetHttpClient(null, false);
             }
 
             public IDictionary<string, string> Headers

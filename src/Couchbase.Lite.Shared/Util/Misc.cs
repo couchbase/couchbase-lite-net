@@ -161,6 +161,11 @@ namespace Couchbase.Lite
 
         public static bool IsTransientNetworkError(Exception error)
         {
+            var ae = error as AggregateException;
+            if (ae != null) {
+                error = Extensions.Flatten(ae);
+            }
+
             if (error is IOException
                 || error is TimeoutException
                 || error is SocketException) {
@@ -170,6 +175,11 @@ namespace Couchbase.Lite
             var we = error as WebException;
             if (we == null) {
                 return false;
+            }
+
+            if (we.Status == WebExceptionStatus.ConnectFailure || we.Status == WebExceptionStatus.Timeout ||
+               we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled) {
+                return true;
             }
 
             if (we.Response == null) {
