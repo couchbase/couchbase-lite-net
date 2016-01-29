@@ -1620,7 +1620,9 @@ namespace Couchbase.Lite
             }
         }
 
-        [Test]
+        #if false
+        [Test] // This test takes nearly 5 minutes to run, so only run when needed
+        #endif
         public void TestLongRemovedChangesFeed()
         {
             var random = new Random();

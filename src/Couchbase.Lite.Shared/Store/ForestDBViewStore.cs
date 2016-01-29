@@ -47,8 +47,10 @@ namespace Couchbase.Lite.Store
 
         private ForestDBCouchStore _dbStorage;
         private string _path;
+#if CONNECTION_PER_THREAD
         private ConcurrentDictionary<int, IntPtr> _fdbConnections =
             new ConcurrentDictionary<int, IntPtr>();
+#endif
 
         public IViewStoreDelegate Delegate { get; set; }
 
@@ -57,10 +59,24 @@ namespace Couchbase.Lite.Store
         private C4View* IndexDB
         {
             get {
+    #if CONNECTION_PER_THREAD
                 return (C4View*)_fdbConnections.GetOrAdd(Thread.CurrentThread.ManagedThreadId, 
                     x => new IntPtr(OpenIndex())).ToPointer();
+    #else
+                if(_indexDB == null) {
+                    _indexDB = OpenIndex();
+                }
+
+                return _indexDB;
+    #endif
+                
             }
         }
+
+#if !CONNECTION_PER_THREAD
+        private C4View *_indexDB;
+#endif
+
 
         public int TotalRows 
         {
@@ -105,8 +121,10 @@ namespace Couchbase.Lite.Store
             _dbStorage = dbStorage;
             Name = name;
 
-            _path = Path.Combine(_dbStorage.Directory, ViewNameToFilename(name));
-            if (!File.Exists(_path)) {
+            var filename = ViewNameToFilename(name);
+            _path = Path.Combine(_dbStorage.Directory, filename);
+            var files = System.IO.Directory.GetFiles(_dbStorage.Directory, filename + "*");
+            if (files.Length == 0) {
                 if (!create) {
                     throw new InvalidOperationException(String.Format(
                         "Create is false but no db file exists at {0}", _path));
@@ -160,21 +178,25 @@ namespace Couchbase.Lite.Store
 
         internal static string FileNameToViewName(string filename)
         {
-            if(!filename.EndsWith(VIEW_INDEX_PATH_EXTENSION)) {
+            if(!filename.Contains(VIEW_INDEX_PATH_EXTENSION)) {
                 return null;
             }
 
-            var viewName = Path.ChangeExtension(filename, String.Empty);
-            return UnescapeString(viewName).TrimEnd('.');
+            var parts = filename.Split('.');
+            return UnescapeString(parts[0]);
         }
 
         private void CloseIndex()
         {
+#if CONNECTION_PER_THREAD
             var connections = _fdbConnections.Values.ToArray();
             _fdbConnections.Clear();
             foreach (var connection in connections) {
                 ForestDBBridge.Check(err => Native.c4view_close((C4View*)connection.ToPointer(), err));
             }
+#else
+            ForestDBBridge.Check(err => Native.c4view_close(_indexDB, err));
+#endif
         }
 
         private C4View* OpenIndexWithOptions(C4DatabaseFlags options, bool dryRun = false)
