@@ -82,8 +82,7 @@ namespace Couchbase.Lite
 
             var cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
             Assert.AreEqual(2, cookieStore.Count);
-            Assert.AreEqual(cookie1, cookies[0]);
-            Assert.AreEqual(cookie2, cookies[1]);
+            CollectionAssert.AreEquivalent(new[] { cookie1, cookie2 }, cookies);
 
             // Set cookie with same name, domain, and path
             // with one of the previously set cookies:
@@ -95,14 +94,12 @@ namespace Couchbase.Lite
             cookieStore.Add(cookie3);
             Assert.AreEqual(2, cookieStore.Count);
             cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
-            Assert.AreEqual(cookie1, cookies[0]);
-            Assert.AreEqual(cookie3, cookies[1]);
+            CollectionAssert.AreEquivalent(new[] { cookie1, cookie3 }, cookies);
 
             cookieStore = new CookieStore(database, "cookie_store_unit_test");
             cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
             Assert.AreEqual(2, cookieStore.Count);
-            Assert.AreEqual(cookie1, cookies[0]);
-            Assert.AreEqual(cookie3, cookies[1]);
+            CollectionAssert.AreEquivalent(new[] { cookie1, cookie3 }, cookies);
         }
 
         [Test]
@@ -161,8 +158,7 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(2, cookieStore.Count);
             var cookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
-            Assert.AreEqual(cookie1, cookies[0]);
-            Assert.AreEqual(cookie2, cookies[1]);
+            CollectionAssert.AreEquivalent(new[] { cookie1, cookie2 }, cookies);
 
             cookieStore = new CookieStore(database, "cookie_store_unit_test");
             Assert.AreEqual(0, cookieStore.Count);
