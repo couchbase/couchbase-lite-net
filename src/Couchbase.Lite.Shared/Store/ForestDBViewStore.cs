@@ -19,6 +19,7 @@
 // limitations under the License.
 //
 #define PARSED_KEYS
+//#define CONNECTION_PER_THREAD
 #if FORESTDB
 
 using System;
@@ -195,7 +196,9 @@ namespace Couchbase.Lite.Store
                 ForestDBBridge.Check(err => Native.c4view_close((C4View*)connection.ToPointer(), err));
             }
 #else
-            ForestDBBridge.Check(err => Native.c4view_close(_indexDB, err));
+            var indexDb = _indexDB;
+            _indexDB = null;
+            ForestDBBridge.Check(err => Native.c4view_close(indexDb, err));
 #endif
         }
 

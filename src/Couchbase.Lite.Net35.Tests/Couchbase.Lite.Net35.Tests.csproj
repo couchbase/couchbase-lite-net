@@ -82,6 +82,10 @@
       <Link>Assets\android110.zip</Link>
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.android110.zip</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120-forestdb.zip">
+      <Link>Assets\android120-forestdb.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.android120-forestdb.zip</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
       <Link>Assets\ios104.zip</Link>
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.ios104.zip</LogicalName>
@@ -96,6 +100,37 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
       <Link>Assets\perftest.properties</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120.zip">
+      <Link>Assets\android120.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.android120.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120.zip">
+      <Link>Assets\ios120.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.ios120.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120-forestdb.zip">
+      <Link>Assets\ios120-forestdb.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.ios120-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartBinary.mime">
+      <Link>Assets\MultipartBinary.mime</Link>
+      <LogicalName>MultipartBinary.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\Multipart1.mime">
+      <Link>Assets\Multipart1.mime</Link>
+      <LogicalName>Multipart1.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartGZipped.mime">
+      <Link>Assets\MultipartGZipped.mime</Link>
+      <LogicalName>MultipartGZipped.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartStars.mime">
+      <Link>Assets\MultipartStars.mime</Link>
+      <LogicalName>MultipartStars.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\performance-test.json">
+      <Link>Assets\performance-test.json</Link>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
@@ -129,10 +164,6 @@
     <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
       <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
       <Name>System.Net.Http-net_4_5</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net35.pinvoke_packaged_sqlcipher.anycpu.csproj">
-      <Project>{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}</Project>
-      <Name>platform.net35.pinvoke_packaged_sqlcipher.anycpu</Name>
     </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_net35.csproj">
       <Project>{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}</Project>
