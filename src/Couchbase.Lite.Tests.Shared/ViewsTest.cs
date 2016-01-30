@@ -1782,6 +1782,69 @@ namespace Couchbase.Lite
             CollectionAssert.AreEquivalent(conflicts, row.ValueAs<IEnumerable<string>>());
         }
 
+        [Test]
+        public void TestViewWithDocDeletion()
+        {
+            var view = database.GetView("vu");
+            Assert.IsNotNull(view);
+            view.SetMap((doc, emit) =>
+            {
+                var type = doc.GetCast<string>("type");
+                if(type == "task") {
+                    var date = doc.Get("created_at");
+                    var listId = doc.Get("list_id");
+                    emit(new[] { listId, date }, doc);
+                }
+            }, "1");
+
+            Assert.IsNotNull(view.Map);
+            Assert.AreEqual(0, view.TotalRows);
+
+            const string insertListId = "list1";
+
+            var doc1 = CreateDocumentWithProperties(database, new Dictionary<string, object> {
+                { "_id", "doc1" },
+                { "type", "task" },
+                { "created_at", DateTime.Now },
+                { "list_id", insertListId }
+            });
+            Assert.IsNotNull(doc1);
+
+            var doc2 = CreateDocumentWithProperties(database, new Dictionary<string, object> {
+                { "_id", "doc2" },
+                { "type", "task" },
+                { "created_at", DateTime.Now },
+                { "list_id", insertListId }
+            });
+            Assert.IsNotNull(doc2);
+
+            var doc3 = CreateDocumentWithProperties(database, new Dictionary<string, object> {
+                { "_id", "doc3" },
+                { "type", "task" },
+                { "created_at", DateTime.Now },
+                { "list_id", insertListId }
+            });
+            Assert.IsNotNull(doc3);
+
+            var query = view.CreateQuery();
+            query.Descending = true;
+            query.StartKey = new object[] { insertListId, new Dictionary<string, object>() };
+            query.EndKey = new[] { insertListId };
+
+            var rows = default(QueryEnumerator);
+            Assert.DoesNotThrow(() => rows = query.Run());
+            Assert.AreEqual(3, rows.Count);
+            Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
+            Assert.AreEqual(doc2.Id, rows.ElementAt(1).DocumentId);
+            Assert.AreEqual(doc1.Id, rows.ElementAt(2).DocumentId);
+            Assert.DoesNotThrow(doc2.Delete);
+
+            Assert.DoesNotThrow(() => rows = query.Run());
+            Assert.AreEqual(2, rows.Count);
+            Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
+            Assert.AreEqual(doc1.Id, rows.ElementAt(1).DocumentId);
+        }
+
         private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)
         {
             Assert.IsNotNull(allDocs);
