@@ -1,11 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Net45.Tests", "Couchbase.Lite.Net45.Tests\Couchbase.Lite.Net45.Tests.csproj", "{F376966C-CCAB-4C5C-A81A-E2A754AA7A4C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D4BD5141-7703-4683-A500-34363F7CFBF4} = {D4BD5141-7703-4683-A500-34363F7CFBF4}
+		{47688577-270F-47DC-8EAF-7DB26012A0F3} = {47688577-270F-47DC-8EAF-7DB26012A0F3}
+		{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5} = {032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Net45", "Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj", "{C87E0C01-AAD6-46DA-9935-C772C112BB18}"
 EndProject
@@ -38,6 +43,20 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cbforest-sharp.Net45", "Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net45\cbforest-sharp.Net45.csproj", "{20839831-948C-42BA-AAF1-75081209E6C5}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "cbforest-sharp.Shared", "Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.shproj", "{0BFC8B40-0659-4D45-B111-7CB4CCD22991}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "StorageEngines", "StorageEngines", "{440D39B3-3B9F-4549-ADCE-C147E60E13BC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SystemSQLite", "SystemSQLite", "{96438728-7016-4855-A95C-81E02B815F00}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.systemsqlite.net35", "StorageEngines\SystemSQLite\storage.systemsqlite.net35\storage.systemsqlite.net35.csproj", "{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SQLCipher", "SQLCipher", "{42C19F0D-8DE6-4929-ACBE-134D09BBFDCC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.sqlcipher.net35", "StorageEngines\SQLCipher\storage.sqlcipher.net35\storage.sqlcipher.net35.csproj", "{47688577-270F-47DC-8EAF-7DB26012A0F3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ForestDB", "ForestDB", "{6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.forestdb.net35", "StorageEngines\ForestDB\storage.forestdb.net35\storage.forestdb.net35.csproj", "{D4BD5141-7703-4683-A500-34363F7CFBF4}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -90,10 +109,22 @@ Global
 		{84547E16-A872-418D-82A6-B57ADEE290AE}.Debug|Any CPU.Build.0 = debug|Any CPU
 		{84547E16-A872-418D-82A6-B57ADEE290AE}.Release|Any CPU.ActiveCfg = release|Any CPU
 		{84547E16-A872-418D-82A6-B57ADEE290AE}.Release|Any CPU.Build.0 = release|Any CPU
-		{20839831-948C-42BA-AAF1-75081209E6C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{20839831-948C-42BA-AAF1-75081209E6C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{20839831-948C-42BA-AAF1-75081209E6C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{20839831-948C-42BA-AAF1-75081209E6C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20839831-948C-42BA-AAF1-75081209E6C5}.Debug|Any CPU.ActiveCfg = DebugFacade|Any CPU
+		{20839831-948C-42BA-AAF1-75081209E6C5}.Debug|Any CPU.Build.0 = DebugFacade|Any CPU
+		{20839831-948C-42BA-AAF1-75081209E6C5}.Release|Any CPU.ActiveCfg = ReleaseFacade|Any CPU
+		{20839831-948C-42BA-AAF1-75081209E6C5}.Release|Any CPU.Build.0 = ReleaseFacade|Any CPU
+		{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47688577-270F-47DC-8EAF-7DB26012A0F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47688577-270F-47DC-8EAF-7DB26012A0F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47688577-270F-47DC-8EAF-7DB26012A0F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47688577-270F-47DC-8EAF-7DB26012A0F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4BD5141-7703-4683-A500-34363F7CFBF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4BD5141-7703-4683-A500-34363F7CFBF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4BD5141-7703-4683-A500-34363F7CFBF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4BD5141-7703-4683-A500-34363F7CFBF4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -112,6 +143,12 @@ Global
 		{84547E16-A872-418D-82A6-B57ADEE290AE} = {D7B73C47-09CD-4D4A-90B6-602D2AB3D04C}
 		{20839831-948C-42BA-AAF1-75081209E6C5} = {D7B73C47-09CD-4D4A-90B6-602D2AB3D04C}
 		{0BFC8B40-0659-4D45-B111-7CB4CCD22991} = {D7B73C47-09CD-4D4A-90B6-602D2AB3D04C}
+		{96438728-7016-4855-A95C-81E02B815F00} = {440D39B3-3B9F-4549-ADCE-C147E60E13BC}
+		{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5} = {96438728-7016-4855-A95C-81E02B815F00}
+		{42C19F0D-8DE6-4929-ACBE-134D09BBFDCC} = {440D39B3-3B9F-4549-ADCE-C147E60E13BC}
+		{47688577-270F-47DC-8EAF-7DB26012A0F3} = {42C19F0D-8DE6-4929-ACBE-134D09BBFDCC}
+		{6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C} = {440D39B3-3B9F-4549-ADCE-C147E60E13BC}
+		{D4BD5141-7703-4683-A500-34363F7CFBF4} = {6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
