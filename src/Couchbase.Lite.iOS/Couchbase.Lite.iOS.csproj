@@ -84,17 +84,19 @@
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.unified_ios.pinvoke_packaged_sqlcipher.anycpu.csproj">
-      <Project>{05817DDA-0F3C-4ADF-8AC5-13C314655E23}</Project>
-      <Name>platform.unified_ios.pinvoke_packaged_sqlcipher.anycpu</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
       <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
       <Name>ugly_profile78</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS\cbforest-sharp.iOS.csproj">
-      <Project>{A5757777-CDFE-43BF-8260-D342BF83B773}</Project>
-      <Name>cbforest-sharp.iOS</Name>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\portable.profile78.csproj">
+      <Project>{84547E16-A872-418D-82A6-B57ADEE290AE}</Project>
+      <Name>portable.profile78</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS-fake\cbforest-sharp.iOS-fake.csproj">
+      <Project>{1F7C1231-9F6C-4E0C-B916-F0D05EF04941}</Project>
+      <Name>cbforest-sharp.iOS-fake</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
 </Project>

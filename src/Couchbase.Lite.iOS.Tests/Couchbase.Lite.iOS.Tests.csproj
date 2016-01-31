@@ -116,13 +116,24 @@
       <Project>{2B3FFAFB-5BE1-493A-9647-901FACAD7801}</Project>
       <Name>Couchbase.Lite.Listener.Bonjour.iOS</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS\cbforest-sharp.iOS.csproj">
-      <Project>{A5757777-CDFE-43BF-8260-D342BF83B773}</Project>
-      <Name>cbforest-sharp.iOS</Name>
-    </ProjectReference>
     <ProjectReference Include="vendor\Touch.Unit\NUnitLite\MonoTouch.NUnitLite.csproj">
       <Project>{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}</Project>
       <Name>MonoTouch.NUnitLite</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\ForestDB\storage.forestdb.ios\storage.forestdb.ios.csproj">
+      <Project>{04911EDB-B868-4DD7-9121-2E8A99C9833D}</Project>
+      <Name>storage.forestdb.ios</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\SQLCipher\storage.sqlcipher.ios\storage.sqlcipher.ios.csproj">
+      <Project>{80F83EB6-132C-4062-BDB6-2CBCC32C77EC}</Project>
+      <Name>storage.sqlcipher.ios</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.ios\storage.systemsqlite.ios.csproj">
+      <Project>{374A309A-BEC8-4750-BCBF-97895BDFDC13}</Project>
+      <Name>storage.systemsqlite.ios</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -190,6 +201,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Import Project="..\StorageEngines\SystemSQLite\storage.systemsqlite.ios\bin\$(Configuration)\ios.targets" />
+  <Import Project="..\StorageEngines\SQLCipher\storage.sqlcipher.ios\bin\$(Configuration)\ios.targets" />
+  <Import Project="..\StorageEngines\ForestDB\storage.forestdb.ios\bin\$(Configuration)\ios.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>

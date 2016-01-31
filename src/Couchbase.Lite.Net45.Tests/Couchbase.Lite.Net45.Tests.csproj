@@ -145,6 +145,9 @@
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Import Project="..\StorageEngines\SystemSQLite\storage.systemsqlite.net35\bin\$(Configuration)\net35.targets" />
+  <Import Project="..\StorageEngines\SQLCipher\storage.sqlcipher.net35\bin\$(Configuration)\net35.targets" />
+  <Import Project="..\StorageEngines\ForestDB\storage.forestdb.net35\bin\$(Configuration)\net35.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
@@ -174,6 +177,21 @@
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net45\cbforest-sharp.Net45.csproj">
       <Project>{20839831-948C-42BA-AAF1-75081209E6C5}</Project>
       <Name>cbforest-sharp.Net45</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\ForestDB\storage.forestdb.net35\storage.forestdb.net35.csproj">
+      <Project>{D4BD5141-7703-4683-A500-34363F7CFBF4}</Project>
+      <Name>storage.forestdb.net35</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\SQLCipher\storage.sqlcipher.net35\storage.sqlcipher.net35.csproj">
+      <Project>{47688577-270F-47DC-8EAF-7DB26012A0F3}</Project>
+      <Name>storage.sqlcipher.net35</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.net35\storage.systemsqlite.net35.csproj">
+      <Project>{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}</Project>
+      <Name>storage.systemsqlite.net35</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

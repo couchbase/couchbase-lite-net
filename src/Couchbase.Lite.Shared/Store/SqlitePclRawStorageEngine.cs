@@ -102,7 +102,8 @@ namespace Couchbase.Lite
 
             if (encryptionKey != null) {
                 if (!hasRealEncryption) {
-                    throw new CouchbaseLiteException("Encryption not available (app not built with SQLCipher)", StatusCode.NotImplemented);
+                    throw new CouchbaseLiteException("Encryption not available (make sure you have installed the" +
+                        " correct Nuget packages.)", StatusCode.NotImplemented);
                 }
 
                 // http://sqlcipher.net/sqlcipher-api/#key

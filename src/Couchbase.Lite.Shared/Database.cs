@@ -2107,6 +2107,8 @@ namespace Couchbase.Lite
                 Storage.Close();
                 Log.E(TAG, "Failed to open storage for database");
                 throw;
+            } catch(DllNotFoundException) {
+                throw new CouchbaseLiteException("CBForest native components not found, make sure to install the proper Nuget packages");
             } catch(Exception e) {
                 Storage.Close();
                 throw new CouchbaseLiteException("Error opening storage for database", e);

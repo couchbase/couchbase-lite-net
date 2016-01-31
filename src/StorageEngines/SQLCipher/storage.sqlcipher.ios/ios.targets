@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Condition=" $(DefineConstants.Contains('CBL_SQLCIPHER')) " Name="InjectReference_af3e43b5-bd9e-4f84-a633-eb532fcdefbc" 
+  	BeforeTargets="ResolveAssemblyReferences">
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)SQLitePCL.raw.dll">
+      <Link>SQLitePCL.raw.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <Message Text="Building with SQLCipher storage engine..." />
+  </Target>
+  <Target Condition=" !$(CBLUseForestDB) " Name="InjectReference_16bcc5ba-79e9-4779-9190-bcd8044429db" 
+  	BeforeTargets="ResolveAssemblyReferences">
+  	<ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)cbforest-sharp.dll">
+      <Link>cbforest-sharp.dll</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  	</Target>
+</Project>

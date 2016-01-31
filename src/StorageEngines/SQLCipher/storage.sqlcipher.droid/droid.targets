@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="InjectReference_b652c259-e538-47dd-96e1-3bfd2deac2c4" BeforeTargets="ResolveAssemblyReferences"
+  	Condition=" $(DefineConstants.Contains('CBL_SQLCIPHER')) ">
+    <ItemGroup>
+      <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)arm64-v8a\libsqlcipher.so">
+      <Link>arm64-v8a\libsqlcipher.so</Link>
+    </AndroidNativeLibrary>
+    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)armeabi\libsqlcipher.so">
+      <Link>armeabi\libsqlcipher.so</Link>
+    </AndroidNativeLibrary>
+    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)armeabi-v7a\libsqlcipher.so">
+      <Link>armeabi-v7a\libsqlcipher.so</Link>
+    </AndroidNativeLibrary>
+    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)x86\libsqlcipher.so">
+      <Link>x86\libsqlcipher.so</Link>
+    </AndroidNativeLibrary>
+    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)x86_64\libsqlcipher.so">
+      <Link>x86_64\libsqlcipher.so</Link>
+    </AndroidNativeLibrary>
+    <Content Include="$(MSBuildThisFileDirectory)SQLitePCL.raw.dll.config">
+    	<Link>SQLitePCL.raw.dll.config</Link>
+    	<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <Message Text="Building with SQLCipher storage engine..." />
+  </Target>
+</Project>
