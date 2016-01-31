@@ -87,7 +87,6 @@
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net45.pinvoke_packaged_sqlcipher.anycpu.csproj" Condition="!$(DefineConstants.Contains('NOSQLITE'))">
       <Project>{8E62D3FC-CE27-427F-A060-F86DA48142F8}</Project>
       <Name>platform.net45.pinvoke_packaged_sqlcipher.anycpu</Name>
-      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj" Condition="!$(DefineConstants.Contains('NOSQLITE'))">
       <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
