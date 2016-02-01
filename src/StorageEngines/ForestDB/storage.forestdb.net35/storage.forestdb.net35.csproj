@@ -38,6 +38,7 @@
     </None>
     <None Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\libCBForest-Interop.dylib">
       <Link>libCBForest-Interop.dylib</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\libCBForest-Interop.so">
       <Link>libCBForest-Interop.so</Link>
