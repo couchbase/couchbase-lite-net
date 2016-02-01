@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MSBuildExec Condition=" '$(OS)' != 'Windows_NT' ">xbuild</MSBuildExec>
-    <MSBuildExec Condition=" '$(OS)' == 'Windows_NT' ">msbuild</MSBuildExec>
+    <MSBuildExec Condition=" '$(OS)' == 'Windows_NT' ">"$(MSBuildToolsPath)\msbuild.exe"</MSBuildExec>
   </PropertyGroup>
   <Target Name="BuildDeps" BeforeTargets="PrepareForBuild">
     <Exec Command=" $(MSBuildExec) $(ProjectDir)../StorageEngines/SystemSQLite/storage.systemsqlite.net35/storage.systemsqlite.net35.csproj /p:Configuration=$(Configuration) " />

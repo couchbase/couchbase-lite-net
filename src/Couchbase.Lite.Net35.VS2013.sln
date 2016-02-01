@@ -129,12 +129,12 @@ Global
 		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|Any CPU.Build.0 = release|Any CPU
 		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|anycpu.ActiveCfg = release|Any CPU
 		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|anycpu.Build.0 = release|Any CPU
-		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Debug|Any CPU.ActiveCfg = DebugFacade|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Debug|Any CPU.Build.0 = DebugFacade|Any CPU
 		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Debug|anycpu.ActiveCfg = Debug|Any CPU
 		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Debug|anycpu.Build.0 = Debug|Any CPU
-		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Release|Any CPU.ActiveCfg = ReleaseFacade|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Release|Any CPU.Build.0 = ReleaseFacade|Any CPU
 		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Release|anycpu.ActiveCfg = Release|Any CPU
 		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Release|anycpu.Build.0 = Release|Any CPU
 	EndGlobalSection
