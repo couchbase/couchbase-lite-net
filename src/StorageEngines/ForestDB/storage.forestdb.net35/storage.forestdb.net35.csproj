@@ -4,50 +4,24 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{D4BD5141-7703-4683-A500-34363F7CFBF4}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>storage.forestdb.net35</RootNamespace>
-    <AssemblyName>storage.forestdb.net35</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
+    <OutputType>Library</OutputType>
+    <AssemblyName>storage.forestdb.net35</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>false</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <ConsolePause>false</ConsolePause>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <None Include="net35.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\libCBForest-Interop.dylib">
-      <Link>libCBForest-Interop.dylib</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\libCBForest-Interop.so">
-      <Link>libCBForest-Interop.so</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="CBForest-Interop.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+  <Target Name="Build">
+    <Message Text="Copying native components..." />
+    <Copy SourceFiles="net35.targets;..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\libCBForest-Interop.dylib;..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\libCBForest-Interop.so;..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\CBForest-Interop.dll" DestinationFolder="$(OutputPath)" />
+  </Target>
 </Project>

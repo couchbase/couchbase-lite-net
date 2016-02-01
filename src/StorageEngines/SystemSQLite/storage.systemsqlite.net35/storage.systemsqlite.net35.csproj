@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>storage.systemsqlite.net35</RootNamespace>
-    <AssemblyName>storage.systemsqlite.net45</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <ReleaseVersion>1.1.1</ReleaseVersion>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>storage.systemsqlite.net35</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>false</Optimize>
@@ -25,24 +23,10 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <None Include="net35.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\x86\sqlite3.dll">
-      <Link>x86\sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\x64\sqlite3.dll">
-      <Link>x64\sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
+  <Target Name="Build">
+    <Message Text="Copying native components..." />
+    <Copy SourceFiles="net35.targets" DestinationFolder="$(OutputPath)" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\x86\sqlite3.dll" DestinationFolder="$(OutputPath)\x86" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\x64\sqlite3.dll" DestinationFolder="$(OutputPath)\x64" />
+  </Target>
 </Project>

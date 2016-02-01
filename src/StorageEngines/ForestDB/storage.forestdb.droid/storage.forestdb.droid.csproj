@@ -36,47 +36,12 @@
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Core" />
-    <Reference Include="Mono.Android" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Resources\Resource.designer.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\AboutResources.txt" />
-    <None Include="droid.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\arm64-v8a\libCBForest-Interop.so">
-      <Link>arm64-v8a\libCBForest-Interop.so</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\armeabi-v7a\libCBForest-Interop.so">
-      <Link>armeabi-v7a\libCBForest-Interop.so</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\x86\libCBForest-Interop.so">
-      <Link>x86\libCBForest-Interop.so</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\x86_64\libCBForest-Interop.so">
-      <Link>x86_64\libCBForest-Interop.so</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <AndroidResource Include="Resources\values\Strings.xml" />
-  </ItemGroup>
-  <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Droid\cbforest-sharp.Droid.csproj">
-      <Project>{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}</Project>
-      <Name>cbforest-sharp.Droid</Name>
-      <Private>False</Private>
-    </ProjectReference>
-  </ItemGroup>
+  <Target Name="Build">
+    <Message Text="Copying native components..." />
+    <Copy SourceFiles="droid.targets" DestinationFolder="$(OutputPath)" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\arm64-v8a\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\arm64-v8a" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\armeabi-v7a\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\armeabi-v7a" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\x86\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\x86" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\x86_64\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\x86_64" />
+  </Target>
 </Project>
