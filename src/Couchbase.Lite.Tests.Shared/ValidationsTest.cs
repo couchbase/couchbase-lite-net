@@ -142,6 +142,12 @@ namespace Couchbase.Lite
             validationCalled = false;
             Assert.Throws<CouchbaseLiteException>(() => rev = database.PutRevision(rev, null, false));
             Assert.IsTrue(validationCalled);
+
+            // Cancel the validation
+            database.SetValidation("hoopy", null);
+            validationCalled = false;
+            Assert.DoesNotThrow(() => rev = database.PutRevision(rev, null, false));
+            Assert.IsFalse(validationCalled);
         }
     }
 }
