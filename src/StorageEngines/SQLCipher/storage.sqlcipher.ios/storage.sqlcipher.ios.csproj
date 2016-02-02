@@ -51,6 +51,10 @@
       <Project>{1F7C1231-9F6C-4E0C-B916-F0D05EF04941}</Project>
       <Name>cbforest-sharp.iOS-fake</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
+      <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
+      <Name>ugly_profile78</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="ios.targets">

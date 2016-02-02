@@ -9,6 +9,7 @@ using CoreGraphics;
 using System.Drawing;
 using Couchbase.Lite;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Store;
 
 namespace CouchbaseSample
 {
@@ -103,8 +104,16 @@ namespace CouchbaseSample
 
     void InitializeDatabase ()
     {
+        var opts = new DatabaseOptions();
 
-        var db = Manager.SharedInstance.GetDatabase ("grocery-sync");
+            //To use this feature, add the Couchbase.Lite.Storage.ForestDB nuget package
+        //opts.StorageType = DatabaseOptions.FORESTDB_STORAGE;
+
+            // To use this feature, add either the Couchbase.Lite.Storage.SQLCipher nuget package
+            // or uncomment the above line and add the Couchbase.Lite.Storage.ForestDB nuget package
+        //opts.EncryptionKey = new SymmetricKey("foo");
+        opts.Create = true;
+        var db = Manager.SharedInstance.OpenDatabase ("grocery-sync", opts);
         if (db == null)
             throw new ApplicationException ("Could not create database");
 

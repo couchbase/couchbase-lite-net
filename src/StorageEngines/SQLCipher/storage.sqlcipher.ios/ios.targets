@@ -5,7 +5,11 @@
   <ItemGroup>
     <Content Include="$(MSBuildThisFileDirectory)SQLitePCL.raw.dll">
       <Link>SQLitePCL.raw.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)SQLitePCL.ugly.dll">
+      <Link>SQLitePCL.ugly.dll</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <Message Text="Building with SQLCipher storage engine..." />

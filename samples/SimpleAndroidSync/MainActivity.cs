@@ -13,6 +13,7 @@ using Couchbase.Lite;
 using CouchbaseSample.Android.Document;
 using CouchbaseSample.Android.Helper;
 using System.Linq;
+using Couchbase.Lite.Store;
 
 namespace SimpleAndroidSync
 {
@@ -37,7 +38,13 @@ namespace SimpleAndroidSync
 
             var opts = new DatabaseOptions();
             opts.Create = true;
+
+			// To use this feature, add the Couchbase.Lite.Storage.ForestDB nuget package
             opts.StorageType = DatabaseOptions.FORESTDB_STORAGE;
+
+			// To use this feature add the Couchbase.Lite.Storage.SQLCipher nuget package,
+			// or uncomment the above line and add the Couchbase.Lite.Storage.ForestDB package
+			//opts.EncryptionKey = new SymmetricKey("foo");
             Database = Manager.SharedInstance.OpenDatabase(Tag.ToLower(), opts);
 
             Query = List.GetQuery(Database);

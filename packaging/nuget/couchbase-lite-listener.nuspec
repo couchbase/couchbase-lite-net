@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite.Listener</id>
     <title>Couchbase Lite - HTTP Listener</title>
-    <version>1.1.1</version>
+    <version>1.2</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -23,15 +23,18 @@
 
       On top of Couchbase Lite for .NET
     </releaseNotes>
-    <copyright>Copyright 2015</copyright>
+    <copyright>Copyright 2015-2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
       <group targetFramework="net35">
-        <dependency id="Couchbase.Lite" version="1.1.1.1" />
+        <dependency id="Couchbase.Lite" version="1.2" />
+      </group>
+      <group targetFramework="net45">
+        <dependency id="Couchbase.Lite" version="1.2" />
       </group>
       <group>
-        <dependency id="Couchbase.Lite" version="1.1.1.1" />
+        <dependency id="Couchbase.Lite" version="1.2" />
         <dependency id="Jint" version="2.4.0" />
       </group>
     </dependencies>

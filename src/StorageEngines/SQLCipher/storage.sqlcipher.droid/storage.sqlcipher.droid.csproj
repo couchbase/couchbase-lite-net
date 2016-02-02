@@ -34,13 +34,40 @@
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
-  <Target Name="Build">
-    <Message Text="Copying native components..." />
-    <Copy SourceFiles="droid.targets;SQLitePCL.raw.dll.config" DestinationFolder="$(OutputPath)" />
-    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\android\arm64-v8a\libsqlcipher.so" DestinationFolder="$(OutputPath)\arm64-v8a" />
-    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\android\armeabi\libsqlcipher.so" DestinationFolder="$(OutputPath)\armeabi" />
-    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\android\armeabi-v7a\libsqlcipher.so" DestinationFolder="$(OutputPath)\armeabi-v7a" />
-    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\android\x86\libsqlcipher.so" DestinationFolder="$(OutputPath)\x86" />
-    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\android\x86_64\libsqlcipher.so" DestinationFolder="$(OutputPath)\x86_64" />
-  </Target>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
+      <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
+      <Name>ugly_profile78</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.android.pinvoke_packaged_sqlcipher.anycpu.csproj">
+      <Project>{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1}</Project>
+      <Name>platform.android.pinvoke_packaged_sqlcipher.anycpu</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+  <ItemGroup>
+    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\android\arm64-v8a\libsqlcipher.so">
+      <Link>arm64-v8a\libsqlcipher.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\android\armeabi\libsqlcipher.so">
+      <Link>armeabi\libsqlcipher.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\android\armeabi-v7a\libsqlcipher.so">
+      <Link>armeabi-v7a\libsqlcipher.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\android\x86\libsqlcipher.so">
+      <Link>x86\libsqlcipher.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\android\x86_64\libsqlcipher.so">
+      <Link>x86_64\libsqlcipher.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="droid.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

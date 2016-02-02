@@ -10,6 +10,10 @@
       <Link>SQLitePCL.raw.dll</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="$(MSBuildThisFileDirectory)SQLitePCL.ugly.dll">
+      <Link>SQLitePCL.ugly.dll</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Message Text="Building with system SQLite storage engine..." />
   </Target>

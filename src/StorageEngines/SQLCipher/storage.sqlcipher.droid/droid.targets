@@ -18,10 +18,14 @@
     <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)x86_64\libsqlcipher.so">
       <Link>x86_64\libsqlcipher.so</Link>
     </AndroidNativeLibrary>
-    <Content Include="$(MSBuildThisFileDirectory)SQLitePCL.raw.dll.config">
-    	<Link>SQLitePCL.raw.dll.config</Link>
-    	<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Reference Include="$(MSBuildThisFileDirectory)SQLitePCL.raw.dll">
+    	<Link>SQLitePCL.raw.dll</Link>
+    	<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Reference>
+    <Reference Include="$(MSBuildThisFileDirectory)SQLitePCL.ugly.dll">
+      <Link>SQLitePCL.ugly.dll</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Reference>
   </ItemGroup>
   <Message Text="Building with SQLCipher storage engine..." />
   </Target>

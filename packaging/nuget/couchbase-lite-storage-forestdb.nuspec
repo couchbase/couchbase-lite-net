@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>Couchbase.Lite.Storage.ForestDB</id>
+    <title>Couchbase Lite ForestDB Storage</title>
+    <version>1.2</version>
+    <authors>Jim Borden</authors>
+    <owners>Couchbase</owners>
+    <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/couchbase/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A storage engine provider for Couchbase Lite .NET that utilizies the ForestDB key-value storage engine</description>
+    <releaseNotes>
+      Couchbase Lite for .NET 1.1.1 is a maintanence release on 1.1.0 and contains a number of fixes and enhancements.
+      For a full list please refer to https://github.com/couchbase/couchbase-lite-net/releases/tag/1.1.1
+    </releaseNotes>
+    <copyright>Copyright 2014-2016</copyright>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
+    <language>en-US</language>
+  </metadata>
+  <files>
+    <!-- .NET 3.5 and later -->
+    <file target="build/net35/Couchbase.Lite.Storage.ForestDB.targets" src="src/StorageEngines/ForestDB/storage.forestdb.net35/bin/Release/net35.targets" />
+    <file target="build/net35" src="src/StorageEngines/ForestDB/storage.forestdb.net35/bin/Release/CBForest-Interop.dll" />
+    <file target="build/net35/" src="src/StorageEngines/ForestDB/storage.forestdb.net35/bin/Release/libCBForest-Interop.dylib" />
+    <file target="build/net35/" src="src/StorageEngines/ForestDB/storage.forestdb.net35/bin/Release/libCBForest-Interop.so" />
+    
+    <!-- Xamarin.Android -->
+    <file target="build/MonoAndroid/Couchbase.Lite.Storage.ForestDB.targets" src="src/StorageEngines/ForestDB/storage.forestdb.droid/bin/Release/droid.targets" />
+    <file target="build/MonoAndroid/arm64-v8a/" src="src/StorageEngines/ForestDB/storage.forestdb.droid/bin/Release/arm64-v8a/libCBForest-Interop.so" />
+    <file target="build/MonoAndroid/armeabi-v7a/" src="src/StorageEngines/ForestDB/storage.forestdb.droid/bin/Release/armeabi-v7a/libCBForest-Interop.so" />
+    <file target="build/MonoAndroid/x86/" src="src/StorageEngines/ForestDB/storage.forestdb.droid/bin/Release/x86/libCBForest-Interop.so" />
+    <file target="build/MonoAndroid/x86_64/" src="src/StorageEngines/ForestDB/storage.forestdb.droid/bin/Release/x86_64/libCBForest-Interop.so" />
+
+    <!-- Xamarin.iOS -->
+    <file target="build/Xamarin.iOS10/Couchbase.Lite.Storage.ForestDB.targets" src="src/StorageEngines/ForestDB/storage.forestdb.ios/bin/Release/ios.targets" />
+    <file target="build/Xamarin.iOS10/" src="src/StorageEngines/ForestDB/storage.forestdb.ios/bin/Release/cbforest-sharp.dll" />
+    <file target="build/Xamarin.iOS10/" src="src/StorageEngines/ForestDB/storage.forestdb.ios/bin/Release/cbforest-sharp.dll.config" />
+  </files>
+</package>
