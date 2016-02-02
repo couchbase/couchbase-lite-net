@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}</ProjectGuid>
     <ReleaseVersion>1.1.1</ReleaseVersion>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <AssemblyName>storage.systemsqlite.net35</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
@@ -31,4 +31,7 @@
     <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\x86\sqlite3.dll" DestinationFolder="$(OutputPath)\x86" />
     <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\x64\sqlite3.dll" DestinationFolder="$(OutputPath)\x64" />
   </Target>
+  <ItemGroup>
+    <Compile Include="Dummy.cs" />
+  </ItemGroup>
 </Project>

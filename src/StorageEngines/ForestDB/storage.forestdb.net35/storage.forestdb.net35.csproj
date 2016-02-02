@@ -25,4 +25,7 @@
     <Message Text="Copying native components..." />
     <Copy SourceFiles="net35.targets;..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\libCBForest-Interop.dylib;..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\libCBForest-Interop.so;..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\CBForest-Interop.dll" DestinationFolder="$(OutputPath)" />
   </Target>
+  <ItemGroup>
+    <Compile Include="Dummy.cs" />
+  </ItemGroup>
 </Project>

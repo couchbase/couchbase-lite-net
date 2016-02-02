@@ -31,4 +31,7 @@
     <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\windows\x86\sqlcipher.dll" DestinationFolder="$(OutputPath)\x86" />
     <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\windows\amd64\sqlcipher.dll" DestinationFolder="$(OutputPath)\x64" />
   </Target>
+  <ItemGroup>
+    <Compile Include="Dummy.cs" />
+  </ItemGroup>
 </Project>
