@@ -7,6 +7,7 @@
     <ReleaseVersion>1.1.1</ReleaseVersion>
     <OutputType>Exe</OutputType>
     <AssemblyName>storage.systemsqlite.net35</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>false</Optimize>
