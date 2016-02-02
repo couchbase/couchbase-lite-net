@@ -67,7 +67,6 @@
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(ProjectDir)../Couchbase.Lite.Net35/vendor/SQLitePCL/bld/sqliteraw.targets" />
   <Import Project="..\StorageEngines\SystemSQLite\storage.systemsqlite.net35\bin\$(Configuration)\net35.targets" Condition="Exists('..\StorageEngines\SystemSQLite\storage.systemsqlite.net35\bin\$(Configuration)\net35.targets')" />
   <Import Project="..\StorageEngines\SQLCipher\storage.sqlcipher.net35\bin\$(Configuration)\net35.targets" Condition="Exists('..\StorageEngines\SQLCipher\storage.sqlcipher.net35\bin\$(Configuration)\net35.targets')" />
   <Import Project="..\StorageEngines\ForestDB\storage.forestdb.net35\bin\$(Configuration)\net35.targets" Condition="Exists('..\StorageEngines\ForestDB\storage.forestdb.net35\bin\$(Configuration)\net35.targets')" />
