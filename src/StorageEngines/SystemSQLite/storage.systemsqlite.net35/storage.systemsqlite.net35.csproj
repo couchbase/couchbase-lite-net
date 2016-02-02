@@ -24,7 +24,8 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
-  <Target Name="Build">
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="AfterBuild">
     <Message Text="Copying native components..." />
     <Copy SourceFiles="net35.targets" DestinationFolder="$(OutputPath)" />
     <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\x86\sqlite3.dll" DestinationFolder="$(OutputPath)\x86" />

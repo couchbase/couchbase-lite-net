@@ -24,7 +24,8 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
-  <Target Name="Build">
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="AfterBuild">
     <Message Text="Copying native components..." />
     <Copy SourceFiles="net35.targets;SQLitePCL.raw.dll.config;..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\osx\libsqlcipher.dylib;..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\linux\amd64\libsqlcipher.so" DestinationFolder="$(OutputPath)" />
     <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\windows\x86\sqlcipher.dll" DestinationFolder="$(OutputPath)\x86" />
