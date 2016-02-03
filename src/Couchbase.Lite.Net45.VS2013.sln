@@ -58,6 +58,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ForestDB", "ForestDB", "{6D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.forestdb.net35", "StorageEngines\ForestDB\storage.forestdb.net35\storage.forestdb.net35.csproj", "{D4BD5141-7703-4683-A500-34363F7CFBF4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{DA4D089F-1412-4D7E-9CAE-6E8AC159AB2A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Todo.WPF_Source", "..\samples\Todo.WPF\Todo.WPF_Source.csproj", "{04A267E1-6CB5-4BD5-9987-1A09BA1349CA}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8bfa15b7-957d-4ad1-9019-9df98f1ee9eb}*SharedItemsImports = 4
@@ -125,6 +129,10 @@ Global
 		{D4BD5141-7703-4683-A500-34363F7CFBF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4BD5141-7703-4683-A500-34363F7CFBF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4BD5141-7703-4683-A500-34363F7CFBF4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04A267E1-6CB5-4BD5-9987-1A09BA1349CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04A267E1-6CB5-4BD5-9987-1A09BA1349CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04A267E1-6CB5-4BD5-9987-1A09BA1349CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04A267E1-6CB5-4BD5-9987-1A09BA1349CA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -149,6 +157,7 @@ Global
 		{47688577-270F-47DC-8EAF-7DB26012A0F3} = {42C19F0D-8DE6-4929-ACBE-134D09BBFDCC}
 		{6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C} = {440D39B3-3B9F-4549-ADCE-C147E60E13BC}
 		{D4BD5141-7703-4683-A500-34363F7CFBF4} = {6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C}
+		{04A267E1-6CB5-4BD5-9987-1A09BA1349CA} = {DA4D089F-1412-4D7E-9CAE-6E8AC159AB2A}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
