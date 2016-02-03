@@ -12,16 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Provides Couchbase Lite with a self-hosted REST API.</description>
     <releaseNotes>
-      Couchbase Lite for .NET 1.1.1 is a maintanence release on 1.1.0 and contains a number of fixes and enh
-      For a full list please refer to https://github.com/couchbase/couchbase-lite-net/releases/tag/1.1.1
-
-      This package enables:
-        * Interprocess communication via HTTP.
-        * Peer-to-Peer Sync.
-        * Integration with apps deployed inside web containers.
-        * Integration with other HTTP-capable languages and services.
-
-      On top of Couchbase Lite for .NET
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
     </releaseNotes>
     <copyright>Copyright 2015-2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>

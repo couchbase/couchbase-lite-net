@@ -12,10 +12,11 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A storage engine provider for Couchbase Lite .NET that utilizies the system-installed SQLite library</description>
     <releaseNotes>
-      Couchbase Lite for .NET 1.1.1 is a maintanence release on 1.1.0 and contains a number of fixes and enhancements.
-      For a full list please refer to https://github.com/couchbase/couchbase-lite-net/releases/tag/1.1.1
+Starting with Couchbase Lite 1.2 the disk persistence mechanism is modularized, meaning that at least one support package is required for it to function properly.  The Couchbase.Lite.Storage.SystemSQLite package is added by default as a required dependency.
+
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
     </releaseNotes>
-    <copyright>Copyright 2014-2016</copyright>
+    <copyright>Copyright 2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
   </metadata>

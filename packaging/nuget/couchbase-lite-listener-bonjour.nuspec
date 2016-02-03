@@ -12,9 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Enables Bonjour/DNS-SD Discovery for Peer-to-Peer Couchbase Lite applications.</description>
     <releaseNotes>
-      This package adds a component for consumption by Couchbase.Lite.Listener to enabled broadcast and browse
-      over Bonjour/DNS-SD.  The 1.1.1 release is a maintanence release on 1.1.0.  For full notes please refer to
-      https://github.com/couchbase/couchbase-lite-net/releases/tag/1.1.1
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
     </releaseNotes>
     <copyright>Copyright 2015-2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database bonjour dns-sd p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>

@@ -36,7 +36,8 @@
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
-  <Target Name="Build">
+  <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+  <Target Name="AfterBuild">
     <Message Text="Copying native components..." />
     <Copy SourceFiles="droid.targets" DestinationFolder="$(OutputPath)" />
     <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\arm64-v8a\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\arm64-v8a" />
@@ -44,4 +45,7 @@
     <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\x86\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\x86" />
     <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\x86_64\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\x86_64" />
   </Target>
+  <ItemGroup>
+    <Compile Include="Dummy.cs" />
+  </ItemGroup>
 </Project>

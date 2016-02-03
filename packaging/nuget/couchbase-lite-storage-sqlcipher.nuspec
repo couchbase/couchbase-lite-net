@@ -12,8 +12,11 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A storage engine provider for Couchbase Lite .NET that utilizies SQLCipher to gain encryption features.</description>
     <releaseNotes>
-      Couchbase Lite for .NET 1.1.1 is a maintanence release on 1.1.0 and contains a number of fixes and enhancements.
-      For a full list please refer to https://github.com/couchbase/couchbase-lite-net/releases/tag/1.1.1
+Starting with Couchbase Lite 1.2 the disk persistence mechanism is modularized, meaning that at least one support package is required for it to function properl
+y.  The Couchbase.Lite.Storage.SystemSQLite package is added by default as a req
+uired dependency.
+
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
     </releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
@@ -22,8 +25,8 @@
   <files>
     <!-- .NET 3.5 and later -->
     <file target="build/net35/Couchbase.Lite.Storage.SQLCipher.targets" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/net35.targets" />
-    <file target="build/net35/x86" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/x86/sqlcipher.dll" />
-    <file target="build/net35/x64" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/x64/sqlcipher.dll" />
+    <file target="build/net35/x86/sqlite3.dll" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/x86/sqlcipher.dll" />
+    <file target="build/net35/x64/sqlite3.dll" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/x64/sqlcipher.dll" />
     <file target="build/net35/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/libsqlcipher.dylib" />
     <file target="build/net35/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/libsqlcipher.so" />
     <file target="build/net35/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/SQLitePCL.raw.dll.config" />
