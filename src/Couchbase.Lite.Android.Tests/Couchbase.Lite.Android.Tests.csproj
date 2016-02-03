@@ -140,6 +140,11 @@
       <Name>storage.forestdb.droid</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.droid\storage.systemsqlite.droid.csproj">
+      <Project>{51DC5755-5EDE-45CE-97D2-D45078DA0F3B}</Project>
+      <Name>storage.systemsqlite.droid</Name>
+      <Private>False</Private>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\attachment.png" />
@@ -197,6 +202,7 @@
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+  <Import Project="..\StorageEngines\SystemSQLite\storage.systemsqlite.droid\bin\$(Configuration)\droid.targets" />
   <Import Project="..\StorageEngines\SQLCipher\storage.sqlcipher.droid\bin\$(Configuration)\droid.targets" />
   <Import Project="..\StorageEngines\ForestDB\storage.forestdb.droid\bin\$(Configuration)\droid.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
