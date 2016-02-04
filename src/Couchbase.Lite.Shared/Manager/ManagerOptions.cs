@@ -75,6 +75,11 @@ namespace Couchbase.Lite
 
         #if __IOS__
 
+        /// <summary>
+        /// Specify the file protection to be placed on database files
+        /// created by this managed (iOS only)
+        /// </summary>
+        /// <value>The file protection.</value>
         public Foundation.NSDataWritingOptions FileProtection { get; set; }
 
         #endif
@@ -94,7 +99,7 @@ namespace Couchbase.Lite
 
         internal void RestoreDefaults()
         {
-            MaxRetries = 10;
+            MaxRetries = 2;
 
             #if __IOS__ || __ANDROID__
             MaxOpenHttpConnections = 8;

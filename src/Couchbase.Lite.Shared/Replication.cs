@@ -58,6 +58,7 @@ using Sharpen;
 using Couchbase.Lite.Replicator;
 using Stateless;
 using System.Collections.Concurrent;
+using System.Text;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -152,6 +153,11 @@ namespace Couchbase.Lite
 
         #region Constants
 
+        /// <summary>
+        /// The protocol version to use when syncing with Sync Gateway.
+        /// This value is also included in all HTTP requests as the
+        /// User-Agent version.
+        /// </summary>
         public const string SYNC_PROTOCOL_VERSION = "1.2";
 
         internal const string CHANNELS_QUERY_PARAM = "channels";
@@ -225,7 +231,7 @@ namespace Couchbase.Lite
         private HashSet<string> _pendingDocumentIDs;
         private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
         private Guid _replicatorID = Guid.NewGuid();
-        protected CookieStore _cookieStore;
+        private CookieStore _cookieStore;
 
         #endregion
 
@@ -396,11 +402,10 @@ namespace Couchbase.Lite
             set
             {
                 if (value != _lastError) {
-                    var newException = value.Flatten();
-                    Log.E(TAG, " Progress: set error = ", newException);
+                    var newException = value == null ? null : value.Flatten();
+                    Log.E(TAG, " Progress: set error = {0}", (object)newException);
                     _lastError = newException;
                     NotifyChangeListeners();
-
                 }
             }
         }
@@ -563,11 +568,12 @@ namespace Couchbase.Lite
         /// </summary>
         protected internal IDictionary<String, Object> RequestHeaders { get; set; }
 
-        internal CookieStore CookieContainer
-        { 
-            get {
-                return _cookieStore;
-            }
+        /// <summary>
+        /// The container for storing cookies specific to this replication
+        /// </summary>
+        protected internal CookieStore CookieContainer
+        {
+            get { return _cookieStore; }
         }
 
         internal RemoteServerVersion ServerType { get; set; }
@@ -882,6 +888,7 @@ namespace Couchbase.Lite
         protected virtual void Retry()
         {
             LastError = null;
+            CheckSession();
         }
 
         /// <summary>
@@ -929,7 +936,7 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void CancelPendingRetryIfReady()
         {
-            if (_retryIfReadyTask != null && !_retryIfReadyTask.IsCanceled && _retryIfReadyTokenSource != null) {
+            if (_retryIfReadyTokenSource != null) {
                 _retryIfReadyTokenSource.Cancel();
             }
         }
@@ -940,12 +947,13 @@ namespace Couchbase.Lite
         protected virtual void ScheduleRetryIfReady()
         {
             _retryIfReadyTokenSource = new CancellationTokenSource();
-            _retryIfReadyTask = Task.Delay(RETRY_DELAY * 1000)
-                .ContinueWith(task =>
-                {
-                    if (_retryIfReadyTokenSource != null && !_retryIfReadyTokenSource.IsCancellationRequested)
-                        RetryIfReady();
-                }, _retryIfReadyTokenSource.Token);
+            var token = _retryIfReadyTokenSource.Token;
+            Task.Delay(TimeSpan.FromSeconds(RETRY_DELAY)).ContinueWith(task =>
+            {
+                if (!token.IsCancellationRequested) {
+                    RetryIfReady();
+                }
+            }, token);
         }
 
         /// <summary>
@@ -1195,7 +1203,7 @@ namespace Couchbase.Lite
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
 
-            var client = _clientFactory.GetHttpClient(_cookieStore);
+            var client = _clientFactory.GetHttpClient(_cookieStore, true);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = _clientFactory.Handler as DefaultAuthHandler;
@@ -1211,8 +1219,9 @@ namespace Couchbase.Lite
                 client.DefaultRequestHeaders.Authorization = authHeader;
             }
 
+            var bytes = default(byte[]);
             if (body != null) {
-                var bytes = mapper.WriteValueAsBytes(body).ToArray();
+                bytes = mapper.WriteValueAsBytes(body).ToArray();
                 var byteContent = new ByteArrayContent(bytes);
                 message.Content = byteContent;
                 message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
@@ -1235,8 +1244,10 @@ namespace Couchbase.Lite
                         error = response.Exception.InnerException;
                         Log.E(TAG, "Http Message failed to send: {0}", message);
                         Log.E(TAG, "Http exception", response.Exception.InnerException);
-                        if(message.Content != null) {
-                            Log.E(TAG, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
+                        if(bytes != null) {
+                            try {
+                                Log.E(TAG, "\tFailed content: {0}", Encoding.UTF8.GetString(bytes));
+                            } catch(ObjectDisposedException) {}
                         }
                     }
 
@@ -1245,7 +1256,7 @@ namespace Couchbase.Lite
 
                         try {
                             if(response.Status != TaskStatus.RanToCompletion) {
-                                Log.D(TAG, "SendAsyncRequest did not run to completion.", response.Exception);
+                                Log.D(TAG, "SendAsyncRequest did not run to completion.");
                             }
 
                             if(response.IsCanceled) {
@@ -1303,7 +1314,7 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                var client = _clientFactory.GetHttpClient(_cookieStore);
+                var client = _clientFactory.GetHttpClient(_cookieStore, true);
                 var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
                 if (challengeResponseAuth != null) {
                     var authHandler = _clientFactory.Handler as DefaultAuthHandler;
@@ -1349,7 +1360,7 @@ namespace Couchbase.Lite
                         } else {
                             var entity = response.Content;
                             var contentTypeHeader = response.Content.Headers.ContentType;
-                            InputStream inputStream = null;
+                            Stream inputStream = null;
                             if (contentTypeHeader != null && contentTypeHeader.ToString().Contains("multipart/related")) {
                                 try {
                                     var reader = new MultipartDocumentReader(LocalDatabase);
@@ -1364,7 +1375,7 @@ namespace Couchbase.Lite
                                     var buffer = new byte[bufLen];
 
                                     int numBytesRead = 0;
-                                    while ((numBytesRead = inputStream.Read(buffer)) != -1) {
+                                    while ((numBytesRead = inputStream.Read(buffer, 0, buffer.Length)) > 0) {
                                         if (numBytesRead != bufLen) {
                                             var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<Byte>(buffer, 0, numBytesRead);
                                             reader.AppendData(bufferToAppend);
@@ -1435,7 +1446,7 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            var client = _clientFactory.GetHttpClient(_cookieStore);
+            var client = _clientFactory.GetHttpClient(_cookieStore, true);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if(challengeResponseAuth != null) {
                 var authHandler = _clientFactory.Handler as DefaultAuthHandler;
@@ -1455,15 +1466,16 @@ namespace Couchbase.Lite
                 multiPartEntity.Dispose();
                 if (response.Status != TaskStatus.RanToCompletion)
                 {
-                    Log.E(TAG, "SendAsyncRequest did not run to completion.", response.Exception);
+                    LastError = response.Exception;
+                    Log.E(TAG, "SendAsyncRequest did not run to completion.");
                     client.Dispose();
-                    return null;
+                    return Task.FromResult((Stream)null);
                 }
                 if ((Int32)response.Result.StatusCode > 300) {
                     LastError = new HttpResponseException(response.Result.StatusCode);
                     Log.E(TAG, "Server returned HTTP Error", LastError);
                     client.Dispose();
-                    return null;
+                    return Task.FromResult((Stream)null);
                 }
                 return response.Result.Content.ReadAsStreamAsync();
             }, CancellationTokenSource.Token).ContinueWith(response=> 
@@ -1471,9 +1483,9 @@ namespace Couchbase.Lite
                 try {
                     var hasEmptyResult = response.Result == null || response.Result.Result == null || response.Result.Result.Length == 0;
                     if (response.Status != TaskStatus.RanToCompletion) {
-                        Log.E (TAG, "SendAsyncRequest did not run to completion.", response.Exception);
+                        Log.E (TAG, "SendAsyncRequest did not run to completion.");
                     } else if (hasEmptyResult) {
-                        Log.E (TAG, "Server returned an empty response.", response.Exception ?? LastError);
+                        Log.E (TAG, "Server returned an empty response.");
                     }
 
                     if (completionHandler != null) {
@@ -1483,7 +1495,7 @@ namespace Couchbase.Lite
                             fullBody = mapper.ReadValue<Object> (response.Result.Result);
                         }
 
-                        completionHandler (fullBody, response.Exception);
+                        completionHandler (fullBody, response.Exception ?? LastError);
                     }
                 } finally {
                     Task dummy;
@@ -2027,6 +2039,10 @@ namespace Couchbase.Lite
                     return;
                 }
 
+                if(_revisionsFailed > 0) {
+                    ScheduleRetryIfReady();
+                }
+
                 NotifyChangeListenersStateTransition(transition);
             });
 
@@ -2076,7 +2092,7 @@ namespace Couchbase.Lite
             NotifyChangeListeners(stateTransition);
         }
 
-        private void NotifyChangeListeners(ReplicationStateTransition transition = null)
+        private void NotifyChangeListeners(ReplicationStateTransition transition = null) 
         {
             Log.V(TAG, "NotifyChangeListeners ({0}/{1}, state={2} (batch={3}, net={4}))",
                 CompletedChangesCount, ChangesCount,
@@ -2124,6 +2140,7 @@ namespace Couchbase.Lite
         private readonly int _changesCount;
         private readonly int _completedChangesCount;
         private readonly ReplicationStatus _status;
+        private readonly Exception _lastError;
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.  Do not
@@ -2172,6 +2189,15 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Gets the most recent error that occured at the time of this change
+        /// </summary>
+        /// <value>The last error.</value>
+        public Exception LastError
+        {
+            get { return _lastError; }
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Couchbase.Lite.ReplicationChangeEventArgs"/> class.
         /// </summary>
         /// <param name="sender">The <see cref="Couchbase.Lite.Replication"/> that raised the event.</param>
@@ -2183,6 +2209,7 @@ namespace Couchbase.Lite
             _changesCount = sender.ChangesCount;
             _completedChangesCount = sender.CompletedChangesCount;
             _status = sender.Status;
+            _lastError = sender.LastError;
         }
     }
 

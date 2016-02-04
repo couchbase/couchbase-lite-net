@@ -165,28 +165,11 @@ namespace Couchbase.Lite
             Assert.IsNotNull(replicator);
             Assert.IsNotNull(replicator.Authenticator);
             Assert.IsTrue(replicator.Authenticator is BasicAuthenticator);
-
-            replicator.Start();
-
-            var doneEvent = new ManualResetEvent(false);
-
-            Task.Factory.StartNew(()=>
-            {
-                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-                while (DateTime.UtcNow < timeout)
-                {
-                    if (replicator.Status != ReplicationStatus.Active)
-                    {
-                        break;
-                    }
-                    Sleep(TimeSpan.FromMilliseconds(10));
-                }
-                doneEvent.Set();
-            });
-            Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(35)));
+            RunReplication(replicator);
 
             var lastError = replicator.LastError;
             Assert.IsNull(lastError);
+            Thread.Sleep(200);
         }
 
         [Test]

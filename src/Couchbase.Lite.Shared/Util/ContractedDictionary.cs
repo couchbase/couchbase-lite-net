@@ -156,7 +156,7 @@ namespace Couchbase.Lite.Util
         #region Constructors
 
         /// <summary>
-        /// Constructor
+        /// Default Constructor
         /// </summary>
         protected ContractedDictionary()
         {
@@ -168,6 +168,10 @@ namespace Couchbase.Lite.Util
             _contract = att.Contract;
         }
 
+        /// <summary>
+        /// Constrcutor for initializing with predetermined values
+        /// </summary>
+        /// <param name="source">The values to use in the dictionary.</param>
         protected ContractedDictionary(IDictionary<string, object> source) : this()
         {
             _inner = new ConcurrentDictionary<string, object>(source);

@@ -2,11 +2,7 @@
 
 pushd vendor
 if [ ! -d Touch.Unit ]; then
-  git clone https://github.com/spouliot/Touch.Unit.git
-  pushd Touch.Unit
-  git checkout e7d73c1a4d037193f589a08c22a18afd4d3baaf7
-  git apply ../../touch.unit-ios_fixes.patch
-  popd
+  git clone https://github.com/couchbasedeps/Touch.Unit.git
 fi
 
 if [ ! -d NUnitLite ]; then

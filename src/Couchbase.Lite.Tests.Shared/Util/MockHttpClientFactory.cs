@@ -79,14 +79,15 @@ namespace Couchbase.Lite.Tests
             HttpHandler = new MockHttpRequestHandler(defaultFail);
             HttpHandler.CookieContainer = new CookieStore(db, "MockHttpClient");
             HttpHandler.UseCookies = true;
-            HttpHandler.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+            HttpHandler.AutomaticDecompression = System.Net.DecompressionMethods.Deflate | System.Net.DecompressionMethods.GZip;
 
             Headers = new Dictionary<string,string>();
         }
 
-        public HttpClient GetHttpClient(CookieStore cookieStore)
+        public HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
         {
-            var client = new HttpClient(HttpHandler, false);
+            var handler = useRetryHandler ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler) : (HttpMessageHandler)HttpHandler;
+            var client = new HttpClient(handler, false);
             foreach (var header in Headers) {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
                 if (!success) {

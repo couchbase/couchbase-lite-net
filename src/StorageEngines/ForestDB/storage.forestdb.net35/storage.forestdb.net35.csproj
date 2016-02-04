@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D4BD5141-7703-4683-A500-34363F7CFBF4}</ProjectGuid>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
+    <OutputType>Library</OutputType>
+    <AssemblyName>storage.forestdb.net35</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="AfterBuild">
+    <Message Text="Copying native components..." />
+    <Copy SourceFiles="net35.targets;..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\libCBForest-Interop.dylib;..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\libCBForest-Interop.so;..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\CBForest-Interop.dll" DestinationFolder="$(OutputPath)" />
+  </Target>
+  <ItemGroup>
+    <Compile Include="Dummy.cs" />
+  </ItemGroup>
+</Project>

@@ -183,9 +183,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Platform.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
     <Folder Include="$(MSBuildThisFileDirectory)Database\" />
   </ItemGroup>

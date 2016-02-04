@@ -50,9 +50,16 @@ namespace Couchbase.Lite.Internal
 
         public void SetValue<T>(string type, string name, string dbName, T value)
         {
-            DbDict dbDict = _databases.GetOrAdd(dbName, k => new DbDict());
-            ConcurrentDictionary<string, object> typeDict = dbDict.GetOrAdd(type, k => new ConcurrentDictionary<string, object>());
-            typeDict.AddOrUpdate(name, k => value, (k, v) => value);
+            if (!(value is ValueType) && (object)value == null) {
+                object dummy;
+                DbDict dbDict = _databases.GetOrAdd(dbName, k => new DbDict());
+                ConcurrentDictionary<string, object> typeDict = dbDict.GetOrAdd(type, k => new ConcurrentDictionary<string, object>());
+                typeDict.TryRemove(name, out dummy);
+            } else {
+                DbDict dbDict = _databases.GetOrAdd(dbName, k => new DbDict());
+                ConcurrentDictionary<string, object> typeDict = dbDict.GetOrAdd(type, k => new ConcurrentDictionary<string, object>());
+                typeDict.AddOrUpdate(name, k => value, (k, v) => value);
+            }
         }
 
         public bool TryGetValue<T>(string type, string name, string dbName, out T result)

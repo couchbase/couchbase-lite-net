@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{47688577-270F-47DC-8EAF-7DB26012A0F3}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
+    <AssemblyName>storage.sqlcipher.net35</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="AfterBuild">
+    <Message Text="Copying native components..." />
+    <Copy SourceFiles="net35.targets;SQLitePCL.raw.dll.config;..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\osx\libsqlcipher.dylib;..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\linux\amd64\libsqlcipher.so" DestinationFolder="$(OutputPath)" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\windows\x86\sqlcipher.dll" DestinationFolder="$(OutputPath)\x86" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\vendor\sqlcipher\libs\windows\amd64\sqlcipher.dll" DestinationFolder="$(OutputPath)\x64" />
+  </Target>
+  <ItemGroup>
+    <Compile Include="Dummy.cs" />
+  </ItemGroup>
+</Project>

@@ -19,20 +19,23 @@
 // limitations under the License.
 //
 #define PARSED_KEYS
+//#define CONNECTION_PER_THREAD
 #if FORESTDB
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading;
 
 using CBForest;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
-using System.Text;
 
 namespace Couchbase.Lite.Store
 {
@@ -45,23 +48,46 @@ namespace Couchbase.Lite.Store
 
         private ForestDBCouchStore _dbStorage;
         private string _path;
-        private C4View* _indexDB;
+#if CONNECTION_PER_THREAD
+        private ConcurrentDictionary<int, IntPtr> _fdbConnections =
+            new ConcurrentDictionary<int, IntPtr>();
+#endif
 
         public IViewStoreDelegate Delegate { get; set; }
 
         public string Name { get; private set; }
 
+        private C4View* IndexDB
+        {
+            get {
+    #if CONNECTION_PER_THREAD
+                return (C4View*)_fdbConnections.GetOrAdd(Thread.CurrentThread.ManagedThreadId, 
+                    x => new IntPtr(OpenIndex())).ToPointer();
+    #else
+                if(_indexDB == null) {
+                    _indexDB = OpenIndex();
+                }
+
+                return _indexDB;
+    #endif
+                
+            }
+        }
+
+#if !CONNECTION_PER_THREAD
+        private C4View *_indexDB;
+#endif
+
+
         public int TotalRows 
         {
             get {
                 try {
-                    OpenIndex();
+                    return (int)Native.c4view_getTotalRows(IndexDB);
                 } catch(Exception e) {
                     Log.W(TAG, "Exception opening index while getting total rows", e);
                     return 0;
                 }
-
-                return (int)Native.c4view_getTotalRows(_indexDB);
             }
         }
 
@@ -69,13 +95,11 @@ namespace Couchbase.Lite.Store
         {
             get {
                 try {
-                    OpenIndex();
+                    return (long)Native.c4view_getLastSequenceChangedAt(IndexDB);
                 } catch(Exception e) {
                     Log.W(TAG, "Exception opening index while getting last sequence changed at", e);
                     return 0;
                 }
-
-                return (long)Native.c4view_getLastSequenceChangedAt(_indexDB);
             }
         }
 
@@ -83,13 +107,11 @@ namespace Couchbase.Lite.Store
         {
             get {
                 try {
-                    OpenIndex();
+                    return (long)Native.c4view_getLastSequenceIndexed(IndexDB);
                 } catch(Exception e) {
                     Log.W(TAG, "Exception opening index while getting last sequence indexed", e);
                     return 0;
                 }
-
-                return (long)Native.c4view_getLastSequenceIndexed(_indexDB);
             }
         }
 
@@ -100,8 +122,10 @@ namespace Couchbase.Lite.Store
             _dbStorage = dbStorage;
             Name = name;
 
-            _path = Path.Combine(_dbStorage.Directory, ViewNameToFilename(name));
-            if (!File.Exists(_path)) {
+            var filename = ViewNameToFilename(name);
+            _path = Path.Combine(_dbStorage.Directory, filename);
+            var files = System.IO.Directory.GetFiles(_dbStorage.Directory, filename + "*");
+            if (files.Length == 0) {
                 if (!create) {
                     throw new InvalidOperationException(String.Format(
                         "Create is false but no db file exists at {0}", _path));
@@ -138,7 +162,7 @@ namespace Couchbase.Lite.Store
 
         public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
         {
-            return new AtomicAction(() =>
+            return new AtomicAction(() => {
                 ForestDBBridge.Check(err => 
                 {
                     var newc4key = default(C4EncryptionKey);
@@ -146,34 +170,41 @@ namespace Couchbase.Lite.Store
                         newc4key = new C4EncryptionKey(newKey.KeyData);
                     }
 
-                    return Native.c4view_rekey(_indexDB, &newc4key, err);
-                }), null, null);
+                    return Native.c4view_rekey(IndexDB, &newc4key, err);
+                });
+
+                CloseIndex();
+           }, null, null);
         }
 
         internal static string FileNameToViewName(string filename)
         {
-            if(!filename.EndsWith(VIEW_INDEX_PATH_EXTENSION)) {
+            if(!filename.Contains(VIEW_INDEX_PATH_EXTENSION)) {
                 return null;
             }
 
-            var viewName = Path.ChangeExtension(filename, String.Empty);
-            return UnescapeString(viewName).TrimEnd('.');
+            var parts = filename.Split('.');
+            return UnescapeString(parts[0]);
         }
 
         private void CloseIndex()
         {
-            var indexDB = _indexDB;
-            _indexDB = null;
-            if (indexDB != null) {
-                Log.D(TAG, "Closing index");
-                ForestDBBridge.Check(err => Native.c4view_close(indexDB, err));
+#if CONNECTION_PER_THREAD
+            var connections = _fdbConnections.Values.ToArray();
+            _fdbConnections.Clear();
+            foreach (var connection in connections) {
+                ForestDBBridge.Check(err => Native.c4view_close((C4View*)connection.ToPointer(), err));
             }
+#else
+            var indexDb = _indexDB;
+            _indexDB = null;
+            ForestDBBridge.Check(err => Native.c4view_close(indexDb, err));
+#endif
         }
 
         private C4View* OpenIndexWithOptions(C4DatabaseFlags options, bool dryRun = false)
         {
-            if (_indexDB == null) {
-                _indexDB = (C4View*)ForestDBBridge.Check(err =>
+                var retVal = (C4View*)ForestDBBridge.Check(err =>
                 {
                     var encryptionKey = default(C4EncryptionKey);
                     if(_dbStorage.EncryptionKey != null) {
@@ -185,26 +216,14 @@ namespace Couchbase.Lite.Store
                 });
 
                 if (dryRun) {
-                    ForestDBBridge.Check(err => Native.c4view_close(_indexDB, err));
-                    _indexDB = null;
+                    ForestDBBridge.Check(err => Native.c4view_close(retVal, err));
                 }
-            }
 
-            return _indexDB;
-        }
-
-        // Needed to call from inside an iterator
-        private void OpenIndexNoReturn()
-        {
-            OpenIndex(); 
+            return retVal;
         }
 
         private C4View* OpenIndex()
         {
-            if (_indexDB != null) {
-                return _indexDB;
-            }
-
             return OpenIndexWithOptions((C4DatabaseFlags)0);
         }
 
@@ -231,11 +250,11 @@ namespace Couchbase.Lite.Store
             fixed(char* ptr = unescaped) {
                 var currentCharPtr = ptr;
                 while(length < unescaped.Length) {
-                    var bytesWritten = Encoding.UTF8.GetBytes(currentCharPtr, 1, bufPtr, 6);
+                    var numBytes = Encoding.UTF8.GetBytes(currentCharPtr, 1, bufPtr, 6);
                     if(IsLegalChar(buffer[0])) {
                         sb.Append(*currentCharPtr);
                     } else {
-                        sb.AppendFormat("@{0}", Misc.ConvertToHex(buffer));
+                        sb.AppendFormat("@{0}", Misc.ConvertToHex(buffer, numBytes));
                     }
 
                     currentCharPtr++;
@@ -279,7 +298,6 @@ namespace Couchbase.Lite.Store
 
         private CBForestQueryEnumerator QueryEnumeratorWithOptions(QueryOptions options)
         {
-            Debug.Assert(_indexDB != null);
             var enumerator = default(C4QueryEnumerator*);
             using(var startkeydocid_ = new C4String(options.StartKeyDocId))
             using(var endkeydocid_ = new C4String(options.EndKeyDocId)) {
@@ -304,7 +322,7 @@ namespace Couchbase.Lite.Store
                             opts.keys = keysPtr;
                             enumerator = (C4QueryEnumerator*)ForestDBBridge.Check(err => {
                                 var localOpts = opts;
-                                return Native.c4view_query(_indexDB, &localOpts, err);
+                                return Native.c4view_query(IndexDB, &localOpts, err);
                             });
                         }
                     })
@@ -403,13 +421,13 @@ namespace Couchbase.Lite.Store
 
         public void DeleteIndex()
         {
-            ForestDBBridge.Check(err => Native.c4view_eraseIndex(_indexDB, err));
+            ForestDBBridge.Check(err => Native.c4view_eraseIndex(IndexDB, err));
         }
 
         public void DeleteView()
         {
             _dbStorage.ForgetViewStorage(Name);
-            ForestDBBridge.Check(err => Native.c4view_delete(_indexDB, err));
+            ForestDBBridge.Check(err => Native.c4view_delete(IndexDB, err));
         }
 
         public bool SetVersion(string version)
@@ -427,7 +445,7 @@ namespace Couchbase.Lite.Store
             var viewInfo = viewsArray.Select(x => Tuple.Create(x, x.LastSequenceIndexed)).ToArray();
             var nativeViews = new C4View*[viewsArray.Length];
             for (int i = 0; i < viewsArray.Length; i++) {
-                nativeViews[i] = viewsArray[i]._indexDB;
+                nativeViews[i] = viewsArray[i].IndexDB;
             }
 
             var indexer = (C4Indexer*)ForestDBBridge.Check(err => Native.c4indexer_begin(_dbStorage.Forest, nativeViews, err));
@@ -440,6 +458,7 @@ namespace Couchbase.Lite.Store
                     var seq = next.Sequence;
 
                     for (int i = 0; i < viewInfo.Length; i++) {
+                        
                         var info = viewInfo[i];
                         if (seq <= info.Item2) {
                             continue; // This view has already indexed this sequence
@@ -456,7 +475,7 @@ namespace Couchbase.Lite.Store
                         var values = new List<string>();
 
                         var conflicts = default(List<string>);
-                        foreach(var leaf in new CBForestHistoryEnumerator(next, true, false)) {
+                        foreach(var leaf in new CBForestHistoryEnumerator(_dbStorage.Forest, next.Sequence, true)) {
                             if(leaf.SelectedRev.revID.Equals(leaf.CurrentRevID)) {
                                 continue;
                             }
@@ -477,10 +496,15 @@ namespace Couchbase.Lite.Store
                         }
 
                         try {
-                            viewDelegate.Map(rev.GetProperties(), (key, value) =>
+                            var props = rev.GetProperties();
+                            viewDelegate.Map(props, (key, value) =>
                             {
                                 keys.Add(key);
-                                values.Add(Manager.GetObjectMapper().WriteValueAsString(value));
+                                if(props == value) {
+                                    values.Add("*");
+                                } else {
+                                    values.Add(Manager.GetObjectMapper().WriteValueAsString(value));
+                                }
                             });
                         } catch (Exception e) {
                             Log.W(TAG, String.Format("Exception thrown in map function of {0}", info.Item1.Name), e);
@@ -512,19 +536,24 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<QueryRow> RegularQuery(QueryOptions options)
         {
-            OpenIndexNoReturn();
             var enumerator = QueryEnumeratorWithOptions(options); 
             foreach (var next in enumerator) {
-                var docRevision = _dbStorage.GetDocument(next.DocID, null, options.IncludeDocs);
+                
                 var key = Manager.GetObjectMapper().DeserializeKey<object>(next.Key);
                 var value = (next.Value as IEnumerable<byte>).ToArray();
-                yield return new QueryRow(docRevision.GetDocId(), docRevision.GetSequence(), key, value, docRevision, this);
+                var docRevision = default(RevisionInternal); 
+                if (value.Length == 1 && value[0] == 42) {
+                    docRevision = _dbStorage.GetDocument(next.DocID, null, true);
+                } else {
+                    docRevision = _dbStorage.GetDocument(next.DocID, null, options.IncludeDocs);
+                }
+
+                yield return new QueryRow(next.DocID, next.DocSequence, key, value, docRevision, this);
             }
         }
 
         public IEnumerable<QueryRow> ReducedQuery(QueryOptions options)
         {
-            OpenIndexNoReturn();
             var groupLevel = options.GroupLevel;
             var group = options.Group || groupLevel > 0;
 
@@ -603,7 +632,6 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<IDictionary<string, object>> Dump()
         {
-            OpenIndexNoReturn();
             var enumerator = QueryEnumeratorWithOptions(new QueryOptions());
             foreach (var next in enumerator) {
                 yield return new Dictionary<string, object> {

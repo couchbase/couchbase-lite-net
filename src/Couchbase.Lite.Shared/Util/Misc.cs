@@ -120,10 +120,14 @@ namespace Couchbase.Lite
             return ConvertToHex(sha1hash);
         }
 
-        public static string ConvertToHex(byte[] data)
+        public static string ConvertToHex(byte[] data, int numBytes = -1)
         {
             StringBuilder buf = new StringBuilder();
-            for (int i = 0; i < data.Length; i++)
+            if (numBytes == -1) {
+                numBytes = data.Length;
+            }
+
+            for (int i = 0; i < numBytes; i++)
             {
                 int halfbyte = (data[i] >> 4) & unchecked((0x0F));
                 int two_halfs = 0;
@@ -157,17 +161,37 @@ namespace Couchbase.Lite
 
         public static bool IsTransientNetworkError(Exception error)
         {
-            return error is IOException
+            var ae = error as AggregateException;
+            if (ae != null) {
+                error = Sharpen.Extensions.Flatten(ae);
+            }
+
+            if (error is IOException
                 || error is TimeoutException
-                || error is WebException
-                || error is SocketException;
-                //|| error is WebSocketException;
+                || error is SocketException) {
+                return true;
+            }
+
+            var we = error as WebException;
+            if (we == null) {
+                return false;
+            }
+
+            if (we.Status == WebExceptionStatus.ConnectFailure || we.Status == WebExceptionStatus.Timeout ||
+               we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled) {
+                return true;
+            }
+
+            if (we.Response == null) {
+                return false;
+            }
+
+            return IsTransientError(((HttpWebResponse)we.Response).StatusCode);
         }
 
         public static bool IsTransientError(HttpResponseMessage response)
         {
-            if (response == null)
-            {
+            if (response == null) {
                 return false;
             }
 
@@ -176,30 +200,11 @@ namespace Couchbase.Lite
 
         public static bool IsTransientError(HttpStatusCode status)
         {
-            if (status == HttpStatusCode.InternalServerError || 
+            return status == HttpStatusCode.InternalServerError || 
                 status == HttpStatusCode.BadGateway || 
                 status == HttpStatusCode.ServiceUnavailable || 
-                status == HttpStatusCode.GatewayTimeout)
-            {
-                return true;
-            }
-            return false;
+                status == HttpStatusCode.GatewayTimeout;
         }
-
-        /// <exception cref="Couchbase.Lite.Store.SQLException"></exception>
-        /*public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
-        {
-            byte[] result = null;
-            using (var cursor = database.IntransactionRawQuery(query, args))
-            {
-                if (cursor.MoveToNext())
-                {
-                    result = cursor.GetBlob(0);
-                }
-                return result;
-            }
-        }*/
-
 
         /// <summary>Like equals, but works even if either/both are null</summary>
         /// <param name="obj1">object1 being compared</param>

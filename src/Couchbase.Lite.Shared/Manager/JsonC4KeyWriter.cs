@@ -155,6 +155,20 @@ namespace Couchbase.Lite
             Native.c4key_addString(_c4key, value);
         }
 
+        public override void WriteValue(DateTime value)
+        {
+            WriteValue(value.ToString("o"));
+        }
+
+        public override void WriteValue(DateTime? value)
+        {
+            if (!value.HasValue) {
+                WriteNull();
+            } else {
+                WriteValue(value.Value);
+            }
+        }
+
         #endregion
     }
 }

@@ -10,7 +10,7 @@ namespace Couchbase.Lite.Util
 	interface IRetryStrategy
 	{
         Task<HttpResponseMessage> Retry();
-        Int32 RetriesRemaining { get; }
+        int RetriesRemaining { get; }
         CancellationToken Token { get; }
 	}
 }

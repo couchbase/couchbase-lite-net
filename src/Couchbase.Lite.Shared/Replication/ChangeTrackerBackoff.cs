@@ -41,57 +41,47 @@
 //
 
 using System;
-using Couchbase.Lite.Util;
 using System.Threading;
 
 namespace Couchbase.Lite.Replicator
 {
     internal class ChangeTrackerBackoff
     {
-        internal const int MaxSleepMilliseconds = 5 * 60 * 1000;
+        private const int MAX_RETRY_DELAY = 10 * 60;
+        private const int INITIAL_DELAY = 2;
         private const string Tag = "ChangeTrackerBackoff";
 
- // 5 Mins
-
-        public Int32 NumAttempts { get; private set; }
+        public int NumAttempts { get; private set; }
 
         public void ResetBackoff()
         {
             NumAttempts = 0;
         }
 
-        public long GetSleepMilliseconds()
+        public TimeSpan GetSleepTime()
         {
-            var result = (long)(Math.Pow(NumAttempts, 2) - 1) / 2;
-            result *= 100;
-
-            if (result < MaxSleepMilliseconds)
-            {
-                IncreaseBackoff();
-            }
-
-            result = Math.Abs(result);
-
-            return result;
+            return GetSleepTime(false);
         }
 
         public void SleepAppropriateAmountOfTime()
         {
             try
             {
-                var sleepMilliseconds = GetSleepMilliseconds();
-                if (sleepMilliseconds > 0)
-                {
-                    Log.D(Tag, "Sleeping for {0} milliseconds.", sleepMilliseconds);
-                    Thread.Sleep(TimeSpan.FromMilliseconds(sleepMilliseconds));
-                }
+                Thread.Sleep(GetSleepTime(true));
             }
             catch (Exception) { }
         }
 
-        private void IncreaseBackoff()
+        private TimeSpan GetSleepTime(bool increment)
         {
-            NumAttempts += 1;
+            var result = INITIAL_DELAY * (1 << Math.Min(NumAttempts, 16));
+            result = Math.Min(MAX_RETRY_DELAY, result);
+
+            if (increment) {
+                NumAttempts += 1;
+            }
+
+            return TimeSpan.FromSeconds(result);
         }
     }
 }

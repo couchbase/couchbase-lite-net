@@ -57,7 +57,9 @@ using Couchbase.Lite.Tests;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections;
+#if !NET_3_5
 using CBForest;
+#endif
 using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite
@@ -86,7 +88,7 @@ namespace Couchbase.Lite
                 Assert.IsTrue(push.CompletedChangesCount==40);
 
                 Assert.IsNull(push.LastError);
-                Assert.AreEqual(40, database.DocumentCount);
+                Assert.AreEqual(40, database.GetDocumentCount());
 
                 for (int i = 0; i <= 5; i++) {
                     pull = database.CreatePullReplication(remoteDb.RemoteUri);
@@ -1534,7 +1536,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
             query1.Stop();
 
-            Assert.AreEqual((2 * numDocs) + 5, database.DocumentCount);
+            Assert.AreEqual((2 * numDocs) + 5, database.GetDocumentCount());
         }
 
         [Test]
@@ -1770,8 +1772,7 @@ namespace Couchbase.Lite
             properties["tag"] = "3";
             newRev = rev1.CreateRevision();
             newRev.SetProperties(properties);
-            var rev2c = default(SavedRevision);
-            Assert.DoesNotThrow(() => rev2c = newRev.Save(true));
+            Assert.DoesNotThrow(() => newRev.Save(true));
 
             rows = query.Run();
             Assert.AreEqual(1, rows.Count);
@@ -1779,6 +1780,69 @@ namespace Couchbase.Lite
             Assert.AreEqual(doc.Id, row.Key);
             conflicts = new List<string> { rev2a.Id, rev2b.Id };
             CollectionAssert.AreEquivalent(conflicts, row.ValueAs<IEnumerable<string>>());
+        }
+
+        [Test]
+        public void TestViewWithDocDeletion()
+        {
+            var view = database.GetView("vu");
+            Assert.IsNotNull(view);
+            view.SetMap((doc, emit) =>
+            {
+                var type = doc.GetCast<string>("type");
+                if(type == "task") {
+                    var date = doc.Get("created_at");
+                    var listId = doc.Get("list_id");
+                    emit(new[] { listId, date }, doc);
+                }
+            }, "1");
+
+            Assert.IsNotNull(view.Map);
+            Assert.AreEqual(0, view.TotalRows);
+
+            const string insertListId = "list1";
+
+            var doc1 = CreateDocumentWithProperties(database, new Dictionary<string, object> {
+                { "_id", "doc1" },
+                { "type", "task" },
+                { "created_at", DateTime.Now },
+                { "list_id", insertListId }
+            });
+            Assert.IsNotNull(doc1);
+
+            var doc2 = CreateDocumentWithProperties(database, new Dictionary<string, object> {
+                { "_id", "doc2" },
+                { "type", "task" },
+                { "created_at", DateTime.Now },
+                { "list_id", insertListId }
+            });
+            Assert.IsNotNull(doc2);
+
+            var doc3 = CreateDocumentWithProperties(database, new Dictionary<string, object> {
+                { "_id", "doc3" },
+                { "type", "task" },
+                { "created_at", DateTime.Now },
+                { "list_id", insertListId }
+            });
+            Assert.IsNotNull(doc3);
+
+            var query = view.CreateQuery();
+            query.Descending = true;
+            query.StartKey = new object[] { insertListId, new Dictionary<string, object>() };
+            query.EndKey = new[] { insertListId };
+
+            var rows = default(QueryEnumerator);
+            Assert.DoesNotThrow(() => rows = query.Run());
+            Assert.AreEqual(3, rows.Count);
+            Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
+            Assert.AreEqual(doc2.Id, rows.ElementAt(1).DocumentId);
+            Assert.AreEqual(doc1.Id, rows.ElementAt(2).DocumentId);
+            Assert.DoesNotThrow(doc2.Delete);
+
+            Assert.DoesNotThrow(() => rows = query.Run());
+            Assert.AreEqual(2, rows.Count);
+            Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
+            Assert.AreEqual(doc1.Id, rows.ElementAt(1).DocumentId);
         }
 
         private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)

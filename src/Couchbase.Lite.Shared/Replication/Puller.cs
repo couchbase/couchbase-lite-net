@@ -56,10 +56,13 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Net;
+
 
 #if !NET_3_5
 using StringEx = System.String;
+using System.Net;
+#else
+using System.Net.Couchbase;
 #endif
 
 namespace Couchbase.Lite.Replicator
@@ -144,7 +147,8 @@ namespace Couchbase.Lite.Replicator
                 ? ChangeTrackerMode.LongPoll 
                 : ChangeTrackerMode.OneShot;
 
-            _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
+            var initialSync = LocalDatabase.IsOpen && LocalDatabase.GetDocumentCount() == 0;
+            _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, initialSync, this, WorkExecutor);
             _changeTracker.Authenticator = Authenticator;
             if(DocIds != null) {
                 if(ServerType != null && ServerType.Name == "CouchDB") {
@@ -357,7 +361,7 @@ namespace Couchbase.Lite.Replicator
             try
             {
                 dl = new BulkDownloader(WorkExecutor, ClientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
-                dl.CookieStore = _cookieStore;
+                dl.CookieStore = CookieContainer;
                 dl.DocumentDownloaded += (sender, args) =>
                 {
                     var props = args.DocumentProperties;
@@ -425,7 +429,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             dl.Authenticator = Authenticator;
-            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.None, WorkExecutor.Scheduler);
+            WorkExecutor.StartNew(dl.Start, CancellationTokenSource.Token, TaskCreationOptions.None, WorkExecutor.Scheduler);
         }
 
         // Get as many revisions as possible in one _all_docs request.
@@ -960,7 +964,7 @@ namespace Couchbase.Lite.Replicator
 
         public HttpClient GetHttpClient()
         {
-            var client = ClientFactory.GetHttpClient(_cookieStore);
+            var client = ClientFactory.GetHttpClient(CookieContainer, false);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = ClientFactory.Handler as DefaultAuthHandler;

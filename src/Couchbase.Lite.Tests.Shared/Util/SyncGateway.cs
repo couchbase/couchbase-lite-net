@@ -353,6 +353,26 @@ namespace Couchbase.Lite.Tests
         }
 
         public SyncGateway(string protocol, string server) : base(protocol, server, 4984, 4985) {}
+
+        public void SetOnline(string dbName)
+        {
+            var uri = new Uri(AdminUri, String.Format("{0}/_online", dbName));
+            var message = WebRequest.CreateHttp(uri);
+            message.Method = "POST";
+            using (var response = (HttpWebResponse)message.GetResponse()) {
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            }
+        }
+
+        public void SetOffline(string dbName)
+        {
+            var uri = new Uri(AdminUri, String.Format("{0}/_offline", dbName));
+            var message = WebRequest.CreateHttp(uri);
+            message.Method = "POST";
+            using (var response = (HttpWebResponse)message.GetResponse()) {
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            }
+        }
     }
 
     public sealed class CouchDB : RemoteEndpoint

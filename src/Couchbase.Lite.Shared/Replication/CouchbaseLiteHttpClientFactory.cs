@@ -130,7 +130,7 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        internal HttpMessageHandler BuildHandlerPipeline (CookieStore store)
+        internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, bool useRetryHandler)
         {
             var handler = new HttpClientHandler {
                 CookieContainer = store,
@@ -142,19 +142,21 @@ namespace Couchbase.Lite.Support
             //handler.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
 
             if(handler.SupportsAutomaticDecompression) {
-                handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
             }
 
             Handler = new DefaultAuthHandler (handler, store);
+            if (!useRetryHandler) {
+                return handler;
+            }
 
             var retryHandler = new TransientErrorRetryHandler(Handler);
-
             return retryHandler;
         }
 
-        public HttpClient GetHttpClient(CookieStore cookieStore)
+        public HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
         {
-            var authHandler = BuildHandlerPipeline(cookieStore);
+            var authHandler = BuildHandlerPipeline(cookieStore, useRetryHandler);
 
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 

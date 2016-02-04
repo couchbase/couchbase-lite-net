@@ -60,12 +60,8 @@ namespace Couchbase.Lite.Support
     /// </summary>
     internal interface IHttpClientFactory
     {
-        /// <summary>
-        /// Gets the HttpClient object for use in replication
-        /// </summary>
-        /// <param name="chunkedMode">A flag for chunked mode (i.e. the connection stays open for heartbeat, etc)</param>
-        /// <returns>The http client.</returns>
-        HttpClient GetHttpClient(CookieStore cookieStore);
+        // Create an HTTP client based on the cookie store
+        HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler);
 
         /// <summary>
         /// Gets or sets the headers used by default in the HttpClient

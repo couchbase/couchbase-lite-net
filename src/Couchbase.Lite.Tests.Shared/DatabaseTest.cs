@@ -202,7 +202,7 @@ namespace Couchbase.Lite
 
             var doc = CreateDocumentWithProperties(database, properties);
             var rev = doc.CurrentRevision;
-            database.MaxRevTreeDepth = 1;
+            database.SetMaxRevTreeDepth(1);
 
             for (int i = 0; i < 10; i++)
             {
@@ -231,7 +231,7 @@ namespace Couchbase.Lite
 
             var doc = CreateDocumentWithProperties(database, properties);
             var rev = doc.CurrentRevision;
-            database.MaxRevTreeDepth = 1;
+            database.SetMaxRevTreeDepth(1);
 
             for (int i = 0; i < 10; i++)
             {

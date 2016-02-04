@@ -23,9 +23,11 @@ Next, ask the Database (instantiated when you initialized Couchbase Lite, rememb
 Finally save the contents to the document:
 
 ```
-    var result = doc.PutProperties (vals);
-    if (result == null)
-        throw new ApplicationException ("failed to save a new document");
+try {
+  doc.PutProperties (vals);
+} catch(CouchbaseLiteException) {
+  throw new ApplicationException("Failed to save a new Document");
+}
 ```
 
 ## Reading A Document
@@ -34,24 +36,19 @@ If later on you want to retrieve the contents of the document, you'll need to ob
 
 There are two ways to get the `Document`:
 
- 1. You might know its ID (maybe you kept it in memory, maybe you got it from `NSUserDefaults` or even from a property of another document), in which case you can call `database.DocumentWithID`.
+ 1. You might know its ID (maybe you kept it in memory, maybe you got it from `NSUserDefaults` or even from a property of another document), in which case you can call `database.GetExistingDocument()`.
  2. Or you might be iterating the results of a view query (or `AllDocument`, which is a special view), in which case you can get it from the `QueryRow`'s `document` property.
 
-Then to get the document's contents, access its `properties` property:
+Then to get the document's contents, access its `Properties` property:
 
 ```
 	Document doc = this.Database.GetExistingDocument(documentID);
 	IDictionary<string,object> contents = doc.Properties;
+  var text = (string) doc.Properties["text"];
+  var checked = (bool) doc.Properties["check"];
 ```
 
-Alternatively, you can use the shortcut `PropertyForKey` to get one property at a time:
-
-```
-	var text = (string) doc.Properties["text"];
-	var checked = (bool) doc.Properties["check"];
-```
-
-You might be wondering which of these lines actually hits the database. The answer is that the `Document` starts out empty and loads its contents on demand, then caches them in memory; so it's the call to `document.Properties` in the first example, or the first `PropertyForKey` call in the second example. Afterwards, getting properties is as cheap as a dictionary lookup. (For this reason it's best not to keep references to huge numbers of `Document` objects, or you'll end up storing all their contents in memory. Instead, rely on queries to look up documents as you need them.)
+You might be wondering which of these lines actually hits the database. The answer is that the `Document` starts out empty and loads its contents on demand, then caches them in memory; so it's the call to `document.Properties` that does it. Afterwards, getting properties is as cheap as a dictionary lookup. (For this reason it's best not to keep references to huge numbers of `Document` objects, or you'll end up storing all their contents in memory. Instead, rely on queries to look up documents as you need them.)
 
 ## Updating A Document
 
@@ -71,14 +68,30 @@ Fortunately this is painlessly accomplished, since the `_rev` property was alrea
 Finally you save the document the same way you did when you created it:
 
 ```
-    SavedVersion newVersion = doc.PutProperties(newProperties);
-    if (newVersion == null)
-        ShowErrorAlert("Couldn't update the item.");
+    SavedRevision newVersion = null;
+    try {
+      newVersion = doc.PutProperties(newProperties);
+    } catch(CouchbaseLiteException) {
+      ShowErrorAlert("Couldn't update the item.");
+    }
+```
+
+Alternatively, you can take an easier route and use the `Update()` method.  This works on a similar basis to `PutProperties` but will retry in the event of a conflict so you don't need to worry about including the `_rev` item.  It will look something like this:
+
+```
+    SavedRevision newVersion = doc.Update(rev =>
+    {
+      var props = rev.UserProperties;
+      // Edit props
+      rev.SetUserProperties(props);
+
+      return true;
+    });
 ```
 
 ## Deleting A Document
 
-Deleting is a lot like updating; instead of calling `PutProperties:` you call `DeleteDocument:`. Here's the sample code, which should be familiar looking by now:
+Deleting is a lot like updating; instead of calling `PutProperties()` you call `Delete()`. Here's the sample code, which should be familiar looking by now:
 
 ```
     doc.Delete();

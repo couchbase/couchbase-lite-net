@@ -30,16 +30,19 @@
     <WarningLevel>4</WarningLevel>
     <AndroidLinkMode>None</AndroidLinkMode>
     <ConsolePause>false</ConsolePause>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <ConsolePause>false</ConsolePause>
-    <AndroidSupportedAbis>armeabi;armeabi-v7a;x86;arm64-v8a;x86_64</AndroidSupportedAbis>
     <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <EmbedAssembliesIntoApk>True</EmbedAssembliesIntoApk>
+    <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
+    <AndroidSupportedAbis>armeabi;armeabi-v7a;x86;arm64-v8a;x86_64</AndroidSupportedAbis>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -75,7 +78,6 @@
     <Compile Include="MainActivity.cs" />
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="CollectionAssert.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -120,10 +122,6 @@
       <Project>{4549834B-28B6-4A54-A3EC-978D0E582444}</Project>
       <Name>Couchbase.Lite.Listener.Bonjour.Android</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.android.pinvoke_packaged_sqlcipher.anycpu.csproj">
-      <Project>{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1}</Project>
-      <Name>platform.android.pinvoke_packaged_sqlcipher.anycpu</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Droid\cbforest-sharp.Droid.csproj">
       <Project>{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}</Project>
       <Name>cbforest-sharp.Droid</Name>
@@ -131,6 +129,21 @@
     <ProjectReference Include="vendor\Andr.Unit\Android.NUnitLite\Android.NUnitLite.csproj">
       <Project>{6A005891-A3D6-4398-A729-F645397D573A}</Project>
       <Name>Android.NUnitLite</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\SQLCipher\storage.sqlcipher.droid\storage.sqlcipher.droid.csproj">
+      <Project>{9C5FAB56-F098-4809-8465-65257A59B8BD}</Project>
+      <Name>storage.sqlcipher.droid</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\ForestDB\storage.forestdb.droid\storage.forestdb.droid.csproj">
+      <Project>{9CEE0189-1533-484D-A957-664B1A372EAA}</Project>
+      <Name>storage.forestdb.droid</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.droid\storage.systemsqlite.droid.csproj">
+      <Project>{51DC5755-5EDE-45CE-97D2-D45078DA0F3B}</Project>
+      <Name>storage.systemsqlite.droid</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -158,9 +171,40 @@
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
       <Link>Assets\perftest.properties</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\Multipart1.mime">
+      <Link>Assets\Multipart1.mime</Link>
+      <LogicalName>Multipart1.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartBinary.mime">
+      <Link>Assets\MultipartBinary.mime</Link>
+      <LogicalName>MultipartBinary.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartGZipped.mime">
+      <Link>Assets\MultipartGZipped.mime</Link>
+      <LogicalName>MultipartGZipped.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartStars.mime">
+      <Link>Assets\MultipartStars.mime</Link>
+      <LogicalName>MultipartStars.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120.zip">
+      <Link>Assets\ios120.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120.zip">
+      <Link>Assets\android120.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120-forestdb.zip">
+      <Link>Assets\android120-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120-forestdb.zip">
+      <Link>Assets\ios120-forestdb.zip</Link>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+  <Import Project="..\StorageEngines\SystemSQLite\storage.systemsqlite.droid\bin\$(Configuration)\droid.targets" />
+  <Import Project="..\StorageEngines\SQLCipher\storage.sqlcipher.droid\bin\$(Configuration)\droid.targets" />
+  <Import Project="..\StorageEngines\ForestDB\storage.forestdb.droid\bin\$(Configuration)\droid.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>

@@ -109,6 +109,7 @@ namespace Couchbase.Lite.Replicator
         protected internal IDictionary<string, object> RequestHeaders;
 
         private CancellationTokenSource tokenSource;
+        private bool _initialSync;
 
         CancellationTokenSource changesFeedRequestTokenSource;
 
@@ -129,8 +130,6 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-
-        /// <summary>Set Authenticator for BASIC Authentication</summary>
         public IAuthenticator Authenticator { get; set; }
 
         public bool UsePost { get; set; }
@@ -138,7 +137,7 @@ namespace Couchbase.Lite.Replicator
         public Exception Error { get; private set; }
 
         public ChangeTracker(Uri databaseURL, ChangeTrackerMode mode, object lastSequenceID, 
-            Boolean includeConflicts, IChangeTrackerClient client, TaskFactory workExecutor = null)
+            bool includeConflicts, bool initialSync, IChangeTrackerClient client, TaskFactory workExecutor = null)
         {
             // does not work, do not use it.
             this.databaseURL = databaseURL;
@@ -148,6 +147,7 @@ namespace Couchbase.Lite.Replicator
             this.client = client;
             this.RequestHeaders = new Dictionary<string, object>();
             this.tokenSource = new CancellationTokenSource();
+            _initialSync = initialSync;
             WorkExecutor = workExecutor ?? Task.Factory;
         }
 
@@ -199,15 +199,19 @@ namespace Couchbase.Lite.Replicator
                 path.Append(string.Format("&limit={0}", LongPollModeLimit));
             }
             path.Append(string.Format("&heartbeat={0}", _heartbeatMilliseconds));
-            if (includeConflicts)
-            {
+            if (includeConflicts) {
                 path.Append("&style=all_docs");
             }
-            if (lastSequenceID != null)
-            {
+
+            if (lastSequenceID != null && lastSequenceID.ToString() != "0") {
                 path.Append("&since=");
                 path.Append(Uri.EscapeUriString(lastSequenceID.ToString()));
+            } else if(_initialSync) {
+                _initialSync = false;
+                // On first replication we can skip getting deleted docs. (SG enhancement in ver. 1.2)
+                path.Append("&active_only=true");
             }
+
             if (docIDs != null && docIDs.Count > 0)
             {
                 filterName = "_doc_ids";
@@ -282,7 +286,10 @@ namespace Couchbase.Lite.Replicator
                 tokenSource = new CancellationTokenSource();
             }
 
-            backoff = new ChangeTrackerBackoff();
+            if (backoff == null) {
+                backoff = new ChangeTrackerBackoff();
+            }
+
             _startTime = DateTime.Now;
             if (Request != null)
             {
@@ -345,18 +352,18 @@ namespace Couchbase.Lite.Replicator
             }
             catch (Exception e)
             {
-                if (!IsRunning && e.InnerException is IOException)
-                {
-                    // swallow
+                if (Misc.IsTransientNetworkError(e)) {
+                    Log.I(TAG, "Connection error #{0}, retrying in {1}ms: {2}", backoff.NumAttempts,
+                        backoff.GetSleepTime(), e);
+                    backoff.SleepAppropriateAmountOfTime();
+                    if (IsRunning) {
+                        Run();
+                    }
+                } else {
+                    Log.I(TAG, "Can't connect; giving up: {0}", e);
+                    Error = e;
+                    Stop();
                 }
-                else
-                {
-                    // in this case, just silently absorb the exception because it
-                    // frequently happens when we're shutting down and have to
-                    // close the socket underneath our read.
-                    Log.E(TAG, "Exception in change tracker", e);
-                }
-                backoff.SleepAppropriateAmountOfTime();
             }
         }
 
@@ -368,8 +375,12 @@ namespace Couchbase.Lite.Replicator
                 if (!responseTask.IsCanceled) {
                     var err = responseTask.Exception.Flatten();
                     Log.D(TAG, "ChangeFeedResponseHandler faulted.", err.InnerException ?? err);
-                    Error = err.InnerException ?? err;
-                    Stop();
+                    if (mode != ChangeTrackerMode.LongPoll || !Misc.IsTransientNetworkError(err)) {
+                        Stop();
+                    } else if(IsRunning ) {
+                        backoff.SleepAppropriateAmountOfTime();
+                        WorkExecutor.StartNew(Run);
+                    }
                 }
 
                 return Task.FromResult(false);
@@ -382,8 +393,14 @@ namespace Couchbase.Lite.Replicator
             var status = response.StatusCode;
             UpdateServerType(response);
 
-            if ((Int32)status >= 300 && !Misc.IsTransientError(status))
+            if ((Int32)status >= 300)
             {
+                if (Misc.IsTransientError(status) && mode == ChangeTrackerMode.LongPoll) {
+                    backoff.SleepAppropriateAmountOfTime();
+                    WorkExecutor.StartNew(Run);
+                    return Task.FromResult(false);
+                }
+
                 var msg = response.Content != null 
                     ? String.Format("Change tracker got error with status code: {0}", status)
                     : String.Format("Change tracker got error with status code: {0} and null response content", status);
@@ -403,8 +420,12 @@ namespace Couchbase.Lite.Replicator
                     Log.D(TAG, "Getting stream from change tracker response");
                     return response.Content.ReadAsStreamAsync().ContinueWith(t => {
                         try {
-                            backoff.ResetBackoff();
                             ProcessLongPollStream(t);
+                            backoff.ResetBackoff();
+                        } catch(Exception e) {
+                            Log.W(TAG, "Exception during changes feed processing", e);
+                            backoff.SleepAppropriateAmountOfTime();
+                            WorkExecutor.StartNew(Run);
                         } finally {
                             response.Dispose();
                         }
@@ -413,8 +434,8 @@ namespace Couchbase.Lite.Replicator
                     return response.Content.ReadAsStreamAsync().ContinueWith(t => {
                         
                         try {
-                            backoff.ResetBackoff();
                             ProcessOneShotStream(t);
+                            backoff.ResetBackoff();
                         } finally {
                             response.Dispose();
                         }
@@ -602,7 +623,7 @@ namespace Couchbase.Lite.Replicator
                     backoff.ResetBackoff();
                     WorkExecutor.StartNew(Run);
                 } else {
-                    Log.W(TAG, "Change tracker calling stop");
+                    Log.W(TAG, "Received improper _changes feed response");
                     WorkExecutor.StartNew(Stop);
                 }
             }
@@ -661,14 +682,16 @@ namespace Couchbase.Lite.Replicator
 
             if (includeConflicts) {
                 bodyParams["style"] = "all_docs";
-            } else {
-                bodyParams["style"] = null;
             }
 
-            if (lastSequenceID != null) {
+            if (lastSequenceID != null && lastSequenceID.ToString() != "0") {
                 Int64 sequenceAsLong;
                 var success = Int64.TryParse(lastSequenceID.ToString(), out sequenceAsLong);
                 bodyParams["since"] = success ? sequenceAsLong : lastSequenceID;
+            } else if(_initialSync) {
+                _initialSync = false;
+                // On first replication we can skip getting deleted docs. (SG enhancement in ver. 1.2)
+                bodyParams["active_only"] = true;
             }
 
             if (mode == ChangeTrackerMode.LongPoll) {

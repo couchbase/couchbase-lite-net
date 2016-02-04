@@ -64,6 +64,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Sharpen;
+using System.IO.Compression;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -111,8 +112,7 @@ namespace Couchbase.Lite
             }
 
             public void Changed(object sender, ReplicationChangeEventArgs args) {
-                var replicator = args.Source;
-                if (replicator.LastError != null && doneSignal.CurrentCount > 0) {
+                if (args.LastError != null && doneSignal.CurrentCount > 0) {
                     doneSignal.Signal();
                 }
             }
@@ -255,6 +255,8 @@ namespace Couchbase.Lite
                 var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
                 RunReplication(pusher);
 
+                Sleep(1000);
+
                 CreateDocuments(database, 10);
                 RunReplication(pusher);
                 Assert.AreEqual(20, pusher.CompletedChangesCount);
@@ -311,6 +313,7 @@ namespace Couchbase.Lite
 
                 remoteDb.AddDocuments(propertiesList);
 
+                prePopulateDB.Close();
                 using (var zipStream = ZipDatabase(prePopulateDB, "prepopulated.zip")) {
                     manager.ReplaceDatabase("importdb", zipStream, true);
                 }
@@ -379,6 +382,8 @@ namespace Couchbase.Lite
 
                     return true;
                 });
+
+                Sleep(1000);
 
                 repl = database.CreatePushReplication(remoteDb.RemoteUri);
                 Assert.AreEqual(10, repl.GetPendingDocumentIDs().Count);
@@ -1398,7 +1403,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var mockHttpClientFactory = new MockHttpClientFactory();
+            var mockHttpClientFactory = new MockHttpClientFactory(false);
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
             var mockHttpHandler = mockHttpClientFactory.HttpHandler;
@@ -1411,7 +1416,7 @@ namespace Couchbase.Lite
                 headers["foo"] = "bar";
                 puller.Headers = headers;
                 RunReplication(puller);
-                Assert.IsNotNull(puller.LastError);
+                Assert.IsNull(puller.LastError);
 
                 var foundFooHeader = false;
                 var requests = mockHttpHandler.CapturedRequests;
@@ -1554,6 +1559,17 @@ namespace Couchbase.Lite
 
                     // Make sure the conflict was resolved locally.
                     Assert.AreEqual(1, doc.ConflictingRevisions.Count());
+
+                    var freshDb = manager.GetDatabase("fresh");
+                    puller = freshDb.CreatePullReplication(remoteDb.RemoteUri);
+                    RunReplication(puller);
+                    Assert.IsNull(puller.LastError);
+
+                    doc = freshDb.GetExistingDocument(doc.Id);
+                    Assert.IsNotNull(doc);
+
+                    // Make sure the conflict was resolved locally.
+                    Assert.AreEqual(1, doc.ConflictingRevisions.Count());
                 }
             }
         }
@@ -1588,6 +1604,7 @@ namespace Couchbase.Lite
                     "{\"_id\":\"realdoc\",\"_rev\":\"1-12345abc\",\"channels\":[\"unit_test\"],\"foo\":\"bar\"}\r\n" +
                     "--67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f--");
 
+                response.Content.Headers.Remove("Content-Type");
                 response.Content.Headers.TryAddWithoutValidation("Content-Type", "multipart/mixed; boundary=\"67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\"");
                 return response;
             });
@@ -1603,7 +1620,9 @@ namespace Couchbase.Lite
             }
         }
 
-        [Test]
+        #if false
+        [Test] // This test takes nearly 5 minutes to run, so only run when needed
+        #endif
         public void TestLongRemovedChangesFeed()
         {
             var random = new Random();
@@ -1646,7 +1665,7 @@ namespace Couchbase.Lite
                 var responseBody = new StringBuilder("--67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\r\n");
                 foreach(var obj in content["docs"] as IEnumerable) {
                     var dict = obj.AsDictionary<string, object>();
-                    var nonexistent = removedIDSet.Contains(dict["id"]);
+                    var nonexistent = removedIDSet.Contains(dict.GetCast<string>("id"));
                     if(nonexistent) {
                         return new HttpResponseMessage(HttpStatusCode.InternalServerError); // Just so we can know
                     } else {
@@ -1663,6 +1682,7 @@ namespace Couchbase.Lite
                 var retVal = new HttpResponseMessage(HttpStatusCode.OK);
                 var responseString = responseBody.ToString();
                 retVal.Content = new StringContent(responseString);
+                retVal.Content.Headers.Remove("Content-Type");
                 retVal.Content.Headers.TryAddWithoutValidation("Content-Type", "multipart/mixed; boundary=\"67aac1bcad803590b9a9e1999fc539438b3363fab35a24c17990188b222f\"");
 
                 return retVal;
@@ -1677,6 +1697,8 @@ namespace Couchbase.Lite
                 Assert.AreNotEqual(limit, puller.CompletedChangesCount);
                 Assert.AreEqual(limit.ToString(), puller.LastSequence);
             }
+
+            Sleep(1000);
         }
 
         [Test]
@@ -1727,79 +1749,6 @@ namespace Couchbase.Lite
                 Assert.AreEqual(1, cookieContainer.GetCookies(replicationUrl).Count);
                 Assert.AreEqual(name, cookieContainer.GetCookies(replicationUrl)[0].Name);
             }
-        }
-
-        [Test]
-        public void TestPushReplicationCanMissDocs()
-        {
-            Assert.Inconclusive("Not sure this is a valid test.");
-            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
-            {
-                Assert.Inconclusive("Replication tests disabled.");
-                return;
-            }
-            Assert.AreEqual(0, database.GetLastSequenceNumber());
-
-            var properties1 = new Dictionary<string, object>();
-            properties1["doc1"] = "testPushReplicationCanMissDocs";
-            CreateDocumentWithProperties(database, properties1);
-
-            var properties2 = new Dictionary<string, object>();
-            properties2["doc2"] = "testPushReplicationCanMissDocs";
-            var doc2 = CreateDocumentWithProperties(database, properties2);
-
-            var doc2UnsavedRev = doc2.CreateRevision();
-            var attachmentStream = GetAsset("attachment.png");
-            doc2UnsavedRev.SetAttachment("attachment.png", "image/png", attachmentStream);
-            var doc2Rev = doc2UnsavedRev.Save();
-            Assert.IsNotNull(doc2Rev);
-
-            var httpClientFactory = new MockHttpClientFactory();
-            manager.DefaultHttpClientFactory = httpClientFactory;
-
-            var httpHandler = httpClientFactory.HttpHandler; 
-            httpHandler.AddResponderFakeLocalDocumentUpdate404();
-
-            var json = "{\"error\":\"not_found\",\"reason\":\"missing\"}";
-            MockHttpRequestHandler.HttpResponseDelegate bulkDocsResponder = (request) =>
-            {
-                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.NotFound, null, json);
-            };
-            httpHandler.SetResponder("_bulk_docs", bulkDocsResponder);
-
-            MockHttpRequestHandler.HttpResponseDelegate doc2Responder = (request) =>
-            {
-                var responseObject = new Dictionary<string, object>();
-                responseObject["id"] = doc2.Id;
-                responseObject["ok"] = true;
-                responseObject["rev"] = doc2.CurrentRevisionId;
-                return  MockHttpRequestHandler.GenerateHttpResponseMessage(responseObject);
-            };
-            httpHandler.SetResponder(doc2.Id, doc2Responder);
-
-            var replicationDoneSignal = new CountdownEvent(1);
-            var observer = new ReplicationObserver(replicationDoneSignal);
-            var pusher = database.CreatePushReplication(GetReplicationURL());
-            pusher.Changed += observer.Changed;
-            pusher.Start();
-
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(5));
-            Assert.IsTrue(success);
-
-            Assert.IsNotNull(pusher.LastError);
-
-            Sleep(TimeSpan.FromMilliseconds(500));
-
-            var localLastSequence = database.LastSequenceWithCheckpointId(pusher.RemoteCheckpointDocID());
-
-            Log.D(Tag, "dtabase.lastSequenceWithCheckpointId(): " + localLastSequence);
-            Log.D(Tag, "doc2.getCUrrentRevision().getSequence(): " + doc2.CurrentRevision.Sequence);
-
-            // Since doc1 failed, the database should _not_ have had its lastSequence bumped to doc2's sequence number.
-            // If it did, it's bug: github.com/couchbase/couchbase-lite-java-core/issues/95
-            Assert.IsFalse(doc2.CurrentRevision.Sequence.ToString().Equals(localLastSequence));
-            Assert.IsNull(localLastSequence);
-            Assert.IsTrue(doc2.CurrentRevision.Sequence > 0);
         }
 
         [Test]
@@ -2229,9 +2178,8 @@ namespace Couchbase.Lite
             };
             CreateDocumentWithProperties(database, properties1);
 
-            var httpClientFactory = new MockHttpClientFactory();
+            var httpClientFactory = new MockHttpClientFactory(false);
             var httpHandler = httpClientFactory.HttpHandler; 
-            httpHandler.AddResponderFakeLocalDocumentUpdate404();
             manager.DefaultHttpClientFactory = httpClientFactory;
 
             MockHttpRequestHandler.HttpResponseDelegate sentinal = MockHttpRequestHandler.FakeBulkDocs;
@@ -2288,22 +2236,18 @@ namespace Couchbase.Lite
                 }
             }
         }
-
-        // Failed : https://github.com/couchbase/couchbase-lite-net/issues/320
+            
         [Test]
         public void TestPushReplicationRecoverableError()
         {
-            Assert.Inconclusive("Not sure this is a valid test.");
             var statusCode = 503;
             var statusMessage = "Transient Error";
             var expectError = false;
             RunPushReplicationWithTransientError(statusCode, statusMessage, expectError);
         }
 
-        // Failed : https://github.com/couchbase/couchbase-lite-net/issues/320
         [Test]
         public void TestPushReplicationRecoverableIOException() {
-            Assert.Inconclusive("Not sure this is a valid test.");
             var statusCode = -1; // code to tell it to throw an IOException
             string statusMessage = null;
             var expectError = false;
@@ -2313,7 +2257,6 @@ namespace Couchbase.Lite
         [Test]
         public void TestPushReplicationNonRecoverableError()
         {
-            Assert.Inconclusive("Not sure this is a valid test.");
             var statusCode = 404;
             var statusMessage = "NOT FOUND";
             var expectError = true;
@@ -2467,7 +2410,7 @@ namespace Couchbase.Lite
 
                 var count = 0;
                 foreach (var request in httpHandler.CapturedRequests) {
-                    if (request.Method == HttpMethod.Put) {
+                    if (request.Method == HttpMethod.Put && request.RequestUri.PathAndQuery.Contains(doc.Id)) {
                         var isMultipartContent = (request.Content is MultipartContent);
                         if (count == 0) {
                             Assert.IsTrue(isMultipartContent);
@@ -2829,6 +2772,8 @@ namespace Couchbase.Lite
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 CreatePullAndTest(20, remoteDb, (repl) => Assert.AreEqual(20, database.GetDocumentCount(), "Didn't recover from the error"));
             }
+
+            Thread.Sleep(1000);
         }
 
         [Test]
@@ -2869,7 +2814,14 @@ namespace Couchbase.Lite
                 var fakeFactory = new MockHttpClientFactory(false);
                 fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) =>
                 {
-                    var str = request.Content.ReadAsStringAsync().Result;
+                    var str = default(string);
+                    if(request.Content is CompressedContent) {
+                        var stream = request.Content.ReadAsStreamAsync().Result;
+                        str = Encoding.UTF8.GetString(stream.ReadAllBytes());
+                    } else {
+                        str = request.Content.ReadAsStringAsync().Result;
+                    }
+
                     if (firstBulkGet == null || firstBulkGet.Equals(str)) {
                         Log.D(Tag, "Rejecting this bulk get because it looks like the first batch");
                         firstBulkGet = str;
@@ -2887,7 +2839,7 @@ namespace Couchbase.Lite
                     var m = r.Match(request.RequestUri.PathAndQuery);
                     if(m.Success) {
                         var str = m.Captures[0].Value;
-                        var converted = Int32.Parse(str.Substring(3)) + 3;
+                        var converted = Int32.Parse(str.Substring(3)) + 4;
                         if(gotSequence == 0 || converted - gotSequence == 1) {
                             gotSequence = converted;
                         }
@@ -3104,6 +3056,28 @@ namespace Couchbase.Lite
                 Assert.AreEqual(1, puller1.CookieContainer.Count);
                 Assert.AreEqual(0, pusher1.CookieContainer.Count);
                 Assert.AreEqual(0, puller2.CookieContainer.Count);
+            }
+        }
+
+        [Test]
+        public void TestGatewayTemporarilyGoesOffline()
+        {
+            CreateDocuments(database, 10);
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Continuous = true;
+                pusher.Start();
+                _sg.SetOffline(remoteDb.Name);
+                Sleep(15000);
+                _sg.SetOnline(remoteDb.Name);
+
+                while (pusher.Status == ReplicationStatus.Active) {
+                    Thread.Sleep(100);
+                }
+
+                Assert.AreEqual(ReplicationStatus.Idle, pusher.Status);
+                Assert.AreEqual("0", pusher.LastSequence);
+                pusher.Stop();
             }
         }
     }

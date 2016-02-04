@@ -64,7 +64,13 @@ namespace Couchbase.Lite.Util
         {
             _level = logLevel;
             _ts = new CouchbaseTraceListener(logLevel);
-            Trace.Listeners.Add(_ts);
+            try {
+                Trace.Listeners.Add(_ts);
+            } catch(NotSupportedException e) {
+                throw new MethodAccessException("It appears that needed classes for Couchbase Lite .NET have been " +
+                "linked away, please ensure that in your Project Options under iOS Build that Linker Behavior " +
+                "is set to 'Don't Link'", e);
+            }
         }
 
         #endregion

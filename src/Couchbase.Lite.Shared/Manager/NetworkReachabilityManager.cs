@@ -22,8 +22,6 @@ using WebRequest = System.Net.Couchbase.WebRequest;
 using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
 using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
 using WebException = System.Net.Couchbase.WebException;
-#else
-using StringExt = System.String;
 #endif
 
 namespace Couchbase.Lite
@@ -44,7 +42,6 @@ namespace Couchbase.Lite
     {
         private const string TAG = "NetworkReachabilityManager";
         internal static bool AllowLoopback = false; // For unit tests
-        private NetworkReachabilityStatus _currentStatus = NetworkReachabilityStatus.Unknown;
 
         public Exception LastError { get; private set; }
 
@@ -54,7 +51,7 @@ namespace Couchbase.Lite
 
             var uri = new Uri (remoteUri);
             var credentials = uri.UserInfo;
-            if (!StringExt.IsNullOrEmpty(credentials)) {
+            if (!String.IsNullOrEmpty(credentials)) {
                 remoteUri = string.Format ("{0}://{1}{2}", uri.Scheme, uri.Authority, uri.PathAndQuery);
                 request = WebRequest.CreateHttp (remoteUri);
                 request.Headers.Add ("Authorization", "Basic " + Convert.ToBase64String (Encoding.UTF8.GetBytes (credentials)));
@@ -235,13 +232,8 @@ namespace Couchbase.Lite
             InvokeNetworkChangeEvent(status);
         }
 
-        void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
+        internal void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
         {
-            if(_currentStatus == status) {
-                return;
-            }
-
-            _currentStatus = status;
             var evt = _statusChanged;
             if(evt == null) {
                 return;

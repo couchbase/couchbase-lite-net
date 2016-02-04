@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectTypeGuids>{EFBA0AD7-5A72-4C68-AF49-83D382785DCF};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <ProjectGuid>{9CEE0189-1533-484D-A957-664B1A372EAA}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>storage.forestdb.droid</RootNamespace>
+    <MonoAndroidAssetsPrefix>Assets</MonoAndroidAssetsPrefix>
+    <MonoAndroidResourcePrefix>Resources</MonoAndroidResourcePrefix>
+    <AndroidResgenClass>Resource</AndroidResgenClass>
+    <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
+    <AndroidUseLatestPlatformSdk>True</AndroidUseLatestPlatformSdk>
+    <AssemblyName>storage.forestdb.droid</AssemblyName>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
+    <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AndroidLinkMode>None</AndroidLinkMode>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+  <Target Name="AfterBuild">
+    <Message Text="Copying native components..." />
+    <Copy SourceFiles="droid.targets" DestinationFolder="$(OutputPath)" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\arm64-v8a\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\arm64-v8a" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\armeabi-v7a\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\armeabi-v7a" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\x86\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\x86" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\x86_64\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\x86_64" />
+  </Target>
+  <ItemGroup>
+    <Compile Include="Dummy.cs" />
+  </ItemGroup>
+</Project>

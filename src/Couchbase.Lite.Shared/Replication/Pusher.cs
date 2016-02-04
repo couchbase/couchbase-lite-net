@@ -444,21 +444,16 @@ namespace Couchbase.Lite.Replicator
 
             return true;
         }
-
-        /// <summary>
-        /// Uploads the revision as JSON instead of multipart.
-        /// </summary>
-        /// <remarks>
-        /// Fallback to upload a revision if UploadMultipartRevision failed due to the server's rejecting
-        /// multipart format.
-        /// </remarks>
-        /// <param name="rev">Rev.</param>
-        private void UploadJsonRevision(RevisionInternal rev)
+            
+        // Uploads the revision as JSON instead of multipart.
+        private void UploadJsonRevision(RevisionInternal originalRev)
         {
-            // Get the revision's properties:
-            if (!LocalDatabase.InlineFollowingAttachmentsIn(rev))
-            {
-                LastError = new CouchbaseLiteException(StatusCode.BadAttachment);
+            // Expand all attachments inline:
+            var rev = originalRev.CopyWithDocID(originalRev.GetDocId(), originalRev.GetRevId());
+            try {
+                LocalDatabase.ExpandAttachments(rev, 0, false, false);
+            } catch(Exception e) {
+                LastError = e;
                 RevisionFailed();
                 return;
             }
@@ -673,7 +668,11 @@ namespace Couchbase.Lite.Replicator
                             RevisionFailed();
                         }
 
-                        FireTrigger(ReplicationTrigger.StopImmediate);
+                        if(Continuous) {
+                            FireTrigger(ReplicationTrigger.WaitingForChanges);
+                        } else {
+                            FireTrigger(ReplicationTrigger.StopImmediate);
+                        }
                     } else {
                         if (results.Count != 0)  {
                             // Go through the list of local changes again, selecting the ones the destination server
@@ -712,7 +711,7 @@ namespace Couchbase.Lite.Replicator
 
                                     properties = new Dictionary<string, object>(rev.GetProperties());
                                 } catch (Exception e1) {
-                                    Log.W(TAG, String.Format("{0} Couldn't get local contents of", rev), e);
+                                    Log.W(TAG, String.Format("{0} Couldn't get local contents of", rev), e1);
                                     RevisionFailed();
                                     continue;
                                 }

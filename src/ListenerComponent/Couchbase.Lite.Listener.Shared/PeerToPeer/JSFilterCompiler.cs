@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Listener
                 var retVal = engine.Execute(filterSource).Invoke("_f1", new NoThrowDictionary(rev.Properties), 
                     new NoThrowDictionary(filterParams));
                 
-                if(retVal.IsNull()) {
+                if(retVal.IsNull() || retVal.IsUndefined()) {
                     return false;
                 }
 
