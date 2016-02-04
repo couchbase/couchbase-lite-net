@@ -1,3 +1,9 @@
+*TL;DR (well...DWTR)*:  This is how to enable the various storage modes of Couchbase Lite:
+
+1. System SQLite - Do nothing
+2. SQLite with encryption - Add the Couchbase.Lite.Storage.SQLCipher nuget package and add CBL_SQLCIPHER to your project's define symbols.
+3. ForestDB (with or without encryption is the same) - Add the Couchbase.Lite.Storage.ForestDB nuget package
+
 Changes in 1.2
 ==============
 
