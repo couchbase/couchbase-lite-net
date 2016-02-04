@@ -203,8 +203,6 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
-        #if FORESTDB
-
         /// <summary>
         /// Transforms this instance into an object suitable for use with
         /// a CBForest all document query.
@@ -241,8 +239,6 @@ namespace Couchbase.Lite
 
             return retVal;
         }
-
-        #endif
 
         /// <summary>
         /// Gets the start key for the query

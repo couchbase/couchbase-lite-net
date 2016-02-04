@@ -94,8 +94,6 @@ namespace Couchbase.Lite.Internal
         internal RevisionInternal(IDictionary<String, Object> properties)
             : this(new Body(properties)) { }
 
-        #if FORESTDB
-
         internal unsafe RevisionInternal(CBForest.C4Document *doc, bool loadBody) 
         {
             if (!doc->Exists) {
@@ -118,8 +116,6 @@ namespace Couchbase.Lite.Internal
         {
 
         }
-
-        #endif
 
         #endregion
 

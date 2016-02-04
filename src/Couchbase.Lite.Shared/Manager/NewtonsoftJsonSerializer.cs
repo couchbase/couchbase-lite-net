@@ -26,10 +26,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Util;
-
-#if FORESTDB
 using CBForest;
-#endif
 
 namespace Couchbase.Lite
 {
@@ -157,8 +154,6 @@ namespace Couchbase.Lite
             return new NewtonsoftJsonSerializer();
         }
 
-        #if FORESTDB
-
         public unsafe C4Key* SerializeToKey(object value)
         {
             var retVal = Native.c4key_new();
@@ -179,8 +174,6 @@ namespace Couchbase.Lite
                 return serializer.Deserialize<T>(jsonReader);
             }
         }
-
-        #endif
             
         #endregion
 

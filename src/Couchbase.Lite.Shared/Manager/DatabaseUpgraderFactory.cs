@@ -22,12 +22,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Sharpen;
-using Couchbase.Lite.Util;
 
-#if !NOSQLITE
+using Couchbase.Lite.Util;
 using SQLitePCL;
-#endif
 
 namespace Couchbase.Lite.Db
 {
@@ -36,8 +33,6 @@ namespace Couchbase.Lite.Db
         private const string TAG = "DatabaseUpgraderFactory";
 
         public static readonly string[] ALL_KNOWN_PREFIXES = new string[] { "touchdb", "cblite", "cblite2" };
-
-        #if !NOSQLITE
 
         private static readonly Dictionary<string, int> UPGRADER_MAP =  new Dictionary<string, int> {
             { "touchdb", 0 },     //Old naming
@@ -117,7 +112,5 @@ namespace Couchbase.Lite.Db
                     return new Status(StatusCode.DbError);
             }
         }
-
-        #endif
     }
 }

@@ -18,7 +18,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#if !NOSQLITE
 using System;
 using System.Collections.Generic;
 using SQLitePCL;
@@ -971,4 +970,3 @@ namespace Couchbase.Lite.Db
         }
     }
 }
-#endif

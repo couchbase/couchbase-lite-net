@@ -128,8 +128,6 @@ namespace Couchbase.Lite
             return ManagerOptions.SerializationEngine.ConvertToList<T>(obj) ?? obj as IList<T>;
         }
 
-        #if FORESTDB
-
         internal unsafe CBForest.C4Key* SerializeToKey(object value)
         {
             return ManagerOptions.SerializationEngine.SerializeToKey(value);
@@ -139,8 +137,6 @@ namespace Couchbase.Lite
         {
             return ManagerOptions.SerializationEngine.DeserializeKey<T>(keyReader);
         }
-
-        #endif
 
         #endregion
 

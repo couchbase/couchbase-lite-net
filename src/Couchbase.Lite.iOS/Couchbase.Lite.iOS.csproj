@@ -27,7 +27,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;__IOS__;TRACE;VERBOSE;FORESTDB;</DefineConstants>
+    <DefineConstants>DEBUG;__IOS__;TRACE;VERBOSE;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -48,7 +48,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>__IOS__;FORESTDB;</DefineConstants>
+    <DefineConstants>__IOS__;</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Data" />

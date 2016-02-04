@@ -644,7 +644,6 @@ namespace Couchbase.Lite
 
         private bool UpgradeDatabase(FileInfo path)
         {
-            #if !NOSQLITE
             var previousStorageType = StorageType;
             try {
                 StorageType = "SQLite";
@@ -680,7 +679,6 @@ namespace Couchbase.Lite
             } finally {
                 StorageType = previousStorageType;
             }
-            #endif
         }
 
 

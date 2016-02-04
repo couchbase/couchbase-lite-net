@@ -2046,16 +2046,7 @@ namespace Couchbase.Lite
             var primaryStorage = Type.GetType(className, false, true);
             var errorMessage = default(string);
             if (primaryStorage == null) {
-                #if !FORESTDB
-                if (storageType == DatabaseOptions.FORESTDB_STORAGE) {
-                    errorMessage = "ForestDB storage option selected but not compiled into library";
-                }
-                #endif
-                #if NOSQLITE
-                if (storageType == DatabaseOptions.SQLITE_STORAGE) {
-                    errorMessage = "SQLite storage option selected but not compiled into library";
-                }
-                #endif
+                errorMessage = String.Format("Unknown storage type '{0}'", storageType);
             } else if (primaryStorage.GetInterface("Couchbase.Lite.Store.ICouchStore") == null) {
                 errorMessage = String.Format("{0} does not implement ICouchStore", className);
                 primaryStorage = null;

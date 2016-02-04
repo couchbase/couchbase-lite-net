@@ -18,7 +18,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#if FORESTDB
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -1187,4 +1186,3 @@ namespace Couchbase.Lite.Store
 
     #endregion
 }
-#endif
