@@ -47,7 +47,7 @@ The solution files ending in **VS2013** are for use in Visual Studio, while the 
 
 Note that you must have a Xamarin paid license to build for iOS or Android.  Furthermore, to build any of the Unity projects you must supply the UnityEngine.dll file to the project.  If your Unity install is in the default location, then the project will copy it as part of the build.  Otherwise, it needs to go in the src/Couchbase.Lite.Unity/vendor/Unity folder.  If you can't build the project then file an issue here.
 
-ForestDB requires native components to be built for each platform you want to target.  Those need to be put in `src/Couchbase.Lite.Shared/vendor/cbforest/prebuilt`.  You can either download the binaries from a GitHub release page (starting with 1.2) or build them yourself.  Building instructions can be found [here](https://github.com/couchbaselabs/cbforest/blob/master/CSharp/README.md).
+ForestDB requires native components to be built for each platform you want to target.  Those need to be put in `src/Couchbase.Lite.Shared/vendor/cbforest/prebuilt`.  You can either download the binaries from a GitHub release page (starting with 1.2) or build them yourself.  Building instructions can be found [here](https://github.com/couchbaselabs/cbforest/blob/release/1.2-net/CSharp/README.md).
 
 ## Other Notes
 
