@@ -158,6 +158,12 @@ namespace Couchbase.Lite.Store
         static ForestDBCouchStore()
         {
             Log.I(TAG, "Initialized ForestDB store (version 'BETA' (a1925dea1bb414786817e349aea56202878a27a8))");
+            try {
+                // Pick a function with no side effects to test
+                Native.c4rev_getGeneration("1-111111111111111111");
+            } catch(DllNotFoundException) {
+                Log.W(TAG, "WARNING: ForestDB Native components missing");
+            }
         }
 
         public ForestDBCouchStore()

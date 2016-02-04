@@ -45,10 +45,10 @@ rm -rf ../../src/StorageEngines/ForestDB/storage.forestdb.ios/obj
 rm -rf ../../src/StorageEngines/ForestDB/storage.forestdb.droid/obj
 
 #Build te managed DLLs
-xbuild /p:Configuration=Release ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net35/Couchbase.Lite.Listener.Bonjour.Net35.csproj
-xbuild /p:Configuration=Release ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net45/Couchbase.Lite.Listener.Bonjour.Net45.csproj
-xbuild /p:Configuration=Release ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.iOS/Couchbase.Lite.Listener.Bonjour.iOS.csproj
-xbuild /p:Configuration=Release ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Android/Couchbase.Lite.Listener.Bonjour.Android.csproj
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Net35.sln
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Net45.sln
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.iOS.sln
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Android.sln
 
 #Build the storage engine native components
 xbuild /p:Configuration=Release ../../src/StorageEngines/SystemSQLite/storage.systemsqlite.net35/storage.systemsqlite.net35.csproj

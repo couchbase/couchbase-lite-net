@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{FF87EED7-5DE9-47E9-82F4-D1DF659D1DC2}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{0A88C2A7-7AD8-46F9-9D31-869E3466B791}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{3D44EF32-EE84-42A0-B586-6AE71AB75CFF}"
 EndProject
@@ -94,7 +94,6 @@ Global
 		{A31A98F1-8B95-479A-8E88-C770DDDB0292}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A31A98F1-8B95-479A-8E88-C770DDDB0292}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A31A98F1-8B95-479A-8E88-C770DDDB0292}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A31A98F1-8B95-479A-8E88-C770DDDB0292}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -106,7 +105,6 @@ Global
 		{F376966C-CCAB-4C5C-A81A-E2A754AA7A4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F376966C-CCAB-4C5C-A81A-E2A754AA7A4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F376966C-CCAB-4C5C-A81A-E2A754AA7A4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F376966C-CCAB-4C5C-A81A-E2A754AA7A4C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}

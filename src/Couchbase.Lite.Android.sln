@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{FF87EED7-5DE9-47E9-82F4-D1DF659D1DC2}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{0A88C2A7-7AD8-46F9-9D31-869E3466B791}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Android", "Couchbase.Lite.Android\Couchbase.Lite.Android.csproj", "{5615E423-D0FD-4F99-A99C-061679615CEE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{5D187322-B6C6-4B74-A097-179F97B61B75}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleAndroidSync_source", "..\samples\SimpleAndroidSync\SimpleAndroidSync_source.csproj", "{F970485C-CE53-457A-AAF6-7896C40F8243}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleAndroidSync_source", "..\samples\SimpleAndroidSync\UsesSource\SimpleAndroidSync_source.csproj", "{F970485C-CE53-457A-AAF6-7896C40F8243}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{3D44EF32-EE84-42A0-B586-6AE71AB75CFF}"
 EndProject
@@ -68,7 +68,6 @@ Global
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Release|Any CPU.Build.0 = Release|Any CPU
 		{11440D11-E458-4BB6-ADBB-7C233F952089}.Debug|Any CPU.ActiveCfg = debug|Any CPU
 		{11440D11-E458-4BB6-ADBB-7C233F952089}.Debug|Any CPU.Build.0 = debug|Any CPU
 		{11440D11-E458-4BB6-ADBB-7C233F952089}.Release|Any CPU.ActiveCfg = release|Any CPU
@@ -80,7 +79,6 @@ Global
 		{33044C7B-47A4-4113-A61A-EB429407F818}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{33044C7B-47A4-4113-A61A-EB429407F818}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{33044C7B-47A4-4113-A61A-EB429407F818}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{33044C7B-47A4-4113-A61A-EB429407F818}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4549834B-28B6-4A54-A3EC-978D0E582444}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4549834B-28B6-4A54-A3EC-978D0E582444}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4549834B-28B6-4A54-A3EC-978D0E582444}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -96,7 +94,6 @@ Global
 		{6A005891-A3D6-4398-A729-F645397D573A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6A005891-A3D6-4398-A729-F645397D573A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6A005891-A3D6-4398-A729-F645397D573A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6A005891-A3D6-4398-A729-F645397D573A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6B64CBD5-8D13-4E88-861D-DBBB87254BBC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6B64CBD5-8D13-4E88-861D-DBBB87254BBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B64CBD5-8D13-4E88-861D-DBBB87254BBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -120,7 +117,6 @@ Global
 		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F970485C-CE53-457A-AAF6-7896C40F8243}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F970485C-CE53-457A-AAF6-7896C40F8243}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F970485C-CE53-457A-AAF6-7896C40F8243} = {5D187322-B6C6-4B74-A097-179F97B61B75}

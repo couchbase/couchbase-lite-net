@@ -18,7 +18,7 @@ Encryption Support - Databases may now be encrypted. The encryption process uses
 
 ForestDB Based Databases - You may now take advantage of the performance increases of Couchbase's ForestDB storage engine. It was designed from the ground up to be a key-value storage engine and lends itself perfectly to our JSON model.
 
-NOTE: Starting with this release the nuget package has been modularized. Making use of these two new features requires installing additional packages from nuget. By default, Couchbase.Lite will use Couchbase.Lite.Storage.SystemSQLite which makes use of the system-installed SQLite library (or a provided one for Windows). To use encryption with SQLite, you must install the Couchbase.Lite.Storage.SQLCipher package. To use ForestDB (with or without encryption) you must install the Couchbase.Lite.Storage.ForestDB package.
+NOTE: Starting with this release the nuget package has been modularized. Making use of these two new features requires installing additional packages from nuget. By default, Couchbase.Lite will use Couchbase.Lite.Storage.SystemSQLite which makes use of the system-installed SQLite library (or a provided one for Windows). To use encryption with SQLite, you must install the Couchbase.Lite.Storage.SQLCipher package. To use ForestDB (with or without encryption) you must install the Couchbase.Lite.Storage.ForestDB package.  YOU MUST ALSO REMOVE THE SQLITEPCL.RAW AND SQLITEPCL.UGLY PACKAGES FROM YOUR PROJECT IF YOU ARE UPGRADING FROM A PREVIOUS VERSION!!
 
 For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
     </releaseNotes>
@@ -46,6 +46,7 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     </dependencies>
   </metadata>
   <files>
+    <file target="" src="packaging/nuget/readme.txt" />
     <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />
     <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/cbforest-sharp*" />
     <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/SQLitePCL.*" />
