@@ -19,7 +19,6 @@
 // limitations under the License.
 //
 #if FORESTDB
-a3845248a10ef08e526655d698d1056ca2d0bdf1
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
