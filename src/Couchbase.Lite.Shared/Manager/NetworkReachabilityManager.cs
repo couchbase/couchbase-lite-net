@@ -232,7 +232,7 @@ namespace Couchbase.Lite
             InvokeNetworkChangeEvent(status);
         }
 
-        void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
+        internal void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
         {
             var evt = _statusChanged;
             if(evt == null) {

@@ -51,6 +51,7 @@ using System.Collections.Generic;
 using System;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Store;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -59,6 +60,23 @@ namespace Couchbase.Lite
         const string Tag = "MiscTest";
 
         public MiscTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestNetworkAvailabilityChanged()
+        {
+            var countdown = 2;
+            var handler = new NetworkReachabilityManager();
+            handler.StatusChanged += (sender, args) => {
+                if(args.Status == NetworkReachabilityStatus.Reachable) {
+                    countdown -= 1;
+                }
+            };
+
+            handler.InvokeNetworkChangeEvent(NetworkReachabilityStatus.Unreachable);
+            handler.InvokeNetworkChangeEvent(NetworkReachabilityStatus.Reachable);
+            handler.InvokeNetworkChangeEvent(NetworkReachabilityStatus.Reachable);
+            Assert.AreEqual(0, countdown);
+        }
 
         [Test]
         public void TestServerVersionParsing()
