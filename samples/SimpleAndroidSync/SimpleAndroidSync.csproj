@@ -93,5 +93,4 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <Import Project="packages\Couchbase.Lite.Storage.SystemSQLite.1.2\build\MonoAndroid\Couchbase.Lite.Storage.SystemSQLite.targets" Condition="Exists('packages\Couchbase.Lite.Storage.SystemSQLite.1.2\build\MonoAndroid\Couchbase.Lite.Storage.SystemSQLite.targets')" />
-  <Import Project="packages\Couchbase.Lite.Storage.SQLCipher.1.2\build\MonoAndroid\Couchbase.Lite.Storage.SQLCipher.targets" Condition="Exists('packages\Couchbase.Lite.Storage.SQLCipher.1.2\build\MonoAndroid\Couchbase.Lite.Storage.SQLCipher.targets')" />
 </Project>
