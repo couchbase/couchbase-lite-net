@@ -103,7 +103,8 @@ namespace Couchbase.Lite
             if (encryptionKey != null) {
                 if (!hasRealEncryption) {
                     throw new CouchbaseLiteException("Encryption not available (make sure you have installed the" +
-                        " correct Nuget packages.)", StatusCode.NotImplemented);
+                        " correct Nuget packages and added the CBL_SQLCIPHER symbol to your project's define symbols.)",
+                        StatusCode.NotImplemented);
                 }
 
                 // http://sqlcipher.net/sqlcipher-api/#key

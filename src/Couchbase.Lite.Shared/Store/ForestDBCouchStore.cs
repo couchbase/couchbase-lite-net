@@ -19,7 +19,7 @@
 // limitations under the License.
 //
 #if FORESTDB
-
+a3845248a10ef08e526655d698d1056ca2d0bdf1
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -158,7 +158,7 @@ namespace Couchbase.Lite.Store
 
         static ForestDBCouchStore()
         {
-            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (6b6b8b350661360dd8c9f4c697c253121bc23ea5))");
+            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (a1925dea1bb414786817e349aea56202878a27a8))");
         }
 
         public ForestDBCouchStore()
