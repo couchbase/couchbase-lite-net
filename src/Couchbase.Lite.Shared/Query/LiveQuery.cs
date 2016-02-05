@@ -364,7 +364,7 @@ namespace Couchbase.Lite
             }
 
             if (runTask.Status != TaskStatus.RanToCompletion) {
-                Log.W(String.Format("Query Updated task did not run to completion ({0})", runTask.Status), runTask.Exception);
+                Log.W(TAG, String.Format("Query Updated task did not run to completion ({0})", runTask.Status), runTask.Exception);
                 return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
             }
 

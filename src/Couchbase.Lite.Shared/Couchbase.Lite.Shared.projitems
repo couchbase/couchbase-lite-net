@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
@@ -135,6 +135,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\MessageDigest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\LogTo.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

@@ -41,9 +41,9 @@
 //
 
 using System;
-using Couchbase.Lite.Util;
-using System.Threading;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
@@ -51,10 +51,67 @@ namespace Couchbase.Lite.Util
     /// Centralized logging facility.
     /// </summary>
     public static class Log
-    {
+    { 
+
+        #region Enums
+
+        [Flags]
+        public enum LogLevel
+        {
+            None = 0,
+            Debug = 1 << 0,
+            Verbose = 1 << 1,
+            Info = 1 << 2,
+            Warning = 1 << 3,
+            Error = 1 << 4,
+            Normal = Info | Warning | Error,
+            All = Debug | Verbose | Info | Warning | Error
+        }
+
+        #endregion
+
+        #region Variables
+
+        internal static readonly LogTo To = new LogTo();
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Gets or sets the global logging level.  Individual tags may be
+        /// overriden by calling SetTagLevel and family.
+        /// </summary>
+        public static LogLevel Level 
+        {
+            get { return To.All.Level; }
+            set { To.All.Level = value; }
+        }
+
         private static object logger = LoggerFactory.CreateLogger();
-        private static ILogger Logger { 
+        internal static ILogger Logger { 
             get { return (ILogger)logger; }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        static Log()
+        {
+            Level = LogLevel.Normal;
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        public static void SetLevelForDomain(string domain, LogLevel level)
+        {
+            var gotLogger = Log.To.GetLogger(domain);
+            if (gotLogger != null) {
+                gotLogger.Level = level;
+            }
         }
 
         /// <summary>
@@ -70,68 +127,82 @@ namespace Couchbase.Lite.Util
         }
 
         /// <summary>
+        /// Sets the logger to the library provided logger
+        /// </summary>
+        /// <returns><c>true</c>, if logger was set, <c>false</c> otherwise.</returns>
+        public static bool SetDefaultLogger()
+        {
+            return SetLogger(LoggerFactory.CreateLogger());
+        }
+
+        /// <summary>
         /// Sets up Couchbase Lite to use the default logger (an internal class),
         /// with the specified logging level
         /// </summary>
         /// <returns><c>true</c>, if the logger was changed, <c>false</c> otherwise.</returns>
         /// <param name="level">The levels to log</param>
+        [Obsolete("Use the SetDefaultLogger() with no arguments to restore the default logger," +
+            " and use the Level property to change the verbosity")]
         public static bool SetDefaultLoggerWithLevel(SourceLevels level)
         {
-            return SetLogger(new CustomLogger(level));
+            if (level.HasFlag(SourceLevels.All)) {
+                Level = LogLevel.All;
+            } else {
+                if (level.HasFlag(SourceLevels.ActivityTracing)) {
+                    Level |= LogLevel.Debug;
+                }
+                if (level.HasFlag(SourceLevels.Verbose)) {
+                    Level |= LogLevel.Verbose;
+                }
+                if (level.HasFlag(SourceLevels.Information)) {
+                    Level |= LogLevel.Info;
+                }
+                if (level.HasFlag(SourceLevels.Warning)) {
+                    Level |= LogLevel.Warning;
+                }
+                if (level.HasFlag(SourceLevels.Error)) {
+                    Level |= LogLevel.Error;
+                }
+            }
+            return SetLogger(LoggerFactory.CreateLogger());
         }
 
         /// <summary>Send a VERBOSE message.</summary>
-        /// <remarks>Send a VERBOSE message.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
         /// <param name="msg">The message you would like logged.</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void V(string tag, string msg)
         {
-            if (Logger != null)
-            {
-                Logger.V(tag, msg);
-            }
+            To.All.V(tag, msg);
         }
 
         /// <summary>Send a VERBOSE message and log the exception.</summary>
-        /// <remarks>Send a VERBOSE message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
         /// <param name="msg">The message you would like logged.</param>
         /// <param name="tr">An exception to log</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void V(string tag, string msg, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.V(tag, msg, tr);
-            }
+            To.All.V(tag, msg, tr);
         }
 
-        /// <summary>Send a VERBOSE message and log the exception.</summary>
-        /// <remarks>Send a VERBOSE message and log the exception.</remarks>
+        /// <summary>Send a VERBOSE message</summary>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
-        /// <param name="format">The message you would like logged.</param>
-        /// <param name="args">string format arguments</param>
-        [System.Diagnostics.Conditional("TRACE")]
+        /// <param name="format">The format of the message you would like logged.</param>
+        /// <param name="args">The message format arguments</param>
         public static void V(string tag, string format, params object[] args)
         {
-            if (Logger != null)
-            {
-                Logger.V(tag, format, args);
-            }
+            To.All.V(tag, format, args);
         }
 
         /// <summary>Send a DEBUG message.</summary>
-        /// <remarks>Send a DEBUG message.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -140,14 +211,10 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string msg)
         {
-            if (Logger != null)
-            {
-                Logger.D(tag, msg);
-            }
+            To.All.D(tag, msg);
         }
 
         /// <summary>Send a DEBUG message and log the exception.</summary>
-        /// <remarks>Send a DEBUG message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -157,31 +224,23 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string msg, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.D(tag, msg, tr);
-            }
+            To.All.D(tag, msg, tr);
         }
 
-        /// <summary>Send a DEBUG message and log the exception.</summary>
-        /// <remarks>Send a DEBUG message and log the exception.</remarks>
+        /// <summary>Send a DEBUG message</summary>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
-        /// <param name="format">The message you would like logged.</param>
-        /// <param name="args">string format arguments</param>
+        /// <param name="format">The format of the message you would like logged.</param>
+        /// <param name="args">The message format arguments</param>
         [System.Diagnostics.Conditional("DEBUG")]
-        public static void D(string tag, string  format, params object[] args)
+        public static void D(string tag, string format, params object[] args)
         {
-            if (Logger != null)
-            {
-                Logger.D(tag, format, args);
-            }
+            To.All.D(tag, format, args);
         }
 
         /// <summary>Send an INFO message.</summary>
-        /// <remarks>Send an INFO message.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -189,14 +248,10 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void I(string tag, string msg)
         {
-            if (Logger != null)
-            {
-                Logger.I(tag, msg);
-            }
+            To.All.I(tag, msg);
         }
 
         /// <summary>Send a INFO message and log the exception.</summary>
-        /// <remarks>Send a INFO message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -205,30 +260,22 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void I(string tag, string msg, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.I(tag, msg, tr);
-            }
+            To.All.I(tag, msg, tr);
         }
 
-        /// <summary>Send a INFO message and log the exception.</summary>
-        /// <remarks>Send a INFO message and log the exception.</remarks>
+        /// <summary>Send a INFO message</summary>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
-        /// <param name="format">The message you would like logged.</param>
-        /// <param name="args">string format arguments</param>
-        public static void I(string tag, string  format, params object[] args)
+        /// <param name="format">The format of the message you would like logged.</param>
+        /// <param name="args">The message format arguments</param>
+        public static void I(string tag, string format, params object[] args)
         {
-            if (Logger != null)
-            {
-                Logger.I(tag, format, args);
-            }
+            To.All.I(tag, format, args);
         }
 
         /// <summary>Send a WARN message.</summary>
-        /// <remarks>Send a WARN message.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -236,26 +283,19 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void W(string tag, string msg)
         {
-            if (Logger != null)
-            {
-                Logger.W(tag, msg);
-            }
+            To.All.W(tag, msg);
         }
 
         /// <summary>Send a WARN message.</summary>
-        /// <remarks>Send a WARN message.</remarks>
         /// <param name="tag">Tag.</param>
         /// <param name="tr">Exception</param>
+        [Obsolete("This method signature is not like the others and will be removed")]
         public static void W(string tag, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.W(tag, tr);
-            }
+            To.All.W(tag, "No message, do not call this method");
         }
 
         /// <summary>Send a WARN message and log the exception.</summary>
-        /// <remarks>Send a WARN message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -264,30 +304,22 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void W(string tag, string msg, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.W(tag, msg, tr);
-            }
+            To.All.W(tag, msg, tr);
         }
 
         /// <summary>Send a WARN message and log the exception.</summary>
-        /// <remarks>Send a WARN message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
-        /// <param name="format">The message you would like logged.</param>
-        /// <param name="args">string format arguments</param>
-        public static void W(string tag, string  format, params object[] args)
+        /// <param name="format">The format of the message you would like logged.</param>
+        /// <param name="args">The message format arguments</param>
+        public static void W(string tag, string format, params object[] args)
         {
-            if (Logger != null)
-            {
-                Logger.W(tag, format, args);
-            }
+            To.All.I(tag, format, args);
         }
 
         /// <summary>Send an ERROR message.</summary>
-        /// <remarks>Send an ERROR message.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -295,14 +327,10 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void E(string tag, string msg)
         {
-            if (Logger != null)
-            {
-                Logger.E(tag, msg);
-            }
+            To.All.E(tag, msg);
         }
 
         /// <summary>Send a ERROR message and log the exception.</summary>
-        /// <remarks>Send a ERROR message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -311,26 +339,22 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void E(string tag, string msg, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.E(tag, msg, tr);
-            }
+            To.All.E(tag, msg, tr);
         }
 
-        /// <summary>Send a ERROR message and log the exception.</summary>
-        /// <remarks>Send a ERROR message and log the exception.</remarks>
+        /// <summary>Send a ERROR message</summary>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
-        /// <param name="format">The message you would like logged.</param>
-        /// <param name="args">string format arguments</param>
+        /// <param name="format">The format of the message you would like logged.</param>
+        /// <param name="args">The message format arguments</param>
         public static void E(string tag, string format, params object[] args)
         {
-            if (Logger != null)
-            {
-                Logger.E(tag, format, args);
-            }
+            To.All.E(tag, format, args);
         }
+
+        #endregion
+
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 // ForestDBCouchStore.cs
 //
 // Author:
@@ -183,6 +183,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public RevisionInternal GetDocument(string docId, long sequence)
         {
+            Log.To.Database.D(TAG, "Read {0} seq {1}", docId, sequence);
             var retVal = default(RevisionInternal);
             WithC4Document(docId, sequence, doc =>
             {
@@ -539,7 +540,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public bool RunInTransaction(RunInTransactionDelegate block)
         {
-            Log.D(TAG, "BEGIN transaction...");
+            Log.To.Database.I(TAG, "BEGIN transaction...");
             ForestDBBridge.Check(err => Native.c4db_beginTransaction(Forest, err));
             var success = false;
             try {
@@ -552,7 +553,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 success = false;
                 throw new CouchbaseLiteException("Error running transaction", e) { Code = StatusCode.Exception };
             } finally {
-                Log.D(TAG, "END transaction (success={0})", success);
+                Log.To.Database.I(TAG, "END transaction (success={0})", success);
                 ForestDBBridge.Check(err => Native.c4db_endTransaction(Forest, success, err));
                 if (!InTransaction && Delegate != null) {
                     Delegate.StorageExitedTransaction(success);
@@ -564,6 +565,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
         {
+            Log.To.Database.D(TAG, "Read {0} rev {1}", docId, revId);
             if (outStatus == null) {
                 outStatus = new Status();
             }
@@ -796,12 +798,18 @@ namespace Couchbase.Lite.Storage.ForestDB
                         { "deleted", next.IsDeleted ? (object)true : null },
                         { "_conflicts", conflicts }
                     };
+                    Log.To.Query.V(TAG, "AllDocs: Found row with key=\"{0}\", value={1}",
+                        docID, value);
+                } else {
+                    Log.To.Query.V(TAG, "AllDocs: No such row with key=\"{0}\"", docID);
                 }
 
                 var row = new QueryRow(value == null ? null : docID, sequenceNumber, docID, value, 
                     value == null ? null : new ForestRevisionInternal(next, options.IncludeDocs), null);
                 if (options.Filter == null || options.Filter(row)) {
                     yield return row;
+                } else {
+                    Log.To.Query.V(TAG, "   ... on 2nd thought, filter predicate skipped that row");
                 }
             }
 
