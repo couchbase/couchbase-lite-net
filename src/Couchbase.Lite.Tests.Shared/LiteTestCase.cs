@@ -513,7 +513,8 @@ namespace Couchbase.Lite
 
         internal static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties) 
         {
-            var doc = db.CreateDocument();
+            var id = properties.GetCast<string>("_id");
+            var doc = id != null ? db.GetDocument(id) : db.CreateDocument();
 
             Assert.IsNotNull(doc);
             Assert.IsNull(doc.CurrentRevisionId);

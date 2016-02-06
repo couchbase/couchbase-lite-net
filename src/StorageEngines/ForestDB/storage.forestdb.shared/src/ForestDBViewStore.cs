@@ -1,4 +1,4 @@
-﻿//
+//
 // ForestDBViewStore.cs
 //
 // Author:
@@ -303,9 +303,10 @@ namespace Couchbase.Lite.Storage.ForestDB
         private CBForestQueryEnumerator QueryEnumeratorWithOptions(QueryOptions options)
         {
             var enumerator = default(C4QueryEnumerator*);
+            var endKey = Misc.KeyForPrefixMatch(options.EndKey, options.PrefixMatchLevel);
             using(var startkeydocid_ = new C4String(options.StartKeyDocId))
             using(var endkeydocid_ = new C4String(options.EndKeyDocId)) {
-                WithC4Keys(new object[] { options.StartKey, options.EndKey }, false, startEndKey =>
+                WithC4Keys(new object[] { options.StartKey, endKey }, false, startEndKey =>
                     WithC4Keys(options.Keys == null ? null : options.Keys.ToArray(), true, c4keys =>
                     {
                         var opts = C4QueryOptions.DEFAULT;
@@ -546,23 +547,51 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public IEnumerable<QueryRow> RegularQuery(QueryOptions options)
         {
-            var enumerator = QueryEnumeratorWithOptions(options); 
+            var optionsCopy = options.Copy(); // Needed because Count() and ElementAt() will share this
+            var filter = optionsCopy.Filter;
+            var limit = Int32.MaxValue;
+            var skip = 0;
+            if (filter != null) {
+                // If a filter is present, these need to be applied to the filter
+                // and not the query
+                limit = optionsCopy.Limit;
+                skip = optionsCopy.Skip;
+                optionsCopy.Limit = Int32.MaxValue; 
+                optionsCopy.Skip = 0;
+            }
+
+            var enumerator = QueryEnumeratorWithOptions(optionsCopy); 
             foreach (var next in enumerator) {
-                
                 var key = CouchbaseBridge.DeserializeKey<object>(next.Key);
                 var value = (next.Value as IEnumerable<byte>).ToArray();
                 var docRevision = default(RevisionInternal); 
                 if (value.Length == 1 && value[0] == 42) {
                     docRevision = _dbStorage.GetDocument(next.DocID, null, true);
                 } else {
-                    docRevision = _dbStorage.GetDocument(next.DocID, null, options.IncludeDocs);
+                    docRevision = _dbStorage.GetDocument(next.DocID, null, optionsCopy.IncludeDocs);
+                }
+
+                var row = new QueryRow(next.DocID, next.DocSequence, key, value, docRevision, this);
+                if (filter != null) {
+                    if (!filter(row)) {
+                        continue;
+                    }
+
+                    if (skip > 0) {
+                        skip--;
+                        continue;
+                    }
+
+                    if (limit-- == 0) {
+                        yield break;
+                    }
                 }
 
                 Log.To.Query.V(Tag, "Query {0} found row with key={1}, value={2}, id={3}", Name,
                     new SecureLogJsonString(key, LogMessageSensitivity.PotentiallyInsecure), 
                     new SecureLogString(value, LogMessageSensitivity.PotentiallyInsecure), 
                     new SecureLogString(next.DocID, LogMessageSensitivity.PotentiallyInsecure));
-                yield return new QueryRow(next.DocID, next.DocSequence, key, value, docRevision, this);
+                yield return row;
             }
         }
 

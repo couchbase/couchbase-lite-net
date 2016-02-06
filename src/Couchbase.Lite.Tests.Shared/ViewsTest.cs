@@ -102,6 +102,95 @@ namespace Couchbase.Lite
             Assert.AreEqual(0, e.Count);
         }
 
+        public void TestCustomFilter()
+        {
+            var view = database.GetView("vu");
+            view.SetMap((doc, emit) =>
+            {
+                emit(doc["name"], doc["skin"]);
+            }, "1");
+
+            Assert.IsNotNull(view.Map);
+
+            database.RunInTransaction(() =>
+            {
+                CreateDocumentWithProperties(database, new Dictionary<string, object> {
+                    { "name", "Barry" },
+                    { "skin", "none" }
+                });
+                CreateDocumentWithProperties(database, new Dictionary<string, object> {
+                    { "name", "Terry" },
+                    { "skin", "furry" }
+                });
+                CreateDocumentWithProperties(database, new Dictionary<string, object> {
+                    { "name", "Wanda" },
+                    { "skin", "scaly" }
+                });
+
+                return true;
+            });
+
+            var query = view.CreateQuery();
+            query.PostFilter = row => (row.Value as string).EndsWith("y");
+            var rows = query.Run();
+
+            Assert.AreEqual(2, rows.Count);
+            CollectionAssert.AreEqual(new[] { "furry", "scaly" }, rows.Select(x => x.Value));
+
+            query = view.CreateQuery();
+            query.PostFilter = row => (row.Value as string).EndsWith("y");
+            query.Limit = 1;
+            rows = query.Run();
+            Assert.AreEqual(1, rows.Count);
+            Assert.AreEqual("furry", rows.ElementAt(0).Value);
+
+            query.Limit = 0;
+            rows = query.Run();
+            Assert.AreEqual(0, rows.Count);
+
+            query = view.CreateQuery();
+            query.PostFilter = row => (row.Value as string).EndsWith("y");
+            query.Skip = 1;
+            rows = query.Run();
+            Assert.AreEqual(1, rows.Count);
+            Assert.AreEqual("scaly", rows.ElementAt(0).Value);
+        }
+
+        [Test]
+        public void TestPrefixMatchingString()
+        {
+            PutDocs(database);
+            var view = CreateView(database);
+            Assert.AreEqual(StatusCode.Ok, view.UpdateIndex().Code);
+
+            // Keys with prefix "f":
+            var options = new QueryOptions();
+            options.StartKey = "f";
+            options.EndKey = "f";
+            options.PrefixMatchLevel = 1;
+            var rows = RowsToDicts(view.QueryWithOptions(options));
+            AssertDictionariesAreEqual(new Dictionary<string, object> {
+                { "id", "55555" },
+                { "key", "five" }
+            }, rows[0]);
+            AssertDictionariesAreEqual(new Dictionary<string, object> {
+                { "id", "44444" },
+                { "key", "four" }
+            }, rows[1]);
+
+            // ...descending:
+            options.Descending = true;
+            rows = RowsToDicts(view.QueryWithOptions(options));
+            AssertDictionariesAreEqual(new Dictionary<string, object> {
+                { "id", "55555" },
+                { "key", "five" }
+            }, rows[1]);
+            AssertDictionariesAreEqual(new Dictionary<string, object> {
+                { "id", "44444" },
+                { "key", "four" }
+            }, rows[0]);
+        }
+
         [Test] 
         public void TestIssue490()
         {

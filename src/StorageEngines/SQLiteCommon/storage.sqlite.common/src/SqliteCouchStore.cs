@@ -1471,7 +1471,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             if (maxKey != null) {
                 Debug.Assert(maxKey is string);
                 sql.Append(inclusiveMax ? " AND docid <= ?" : " AND docid < ?");
-                args.Add(maxKey);
+                args.Add(Misc.KeyForPrefixMatch(maxKey, options.PrefixMatchLevel));
             }
 
             sql.AppendFormat(" ORDER BY docid {0}, {1} revid DESC LIMIT ? OFFSET ?",

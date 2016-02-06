@@ -62,6 +62,57 @@ namespace Couchbase.Lite
 
         public DatabaseTest(string storageType) : base(storageType) {}
 
+        [Test]
+        public void TestAllDocumentsPrefixMatch()
+        {
+            CreateDocumentWithProperties(database, new Dictionary<string, object> { { "_id", "three" } });
+            CreateDocumentWithProperties(database, new Dictionary<string, object> { { "_id", "four" } });
+            CreateDocumentWithProperties(database, new Dictionary<string, object> { { "_id", "five" } });
+            CreateDocumentWithProperties(database, new Dictionary<string, object> { { "_id", "eight" } });
+            CreateDocumentWithProperties(database, new Dictionary<string, object> { { "_id", "fifteen" } });
+
+            database.DocumentCache.Clear();
+
+            var query = database.CreateAllDocumentsQuery();
+            var rows = default(QueryEnumerator);
+
+            // Set prefixMatchLevel = 1, no startKey, ascending:
+            query.Descending = false;
+            query.EndKey = "f";
+            query.PrefixMatchLevel = 1;
+            rows = query.Run();
+            Assert.AreEqual(4, rows.Count);
+            CollectionAssert.AreEqual(new[] { "eight", "fifteen", "five", "four" }, rows.Select(x => x.Key));
+
+            // Set prefixMatchLevel = 1, ascending:
+            query.Descending = false;
+            query.StartKey = "f";
+            query.EndKey = "f";
+            query.PrefixMatchLevel = 1;
+            rows = query.Run();
+            Assert.AreEqual(3, rows.Count);
+            CollectionAssert.AreEqual(new[] { "fifteen", "five", "four" }, rows.Select(x => x.Key));
+
+            // Set prefixMatchLevel = 1, descending:
+            query.Descending = true;
+            query.StartKey = "f";
+            query.EndKey = "f";
+            query.PrefixMatchLevel = 1;
+            rows = query.Run();
+            Assert.AreEqual(3, rows.Count);
+            CollectionAssert.AreEqual(new[] { "four", "five", "fifteen" }, rows.Select(x => x.Key));
+
+            // Set prefixMatchLevel = 1, ascending, prefix = fi:
+            query.Descending = false;
+            query.StartKey = "fi";
+            query.EndKey = "fi";
+            query.PrefixMatchLevel = 1;
+            rows = query.Run();
+            Assert.AreEqual(2, rows.Count);
+            CollectionAssert.AreEqual(new[] { "fifteen", "five" }, rows.Select(x => x.Key));
+
+        }
+
         #if !NET_3_5
         [Test]
         public void TestParallelLibrary()

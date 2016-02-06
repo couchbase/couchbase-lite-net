@@ -303,6 +303,22 @@ namespace Couchbase.Lite {
         /// </summary>
         public Func<QueryRow, bool> PostFilter { get; set; }
 
+        /// <summary>
+        /// If nonzero, enables prefix matching of string or array keys.
+        /// * A value of 1 treats the endKey itself as a prefix: if it's a string, keys in the index that
+        ///   come after the endKey, but begin with the same prefix, will be matched. (For example, if the
+        ///   endKey is "foo" then the key "foolish" in the index will be matched, but not "fong".) Or if
+        ///   the endKey is an array, any array beginning with those elements will be matched. (For
+        ///   example, if the endKey is [1], then [1, "x"] will match, but not [2].) If the key is any
+        ///   other type, there is no effect.
+        /// * A value of 2 assumes the endKey is an array and treats its final item as a prefix, using the
+        ///   rules above. (For example, an endKey of [1, "x"] will match [1, "xtc"] but not [1, "y"].)
+        /// * A value of 3 assumes the key is an array of arrays, etc.
+        ///   Note that if the .descending property is also set, the search order is reversed and the above
+        ///   discussion applies to the startKey, _not_ the endKey.
+        /// </summary>
+        public int PrefixMatchLevel { get; set; }
+
         internal View View { get; private set; }
 
         private bool TemporaryView { get; set; }
@@ -342,6 +358,7 @@ namespace Couchbase.Lite {
                         return result;
                     };
                 }
+                queryOptions.PrefixMatchLevel = PrefixMatchLevel;
                 return queryOptions;
             }
         }
@@ -464,16 +481,16 @@ namespace Couchbase.Lite {
 
         public override string ToString()
         {
-            return string.Format("[Query: Database={0}, Limit={1}, Skip={2}, Descending={3}, StartKey={4},{18}" +
-                "EndKey={5}, StartKeyDocId={6}, EndKeyDocId={7}, InclusiveStart={8}, InclusiveEnd={9},{18}" +
-                "IndexUpdateMode={10}, AllDocsMode={11}, Keys={12}, MapOnly={13}, GroupLevel={14}, Prefetch={15},{18}" +
-                "IncludeDeleted={16}, PostFilter={17}]", Database, Limit, Skip, Descending, 
+            return string.Format("[Query: Database={0}, Limit={1}, Skip={2}, Descending={3}, StartKey={4},{19}" +
+                "EndKey={5}, StartKeyDocId={6}, EndKeyDocId={7}, InclusiveStart={8}, InclusiveEnd={9},{19}" +
+                "IndexUpdateMode={10}, AllDocsMode={11}, Keys={12}, MapOnly={13}, GroupLevel={14}, Prefetch={15},{19}" +
+                "IncludeDeleted={16}, PostFilter={17}, PrefixMatchLevel={18}]", Database, Limit, Skip, Descending, 
                 new SecureLogJsonString(StartKey, LogMessageSensitivity.PotentiallyInsecure), 
                 new SecureLogJsonString(EndKey, LogMessageSensitivity.PotentiallyInsecure), 
                 new SecureLogString(StartKeyDocId, LogMessageSensitivity.PotentiallyInsecure), 
                 new SecureLogString(EndKeyDocId, LogMessageSensitivity.PotentiallyInsecure),
                 InclusiveStart, InclusiveEnd, IndexUpdateMode, AllDocsMode, Keys, MapOnly, GroupLevel, Prefetch, 
-                IncludeDeleted, PostFilter, Environment.NewLine);
+                IncludeDeleted, PostFilter, PrefixMatchLevel, Environment.NewLine);
         }
 
         #endregion

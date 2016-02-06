@@ -51,6 +51,7 @@ using System.Text;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
+using System.Collections;
 
 namespace Couchbase.Lite
 {
@@ -121,6 +122,38 @@ namespace Couchbase.Lite
             }
 
             return ae.Flatten().InnerException;
+        }
+
+        public static object KeyForPrefixMatch(object key, int depth)
+        {
+            if(depth < 1) {
+                return key;
+            }
+
+            var keyStr = key as string;
+            if (keyStr != null) {
+                // Kludge: prefix match a string by appending max possible character value to it
+                return keyStr + "\uffffffff";
+            }
+
+            var keyList = key as IList;
+            if (keyList != null) {
+                var nuKey = new List<object>();
+                foreach (var entry in keyList) {
+                    nuKey.Add(entry);
+                }
+
+                if (depth == 1) {
+                    nuKey.Add(new Dictionary<string, object>());
+                } else {
+                    var lastObject = KeyForPrefixMatch(nuKey.Last(), depth - 1);
+                    nuKey[keyList.Count - 1] = lastObject;
+                }
+
+                return nuKey;
+            }
+
+            return key;
         }
 
         public static void SafeDispose<T>(ref T obj) where T : class, IDisposable

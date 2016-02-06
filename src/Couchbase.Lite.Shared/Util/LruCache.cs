@@ -86,6 +86,14 @@ namespace Couchbase.Lite.Util
 
         #region Public Methods
 
+        public void Clear()
+        {
+            lock (_locker) {
+                _hashmap.Clear();
+                _nodes.Clear();
+            }
+        }
+
         public virtual void Resize(int maxSize)
         {
             if (maxSize <= 0) {
