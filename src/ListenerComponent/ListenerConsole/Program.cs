@@ -24,6 +24,9 @@ using Couchbase.Lite;
 using Couchbase.Lite.Listener;
 using Couchbase.Lite.Listener.Tcp;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
+using Couchbase.Lite.Security;
 
 namespace Listener
 {
@@ -32,10 +35,14 @@ namespace Listener
         private const int port = 59840;
         public static void Main(string[] args)
         {
-            CouchbaseLiteServiceListener listener = new CouchbaseLiteTcpListener(Manager.SharedInstance, port);
+            var cert = SSLGenerator.GenerateCert("foo", "miracle");
+            SSLGenerator.WriteCertificate("/Users/borrrden/foo2.pfx", cert);
+                
+            CouchbaseLiteServiceListener listener = new CouchbaseLiteTcpListener(Manager.SharedInstance, port, CouchbaseLiteTcpOptions.Default, new X509Certificate2(cert, "foo"));
             listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
             listener.Start();
 
+            Console.WriteLine("LISTENING...");
             Console.ReadKey(true);
             listener.Stop();
 

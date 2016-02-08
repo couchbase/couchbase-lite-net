@@ -58,12 +58,6 @@ namespace Couchbase.Lite
         [Test]
         public void TestSsl()
         {
-            var cert = SSLGenerator.GetExistingCertificate("127.0.0.1", 59841);
-            if (cert == null) {
-                cert = SSLGenerator.GenerateCert("127.0.0.1", new RSACryptoServiceProvider(2048));
-                SSLGenerator.InstallCertificateForListener(cert, 59841);
-            }
-
             var sslListener = new CouchbaseLiteTcpListener(manager, 59841, CouchbaseLiteTcpOptions.UseTLS);
             sslListener.Start();
 
@@ -71,7 +65,7 @@ namespace Couchbase.Lite
                 (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
             {
                 // If the certificate is a valid, signed certificate, return true.
-                if (sslPolicyErrors == SslPolicyErrors.None)
+                if (sslPolicyErrors == SslPolicyErrors.None || sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch)
                 {
                     return true;
                 }
@@ -114,8 +108,8 @@ namespace Couchbase.Lite
             };
 
             try {
-                var request = (HttpWebRequest)WebRequest.Create("https://127.0.0.1:59841");
-                request.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
+                var request = (HttpWebRequest)WebRequest.Create("https://127.0.0.1:59841/");
+                //request.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
                 var response = (HttpWebResponse)request.GetResponse();
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             } finally {

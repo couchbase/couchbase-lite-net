@@ -19,8 +19,8 @@
 //  limitations under the License.
 //
 using System.IO;
-using System.Net;
 using System.Text;
+using WebSocketSharp.Net;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
@@ -92,7 +92,11 @@ namespace Couchbase.Lite.Listener.Tcp
 
         public void AddHeader(string name, string value)
         {
-            _responseObject.AddHeader(name, value);
+            if (name == "Content-Type") {
+                _responseObject.ContentType = value;
+            } else {
+                _responseObject.AddHeader(name, value);
+            }
         }
 
         public void ClearHeaders()
