@@ -79,26 +79,6 @@
     <Compile Include="StringEx.cs" />
     <Compile Include="StreamEx.cs" />
     <Compile Include="EnumEx.cs" />
-    <Compile Include="Mono.Security\X509CertificateBuilder.cs" />
-    <Compile Include="Mono.Security\X509Builder.cs" />
-    <Compile Include="Mono.Security\ASN1.cs" />
-    <Compile Include="Mono.Security\PKCS7.cs" />
-    <Compile Include="Mono.Security\ASN1Convert.cs" />
-    <Compile Include="Mono.Security\X509Certificate.cs" />
-    <Compile Include="Mono.Security\PKCS1.cs" />
-    <Compile Include="Mono.Security\X509ExtensionCollection.cs" />
-    <Compile Include="Mono.Security\X509CertificateCollection.cs" />
-    <Compile Include="Mono.Security\X509Extension.cs" />
-    <Compile Include="Mono.Security\PKCS12.cs" />
-    <Compile Include="Mono.Security\PKCS8.cs" />
-    <Compile Include="Mono.Security\PrivateKey.cs" />
-    <Compile Include="Mono.Security\BitConverterLE.cs" />
-    <Compile Include="Mono.Security\X501Name.cs" />
-    <Compile Include="Mono.Security\X520Attributes.cs" />
-    <Compile Include="Mono.Security\RC4.cs" />
-    <Compile Include="Mono.Security\CryptoConvert.cs" />
-    <Compile Include="Mono.Security\ARC4Managed.cs" />
-    <Compile Include="Mono.Security\CryptoTools.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -120,8 +100,5 @@
       <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
       <Name>Stateless</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Mono.Security\" />
   </ItemGroup>
 </Project>

@@ -66,8 +66,7 @@ namespace Couchbase.Lite.Replicator
         private readonly CookieStore _cookieStore;
         private readonly ConcurrentDictionary<HttpResponseMessage, int> _retryMessages = new ConcurrentDictionary<HttpResponseMessage,int>();
 
-        #endregion
-
+                          #endregion
 
         #region Properties
 

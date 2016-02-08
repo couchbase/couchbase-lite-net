@@ -58,7 +58,7 @@ using System.Net;
 
 namespace Couchbase.Lite.Tests
 {
-    public class MockHttpClientFactory : IHttpClientFactory
+    internal class MockHttpClientFactory : IHttpClientFactory
     {
         const string Tag = "MockHttpClientFactory";
 
@@ -84,7 +84,7 @@ namespace Couchbase.Lite.Tests
             Headers = new Dictionary<string,string>();
         }
 
-        public HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
         {
             var handler = useRetryHandler ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler) : (HttpMessageHandler)HttpHandler;
             var client = new HttpClient(handler, false);
@@ -95,7 +95,7 @@ namespace Couchbase.Lite.Tests
                 }
             }
 
-            return client;
+            return new CouchbaseLiteHttpClient(client, null);
         }
 
         public void AddCookies(CookieCollection cookies)

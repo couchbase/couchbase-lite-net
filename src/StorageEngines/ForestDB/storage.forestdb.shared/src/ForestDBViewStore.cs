@@ -20,8 +20,6 @@
 //
 #define PARSED_KEYS
 //#define CONNECTION_PER_THREAD
-#if FORESTDB
-
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -678,4 +676,3 @@ namespace Couchbase.Lite.Store
         }
     }
 }
-#endif

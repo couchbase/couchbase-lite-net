@@ -13,6 +13,7 @@
     <Folder Include="$(MSBuildThisFileDirectory)PeerToPeer\" />
     <Folder Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\" />
     <Folder Include="$(MSBuildThisFileDirectory)Properties\" />
+    <Folder Include="$(MSBuildThisFileDirectory)X509\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\AddressProtocol.cs" />
@@ -57,5 +58,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Properties\AssemblyInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\DigestAuthHeaderValue.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\JSFilterCompiler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)X509\X509Manager.cs" />
   </ItemGroup>
 </Project>

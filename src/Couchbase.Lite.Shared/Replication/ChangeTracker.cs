@@ -113,6 +113,8 @@ namespace Couchbase.Lite.Replicator
 
         CancellationTokenSource changesFeedRequestTokenSource;
 
+        private CouchbaseLiteHttpClient _httpClient;
+
         internal RemoteServerVersion ServerType { get; private set; }
 
         public bool Paused
@@ -315,38 +317,20 @@ namespace Couchbase.Lite.Replicator
             if (tokenSource.Token.IsCancellationRequested) {
                 return;
             }
-
-            HttpClient httpClient = null;
+                
             try {
-                httpClient = clientCopy.GetHttpClient();
-                var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
-                if(challengeResponseAuth != null) {
-                    challengeResponseAuth.PrepareWithRequest(Request);
-                }
-         
-                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
-                if (authHeader != null)
-                {
-                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
-                }
 
                 changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
 
                 var option = mode == ChangeTrackerMode.LongPoll ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead;
-                var info = httpClient.SendAsync(
+                _httpClient.Authenticator = Authenticator;
+                var info = _httpClient.SendAsync(
                     Request, 
                     option,
                     changesFeedRequestTokenSource.Token
                 );
 
-                info.ContinueWith(t1 => {
-                    ChangeFeedResponseHandler(t1).ContinueWith(t2 =>
-                    {
-                        if(httpClient != null) {
-                            httpClient.Dispose();
-                        }
-                    });
-                }, changesFeedRequestTokenSource.Token, 
+                info.ContinueWith(ChangeFeedResponseHandler, changesFeedRequestTokenSource.Token, 
                     TaskContinuationOptions.LongRunning, 
                     TaskScheduler.Default);
             }
@@ -522,6 +506,7 @@ namespace Couchbase.Lite.Replicator
                 return false;
             }
 
+            _httpClient = client.GetHttpClient();
             this.Error = null;
             this.thread = new Thread(Run) { IsBackground = true, Name = "Change Tracker Thread" };
             thread.Start();
@@ -544,6 +529,7 @@ namespace Couchbase.Lite.Replicator
                 Log.D(TAG, "changed tracker asked to stop");
 
                 IsRunning = false;
+                Misc.SafeDispose(ref _httpClient);
 
                 var feedTokenSource = changesFeedRequestTokenSource;
                 if (feedTokenSource != null && !feedTokenSource.IsCancellationRequested)

@@ -1,4 +1,4 @@
-﻿//
+//
 //  PeerToPeerTest.cs
 //
 //  Author:
@@ -230,7 +230,6 @@ namespace Couchbase.Lite
                 {
                     allChangesExternal = allChangesExternal && e.IsExternal;
                 };
-
                 RunReplication(repl);
                 VerifyDocs(database, false);
                 Assert.IsTrue(allChangesExternal);

@@ -39,9 +39,6 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Mono.Security">
-      <HintPath>..\packages\Mono.Security.3.2.3.0\lib\net45\Mono.Security.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Web.Services" />
@@ -179,7 +176,7 @@
       <Project>{88BB6717-85C9-46F0-923B-C263C08A189B}</Project>
       <Name>storage.systemsqlite.net45</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
+    <ProjectReference Include="..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
       <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
       <Name>websocket-sharp</Name>
     </ProjectReference>
