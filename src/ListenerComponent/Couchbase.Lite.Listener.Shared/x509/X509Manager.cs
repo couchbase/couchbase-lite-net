@@ -26,47 +26,92 @@ using System.Security.Cryptography.X509Certificates;
 
 using Mono.Security.X509;
 
-namespace Couchbase.Lite.Security.X509
+namespace Couchbase.Lite.Security
 {
     //http://www.freekpaans.nl/2015/04/creating-self-signed-x-509-certificates-using-mono-security/
-    /// <summary>
-    /// A utility for managing X509 certificates for use with the Couchbase Lite listener
-    /// </summary>
     public static class X509Manager
     {
-        public static X509Certificate2 GenerateTransientCertificate(string certificateName, string password)
+
+        /// <summary>
+        /// Generates an X509 certificate for temporary use.  It is not persisted to disk.
+        /// </summary>
+        /// <returns>The created certificate</returns>
+        /// <param name="certificateName">The subject name for the certificate</param>
+        public static X509Certificate2 GenerateTransientCertificate(string certificateName)
         {
-            var rawcert = CreateRawCert(certificateName, password);
-            return new X509Certificate2(rawcert, password);
+            var rawcert = CreateRawCert(certificateName, null);
+            return new X509Certificate2(rawcert);
         }
 
-        public static X509Certificate2 GetOrCreatePersistentCertificate(string certificateName, string password, string savePath)
+        /// <summary>
+        /// Gets an existing X509 certificate from the specified path, or creates one
+        /// if none exists and saves it to the specified path.
+        /// </summary>
+        /// <returns>The created or retrieved certificate</returns>
+        /// <param name="certificateName">The name to set or verify on the certificate</param>
+        /// <param name="password">The password to set or use on the file.</param>
+        /// <param name="savePath">The path to read from or write to</param>
+        /// <exception cref="System.InvalidDataException>Thrown if the given certificateName
+        /// does not match the one on the saved certificate</exception>
+        public static X509Certificate2 GetPersistentCertificate(string certificateName, string password, string savePath)
         {
-            if (File.Exists(savePath)) {
-                var retVal = new X509Certificate2(savePath, password);
-                var cn = String.Format("CN={0}", certificateName);
+            var retVal = GetExistingPersistentCertificate(certificateName, password, savePath);
+            if (retVal == null) {
+                var rawcert = CreateRawCert(certificateName, password);
+                WriteCertificate(savePath, rawcert);
+                retVal = new X509Certificate2(rawcert, password);
+            }
+
+            return retVal;
+        }
+
+        /// <summary>
+        /// Gets an existing X509 certificate from the specified path.
+        /// </summary>
+        /// <returns>The retrieved certificate, or null if it does not exist</returns>
+        /// <param name="certificateName">The subject name to check on the existing certificate</param></param>
+        /// <param name="password">The password to use to open the certificate file.</param>
+        /// <param name="savePath">The path to read the certificate from</param>
+        /// <exception cref="System.InvalidDataException>Thrown if the given certificateName
+        /// does not match the one on the saved certificate</exception>
+        public static X509Certificate2 GetExistingPersistentCertificate(string certificateName, string password, string filePath)
+        {
+            if (File.Exists(filePath)) {
+                var retVal = new X509Certificate2(filePath, password);
+                var cn = "CN=" + certificateName;
                 if (retVal.Subject != cn) {
-                    throw new InvalidDataException(String.Format("Certificate found at {0} has invalid name; expecting" +
-                    " {1} but found {2}", savePath, certificateName, retVal.Subject));
+                    throw new InvalidDataException(String.Format("Certificate name doesn't match for {0}, " +
+                        "expecting {1} but found {2}", filePath, certificateName, retVal.Subject.Substring(3)));
                 }
 
                 return retVal;
-            }
+            } 
 
-            var rawcert = CreateRawCert(certificateName, password);
-            WriteCertificate(savePath, rawcert);
-            return new X509Certificate2(rawcert, password);
+            return null;
         }
 
-        public static X509Certificate2 ReadCertificate(Stream source, string password)
-        {
-            return new X509Certificate2(source.ReadAllBytes(), password);
-        }
-
+        /// <summary>
+        /// Deletes and recreates a certificate at the given path
+        /// </summary>
+        /// <returns>The created certificate</returns>
+        /// <param name="certificateName">The subject name to write to the certificate</param>
+        /// <param name="password">The password to use on the certificate file.</param>
+        /// <param name="savePath">The path to save the certificate to.</param>
         public static X509Certificate2 RecreatePersistentCertificate(string certificateName, string password, string savePath)
         {
             File.Delete(savePath);
-            return GetOrCreatePersistentCertificate(certificateName, password, savePath);
+            return GetPersistentCertificate(certificateName, password, savePath);
+        }
+
+        /// <summary>
+        /// Reads an X509 certificate from the given stream
+        /// </summary>
+        /// <returns>The retrieved certificate</returns>
+        /// <param name="stream">The stream that contains the X509 certificate data.</param>
+        /// <param name="password">The password to use to open the certificate.</param>
+        public static X509Certificate2 GetExistingPersistentCertificate(Stream stream, string password)
+        {
+            return new X509Certificate2(stream.ReadAllBytes(), password);
         }
 
         private static void WriteCertificate(string path, byte[] rawcert)
@@ -76,9 +121,9 @@ namespace Couchbase.Lite.Security.X509
             fs.Close();
         }
 
-        private static byte[] CreateRawCert(string certificateName, string password)
+        private static byte[] CreateRawCert(string certName, string password)
         {
-            if (String.IsNullOrEmpty(certificateName)) {
+            if (String.IsNullOrEmpty(certName)) {
                 throw new ArgumentException("Must contain a non-empty name", "certificateName");
             }
 
@@ -87,7 +132,7 @@ namespace Couchbase.Lite.Security.X509
             }
 
             byte[] sn = GenerateSerialNumber();
-            string subject = string.Format("CN={0}", certificateName);
+            string subject = string.Format("CN={0}", certName);
             DateTime notBefore = DateTime.Now;
             DateTime notAfter = DateTime.Now.AddYears(20);
             string hashName = "SHA512";
@@ -135,4 +180,3 @@ namespace Couchbase.Lite.Security.X509
         }
     }
 }
-

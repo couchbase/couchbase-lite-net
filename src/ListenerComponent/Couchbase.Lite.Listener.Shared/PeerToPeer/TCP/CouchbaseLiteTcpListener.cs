@@ -110,7 +110,7 @@ namespace Couchbase.Lite.Listener.Tcp
                 _listener.SslConfiguration.ClientCertificateRequired = false;
                 if (sslCert == null) {
                     Log.I(TAG, "Generating X509 certificate for listener...");
-                    sslCert = new X509Certificate2(SSLGenerator.GenerateCert("Couchbase-P2P", "cb123"), "cb123");
+                    sslCert = X509Manager.GenerateTransientCertificate("Couchbase-P2P");
                 }
 
                 _listener.SslConfiguration.ServerCertificate = sslCert;

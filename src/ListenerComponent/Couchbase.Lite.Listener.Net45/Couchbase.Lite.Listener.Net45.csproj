@@ -36,7 +36,9 @@
     <Reference Include="Jint">
       <HintPath>..\..\packages\Jint.2.4.0\lib\portable-net40+sl50+win+wpa81+wp80\Jint.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Security" />
+    <Reference Include="Mono.Security">
+      <HintPath Condition=" '$(OS)'=='Windows_NT' ">..\Couchbase.Lite.Listener.Shared\vendor\Mono\Mono.Security.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

@@ -35,10 +35,9 @@ namespace Listener
         private const int port = 59840;
         public static void Main(string[] args)
         {
-            var cert = SSLGenerator.GenerateCert("foo", "miracle");
-            SSLGenerator.WriteCertificate("/Users/borrrden/foo2.pfx", cert);
+            var cert = X509Manager.GetPersistentCertificate("foo", "miracle", "/Users/borrrden/foo2.pfx");
                 
-            CouchbaseLiteServiceListener listener = new CouchbaseLiteTcpListener(Manager.SharedInstance, port, CouchbaseLiteTcpOptions.Default, new X509Certificate2(cert, "foo"));
+            CouchbaseLiteServiceListener listener = new CouchbaseLiteTcpListener(Manager.SharedInstance, port, CouchbaseLiteTcpOptions.UseTLS | CouchbaseLiteTcpOptions.AllowBasicAuth, cert);
             listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
             listener.Start();
 
