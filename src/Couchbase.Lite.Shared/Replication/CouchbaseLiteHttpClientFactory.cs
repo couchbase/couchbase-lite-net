@@ -49,7 +49,6 @@ using System.Security.Cryptography.X509Certificates;
 
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Security;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using System.Net.Http.Headers;

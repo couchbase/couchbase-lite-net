@@ -2,7 +2,7 @@
 // SSLGenerator.cs
 //
 // Author:
-// 	Jim Borden  <jim.borden@couchbase.com>
+//  Jim Borden  <jim.borden@couchbase.com>
 //
 // Copyright (c) 2015 Couchbase, Inc All rights reserved.
 //
@@ -22,15 +22,61 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 
 using Mono.Security.X509;
 
-namespace Couchbase.Lite.Security
+namespace Couchbase.Lite.Security.X509
 {
     //http://www.freekpaans.nl/2015/04/creating-self-signed-x-509-certificates-using-mono-security/
-    internal static class SSLGenerator
+    /// <summary>
+    /// A utility for managing X509 certificates for use with the Couchbase Lite listener
+    /// </summary>
+    public static class X509Manager
     {
-        public static byte[] GenerateCert(string certificateName, string password)
+        public static X509Certificate2 GenerateTransientCertificate(string certificateName, string password)
+        {
+            var rawcert = CreateRawCert(certificateName, password);
+            return new X509Certificate2(rawcert, password);
+        }
+
+        public static X509Certificate2 GetOrCreatePersistentCertificate(string certificateName, string password, string savePath)
+        {
+            if (File.Exists(savePath)) {
+                var retVal = new X509Certificate2(savePath, password);
+                var cn = String.Format("CN={0}", certificateName);
+                if (retVal.Subject != cn) {
+                    throw new InvalidDataException(String.Format("Certificate found at {0} has invalid name; expecting" +
+                    " {1} but found {2}", savePath, certificateName, retVal.Subject));
+                }
+
+                return retVal;
+            }
+
+            var rawcert = CreateRawCert(certificateName, password);
+            WriteCertificate(savePath, rawcert);
+            return new X509Certificate2(rawcert, password);
+        }
+
+        public static X509Certificate2 ReadCertificate(Stream source, string password)
+        {
+            return new X509Certificate2(source.ReadAllBytes(), password);
+        }
+
+        public static X509Certificate2 RecreatePersistentCertificate(string certificateName, string password, string savePath)
+        {
+            File.Delete(savePath);
+            return GetOrCreatePersistentCertificate(certificateName, password, savePath);
+        }
+
+        private static void WriteCertificate(string path, byte[] rawcert)
+        {
+            FileStream fs = File.Open(path, FileMode.Create, FileAccess.Write);
+            fs.Write(rawcert, 0, rawcert.Length);
+            fs.Close();
+        }
+
+        private static byte[] CreateRawCert(string certificateName, string password)
         {
             if (String.IsNullOrEmpty(certificateName)) {
                 throw new ArgumentException("Must contain a non-empty name", "certificateName");
@@ -62,17 +108,9 @@ namespace Couchbase.Lite.Security
                 p12.Password = password;
             }
             Hashtable attributes = GetAttributes();
-            p12.AddCertificate(new X509Certificate(rawcert), attributes);
+            p12.AddCertificate(new Mono.Security.X509.X509Certificate(rawcert), attributes);
             p12.AddPkcs8ShroudedKeyBag(key, attributes);
-            rawcert = p12.GetBytes();
-            return rawcert;
-        }
-
-        public static void WriteCertificate(string path, byte[] rawcert)
-        {
-            FileStream fs = File.Open(path, FileMode.Create, FileAccess.Write);
-            fs.Write(rawcert, 0, rawcert.Length);
-            fs.Close();
+            return p12.GetBytes();
         }
 
         private static Hashtable GetAttributes()
