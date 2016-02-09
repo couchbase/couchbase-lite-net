@@ -152,7 +152,7 @@ namespace Couchbase.Lite.Listener.Tcp
         //This gets called when the listener receives a request
         private void ProcessRequest (HttpListenerContext context)
         {
-            var getContext = Task.Factory.FromAsync(_listener.BeginGetContext, _listener.EndGetContext, null);
+            var getContext = Task.Factory.FromAsync<HttpListenerContext>(_listener.BeginGetContext, _listener.EndGetContext, null);
             getContext.ContinueWith(t => ProcessRequest(t.Result));
 
             _router.HandleRequest(new CouchbaseListenerTcpContext(context.Request, context.Response, _manager));
@@ -175,7 +175,7 @@ namespace Couchbase.Lite.Listener.Tcp
                 "more details see https://github.com/couchbase/couchbase-lite-net/wiki/Gotchas");
             }
 
-            var getContext = Task.Factory.FromAsync(_listener.BeginGetContext, _listener.EndGetContext, null);
+            var getContext = Task.Factory.FromAsync<HttpListenerContext>(_listener.BeginGetContext, _listener.EndGetContext, null);
             getContext.ContinueWith(t => ProcessRequest(t.Result));
         }
 

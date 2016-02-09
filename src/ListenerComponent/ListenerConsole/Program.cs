@@ -35,7 +35,7 @@ namespace Listener
         private const int port = 59840;
         public static void Main(string[] args)
         {
-            var cert = X509Manager.GetPersistentCertificate("foo", "miracle", "/Users/borrrden/foo2.pfx");
+            var cert = X509Manager.GetPersistentCertificate("foo", "miracle", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "foo.pfx"));
                 
             CouchbaseLiteServiceListener listener = new CouchbaseLiteTcpListener(Manager.SharedInstance, port, CouchbaseLiteTcpOptions.UseTLS | CouchbaseLiteTcpOptions.AllowBasicAuth, cert);
             listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
