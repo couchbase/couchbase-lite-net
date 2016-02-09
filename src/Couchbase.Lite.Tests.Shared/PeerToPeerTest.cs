@@ -58,7 +58,8 @@ namespace Couchbase.Lite
         [Test]
         public void TestSsl()
         {
-            var sslListener = new CouchbaseLiteTcpListener(manager, 59841, CouchbaseLiteTcpOptions.UseTLS);
+            var cert = X509Manager.GetPersistentCertificate("127.0.0.1", "123abc", System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "unit_test.pfx"));
+            var sslListener = new CouchbaseLiteTcpListener(manager, 59841, CouchbaseLiteTcpOptions.UseTLS, cert);
             sslListener.Start();
 
             ServicePointManager.ServerCertificateValidationCallback = 
@@ -109,7 +110,6 @@ namespace Couchbase.Lite
 
             try {
                 var request = (HttpWebRequest)WebRequest.Create("https://127.0.0.1:59841/");
-                //request.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
                 var response = (HttpWebResponse)request.GetResponse();
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             } finally {

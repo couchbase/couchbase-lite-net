@@ -38,6 +38,7 @@
     <Reference Include="Jint">
       <HintPath>..\..\packages\Jint.2.4.0\lib\portable-net40+sl50+win+wpa81+wp80\Jint.dll</HintPath>
     </Reference>
+    <Reference Include="Mono.Security" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
@@ -53,6 +54,10 @@
       <Name>Couchbase.Lite.iOS</Name>
       <IsAppExtension>False</IsAppExtension>
       <IsWatchApp>False</IsWatchApp>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj">
+      <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
+      <Name>websocket-sharp.ios</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>
