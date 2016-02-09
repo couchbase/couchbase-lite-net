@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite</id>
     <title>Couchbase Lite</title>
-    <version>1.2</version>
+    <version>1.2.0.2</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,6 +12,8 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
+      1.2.0.2 puts an upper limit on one of our deps due to an upstream change that breaks binary compatibility.
+
 Couchbase Lite 1.2 brings a number of significant bug fixes and two new features:
 
 Encryption Support - Databases may now be encrypted. The encryption process uses industry standard protocols (PBKDF2 for key generation and 256-bit AES for encrypting).
@@ -34,13 +36,13 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
       <group targetFramework="net45">
         <dependency id="Newtonsoft.Json" version="7.0.1" />
         <dependency id="SharpZipLib.Portable" version="0.86.0.0003" />
-        <dependency id="Stateless" version="2.5.21.0" />
+        <dependency id="Stateless" version="[2.5.21.0,2.5.29.0]" />
         <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2" />
       </group>
       <group>
         <dependency id="Newtonsoft.Json" version="7.0.1" />
         <dependency id="SharpZipLib.Portable" version="0.86.0.0003" />
-        <dependency id="Stateless" version="2.5.21.0" />
+        <dependency id="Stateless" version="[2.5.21.0,2.5.29.0]" />
         <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2" />
       </group>
     </dependencies>
