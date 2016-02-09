@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite</id>
     <title>Couchbase Lite</title>
-    <version>1.2.0.2</version>
+    <version>1.2.0.3</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,7 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
-      1.2.0.2 puts an upper limit on one of our deps due to an upstream change that breaks binary compatibility.
+      1.2.0.3 puts an upper limit on one of our deps due to an upstream change that breaks binary compatibility.
 
 Couchbase Lite 1.2 brings a number of significant bug fixes and two new features:
 
