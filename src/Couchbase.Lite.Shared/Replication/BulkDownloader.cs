@@ -52,7 +52,7 @@ using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Replicator
 {
-    internal class BulkDownloader : IMultipartReaderDelegate
+    internal class BulkDownloader : IMultipartReaderDelegate, IDisposable
     {
         const string Tag = "BulkDownloader";
 
@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Replicator
         private MultipartDocumentReader _docReader;
         private Database _db;
         private IList<RevisionInternal> _revs;
-        private readonly IHttpClientFactory _clientFactory;
+        private readonly CouchbaseLiteHttpClient _httpClient;
         private readonly object _body;
 
         private int _docCount;
@@ -92,7 +92,7 @@ namespace Couchbase.Lite.Replicator
             _bulkGetUri = new Uri(AppendRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true"));
             _revs = revs;
             _db = database;
-            _clientFactory = clientFactory;
+            _httpClient = clientFactory.GetHttpClient(CookieStore, true);
             _requestHeaders = requestHeaders;
             _tokenSource = tokenSource ?? new CancellationTokenSource();
             _body = CreatePostBody(revs, _db);
@@ -100,24 +100,8 @@ namespace Couchbase.Lite.Replicator
 
         public void Start()
         {
-            HttpClient httpClient = null;
+            CouchbaseLiteHttpClient httpClient = null;
             var requestMessage = CreateConcreteRequest();
-
-            httpClient = _clientFactory.GetHttpClient(CookieStore, true);
-            var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
-            if (challengeResponseAuth != null) {
-                var authHandler = _clientFactory.Handler as DefaultAuthHandler;
-                if (authHandler != null) {
-                    authHandler.Authenticator = challengeResponseAuth;
-                }
-
-                challengeResponseAuth.PrepareWithRequest(requestMessage);
-            }
-
-            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
-            if (authHeader != null) {
-                httpClient.DefaultRequestHeaders.Authorization = authHeader;
-            }
 
             if(!requestMessage.Headers.Contains("User-Agent")) {
                 requestMessage.Headers.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SYNC_PROTOCOL_VERSION, Manager.VersionString));
@@ -131,7 +115,7 @@ namespace Couchbase.Lite.Replicator
 
             SetBody(requestMessage);
 
-            ExecuteRequest(httpClient, requestMessage).ContinueWith(t => 
+            ExecuteRequest(_httpClient, requestMessage).ContinueWith(t => 
             {
                 Log.V(Tag, "RemoteRequest run() finished, url: {0}", _bulkGetUri);
                 if(httpClient != null) {
@@ -173,7 +157,7 @@ namespace Couchbase.Lite.Replicator
             return newRequest;
         }
 
-        private Task ExecuteRequest(HttpClient httpClient, HttpRequestMessage request)
+        private Task ExecuteRequest(CouchbaseLiteHttpClient httpClient, HttpRequestMessage request)
         {
             object fullBody = null;
             Exception error = null;
@@ -190,6 +174,7 @@ namespace Couchbase.Lite.Replicator
 
             Log.D(Tag + ".ExecuteRequest", "Sending request: {0}", request);
             var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
+            httpClient.Authenticator = Authenticator;
             return httpClient.SendAsync(request, requestTokenSource.Token).ContinueWith(t =>
             {
                 requestTokenSource.Dispose();
@@ -377,6 +362,11 @@ namespace Couchbase.Lite.Replicator
         {
             var uri = remote.AppendPath(relativePath);
             return uri.AbsoluteUri;
+        }
+
+        public void Dispose()
+        {
+            _httpClient.Dispose();
         }
     }
 }

@@ -56,7 +56,7 @@ using System.Net;
 
 namespace Couchbase.Lite.Tests
 {
-    public class AlwaysFailingClientFactory : IHttpClientFactory
+    internal class AlwaysFailingClientFactory : IHttpClientFactory
     {
         public IDictionary<string, string> Headers { get; set; }
 
@@ -74,10 +74,10 @@ namespace Couchbase.Lite.Tests
             HttpHandler = new FailEveryRequestHandler();
         }
 
-        public HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
         {
             var mockHttpClient = new HttpClient(HttpHandler);
-            return mockHttpClient;
+            return new CouchbaseLiteHttpClient(mockHttpClient, null);
         }
 
         public void AddCookies(CookieCollection cookies)

@@ -180,6 +180,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CompressedContent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Platform.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClient.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

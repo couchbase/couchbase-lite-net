@@ -51,9 +51,17 @@ namespace Couchbase.Lite
         private CouchbaseLiteTcpListener _listener;
         private Uri _listenerDBUri;
         private ushort _port = 59840;
+        private AuthenticationSchemes _authScheme;
         private Random _rng = new Random(DateTime.Now.Millisecond);
 
         public PeerToPeerTest(string storageType) : base(storageType) {}
+
+        protected override void SetUp()
+        {
+            base.SetUp();
+
+            _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
+        }
 
         [Test]
         public void TestSsl()
@@ -161,64 +169,66 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
         }
 
-        protected override void SetUp()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TestPush(bool secure)
         {
-            base.SetUp();
-
-            _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
-            _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.Default);
-            #if USE_AUTH
-            _listener.SetPasswords(new Dictionary<string, string> { { "bob", "slack" } });
-            #endif
-
-            _listenerDBUri = new Uri("http://localhost:" + _port + "/" + LISTENER_DB_NAME);
-            _listener.Start();
+            SetupListener(secure);
+            try {
+                CreateDocs(database, false);
+                var repl = CreateReplication(database, true);
+                RunReplication(repl);
+                VerifyDocs(_listenerDB, false);
+            } finally {
+                _listener.Stop();
+            }
         }
 
-        protected override void TearDown()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TestPull(bool secure)
         {
-            base.TearDown();
-
-            _listener.Stop();
-            _listenerDB.Close();
+            SetupListener(secure);
+            try {
+                CreateDocs(_listenerDB, false);
+                var repl = CreateReplication(database, false);
+                RunReplication(repl);
+                VerifyDocs(database, false);
+            } finally {
+                _listener.Stop();
+            }
         }
 
-        [Test]
-        public void TestPush()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TestPushWithAttachment(bool secure)
         {
-            CreateDocs(database, false);
-            var repl = CreateReplication(database, true);
-            RunReplication(repl);
-            VerifyDocs(_listenerDB, false);
+            SetupListener(secure);
+            try {
+                CreateDocs(database, true);
+                var repl = CreateReplication(database, true);
+                RunReplication(repl);
+                Assert.IsNull(repl.LastError, "Error during replication");
+                VerifyDocs(_listenerDB, true);
+            } finally {
+                _listener.Stop();
+            }
         }
 
-        [Test]
-        public void TestPull()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TestPullWithAttachment(bool secure)
         {
-            CreateDocs(_listenerDB, false);
-            var repl = CreateReplication(database, false);
-            RunReplication(repl);
-            VerifyDocs(database, false);
-        }
-
-        [Test]
-        public void TestPushWithAttachment()
-        {
-            CreateDocs(database, true);
-            var repl = CreateReplication(database, true);
-            RunReplication(repl);
-            Assert.IsNull(repl.LastError, "Error during replication");
-            VerifyDocs(_listenerDB, true);
-        }
-
-        [Test]
-        public void TestPullWithAttachment()
-        {
-            CreateDocs(_listenerDB, true);
-            var repl = CreateReplication(database, false);
-            RunReplication(repl);
-            Assert.IsNull(repl.LastError, "Error during replication");
-            VerifyDocs(database, true);
+            SetupListener(secure);
+            try {
+                CreateDocs(_listenerDB, true);
+                var repl = CreateReplication(database, false);
+                RunReplication(repl);
+                Assert.IsNull(repl.LastError, "Error during replication");
+                VerifyDocs(database, true);
+            } finally {
+                _listener.Stop();
+            }
         }
 
         private Replication CreateReplication(Database db, bool push)
@@ -230,11 +240,27 @@ namespace Couchbase.Lite
                 repl = db.CreatePullReplication(_listenerDBUri);
             }
 
-            #if USE_AUTH
-            repl.Authenticator = new DigestAuthenticator("bob", "slack");
-            #endif
+            if (_authScheme == AuthenticationSchemes.Basic) {
+                repl.Authenticator = new BasicAuthenticator("bob", "slack");
+            } else if (_authScheme == AuthenticationSchemes.Digest) {
+                repl.Authenticator = new DigestAuthenticator("bob", "slack");
+            }
 
             return repl;
+        }
+
+        private void SetupListener(bool secure)
+        {
+            if (secure) {
+                var cert = X509Manager.GetPersistentCertificate("127.0.0.1", "123abc", System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "unit_test.pfx"));
+                _listenerDBUri = new Uri(String.Format("https://localhost:{0}/{1}/", _port, LISTENER_DB_NAME));
+                _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.UseTLS, cert);  
+            } else {
+                _listenerDBUri = new Uri(String.Format("http://localhost:{0}/{1}/", _port, LISTENER_DB_NAME));
+                _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.Default); 
+            }
+
+            _listener.Start();
         }
 
         private void CreateDocs(Database db, bool withAttachments)
@@ -279,7 +305,6 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(DOCUMENT_COUNT, db.GetDocumentCount());
         }
-
     }
 }
 

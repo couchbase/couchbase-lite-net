@@ -171,7 +171,9 @@ namespace Couchbase.Lite.Listener
                 _binaryBody = null;
                 _jsonBody = null;
                 _multipartWriter = value;
-                Headers["Content-Type"] = value.ContentType;
+                if (value != null) {
+                    Headers["Content-Type"] = value.ContentType;
+                }
             }
         }
         private MultipartWriter _multipartWriter;
@@ -268,6 +270,7 @@ namespace Couchbase.Lite.Listener
                         return false;
                     }
                 } else if (MultipartWriter != null) {
+                    _responseWriter.ContentLength = MultipartWriter.Length;
                     MultipartWriter.WriteAsync(_responseWriter.OutputStream).ContinueWith(t =>
                     {
                         if(t.IsCompleted && t.Result) {

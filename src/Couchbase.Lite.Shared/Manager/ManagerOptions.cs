@@ -101,11 +101,7 @@ namespace Couchbase.Lite
         {
             MaxRetries = 2;
 
-            #if __IOS__ || __ANDROID__
             MaxOpenHttpConnections = 8;
-            #else
-            MaxOpenHttpConnections = 16;
-            #endif
 
             MaxRevsToGetInBulk = 50;
 
@@ -125,7 +121,7 @@ namespace Couchbase.Lite
             }
             #endif
 
-            ServicePointManager.DefaultConnectionLimit = MaxOpenHttpConnections * 2;
+            ServicePointManager.DefaultConnectionLimit = MaxOpenHttpConnections * 3;
             SerializationEngine = new NewtonsoftJsonSerializer();
         }
             

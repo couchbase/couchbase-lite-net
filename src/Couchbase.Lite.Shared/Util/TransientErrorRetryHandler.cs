@@ -7,7 +7,12 @@ namespace Couchbase.Lite.Util
 {
     internal sealed class TransientErrorRetryHandler : DelegatingHandler
     {
-        public TransientErrorRetryHandler(HttpMessageHandler handler) : base(handler) { }
+        internal HttpMessageHandler InnerHandler { get; private set; }
+
+        public TransientErrorRetryHandler(HttpMessageHandler handler) : base(handler) 
+        { 
+            InnerHandler = handler;
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {

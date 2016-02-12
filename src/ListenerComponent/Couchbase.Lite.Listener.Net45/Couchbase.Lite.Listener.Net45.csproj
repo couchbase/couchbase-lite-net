@@ -36,9 +36,6 @@
     <Reference Include="Jint">
       <HintPath>..\..\packages\Jint.2.4.0\lib\portable-net40+sl50+win+wpa81+wp80\Jint.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Security">
-      <HintPath Condition=" '$(OS)'=='Windows_NT' ">..\Couchbase.Lite.Listener.Shared\vendor\Mono\Mono.Security.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
@@ -60,6 +57,10 @@
     <ProjectReference Include="..\..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
       <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
       <Name>websocket-sharp</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Listener.Shared\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj">
+      <Project>{D68D4FED-CA32-4800-A628-58BAE485562C}</Project>
+      <Name>Mono.Security-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>
