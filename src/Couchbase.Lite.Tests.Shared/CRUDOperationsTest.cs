@@ -67,10 +67,10 @@ namespace Couchbase.Lite
                 {
                     var rev = change.AddedRevision;
                     Assert.IsNotNull(rev);
-                    Assert.IsNotNull(rev.GetDocId());
-                    Assert.IsNotNull(rev.GetRevId());
-                    Assert.AreEqual(rev.GetDocId(), rev.GetProperties()["_id"]);
-                    Assert.AreEqual(rev.GetRevId(), rev.GetProperties()["_rev"]);
+                    Assert.IsNotNull(rev.DocID);
+                    Assert.IsNotNull(rev.RevID);
+                    Assert.AreEqual(rev.DocID, rev.GetProperties()["_id"]);
+                    Assert.AreEqual(rev.RevID, rev.GetProperties()["_rev"]);
                 }
             };
 
@@ -92,11 +92,11 @@ namespace Couchbase.Lite
 
             rev1 = database.PutRevision(rev1, null, false);
             Log.V(Tag, "Created " + rev1);
-            Assert.IsTrue(rev1.GetDocId().Length >= 10);
-            Assert.IsTrue(rev1.GetRevId().StartsWith("1-"));
+            Assert.IsTrue(rev1.DocID.Length >= 10);
+            Assert.IsTrue(rev1.RevID.StartsWith("1-"));
 
             //read it back
-            var readRev = database.GetDocument(rev1.GetDocId(), null, 
+            var readRev = database.GetDocument(rev1.DocID, null, 
                 true);
             Assert.IsNotNull(readRev);
 
@@ -114,20 +114,20 @@ namespace Couchbase.Lite
             body = new Body(documentProperties);
             var rev2 = new RevisionInternal(body);
             var rev2input = rev2;
-            rev2 = database.PutRevision(rev2, rev1.GetRevId(), false);
+            rev2 = database.PutRevision(rev2, rev1.RevID, false);
             Log.V(Tag, "Updated " + rev1);
-            Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
-            Assert.IsTrue(rev2.GetRevId().StartsWith("2-"));
+            Assert.AreEqual(rev1.DocID, rev2.DocID);
+            Assert.IsTrue(rev2.RevID.StartsWith("2-"));
 
             //read it back
-            readRev = database.GetDocument(rev2.GetDocId(), null, 
+            readRev = database.GetDocument(rev2.DocID, null, 
                 true);
             Assert.IsNotNull(readRev);
             Assert.AreEqual(UserProperties(readRev.GetProperties()), UserProperties
                 (body.GetProperties()));
 
             // Try to update the first rev, which should fail:
-            var ex = Assert.Throws<CouchbaseLiteException>(() => database.PutRevision(rev2input, rev1.GetRevId(), false));
+            var ex = Assert.Throws<CouchbaseLiteException>(() => database.PutRevision(rev2input, rev1.RevID, false));
             Assert.AreEqual(StatusCode.Conflict, ex.Code);
 
             // Check the changes feed, with and without filters:
@@ -145,13 +145,13 @@ namespace Couchbase.Lite
             Assert.AreEqual(0, changeRevisions.Count);
 
             // Delete it:
-            var revD = new RevisionInternal(rev2.GetDocId(), null, true);
+            var revD = new RevisionInternal(rev2.DocID, null, true);
             ex = Assert.Throws<CouchbaseLiteException>(() => database.PutRevision(revD, null, false));
             Assert.AreEqual(StatusCode.Conflict, ex.Code);
 
-            revD = database.PutRevision(revD, rev2.GetRevId(), false);
-            Assert.AreEqual(revD.GetDocId(), rev2.GetDocId());
-            Assert.IsTrue(revD.GetRevId().StartsWith("3-"));
+            revD = database.PutRevision(revD, rev2.RevID, false);
+            Assert.AreEqual(revD.DocID, rev2.DocID);
+            Assert.IsTrue(revD.RevID.StartsWith("3-"));
             
             // Delete nonexistent doc:
             var revFake = new RevisionInternal("fake", null, true);
@@ -159,7 +159,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(StatusCode.NotFound, ex.Code);
 
             // Read it back (should fail):
-            readRev = database.GetDocument(revD.GetDocId(), null, 
+            readRev = database.GetDocument(revD.DocID, null, 
                 true);
             Assert.IsNull(readRev);
 

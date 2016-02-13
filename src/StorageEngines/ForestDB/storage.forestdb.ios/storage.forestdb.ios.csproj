@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>storage.forestdb.ios</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
-    <AssemblyName>storage.forestdb.ios</AssemblyName>
+    <AssemblyName>Couchbase.Lite.Storage.ForestDB</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -20,37 +20,46 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>full</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.iOS" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\packages\Newtonsoft.Json.7.0.1\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
+  <Import Project="..\storage.forestdb.shared\storage.forestdb.shared.projitems" Label="Shared" Condition="Exists('..\storage.forestdb.shared\storage.forestdb.shared.projitems')" />
+  <Import Project="..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems" Label="Shared" Condition="Exists('..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <ItemGroup>
     <None Include="ios.targets">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="packages.config" />
+    <ManifestResourceWithNoCulture Include="..\CBForest\CSharp\prebuilt\libCBForest-Interop.a">
+      <Link>libCBForest-Interop.a</Link>
+    </ManifestResourceWithNoCulture>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS\cbforest-sharp.iOS.csproj">
-      <Project>{A5757777-CDFE-43BF-8260-D342BF83B773}</Project>
-      <Name>cbforest-sharp.iOS</Name>
+    <ProjectReference Include="..\..\..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
+      <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
+      <Name>Couchbase.Lite.iOS</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
 </Project>

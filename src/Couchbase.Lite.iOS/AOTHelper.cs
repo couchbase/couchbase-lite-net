@@ -1,5 +1,5 @@
 ﻿//
-// Dummy.cs
+// AOTHelper.cs
 //
 // Author:
 // 	Jim Borden  <jim.borden@couchbase.com>
@@ -20,12 +20,26 @@
 //
 using System;
 
-namespace storage.forestdb.droid
+namespace Couchbase.Lite.iOS
 {
-    internal class Dummy
+    internal static class AOTHelper
     {
-        public Dummy()
+        static AOTHelper()
         {
+            try {
+            Couchbase.Lite.Storage.SQLCipher.AOTHelper.TrickLinker();
+            } catch (Exception) {
+            }
+
+            try {
+                Couchbase.Lite.Storage.SystemSQLite.AOTHelper.TrickLinker();
+            } catch (Exception) {
+            }
+
+            try {
+                Couchbase.Lite.Storage.ForestDB.AOTHelper.TrickLinker();
+            } catch (Exception) {
+            }
         }
     }
 }

@@ -48,9 +48,9 @@ using System.Net;
 using System.IO;
 using Sharpen;
 using Couchbase.Lite.Util;
-using Couchbase.Lite.Storage;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite
 {

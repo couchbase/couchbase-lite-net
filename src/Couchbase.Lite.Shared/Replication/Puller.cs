@@ -56,6 +56,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using Couchbase.Lite.Store;
 
 
 #if !NET_3_5
@@ -266,7 +267,7 @@ namespace Couchbase.Lite.Replicator
 
         private void QueueRemoteRevision(RevisionInternal rev)
         {
-            if (rev.IsDeleted()) {
+            if (rev.Deleted) {
                 if (_deletedRevsToPull == null) {
                     _deletedRevsToPull = new List<RevisionInternal>(100);
                 }
@@ -373,7 +374,7 @@ namespace Couchbase.Lite.Replicator
 
                     var pos = remainingRevs.IndexOf(rev);
                     if (pos > -1) {
-                        rev.SetSequence(remainingRevs[pos].GetSequence());
+                        rev.Sequence = remainingRevs[pos].Sequence;
                         remainingRevs.RemoveAt(pos);
                     } else {
                         Log.W(TAG, "Received unexpected rev {0}; ignoring", rev);
@@ -391,7 +392,7 @@ namespace Couchbase.Lite.Replicator
                         RevisionFailed();
                         SafeIncrementCompletedChangesCount();
                         if(IsDocumentError(error)) {
-                            _pendingSequences.RemoveSequence(rev.GetSequence());
+                            _pendingSequences.RemoveSequence(rev.Sequence);
                         }
                     }
                 };
@@ -409,7 +410,7 @@ namespace Couchbase.Lite.Replicator
                             remainingRevs.Count, remainingRevs);
                         for(int i = 0; i < remainingRevs.Count; i++) {
                             var rev = remainingRevs[i];
-                            if(ShouldRetryDownload(rev.GetDocId())) {
+                            if(ShouldRetryDownload(rev.DocID)) {
                                 _bulkRevsToPull.Add(remainingRevs[i]);
                             } else {
                                 LastError = args.Error;
@@ -440,7 +441,7 @@ namespace Couchbase.Lite.Replicator
             ++_httpConnectionCount;
 
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
-            var keys = bulkRevs.Select(rev => rev.GetDocId()).ToArray();
+            var keys = bulkRevs.Select(rev => rev.DocID).ToArray();
             var body = new Dictionary<string, object>();
             body.Put("keys", keys);
 
@@ -464,7 +465,7 @@ namespace Couchbase.Lite.Replicator
                             var rev = new RevisionInternal(doc);
                             var pos = remainingRevs.IndexOf(rev);
                             if(pos > -1) {
-                                rev.SetSequence(remainingRevs[pos].GetSequence());
+                                rev.Sequence = remainingRevs[pos].Sequence;
                                 remainingRevs.RemoveAt(pos);
                                 QueueDownloadedRevision(rev);
                             }
@@ -542,7 +543,7 @@ namespace Couchbase.Lite.Replicator
                 var xformed = TransformRevision(rev);
                 if (xformed == null) {
                     Log.V(TAG, "Transformer rejected revision {0}", rev);
-                    _pendingSequences.RemoveSequence(rev.GetSequence());
+                    _pendingSequences.RemoveSequence(rev.Sequence);
                     LastSequence = _pendingSequences.GetCheckpointedValue();
                     PauseOrResume();
                     return;
@@ -581,7 +582,7 @@ namespace Couchbase.Lite.Replicator
             // Construct a query. We want the revision history, and the bodies of attachments that have
             // been added since the latest revisions we have locally.
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
-            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.GetDocId()) + "?rev=" + Uri.EscapeUriString(rev.GetRevId()) + "&revs=true&attachments=true");
+            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.DocID) + "?rev=" + Uri.EscapeUriString(rev.RevID) + "&revs=true&attachments=true");
             var knownRevs = default(IList<string>);
             try {
                 var tmp = LocalDatabase.Storage.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
@@ -619,13 +620,13 @@ namespace Couchbase.Lite.Replicator
                     if(IsDocumentError(e as HttpResponseException)) {
                         // Make sure this document is skipped because it is not available
                         // even though the server is functioning
-                        _pendingSequences.RemoveSequence(rev.GetSequence());
+                        _pendingSequences.RemoveSequence(rev.Sequence);
                         LastSequence = _pendingSequences.GetCheckpointedValue();
                     }
                 } else {
                     var properties = result.AsDictionary<string, object>();
                     var gotRev = new PulledRevision(properties);
-                    gotRev.SetSequence(rev.GetSequence());
+                    gotRev.Sequence = rev.Sequence;
                     Log.D(TAG, "PullRemoteRevision add rev: " + gotRev + " to batcher");
 
                     if (_downloadsToInsert != null) {
@@ -676,17 +677,17 @@ namespace Couchbase.Lite.Replicator
                 var success = LocalDatabase.RunInTransaction(() =>
                 {
                     foreach (var rev in downloads) {
-                        var fakeSequence = rev.GetSequence();
-                        rev.SetSequence(0L);
+                        var fakeSequence = rev.Sequence;
+                        rev.Sequence = 0L;
                         var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
-                        if (history.Count == 0 && rev.GetGeneration() > 1) {
+                        if (history.Count == 0 && rev.Generation > 1) {
                             Log.W(TAG, "Missing revision history in response for: {0}", rev);
                             LastError = new CouchbaseLiteException(StatusCode.UpStreamError);
                             RevisionFailed();
                             continue;
                         }
 
-                        Log.V(TAG, String.Format("Inserting {0} {1}", rev.GetDocId(), Manager.GetObjectMapper().WriteValueAsString(history)));
+                        Log.V(TAG, String.Format("Inserting {0} {1}", rev.DocID, Manager.GetObjectMapper().WriteValueAsString(history)));
 
                         // Insert the revision:
                         try {
@@ -840,8 +841,7 @@ namespace Couchbase.Lite.Replicator
                 int numBulked = 0;
                 for (int i = 0; i < inboxCount; i++) {
                     var rev = (PulledRevision)inbox[i];
-                    //TODO: add support for rev isConflicted
-                    if (_canBulkGet || (rev.GetGeneration() == 1 && !rev.IsDeleted() && !rev.IsConflicted)) {
+                    if (_canBulkGet || (rev.Generation == 1 && !rev.Deleted && !rev.IsConflicted)) {
                         //optimistically pull 1st-gen revs in bulk
                         if (_bulkRevsToPull == null) {
                             _bulkRevsToPull = new List<RevisionInternal>(100);
@@ -852,7 +852,7 @@ namespace Couchbase.Lite.Replicator
                     } else {
                         QueueRemoteRevision(rev);
                     }
-                    rev.SetSequence(_pendingSequences.AddValue(rev.GetRemoteSequenceID()));
+                    rev.Sequence = _pendingSequences.AddValue(rev.GetRemoteSequenceID());
                 }
 
                 Log.D(TAG, "Queued {0} remote revisions from seq={1} ({2} in bulk, {3} individually)", inboxCount, 
@@ -986,7 +986,7 @@ namespace Couchbase.Lite.Replicator
 
             public int Compare(RevisionInternal reva, RevisionInternal revb)
             {
-                return Misc.TDSequenceCompare(reva != null ? reva.GetSequence() : -1L, revb != null ? revb.GetSequence() : -1L);
+                return Misc.TDSequenceCompare(reva != null ? reva.Sequence : -1L, revb != null ? revb.Sequence : -1L);
             }
         }
 

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3EEE8883-B6A9-4B71-B70E-67973F7687D5}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>storage.sqlcipher.net45</RootNamespace>
+    <AssemblyName>Couchbase.Lite.Storage.SQLCipher</AssemblyName>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;ENCRYPTION;PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <DefineConstants>ENCRYPTION;PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;</DefineConstants>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
+  <Import Project="..\SQLitePCL\sqlitepcl.shared.projitems" Label="Shared" Condition="Exists('..\SQLitePCL\sqlitepcl.shared.projitems')" />
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <Content Include="..\SQLitePCL\vendor\sqlcipher\libs\osx\libsqlcipher.dylib">
+      <Link>libsqlcipher.dylib</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SQLitePCL\vendor\sqlcipher\libs\linux\x86_64\libsqlcipher.so">
+      <Link>libsqlcipher.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SQLitePCL\vendor\sqlcipher\libs\windows\x86\sqlcipher.dll">
+      <Link>x86\sqlcipher.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SQLitePCL\vendor\sqlcipher\libs\windows\x86_64\sqlcipher.dll">
+      <Link>x64\sqlcipher.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj">
+      <Project>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</Project>
+      <Name>Couchbase.Lite.Net45</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="net45.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

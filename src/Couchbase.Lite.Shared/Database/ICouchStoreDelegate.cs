@@ -26,7 +26,7 @@ namespace Couchbase.Lite.Store
     /// <summary>
     /// Delegate of a ICouchStore instance. Database implements this.
     /// </summary>
-    internal interface ICouchStoreDelegate
+    public interface ICouchStoreDelegate
     {
 
         /// <summary>

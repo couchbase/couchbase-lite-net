@@ -36,6 +36,8 @@ using CBForest;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
+using Couchbase.Lite.Storage.ForestDB.Internal;
+
 
 namespace Couchbase.Lite.Store
 {
@@ -147,7 +149,7 @@ namespace Couchbase.Lite.Store
                 if (keySources[i] == null && !writeNull) {
                     c4Keys[i] = null;
                 } else {
-                    c4Keys[i] = Manager.GetObjectMapper().SerializeToKey(keySources[i]);
+                    c4Keys[i] = CouchbaseBridge.SerializeToKey(keySources[i]);
                 }
             }
 
@@ -470,7 +472,7 @@ namespace Couchbase.Lite.Store
                             continue;
                         }
 
-                        var rev = new RevisionInternal(next, true);
+                        var rev = new ForestRevisionInternal(next, true);
                         var keys = new List<object>();
                         var values = new List<string>();
 
@@ -539,7 +541,7 @@ namespace Couchbase.Lite.Store
             var enumerator = QueryEnumeratorWithOptions(options); 
             foreach (var next in enumerator) {
                 
-                var key = Manager.GetObjectMapper().DeserializeKey<object>(next.Key);
+                var key = CouchbaseBridge.DeserializeKey<object>(next.Key);
                 var value = (next.Value as IEnumerable<byte>).ToArray();
                 var docRevision = default(RevisionInternal); 
                 if (value.Length == 1 && value[0] == 42) {
@@ -582,7 +584,7 @@ namespace Couchbase.Lite.Store
 
             var row = default(QueryRow);
             foreach (var next in enumerator) {
-                var key = Manager.GetObjectMapper().DeserializeKey<object>(next.Key);
+                var key = CouchbaseBridge.DeserializeKey<object>(next.Key);
                 var value = default(object);
                 if (lastKey != null && (key == null || (group && !GroupTogether(lastKey, key, groupLevel)))) {
                     // key doesn't match lastKey; emit a grouped/reduced row for what came before:

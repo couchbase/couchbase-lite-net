@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>storage.sqlcipher.ios</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
-    <AssemblyName>storage.sqlcipher.ios</AssemblyName>
+    <AssemblyName>Couchbase.Lite.Storage.SQLCipher</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -16,18 +16,20 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
+    <DefineConstants>DEBUG;PINVOKE_FROM_INTERNAL_SQLCIPHER;OLD_REFLECTION;PLATFORM_UNIFIED;ENCRYPTION;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>full</DebugType>
+    <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>PINVOKE_FROM_INTERNAL_SQLCIPHER;OLD_REFLECTION;PLATFORM_UNIFIED;ENCRYPTION;</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -37,28 +39,23 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
+    <Folder Include="Properties\" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
+  <Import Project="..\SQLitePCL\sqlitepcl.shared.projitems" Label="Shared" Condition="Exists('..\SQLitePCL\sqlitepcl.shared.projitems')" />
+  <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.unified_ios.pinvoke_packaged_sqlcipher.anycpu.csproj">
-      <Project>{05817DDA-0F3C-4ADF-8AC5-13C314655E23}</Project>
-      <Name>platform.unified_ios.pinvoke_packaged_sqlcipher.anycpu</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS-fake\cbforest-sharp.iOS-fake.csproj">
-      <Project>{1F7C1231-9F6C-4E0C-B916-F0D05EF04941}</Project>
-      <Name>cbforest-sharp.iOS-fake</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
-      <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
-      <Name>ugly_profile78</Name>
-    </ProjectReference>
-  </ItemGroup>
   <ItemGroup>
     <None Include="ios.targets">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <ManifestResourceWithNoCulture Include="..\SQLitePCL\vendor\sqlcipher\libs\ios\libsqlcipher.a">
+      <Link>libsqlcipher.a</Link>
+    </ManifestResourceWithNoCulture>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
+      <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
+      <Name>Couchbase.Lite.iOS</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

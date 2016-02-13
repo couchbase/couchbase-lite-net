@@ -57,5 +57,13 @@
       <Project>{81999CC3-2DB5-42DA-976F-20EF8AE047E1}</Project>
       <Name>Couchbase.Lite.Net35</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
+      <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
+      <Name>websocket-sharp</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Listener.Shared\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj">
+      <Project>{d68d4fed-ca32-4800-a628-58bae485562c}</Project>
+      <Name>Mono.Security-net_4_5</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

@@ -125,12 +125,12 @@ namespace Couchbase.Lite
             // Insert a dcoument as if it came from a remote source.
             var rev = new RevisionInternal("docId", "1-abcd", false);
             var properties = new Dictionary<string, object>();
-            properties["_id"] = rev.GetDocId();
-            properties["_rev"] = rev.GetRevId();
+            properties["_id"] = rev.DocID;
+            properties["_rev"] = rev.RevID;
             rev.SetProperties(properties);
 
             var history = new List<string>();
-            history.Add(rev.GetRevId());
+            history.Add(rev.RevID);
             database.ForceInsert(rev, history, GetReplicationURL());
 
             Assert.AreEqual(1, changeNotifications);

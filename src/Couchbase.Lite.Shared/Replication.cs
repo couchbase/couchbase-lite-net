@@ -59,6 +59,7 @@ using Couchbase.Lite.Replicator;
 using Stateless;
 using System.Collections.Concurrent;
 using System.Text;
+using Couchbase.Lite.Store;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -1578,15 +1579,15 @@ namespace Couchbase.Lite
         {
             if (RevisionBodyTransformationFunction != null) {
                 try {
-                    var generation = rev.GetGeneration();
+                    var generation = rev.Generation;
                     var xformed = RevisionBodyTransformationFunction(rev);
                     if (xformed == null) {
                         return null;
                     }
 
                     if (xformed != rev) {
-                        Debug.Assert((xformed.GetDocId().Equals(rev.GetDocId())));
-                        Debug.Assert((xformed.GetRevId().Equals(rev.GetRevId())));
+                        Debug.Assert((xformed.DocID.Equals(rev.DocID)));
+                        Debug.Assert((xformed.RevID.Equals(rev.RevID)));
                         Debug.Assert((xformed.GetProperties().Get("_revisions").Equals(rev.GetProperties().Get("_revisions"))));
 
                         if (xformed.GetProperties().ContainsKey("_attachments")) {
@@ -1610,7 +1611,7 @@ namespace Couchbase.Lite
                         }
                     }
                 } catch (Exception e) {
-                    Log.W(TAG, String.Format("Exception transforming a revision of doc '{0}'", rev.GetDocId()), e);
+                    Log.W(TAG, String.Format("Exception transforming a revision of doc '{0}'", rev.DocID), e);
                 }
             }
 

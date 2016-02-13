@@ -58,7 +58,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections;
 #if !NET_3_5
-using CBForest;
+//using CBForest;
 #endif
 using Couchbase.Lite.Store;
 
@@ -414,14 +414,14 @@ namespace Couchbase.Lite
             view.UpdateIndex();
 
             // Now add a doc and update a doc:
-            var threeUpdated = new RevisionInternal(rev3.GetDocId(), rev3.GetRevId(), false);
+            var threeUpdated = new RevisionInternal(rev3.DocID, rev3.RevID, false);
             numTimesMapFunctionInvoked = numTimesInvoked;
 
             var newdict3 = new Dictionary<string, object>();
             newdict3["key"] = "3hree";
             threeUpdated.SetProperties(newdict3);
 
-            rev3 = database.PutRevision(threeUpdated, rev3.GetRevId(), false);
+            rev3 = database.PutRevision(threeUpdated, rev3.RevID, false);
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
@@ -433,8 +433,8 @@ namespace Couchbase.Lite
             var dict4 = new Dictionary<string, object>();
             dict4["key"] = "four";
             var rev4 = PutDoc(database, dict4);
-            var twoDeleted = new RevisionInternal(rev2.GetDocId(), rev2.GetRevId(), true);
-            database.PutRevision(twoDeleted, rev2.GetRevId(), false);
+            var twoDeleted = new RevisionInternal(rev2.DocID, rev2.RevID, true);
+            database.PutRevision(twoDeleted, rev2.RevID, false);
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
@@ -453,11 +453,11 @@ namespace Couchbase.Lite
             IList<QueryRow> rows = view.QueryWithOptions(null).ToList();
             Assert.AreEqual(3, rows.Count);
             Assert.AreEqual("one", rows[2].Key);
-            Assert.AreEqual(rev1.GetDocId(), rows[2].DocumentId);
+            Assert.AreEqual(rev1.DocID, rows[2].DocumentId);
             Assert.AreEqual("3hree", rows[0].Key);
-            Assert.AreEqual(rev3.GetDocId(), rows[0].DocumentId);
+            Assert.AreEqual(rev3.DocID, rows[0].DocumentId);
             Assert.AreEqual("four", rows[1].Key);
-            Assert.AreEqual(rev4.GetDocId(), rows[1].DocumentId);
+            Assert.AreEqual(rev4.DocID, rows[1].DocumentId);
             view.DeleteIndex();
         }
 
@@ -695,10 +695,10 @@ namespace Couchbase.Lite
             foreach (RevisionInternal rev in docs)
             {
                 expectedRowBase.Add(new Dictionary<string, object> {
-                    { "id", rev.GetDocId() },
-                    { "key", rev.GetDocId() },
+                    { "id", rev.DocID },
+                    { "key", rev.DocID },
                     { "value", new Dictionary<string, object> {
-                            { "rev", rev.GetRevId() }
+                            { "rev", rev.RevID }
                         }
                     }
                 });
@@ -744,10 +744,10 @@ namespace Couchbase.Lite
             foreach (RevisionInternal rev in docs)
             {
                 expectedRowBase.Add(new Dictionary<string, object> {
-                    { "id", rev.GetDocId() },
-                    { "key", rev.GetDocId() },
+                    { "id", rev.DocID },
+                    { "key", rev.DocID },
                     { "value", new Dictionary<string, object> {
-                            { "rev", rev.GetRevId() }
+                            { "rev", rev.RevID }
                         }
                     }
                 });
@@ -762,7 +762,7 @@ namespace Couchbase.Lite
 
             var leaf2 = new RevisionInternal(props);
             database.ForceInsert(leaf2, null, null);
-            Assert.AreEqual(docs[1].GetRevId(), database.GetDocument("44444", null, true).GetRevId());
+            Assert.AreEqual(docs[1].RevID, database.GetDocument("44444", null, true).RevID);
 
             // Query all rows:
             var options = new QueryOptions();
@@ -821,8 +821,8 @@ namespace Couchbase.Lite
 
             // Delete a document:
             var del = docs[0];
-            del = new RevisionInternal(del.GetDocId(), del.GetRevId(), true);
-            del = database.PutRevision(del, del.GetRevId(), false);
+            del = new RevisionInternal(del.DocID, del.RevID, true);
+            del = database.PutRevision(del, del.RevID, false);
 
             // Get deleted doc, and one bogus one:
             options = new QueryOptions();
@@ -834,10 +834,10 @@ namespace Couchbase.Lite
                     { "error", "not_found" }
                 },
                 new Dictionary<string, object> {
-                    { "id", del.GetDocId() },
-                    { "key", del.GetDocId() },
+                    { "id", del.DocID },
+                    { "key", del.DocID },
                     { "value", new Dictionary<string, object> {
-                            { "rev", del.GetRevId() },
+                            { "rev", del.RevID },
                             { "deleted", true }
                         }
                     }
@@ -849,7 +849,7 @@ namespace Couchbase.Lite
             options = new QueryOptions();
             options.AllDocsMode = AllDocsMode.ShowConflicts;
             allDocs = database.GetAllDocs(options);
-            var curRevId = docs[1].GetRevId();
+            var curRevId = docs[1].RevID;
             var expectedConflict1 = new Dictionary<string, object> {
                 { "id", "44444" },
                 { "key", "44444" },

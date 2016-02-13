@@ -27,10 +27,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Util;
 
-#if FORESTDB
-using CBForest;
-#endif
-
 namespace Couchbase.Lite
 {
     //Eventually split this into another assembly
@@ -156,32 +152,7 @@ namespace Couchbase.Lite
         {
             return new NewtonsoftJsonSerializer();
         }
-
-        #if FORESTDB
-
-        public unsafe C4Key* SerializeToKey(object value)
-        {
-            var retVal = Native.c4key_new();
-            using (var jsonWriter = new JsonC4KeyWriter(retVal)) {
-                var serializer = new JsonSerializer();
-                serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-                serializer.Serialize(jsonWriter, value);
-            }
-
-            return retVal;
-        }
-
-        public T DeserializeKey<T>(C4KeyReader keyReader)
-        {
-            using (var jsonReader = new JsonC4KeyReader(keyReader)) {
-                var serializer = new JsonSerializer();
-                serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-                return serializer.Deserialize<T>(jsonReader);
-            }
-        }
-
-        #endif
-            
+ 
         #endregion
 
         #region IDisposable

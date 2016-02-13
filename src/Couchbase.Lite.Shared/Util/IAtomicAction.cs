@@ -25,7 +25,7 @@ namespace Couchbase.Lite.Util
     /// <summary>
     /// An abstraction whose instances can perform some action and back it out.
     /// </summary>
-    internal interface IAtomicAction
+    public interface IAtomicAction
     {
         /// <summary>
         /// Performs the action. Behavior should be all-or-nothing: if the action doesn't succeed, it

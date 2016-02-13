@@ -68,7 +68,6 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Security" />
     <Reference Include="ICSharpCode.SharpZipLib.Portable">
       <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0003\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid+Xamarin.iOS10\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
     </Reference>
@@ -86,18 +85,4 @@
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
-  <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.android.pinvoke_packaged_sqlcipher.anycpu.csproj">
-      <Project>{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1}</Project>
-      <Name>platform.android.pinvoke_packaged_sqlcipher.anycpu</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
-      <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
-      <Name>ugly_profile78</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Droid\cbforest-sharp.Droid.csproj">
-      <Project>{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}</Project>
-      <Name>cbforest-sharp.Droid</Name>
-    </ProjectReference>
-  </ItemGroup>
 </Project>

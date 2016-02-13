@@ -27,6 +27,8 @@ namespace Couchbase.Lite.iOS.Tests
         //
         public override bool FinishedLaunching (UIApplication app, NSDictionary options)
         {
+            //Couchbase.Lite.Storage.SystemSQLite.Dummy.DoDummy();
+
             // create a new window instance based on the screen size
             window = new UIWindow (UIScreen.MainScreen.Bounds);
             runner = new TouchRunner (window);

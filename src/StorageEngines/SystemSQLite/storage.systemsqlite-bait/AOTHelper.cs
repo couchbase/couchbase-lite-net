@@ -1,5 +1,5 @@
 ﻿//
-// Dummy.cs
+// AOTHelper.cs
 //
 // Author:
 // 	Jim Borden  <jim.borden@couchbase.com>
@@ -20,11 +20,11 @@
 //
 using System;
 
-namespace storage.systemsqlite.net35
+namespace Couchbase.Lite.Storage.SystemSQLite
 {
-    internal class Dummy
+    public static class AOTHelper
     {
-        public Dummy()
+        public static void TrickLinker()
         {
         }
     }

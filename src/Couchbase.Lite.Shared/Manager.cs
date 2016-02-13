@@ -92,6 +92,9 @@ namespace Couchbase.Lite
 
         // FIXME: Not all of these are valid Windows file chars.
         private const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
+        private static readonly HashSet<string> AllKnownPrefixes = new HashSet<string> {
+            DatabaseSuffixv0, DatabaseSuffixv1, DatabaseSuffix
+        };
 
     #endregion
 
@@ -607,7 +610,7 @@ namespace Couchbase.Lite
 
         private bool ContainsExtension(string name)
         {
-            return DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES.Any(x => name.Contains(x));
+            return AllKnownPrefixes.Any(name.Contains);
         }
 
         private Tuple<string, string> GetDbNameAndExtFromZip(Stream compressedStream) {
@@ -666,7 +669,7 @@ namespace Couchbase.Lite
                 }
                 db.Dispose();
 
-                var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
+                var upgrader = db.Storage.CreateUpgrader(db, oldFilename);
                 try {
                     upgrader.Import();
                 } catch(CouchbaseLiteException e) {

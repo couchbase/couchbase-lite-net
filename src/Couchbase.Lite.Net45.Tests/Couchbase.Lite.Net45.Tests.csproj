@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -145,9 +145,6 @@
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\StorageEngines\SystemSQLite\storage.systemsqlite.net35\bin\$(Configuration)\net35.targets" Condition="Exists('..\StorageEngines\SystemSQLite\storage.systemsqlite.net35\bin\$(Configuration)\net35.targets')" />
-  <Import Project="..\StorageEngines\SQLCipher\storage.sqlcipher.net35\bin\$(Configuration)\net35.targets" Condition="Exists('..\StorageEngines\SQLCipher\storage.sqlcipher.net35\bin\$(Configuration)\net35.targets')" />
-  <Import Project="..\StorageEngines\ForestDB\storage.forestdb.net35\bin\$(Configuration)\net35.targets" Condition="Exists('..\StorageEngines\ForestDB\storage.forestdb.net35\bin\$(Configuration)\net35.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
@@ -174,24 +171,13 @@
       <Project>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</Project>
       <Name>Couchbase.Lite.Net45</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net45\cbforest-sharp.Net45.csproj">
-      <Project>{20839831-948C-42BA-AAF1-75081209E6C5}</Project>
-      <Name>cbforest-sharp.Net45</Name>
+    <ProjectReference Include="..\StorageEngines\ForestDB\storage.forestdb.net45\storage.forestdb.net45.csproj">
+      <Project>{666B3F9B-DC39-421E-9E4E-C5B666023FB0}</Project>
+      <Name>storage.forestdb.net45</Name>
     </ProjectReference>
-    <ProjectReference Include="..\StorageEngines\ForestDB\storage.forestdb.net35\storage.forestdb.net35.csproj">
-      <Project>{D4BD5141-7703-4683-A500-34363F7CFBF4}</Project>
-      <Name>storage.forestdb.net35</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\StorageEngines\SQLCipher\storage.sqlcipher.net35\storage.sqlcipher.net35.csproj">
-      <Project>{47688577-270F-47DC-8EAF-7DB26012A0F3}</Project>
-      <Name>storage.sqlcipher.net35</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.net35\storage.systemsqlite.net35.csproj">
-      <Project>{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}</Project>
-      <Name>storage.systemsqlite.net35</Name>
-      <Private>False</Private>
+    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.net45\storage.systemsqlite.net45.csproj">
+      <Project>{88BB6717-85C9-46F0-923B-C263C08A189B}</Project>
+      <Name>storage.systemsqlite.net45</Name>
     </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
       <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
