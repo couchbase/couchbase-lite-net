@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{0A88C2A7-7AD8-46F9-9D31-869E3466B791}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{FF87EED7-5DE9-47E9-82F4-D1DF659D1DC2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Android", "Couchbase.Lite.Android\Couchbase.Lite.Android.csproj", "{5615E423-D0FD-4F99-A99C-061679615CEE}"
 EndProject
@@ -44,6 +44,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cbforest-sharp.Droid", "Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Droid\cbforest-sharp.Droid.csproj", "{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "cbforest-sharp.Shared", "Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.shproj", "{0BFC8B40-0659-4D45-B111-7CB4CCD22991}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "websocket-sharp.shared", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.shproj", "{891A08FC-F143-4325-BC16-B9864D036B99}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp.droid", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.droid.csproj", "{E1153FA4-356A-454D-B32E-136102F2482F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-droid", "ListenerComponent\Couchbase.Lite.Listener.Shared\vendor\Mono\Mono.Security\Mono.Security-droid.csproj", "{83F75E53-48BE-4F3C-8D79-62CBD5050792}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "StorageEngines", "StorageEngines", "{15E18D64-4AC3-4CBA-A805-600E2C507D28}"
 EndProject
@@ -102,6 +108,10 @@ Global
 		{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}.Debug|Any CPU.Build.0 = DebugFacade|Any CPU
 		{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}.Release|Any CPU.ActiveCfg = ReleaseFacade|Any CPU
 		{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}.Release|Any CPU.Build.0 = ReleaseFacade|Any CPU
+		{83F75E53-48BE-4F3C-8D79-62CBD5050792}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83F75E53-48BE-4F3C-8D79-62CBD5050792}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83F75E53-48BE-4F3C-8D79-62CBD5050792}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83F75E53-48BE-4F3C-8D79-62CBD5050792}.Release|Any CPU.Build.0 = Release|Any CPU
 		{84547E16-A872-418D-82A6-B57ADEE290AE}.Debug|Any CPU.ActiveCfg = debug|anycpu
 		{84547E16-A872-418D-82A6-B57ADEE290AE}.Debug|Any CPU.Build.0 = debug|anycpu
 		{84547E16-A872-418D-82A6-B57ADEE290AE}.Release|Any CPU.ActiveCfg = release|anycpu
@@ -114,6 +124,10 @@ Global
 		{9CEE0189-1533-484D-A957-664B1A372EAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9CEE0189-1533-484D-A957-664B1A372EAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9CEE0189-1533-484D-A957-664B1A372EAA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1153FA4-356A-454D-B32E-136102F2482F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1153FA4-356A-454D-B32E-136102F2482F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1153FA4-356A-454D-B32E-136102F2482F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1153FA4-356A-454D-B32E-136102F2482F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F970485C-CE53-457A-AAF6-7896C40F8243}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -134,6 +148,9 @@ Global
 		{11440D11-E458-4BB6-ADBB-7C233F952089} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
 		{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
 		{0BFC8B40-0659-4D45-B111-7CB4CCD22991} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
+		{891A08FC-F143-4325-BC16-B9864D036B99} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
+		{E1153FA4-356A-454D-B32E-136102F2482F} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
+		{83F75E53-48BE-4F3C-8D79-62CBD5050792} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
 		{DBAC3913-9754-44CC-BED1-860C97D08554} = {15E18D64-4AC3-4CBA-A805-600E2C507D28}
 		{6D09426B-6A78-4DAF-B6C4-57636DB5778C} = {15E18D64-4AC3-4CBA-A805-600E2C507D28}
 		{64220357-9661-43D9-922B-23C07448FD1B} = {15E18D64-4AC3-4CBA-A805-600E2C507D28}

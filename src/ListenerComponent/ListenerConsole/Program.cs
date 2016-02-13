@@ -24,6 +24,9 @@ using Couchbase.Lite;
 using Couchbase.Lite.Listener;
 using Couchbase.Lite.Listener.Tcp;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
+using Couchbase.Lite.Security;
 
 namespace Listener
 {
@@ -32,10 +35,13 @@ namespace Listener
         private const int port = 59840;
         public static void Main(string[] args)
         {
-            CouchbaseLiteServiceListener listener = new CouchbaseLiteTcpListener(Manager.SharedInstance, port);
+            var cert = X509Manager.GetPersistentCertificate("foo", "miracle", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "foo.pfx"));
+                
+            CouchbaseLiteServiceListener listener = new CouchbaseLiteTcpListener(Manager.SharedInstance, port, CouchbaseLiteTcpOptions.UseTLS | CouchbaseLiteTcpOptions.AllowBasicAuth, cert);
             listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
             listener.Start();
 
+            Console.WriteLine("LISTENING...");
             Console.ReadKey(true);
             listener.Stop();
 

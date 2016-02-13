@@ -421,6 +421,7 @@ namespace Couchbase.Lite.Replicator
                     SafeAddToCompletedChangesCount(remainingRevs.Count);
                     LastSequence = _pendingSequences.GetCheckpointedValue();
                     --_httpConnectionCount;
+                    Misc.SafeDispose(ref dl);
 
                     PullRemoteRevisions();
                 };
@@ -962,18 +963,9 @@ namespace Couchbase.Lite.Replicator
             WorkExecutor.StartNew(() => ProcessChangeTrackerStopped(tracker));
         }
 
-        public HttpClient GetHttpClient()
+        public CouchbaseLiteHttpClient GetHttpClient()
         {
-            var client = ClientFactory.GetHttpClient(CookieContainer, false);
-            var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
-            if (challengeResponseAuth != null) {
-                var authHandler = ClientFactory.Handler as DefaultAuthHandler;
-                if (authHandler != null) {
-                    authHandler.Authenticator = challengeResponseAuth;
-                }
-            }
-
-            return client;
+            return ClientFactory.GetHttpClient(CookieContainer, false);
         }
 
         #endregion

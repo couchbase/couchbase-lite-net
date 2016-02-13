@@ -19,11 +19,18 @@
 //  limitations under the License.
 //
 using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Threading.Tasks;
 
 using Couchbase.Lite.Util;
+using WebSocketSharp.Server;
+using System.Security.Principal;
+using System.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using Couchbase.Lite.Security;
+using System.Security.Cryptography;
+using WebSocketSharp.Net;
+using System.Threading.Tasks;
+using System.Net.Http.Headers;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
@@ -51,11 +58,8 @@ namespace Couchbase.Lite.Listener.Tcp
         #region Variables 
 
         private readonly HttpListener _listener;
-        private readonly string _realm;
         private Manager _manager;
-        private static HashSet<string> _RecentNonces = new HashSet<string>();
-        private static Dictionary<string, Tuple<string, int>> _InUseNonces = new Dictionary<string, Tuple<string, int>>();
-        private readonly bool _allowBasicAuth;
+        private bool _allowsBasicAuth;
 
         #endregion
 
@@ -77,98 +81,81 @@ namespace Couchbase.Lite.Listener.Tcp
         }
 
         public CouchbaseLiteTcpListener(Manager manager, ushort port, CouchbaseLiteTcpOptions options, string realm = "Couchbase")
+            : this(manager, port, options, realm, null)
+        {
+            
+        }
+
+        public CouchbaseLiteTcpListener(Manager manager, ushort port, CouchbaseLiteTcpOptions options, X509Certificate2 sslCert)
+            : this(manager, port, options, "Couchbase", sslCert)
+        {
+
+        }
+
+        public CouchbaseLiteTcpListener(Manager manager, ushort port, CouchbaseLiteTcpOptions options, string realm, X509Certificate2 sslCert)
         {
             _manager = manager;
-            _realm = realm;
             _listener = new HttpListener();
             string prefix = options.HasFlag(CouchbaseLiteTcpOptions.UseTLS) ? String.Format("https://*:{0}/", port) :
                 String.Format("http://*:{0}/", port);
             _listener.Prefixes.Add(prefix);
-            _allowBasicAuth = options.HasFlag(CouchbaseLiteTcpOptions.AllowBasicAuth);
+            _listener.AuthenticationSchemeSelector = SelectAuthScheme;
+            HttpListener.DefaultServerString = "Couchbase Lite " + Manager.VersionString;
+            _listener.Realm = realm;
+            _allowsBasicAuth = options.HasFlag(CouchbaseLiteTcpOptions.AllowBasicAuth);
+
+            _listener.UserCredentialsFinder = GetCredential;
+            if (options.HasFlag(CouchbaseLiteTcpOptions.UseTLS)) {
+                _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
+                _listener.SslConfiguration.ClientCertificateRequired = false;
+                if (sslCert == null) {
+                    Log.I(TAG, "Generating X509 certificate for listener...");
+                    sslCert = X509Manager.GenerateTransientCertificate("Couchbase-P2P");
+                }
+
+                _listener.SslConfiguration.ServerCertificate = sslCert;
+            }
         }
 
         #endregion
 
         #region Private Methods
 
-        private static string GenerateNonce()
+        private AuthenticationSchemes SelectAuthScheme(HttpListenerRequest request)
         {
-            var nonce = Misc.CreateGUID();
+            if (request.Url.LocalPath == "/") {
+                return AuthenticationSchemes.Anonymous;
+            }
 
-            // We have to remember that the HTTP protocol is stateless.
-            // Even though with version 1.1 persistent connections are the norm, they are not guaranteed.
-            // Thus if we generate a nonce for this connection,
-            // it should be honored for other connections in the near future.
-            // 
-            // In fact, this is absolutely necessary in order to support QuickTime.
-            // When QuickTime makes it's initial connection, it will be unauthorized, and will receive a nonce.
-            // It then disconnects, and creates a new connection with the nonce, and proper authentication.
-            // If we don't honor the nonce for the second connection, QuickTime will repeat the process and never connect.
-            _RecentNonces.Add(nonce);
-            Task.Delay(TimeSpan.FromSeconds(NONCE_TIMEOUT)).ContinueWith(t => _RecentNonces.Remove(nonce));
+            if (RequiresAuth) {
+                var schemes = AuthenticationSchemes.Digest;
+                if (_allowsBasicAuth) {
+                    schemes |= AuthenticationSchemes.Basic;
+                }
 
-            return nonce;
+                return schemes;
+            }
+
+            return AuthenticationSchemes.Anonymous;
+        }
+
+        private NetworkCredential GetCredential(IIdentity identity)
+        {
+            var password = default(string);
+            if (!TryGetPassword(identity.Name, out password)) {
+                return null;
+            }
+
+            return new NetworkCredential(identity.Name, password);
         }
 
         //This gets called when the listener receives a request
-        private void ProcessContext(HttpListenerContext context)
+        private void ProcessRequest (HttpListenerContext context)
         {
-            _listener.GetContextAsync().ContinueWith(t => ProcessContext(t.Result));
-            if (RequiresAuth && !PerformAuthorization(context)) {
-                Log.D(TAG, "Authorization failed for {0}", context.Request.Url.PathAndQuery);
-                RespondUnauthorized(context);
-                return;
-            }
+            var getContext = Task.Factory.FromAsync<HttpListenerContext>(_listener.BeginGetContext, _listener.EndGetContext, null);
+            getContext.ContinueWith(t => ProcessRequest(t.Result));
 
-            _router.HandleRequest(new CouchbaseListenerTcpContext(context, _manager));
-        }
-
-        private void RespondUnauthorized(HttpListenerContext context)
-        {
-            var response = context.Response;
-            response.StatusCode = 401;
-            response.ContentLength64 = 0;
-            string challenge = String.Format("Digest realm=\"{0}\", qop=\"auth\", nonce=\"{1}\"", _realm, GenerateNonce());;
-            response.AddHeader("WWW-Authenticate", challenge);
-            response.Close();
-        }
-
-        private bool PerformAuthorization(HttpListenerContext context)
-        {
-            var authorizationHeader = context.Request.Headers["Authorization"];
-            if (authorizationHeader == null) {
-                return false;
-            }
-
-            if (authorizationHeader.StartsWith("Digest")) {
-                return DoDigestAuth(context);
-            } 
-
-            return _allowBasicAuth && DoBasicAuth(authorizationHeader);
-        }
-
-        private bool DoBasicAuth(string authorizationHeader)
-        {
-            return ValidateUser(authorizationHeader);
-        }
-
-        private bool DoDigestAuth(HttpListenerContext context)
-        {
-            var client = context.Request.RemoteEndPoint.ToString().Split(':')[0];
-            var parsedHeader = new DigestAuthHeaderValue(context);
-            if (_InUseNonces.ContainsKey(client) && _InUseNonces[client].Item1 == parsedHeader.Nonce) {
-                int lastNc = _InUseNonces[client].Item2;
-                if (lastNc >= parsedHeader.Nc) {
-                    // possible replay attack
-                    return false;
-                }
-            } else if(!_RecentNonces.Contains(parsedHeader.Nonce)){
-                return false; // Stale / non-issued nonce
-            }
-
-            _InUseNonces[client] = Tuple.Create(parsedHeader.Nonce, parsedHeader.Nc);
-            _RecentNonces.Remove(parsedHeader.Nonce);
-            return ValidateUser(parsedHeader);
+            _router.HandleRequest(new CouchbaseListenerTcpContext(context.Request, context.Response, _manager));
         }
 
         #endregion
@@ -180,7 +167,7 @@ namespace Couchbase.Lite.Listener.Tcp
             if (_listener.IsListening) {
                 return;
             }
-
+                
             try {
                 _listener.Start();
             } catch (HttpListenerException) {
@@ -188,7 +175,8 @@ namespace Couchbase.Lite.Listener.Tcp
                 "more details see https://github.com/couchbase/couchbase-lite-net/wiki/Gotchas");
             }
 
-            _listener.GetContextAsync().ContinueWith((t) => ProcessContext(t.Result));
+            var getContext = Task.Factory.FromAsync<HttpListenerContext>(_listener.BeginGetContext, _listener.EndGetContext, null);
+            getContext.ContinueWith(t => ProcessRequest(t.Result));
         }
 
         public override void Stop()
@@ -206,7 +194,7 @@ namespace Couchbase.Lite.Listener.Tcp
                 return;
             }
 
-            _listener.Abort();
+            _listener.Stop();
         }
 
         protected override void DisposeInternal()

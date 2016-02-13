@@ -13,3 +13,6 @@
 [submodule "src/Couchbase.Lite.Shared/vendor/cbforest"]
 	path = src/Couchbase.Lite.Shared/vendor/cbforest
 	url = https://github.com/couchbaselabs/cbforest
+[submodule "src/Couchbase.Lite.Shared/vendor/websocket-sharp"]
+	path = src/Couchbase.Lite.Shared/vendor/websocket-sharp
+	url = https://github.com/couchbasedeps/websocket-sharp

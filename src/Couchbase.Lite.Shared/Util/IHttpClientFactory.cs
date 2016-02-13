@@ -61,19 +61,13 @@ namespace Couchbase.Lite.Support
     internal interface IHttpClientFactory
     {
         // Create an HTTP client based on the cookie store
-        HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler);
+        CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler);
 
         /// <summary>
         /// Gets or sets the headers used by default in the HttpClient
         /// </summary>
         /// <value>The headers.</value>
         IDictionary<string,string> Headers { get; set; }
-
-        /// <summary>
-        /// Gets the handler used in the HttpClient
-        /// </summary>
-        /// <value>The handler.</value>
-        MessageProcessingHandler Handler { get; }
     }
 }
 

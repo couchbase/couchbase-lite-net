@@ -23,7 +23,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
-using System.Net;
+using WebSocketSharp.Net;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
@@ -33,9 +33,11 @@ namespace Couchbase.Lite.Listener.Tcp
     /// </summary>
     internal sealed class CouchbaseListenerTcpContext : CouchbaseListenerContext
     {
+        
         #region Variables
 
-        private readonly HttpListenerContext _httpContext;
+        private readonly HttpListenerRequest _request;
+        private readonly HttpListenerResponse _response;
 
         #endregion
 
@@ -44,27 +46,27 @@ namespace Couchbase.Lite.Listener.Tcp
         public override Stream BodyStream
         {
             get {
-                return _httpContext.Request.InputStream;
+                return _request.InputStream;
             }
         }
 
         public override NameValueCollection RequestHeaders
         {
             get {
-                return _httpContext.Request.Headers;
+                return _request.Headers;
             }
         }
 
         public override long ContentLength
         {
             get {
-                return _httpContext.Request.ContentLength64;
+                return _request.ContentLength64;
             }
         }
 
         public override string Method {
             get {
-                return _httpContext.Request.HttpMethod;
+                return _request.HttpMethod;
             }
         }
 
@@ -72,7 +74,7 @@ namespace Couchbase.Lite.Listener.Tcp
             get {
                 //Why I have to do this here again is beyond me...I'm actively fighting
                 //against .NET to keep the %2F entities from turning into slashes
-                return new Uri(_httpContext.Request.Url.OriginalString.Replace("%2F", "%252F"));
+                return new Uri(_request.Url.OriginalString.Replace("%2F", "%252F"));
             }
         }
 
@@ -80,9 +82,10 @@ namespace Couchbase.Lite.Listener.Tcp
 
         #region Constructors
 
-        public CouchbaseListenerTcpContext(HttpListenerContext context, Manager manager) : base(manager)
+        public CouchbaseListenerTcpContext(HttpListenerRequest request, HttpListenerResponse response, Manager manager) : base(manager)
         {
-            _httpContext = context;
+            _request = request;
+            _response = response;
         }
 
         #endregion
@@ -91,14 +94,14 @@ namespace Couchbase.Lite.Listener.Tcp
 
         public override string GetQueryParam(string key)
         {
-            return _httpContext.Request.QueryString[key];
+            return _request.QueryString[key];
         }
 
         public override IDictionary<string, object> GetQueryParams()
         {
-            var retVal = new Dictionary<string, object>(_httpContext.Request.QueryString.Count);
-            foreach (string key in _httpContext.Request.QueryString.AllKeys) {
-                retVal[key] = _httpContext.Request.QueryString[key];
+            var retVal = new Dictionary<string, object>(_request.QueryString.Count);
+            foreach (string key in _request.QueryString.AllKeys) {
+                retVal[key] = _request.QueryString[key];
             }
 
             return retVal;
@@ -107,13 +110,13 @@ namespace Couchbase.Lite.Listener.Tcp
         public override bool CacheWithEtag(string etag)
         {
             etag = String.Format("\"{0}\"", etag);
-            _httpContext.Response.Headers["Etag"] = etag;
+            _response.Headers["Etag"] = etag;
             return etag.Equals(RequestHeaders.Get("If-None-Match"));
         }
 
         public override CouchbaseLiteResponse CreateResponse(StatusCode code = StatusCode.Ok)
         {
-            return new CouchbaseLiteResponse(Method, RequestHeaders, new TcpResponseWriter(_httpContext.Response)) {
+            return new CouchbaseLiteResponse(Method, RequestHeaders, new TcpResponseWriter(_response)) {
                 InternalStatus = code
             };
         }

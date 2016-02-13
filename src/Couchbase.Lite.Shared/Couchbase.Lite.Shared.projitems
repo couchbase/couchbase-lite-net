@@ -15,7 +15,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Replication\SSLGenerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authorizer.cs" />
@@ -181,6 +180,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CompressedContent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Platform.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClient.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

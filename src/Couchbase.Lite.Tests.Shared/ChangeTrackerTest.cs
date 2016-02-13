@@ -143,7 +143,7 @@ namespace Couchbase.Lite
 
             #region IHttpClientFactory implementation
 
-            public HttpClient GetHttpClient()
+            public CouchbaseLiteHttpClient GetHttpClient()
             {
                 return HttpClientFactory.GetHttpClient(null, false);
             }
