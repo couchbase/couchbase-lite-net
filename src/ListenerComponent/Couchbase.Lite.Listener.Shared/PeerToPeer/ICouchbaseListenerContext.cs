@@ -184,5 +184,12 @@ namespace Couchbase.Lite.Listener
         CouchbaseLiteResponse CreateResponse(StatusCode code = StatusCode.Ok);
 
     }
+
+    public interface ICouchbaseListenerContext2 : ICouchbaseListenerContext
+    {
+        bool IsLoopbackRequest { get; }
+
+        Uri Sender { get; }
+    }
 }
 

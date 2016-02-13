@@ -224,6 +224,8 @@ namespace Couchbase.Lite.Listener
                 StatusCode status = StatusCode.Ok;
                 bool success = db.RunInTransaction(() => {
                     List<IDictionary<string, object>> results = new List<IDictionary<string, object>>(docs.Count);
+                    var castContext = context as ICouchbaseListenerContext2;
+                    var source = castContext != null && !castContext.IsLoopbackRequest ? castContext.Sender : null;
                     foreach(var doc in docs) {
                         string docId = doc.GetCast<string>("_id");
                         RevisionInternal rev = null;
@@ -236,7 +238,7 @@ namespace Couchbase.Lite.Listener
                                 rev = new RevisionInternal(body);
                                 var history = Database.ParseCouchDBRevisionHistory(doc);
                                 try {
-                                    db.ForceInsert(rev, history, null);
+                                    db.ForceInsert(rev, history, source);
                                 } catch(CouchbaseLiteException e) {
                                     status = e.Code;
                                 }

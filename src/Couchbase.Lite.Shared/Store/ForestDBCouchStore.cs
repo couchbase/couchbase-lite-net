@@ -1027,7 +1027,7 @@ namespace Couchbase.Lite.Store
         }
 
         public RevisionInternal PutRevision(string inDocId, string inPrevRevId, IDictionary<string, object> properties,
-            bool deleting, bool allowConflict, StoreValidation validationBlock)
+            bool deleting, bool allowConflict, Uri source, StoreValidation validationBlock)
         {
             if(_config.HasFlag(C4DatabaseFlags.ReadOnly)) {
                 throw new CouchbaseLiteException("Attempting to write to a readonly database", StatusCode.Forbidden);
@@ -1109,7 +1109,7 @@ namespace Couchbase.Lite.Store
                         putRev.GetAttachments() != null, allowConflict, err));
                     var isWinner = SaveDocument(doc, newRevID, properties);
                     putRev.SetSequence((long)doc->sequence);
-                    change = ChangeWithNewRevision(putRev, isWinner, doc, null);
+                    change = ChangeWithNewRevision(putRev, isWinner, doc, source);
                     transactionSuccess = true;
                 });
 

@@ -509,16 +509,16 @@ namespace Couchbase.Lite
             var attachv2 = Encoding.UTF8.GetBytes("Replaced body of attach");
 
             var ex = Assert.Throws<CouchbaseLiteException>(() => database.UpdateAttachment("attach", BlobForData(database, attachv2), 
-                "application/foo", AttachmentEncoding.None, rev1.GetDocId(), null));
+                "application/foo", AttachmentEncoding.None, rev1.GetDocId(), null, null));
             Assert.AreEqual(StatusCode.Conflict, ex.Code);
 
             ex = Assert.Throws<CouchbaseLiteException>(() => database.UpdateAttachment("attach", BlobForData(database, attachv2), 
-                "application/foo", AttachmentEncoding.None, rev1.GetDocId(), "1-deadbeef"));
+                "application/foo", AttachmentEncoding.None, rev1.GetDocId(), "1-deadbeef", null));
             Assert.AreEqual(StatusCode.Conflict, ex.Code);
 
             var rev2 = default(RevisionInternal);
             Assert.DoesNotThrow(() => rev2 = database.UpdateAttachment("attach", BlobForData(database, attachv2), 
-                "application/foo", AttachmentEncoding.None, rev1.GetDocId(), rev1.GetRevId()));
+                "application/foo", AttachmentEncoding.None, rev1.GetDocId(), rev1.GetRevId(), null));
             Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
             Assert.AreEqual(2, rev2.GetGeneration());
 
@@ -542,16 +542,16 @@ namespace Couchbase.Lite
 
             // Delete the attachment:
             ex = Assert.Throws<CouchbaseLiteException>(() => database.UpdateAttachment("nosuchattach", null, 
-                null, AttachmentEncoding.None, rev2.GetDocId(), rev2.GetRevId()));
+                null, AttachmentEncoding.None, rev2.GetDocId(), rev2.GetRevId(), null));
             Assert.AreEqual(StatusCode.AttachmentNotFound, ex.Code);
 
             ex = Assert.Throws<CouchbaseLiteException>(() => database.UpdateAttachment("nosuchattach", null, 
-                null, AttachmentEncoding.None, "nosuchdoc", "nosuchrev"));
+                null, AttachmentEncoding.None, "nosuchdoc", "nosuchrev", null));
             Assert.AreEqual(StatusCode.NotFound, ex.Code);
 
             var rev3 = default(RevisionInternal);
             Assert.DoesNotThrow(() => rev3 = database.UpdateAttachment("attach", null, 
-                null, AttachmentEncoding.None, rev2.GetDocId(), rev2.GetRevId()));
+                null, AttachmentEncoding.None, rev2.GetDocId(), rev2.GetRevId(), null));
             Assert.AreEqual(rev2.GetDocId(), rev3.GetDocId());
             Assert.AreEqual(3, rev3.GetGeneration());
 

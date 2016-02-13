@@ -35,6 +35,7 @@ using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
 using Couchbase.Lite.Security;
+using Couchbase.Lite.Tests;
 
 namespace Couchbase.Lite
 {
@@ -126,6 +127,38 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestListenerRequestsAreExternal()
+        {
+            var fakeListener = new CouchbaseLiteMockTcpListener(59842);
+            fakeListener.ContextGenerator = context =>
+            {
+                var internalContext = new CouchbaseListenerTcpContext(context.Request, context.Response, manager);
+                var uriBuilder = new UriBuilder("http", context.Request.LocalEndPoint.Address.ToString(),
+                    context.Request.LocalEndPoint.Port);
+                uriBuilder.UserName = context.User != null && context.User.Identity != null ? context.User.Identity.Name : null;
+                internalContext.Sender = uriBuilder.Uri;
+                return internalContext;
+            };
+            _listenerDBUri = new Uri("http://127.0.0.1:59842/" + LISTENER_DB_NAME);
+            fakeListener.Start();
+            try {
+                CreateDocs(database, false);
+                var repl = CreateReplication(database, true);
+                var allChangesExternal = true;
+                _listenerDB.Changed += (sender, e) => 
+                {
+                    allChangesExternal = allChangesExternal && e.IsExternal;
+                };
+
+                RunReplication(repl);
+                VerifyDocs(_listenerDB, false);
+                Assert.IsTrue(allChangesExternal);
+            } finally {
+                fakeListener.Stop();
+            }
+        }
+
+        [Test]
         public void TestBrowser()
         {
             #if __ANDROID__
@@ -192,8 +225,15 @@ namespace Couchbase.Lite
             try {
                 CreateDocs(_listenerDB, false);
                 var repl = CreateReplication(database, false);
+                var allChangesExternal = true;
+                database.Changed += (sender, e) => 
+                {
+                    allChangesExternal = allChangesExternal && e.IsExternal;
+                };
+
                 RunReplication(repl);
                 VerifyDocs(database, false);
+                Assert.IsTrue(allChangesExternal);
             } finally {
                 _listener.Stop();
             }

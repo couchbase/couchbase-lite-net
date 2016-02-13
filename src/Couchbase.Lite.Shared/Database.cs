@@ -1339,10 +1339,10 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal RevisionInternal PutRevision(RevisionInternal rev, String prevRevId)
         {
-            return PutRevision(rev, prevRevId, false);
+            return PutRevision(rev, prevRevId, false, null);
         }
 
-        internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, string prevRevId, bool allowConflict)
+        internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, string prevRevId, bool allowConflict, Uri source)
         {
             bool deleting = properties == null || properties.GetCast<bool>("_deleted");
             Log.D(TAG, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}", docId, prevRevId, deleting, allowConflict);
@@ -1365,7 +1365,7 @@ namespace Couchbase.Lite
                 validationBlock = ValidateRevision;
             }
 
-            var putRev = Storage.PutRevision(docId, prevRevId, properties, deleting, allowConflict, validationBlock);
+            var putRev = Storage.PutRevision(docId, prevRevId, properties, deleting, allowConflict, source, validationBlock);
             if (putRev != null) {
                 Log.D(TAG, "--> created {0}", putRev);
                 if (!string.IsNullOrEmpty(docId)) {
@@ -1393,7 +1393,12 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId, bool allowConflict)
         {
-            return PutDocument(oldRev.GetDocId(), oldRev.GetProperties(), prevRevId, allowConflict);
+            return PutRevision(oldRev, prevRevId, allowConflict, null);
+        }
+
+        internal RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId, bool allowConflict, Uri source)
+        {
+            return PutDocument(oldRev.GetDocId(), oldRev.GetProperties(), prevRevId, allowConflict, source);
         }
 
         internal bool PostChangeNotifications()
@@ -1869,7 +1874,7 @@ namespace Couchbase.Lite
         /// </remarks>
         /// <exclude></exclude>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal RevisionInternal UpdateAttachment(string filename, BlobStoreWriter body, string contentType, AttachmentEncoding encoding, string docID, string oldRevID)
+        internal RevisionInternal UpdateAttachment(string filename, BlobStoreWriter body, string contentType, AttachmentEncoding encoding, string docID, string oldRevID, Uri source)
         {
             if(StringEx.IsNullOrWhiteSpace(filename) || (body != null && contentType == null) || 
                 (oldRevID != null && docID == null) || (body != null && docID == null)) {
@@ -1923,7 +1928,7 @@ namespace Couchbase.Lite
             properties["_attachments"] = attachments;
             oldRev.SetProperties(properties);
 
-            var newRev = PutRevision(oldRev, oldRevID, false);
+            var newRev = PutRevision(oldRev, oldRevID, false, source);
             return newRev;
         }
 

@@ -465,7 +465,7 @@ namespace Couchbase.Lite {
                 propsCopy["_attachments"] = updatedAttachments;
             }
                 
-            var newRev = Database.PutDocument(Id, propsCopy, prevID, allowConflict);
+            var newRev = Database.PutDocument(Id, propsCopy, prevID, allowConflict, null);
             return GetRevisionFromRev(newRev);
         }
 

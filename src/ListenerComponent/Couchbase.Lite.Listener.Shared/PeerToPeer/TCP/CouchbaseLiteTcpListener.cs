@@ -60,6 +60,7 @@ namespace Couchbase.Lite.Listener.Tcp
         private readonly HttpListener _listener;
         private Manager _manager;
         private bool _allowsBasicAuth;
+        private bool _usesTLS;
 
         #endregion
 
@@ -96,7 +97,8 @@ namespace Couchbase.Lite.Listener.Tcp
         {
             _manager = manager;
             _listener = new HttpListener();
-            string prefix = options.HasFlag(CouchbaseLiteTcpOptions.UseTLS) ? String.Format("https://*:{0}/", port) :
+            _usesTLS = options.HasFlag(CouchbaseLiteTcpOptions.UseTLS);
+            string prefix = _usesTLS ? String.Format("https://*:{0}/", port) :
                 String.Format("http://*:{0}/", port);
             _listener.Prefixes.Add(prefix);
             _listener.AuthenticationSchemeSelector = SelectAuthScheme;
@@ -106,7 +108,7 @@ namespace Couchbase.Lite.Listener.Tcp
 
             _listener.UserCredentialsFinder = GetCredential;
             if (options.HasFlag(CouchbaseLiteTcpOptions.UseTLS)) {
-                _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
+                _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls;
                 _listener.SslConfiguration.ClientCertificateRequired = false;
                 if (sslCert == null) {
                     Log.I(TAG, "Generating X509 certificate for listener...");
@@ -152,10 +154,19 @@ namespace Couchbase.Lite.Listener.Tcp
         //This gets called when the listener receives a request
         private void ProcessRequest (HttpListenerContext context)
         {
+            var isLocal = System.Net.IPAddress.IsLoopback(context.Request.RemoteEndPoint.Address) ||
+                          context.Request.LocalEndPoint == context.Request.RemoteEndPoint;
+            
             var getContext = Task.Factory.FromAsync<HttpListenerContext>(_listener.BeginGetContext, _listener.EndGetContext, null);
             getContext.ContinueWith(t => ProcessRequest(t.Result));
 
-            _router.HandleRequest(new CouchbaseListenerTcpContext(context.Request, context.Response, _manager));
+            var internalContext = new CouchbaseListenerTcpContext(context.Request, context.Response, _manager);
+            internalContext.IsLoopbackRequest = isLocal;
+            var uriBuilder = new UriBuilder(_usesTLS ? "https" : "http", context.Request.LocalEndPoint.Address.ToString(),
+                                 context.Request.LocalEndPoint.Port);
+            uriBuilder.UserName = context.User != null && context.User.Identity != null ? context.User.Identity.Name : null;
+            internalContext.Sender = uriBuilder.Uri;
+            _router.HandleRequest(internalContext);
         }
 
         #endregion

@@ -52,6 +52,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)EncryptionTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JSViewCompilerTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MultipartTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CouchbaseLiteMockTcpListener.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Performance\" />
