@@ -1626,7 +1626,7 @@ namespace Couchbase.Lite.Store
         }
 
         public RevisionInternal PutRevision(string inDocId, string inPrevRevId, IDictionary<string, object> properties,
-            bool deleting, bool allowConflict, StoreValidation validationBlock)
+            bool deleting, bool allowConflict, Uri source, StoreValidation validationBlock)
         {
             IEnumerable<byte> json = null;
             if (properties != null) {
@@ -1813,7 +1813,7 @@ namespace Couchbase.Lite.Store
             });
 
             //// EPILOGUE: A change notification is sent...
-            Delegate.DatabaseStorageChanged(new DocumentChange(newRev, winningRevID, inConflict, null));
+            Delegate.DatabaseStorageChanged(new DocumentChange(newRev, winningRevID, inConflict, source));
 
             return newRev;
         }

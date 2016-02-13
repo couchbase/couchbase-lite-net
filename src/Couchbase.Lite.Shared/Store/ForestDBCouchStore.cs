@@ -1,4 +1,4 @@
-﻿//
+//
 // ForestDBCouchStore.cs
 //
 // Author:

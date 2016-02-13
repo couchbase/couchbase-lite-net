@@ -228,8 +228,11 @@ namespace Couchbase.Lite.Listener
 
                     var history = Database.ParseCouchDBRevisionHistory(body.GetProperties());
                     Status status = new Status(StatusCode.Ok);
+                    var castContext = context as ICouchbaseListenerContext2;
+                    var source = (castContext != null && !castContext.IsLoopbackRequest) ? castContext.Sender : null;
+
                     try {
-                      db.ForceInsert(rev, history, null);
+                      db.ForceInsert(rev, history, source);
                     } catch(CouchbaseLiteException e) {
                         status = e.CBLStatus;
                     }
@@ -312,12 +315,14 @@ namespace Couchbase.Lite.Listener
             RevisionInternal rev = new RevisionInternal(docId, null, deleting);
             rev.SetBody(body);
 
+            var castContext = context as ICouchbaseListenerContext2;
+            var source = castContext != null && !castContext.IsLoopbackRequest ? castContext.Sender : null;
             StatusCode status = deleting ? StatusCode.Ok : StatusCode.Created;
             try {
                 if (docId != null && docId.StartsWith("_local")) {
                     outRev = db.Storage.PutLocalRevision(rev, prevRevId, true); //TODO: Doesn't match iOS
                 } else {
-                    outRev = db.PutRevision(rev, prevRevId, allowConflict);
+                    outRev = db.PutRevision(rev, prevRevId, allowConflict, source);
                 }
             } catch(CouchbaseLiteException e) {
                 status = e.Code;
@@ -626,8 +631,10 @@ namespace Couchbase.Lite.Listener
         private static CouchbaseLiteResponse UpdateAttachment(ICouchbaseListenerContext context, Database db, 
             string attachment, string docId, BlobStoreWriter body)
         {
+            var castContext = context as ICouchbaseListenerContext2;
+            var source = castContext != null && !castContext.IsLoopbackRequest ? castContext.Sender : null;
             RevisionInternal rev = db.UpdateAttachment(attachment, body, context.RequestHeaders["Content-Type"], AttachmentEncoding.None,
-                    docId, context.GetQueryParam("rev") ?? context.IfMatch());
+                    docId, context.GetQueryParam("rev") ?? context.IfMatch(), source);
 
             var response = context.CreateResponse();
             response.JsonBody = new Body(new Dictionary<string, object> {

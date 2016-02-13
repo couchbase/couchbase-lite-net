@@ -33,7 +33,7 @@ namespace Couchbase.Lite.Listener
     /// A base class implementation of ICouchbaseListenerContext, for common logic like
     /// parsing URLs
     /// </summary>
-    public abstract class CouchbaseListenerContext : ICouchbaseListenerContext
+    public abstract class CouchbaseListenerContext : ICouchbaseListenerContext2
     {
 
         #region Variables
@@ -47,6 +47,10 @@ namespace Couchbase.Lite.Listener
         #endregion
 
         #region Properties
+
+        public bool IsLoopbackRequest { get;  set; }
+
+        public Uri Sender { get; set; }
 
         // ICouchbaseListenerContext
         public Manager DbManager { get; private set; }

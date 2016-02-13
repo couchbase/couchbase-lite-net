@@ -190,5 +190,9 @@
       <Project>{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}</Project>
       <Name>ugly_net35</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
+      <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
+      <Name>websocket-sharp</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

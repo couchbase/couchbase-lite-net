@@ -1393,7 +1393,12 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId, bool allowConflict)
         {
-            return PutDocument(oldRev.GetDocId(), oldRev.GetProperties(), prevRevId, allowConflict);
+            return PutRevision(oldRev, prevRevId, allowConflict, null);
+        }
+
+        internal RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId, bool allowConflict, Uri source)
+        {
+            return PutDocument(oldRev.GetDocId(), oldRev.GetProperties(), prevRevId, allowConflict, source);
         }
 
         internal bool PostChangeNotifications()
@@ -2046,16 +2051,7 @@ namespace Couchbase.Lite
             var primaryStorage = Type.GetType(className, false, true);
             var errorMessage = default(string);
             if (primaryStorage == null) {
-                #if !FORESTDB
-                if (storageType == DatabaseOptions.FORESTDB_STORAGE) {
-                    errorMessage = "ForestDB storage option selected but not compiled into library";
-                }
-                #endif
-                #if NOSQLITE
-                if (storageType == DatabaseOptions.SQLITE_STORAGE) {
-                    errorMessage = "SQLite storage option selected but not compiled into library";
-                }
-                #endif
+                errorMessage = String.Format("Unknown storage type '{0}'", storageType);
             } else if (primaryStorage.GetInterface("Couchbase.Lite.Store.ICouchStore") == null) {
                 errorMessage = String.Format("{0} does not implement ICouchStore", className);
                 primaryStorage = null;
