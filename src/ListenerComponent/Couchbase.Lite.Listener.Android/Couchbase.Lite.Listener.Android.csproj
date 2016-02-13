@@ -47,7 +47,6 @@
     <Reference Include="Jint">
       <HintPath>..\..\packages\Jint.2.5.0\lib\portable-net40+sl50+win+wpa81+wp80\Jint.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Security" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Resources\Resource.designer.cs" />
@@ -67,6 +66,10 @@
     <ProjectReference Include="..\..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.droid.csproj">
       <Project>{E1153FA4-356A-454D-B32E-136102F2482F}</Project>
       <Name>websocket-sharp.droid</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Listener.Shared\vendor\Mono\Mono.Security\Mono.Security-droid.csproj">
+      <Project>{83F75E53-48BE-4F3C-8D79-62CBD5050792}</Project>
+      <Name>Mono.Security-droid</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems')" />
