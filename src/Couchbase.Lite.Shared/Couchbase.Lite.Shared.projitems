@@ -86,9 +86,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobStoreWriter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\ConflictResolutionStrategy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\ContentValues.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\Cursor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\JsonCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\RevIdCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLException.cs" />
@@ -108,9 +106,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\StringUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SystemLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\URIUtils.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\ISQLiteStorageEngine.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\CouchbaseSqliteCollationFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\SqlitePclRawStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\AuthenticatorFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\IAuthenticator.cs" />
@@ -146,9 +141,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultiStreamWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\NonNullDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\IDatabaseUpgrader.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory_Upgraders.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteStorageEngineFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SymmetricKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ValueTypePtr.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\IJsonSerializer.cs" />
@@ -166,14 +158,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)View\IViewStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View\IViewStoreDelegate.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\IQueryRowStore.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\SqliteCouchStore.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\SqliteViewStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ContractedDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CookieParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\IAtomicAction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\AtomicAction.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\ForestDBCouchStore.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\ForestDBViewStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonC4KeyWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonC4KeyReader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteServerVersion.cs" />
@@ -181,6 +169,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Platform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Database\IRevisionInformation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionID.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

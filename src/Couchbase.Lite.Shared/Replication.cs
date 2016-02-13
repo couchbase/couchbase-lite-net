@@ -59,6 +59,7 @@ using Couchbase.Lite.Replicator;
 using Stateless;
 using System.Collections.Concurrent;
 using System.Text;
+using Couchbase.Lite.Store;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -578,8 +579,8 @@ namespace Couchbase.Lite
         }
 
         internal RemoteServerVersion ServerType { get; set; }
-        internal Batcher<RevisionInternal> Batcher { get; set; }
-        internal Func<RevisionInternal, RevisionInternal> RevisionBodyTransformationFunction { get; private set; }
+        internal Batcher<IRevisionInformation> Batcher { get; set; }
+        internal Func<IRevisionInformation, IRevisionInformation> RevisionBodyTransformationFunction { get; private set; }
 
 
         #endregion
@@ -663,7 +664,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            Batcher = new Batcher<RevisionInternal>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, inbox =>
+            Batcher = new Batcher<IRevisionInformation>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, inbox =>
             {
                 try {
                     Log.V(TAG, "*** BEGIN ProcessInbox for {0} ({1} sequences)", _replicatorID, inbox.Count);
@@ -1530,19 +1531,19 @@ namespace Couchbase.Lite
             return _remoteCheckpointDocID;
         }
 
-        internal RevisionInternal TransformRevision(RevisionInternal rev)
+        internal IRevisionInformation TransformRevision(IRevisionInformation rev)
         {
             if (RevisionBodyTransformationFunction != null) {
                 try {
-                    var generation = rev.GetGeneration();
+                    var generation = rev.Generation;
                     var xformed = RevisionBodyTransformationFunction(rev);
                     if (xformed == null) {
                         return null;
                     }
 
                     if (xformed != rev) {
-                        Debug.Assert((xformed.GetDocId().Equals(rev.GetDocId())));
-                        Debug.Assert((xformed.GetRevId().Equals(rev.GetRevId())));
+                        Debug.Assert((xformed.DocID.Equals(rev.DocID)));
+                        Debug.Assert((xformed.RevID.Equals(rev.RevID)));
                         Debug.Assert((xformed.GetProperties().Get("_revisions").Equals(rev.GetProperties().Get("_revisions"))));
 
                         if (xformed.GetProperties().ContainsKey("_attachments")) {
@@ -1566,7 +1567,7 @@ namespace Couchbase.Lite
                         }
                     }
                 } catch (Exception e) {
-                    Log.W(TAG, String.Format("Exception transforming a revision of doc '{0}'", rev.GetDocId()), e);
+                    Log.W(TAG, String.Format("Exception transforming a revision of doc '{0}'", rev.DocID), e);
                 }
             }
 
@@ -1609,7 +1610,7 @@ namespace Couchbase.Lite
             });
         }
 
-        internal void AddToInbox(RevisionInternal rev)
+        internal void AddToInbox(IRevisionInformation rev)
         {
             Debug.Assert(IsRunning);
             Batcher.QueueObject(rev);

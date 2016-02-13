@@ -48,6 +48,7 @@ using Sharpen;
 using System.Text;
 using System.Linq;
 using Couchbase.Lite.Store;
+using Couchbase.Lite.Revisions;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -61,34 +62,77 @@ namespace Couchbase.Lite.Internal
     /// Stores information about a revision -- its docID, revID, and whether it's deleted.
     /// It can also store the sequence number and document contents (they can be added after creation).
     /// </remarks>
-    internal class RevisionInternal
+    internal class RevisionInternal : IRevisionInformation
     {
 
         #region Variables
 
         private readonly string _docId;
         private readonly string _revId;
-        private bool _deleted;
         private bool _missing;
         private Body _body;
-        private long _sequence;
+
+        #endregion
+
+        #region Properties
+
+        public string DocID
+        {
+            get { return _docId; }
+        }
+
+        public string RevID 
+        {
+            get { return _revId; }
+        }
+
+        public long Sequence { get; internal set; }
+
+        public bool Deleted { get; internal set; }
+
+        public int Generation 
+        {
+            get { return RevisionID.GetGeneration(_revId); }
+        }
+
+        public bool Missing { get; internal set; }
 
         #endregion
 
         #region Constructors
 
+        internal static RevisionInternal Create(IRevisionInformation other)
+        {
+            var otherInternal = other as RevisionInternal;
+            return otherInternal ?? new RevisionInternal(other);
+        }
+
         internal RevisionInternal(String docId, String revId, Boolean deleted)
         {
             // TODO: get rid of this field!
-            this._docId = docId;
-            this._revId = revId;
-            this._deleted = deleted;
+            _docId = docId;
+            _revId = revId;
+            Deleted = deleted;
         }
 
         internal RevisionInternal(Body body)
             : this(body.GetPropertyForKey<string>("_id"), body.GetPropertyForKey<string>("_rev"), body.GetPropertyForKey<bool>("_deleted"))
         {
             this._body = body;
+        }
+
+        internal RevisionInternal(IRevisionInformation other)
+        {
+            _docId = other.DocID;
+            _revId = other.RevID;
+            Deleted = other.Deleted;
+            _body = new Body(other.GetProperties());
+        }
+
+        internal RevisionInternal(IRevisionInformation other, string docID, string revID) : this(other)
+        {
+            _docId = docID;
+            _revId = revID;
         }
 
         internal RevisionInternal(IDictionary<String, Object> properties)
@@ -102,8 +146,8 @@ namespace Couchbase.Lite.Internal
 
             _docId = (string)doc->docID;
             _revId = (string)doc->selectedRev.revID;
-            _deleted = doc->selectedRev.IsDeleted;
-            _sequence = (long)doc->selectedRev.sequence;
+            Deleted = doc->selectedRev.IsDeleted;
+            Sequence = (long)doc->selectedRev.sequence;
             if (loadBody) {
                 // Important not to lazy load here since we can only assume
                 // doc lives until immediately after this function ends
@@ -127,32 +171,7 @@ namespace Couchbase.Lite.Internal
             (body.GetPropertyForKey("_rev") == null && body.GetPropertyForKey("_deleted") == null);
         }
 
-        internal static Tuple<int, string> ParseRevId(string revId)
-        {
-            if (revId == null || revId.Contains(" ")) {
-                return Tuple.Create(-1, string.Empty); 
-            }
-
-            int dashPos = revId.IndexOf("-", StringComparison.InvariantCulture);
-            if (dashPos == -1) {
-                return Tuple.Create(-1, string.Empty);
-            }
-
-            var genStr = revId.Substring(0, dashPos);
-            int generation;
-            if (!int.TryParse(genStr, out generation)) {
-                return Tuple.Create(-1, string.Empty);
-            }
-
-            var suffix = revId.Substring(dashPos + 1);
-            if (suffix.Length == 0) {
-                return Tuple.Create(-1, string.Empty);
-            }
-
-            return Tuple.Create(generation, suffix);
-        }
-
-        internal IDictionary<String, Object> GetProperties()
+        public IDictionary<String, Object> GetProperties()
         {
             IDictionary<string, object> result = null;
             if (_body != null) {
@@ -177,26 +196,26 @@ namespace Couchbase.Lite.Internal
                     result["_rev"] = _revId;
                 }
 
-                if (_deleted) {
+                if (Deleted) {
                     result["_deleted"] = true;
                 }
             }
             return result;
         }
 
-        internal RevisionInternal CopyWithoutBody()
+        public IRevisionInformation CopyWithoutBody()
         {
             if (_body == null) {
                 return this;
             }
 
-            var rev = new RevisionInternal(_docId, _revId, _deleted);
-            rev.SetSequence(_sequence);
-            rev.SetMissing(_missing);
+            var rev = new RevisionInternal(_docId, _revId, Deleted);
+            rev.Sequence = Sequence;
+            rev.Missing = Missing;
             return rev;
         }
             
-        internal object GetPropertyForKey(string key)
+        public object GetPropertyForKey(string key)
         {
             if (key == "_id") {
                 return _docId;
@@ -207,7 +226,7 @@ namespace Couchbase.Lite.Internal
             }
 
             if (key == "_deleted") {
-                return _deleted ? (object)true : null;
+                return Deleted ? (object)true : null;
             }
 
             return _body.GetPropertyForKey(key);
@@ -238,7 +257,7 @@ namespace Couchbase.Lite.Internal
             _body = new Body(json);
         }
 
-        internal IDictionary<string, object> GetAttachments()
+        public IDictionary<string, object> GetAttachments()
         {
             var props = GetProperties();
             if (props == null) {
@@ -248,27 +267,7 @@ namespace Couchbase.Lite.Internal
             return props.Get("_attachments").AsDictionary<string, object>();
         }
 
-        internal string GetDocId()
-        {
-            return _docId;
-        }
-
-        internal string GetRevId()
-        {
-            return _revId;
-        }
-
-        internal bool IsDeleted()
-        {
-            return _deleted;
-        }
-
-        internal void SetDeleted(bool deleted)
-        {
-            this._deleted = deleted;
-        }
-
-        internal Body GetBody()
+        public Body GetBody()
         {
             if (_body == null) {
                 return _body;
@@ -283,7 +282,7 @@ namespace Couchbase.Lite.Internal
                 props["_rev"] = _revId;
             }
 
-            if (_deleted) {
+            if (Deleted) {
                 props["_deleted"] = true;
             }
 
@@ -295,22 +294,12 @@ namespace Couchbase.Lite.Internal
             this._body = body;
         }
 
-        internal Boolean IsMissing()
-        {
-            return _missing;
-        }
-
-        internal void SetMissing(Boolean isMissing)
-        {
-            _missing = isMissing;
-        }
-
-        internal RevisionInternal CopyWithDocID(String docId, String revId)
+        public IRevisionInformation Copy(string docId, string revId)
         {
             System.Diagnostics.Debug.Assert((docId != null));
-            System.Diagnostics.Debug.Assert(((this._docId == null) || (this._docId.Equals(docId))));
+            System.Diagnostics.Debug.Assert(((_docId == null) || (_docId.Equals(docId))));
 
-            var result = new RevisionInternal(docId, revId, _deleted);
+            var result = new RevisionInternal(docId, revId, Deleted);
             var unmodifiableProperties = GetProperties();
             var properties = new Dictionary<string, object>();
             if (unmodifiableProperties != null)
@@ -323,46 +312,11 @@ namespace Couchbase.Lite.Internal
             return result;
         }
 
-        internal void SetSequence(long sequence)
-        {
-            this._sequence = sequence;
-        }
-
-        internal long GetSequence()
-        {
-            return _sequence;
-        }
-
         public override string ToString()
         {
-            return "{" + this._docId + " #" + this._revId + (_deleted ? "DEL" : string.Empty) + "}";
+            return "{" + this._docId + " #" + this._revId + (Deleted ? "DEL" : string.Empty) + "}";
         }
-
-        /// <summary>Generation number: 1 for a new document, 2 for the 2nd revision, ...</summary>
-        /// <remarks>
-        /// Generation number: 1 for a new document, 2 for the 2nd revision, ...
-        /// Extracted from the numeric prefix of the revID.
-        /// </remarks>
-        internal int GetGeneration()
-        {
-            return GenerationFromRevID(_revId);
-        }
-
-        internal static int GenerationFromRevID(string revID)
-        {
-            if (revID == null) {
-                return 0;
-            }
-
-            var generation = 0;
-            var dashPos = revID.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
-            if (dashPos > 0)
-            {
-                generation = Convert.ToInt32(revID.Substring(0, dashPos));
-            }
-            return generation;
-        }
-
+            
         internal static int CBLCollateRevIDs(string revId1, string revId2)
         {
             string rev1GenerationStr = null;
@@ -434,7 +388,7 @@ namespace Couchbase.Lite.Internal
         // Calls the block on every attachment dictionary. The block can return a different dictionary,
         // which will be replaced in the rev's properties. If it returns nil, the operation aborts.
         // Returns YES if any changes were made.
-        internal bool MutateAttachments(Func<string, IDictionary<string, object>, IDictionary<string, object>> mutator)
+        public bool MutateAttachments(Func<string, IDictionary<string, object>, IDictionary<string, object>> mutator)
         {
             var properties = GetProperties();
             IDictionary<string, object> editedProperties = null;

@@ -48,9 +48,9 @@ using System.Net;
 using System.IO;
 using Sharpen;
 using Couchbase.Lite.Util;
-using Couchbase.Lite.Storage;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite
 {
@@ -59,14 +59,14 @@ namespace Couchbase.Lite
     {
         IList<String> changedKeys;
 
-        private RevisionInternal InternalRevision { get; set; }
-        private RevisionInternal NewRevision { get; set; }
+        private IRevisionInformation InternalRevision { get; set; }
+        private IRevisionInformation NewRevision { get; set; }
 
         private Database Database { get; set; }
 
         internal String RejectMessage { get; set; }
 
-        internal ValidationContext(Database database, RevisionInternal currentRevision, RevisionInternal newRevision)
+        internal ValidationContext(Database database, IRevisionInformation currentRevision, IRevisionInformation newRevision)
         {
             Database = database;
             InternalRevision = currentRevision;

@@ -49,6 +49,7 @@ using System.IO;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Internal;
 using Sharpen;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite {
 
@@ -57,9 +58,9 @@ namespace Couchbase.Lite {
     /// </summary>
     public class DocumentChange
     {
-        internal RevisionInternal AddedRevision { get; private set; }
+        internal IRevisionInformation AddedRevision { get; private set; }
 
-        internal DocumentChange(RevisionInternal addedRevision, string winningRevisionId, bool isConflict, Uri sourceUrl)
+        internal DocumentChange(IRevisionInformation addedRevision, string winningRevisionId, bool isConflict, Uri sourceUrl)
         {
             AddedRevision = addedRevision;
             WinningRevisionId = winningRevisionId;
@@ -73,19 +74,19 @@ namespace Couchbase.Lite {
         /// Gets the Id of the <see cref="Couchbase.Lite.Document"/> that changed.
         /// </summary>
         /// <value>The Id of the <see cref="Couchbase.Lite.Document"/> that changed.</value>
-        public String DocumentId { get { return AddedRevision.GetDocId(); } }
+        public String DocumentId { get { return AddedRevision.DocID; } }
 
         /// <summary>
         /// Gets the Id of the new Revision.
         /// </summary>
         /// <value>The Id of the new Revision.</value>
-        public String RevisionId { get { return AddedRevision.GetRevId(); } }
+        public String RevisionId { get { return AddedRevision.RevID; } }
 
         /// <summary>
         /// Gets a value indicating whether this instance is current revision.
         /// </summary>
         /// <value><c>true</c> if this instance is current revision; otherwise, <c>false</c>.</value>
-        public Boolean IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.GetRevId()); } }
+        public Boolean IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.RevID); } }
 
         internal string WinningRevisionId { get; private set; }
 
@@ -93,7 +94,7 @@ namespace Couchbase.Lite {
         /// Gets the winning revision.
         /// </summary>
         /// <value>The winning revision.</value>
-        internal RevisionInternal WinningRevisionIfKnown
+        internal IRevisionInformation WinningRevisionIfKnown
         { 
             get
             {

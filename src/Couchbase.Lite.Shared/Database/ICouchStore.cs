@@ -22,12 +22,13 @@ using System;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Db;
 
 namespace Couchbase.Lite.Store
 {
-    internal delegate Status StoreValidation(RevisionInternal rev, RevisionInternal prevRev, string parentRevId);
+    public delegate Status StoreValidation(IRevisionInformation rev, IRevisionInformation prevRev, string parentRevId);
 
-    internal interface ICouchStore
+    public interface ICouchStore
     {
         #region Initialization and Configuration 
 
@@ -72,6 +73,8 @@ namespace Couchbase.Lite.Store
         bool AutoCompact { get; set; }
 
         bool IsOpen { get; }
+
+        IDatabaseUpgrader CreateUpgrader(Database upgradeTo, string upgradeFrom);
 
         #endregion
 
@@ -141,32 +144,32 @@ namespace Couchbase.Lite.Store
         /// <param name="revId">The revision ID; may be nil, meaning "the current revision".</param>
         /// <param name="withBody">Whether or not to include the document body</param>
         /// <param name="outStatus">Stores the reason that the returned value is null</param> 
-        RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null);
+        IRevisionInformation GetDocument(string docId, string revId, bool withBody, Status outStatus = null);
 
         /// <summary>
         /// Loads the body of a revision.
         /// On entry, rev.docID and rev.revID will be valid.
         /// On success, rev.body will be valid.
         /// </summary>
-        void LoadRevisionBody(RevisionInternal rev);
+        IRevisionInformation LoadRevisionBody(IRevisionInformation rev);
 
         /// <summary>
         /// Looks up the sequence number of a revision.
         /// Will only be called on revisions whose .sequence property is not already set.
         /// Does not need to set the revision's .sequence property; the caller will take care of that.
         /// </summary>
-        long GetRevisionSequence(RevisionInternal rev);
+        long GetRevisionSequence(IRevisionInformation rev);
 
         /// <summary>
         /// Retrieves the parent revision of a revision, or returns null if there is no parent.
         /// </summary>
-        RevisionInternal GetParentRevision(RevisionInternal rev);
+        IRevisionInformation GetParentRevision(IRevisionInformation rev);
 
         /// <summary>
         /// Returns the given revision's list of direct ancestors (as Revision objects) in _reverse_
         /// chronological order, starting with the revision itself.
         /// </summary>
-        IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, ICollection<string> ancestorRevIds);
+        IList<IRevisionInformation> GetRevisionHistory(IRevisionInformation rev, ICollection<string> ancestorRevIds);
 
         /// <summary>
         /// Returns all the known revisions (or all current/conflicting revisions) of a document.
@@ -181,7 +184,7 @@ namespace Couchbase.Lite.Store
         /// Does not return revisions whose bodies have been compacted away, or deletion markers.
         /// If 'onlyAttachments' is true, only revisions with attachments will be returned.
         /// </summary>
-        IEnumerable<string> GetPossibleAncestors(RevisionInternal rev, int limit, bool onlyAttachments);
+        IEnumerable<string> GetPossibleAncestors(IRevisionInformation rev, int limit, bool onlyAttachments);
 
         /// <summary>
         /// Returns the most recent member of revIDs that appears in rev's ancestry.
@@ -189,7 +192,7 @@ namespace Couchbase.Lite.Store
         /// As soon as you find a revID that's in the revIDs array, stop and return that revID.
         /// If no match is found, return null.
         /// </summary>
-        string FindCommonAncestor(RevisionInternal rev, IEnumerable<string> revIds);
+        string FindCommonAncestor(IRevisionInformation rev, IEnumerable<string> revIds);
 
         /// <summary>
         /// Looks for each given revision in the local database, and removes each one found from the list.
@@ -217,7 +220,7 @@ namespace Couchbase.Lite.Store
         /// <param name="options">Options for ordering, document content, etc.</param>
         /// <param name="filter">If non-null, will be called on every revision, and those for which it returns <c>false</c>
         /// will be skipped.</param>
-        RevisionList ChangesSince(Int64 lastSequence, ChangesOptions options, RevisionFilter filter);
+        RevisionList ChangesSince(long lastSequence, ChangesOptions options, RevisionFilter filter);
 
         #endregion
 
@@ -237,7 +240,7 @@ namespace Couchbase.Lite.Store
         /// <param name="validationBlock">If non-null, this block will be called before the revision is added.
         /// It's given the parent revision, with its properties if available, and can reject
         /// the operation by returning an error status.</param>
-        RevisionInternal PutRevision(string docId, string prevRevId, IDictionary<string, object> properties,
+        IRevisionInformation PutRevision(string docId, string prevRevId, IDictionary<string, object> properties,
             bool deleting, bool allowConflict, Uri source, StoreValidation validationBlock);
 
         /// <summary>
@@ -254,7 +257,7 @@ namespace Couchbase.Lite.Store
         /// the operation by returning an error status.</param>
         /// <param name="source">The URL of the remote database this was pulled from, or null if it's local.
         /// (This will be used to create the DatabaseChange object sent to the delegate.</param>
-        void ForceInsert(RevisionInternal rev, IList<string> revHistory, StoreValidation validationBlock, Uri source);
+        void ForceInsert(IRevisionInformation rev, IList<string> revHistory, StoreValidation validationBlock, Uri source);
 
         /// <summary>
         /// Purges specific revisions, which deletes them completely from the local database 
@@ -294,7 +297,7 @@ namespace Couchbase.Lite.Store
         /// <returns>The local document.</returns>
         /// <param name="docId">Document identifier.</param>
         /// <param name="revId">Rev identifier.</param>
-        RevisionInternal GetLocalDocument(string docId, string revId);
+        IRevisionInformation GetLocalDocument(string docId, string revId);
 
         /// <summary>
         /// Creates / updates / deletes a local document.
@@ -305,7 +308,7 @@ namespace Couchbase.Lite.Store
         /// <param name="obeyMVCC">If <c>true</c>, the prevRevID must match the document's current revID (or nil if the
         /// document doesn't exist) or a 409 error is returned. If <c>false</c>, the prevRevID is
         /// ignored and the operation always succeeds.</param>
-        RevisionInternal PutLocalRevision(RevisionInternal revision, string prevRevId, bool obeyMVCC);
+        IRevisionInformation PutLocalRevision(IRevisionInformation revision, string prevRevId, bool obeyMVCC);
 
         #endregion
     }

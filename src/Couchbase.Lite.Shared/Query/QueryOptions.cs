@@ -48,12 +48,12 @@ namespace Couchbase.Lite
     /// <summary>
     /// Standard query options for views.
     /// </summary>
-    public class QueryOptions
+    public sealed class QueryOptions
     {
 
         #region Constants
 
-        internal const int DEFAULT_LIMIT = int.MaxValue;
+        public static readonly int DefaultLimit = Int32.MaxValue;
 
         #endregion
 
@@ -194,7 +194,7 @@ namespace Couchbase.Lite
         /// </summary>
         public QueryOptions()
         {
-            Limit = DEFAULT_LIMIT;
+            Limit = DefaultLimit;
             InclusiveEnd = true;
             InclusiveStart = true;
         }

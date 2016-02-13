@@ -48,6 +48,7 @@ using System.Text;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Sharpen;
+using Couchbase.Lite.Store;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -483,10 +484,10 @@ namespace Couchbase.Lite {
         {
             var result = new List<SavedRevision>();
             var revs = Database.Storage.GetAllDocumentRevisions(Id, true);
-            foreach (RevisionInternal rev in revs)
+            foreach (IRevisionInformation rev in revs)
             {
                 // add it to result, unless we are not supposed to include deleted and it's deleted
-                if (!includeDeleted && rev.IsDeleted())
+                if (!includeDeleted && rev.Deleted)
                 {
                     // don't add it
                 }
@@ -498,13 +499,13 @@ namespace Couchbase.Lite {
             return Sharpen.Collections.UnmodifiableList(result);
         }
 
-        internal SavedRevision GetRevisionFromRev(RevisionInternal internalRevision)
+        internal SavedRevision GetRevisionFromRev(IRevisionInformation internalRevision)
         {
             if (internalRevision == null) {
                 return null;
             }
 
-            if (currentRevision != null && internalRevision.GetRevId().Equals(CurrentRevision.Id)) {
+            if (currentRevision != null && internalRevision.RevID.Equals(CurrentRevision.Id)) {
                 return currentRevision;
             }
             else {
@@ -523,9 +524,9 @@ namespace Couchbase.Lite {
             if (currentRevision != null && !revId.Equals(currentRevision.Id))
             {
                 var rev = documentChange.WinningRevisionIfKnown;
-                if (rev == null || rev.IsDeleted()) {
+                if (rev == null || rev.Deleted) {
                     currentRevision = null;
-                } else if (!rev.IsDeleted()) {
+                } else if (!rev.Deleted) {
                     currentRevision = new SavedRevision(this, rev);
                 }
             }

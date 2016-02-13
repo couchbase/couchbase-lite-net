@@ -56,6 +56,8 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Revisions;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -129,7 +131,7 @@ namespace Couchbase.Lite.Replicator
         /// <returns>The common ancestor.</returns>
         /// <param name="rev">Rev.</param>
         /// <param name="possibleRevIDs">Possible rev I ds.</param>
-        internal static int FindCommonAncestor(RevisionInternal rev, IList<string> possibleRevIDs)
+        internal static int FindCommonAncestor(IRevisionInformation rev, IList<string> possibleRevIDs)
         {
             if (possibleRevIDs == null || possibleRevIDs.Count == 0)
             {
@@ -150,7 +152,7 @@ namespace Couchbase.Lite.Replicator
                 return 0;
             }
 
-            var parsed = RevisionInternal.ParseRevId(ancestorID);
+            var parsed = RevisionID.ParseRevId(ancestorID);
             return parsed.Item1;
         }
 
@@ -158,7 +160,7 @@ namespace Couchbase.Lite.Replicator
 
         #region Private Methods
 
-        private MultipartWriter GetMultipartWriter(RevisionInternal rev, string boundary)
+        private MultipartWriter GetMultipartWriter(IRevisionInformation rev, string boundary)
         {
             // Find all the attachments with "follows" instead of a body, and put 'em in a multipart stream.
             // It's important to scan the _attachments entries in the same order in which they will appear
@@ -239,11 +241,11 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        private void AddPending(RevisionInternal revisionInternal)
+        private void AddPending(IRevisionInformation revisionInternal)
         {
             lock(_pendingSequences)
             {
-                var seq = revisionInternal.GetSequence();
+                var seq = revisionInternal.Sequence;
                 if (!_pendingSequences.ContainsKey(seq)) {
                     _pendingSequences.Add(seq, 0);
                 }
@@ -255,11 +257,11 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        private void RemovePending(RevisionInternal revisionInternal)
+        private void RemovePending(IRevisionInformation revisionInternal)
         {
             lock (_pendingSequences)
             {
-                var seq = revisionInternal.GetSequence();
+                var seq = revisionInternal.Sequence;
                 var wasFirst = (_pendingSequences.Count > 0 && seq == _pendingSequences.ElementAt(0).Key);
                 if (!_pendingSequences.ContainsKey(seq))
                 {
@@ -335,7 +337,7 @@ namespace Couchbase.Lite.Replicator
                     // Remove from the pending list all the revs that didn't fail:
                     foreach (var revisionInternal in revChanges)
                     {
-                        if (!failedIds.Contains(revisionInternal.GetDocId()))
+                        if (!failedIds.Contains(revisionInternal.DocID))
                         {
                             RemovePending(revisionInternal);
                         }
@@ -355,7 +357,7 @@ namespace Couchbase.Lite.Replicator
             });
         }
 
-        private bool UploadMultipartRevision(RevisionInternal revision)
+        private bool UploadMultipartRevision(IRevisionInformation revision)
         {
             MultipartContent multiPart = null;
             var revProps = revision.GetProperties();
@@ -416,7 +418,7 @@ namespace Couchbase.Lite.Replicator
                 return false;
             }
 
-            var path = string.Format("/{0}?new_edits=false", revision.GetDocId());
+            var path = string.Format("/{0}?new_edits=false", revision.DocID);
 
             // TODO: need to throttle these requests
             Log.D(TAG, "Uploading multipart request.  Revision: " + revision);
@@ -446,10 +448,10 @@ namespace Couchbase.Lite.Replicator
         }
             
         // Uploads the revision as JSON instead of multipart.
-        private void UploadJsonRevision(RevisionInternal originalRev)
+        private void UploadJsonRevision(IRevisionInformation originalRev)
         {
             // Expand all attachments inline:
-            var rev = originalRev.CopyWithDocID(originalRev.GetDocId(), originalRev.GetRevId());
+            var rev = originalRev.Copy(originalRev.DocID, originalRev.RevID);
             try {
                 LocalDatabase.ExpandAttachments(rev, 0, false, false);
             } catch(Exception e) {
@@ -458,7 +460,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            var path = string.Format("/{0}?new_edits=false", Uri.EscapeUriString(rev.GetDocId()));
+            var path = string.Format("/{0}?new_edits=false", Uri.EscapeUriString(rev.DocID));
             SendAsyncRequest(HttpMethod.Put, path, rev.GetProperties(), (result, e) =>
             {
                 if (e != null) 
@@ -639,13 +641,13 @@ namespace Couchbase.Lite.Replicator
             var diffs = new Dictionary<String, IList<String>>();
             var inboxCount = inbox.Count;
             foreach (var rev in inbox) {
-                var docID = rev.GetDocId();
+                var docID = rev.DocID;
                 var revs = diffs.Get(docID);
                 if (revs == null) {
                     revs = new List<String>();
                     diffs[docID] = revs;
                 }
-                revs.Add(rev.GetRevId());
+                revs.Add(rev.RevID);
                 AddPending(rev);
             }
 
@@ -682,14 +684,14 @@ namespace Couchbase.Lite.Replicator
                             foreach (var rev in inbox) {
                                 // Is this revision in the server's 'missing' list?
                                 IDictionary<string, object> properties = null;
-                                var revResults = results.Get(rev.GetDocId()).AsDictionary<string, object>(); 
+                                var revResults = results.Get(rev.DocID).AsDictionary<string, object>(); 
                                 if (revResults == null) {
                                     //SafeIncrementCompletedChangesCount();
                                     continue;
                                 }
 
                                 var revs = revResults.Get("missing").AsList<string>();
-                                if (revs == null || !revs.Any( id => id.Equals(rev.GetRevId(), StringComparison.OrdinalIgnoreCase))) {
+                                if (revs == null || !revs.Any( id => id.Equals(rev.RevID, StringComparison.OrdinalIgnoreCase))) {
                                     RemovePending(rev);
                                     //SafeIncrementCompletedChangesCount();
                                     continue;
@@ -702,7 +704,7 @@ namespace Couchbase.Lite.Replicator
                                     contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
                                 }
 
-                                RevisionInternal loadedRev;
+                                IRevisionInformation loadedRev;
                                 try {
                                     loadedRev = LocalDatabase.LoadRevisionBody (rev);
                                     if(loadedRev == null) {
@@ -716,7 +718,7 @@ namespace Couchbase.Lite.Replicator
                                     continue;
                                 }
 
-                                var populatedRev = TransformRevision(loadedRev);
+                                var populatedRev = RevisionInternal.Create(TransformRevision(loadedRev));
                                 IList<string> possibleAncestors = null;
                                 if (revResults.ContainsKey("possible_ancestors")) {
                                     possibleAncestors = revResults["possible_ancestors"].AsList<string>();

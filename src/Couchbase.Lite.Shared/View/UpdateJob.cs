@@ -25,9 +25,9 @@ using Couchbase.Lite.Store;
 using System.Threading.Tasks;
 using System.Linq;
 
-namespace Couchbase.Lite.Internal
+namespace Couchbase.Lite
 {
-    internal sealed class UpdateJob
+    public sealed class UpdateJob
     {
         private readonly Func<IList<IViewStore>, bool> _logic;
         private readonly IEnumerable<IViewStore> _args;

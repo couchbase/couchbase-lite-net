@@ -7,12 +7,12 @@
 [submodule "src/Couchbase.Lite.Unity/vendor/JSON.NET"]
 	path = src/Couchbase.Lite.Unity/vendor/JSON.NET
 	url = https://github.com/couchbasedeps/Newtonsoft.Json.git
-[submodule "src/Couchbase.Lite.Shared/vendor/SQLitePCL"]
-	path = src/Couchbase.Lite.Shared/vendor/SQLitePCL
-	url = https://github.com/couchbasedeps/SQLitePCL.raw.git
 [submodule "src/Couchbase.Lite.Shared/vendor/cbforest"]
 	path = src/Couchbase.Lite.Shared/vendor/cbforest
 	url = https://github.com/couchbaselabs/cbforest
 [submodule "src/Couchbase.Lite.Shared/vendor/websocket-sharp"]
 	path = src/Couchbase.Lite.Shared/vendor/websocket-sharp
 	url = https://github.com/couchbasedeps/websocket-sharp
+[submodule "src/StorageEngines/SQLCipher/SQLitePCL"]
+	path = src/StorageEngines/SQLCipher/SQLitePCL
+	url = https://github.com/couchbasedeps/SQLitePCL.raw

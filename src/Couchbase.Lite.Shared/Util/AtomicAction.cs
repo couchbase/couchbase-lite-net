@@ -25,7 +25,7 @@ using System.IO;
 
 namespace Couchbase.Lite.Util
 {
-    internal sealed class AtomicAction : IAtomicAction
+    public sealed class AtomicAction : IAtomicAction
     {
         #region Constants
 

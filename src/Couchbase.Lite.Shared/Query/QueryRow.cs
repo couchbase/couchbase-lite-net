@@ -68,7 +68,7 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private RevisionInternal _documentRevision;
+        private IRevisionInformation _documentRevision;
         private IQueryRowStore _storage;
         private object _parsedKey, _parsedValue;
 
@@ -76,7 +76,7 @@ namespace Couchbase.Lite
 
     #region Constructors
 
-        internal QueryRow(string documentId, long sequence, object key, object value, RevisionInternal revision, IQueryRowStore storage)
+        internal QueryRow(string documentId, long sequence, object key, object value, IRevisionInformation revision, IQueryRowStore storage)
         {
             // Don't initialize _database yet. I might be instantiated on a background thread (if the
             // query is async) which has a different CBLDatabase instance than the original caller.
@@ -159,7 +159,7 @@ namespace Couchbase.Lite
                 // Get the doc id from either the embedded document contents, or the '_id' value key.
                 // Failing that, there's no document linking, so use the regular old SourceDocumentId
                 if (_documentRevision != null) {
-                    return _documentRevision.GetDocId();
+                    return _documentRevision.DocID;
                 }
 
                 var valueDic = Value as IDictionary<string, object>;
@@ -195,7 +195,7 @@ namespace Couchbase.Lite
                 // Get the revision id from either the embedded document contents,
                 // or the '_rev' or 'rev' value key:
                 if (_documentRevision != null) {
-                    return _documentRevision.GetRevId();
+                    return _documentRevision.RevID;
                 }
 
                 var value = Value as IDictionary<string, object>;

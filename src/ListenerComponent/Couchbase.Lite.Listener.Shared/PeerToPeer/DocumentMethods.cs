@@ -26,6 +26,8 @@ using System.Net.Http;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Revisions;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -69,7 +71,7 @@ namespace Couchbase.Lite.Listener
                 if (openRevsParam == null || isLocalDoc) {
                     //Regular GET:
                     string revId = context.GetQueryParam("rev"); //often null
-                    RevisionInternal rev;
+                    IRevisionInformation rev;
                     bool includeAttachments = false, sendMultipart = false;
                     if (isLocalDoc) {
                         rev = db.Storage.GetLocalDocument(docId, revId);
@@ -103,7 +105,7 @@ namespace Couchbase.Lite.Listener
                         return response;
                     }
 
-                    if(context.CacheWithEtag(rev.GetRevId())) {
+                    if(context.CacheWithEtag(rev.RevID)) {
                         response.InternalStatus = StatusCode.NotModified;
                         return response;
                     }
@@ -113,7 +115,7 @@ namespace Couchbase.Lite.Listener
                         IList<string> attsSince = context.GetJsonQueryParam("atts_since").AsList<string>();
                         string ancestorId = db.Storage.FindCommonAncestor(rev, attsSince);
                         if(ancestorId != null) {
-                            minRevPos = RevisionInternal.GenerationFromRevID(ancestorId) + 1;
+                            minRevPos = RevisionID.GetGeneration(ancestorId) + 1;
                         }
                             
                         bool attEncodingInfo = context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
@@ -135,12 +137,12 @@ namespace Couchbase.Lite.Listener
 
                         result = new List<IDictionary<string, object>>();
                         foreach(var rev in allRevs) {
-                            if(!includeDeleted && rev.IsDeleted()) {
+                            if(!includeDeleted && rev.Deleted) {
                                 continue;
                             }
 
                             Status status = new Status();
-                            RevisionInternal loadedRev = db.RevisionByLoadingBody(rev, status);
+                            var loadedRev = db.RevisionByLoadingBody(rev, status);
                             if(loadedRev != null) {
                                 ApplyOptions(options, loadedRev, context, db, status);
                             }
@@ -148,7 +150,7 @@ namespace Couchbase.Lite.Listener
                             if(loadedRev != null) {
                                 result.Add(new Dictionary<string, object> { { "ok", loadedRev.GetProperties() } });
                             } else if(status.Code <= StatusCode.InternalServerError) {
-                                result.Add(new Dictionary<string, object> { { "missing", rev.GetRevId() } });
+                                result.Add(new Dictionary<string, object> { { "missing", rev.RevID } });
                             } else {
                                 response.InternalStatus = status.Code;
                                 return response;
@@ -221,7 +223,7 @@ namespace Couchbase.Lite.Listener
                         return response;
                     }
 
-                    if(!docId.Equals(rev.GetDocId()) || rev.GetRevId() == null) {
+                    if(!docId.Equals(rev.DocID) || rev.RevID == null) {
                         response.InternalStatus = StatusCode.BadId;
                         return response;
                     }
@@ -240,8 +242,8 @@ namespace Couchbase.Lite.Listener
                     if(!status.IsError) {
                         response.JsonBody = new Body(new Dictionary<string, object> {
                             { "ok", true },
-                            { "id", rev.GetDocId() },
-                            { "rev", rev.GetRevId() }
+                            { "id", rev.DocID },
+                            { "rev", rev.RevID }
                         });
                     }
 
@@ -277,7 +279,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="allowConflict">Whether or not to allow a conflict to be inserted</param>
         /// <param name="outRev">The resulting revision of the document</param>
         public static StatusCode UpdateDocument(ICouchbaseListenerContext context, Database db, string docId, Body body, bool deleting, 
-            bool allowConflict, out RevisionInternal outRev)
+            bool allowConflict, out IRevisionInformation outRev)
         {
             outRev = null;
             if (body != null && !body.IsValidJSON()) {
@@ -369,7 +371,7 @@ namespace Couchbase.Lite.Listener
                 if(rev ==null) {
                     return context.CreateResponse(status.Code);
                 }
-                if(context.CacheWithEtag(rev.GetRevId())) {
+                if(context.CacheWithEtag(rev.RevID)) {
                     return context.CreateResponse(StatusCode.NotModified);
                 }
 
@@ -464,7 +466,7 @@ namespace Couchbase.Lite.Listener
 
         #region Private Methods
 
-        private static MultipartWriter MultipartWriterForRev(Database db, RevisionInternal rev, string contentType)
+        private static MultipartWriter MultipartWriterForRev(Database db, IRevisionInformation rev, string contentType)
         {
             var writer = new MultipartWriter(contentType, null);
             writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
@@ -522,14 +524,14 @@ namespace Couchbase.Lite.Listener
         }
 
         // Apply the options in the URL query to the specified revision and create a new revision object
-        internal static RevisionInternal ApplyOptions(DocumentContentOptions options, RevisionInternal rev, ICouchbaseListenerContext context,
+        internal static IRevisionInformation ApplyOptions(DocumentContentOptions options, IRevisionInformation rev, ICouchbaseListenerContext context,
             Database db, Status outStatus)
         {
             if ((options & (DocumentContentOptions.IncludeRevs | DocumentContentOptions.IncludeRevsInfo | DocumentContentOptions.IncludeConflicts |
                 DocumentContentOptions.IncludeAttachments | DocumentContentOptions.IncludeLocalSeq)) != 0) {
                 var dst = rev.GetProperties(); 
                 if (options.HasFlag(DocumentContentOptions.IncludeLocalSeq)) {
-                    dst["_local_seq"] = rev.GetSequence();
+                    dst["_local_seq"] = rev.Sequence;
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevs)) {
@@ -541,25 +543,25 @@ namespace Couchbase.Lite.Listener
                     dst["_revs_info"] = db.Storage.GetRevisionHistory(rev, null).Select(x =>
                     {
                         string status = "available";
-                        if(x.IsDeleted()) {
+                        if(x.Deleted) {
                             status = "deleted";
-                        } else if(x.IsMissing()) {
+                        } else if(x.Missing) {
                             status = "missing";
                         }
 
                         return new Dictionary<string, object> {
-                            { "rev", x.GetRevId() },
+                            { "rev", x.RevID },
                             { "status", status }
                         };
                     });
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeConflicts)) {
-                    RevisionList revs = db.Storage.GetAllDocumentRevisions(rev.GetDocId(), true);
+                    RevisionList revs = db.Storage.GetAllDocumentRevisions(rev.DocID, true);
                     if (revs.Count > 1) {
                         dst["_conflicts"] = revs.Select(x =>
                         {
-                            return x.Equals(rev) || x.IsDeleted() ? null : x.GetRevId();
+                            return x.Equals(rev) || x.Deleted ? null : x.RevID;
                         });
                     }
                 }
@@ -608,7 +610,7 @@ namespace Couchbase.Lite.Listener
             RevisionInternal rev;
             StatusCode status = UpdateDocument(context, db, docId, body, deleting, false, out rev);
             if ((int)status < 300) {
-                context.CacheWithEtag(rev.GetRevId()); // set ETag
+                context.CacheWithEtag(rev.RevID); // set ETag
                 if (!deleting) {
                     var url = context.RequestUrl;
                     if (docId != null) {
@@ -619,7 +621,7 @@ namespace Couchbase.Lite.Listener
                 response.JsonBody = new Body(new Dictionary<string, object> {
                     { "ok", true },
                     { "id", rev.GetDocId() },
-                    { "rev", rev.GetRevId() }
+                    { "rev", rev.RevID }
                 });
             }
 
@@ -640,9 +642,9 @@ namespace Couchbase.Lite.Listener
             response.JsonBody = new Body(new Dictionary<string, object> {
                 { "ok", true },
                 { "id", rev.GetDocId() },
-                { "rev", rev.GetRevId() }
+                { "rev", rev.RevID }
             });
-            context.CacheWithEtag(rev.GetRevId());
+            context.CacheWithEtag(rev.RevID);
             if (body != null) {
                 response["Location"] = context.RequestUrl.AbsoluteUri;
             }

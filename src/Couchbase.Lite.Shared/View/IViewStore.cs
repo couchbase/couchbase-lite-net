@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Store
     /// Storage for a view. Instances are created by ICouchStore implementations, and are owned by
     /// View instances.
     /// </summary>
-    internal interface IViewStore
+    public interface IViewStore
     {
 
         /// <summary>
