@@ -668,7 +668,7 @@ namespace Couchbase.Lite.Store
                 return null;
             }
              
-            revIdArray.Sort(RevisionInternal.CBLCompareRevIDs);
+            revIdArray.Sort(RevisionID.CBLCompareRevIDs);
             var commonAncestor = default(string);
             WithC4Document(rev.DocID, null, false, false, doc =>
             {

@@ -29,6 +29,7 @@ using Sharpen;
 using System.Collections;
 using SQLitePCL;
 using Couchbase.Lite.Views;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite.Store 
 {
@@ -796,7 +797,7 @@ namespace Couchbase.Lite.Store
                                             viewTotalRows[view.ViewID] -= changes;
                                         }
 
-                                        if (deleted || RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0) {
+                                        if (deleted || RevisionID.CBLCompareRevIDs(oldRevId, revId) > 0) {
                                             // It still 'wins' the conflict, so it's the one that
                                             // should be mapped [again], not the current revision!
                                             revId = oldRevId;

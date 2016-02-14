@@ -101,6 +101,8 @@ namespace Couchbase.Lite
 
         #region Variables
 
+        private static Type                             _WinningStorageType;
+
         private CookieStore                             _persistentCookieStore;
 
         private IDictionary<string, BlobStoreWriter>    _pendingAttachmentsByDigest;
@@ -2046,26 +2048,29 @@ namespace Couchbase.Lite
             _readonly = _readonly || options.ReadOnly;
 
             // Instantiate storage:
-            string storageType = options.StorageType ?? Manager.StorageType ?? DatabaseOptions.SQLITE_STORAGE;
-
-            var className = String.Format("Couchbase.Lite.Store.{0}CouchStore", storageType);
-            var primaryStorage = Type.GetType(className, false, true);
-            var errorMessage = default(string);
-            if (primaryStorage == null) {
-                errorMessage = String.Format("Unknown storage type '{0}'", storageType);
-            } else if (primaryStorage.GetInterface("Couchbase.Lite.Store.ICouchStore") == null) {
-                errorMessage = String.Format("{0} does not implement ICouchStore", className);
-                primaryStorage = null;
+            string storageType = options.StorageType ?? Manager.StorageType ?? StorageEngineTypes.SQLite;
+            var primaryStorage = default(Type);
+            if (storageType == "SQLite") {
+                primaryStorage = GetWinningStorageType();
+            } else if (storageType == "ForestDB") {
+                primaryStorage = Type.GetType("Couchbase.Lite.Store.ForestDBCouchStore, Couchbase.Lite.Storage.ForestDB",
+                    false, true);
+            } else {
+                throw new CouchbaseLiteException(String.Format("Unknown store type {0}", StatusCode.InvalidStorageType));
             }
 
+
             if (primaryStorage == null) {
-                throw new CouchbaseLiteException(errorMessage, StatusCode.InvalidStorageType);
+                throw new CouchbaseLiteException("Implementation for {0} storage engine not found.  Be sure " +
+                    "that the appropriate Nuget package is installed (Couchbase.Lite.Storage.SystemSQLite or" +
+                    " Couchbase.Lite.Storage.SQLCipher for SQLite or Couchbase.Lite.Storage.ForestDB for ForestDB"
+                    , storageType) { Code = StatusCode.InvalidStorageType };
             }
 
             var upgrade = false;
-            var primarySQLite = storageType == DatabaseOptions.SQLITE_STORAGE;
-            var otherStorage = primarySQLite ? Type.GetType("Couchbase.Lite.Store.ForestDBCouchStore") : 
-                Type.GetType("Couchbase.Lite.Store.SqliteCouchStore");
+            var primarySQLite = storageType == StorageEngineTypes.SQLite;
+            var otherStorage = primarySQLite ? Type.GetType("Couchbase.Lite.Store.ForestDBCouchStore, Couchbase.Lite.Storage.ForestDB") : 
+                GetWinningStorageType();
 
 
             var primaryStorageInstance = (ICouchStore)Activator.CreateInstance(primaryStorage);
@@ -2166,6 +2171,23 @@ namespace Couchbase.Lite
         #endregion
 
         #region Private Methods
+
+        private static Type GetWinningStorageType()
+        {
+            do {
+                if (_WinningStorageType == null) {
+                    Type attemptOne = Type.GetType("Couchbase.Lite.Store.SqliteCouchStore, Couchbase.Lite.Storage.SQLCipher");
+                    if (attemptOne != null) {
+                        _WinningStorageType = attemptOne;
+                        break;
+                    }
+
+                    _WinningStorageType = Type.GetType("Couchbase.Lite.Store.SqliteCouchStore, Couchbase.Lite.Storage.SystemSQLite");
+                }
+            } while (false);
+
+            return _WinningStorageType;
+        }
 
         private static long SmallestLength(IDictionary<string, object> attachment)
         {

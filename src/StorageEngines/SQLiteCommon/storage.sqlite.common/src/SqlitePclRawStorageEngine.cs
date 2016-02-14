@@ -136,9 +136,11 @@ namespace Couchbase.Lite
                 int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | readFlag | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(writer_flags, encryptionKey, out _writeConnection);
 
+                #if ENCRYPTION
                 if (!Decrypt(encryptionKey, _writeConnection)) {
                     throw new CouchbaseLiteException(StatusCode.Unauthorized);
                 }
+                #endif
 
 				if(schema != null && GetVersion() == 0) {
 					foreach (var statement in schema.Split(';')) {
@@ -149,9 +151,11 @@ namespace Couchbase.Lite
 				const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
 				OpenSqliteConnection(reader_flags, encryptionKey, out _readConnection);
 
+                #if ENCRYPTION
 				if(!Decrypt(encryptionKey, _readConnection)) {
 					throw new CouchbaseLiteException(StatusCode.Unauthorized);
 				}
+                #endif
             } catch(CouchbaseLiteException) {
                 Log.W(TAG, "Error opening SQLite storage engine");
                 throw;

@@ -47,6 +47,7 @@ using Couchbase.Lite.Internal;
 using NUnit.Framework;
 using Sharpen;
 using System.Linq;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -63,33 +64,33 @@ namespace Couchbase.Lite
         [Test]
         public void TestParseRevID()
         {
-            var parsed = RevisionInternal.ParseRevId("1-utiopturoewpt");
+            var parsed = RevisionID.ParseRevId("1-utiopturoewpt");
             Assert.AreEqual(1, parsed.Item1);
             Assert.AreEqual("utiopturoewpt", parsed.Item2);
 
-            parsed = RevisionInternal.ParseRevId("321-fdjfdsj-e");
+            parsed = RevisionID.ParseRevId("321-fdjfdsj-e");
             Assert.AreEqual(321, parsed.Item1);
             Assert.AreEqual("fdjfdsj-e", parsed.Item2);
 
-            parsed = RevisionInternal.ParseRevId("0-fdjfdsj-e");
+            parsed = RevisionID.ParseRevId("0-fdjfdsj-e");
             Assert.IsTrue(parsed.Item1 == 0 && parsed.Item2 == "fdjfdsj-e");
-            parsed = RevisionInternal.ParseRevId("-4-fdjfdsj-e");
+            parsed = RevisionID.ParseRevId("-4-fdjfdsj-e");
             Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId("5_fdjfdsj-e");
+            parsed = RevisionID.ParseRevId("5_fdjfdsj-e");
             Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId(" 5-fdjfdsj-e");
+            parsed = RevisionID.ParseRevId(" 5-fdjfdsj-e");
             Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId("7 -foo");
+            parsed = RevisionID.ParseRevId("7 -foo");
             Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId("7-");
+            parsed = RevisionID.ParseRevId("7-");
             Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId("7");
+            parsed = RevisionID.ParseRevId("7");
            
             Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId("eiuwtiu");
+            parsed = RevisionID.ParseRevId("eiuwtiu");
            
             Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId(string.Empty);
+            parsed = RevisionID.ParseRevId(string.Empty);
             Assert.IsTrue(parsed.Item1 < 0);
         }
 
@@ -97,7 +98,7 @@ namespace Couchbase.Lite
         public void TestCBLCompareRevIDs()
         {
             // Single Digit
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("1-foo", "1-foo") == 0);
+            /*Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("1-foo", "1-foo") == 0);
             Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("2-bar", "1-foo") > 0);
             Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("1-foo", "2-bar") < 0);
 
@@ -121,7 +122,8 @@ namespace Couchbase.Lite
             Assert.IsTrue(RevisionInternal.CBLCollateRevIDs(string.Empty, string.Empty) == 0);
             Assert.IsTrue(RevisionInternal.CBLCollateRevIDs(string.Empty, "-b") < 0);
             Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("bogus", "yo") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("bogus-x", "yo-y") < 0);
+            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("bogus-x", "yo-y") < 0);*/
+            Assert.Fail();
         }
 
         [Test]
@@ -189,7 +191,7 @@ namespace Couchbase.Lite
             var rev10b = CreateRevisionWithRandomProps(rev9b, true);
 
             var revFound = database.GetDocument(doc.Id, null, true);
-            Assert.AreEqual(rev10b.Id, revFound.GetRevId());
+            Assert.AreEqual(rev10b.Id, revFound.RevID);
         }
 
         [Test]
@@ -206,7 +208,7 @@ namespace Couchbase.Lite
             var expectedWinner = rev3b;
 
             var revFound = database.GetDocument(doc.Id, null, true);
-            Assert.AreEqual(expectedWinner.Id, revFound.GetRevId());
+            Assert.AreEqual(expectedWinner.Id, revFound.RevID);
         }
 
         [Test]
@@ -226,7 +228,7 @@ namespace Couchbase.Lite
             }
 
             var revFound = database.GetDocument(doc.Id, null, true);
-            Assert.AreEqual(expectedWinner.Id, revFound.GetRevId());
+            Assert.AreEqual(expectedWinner.Id, revFound.RevID);
         }
 
         [Test]
@@ -337,7 +339,7 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(1, doc.ConflictingRevisions.Count());
             Assert.AreEqual(2, doc.GetLeafRevisions(true).Count);
-            Assert.AreEqual(3, RevisionInternal.GenerationFromRevID(deleteRevision.Id));
+            Assert.AreEqual(3, RevisionID.GetGeneration(deleteRevision.Id));
             Assert.AreEqual(losingRev.Id, doc.CurrentRevisionId);
 
             // Finally create a new revision rev3 based on losing rev
@@ -380,10 +382,10 @@ namespace Couchbase.Lite
                                 {"_deleted", "foo"}
                             });
 
-            Assert.IsFalse(revisionWitDeletedNull.IsDeleted());
-            Assert.IsFalse(revisionWithDeletedFalse.IsDeleted());
-            Assert.IsFalse(revisionWithDeletedString.IsDeleted());
-            Assert.IsTrue(revisionWithDeletedTrue.IsDeleted());
+            Assert.IsFalse(revisionWitDeletedNull.Deleted);
+            Assert.IsFalse(revisionWithDeletedFalse.Deleted);
+            Assert.IsFalse(revisionWithDeletedString.Deleted);
+            Assert.IsTrue(revisionWithDeletedTrue.Deleted);
         }
 
     }

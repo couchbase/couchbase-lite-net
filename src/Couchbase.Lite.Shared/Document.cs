@@ -49,6 +49,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Sharpen;
 using Couchbase.Lite.Store;
+using Couchbase.Lite.Revisions;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -443,7 +444,7 @@ namespace Couchbase.Lite {
 
         private bool RevIdGreaterThanCurrent(string revId)
         {
-            return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.Id) > 0);
+            return (RevisionID.CBLCompareRevIDs(revId, currentRevision.Id) > 0);
         }
             
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       

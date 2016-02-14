@@ -209,7 +209,8 @@ namespace Couchbase.Lite
         [Test]
         public void TestUpgradeMD5()
         {
-            var store = database.Storage as SqliteCouchStore;
+            Assert.Fail();
+            /*var store = database.Storage as SqliteCouchStore;
             if (store == null) {
                 Assert.Inconclusive("This test is only valid for a SQLite based store, since any others will be too new to see this issue");
             }
@@ -373,7 +374,7 @@ namespace Couchbase.Lite
                 deleteRequest.Headers.Authorization = authorizationHeader;
                 response = client.SendAsync(deleteRequest).Result;
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            }
+            }*/
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -520,7 +521,7 @@ namespace Couchbase.Lite
             Assert.DoesNotThrow(() => rev2 = database.UpdateAttachment("attach", BlobForData(database, attachv2), 
                 "application/foo", AttachmentEncoding.None, rev1.DocID, rev1.RevID, null));
             Assert.AreEqual(rev1.DocID, rev2.DocID);
-            Assert.AreEqual(2, rev2.GetGeneration());
+            Assert.AreEqual(2, rev2.Generation);
 
             // Get the updated revision:
             var gotRev2 = database.GetDocument(rev2.DocID, rev2.RevID, true);
@@ -553,7 +554,7 @@ namespace Couchbase.Lite
             Assert.DoesNotThrow(() => rev3 = database.UpdateAttachment("attach", null, 
                 null, AttachmentEncoding.None, rev2.DocID, rev2.RevID, null));
             Assert.AreEqual(rev2.DocID, rev3.DocID);
-            Assert.AreEqual(3, rev3.GetGeneration());
+            Assert.AreEqual(3, rev3.Generation);
 
             // Get the updated revision:
             var gotRev3 = database.GetDocument(rev3.DocID, rev3.RevID, true);

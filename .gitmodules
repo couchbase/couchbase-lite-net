@@ -13,3 +13,7 @@
 [submodule "src/StorageEngines/SQLCipher/SQLitePCL"]
 	path = src/StorageEngines/SQLCipher/SQLitePCL
 	url = https://github.com/couchbasedeps/SQLitePCL.raw
+[submodule "src/StorageEngines/ForestDB/CBForest"]
+	path = src/StorageEngines/ForestDB/CBForest
+	url = https://github.com/couchbaselabs/cbforest
+	branch = release/1.2-net

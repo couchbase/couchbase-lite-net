@@ -15,12 +15,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)src\Cursor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\ISQLiteStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\JsonCollator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)src\Misc.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\SqliteCouchStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\SqlitePclRawStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\SQLiteStorageEngineFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\SqliteViewStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\DatabaseUpgraderFactory_Upgraders.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\DatabaseUpgraderFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\Properties\AssemblyInfo.cs" />
   </ItemGroup>
 </Project>

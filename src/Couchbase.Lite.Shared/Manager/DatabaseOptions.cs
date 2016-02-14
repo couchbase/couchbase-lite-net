@@ -23,6 +23,12 @@ using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite
 {
+    public struct StorageEngineTypes
+    {
+        public static readonly string SQLite = "SQLite";
+        public static readonly string ForestDB = "ForestDB";
+    }
+
     /// <summary>
     /// Options for opening a database. All properties default to false or null.
     /// </summary>
@@ -34,11 +40,13 @@ namespace Couchbase.Lite
         /// <summary>
         /// The identifier for SQLite based storage
         /// </summary>
+        [Obsolete("This will be moving to a StorageEngineTypes struct")]
         public const string SQLITE_STORAGE = "SQLite";
 
         /// <summary>
         /// The identifier for ForestDB based storage
         /// </summary>
+        [Obsolete("This will be moving to a StorageEngineTypes struct")]
         public const string FORESTDB_STORAGE = "ForestDB";
 
         #endregion

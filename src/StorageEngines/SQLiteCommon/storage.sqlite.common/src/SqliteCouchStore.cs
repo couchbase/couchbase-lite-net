@@ -687,11 +687,11 @@ namespace Couchbase.Lite.Store
             }
 
             if (!newRev.Deleted) {
-                if (oldWinnerWasDeletion || RevisionInternal.CBLCompareRevIDs(newRevID, oldWinnerRevId) > 0) {
+                if (oldWinnerWasDeletion || RevisionID.CBLCompareRevIDs(newRevID, oldWinnerRevId) > 0) {
                     return newRevID; // this is now the winning live revision
                 }
             } else if (oldWinnerWasDeletion) {
-                if (RevisionInternal.CBLCompareRevIDs(newRevID, oldWinnerRevId) > 0) {
+                if (RevisionID.CBLCompareRevIDs(newRevID, oldWinnerRevId) > 0) {
                     return newRevID; // doc still deleted, but this beats previous deletion rev
                 }
             } else {
@@ -1059,11 +1059,11 @@ namespace Couchbase.Lite.Store
             return result;
         }
 
-        public RevisionInternal LoadRevisionBody(RevisionInternal rev)
+        public void LoadRevisionBody(RevisionInternal rev)
         {
             if (rev.GetBody() != null && rev.Sequence != 0) {
                 // no-op
-                return rev;
+                return;
             }
                 
             Debug.Assert(rev.DocID != null && rev.RevID != null);
@@ -1086,8 +1086,6 @@ namespace Couchbase.Lite.Store
             if (status.IsError) {
                 throw new CouchbaseLiteException(status.Code);
             }
-
-            return rev;
         }
 
         public long GetRevisionSequence(RevisionInternal rev)

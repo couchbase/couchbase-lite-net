@@ -850,9 +850,9 @@ namespace Couchbase.Lite
                 var rev1 = new RevisionInternal(body);
                 rev1 = database.PutRevision(rev1, null, false);
 
-                documentProperties.Put("_rev", rev1.GetRevId());
+                documentProperties.Put("_rev", rev1.RevID);
                 documentProperties["UPDATED"] = true;
-                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false);
+                database.PutRevision(new RevisionInternal(documentProperties), rev1.RevID, false);
 
                 documentProperties = new Dictionary<string, object>();
                 var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
@@ -965,10 +965,10 @@ namespace Couchbase.Lite
                 var rev1 = new RevisionInternal(body);
                 rev1 = database.PutRevision(rev1, null, false);
 
-                documentProperties["_rev"] = rev1.GetRevId();
+                documentProperties["_rev"] = rev1.RevID;
                 documentProperties["UPDATED"] = true;
                 documentProperties["_deleted"] = true;
-                database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false);
+                database.PutRevision(new RevisionInternal(documentProperties), rev1.RevID, false);
 
                 var repl = database.CreatePushReplication(remote);
                 if (!IsSyncGateway(remote)) {
