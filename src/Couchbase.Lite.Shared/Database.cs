@@ -903,7 +903,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">When attempting to add an invalid revision</exception>
-        internal void ForceInsert(IRevisionInformation inRev, IList<string> revHistory, Uri source)
+        internal void ForceInsert(RevisionInternal inRev, IList<string> revHistory, Uri source)
         {
             if (!IsOpen) {
                 throw new CouchbaseLiteException("DB is closed", StatusCode.DbError);
@@ -1061,7 +1061,7 @@ namespace Couchbase.Lite
             return Storage.ChangesSince(lastSeq, options, revFilter);
         }
 
-        internal bool RunFilter(FilterDelegate filter, IDictionary<string, object> filterParams, IRevisionInformation rev)
+        internal bool RunFilter(FilterDelegate filter, IDictionary<string, object> filterParams, RevisionInternal rev)
         {
             if (filter == null) {
                 return true;
@@ -1109,7 +1109,7 @@ namespace Couchbase.Lite
             }
 
             var result = new List<QueryRow>();
-            var revEnum = options.Descending ? revs.Reverse<IRevisionInformation>() : revs;
+            var revEnum = options.Descending ? revs.Reverse<RevisionInternal>() : revs;
             foreach (var rev in revEnum) {
                 long seq = rev.Sequence;
                 if (seq < minSeq || seq > maxSeq) {
@@ -1260,12 +1260,12 @@ namespace Couchbase.Lite
             PendingAttachmentsByDigest[digest] = writer;
         }
 
-        internal IRevisionInformation GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
+        internal RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
         {
             return Storage.GetDocument(docId, revId, withBody, outStatus);
         }
 
-        internal static IDictionary<string, object> MakeRevisionHistoryDict(IList<IRevisionInformation> history)
+        internal static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal> history)
         {
             if (history == null)
                 return null;
@@ -1338,12 +1338,12 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal IRevisionInformation PutRevision(IRevisionInformation rev, String prevRevId)
+        internal RevisionInternal PutRevision(RevisionInternal rev, String prevRevId)
         {
             return PutRevision(rev, prevRevId, false, null);
         }
 
-        internal IRevisionInformation PutDocument(string docId, IDictionary<string, object> properties, string prevRevId, bool allowConflict, Uri source)
+        internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, string prevRevId, bool allowConflict, Uri source)
         {
             bool deleting = properties == null || properties.GetCast<bool>("_deleted");
             Log.D(TAG, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}", docId, prevRevId, deleting, allowConflict);
@@ -1375,7 +1375,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            return RevisionInternal.Create(putRev);
+            return putRev;
         }
 
         /// <summary>Stores a new (or initial) revision of a document.</summary>
@@ -1392,12 +1392,12 @@ namespace Couchbase.Lite
         /// <returns>A new RevisionInternal with the docID, revID and sequence filled in (but no body).
         ///     </returns>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal IRevisionInformation PutRevision(IRevisionInformation oldRev, string prevRevId, bool allowConflict)
+        internal RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId, bool allowConflict)
         {
             return PutRevision(oldRev, prevRevId, allowConflict, null);
         }
 
-        internal IRevisionInformation PutRevision(IRevisionInformation oldRev, string prevRevId, bool allowConflict, Uri source)
+        internal RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId, bool allowConflict, Uri source)
         {
             return PutDocument(oldRev.DocID, oldRev.GetProperties(), prevRevId, allowConflict, source);
         }
@@ -1454,7 +1454,7 @@ namespace Couchbase.Lite
             return posted;
         }
 
-        internal void NotifyChange(IRevisionInformation rev, IRevisionInformation winningRev, Uri source, bool inConflict)
+        internal void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source, bool inConflict)
         {
             var change = new DocumentChange(rev, winningRev.RevID, inConflict, source);
             _changesToNotify.Add(change);
@@ -1480,7 +1480,7 @@ namespace Couchbase.Lite
         /// stores inline attachments into the blob store.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void ProcessAttachmentsForRevision(IDictionary<string, AttachmentInternal> attachments, IRevisionInformation rev, long parentSequence)
+        internal void ProcessAttachmentsForRevision(IDictionary<string, AttachmentInternal> attachments, RevisionInternal rev, long parentSequence)
         {
             Debug.Assert((rev != null));
             var newSequence = rev.Sequence;
@@ -1574,7 +1574,7 @@ namespace Couchbase.Lite
             return retVal;
         }
 
-        internal IList<IRevisionInformation> GetRevisionHistory(IRevisionInformation rev, IList<string> ancestorRevIds)
+        internal IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds)
         {
             if (!IsOpen) {
                 Log.W(TAG, "GetRevisionHistory called on closed database");
@@ -1585,7 +1585,7 @@ namespace Couchbase.Lite
             return Storage.GetRevisionHistory(rev, ancestors);
         }
 
-        internal void ExpandAttachments(IRevisionInformation rev, int minRevPos, bool allowFollows, 
+        internal void ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
             bool decodeAttachments)
         {
             if (!IsOpen) {
@@ -1639,7 +1639,7 @@ namespace Couchbase.Lite
             return attachment;
         }
             
-        internal static void StubOutAttachmentsInRevBeforeRevPos(IRevisionInformation rev, long minRevPos, bool attachmentsFollow)
+        internal static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, long minRevPos, bool attachmentsFollow)
         {
             if (minRevPos <= 1 && !attachmentsFollow)
             {
@@ -1802,7 +1802,7 @@ namespace Couchbase.Lite
             return rev.GetAttachments();
         }
             
-        internal AttachmentInternal GetAttachmentForRevision(IRevisionInformation rev, string name)
+        internal AttachmentInternal GetAttachmentForRevision(RevisionInternal rev, string name)
         {
             Debug.Assert(name != null);
             var attachments = rev.GetAttachments();
@@ -1817,7 +1817,7 @@ namespace Couchbase.Lite
             return AttachmentForDict(attachments.Get(name).AsDictionary<string, object>(), name);
         }
             
-        internal IRevisionInformation RevisionByLoadingBody(IRevisionInformation rev, Status outStatus)
+        internal RevisionInternal RevisionByLoadingBody(RevisionInternal rev, Status outStatus)
         {
             // First check for no-op -- if we just need the default properties and already have them:
             if (rev.Sequence != 0) {
@@ -1831,7 +1831,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            IRevisionInformation nuRev = rev.Copy(rev.DocID, rev.RevID);
+            RevisionInternal nuRev = rev.Copy(rev.DocID, rev.RevID);
             try {
                 LoadRevisionBody(nuRev);
             } catch(CouchbaseLiteException e) {
@@ -1846,7 +1846,7 @@ namespace Couchbase.Lite
         }
             
         //Doesn't handle CouchbaseLiteException
-        internal IRevisionInformation LoadRevisionBody(IRevisionInformation rev)
+        internal RevisionInternal LoadRevisionBody(RevisionInternal rev)
         {
             if (!IsOpen) {
                 Log.W(TAG, "LoadRevisionBody called on closed database");
@@ -1875,7 +1875,7 @@ namespace Couchbase.Lite
         /// </remarks>
         /// <exclude></exclude>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal IRevisionInformation UpdateAttachment(string filename, BlobStoreWriter body, string contentType, AttachmentEncoding encoding, string docID, string oldRevID, Uri source)
+        internal RevisionInternal UpdateAttachment(string filename, BlobStoreWriter body, string contentType, AttachmentEncoding encoding, string docID, string oldRevID, Uri source)
         {
             if(StringEx.IsNullOrWhiteSpace(filename) || (body != null && contentType == null) || 
                 (oldRevID != null && docID == null) || (body != null && docID == null)) {
@@ -1886,7 +1886,7 @@ namespace Couchbase.Lite
             if (oldRevID != null) {
                 // Load existing revision if this is a replacement:
                 try {
-                    oldRev = RevisionInternal.Create(LoadRevisionBody(oldRev));
+                    oldRev = LoadRevisionBody(oldRev);
                 } catch (CouchbaseLiteException e) {
                     if (e.Code == StatusCode.NotFound && GetDocument(docID, null, false) != null) {
                         throw new CouchbaseLiteException(StatusCode.Conflict);
@@ -1935,7 +1935,7 @@ namespace Couchbase.Lite
 
         /// <summary>VALIDATION</summary>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal Status ValidateRevision(IRevisionInformation newRev, IRevisionInformation oldRev, String parentRevId)
+        internal Status ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev, String parentRevId)
         {
             var validations = Shared.GetValues("validation", Name);
             if (validations == null || validations.Count == 0) {
@@ -2178,7 +2178,7 @@ namespace Couchbase.Lite
             return length;
         }
 
-        private IRevisionInformation GetDocumentWithIDAndRev(string docId, string revId, bool withBody)
+        private RevisionInternal GetDocumentWithIDAndRev(string docId, string revId, bool withBody)
         {
             return Storage.GetDocument(docId, revId, withBody);
         }

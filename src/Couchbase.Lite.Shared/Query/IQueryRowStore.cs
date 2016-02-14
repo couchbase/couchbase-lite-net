@@ -27,7 +27,7 @@ namespace Couchbase.Lite.Store
     /// <summary>
     /// Storage for a QueryRow. Instantiated by a IViewStore when it creates a QueryRow.
     /// </summary>
-    public interface IQueryRowStore
+    internal interface IQueryRowStore
     {
 
         /// <summary>

@@ -62,14 +62,14 @@ namespace Couchbase.Lite {
     #region Constructors
 
         /// <summary>Constructor</summary>
-        internal SavedRevision(Document document, IRevisionInformation revision)
+        internal SavedRevision(Document document, RevisionInternal revision)
             : base(document) { RevisionInternal = revision; }
 
         /// <summary>Constructor</summary>
-        internal SavedRevision(Database database, IRevisionInformation revision)
+        internal SavedRevision(Database database, RevisionInternal revision)
             : this(database.GetDocument(revision == null ? null : revision.DocID), revision) { }
 
-        internal SavedRevision(Database database, IRevisionInformation revision, string parentRevId)
+        internal SavedRevision(Database database, RevisionInternal revision, string parentRevId)
             : this(database, revision)
         {
             _parentRevID = parentRevId;
@@ -79,7 +79,7 @@ namespace Couchbase.Lite {
     
     #region Non-public Members
 
-        internal IRevisionInformation RevisionInternal { get; private set; }
+        internal RevisionInternal RevisionInternal { get; private set; }
 
         private  Boolean CheckedProperties { get; set; }
 

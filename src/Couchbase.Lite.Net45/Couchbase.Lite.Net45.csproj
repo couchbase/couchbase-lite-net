@@ -77,10 +77,4 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
   </Target>
-  <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net45\cbforest-sharp.Net45.csproj">
-      <Project>{20839831-948C-42BA-AAF1-75081209E6C5}</Project>
-      <Name>cbforest-sharp.Net45</Name>
-    </ProjectReference>
-  </ItemGroup>
 </Project>

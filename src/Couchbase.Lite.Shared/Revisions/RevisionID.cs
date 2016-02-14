@@ -22,7 +22,7 @@ using System;
 
 namespace Couchbase.Lite.Revisions
 {
-    public static class RevisionID
+    internal static class RevisionID
     {
         public static int GetGeneration(string revID)
         {

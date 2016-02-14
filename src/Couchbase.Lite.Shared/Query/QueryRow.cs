@@ -68,7 +68,7 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private IRevisionInformation _documentRevision;
+        private RevisionInternal _documentRevision;
         private IQueryRowStore _storage;
         private object _parsedKey, _parsedValue;
 
@@ -76,7 +76,7 @@ namespace Couchbase.Lite
 
     #region Constructors
 
-        internal QueryRow(string documentId, long sequence, object key, object value, IRevisionInformation revision, IQueryRowStore storage)
+        internal QueryRow(string documentId, long sequence, object key, object value, RevisionInternal revision, IQueryRowStore storage)
         {
             // Don't initialize _database yet. I might be instantiated on a background thread (if the
             // query is async) which has a different CBLDatabase instance than the original caller.

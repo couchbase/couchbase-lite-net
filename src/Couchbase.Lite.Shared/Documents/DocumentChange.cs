@@ -58,9 +58,9 @@ namespace Couchbase.Lite {
     /// </summary>
     public class DocumentChange
     {
-        internal IRevisionInformation AddedRevision { get; private set; }
+        internal RevisionInternal AddedRevision { get; private set; }
 
-        internal DocumentChange(IRevisionInformation addedRevision, string winningRevisionId, bool isConflict, Uri sourceUrl)
+        internal DocumentChange(RevisionInternal addedRevision, string winningRevisionId, bool isConflict, Uri sourceUrl)
         {
             AddedRevision = addedRevision;
             WinningRevisionId = winningRevisionId;
@@ -94,7 +94,7 @@ namespace Couchbase.Lite {
         /// Gets the winning revision.
         /// </summary>
         /// <value>The winning revision.</value>
-        internal IRevisionInformation WinningRevisionIfKnown
+        internal RevisionInternal WinningRevisionIfKnown
         { 
             get
             {

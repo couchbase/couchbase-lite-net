@@ -85,10 +85,10 @@ namespace Couchbase.Lite.Replicator
         //private bool caughtUp;
 
         private bool _canBulkGet;
-        private Batcher<IRevisionInformation> _downloadsToInsert;
-        private IList<IRevisionInformation> _revsToPull;
-        private IList<IRevisionInformation> _deletedRevsToPull;
-        private IList<IRevisionInformation> _bulkRevsToPull;
+        private Batcher<RevisionInternal> _downloadsToInsert;
+        private IList<RevisionInternal> _revsToPull;
+        private IList<RevisionInternal> _deletedRevsToPull;
+        private IList<RevisionInternal> _bulkRevsToPull;
         private ChangeTracker _changeTracker;
         private SequenceMap _pendingSequences;
         private volatile int _httpConnectionCount;
@@ -265,17 +265,17 @@ namespace Couchbase.Lite.Replicator
             return Uri.EscapeUriString(Runtime.GetStringForBytes(json));
         }
 
-        private void QueueRemoteRevision(IRevisionInformation rev)
+        private void QueueRemoteRevision(RevisionInternal rev)
         {
             if (rev.Deleted) {
                 if (_deletedRevsToPull == null) {
-                    _deletedRevsToPull = new List<IRevisionInformation>(100);
+                    _deletedRevsToPull = new List<RevisionInternal>(100);
                 }
 
                 _deletedRevsToPull.Add(rev);
             } else {
                 if (_revsToPull == null) {
-                    _revsToPull = new List<IRevisionInformation>(100);
+                    _revsToPull = new List<RevisionInternal>(100);
                 }
 
                 _revsToPull.Add(rev);
@@ -290,8 +290,8 @@ namespace Couchbase.Lite.Replicator
         private void PullRemoteRevisions()
         {
             //find the work to be done in a synchronized block
-            var workToStartNow = new List<IRevisionInformation>();
-            var bulkWorkToStartNow = new List<IRevisionInformation>();
+            var workToStartNow = new List<RevisionInternal>();
+            var bulkWorkToStartNow = new List<RevisionInternal>();
             lock (_locker)
             {
                 while (LocalDatabase.IsOpen && _httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections)
@@ -310,12 +310,12 @@ namespace Couchbase.Lite.Replicator
 
                     if (nBulk > 0) {
                         // Prefer to pull bulk revisions:
-                        var range = new Couchbase.Lite.Util.ArraySegment<IRevisionInformation>(_bulkRevsToPull.ToArray(), 0, nBulk);
+                        var range = new Couchbase.Lite.Util.ArraySegment<RevisionInternal>(_bulkRevsToPull.ToArray(), 0, nBulk);
                         bulkWorkToStartNow.AddRange(range);
                         _bulkRevsToPull.RemoveAll(range);
                     } else {
                         // Prefer to pull an existing revision over a deleted one:
-                        IList<IRevisionInformation> queue = _revsToPull;
+                        IList<RevisionInternal> queue = _revsToPull;
                         if (queue == null || queue.Count == 0) {
                             queue = _deletedRevsToPull;
                             if (queue == null || queue.Count == 0) {
@@ -340,7 +340,7 @@ namespace Couchbase.Lite.Replicator
         }
 
         // Get a bunch of revisions in one bulk request. Will use _bulk_get if possible.
-        private void PullBulkRevisions(IList<IRevisionInformation> bulkRevs)
+        private void PullBulkRevisions(IList<RevisionInternal> bulkRevs)
         {
             var nRevs = bulkRevs == null ? 0 : bulkRevs.Count;
             if (nRevs == 0) {
@@ -356,7 +356,7 @@ namespace Couchbase.Lite.Replicator
             Log.V(TAG, "{0} bulk-fetching remote revisions: {1}", this, bulkRevs);
 
             Log.V(TAG, "POST _bulk_get");
-            var remainingRevs = new List<IRevisionInformation>(bulkRevs);
+            var remainingRevs = new List<RevisionInternal>(bulkRevs);
             ++_httpConnectionCount;
             BulkDownloader dl;
             try
@@ -436,12 +436,12 @@ namespace Couchbase.Lite.Replicator
 
         // Get as many revisions as possible in one _all_docs request.
         // This is compatible with CouchDB, but it only works for revs of generation 1 without attachments.
-        private void PullBulkWithAllDocs(IList<IRevisionInformation> bulkRevs)
+        private void PullBulkWithAllDocs(IList<RevisionInternal> bulkRevs)
         {
             // http://wiki.apache.org/couchdb/HTTP_Bulk_Document_API
             ++_httpConnectionCount;
 
-            var remainingRevs = new List<IRevisionInformation>(bulkRevs);
+            var remainingRevs = new List<RevisionInternal>(bulkRevs);
             var keys = bulkRevs.Select(rev => rev.DocID).ToArray();
             var body = new Dictionary<string, object>();
             body.Put("keys", keys);
@@ -525,7 +525,7 @@ namespace Couchbase.Lite.Replicator
         }
 
         // This invokes the tranformation block if one is installed and queues the resulting Revision
-        private void QueueDownloadedRevision(IRevisionInformation rev)
+        private void QueueDownloadedRevision(RevisionInternal rev)
         {
             if (RevisionBodyTransformationFunction != null) {
                 // Add 'file' properties to attachments pointing to their bodies:
@@ -575,7 +575,7 @@ namespace Couchbase.Lite.Replicator
         /// Fetches the contents of a revision from the remote db, including its parent revision ID.
         /// The contents are stored into rev.properties.
         /// </remarks>
-        private void PullRemoteRevision(IRevisionInformation rev)
+        private void PullRemoteRevision(RevisionInternal rev)
         {
             Log.D(TAG, "PullRemoteRevision with rev: {0}", rev);
             _httpConnectionCount++;
@@ -664,7 +664,7 @@ namespace Couchbase.Lite.Replicator
         }
 
         /// <summary>This will be called when _revsToInsert fills up:</summary>
-        private void InsertDownloads(IList<IRevisionInformation> downloads)
+        private void InsertDownloads(IList<RevisionInternal> downloads)
         {
             Log.V(TAG, "Inserting {0} revisions...", downloads.Count);
             var time = DateTime.UtcNow;
@@ -677,8 +677,7 @@ namespace Couchbase.Lite.Replicator
             try {
                 var success = LocalDatabase.RunInTransaction(() =>
                 {
-                    foreach (var r in downloads) {
-                        var rev = RevisionInternal.Create(r);
+                    foreach (var rev in downloads) {
                         var fakeSequence = rev.Sequence;
                         rev.Sequence = 0L;
                         var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
@@ -846,7 +845,7 @@ namespace Couchbase.Lite.Replicator
                     if (_canBulkGet || (rev.Generation == 1 && !rev.Deleted && !rev.IsConflicted)) {
                         //optimistically pull 1st-gen revs in bulk
                         if (_bulkRevsToPull == null) {
-                            _bulkRevsToPull = new List<IRevisionInformation>(100);
+                            _bulkRevsToPull = new List<RevisionInternal>(100);
                         }
 
                         _bulkRevsToPull.Add(rev);
@@ -873,7 +872,7 @@ namespace Couchbase.Lite.Replicator
             if (_downloadsToInsert == null) {
                 const int capacity = INBOX_CAPACITY * 2;
                 const int delay = 1000;
-                _downloadsToInsert = new Batcher<IRevisionInformation>(WorkExecutor, capacity, delay, InsertDownloads);
+                _downloadsToInsert = new Batcher<RevisionInternal>(WorkExecutor, capacity, delay, InsertDownloads);
             }
 
             if (_pendingSequences == null) {
@@ -973,11 +972,11 @@ namespace Couchbase.Lite.Replicator
 
         #region Nested Classes
 
-        private sealed class RevisionComparer : IComparer<IRevisionInformation>
+        private sealed class RevisionComparer : IComparer<RevisionInternal>
         {
             public RevisionComparer() { }
 
-            public int Compare(IRevisionInformation reva, IRevisionInformation revb)
+            public int Compare(RevisionInternal reva, RevisionInternal revb)
             {
                 return Misc.TDSequenceCompare(reva != null ? reva.Sequence : -1L, revb != null ? revb.Sequence : -1L);
             }

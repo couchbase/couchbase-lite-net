@@ -131,7 +131,7 @@ namespace Couchbase.Lite.Replicator
         /// <returns>The common ancestor.</returns>
         /// <param name="rev">Rev.</param>
         /// <param name="possibleRevIDs">Possible rev I ds.</param>
-        internal static int FindCommonAncestor(IRevisionInformation rev, IList<string> possibleRevIDs)
+        internal static int FindCommonAncestor(RevisionInternal rev, IList<string> possibleRevIDs)
         {
             if (possibleRevIDs == null || possibleRevIDs.Count == 0)
             {
@@ -160,7 +160,7 @@ namespace Couchbase.Lite.Replicator
 
         #region Private Methods
 
-        private MultipartWriter GetMultipartWriter(IRevisionInformation rev, string boundary)
+        private MultipartWriter GetMultipartWriter(RevisionInternal rev, string boundary)
         {
             // Find all the attachments with "follows" instead of a body, and put 'em in a multipart stream.
             // It's important to scan the _attachments entries in the same order in which they will appear
@@ -241,7 +241,7 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        private void AddPending(IRevisionInformation revisionInternal)
+        private void AddPending(RevisionInternal revisionInternal)
         {
             lock(_pendingSequences)
             {
@@ -257,7 +257,7 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        private void RemovePending(IRevisionInformation revisionInternal)
+        private void RemovePending(RevisionInternal revisionInternal)
         {
             lock (_pendingSequences)
             {
@@ -357,7 +357,7 @@ namespace Couchbase.Lite.Replicator
             });
         }
 
-        private bool UploadMultipartRevision(IRevisionInformation revision)
+        private bool UploadMultipartRevision(RevisionInternal revision)
         {
             MultipartContent multiPart = null;
             var revProps = revision.GetProperties();
@@ -448,7 +448,7 @@ namespace Couchbase.Lite.Replicator
         }
             
         // Uploads the revision as JSON instead of multipart.
-        private void UploadJsonRevision(IRevisionInformation originalRev)
+        private void UploadJsonRevision(RevisionInternal originalRev)
         {
             // Expand all attachments inline:
             var rev = originalRev.Copy(originalRev.DocID, originalRev.RevID);
@@ -704,7 +704,7 @@ namespace Couchbase.Lite.Replicator
                                     contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
                                 }
 
-                                IRevisionInformation loadedRev;
+                                RevisionInternal loadedRev;
                                 try {
                                     loadedRev = LocalDatabase.LoadRevisionBody (rev);
                                     if(loadedRev == null) {
@@ -718,7 +718,7 @@ namespace Couchbase.Lite.Replicator
                                     continue;
                                 }
 
-                                var populatedRev = RevisionInternal.Create(TransformRevision(loadedRev));
+                                var populatedRev = TransformRevision(loadedRev);
                                 IList<string> possibleAncestors = null;
                                 if (revResults.ContainsKey("possible_ancestors")) {
                                     possibleAncestors = revResults["possible_ancestors"].AsList<string>();

@@ -27,7 +27,7 @@ using System.Linq;
 
 namespace Couchbase.Lite
 {
-    public sealed class UpdateJob
+    internal sealed class UpdateJob
     {
         private readonly Func<IList<IViewStore>, bool> _logic;
         private readonly IEnumerable<IViewStore> _args;

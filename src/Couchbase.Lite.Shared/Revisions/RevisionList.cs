@@ -51,20 +51,20 @@ using Couchbase.Lite.Store;
 namespace Couchbase.Lite
 {
     [System.Serializable]
-    public sealed class RevisionList : List<IRevisionInformation>
+    internal sealed class RevisionList : List<RevisionInternal>
     {
         
         public RevisionList() : base()
         {
         }
             
-        public RevisionList(IList<IRevisionInformation> list) : base(list.Distinct())
+        public RevisionList(IList<RevisionInternal> list) : base(list.Distinct())
         {
         }
 
-        public IRevisionInformation RevWithDocIdAndRevId(string docId, string revId)
+        public RevisionInternal RevWithDocIdAndRevId(string docId, string revId)
         {
-            IEnumerator<IRevisionInformation> iterator = GetEnumerator();
+            IEnumerator<RevisionInternal> iterator = GetEnumerator();
             while (iterator.MoveNext())
             {
                 var rev = iterator.Current;
@@ -79,10 +79,10 @@ namespace Couchbase.Lite
         public IList<string> GetAllDocIds()
         {
             IList<string> result = new List<string>();
-            IEnumerator<IRevisionInformation> iterator = GetEnumerator();
+            IEnumerator<RevisionInternal> iterator = GetEnumerator();
             while (iterator.MoveNext())
             {
-                IRevisionInformation rev = iterator.Current;
+                RevisionInternal rev = iterator.Current;
                 result.Add(rev.DocID);
             }
             return result;
@@ -91,10 +91,10 @@ namespace Couchbase.Lite
         public IList<string> GetAllRevIds()
         {
             IList<string> result = new List<string>();
-            IEnumerator<IRevisionInformation> iterator = GetEnumerator();
+            IEnumerator<RevisionInternal> iterator = GetEnumerator();
             while (iterator.MoveNext())
             {
-                IRevisionInformation rev = iterator.Current;
+                RevisionInternal rev = iterator.Current;
                         result.Add(rev.RevID);
             }
             return result;

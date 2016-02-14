@@ -30,7 +30,7 @@ using System.Collections;
 using SQLitePCL;
 using Couchbase.Lite.Views;
 
-namespace Couchbase.Lite.Store
+namespace Couchbase.Lite.Store 
 {
     internal sealed class SqliteViewStore : IViewStore, IQueryRowStore
     {
@@ -939,7 +939,7 @@ namespace Couchbase.Lite.Store
             RunQuery(options, (keyData, valueData, docId, cursor) =>
             {
                 long sequence = cursor.GetLong(3);
-                IRevisionInformation docRevision = null;
+                RevisionInternal docRevision = null;
                 if(options.IncludeDocs) {
                     IDictionary<string, object> value = null;
                     if(valueData != null && !RowValueIsEntireDoc(valueData.Value)) {

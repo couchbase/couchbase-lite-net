@@ -53,7 +53,7 @@ using Couchbase.Lite.Store;
 namespace Couchbase.Lite 
 {
 
-    public delegate bool RevisionFilter(IRevisionInformation rev);
+    internal delegate bool RevisionFilter(RevisionInternal rev);
 
     /// <summary>
     /// A Couchbase Lite Document Revision.

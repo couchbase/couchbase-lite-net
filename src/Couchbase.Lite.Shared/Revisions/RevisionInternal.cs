@@ -62,15 +62,15 @@ namespace Couchbase.Lite.Internal
     /// Stores information about a revision -- its docID, revID, and whether it's deleted.
     /// It can also store the sequence number and document contents (they can be added after creation).
     /// </remarks>
-    internal class RevisionInternal : IRevisionInformation
+    internal class RevisionInternal
     {
 
         #region Variables
 
-        private readonly string _docId;
-        private readonly string _revId;
-        private bool _missing;
-        private Body _body;
+        protected readonly string _docId;
+        protected readonly string _revId;
+        protected bool _missing;
+        protected Body _body;
 
         #endregion
 
@@ -101,10 +101,15 @@ namespace Couchbase.Lite.Internal
 
         #region Constructors
 
-        internal static RevisionInternal Create(IRevisionInformation other)
+        internal RevisionInternal(RevisionInternal other) : this(other.DocID, other.RevID, other.Deleted)
         {
-            var otherInternal = other as RevisionInternal;
-            return otherInternal ?? new RevisionInternal(other);
+            var unmodifiableProperties = other.GetProperties();
+            var properties = new Dictionary<string, object>();
+            if (unmodifiableProperties != null) {
+                properties.PutAll(unmodifiableProperties);
+            }
+
+            SetProperties(properties);
         }
 
         internal RevisionInternal(String docId, String revId, Boolean deleted)
@@ -121,45 +126,9 @@ namespace Couchbase.Lite.Internal
             this._body = body;
         }
 
-        internal RevisionInternal(IRevisionInformation other)
-        {
-            _docId = other.DocID;
-            _revId = other.RevID;
-            Deleted = other.Deleted;
-            _body = new Body(other.GetProperties());
-        }
-
-        internal RevisionInternal(IRevisionInformation other, string docID, string revID) : this(other)
-        {
-            _docId = docID;
-            _revId = revID;
-        }
-
         internal RevisionInternal(IDictionary<String, Object> properties)
             : this(new Body(properties)) { }
 
-        internal unsafe RevisionInternal(CBForest.C4Document *doc, bool loadBody) 
-        {
-            if (!doc->Exists) {
-                return;
-            }
-
-            _docId = (string)doc->docID;
-            _revId = (string)doc->selectedRev.revID;
-            Deleted = doc->selectedRev.IsDeleted;
-            Sequence = (long)doc->selectedRev.sequence;
-            if (loadBody) {
-                // Important not to lazy load here since we can only assume
-                // doc lives until immediately after this function ends
-                SetBody(new Body(doc->selectedRev.body.ToArray())); 
-            }
-        }
-
-        internal unsafe RevisionInternal(CBForest.CBForestDocStatus docStatus, bool loadBody)
-            : this(docStatus.GetDocument(), loadBody)
-        {
-
-        }
 
         #endregion
 
@@ -203,7 +172,7 @@ namespace Couchbase.Lite.Internal
             return result;
         }
 
-        public IRevisionInformation CopyWithoutBody()
+        public RevisionInternal CopyWithoutBody()
         {
             if (_body == null) {
                 return this;
@@ -294,7 +263,7 @@ namespace Couchbase.Lite.Internal
             this._body = body;
         }
 
-        public IRevisionInformation Copy(string docId, string revId)
+        public RevisionInternal Copy(string docId, string revId)
         {
             System.Diagnostics.Debug.Assert((docId != null));
             System.Diagnostics.Debug.Assert(((_docId == null) || (_docId.Equals(docId))));

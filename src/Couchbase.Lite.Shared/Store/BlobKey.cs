@@ -52,7 +52,7 @@ namespace Couchbase.Lite
 {
     /// <summary>Key identifying a data blob.</summary>
     /// <remarks>Key identifying a data blob. This happens to be a SHA-1 digest.</remarks>
-    public sealed class BlobKey
+    internal sealed class BlobKey
     {
         private const string TAG = "BlobKey";
 

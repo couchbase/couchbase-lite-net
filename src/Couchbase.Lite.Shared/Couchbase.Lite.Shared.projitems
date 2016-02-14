@@ -86,8 +86,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobStoreWriter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\ContentValues.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\JsonCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\RevIdCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\Status.cs" />
@@ -162,14 +160,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\CookieParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\IAtomicAction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\AtomicAction.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonC4KeyWriter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonC4KeyReader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteServerVersion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CompressedContent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Platform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClient.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Database\IRevisionInformation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionID.cs" />
   </ItemGroup>
   <ItemGroup>

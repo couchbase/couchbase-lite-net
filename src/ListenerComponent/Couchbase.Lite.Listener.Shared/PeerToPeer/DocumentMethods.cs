@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Listener
                 if (openRevsParam == null || isLocalDoc) {
                     //Regular GET:
                     string revId = context.GetQueryParam("rev"); //often null
-                    IRevisionInformation rev;
+                    RevisionInternal rev;
                     bool includeAttachments = false, sendMultipart = false;
                     if (isLocalDoc) {
                         rev = db.Storage.GetLocalDocument(docId, revId);
@@ -279,7 +279,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="allowConflict">Whether or not to allow a conflict to be inserted</param>
         /// <param name="outRev">The resulting revision of the document</param>
         public static StatusCode UpdateDocument(ICouchbaseListenerContext context, Database db, string docId, Body body, bool deleting, 
-            bool allowConflict, out IRevisionInformation outRev)
+            bool allowConflict, out RevisionInternal outRev)
         {
             outRev = null;
             if (body != null && !body.IsValidJSON()) {
@@ -466,7 +466,7 @@ namespace Couchbase.Lite.Listener
 
         #region Private Methods
 
-        private static MultipartWriter MultipartWriterForRev(Database db, IRevisionInformation rev, string contentType)
+        private static MultipartWriter MultipartWriterForRev(Database db, RevisionInternal rev, string contentType)
         {
             var writer = new MultipartWriter(contentType, null);
             writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
@@ -524,7 +524,7 @@ namespace Couchbase.Lite.Listener
         }
 
         // Apply the options in the URL query to the specified revision and create a new revision object
-        internal static IRevisionInformation ApplyOptions(DocumentContentOptions options, IRevisionInformation rev, ICouchbaseListenerContext context,
+        internal static RevisionInternal ApplyOptions(DocumentContentOptions options, RevisionInternal rev, ICouchbaseListenerContext context,
             Database db, Status outStatus)
         {
             if ((options & (DocumentContentOptions.IncludeRevs | DocumentContentOptions.IncludeRevsInfo | DocumentContentOptions.IncludeConflicts |
@@ -620,7 +620,7 @@ namespace Couchbase.Lite.Listener
 
                 response.JsonBody = new Body(new Dictionary<string, object> {
                     { "ok", true },
-                    { "id", rev.GetDocId() },
+                    { "id", rev.DocID },
                     { "rev", rev.RevID }
                 });
             }
@@ -641,7 +641,7 @@ namespace Couchbase.Lite.Listener
             var response = context.CreateResponse();
             response.JsonBody = new Body(new Dictionary<string, object> {
                 { "ok", true },
-                { "id", rev.GetDocId() },
+                { "id", rev.DocID },
                 { "rev", rev.RevID }
             });
             context.CacheWithEtag(rev.RevID);

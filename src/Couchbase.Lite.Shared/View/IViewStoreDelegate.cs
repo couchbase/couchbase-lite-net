@@ -26,7 +26,7 @@ namespace Couchbase.Lite.Store
     /// <summary>
     /// Delegate of an IViewStore instance. View implements this.
     /// </summary>
-    public interface IViewStoreDelegate
+    internal interface IViewStoreDelegate
     {
 
         /// <summary>

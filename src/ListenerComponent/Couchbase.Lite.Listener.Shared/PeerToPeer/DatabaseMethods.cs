@@ -230,7 +230,7 @@ namespace Couchbase.Lite.Listener
                     var source = castContext != null && !castContext.IsLoopbackRequest ? castContext.Sender : null;
                     foreach(var doc in docs) {
                         string docId = doc.GetCast<string>("_id");
-                        IRevisionInformation rev = null;
+                        RevisionInternal rev = null;
                         Body body = new Body(doc);
 
                         if(!newEdits) {
@@ -558,7 +558,7 @@ namespace Couchbase.Lite.Listener
         /// <returns>The metadata dictionary</returns>
         /// <param name="rev">The revision to examine</param>
         /// <param name="responseState">The current response state</param>
-        public static IDictionary<string, object> ChangesDictForRev(IRevisionInformation rev, DBMonitorCouchbaseResponseState responseState)
+        public static IDictionary<string, object> ChangesDictForRev(RevisionInternal rev, DBMonitorCouchbaseResponseState responseState)
         {
             if (responseState.ChangesIncludeDocs) {
                 var status = new Status();

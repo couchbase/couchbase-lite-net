@@ -91,24 +91,10 @@ namespace Couchbase.Lite
         // Returns true on success, false if encryption key is wrong, throws exception for other cases
         public bool Decrypt(SymmetricKey encryptionKey, sqlite3 connection)
         {
-            #if !HAS_ENCRYPTION
+            #if !ENCRYPTION
             throw new InvalidOperationException("Encryption not supported on this store");
             #else
-            var hasRealEncryption = false;
-            try {
-                hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
-            } catch(EntryPointNotFoundException) {
-                // Android omits the compileoption_used from its system SQLite
-                hasRealEncryption = false;
-            }
-
             if (encryptionKey != null) {
-                if (!hasRealEncryption) {
-                    throw new CouchbaseLiteException("Encryption not available (make sure you have installed the" +
-                        " correct Nuget packages and added the CBL_SQLCIPHER symbol to your project's define symbols.)",
-                        StatusCode.NotImplemented);
-                }
-
                 // http://sqlcipher.net/sqlcipher-api/#key
                 var sql = String.Format("PRAGMA key = \"x'{0}'\"", encryptionKey.HexData);
                 try {

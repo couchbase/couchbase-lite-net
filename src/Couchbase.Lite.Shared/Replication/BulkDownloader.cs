@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Replicator
         private CancellationTokenSource _tokenSource;
         private MultipartDocumentReader _docReader;
         private Database _db;
-        private IList<IRevisionInformation> _revs;
+        private IList<RevisionInternal> _revs;
         private readonly CouchbaseLiteHttpClient _httpClient;
         private readonly object _body;
 
@@ -88,7 +88,7 @@ namespace Couchbase.Lite.Replicator
         internal IAuthenticator Authenticator { get; set; }
 
         /// <exception cref="System.Exception"></exception>
-        public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<IRevisionInformation> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
+        public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
         {
             _bulkGetUri = new Uri(AppendRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true"));
             _revs = revs;
@@ -324,9 +324,9 @@ namespace Couchbase.Lite.Replicator
             evt(this, args);
         }
 
-        private static IDictionary<string, object> CreatePostBody(IEnumerable<IRevisionInformation> revs, Database database)
+        private static IDictionary<string, object> CreatePostBody(IEnumerable<RevisionInternal> revs, Database database)
         {
-            Func<IRevisionInformation, IDictionary<String, Object>> invoke = source =>
+            Func<RevisionInternal, IDictionary<String, Object>> invoke = source =>
             {
                 if(!database.IsOpen) {
                     return null;

@@ -29,10 +29,10 @@ using System.Threading;
 using Couchbase.Lite.Util;
 using SQLitePCL;
 using SQLitePCL.Ugly;
-using Couchbase.Lite.Storage.Internal;
 using Couchbase.Lite.Revisions;
 using Sharpen;
 using Couchbase.Lite.Db;
+using Couchbase.Lite.Internal;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -40,7 +40,7 @@ using StringEx = System.String;
 
 namespace Couchbase.Lite.Store
 {
-    public class SqliteCouchStore : ICouchStore
+    internal sealed class SqliteCouchStore : ICouchStore
     {
         #region Constants
 
@@ -271,7 +271,7 @@ namespace Couchbase.Lite.Store
             return docProperties;
         }
 
-        public IRevisionInformation GetDocument(string docId, long sequence)
+        public RevisionInternal GetDocument(string docId, long sequence)
         {
             RevisionInternal result = null;
             TryQuery(c =>
@@ -288,7 +288,7 @@ namespace Couchbase.Lite.Store
             return result;
         }
 
-        public IRevisionInformation GetRevision(string docId, string revId, bool deleted, long sequence, IEnumerable<byte> json)
+        public RevisionInternal GetRevision(string docId, string revId, bool deleted, long sequence, IEnumerable<byte> json)
         {
             var rev = new RevisionInternal(docId, revId, deleted);
             rev.Sequence = sequence;
@@ -347,7 +347,7 @@ namespace Couchbase.Lite.Store
 
         #region Internal Methods
 
-        internal IDictionary<string, object> GetRevisionHistoryDictStartingFromAnyAncestor(IRevisionInformation rev, IList<string>ancestorRevIDs)
+        internal IDictionary<string, object> GetRevisionHistoryDictStartingFromAnyAncestor(RevisionInternal rev, IList<string>ancestorRevIDs)
         {
             var history = GetRevisionHistory(rev, null); // This is in reverse order, newest ... oldest
             if (ancestorRevIDs != null && ancestorRevIDs.Any())
@@ -356,7 +356,7 @@ namespace Couchbase.Lite.Store
                 {
                     if (ancestorRevIDs.Contains(history[i].RevID))
                     {
-                        var newHistory = new List<IRevisionInformation>();
+                        var newHistory = new List<RevisionInternal>();
                         for (var index = 0; index < i + 1; index++) 
                         {
                             newHistory.Add(history[index]);
@@ -753,7 +753,7 @@ namespace Couchbase.Lite.Store
             return revs;
         }
 
-        internal IEnumerable<byte> EncodeDocumentJSON(IRevisionInformation rev)
+        internal IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
         {
             var originalProps = rev.GetProperties();
             if (originalProps == null) {
@@ -768,12 +768,12 @@ namespace Couchbase.Lite.Store
             return Manager.GetObjectMapper().WriteValueAsBytes(properties, true);
         }
 
-        private IRevisionInformation PutLocalRevisionNoMvcc(IRevisionInformation rev)
+        private RevisionInternal PutLocalRevisionNoMvcc(RevisionInternal rev)
         {
-            IRevisionInformation result = null;
+            RevisionInternal result = null;
             RunInTransaction(() =>
             {
-                IRevisionInformation prevRev = GetLocalDocument(rev.DocID, null);
+                RevisionInternal prevRev = GetLocalDocument(rev.DocID, null);
                 result = PutLocalRevision(rev, prevRev == null ? null : prevRev.RevID, true);
 
                 return true;
@@ -940,7 +940,7 @@ namespace Couchbase.Lite.Store
 
         public void SetEncryptionKey(SymmetricKey key)
         {
-            #if NO_ENCRYPTION
+            #if !ENCRYPTION
             throw new InvalidOperationException("This store does not support encryption");
             #else
             _encryptionKey = key;
@@ -949,21 +949,10 @@ namespace Couchbase.Lite.Store
 
         public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
         {
-            #if NO_ENCRYPTION
+            #if !ENCRYPTION
             throw new InvalidOperationException("This store does not support encryption");
             #else
             // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export
-            var hasRealEncryption = false;
-            try {
-                hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
-            } catch(EntryPointNotFoundException) {
-                // Android omits the compileoption_used from its system SQLite
-                hasRealEncryption = false;
-            }
-
-            if (!hasRealEncryption) {
-                return new AtomicAction();
-            }
 
             var action = new AtomicAction();
             var dbWasClosed = false;
@@ -1011,15 +1000,13 @@ namespace Couchbase.Lite.Store
             });
 
             // Overwrite the old db file with the new one:
-            if (hasRealEncryption) {
-                action.AddLogic(AtomicAction.MoveFile(tempPath, Path.Combine(_directory, DB_FILENAME)));
-            }
+            action.AddLogic(AtomicAction.MoveFile(tempPath, Path.Combine(_directory, DB_FILENAME)));
 
             return action;
             #endif
         }
 
-        public IRevisionInformation GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
+        public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
         {
             if (outStatus == null) {
                 outStatus = new Status();
@@ -1072,14 +1059,13 @@ namespace Couchbase.Lite.Store
             return result;
         }
 
-        public IRevisionInformation LoadRevisionBody(IRevisionInformation inRev)
+        public RevisionInternal LoadRevisionBody(RevisionInternal rev)
         {
-            if (inRev.GetBody() != null && inRev.Sequence != 0) {
+            if (rev.GetBody() != null && rev.Sequence != 0) {
                 // no-op
-                return inRev;
+                return rev;
             }
-
-            var rev = RevisionInternal.Create(inRev);
+                
             Debug.Assert(rev.DocID != null && rev.RevID != null);
             var docNumericId = GetDocNumericID(rev.DocID);
             if (docNumericId <= 0L) {
@@ -1104,7 +1090,7 @@ namespace Couchbase.Lite.Store
             return rev;
         }
 
-        public long GetRevisionSequence(IRevisionInformation rev)
+        public long GetRevisionSequence(RevisionInternal rev)
         {
             var docNumericId = GetDocNumericID(rev.DocID);
             if (docNumericId <= 0L) {
@@ -1114,7 +1100,7 @@ namespace Couchbase.Lite.Store
             return QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT sequence FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID);
         }
 
-        public IRevisionInformation GetParentRevision(IRevisionInformation rev)
+        public RevisionInternal GetParentRevision(RevisionInternal rev)
         {
             // First get the parent's sequence:
             var seq = rev.Sequence;
@@ -1145,7 +1131,7 @@ namespace Couchbase.Lite.Store
             return result;
         }
 
-        public IList<IRevisionInformation> GetRevisionHistory(IRevisionInformation rev, ICollection<string> ancestorRevIds)
+        public IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, ICollection<string> ancestorRevIds)
         {
             string docId = rev.DocID;
             string revId = rev.RevID;
@@ -1157,11 +1143,11 @@ namespace Couchbase.Lite.Store
             }
 
             if (docNumericId == 0) {
-                return new List<IRevisionInformation>(0);
+                return new List<RevisionInternal>(0);
             }
 
             var lastSequence = 0L;
-            var history = new List<IRevisionInformation>();
+            var history = new List<RevisionInternal>();
             var status = TryQuery(c =>
             {
                 var sequence = c.GetLong(0);
@@ -1200,7 +1186,7 @@ namespace Couchbase.Lite.Store
             return history;
         }
 
-        public IDictionary<string, object> GetRevisionHistoryDict(IRevisionInformation rev, IList<string> ancestorRevIds)
+        public IDictionary<string, object> GetRevisionHistoryDict(RevisionInternal rev, IList<string> ancestorRevIds)
         {
             string docId = rev.DocID;
             string revId = rev.RevID;
@@ -1252,7 +1238,7 @@ namespace Couchbase.Lite.Store
             object start = null;
             int lastRevNo = -1;
             foreach (var historyRev in history) {
-                var parsed = RevisionInternal.ParseRevId(historyRev.RevID);
+                var parsed = RevisionID.ParseRevId(historyRev.RevID);
                 if (parsed.Item1 > 0) {
                     int revNo = parsed.Item1;
                     string suffix = parsed.Item2;
@@ -1292,7 +1278,7 @@ namespace Couchbase.Lite.Store
             return GetAllDocumentRevisions(docId, docNumericId, onlyCurrent);
         }
 
-        public IEnumerable<string> GetPossibleAncestors(IRevisionInformation rev, int limit, bool onlyAttachments)
+        public IEnumerable<string> GetPossibleAncestors(RevisionInternal rev, int limit, bool onlyAttachments)
         {
             int generation = rev.Generation;
             if (generation <= 1L) {
@@ -1323,7 +1309,7 @@ namespace Couchbase.Lite.Store
             return status.IsError ? null : revIDs;
         }
 
-        public string FindCommonAncestor(IRevisionInformation rev, IEnumerable<string> revIds)
+        public string FindCommonAncestor(RevisionInternal rev, IEnumerable<string> revIds)
         {
             if (revIds == null || !revIds.Any()) {
                 return null;
@@ -1600,7 +1586,7 @@ namespace Couchbase.Lite.Store
             return changes;
         }
 
-        public IRevisionInformation PutRevision(string inDocId, string inPrevRevId, IDictionary<string, object> properties,
+        public RevisionInternal PutRevision(string inDocId, string inPrevRevId, IDictionary<string, object> properties,
             bool deleting, bool allowConflict, Uri source, StoreValidation validationBlock)
         {
             IEnumerable<byte> json = null;
@@ -1793,9 +1779,9 @@ namespace Couchbase.Lite.Store
             return newRev;
         }
 
-        public void ForceInsert(IRevisionInformation inRev, IList<string> revHistory, StoreValidation validationBlock, Uri source)
+        public void ForceInsert(RevisionInternal inRev, IList<string> revHistory, StoreValidation validationBlock, Uri source)
         {
-            var rev = RevisionInternal.Create(inRev);
+            var rev = new RevisionInternal(inRev);
             rev.Sequence = 0L;
             string docId = rev.DocID;
 
@@ -1804,7 +1790,7 @@ namespace Couchbase.Lite.Store
             RunInTransaction(() =>
             {
                 // First look up the document's row-id and all locally-known revisions of it:
-                Dictionary<string, IRevisionInformation> localRevs = null;
+                Dictionary<string, RevisionInternal> localRevs = null;
                 string oldWinningRevId = null;
                 bool oldWinnerWasDeletion = false;
                 bool isNewDoc = revHistory.Count == 1;
@@ -1818,7 +1804,7 @@ namespace Couchbase.Lite.Store
                     var localRevsList = default(RevisionList);
                     try {
                         localRevsList = GetAllDocumentRevisions(docId, docNumericId, false);
-                        localRevs = new Dictionary<string, IRevisionInformation>(localRevsList.Count);
+                        localRevs = new Dictionary<string, RevisionInternal>(localRevsList.Count);
                         foreach(var localRev in localRevsList) {
                             localRevs[localRev.RevID] = localRev;
                         }
@@ -1848,7 +1834,7 @@ namespace Couchbase.Lite.Store
                 }
 
                 if(validationBlock != null) {
-                    IRevisionInformation oldRev = null;
+                    RevisionInternal oldRev = null;
                     for(int i = 1; i < revHistory.Count; i++) {
                         oldRev = localRevs == null ? null : localRevs.Get(revHistory[i]);
                         if(oldRev != null) {
@@ -2073,7 +2059,7 @@ namespace Couchbase.Lite.Store
             return result;
         }
 
-        public IRevisionInformation GetLocalDocument(string docId, string revId)
+        public RevisionInternal GetLocalDocument(string docId, string revId)
         {
             RevisionInternal result = null;
             TryQuery(c =>
@@ -2106,7 +2092,7 @@ namespace Couchbase.Lite.Store
             return result;
         }
 
-        public IRevisionInformation PutLocalRevision(IRevisionInformation revision, string prevRevId, bool obeyMVCC)
+        public RevisionInternal PutLocalRevision(RevisionInternal revision, string prevRevId, bool obeyMVCC)
         {
             string docId = revision.DocID;
             if (!docId.StartsWith("_local/")) {
@@ -2164,7 +2150,7 @@ namespace Couchbase.Lite.Store
                     throw new CouchbaseLiteException(StatusCode.Conflict);
                 }
 
-                return new RevisionInternal(revision, docId, newRevId);
+                return revision.Copy(docId, newRevId);
             } else {
                 // DELETE:
                 var status = DeleteLocalRevision(docId, prevRevId);

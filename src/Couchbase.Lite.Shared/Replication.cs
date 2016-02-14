@@ -579,8 +579,8 @@ namespace Couchbase.Lite
         }
 
         internal RemoteServerVersion ServerType { get; set; }
-        internal Batcher<IRevisionInformation> Batcher { get; set; }
-        internal Func<IRevisionInformation, IRevisionInformation> RevisionBodyTransformationFunction { get; private set; }
+        internal Batcher<RevisionInternal> Batcher { get; set; }
+        internal Func<RevisionInternal, RevisionInternal> RevisionBodyTransformationFunction { get; private set; }
 
 
         #endregion
@@ -664,7 +664,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            Batcher = new Batcher<IRevisionInformation>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, inbox =>
+            Batcher = new Batcher<RevisionInternal>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, inbox =>
             {
                 try {
                     Log.V(TAG, "*** BEGIN ProcessInbox for {0} ({1} sequences)", _replicatorID, inbox.Count);
@@ -1531,7 +1531,7 @@ namespace Couchbase.Lite
             return _remoteCheckpointDocID;
         }
 
-        internal IRevisionInformation TransformRevision(IRevisionInformation rev)
+        internal RevisionInternal TransformRevision(RevisionInternal rev)
         {
             if (RevisionBodyTransformationFunction != null) {
                 try {
@@ -1610,7 +1610,7 @@ namespace Couchbase.Lite
             });
         }
 
-        internal void AddToInbox(IRevisionInformation rev)
+        internal void AddToInbox(RevisionInternal rev)
         {
             Debug.Assert(IsRunning);
             Batcher.QueueObject(rev);

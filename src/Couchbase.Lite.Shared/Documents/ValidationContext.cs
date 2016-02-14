@@ -59,14 +59,14 @@ namespace Couchbase.Lite
     {
         IList<String> changedKeys;
 
-        private IRevisionInformation InternalRevision { get; set; }
-        private IRevisionInformation NewRevision { get; set; }
+        private RevisionInternal InternalRevision { get; set; }
+        private RevisionInternal NewRevision { get; set; }
 
         private Database Database { get; set; }
 
         internal String RejectMessage { get; set; }
 
-        internal ValidationContext(Database database, IRevisionInformation currentRevision, IRevisionInformation newRevision)
+        internal ValidationContext(Database database, RevisionInternal currentRevision, RevisionInternal newRevision)
         {
             Database = database;
             InternalRevision = currentRevision;

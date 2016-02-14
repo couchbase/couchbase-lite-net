@@ -484,7 +484,7 @@ namespace Couchbase.Lite {
         {
             var result = new List<SavedRevision>();
             var revs = Database.Storage.GetAllDocumentRevisions(Id, true);
-            foreach (IRevisionInformation rev in revs)
+            foreach (RevisionInternal rev in revs)
             {
                 // add it to result, unless we are not supposed to include deleted and it's deleted
                 if (!includeDeleted && rev.Deleted)
@@ -499,7 +499,7 @@ namespace Couchbase.Lite {
             return Sharpen.Collections.UnmodifiableList(result);
         }
 
-        internal SavedRevision GetRevisionFromRev(IRevisionInformation internalRevision)
+        internal SavedRevision GetRevisionFromRev(RevisionInternal internalRevision)
         {
             if (internalRevision == null) {
                 return null;
