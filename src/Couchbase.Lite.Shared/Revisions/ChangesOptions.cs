@@ -45,7 +45,7 @@ using Couchbase.Lite;
 namespace Couchbase.Lite
 {
     /// <summary>Options for _changes feed</summary>
-    public struct ChangesOptions
+    internal struct ChangesOptions
     {
 
         public bool Descending { get; set; }

@@ -4,11 +4,11 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectTypeGuids>{FEACFBD2-3405-455C-9665-78FE426C6842};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <ProjectGuid>{80F83EB6-132C-4062-BDB6-2CBCC32C77EC}</ProjectGuid>
+    <ProjectGuid>{9F472411-E8F1-472C-93DC-4686E83A6AC9}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>storage.sqlcipher.ios</RootNamespace>
+    <RootNamespace>storage.systemsqlitebait</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
-    <AssemblyName>Couchbase.Lite.Storage.SQLCipher</AssemblyName>
+    <AssemblyName>Couchbase.Lite.Storage.SystemSQLite</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -16,20 +16,18 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;PINVOKE_FROM_INTERNAL_SQLCIPHER;OLD_REFLECTION;PLATFORM_UNIFIED;ENCRYPTION;</DefineConstants>
+    <DefineConstants>DEBUG;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
+    <DebugType>full</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
-    <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>PINVOKE_FROM_INTERNAL_SQLCIPHER;OLD_REFLECTION;PLATFORM_UNIFIED;ENCRYPTION;</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -37,25 +35,8 @@
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.iOS" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Resources\" />
-    <Folder Include="Properties\" />
-  </ItemGroup>
-  <Import Project="..\SQLitePCL\sqlitepcl.shared.projitems" Label="Shared" Condition="Exists('..\SQLitePCL\sqlitepcl.shared.projitems')" />
-  <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <ItemGroup>
-    <None Include="ios.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <ManifestResourceWithNoCulture Include="..\SQLitePCL\vendor\sqlcipher\libs\ios\libsqlcipher.a">
-      <Link>libsqlcipher.a</Link>
-    </ManifestResourceWithNoCulture>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
-      <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
-      <Name>Couchbase.Lite.iOS</Name>
-    </ProjectReference>
+    <Compile Include="AOTHelper.cs" />
   </ItemGroup>
 </Project>

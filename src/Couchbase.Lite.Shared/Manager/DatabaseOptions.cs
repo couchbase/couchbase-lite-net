@@ -20,6 +20,7 @@
 //
 
 using Couchbase.Lite.Store;
+using System;
 
 namespace Couchbase.Lite
 {

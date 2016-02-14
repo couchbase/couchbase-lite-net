@@ -53,6 +53,9 @@ namespace Couchbase.Lite
 
         #region Constants
 
+        [Obsolete("Use DefaultLimit instead")]
+        public const int DEFAULT_LIMIT = Int32.MaxValue;
+
         public static readonly int DefaultLimit = Int32.MaxValue;
 
         #endregion

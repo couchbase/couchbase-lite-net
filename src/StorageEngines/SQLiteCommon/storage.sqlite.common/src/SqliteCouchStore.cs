@@ -40,6 +40,9 @@ using StringEx = System.String;
 
 namespace Couchbase.Lite.Store
 {
+    #if __IOS__
+    [Foundation.Preserve(AllMembers = true)]
+    #endif
     internal sealed class SqliteCouchStore : ICouchStore
     {
         #region Constants

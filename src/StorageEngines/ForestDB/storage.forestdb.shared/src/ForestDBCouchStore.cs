@@ -73,6 +73,9 @@ namespace Couchbase.Lite.Store
 
     #region ForestDBCouchStore
 
+    #if __IOS__
+    [Foundation.Preserve(AllMembers = true)]
+    #endif
     internal unsafe sealed class ForestDBCouchStore : ICouchStore
     {
 
