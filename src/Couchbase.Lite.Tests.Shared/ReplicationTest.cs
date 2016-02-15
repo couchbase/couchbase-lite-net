@@ -229,6 +229,50 @@ namespace Couchbase.Lite
         }*/
 
         [Test]
+        public void TestPulledConflict()
+        {
+            var otherDb = manager.GetDatabase("other");
+            var conflictVals = new List<bool>();
+            otherDb.Changed += (sender, e) => 
+            {
+                conflictVals.Add(e.Changes.ElementAt(0).IsConflict);
+            };
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var pull = otherDb.CreatePullReplication(remoteDb.RemoteUri);
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                var doc = database.CreateDocument();
+                doc.PutProperties(new Dictionary<string, object> { { "tag", 1 } });
+                RunReplication(push);
+                RunReplication(pull);
+
+                var otherDoc = otherDb.GetExistingDocument(doc.Id);
+                Assert.IsNotNull(otherDoc);
+                doc.Update(r =>
+                {
+                    var props = r.UserProperties;
+                    props["tag"] = 2;
+                    r.SetUserProperties(props);
+                    return true;
+                });
+
+                otherDoc.Update(r =>
+                {
+                    var props = r.UserProperties;
+                    props["tag"] = 3;
+                    r.SetUserProperties(props);
+                    return true;
+                });
+
+                RunReplication(push);
+                RunReplication(pull);
+
+                CollectionAssert.AreEqual(new bool[] { false, false, true }, conflictVals);
+            }
+        }
+
+
+        [Test]
         public void TestCloseDatabaseWhileReplicating()
         {
             var signal = new CountdownEvent(1);
