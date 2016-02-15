@@ -51,7 +51,6 @@ using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Sharpen;
 using Newtonsoft.Json.Linq;
-using Couchbase.Lite.Storage;
 using Couchbase.Lite.Util;
 using Newtonsoft.Json;
 using System.IO;

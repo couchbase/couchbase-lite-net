@@ -104,11 +104,11 @@ namespace Couchbase.Lite
         {
             Log.V(TAG, "SetUp");
             #if !NET_3_5
-            if (_storageType == "ForestDB") {
+            /*if (_storageType == "ForestDB") {
                 CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, (level, message) =>
                     Console.WriteLine(String.Format("[CBForest {0}]: {1}", level, (string)message))
                 );
-            }
+            }*/
             #endif
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
@@ -378,10 +378,10 @@ namespace Couchbase.Lite
             Manager.DefaultOptions.RestoreDefaults();
 
             #if !NET_3_5
-            if (_storageType == "ForestDB") {
+            /*if (_storageType == "ForestDB") {
                 CBForest.Native.CheckMemoryLeaks();
                 CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, null);
-            }
+            }*/
             #endif
         }
 

@@ -12,7 +12,7 @@
     <AndroidResgenClass>Resource</AndroidResgenClass>
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidUseLatestPlatformSdk>True</AndroidUseLatestPlatformSdk>
-    <AssemblyName>storage.forestdb.droid</AssemblyName>
+    <AssemblyName>Couchbase.Lite.Storage.ForestDB</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
     <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
   </PropertyGroup>
@@ -26,6 +26,7 @@
     <WarningLevel>4</WarningLevel>
     <AndroidLinkMode>None</AndroidLinkMode>
     <ConsolePause>false</ConsolePause>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>full</DebugType>
@@ -35,17 +36,40 @@
     <WarningLevel>4</WarningLevel>
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <ConsolePause>false</ConsolePause>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  <Import Project="..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems" Label="Shared" Condition="Exists('..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
-  <Target Name="AfterBuild">
-    <Message Text="Copying native components..." />
-    <Copy SourceFiles="droid.targets" DestinationFolder="$(OutputPath)" />
-    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\arm64-v8a\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\arm64-v8a" />
-    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\armeabi-v7a\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\armeabi-v7a" />
-    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\x86\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\x86" />
-    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt\x86_64\libCBForest-Interop.so" DestinationFolder="$(OutputPath)\x86_64" />
-  </Target>
   <ItemGroup>
-    <Compile Include="Dummy.cs" />
+    <ProjectReference Include="..\..\..\Couchbase.Lite.Android\Couchbase.Lite.Android.csproj">
+      <Project>{5615E423-D0FD-4F99-A99C-061679615CEE}</Project>
+      <Name>Couchbase.Lite.Android</Name>
+      <Private>False</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\packages\Newtonsoft.Json.7.0.1\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="Mono.Android" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedNativeLibrary Include="..\CBForest\CSharp\prebuilt\arm64-v8a\libCBForest-Interop.so">
+      <Link>arm64-v8a\libCBForest-Interop.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\CBForest\CSharp\prebuilt\armeabi-v7a\libCBForest-Interop.so">
+      <Link>armeabi-v7a\libCBForest-Interop.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\CBForest\CSharp\prebuilt\x86\libCBForest-Interop.so">
+      <Link>x86\libCBForest-Interop.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\CBForest\CSharp\prebuilt\x86_64\libCBForest-Interop.so">
+      <Link>x86_64\libCBForest-Interop.so</Link>
+    </EmbeddedNativeLibrary>
   </ItemGroup>
 </Project>
