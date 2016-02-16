@@ -56,6 +56,8 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Revisions;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -150,7 +152,7 @@ namespace Couchbase.Lite.Replicator
                 return 0;
             }
 
-            var parsed = RevisionInternal.ParseRevId(ancestorID);
+            var parsed = RevisionID.ParseRevId(ancestorID);
             return parsed.Item1;
         }
 
@@ -243,7 +245,7 @@ namespace Couchbase.Lite.Replicator
         {
             lock(_pendingSequences)
             {
-                var seq = revisionInternal.GetSequence();
+                var seq = revisionInternal.Sequence;
                 if (!_pendingSequences.ContainsKey(seq)) {
                     _pendingSequences.Add(seq, 0);
                 }
@@ -259,7 +261,7 @@ namespace Couchbase.Lite.Replicator
         {
             lock (_pendingSequences)
             {
-                var seq = revisionInternal.GetSequence();
+                var seq = revisionInternal.Sequence;
                 var wasFirst = (_pendingSequences.Count > 0 && seq == _pendingSequences.ElementAt(0).Key);
                 if (!_pendingSequences.ContainsKey(seq))
                 {
@@ -335,7 +337,7 @@ namespace Couchbase.Lite.Replicator
                     // Remove from the pending list all the revs that didn't fail:
                     foreach (var revisionInternal in revChanges)
                     {
-                        if (!failedIds.Contains(revisionInternal.GetDocId()))
+                        if (!failedIds.Contains(revisionInternal.DocID))
                         {
                             RemovePending(revisionInternal);
                         }
@@ -416,7 +418,7 @@ namespace Couchbase.Lite.Replicator
                 return false;
             }
 
-            var path = string.Format("/{0}?new_edits=false", revision.GetDocId());
+            var path = string.Format("/{0}?new_edits=false", revision.DocID);
 
             // TODO: need to throttle these requests
             Log.D(TAG, "Uploading multipart request.  Revision: " + revision);
@@ -449,7 +451,7 @@ namespace Couchbase.Lite.Replicator
         private void UploadJsonRevision(RevisionInternal originalRev)
         {
             // Expand all attachments inline:
-            var rev = originalRev.CopyWithDocID(originalRev.GetDocId(), originalRev.GetRevId());
+            var rev = originalRev.Copy(originalRev.DocID, originalRev.RevID);
             try {
                 LocalDatabase.ExpandAttachments(rev, 0, false, false);
             } catch(Exception e) {
@@ -458,7 +460,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            var path = string.Format("/{0}?new_edits=false", Uri.EscapeUriString(rev.GetDocId()));
+            var path = string.Format("/{0}?new_edits=false", Uri.EscapeUriString(rev.DocID));
             SendAsyncRequest(HttpMethod.Put, path, rev.GetProperties(), (result, e) =>
             {
                 if (e != null) 
@@ -639,13 +641,13 @@ namespace Couchbase.Lite.Replicator
             var diffs = new Dictionary<String, IList<String>>();
             var inboxCount = inbox.Count;
             foreach (var rev in inbox) {
-                var docID = rev.GetDocId();
+                var docID = rev.DocID;
                 var revs = diffs.Get(docID);
                 if (revs == null) {
                     revs = new List<String>();
                     diffs[docID] = revs;
                 }
-                revs.Add(rev.GetRevId());
+                revs.Add(rev.RevID);
                 AddPending(rev);
             }
 
@@ -682,14 +684,14 @@ namespace Couchbase.Lite.Replicator
                             foreach (var rev in inbox) {
                                 // Is this revision in the server's 'missing' list?
                                 IDictionary<string, object> properties = null;
-                                var revResults = results.Get(rev.GetDocId()).AsDictionary<string, object>(); 
+                                var revResults = results.Get(rev.DocID).AsDictionary<string, object>(); 
                                 if (revResults == null) {
                                     //SafeIncrementCompletedChangesCount();
                                     continue;
                                 }
 
                                 var revs = revResults.Get("missing").AsList<string>();
-                                if (revs == null || !revs.Any( id => id.Equals(rev.GetRevId(), StringComparison.OrdinalIgnoreCase))) {
+                                if (revs == null || !revs.Any( id => id.Equals(rev.RevID, StringComparison.OrdinalIgnoreCase))) {
                                     RemovePending(rev);
                                     //SafeIncrementCompletedChangesCount();
                                     continue;

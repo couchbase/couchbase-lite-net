@@ -71,15 +71,15 @@ namespace Couchbase.Lite
             var rev1 = new RevisionInternal(body);
             rev1 = database.Storage.PutLocalRevision(rev1, null, true);
             Log.V(Tag, "Created " + rev1);
-            Assert.AreEqual("_local/doc1", rev1.GetDocId());
-            Assert.IsTrue(rev1.GetRevId().StartsWith("1-"));
+            Assert.AreEqual("_local/doc1", rev1.DocID);
+            Assert.IsTrue(rev1.RevID.StartsWith("1-"));
 
             //read it back
-            var readRev = database.Storage.GetLocalDocument(rev1.GetDocId(), null);
+            var readRev = database.Storage.GetLocalDocument(rev1.DocID, null);
             Assert.IsNotNull(readRev);
             var readRevProps = readRev.GetProperties();
-            Assert.AreEqual(rev1.GetDocId(), readRevProps.Get("_id"));
-            Assert.AreEqual(rev1.GetRevId(), readRevProps.Get("_rev"));
+            Assert.AreEqual(rev1.DocID, readRevProps.Get("_id"));
+            Assert.AreEqual(rev1.RevID, readRevProps.Get("_rev"));
             AssertPropertiesAreEqual(UserProperties(readRevProps), 
                 UserProperties(body.GetProperties()));
 
@@ -89,13 +89,13 @@ namespace Couchbase.Lite
             body = new Body(documentProperties);
             var rev2 = new RevisionInternal(body);
             var rev2input = rev2;
-            rev2 = database.Storage.PutLocalRevision(rev2, rev1.GetRevId(), true);
+            rev2 = database.Storage.PutLocalRevision(rev2, rev1.RevID, true);
             Log.V(Tag, "Updated " + rev1);
-            Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
-            Assert.IsTrue(rev2.GetRevId().StartsWith("2-"));
+            Assert.AreEqual(rev1.DocID, rev2.DocID);
+            Assert.IsTrue(rev2.RevID.StartsWith("2-"));
             
             //read it back
-            readRev = database.Storage.GetLocalDocument(rev2.GetDocId(), null);
+            readRev = database.Storage.GetLocalDocument(rev2.DocID, null);
             Assert.IsNotNull(readRev);
             AssertPropertiesAreEqual(UserProperties(readRev.GetProperties()), 
                 UserProperties(body.GetProperties()));
@@ -104,7 +104,7 @@ namespace Couchbase.Lite
             var gotException = false;
             try
             {
-                database.Storage.PutLocalRevision(rev2input, rev1.GetRevId(), true);
+                database.Storage.PutLocalRevision(rev2input, rev1.RevID, true);
             }
             catch (CouchbaseLiteException e)
             {
@@ -114,7 +114,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(gotException);
             
             // Delete it:
-            var revD = new RevisionInternal(rev2.GetDocId(), null, true);
+            var revD = new RevisionInternal(rev2.DocID, null, true);
             gotException = false;
             try
             {
@@ -127,7 +127,7 @@ namespace Couchbase.Lite
                 gotException = true;
             }
             Assert.IsTrue(gotException);
-            revD = database.Storage.PutLocalRevision(revD, rev2.GetRevId(), true);
+            revD = database.Storage.PutLocalRevision(revD, rev2.RevID, true);
             
             // Delete nonexistent doc:
             gotException = false;
@@ -144,7 +144,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(gotException);
             
             // Read it back (should fail):
-            readRev = database.Storage.GetLocalDocument(revD.GetDocId(), null);
+            readRev = database.Storage.GetLocalDocument(revD.DocID, null);
             Assert.IsNull(readRev);
         }
     }

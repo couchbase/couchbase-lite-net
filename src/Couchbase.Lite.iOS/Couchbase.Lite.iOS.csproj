@@ -81,22 +81,23 @@
     <Compile Include="CouchBaseTableDelegate.cs" />
     <Compile Include="CouchbaseTableSource.cs" />
     <Compile Include="ReloadEventArgs.cs" />
+    <Compile Include="AOTHelper.cs" />
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
-      <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
-      <Name>ugly_profile78</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\portable.profile78.csproj">
-      <Project>{84547E16-A872-418D-82A6-B57ADEE290AE}</Project>
-      <Name>portable.profile78</Name>
+    <ProjectReference Include="..\StorageEngines\SQLCipher\storage.sqlcipher.ios-bait\storage.sqlcipher.ios-bait.csproj">
+      <Project>{DED32FF7-0DED-45A7-9682-4ACF03D254DB}</Project>
+      <Name>storage.sqlcipher.ios-bait</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS-fake\cbforest-sharp.iOS-fake.csproj">
-      <Project>{1F7C1231-9F6C-4E0C-B916-F0D05EF04941}</Project>
-      <Name>cbforest-sharp.iOS-fake</Name>
+    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite-bait\storage.systemsqlite-bait.csproj">
+      <Project>{9F472411-E8F1-472C-93DC-4686E83A6AC9}</Project>
+      <Name>storage.systemsqlite-bait</Name>
       <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\ForestDB\storage.forestdb.ios-bait\storage.forestdb.ios-bait.csproj">
+      <Project>{BDC11824-1554-4CF8-BFD5-E3E1B9C9E41D}</Project>
+      <Name>storage.forestdb.ios-bait</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

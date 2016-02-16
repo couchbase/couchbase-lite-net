@@ -5,8 +5,7 @@
     <IsMac>false</IsMac>
     <IsMac Condition=" '$(OS)' == 'Unix' AND Exists('/Library/Frameworks') ">true</IsMac>
   </PropertyGroup> 
-  <Target Name="InjectReference_b652c259-e538-47dd-96e1-3bfd2deac2c4" BeforeTargets="ResolveAssemblyReferences"
-  	Condition=" $(DefineConstants.Contains('CBL_SQLCIPHER')) ">
+  <Target Name="InjectReference_b652c259-e538-47dd-96e1-3bfd2deac2c4" BeforeTargets="ResolveAssemblyReferences">
     <ItemGroup>
       <Content Include="$(MSBuildThisFileDirectory)libsqlcipher.dylib" Condition=" $(IsMac) ">
       <Link>libsqlcipher.dylib</Link>
@@ -16,19 +15,14 @@
       <Link>libsqlcipher.so</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)SQLitePCL.raw.dll.config">
-      <Link>SQLitePCL.raw.dll.config</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)x86\sqlite3.dll" Condition=" '$(OS)' == 'Windows_NT' ">
+    <Content Include="$(MSBuildThisFileDirectory)x86\sqlcipher.dll" Condition=" '$(OS)' == 'Windows_NT' ">
       <Link>x86\sqlite3.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)x64\sqlite3.dll" Condition=" '$(OS)' == 'Windows_NT' ">
+    <Content Include="$(MSBuildThisFileDirectory)x64\sqlcipher.dll" Condition=" '$(OS)' == 'Windows_NT' ">
       <Link>x64\sqlite3.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content> 
   </ItemGroup>
-  <Message Text="Building with SQLCipher storage engine..." />
   </Target>
 </Project>

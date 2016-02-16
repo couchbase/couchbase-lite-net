@@ -195,9 +195,5 @@
       <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
       <Name>Couchbase.Lite.iOS</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS\cbforest-sharp.iOS.csproj">
-      <Project>{A5757777-CDFE-43BF-8260-D342BF83B773}</Project>
-      <Name>cbforest-sharp.iOS</Name>
-    </ProjectReference>
   </ItemGroup>
 </Project>

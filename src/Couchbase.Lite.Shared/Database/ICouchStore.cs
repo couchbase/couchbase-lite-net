@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Db;
 
 namespace Couchbase.Lite.Store
 {
@@ -72,6 +73,8 @@ namespace Couchbase.Lite.Store
         bool AutoCompact { get; set; }
 
         bool IsOpen { get; }
+
+        IDatabaseUpgrader CreateUpgrader(Database upgradeTo, string upgradeFrom);
 
         #endregion
 
@@ -217,7 +220,7 @@ namespace Couchbase.Lite.Store
         /// <param name="options">Options for ordering, document content, etc.</param>
         /// <param name="filter">If non-null, will be called on every revision, and those for which it returns <c>false</c>
         /// will be skipped.</param>
-        RevisionList ChangesSince(Int64 lastSequence, ChangesOptions options, RevisionFilter filter);
+        RevisionList ChangesSince(long lastSequence, ChangesOptions options, RevisionFilter filter);
 
         #endregion
 

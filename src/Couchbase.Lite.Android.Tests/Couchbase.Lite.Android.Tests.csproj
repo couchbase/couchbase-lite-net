@@ -33,6 +33,7 @@
     <ConsolePause>false</ConsolePause>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EmbedAssembliesIntoApk>True</EmbedAssembliesIntoApk>
+    <AndroidSupportedAbis>armeabi-v7a;x86;arm64-v8a;x86_64</AndroidSupportedAbis>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -123,28 +124,9 @@
       <Project>{4549834B-28B6-4A54-A3EC-978D0E582444}</Project>
       <Name>Couchbase.Lite.Listener.Bonjour.Android</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Droid\cbforest-sharp.Droid.csproj">
-      <Project>{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}</Project>
-      <Name>cbforest-sharp.Droid</Name>
-    </ProjectReference>
     <ProjectReference Include="vendor\Andr.Unit\Android.NUnitLite\Android.NUnitLite.csproj">
       <Project>{6A005891-A3D6-4398-A729-F645397D573A}</Project>
       <Name>Android.NUnitLite</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\StorageEngines\SQLCipher\storage.sqlcipher.droid\storage.sqlcipher.droid.csproj">
-      <Project>{9C5FAB56-F098-4809-8465-65257A59B8BD}</Project>
-      <Name>storage.sqlcipher.droid</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\StorageEngines\ForestDB\storage.forestdb.droid\storage.forestdb.droid.csproj">
-      <Project>{9CEE0189-1533-484D-A957-664B1A372EAA}</Project>
-      <Name>storage.forestdb.droid</Name>
-      <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.droid\storage.systemsqlite.droid.csproj">
-      <Project>{51DC5755-5EDE-45CE-97D2-D45078DA0F3B}</Project>
-      <Name>storage.systemsqlite.droid</Name>
-      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.droid.csproj">
       <Project>{E1153FA4-356A-454D-B32E-136102F2482F}</Project>
@@ -207,9 +189,6 @@
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
-  <Import Project="..\StorageEngines\SystemSQLite\storage.systemsqlite.droid\bin\$(Configuration)\droid.targets" />
-  <Import Project="..\StorageEngines\SQLCipher\storage.sqlcipher.droid\bin\$(Configuration)\droid.targets" />
-  <Import Project="..\StorageEngines\ForestDB\storage.forestdb.droid\bin\$(Configuration)\droid.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>

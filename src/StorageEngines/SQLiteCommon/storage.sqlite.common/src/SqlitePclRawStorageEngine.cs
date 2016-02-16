@@ -91,21 +91,10 @@ namespace Couchbase.Lite
         // Returns true on success, false if encryption key is wrong, throws exception for other cases
         public bool Decrypt(SymmetricKey encryptionKey, sqlite3 connection)
         {
-            var hasRealEncryption = false;
-            try {
-                hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
-            } catch(EntryPointNotFoundException) {
-                // Android omits the compileoption_used from its system SQLite
-                hasRealEncryption = false;
-            }
-
+            #if !ENCRYPTION
+            throw new InvalidOperationException("Encryption not supported on this store");
+            #else
             if (encryptionKey != null) {
-                if (!hasRealEncryption) {
-                    throw new CouchbaseLiteException("Encryption not available (make sure you have installed the" +
-                        " correct Nuget packages and added the CBL_SQLCIPHER symbol to your project's define symbols.)",
-                        StatusCode.NotImplemented);
-                }
-
                 // http://sqlcipher.net/sqlcipher-api/#key
                 var sql = String.Format("PRAGMA key = \"x'{0}'\"", encryptionKey.HexData);
                 try {
@@ -129,6 +118,7 @@ namespace Couchbase.Lite
             }
 
             return true;
+            #endif
         }
 
         public bool Open(String path, bool readOnly, string schema, SymmetricKey encryptionKey)
@@ -146,9 +136,11 @@ namespace Couchbase.Lite
                 int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | readFlag | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(writer_flags, encryptionKey, out _writeConnection);
 
+                #if ENCRYPTION
                 if (!Decrypt(encryptionKey, _writeConnection)) {
                     throw new CouchbaseLiteException(StatusCode.Unauthorized);
                 }
+                #endif
 
 				if(schema != null && GetVersion() == 0) {
 					foreach (var statement in schema.Split(';')) {
@@ -159,9 +151,11 @@ namespace Couchbase.Lite
 				const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
 				OpenSqliteConnection(reader_flags, encryptionKey, out _readConnection);
 
+                #if ENCRYPTION
 				if(!Decrypt(encryptionKey, _readConnection)) {
 					throw new CouchbaseLiteException(StatusCode.Unauthorized);
 				}
+                #endif
             } catch(CouchbaseLiteException) {
                 Log.W(TAG, "Error opening SQLite storage engine");
                 throw;

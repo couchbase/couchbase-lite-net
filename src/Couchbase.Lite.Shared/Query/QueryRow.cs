@@ -159,7 +159,7 @@ namespace Couchbase.Lite
                 // Get the doc id from either the embedded document contents, or the '_id' value key.
                 // Failing that, there's no document linking, so use the regular old SourceDocumentId
                 if (_documentRevision != null) {
-                    return _documentRevision.GetDocId();
+                    return _documentRevision.DocID;
                 }
 
                 var valueDic = Value as IDictionary<string, object>;
@@ -195,7 +195,7 @@ namespace Couchbase.Lite
                 // Get the revision id from either the embedded document contents,
                 // or the '_rev' or 'rev' value key:
                 if (_documentRevision != null) {
-                    return _documentRevision.GetRevId();
+                    return _documentRevision.RevID;
                 }
 
                 var value = Value as IDictionary<string, object>;

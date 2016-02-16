@@ -46,11 +46,12 @@ using System.Linq;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Sharpen;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite
 {
     [System.Serializable]
-    internal class RevisionList : List<RevisionInternal>
+    internal sealed class RevisionList : List<RevisionInternal>
     {
         
         public RevisionList() : base()
@@ -61,13 +62,13 @@ namespace Couchbase.Lite
         {
         }
 
-        public virtual RevisionInternal RevWithDocIdAndRevId(string docId, string revId)
+        public RevisionInternal RevWithDocIdAndRevId(string docId, string revId)
         {
             IEnumerator<RevisionInternal> iterator = GetEnumerator();
             while (iterator.MoveNext())
             {
                 var rev = iterator.Current;
-                if (docId.Equals(rev.GetDocId()) && revId.Equals(rev.GetRevId()))
+                if (docId.Equals(rev.DocID) && revId.Equals(rev.RevID))
                 {
                     return rev;
                 }
@@ -75,41 +76,41 @@ namespace Couchbase.Lite
             return null;
         }
 
-        public virtual IList<string> GetAllDocIds()
+        public IList<string> GetAllDocIds()
         {
             IList<string> result = new List<string>();
             IEnumerator<RevisionInternal> iterator = GetEnumerator();
             while (iterator.MoveNext())
             {
                 RevisionInternal rev = iterator.Current;
-                result.Add(rev.GetDocId());
+                result.Add(rev.DocID);
             }
             return result;
         }
 
-        public virtual IList<string> GetAllRevIds()
+        public IList<string> GetAllRevIds()
         {
             IList<string> result = new List<string>();
             IEnumerator<RevisionInternal> iterator = GetEnumerator();
             while (iterator.MoveNext())
             {
                 RevisionInternal rev = iterator.Current;
-                result.Add(rev.GetRevId());
+                        result.Add(rev.RevID);
             }
             return result;
         }
 
-        public virtual void SortByDocID()
+        public void SortByDocID()
         {
-            Sort((r1, r2) => r1.GetDocId().CompareTo(r2.GetDocId()));
+            Sort((r1, r2) => r1.DocID.CompareTo(r2.DocID));
         }
 
-        public virtual void SortBySequence(bool ascending = false)
+        public void SortBySequence(bool ascending = false)
         {
-            Sort((r1, r2) => Misc.TDSequenceCompare(r1.GetSequence(), r2.GetSequence(), ascending));
+            Sort((r1, r2) => Misc.TDSequenceCompare(r1.Sequence, r2.Sequence, ascending));
         }
 
-        public virtual void Limit(int limit)
+        public void Limit(int limit)
         {
             if (Count > limit)
             {

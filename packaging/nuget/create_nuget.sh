@@ -69,11 +69,8 @@ $LITE_RELEASE_DIR/ICSharpCode.SharpZipLib.dll
 $LITE_RELEASE_DIR/Microsoft.Scripting.Core.dll
 $LITE_RELEASE_DIR/Rackspace.Threading.dll*
 $LITE_RELEASE_DIR/Stateless.dll
-$LITE_RELEASE_DIR/SQLitePCL.raw.dll
 $LITE_RELEASE_DIR/System.Net.Http.Net35.dll*
-$LITE_RELEASE_DIR/System.Threading.Tasks.Net35.dll*
-$LITE_RELEASE_DIR/ugly_net35.dll
-$LITE_RELEASE_DIR/cbforest-sharp.dll*"
+$LITE_RELEASE_DIR/System.Threading.Tasks.Net35.dll*"
 
 LITE_LISTENER_NUGET_DIR="../../src/ListenerComponent/Couchbase.Lite.Listener.Net35/bin/Nuget/"
 LITE_LISTENER_RELEASE_DIR="../../src/ListenerComponent/Couchbase.Lite.Listener.Net35/bin/Release"

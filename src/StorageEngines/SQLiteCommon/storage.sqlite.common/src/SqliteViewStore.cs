@@ -29,8 +29,9 @@ using Sharpen;
 using System.Collections;
 using SQLitePCL;
 using Couchbase.Lite.Views;
+using Couchbase.Lite.Revisions;
 
-namespace Couchbase.Lite.Store
+namespace Couchbase.Lite.Store 
 {
     internal sealed class SqliteViewStore : IViewStore, IQueryRowStore
     {
@@ -486,7 +487,7 @@ namespace Couchbase.Lite.Store
 
             sql.Append(options.Descending ? ", docid DESC" : ", docid");
             sql.Append(" LIMIT ? OFFSET ?");
-            int limit = options.Limit != QueryOptions.DEFAULT_LIMIT ? options.Limit : -1;
+            int limit = options.Limit != QueryOptions.DefaultLimit ? options.Limit : -1;
             args.Add(limit);
             args.Add(options.Skip);
 
@@ -796,7 +797,7 @@ namespace Couchbase.Lite.Store
                                             viewTotalRows[view.ViewID] -= changes;
                                         }
 
-                                        if (deleted || RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0) {
+                                        if (deleted || RevisionID.CBLCompareRevIDs(oldRevId, revId) > 0) {
                                             // It still 'wins' the conflict, so it's the one that
                                             // should be mapped [again], not the current revision!
                                             revId = oldRevId;
@@ -931,7 +932,7 @@ namespace Couchbase.Lite.Store
                 // underlying query, so handle them specially:
                 limit = options.Limit;
                 skip = options.Skip;
-                options.Limit = QueryOptions.DEFAULT_LIMIT;
+                options.Limit = QueryOptions.DefaultLimit;
                 options.Skip = 0;
             }
 
@@ -951,7 +952,7 @@ namespace Couchbase.Lite.Store
                         // Linked document: http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
                         string linkedRev = value == null ? null : value.GetCast<string>("_rev"); //usually null
                         docRevision = db.GetDocument(linkedId, linkedRev, true);
-                        sequence = docRevision == null ? 0 : docRevision.GetSequence();
+                        sequence = docRevision == null ? 0 : docRevision.Sequence;
                     } else {
                         docRevision = db.GetRevision(docId, cursor.GetString(4), false, sequence, cursor.GetBlob(5));
                     }

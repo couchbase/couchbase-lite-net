@@ -73,4 +73,7 @@ using System;
 [assembly: InternalsVisibleTo("Couchbase.Lite.Net35.Tests")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Unity.Tests")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Listener")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Storage.SystemSQLite")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Storage.SQLCipher")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Storage.ForestDB")]
 [assembly: InternalsVisibleTo("Listener")]

@@ -128,16 +128,6 @@ namespace Couchbase.Lite
             return ManagerOptions.SerializationEngine.ConvertToList<T>(obj) ?? obj as IList<T>;
         }
 
-        internal unsafe CBForest.C4Key* SerializeToKey(object value)
-        {
-            return ManagerOptions.SerializationEngine.SerializeToKey(value);
-        }
-
-        internal T DeserializeKey<T>(CBForest.C4KeyReader keyReader)
-        {
-            return ManagerOptions.SerializationEngine.DeserializeKey<T>(keyReader);
-        }
-
         #endregion
 
         #region Private Methods

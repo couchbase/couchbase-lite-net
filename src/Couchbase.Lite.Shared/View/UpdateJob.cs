@@ -25,7 +25,7 @@ using Couchbase.Lite.Store;
 using System.Threading.Tasks;
 using System.Linq;
 
-namespace Couchbase.Lite.Internal
+namespace Couchbase.Lite
 {
     internal sealed class UpdateJob
     {

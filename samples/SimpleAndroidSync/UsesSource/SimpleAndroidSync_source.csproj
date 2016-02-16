@@ -88,9 +88,5 @@
       <Project>{5615E423-D0FD-4F99-A99C-061679615CEE}</Project>
       <Name>Couchbase.Lite.Android</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Droid\cbforest-sharp.Droid.csproj">
-      <Project>{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}</Project>
-      <Name>cbforest-sharp.Droid</Name>
-    </ProjectReference>
   </ItemGroup>
 </Project>

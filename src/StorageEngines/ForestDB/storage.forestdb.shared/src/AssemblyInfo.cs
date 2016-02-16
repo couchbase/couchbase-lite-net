@@ -1,5 +1,5 @@
 ﻿//
-// Dummy.cs
+// AssemblyInfo.cs
 //
 // Author:
 // 	Jim Borden  <jim.borden@couchbase.com>
@@ -18,15 +18,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-using System;
+using System.Runtime.CompilerServices;
 
-namespace storage.sqlcipher.net35
-{
-    internal class Dummy
-    {
-        public Dummy()
-        {
-        }
-    }
-}
+[assembly: InternalsVisibleTo("Couchbase.Lite.Net45.Tests")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Android.Tests")]
+[assembly: InternalsVisibleTo("CouchbaseLiteiOSTests")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Net35.Tests")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Unity.Tests")]
 

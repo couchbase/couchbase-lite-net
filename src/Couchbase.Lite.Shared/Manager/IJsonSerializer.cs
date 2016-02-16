@@ -188,6 +188,7 @@ namespace Couchbase.Lite
         /// <returns>The cloned object</returns>
         IJsonSerializer DeepClone();
 
+        /*
         /// <summary>
         /// Deserializes the CBForest key into a .NET object of a given type
         /// </summary>
@@ -201,7 +202,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The serialized key</returns>
         /// <param name="keyValue">The object to serialize</param>
-        unsafe CBForest.C4Key* SerializeToKey(object keyValue);
+        unsafe CBForest.C4Key* SerializeToKey(object keyValue);*/
 
     }
 }

@@ -42,7 +42,7 @@
 using System;
 using Couchbase.Lite;
 
-namespace Couchbase.Lite.Internal
+namespace Couchbase.Lite
 {
     /// <summary>Options for _changes feed</summary>
     internal struct ChangesOptions

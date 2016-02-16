@@ -46,7 +46,6 @@ using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Storage;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
@@ -54,6 +53,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Diagnostics;
 using System.Web;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite.Replicator
 {

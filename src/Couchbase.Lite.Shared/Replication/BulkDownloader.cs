@@ -49,6 +49,7 @@ using Sharpen;
 using System.Threading;
 using System.Net.Http.Headers;
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -335,8 +336,8 @@ namespace Couchbase.Lite.Replicator
 
 
                 var mapped = new Dictionary<string, object> ();
-                mapped.Put ("id", source.GetDocId ());
-                mapped.Put ("rev", source.GetRevId ());
+                mapped.Put ("id", source.DocID);
+                mapped.Put ("rev", source.RevID);
                 mapped.Put ("atts_since", attsSince);
 
                 return mapped;

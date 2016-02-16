@@ -40,7 +40,7 @@
 // and limitations under the License.
 //
 
-using System;
+/*using System;
 using NUnit.Framework;
 using Couchbase.Lite.Util;
 
@@ -290,4 +290,4 @@ namespace Couchbase.Lite
         }
     }
 }
-
+*/

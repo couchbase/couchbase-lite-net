@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--Automatically generated-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <IsMac>false</IsMac>
+    <IsMac Condition=" '$(OS)' == 'Unix' AND Exists('/Library/Frameworks') ">true</IsMac>
+  </PropertyGroup> 
+  <Target Name="InjectReference_b652c259-e538-47dd-96e1-3bfd2deac2c4" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Content Include="$(MSBuildThisFileDirectory)libsqlcipher.dylib" Condition=" $(IsMac) ">
+      <Link>libsqlcipher.dylib</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)libsqlcipher.so" Condition=" '$(OS)' == 'Unix' AND !$(IsMac)">
+      <Link>libsqlcipher.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)x86\sqlite3.dll" Condition=" '$(OS)' == 'Windows_NT' ">
+      <Link>x86\sqlite3.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)x64\sqlite3.dll" Condition=" '$(OS)' == 'Windows_NT' ">
+      <Link>x64\sqlite3.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content> 
+  </ItemGroup>
+  </Target>
+</Project>
