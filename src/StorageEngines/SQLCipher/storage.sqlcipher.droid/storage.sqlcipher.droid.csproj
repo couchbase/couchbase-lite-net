@@ -20,7 +20,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;</DefineConstants>
+    <DefineConstants>DEBUG;PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;ENCRYPTION;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AndroidLinkMode>None</AndroidLinkMode>
@@ -33,7 +33,9 @@
     <WarningLevel>4</WarningLevel>
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <ConsolePause>false</ConsolePause>
-    <DefineConstants>PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;</DefineConstants>
+    <DefineConstants>PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;ENCRYPTION;</DefineConstants>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <Import Project="..\SQLitePCL\sqlitepcl.shared.projitems" Label="Shared" Condition="Exists('..\SQLitePCL\sqlitepcl.shared.projitems')" />
   <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />

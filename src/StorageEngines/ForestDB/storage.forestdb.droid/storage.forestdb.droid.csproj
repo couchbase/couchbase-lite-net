@@ -39,6 +39,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <Import Project="..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems" Label="Shared" Condition="Exists('..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems')" />
+  <Import Project="..\storage.forestdb.shared\storage.forestdb.shared.projitems" Label="Shared" Condition="Exists('..\storage.forestdb.shared\storage.forestdb.shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <ItemGroup>
     <ProjectReference Include="..\..\..\Couchbase.Lite.Android\Couchbase.Lite.Android.csproj">
