@@ -39,8 +39,8 @@ namespace Couchbase.Lite.Security
         /// <param name="certificateName">The subject name for the certificate</param>
         public static X509Certificate2 GenerateTransientCertificate(string certificateName)
         {
-            var rawcert = CreateRawCert(certificateName, null);
-            return new X509Certificate2(rawcert);
+            var rawcert = CreateRawCert(certificateName, "tmp");
+            return new X509Certificate2(rawcert, "tmp");
         }
 
         /// <summary>
@@ -124,7 +124,7 @@ namespace Couchbase.Lite.Security
         private static byte[] CreateRawCert(string certName, string password)
         {
             if (String.IsNullOrEmpty(certName)) {
-                throw new ArgumentException("Must contain a non-empty name", "certificateName");
+                throw new ArgumentException("Must contain a non-empty name", "certName");
             }
 
             if (String.IsNullOrEmpty(password)) {

@@ -146,7 +146,7 @@ namespace Couchbase.Lite.Support
 
             var authHandler = new DefaultAuthHandler (handler, store);
             if (!useRetryHandler) {
-                return handler;
+                return authHandler;
             }
 
             var retryHandler = new TransientErrorRetryHandler(authHandler);
@@ -179,6 +179,8 @@ namespace Couchbase.Lite.Support
             var defaultAuthHandler = default(DefaultAuthHandler);
             if (transientHandler != null) {
                 defaultAuthHandler = transientHandler.InnerHandler as DefaultAuthHandler;
+            } else {
+                defaultAuthHandler = authHandler as DefaultAuthHandler;
             }
 
             return new CouchbaseLiteHttpClient(client, defaultAuthHandler);

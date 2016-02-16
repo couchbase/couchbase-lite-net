@@ -291,13 +291,22 @@ namespace Couchbase.Lite
 
         private void SetupListener(bool secure)
         {
+            var opts = CouchbaseLiteTcpOptions.Default;
+            if (_authScheme == AuthenticationSchemes.Basic) {
+                opts |= CouchbaseLiteTcpOptions.AllowBasicAuth;
+            }
+
             if (secure) {
                 var cert = X509Manager.GetPersistentCertificate("127.0.0.1", "123abc", System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "unit_test.pfx"));
                 _listenerDBUri = new Uri(String.Format("https://localhost:{0}/{1}/", _port, LISTENER_DB_NAME));
-                _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.UseTLS, cert);  
+                _listener = new CouchbaseLiteTcpListener(manager, _port, opts | CouchbaseLiteTcpOptions.UseTLS, cert);  
             } else {
                 _listenerDBUri = new Uri(String.Format("http://localhost:{0}/{1}/", _port, LISTENER_DB_NAME));
-                _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.Default); 
+                _listener = new CouchbaseLiteTcpListener(manager, _port, opts); 
+            }
+
+            if (_authScheme != AuthenticationSchemes.None) {
+                _listener.SetPasswords(new Dictionary<string, string> { { "bob", "slack" } });
             }
 
             _listener.Start();
