@@ -208,8 +208,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestUpgradeMD5()
         {
-            Assert.Fail();
-            /*var store = database.Storage as SqliteCouchStore;
+            var store = database.Storage as SqliteCouchStore;
             if (store == null) {
                 Assert.Inconclusive("This test is only valid for a SQLite based store, since any others will be too new to see this issue");
             }
@@ -373,7 +372,7 @@ namespace Couchbase.Lite
                 deleteRequest.Headers.Authorization = authorizationHeader;
                 response = client.SendAsync(deleteRequest).Result;
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            }*/
+            }
         }
 
         /// <exception cref="System.Exception"></exception>

@@ -114,11 +114,10 @@ namespace Couchbase.Lite
             StopCBLite();
             manager = new Manager(testDirInfo, Manager.DefaultOptions);
             var db = manager.GetDatabase("withattachments", true);
-            /*int version = DatabaseUpgraderFactory.SchemaVersion(Path.Combine(db.DbDirectory, "db.sqlite3"));
+            int version = DatabaseUpgraderFactory.SchemaVersion(Path.Combine(db.DbDirectory, "db.sqlite3"));
             Assert.IsTrue(version >= 101, "Upgrade failed");
             Assert.IsFalse(Directory.Exists(Path.Combine(testDirPath, "withattachments/attachments")), "Failed to remove old attachments dir");
-            Assert.IsTrue(Directory.Exists(db.AttachmentStorePath), "Failed to create new attachments dir");*/
-            Assert.Fail();
+            Assert.IsTrue(Directory.Exists(db.AttachmentStorePath), "Failed to create new attachments dir");
         }
 
         [Test]

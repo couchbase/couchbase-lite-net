@@ -191,8 +191,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestPruneRevsToMaxDepth()
         {
-            Assert.Fail();
-            /*var sqliteStorage = database.Storage as SqliteCouchStore;
+            var sqliteStorage = database.Storage as SqliteCouchStore;
             if (sqliteStorage == null) {
                 Assert.Inconclusive("This test is only valid on a SQLite store");
             }
@@ -245,7 +244,7 @@ namespace Couchbase.Lite
 
             var fetchedDoc = database.GetDocument(doc.Id);
             var revisions = fetchedDoc.RevisionHistory.ToList();
-            Assert.AreEqual(1, revisions.Count);*/
+            Assert.AreEqual(1, revisions.Count);
         }
 
         /// <summary>
@@ -462,8 +461,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestEncodeDocumentJSON() 
         {
-            Assert.Fail();
-            /*var sqliteStorage = database.Storage as SqliteCouchStore;
+            var sqliteStorage = database.Storage as SqliteCouchStore;
             if (sqliteStorage == null) {
                 Assert.Inconclusive("This test is only valid on an SQLite store");
             }
@@ -475,13 +473,13 @@ namespace Couchbase.Lite
 
             var revisionInternal = new RevisionInternal(props);
             var encoded = sqliteStorage.EncodeDocumentJSON(revisionInternal);
-            Assert.IsNotNull(encoded);*/
+            Assert.IsNotNull(encoded);
         }
 
         [Test]
         public void TestWinningRevIDOfDoc()
         {
-            /*var sqliteStorage = database.Storage as SqliteCouchStore;
+            var sqliteStorage = database.Storage as SqliteCouchStore;
             if (sqliteStorage == null) {
                 Assert.Inconclusive("This test is only valid on an SQLite store");
             }
@@ -527,8 +525,7 @@ namespace Couchbase.Lite
             newRev2b.SetUserProperties(properties2b);
             newRev2b.Save(true);
             sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict);
-            Assert.IsTrue(outIsConflict);*/
-            Assert.Fail();
+            Assert.IsTrue(outIsConflict);
         }
 
         private void CheckRowsOfReplacedDB(string dbName, Action<QueryEnumerator> onComplete)

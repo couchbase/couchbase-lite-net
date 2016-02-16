@@ -135,13 +135,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestForestDBViewNameEscaping()
         {
-            /*var invalidName = "#@vuName!!/crazy:Ãû";
+            var invalidName = "#@vuName!!/crazy:Ãû";
             var escapedName = ForestDBViewStore.ViewNameToFilename(invalidName);
             Assert.AreEqual("@23@40vuName@21@21@2fcrazy@3aÃû.viewindex", escapedName);
 
             var unescapedName = ForestDBViewStore.FileNameToViewName(escapedName);
-            Assert.AreEqual(invalidName, unescapedName);*/
-            Assert.Fail();
+            Assert.AreEqual(invalidName, unescapedName);
         }
 
         [Test]

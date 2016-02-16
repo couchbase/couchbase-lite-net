@@ -15,7 +15,7 @@ namespace Couchbase.Lite
         [Description("If the delegate returns true, the transaction should be committed.")]
         public void TestRunInTransactionCommits()
         {
-            /*var sqliteStorage = database.Storage as SqliteCouchStore;
+            var sqliteStorage = database.Storage as SqliteCouchStore;
             if (sqliteStorage == null) {
                 Assert.Inconclusive("This test is only valid on a SQLite store");
             }
@@ -32,15 +32,14 @@ namespace Couchbase.Lite
 
             var result = storageEngine.RawQuery("SELECT EXISTS (SELECT 1 FROM transTest WHERE id=0 AND whatever=1)");
             Assert.IsNotNull(result);
-            Assert.AreEqual(1, result.GetInt(0));*/
-            Assert.Fail();
+            Assert.AreEqual(1, result.GetInt(0));
         }
 
         [Test]
         [Description("If the delegate returns false, the transaction should be rolledback.")]
         public void TestRunInTransactionRollsback()
         {
-            /*var sqliteStorage = database.Storage as SqliteCouchStore;
+            var sqliteStorage = database.Storage as SqliteCouchStore;
             if (sqliteStorage == null) {
                 Assert.Inconclusive("This test is only valid on a SQLite store");
             }
@@ -58,8 +57,7 @@ namespace Couchbase.Lite
             var result = storageEngine.RawQuery("SELECT EXISTS (SELECT 1 FROM transTest WHERE id=0 AND whatever=1)");
 
             Assert.IsNotNull(result);
-            Assert.AreEqual(0, result.GetInt(0));*/
-            Assert.Fail();
+            Assert.AreEqual(0, result.GetInt(0));
         }
     }
 }

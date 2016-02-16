@@ -15,5 +15,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)src\JsonC4KeyWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\ForestRevisionInternal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\CouchbaseBridge.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\AssemblyInfo.cs" />
   </ItemGroup>
 </Project>

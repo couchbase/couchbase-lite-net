@@ -98,32 +98,31 @@ namespace Couchbase.Lite
         public void TestCBLCompareRevIDs()
         {
             // Single Digit
-            /*Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("1-foo", "1-foo") == 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("2-bar", "1-foo") > 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("1-foo", "2-bar") < 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("1-foo", "1-foo") == 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("2-bar", "1-foo") > 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("1-foo", "2-bar") < 0);
 
             // Multi-digit:
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("123-bar", "456-foo") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("456-foo", "123-bar") > 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("456-foo", "456-foo") == 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("456-foo", "456-foofoo") < 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("123-bar", "456-foo") < 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("456-foo", "123-bar") > 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("456-foo", "456-foo") == 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("456-foo", "456-foofoo") < 0);
 
             // Different numbers of digits:
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("89-foo", "123-bar") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("123-bar", "89-foo") > 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("89-foo", "123-bar") < 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("123-bar", "89-foo") > 0);
 
             // Edge cases:
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("123-", "89-") > 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("123-a", "123-a") == 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("123-", "89-") > 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("123-a", "123-a") == 0);
 
             // Invalid rev IDs:
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("-a", "-b") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("-", "-") == 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs(string.Empty, string.Empty) == 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs(string.Empty, "-b") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("bogus", "yo") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("bogus-x", "yo-y") < 0);*/
-            Assert.Fail();
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("-a", "-b") < 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("-", "-") == 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs(string.Empty, string.Empty) == 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs(string.Empty, "-b") < 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("bogus", "yo") < 0);
+            Assert.IsTrue(RevisionID.CBLCollateRevIDs("bogus-x", "yo-y") < 0);
         }
 
         [Test]
