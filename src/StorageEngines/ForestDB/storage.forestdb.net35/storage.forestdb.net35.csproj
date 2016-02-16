@@ -63,6 +63,9 @@
       <Link>libCBForest-Interop.so</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="net35.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\CBForest\CSharp\cbforest-sharp.Net35\Extensions.cs">

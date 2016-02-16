@@ -38,7 +38,7 @@
     </Reference>
   </ItemGroup>
   <Import Project="..\storage.forestdb.shared\storage.forestdb.shared.projitems" Label="Shared" Condition="Exists('..\storage.forestdb.shared\storage.forestdb.shared.projitems')" />
-  <Import Project="..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems" Label="Shared" Condition="Exists('..\..\..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems')" />
+  <Import Project="..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems" Label="Shared" Condition="Exists('..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <ProjectReference Include="..\..\..\Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj">
@@ -59,6 +59,9 @@
     </None>
     <None Include="..\CBForest\CSharp\prebuilt\libCBForest-Interop.so">
       <Link>libCBForest-Interop.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="net45.targets">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

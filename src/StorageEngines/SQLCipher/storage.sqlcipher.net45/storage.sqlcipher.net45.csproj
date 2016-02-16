@@ -60,4 +60,9 @@
       <Name>Couchbase.Lite.Net45</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="net45.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

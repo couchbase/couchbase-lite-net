@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite.Storage.SQLCipher</id>
     <title>Couchbase Lite SQLCipher Storage</title>
-    <version>1.2</version>
+    <version>1.3-pre1</version>
     <authors>Jim Borden</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -23,28 +23,26 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     <language>en-US</language>
   </metadata>
   <files>
-    <!-- .NET 3.5 and later -->
+    <!-- .NET 3.5 -->
     <file target="build/net35/Couchbase.Lite.Storage.SQLCipher.targets" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/net35.targets" />
-    <file target="build/net35/x86/sqlite3.dll" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/x86/sqlcipher.dll" />
-    <file target="build/net35/x64/sqlite3.dll" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/x64/sqlcipher.dll" />
+    <file target="build/net35/x86/sqlcipher.dll" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/x86/sqlcipher.dll" />
+    <file target="build/net35/x64/sqlcipher.dll" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/x64/sqlcipher.dll" />
     <file target="build/net35/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/libsqlcipher.dylib" />
     <file target="build/net35/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/libsqlcipher.so" />
-    <file target="build/net35/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/SQLitePCL.raw.dll.config" />
-    
+    <file target="lib/net35/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net35/bin/Release/Couchbase.Lite.Storage.SQLCipher.dll*" />
+
+    <!-- .NET 4.5 -->
+    <file target="build/net45/Couchbase.Lite.Storage.SQLCipher.targets" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/net45.targets" />
+    <file target="build/net45/x86/sqlcipher.dll" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/x86/sqlcipher.dll" />
+    <file target="build/net45/x64/sqlcipher.dll" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/x64/sqlcipher.dll" />
+    <file target="build/net45/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/libsqlcipher.dylib" />
+    <file target="build/net45/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/libsqlcipher.so" />
+    <file target="lib/net45/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/Couchbase.Lite.Storage.SQLCipher.dll*" />
+
     <!-- Xamarin.Android -->
-    <file target="build/MonoAndroid/Couchbase.Lite.Storage.SQLCipher.targets" src="src/StorageEngines/SQLCipher/storage.sqlcipher.droid/bin/Release/droid.targets" />
-    <file target="build/MonoAndroid/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.droid/bin/Release/SQLitePCL.raw.dll" />
-    <file target="build/MonoAndroid/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.droid/bin/Release/SQLitePCL.ugly.dll" />
-    <file target="build/MonoAndroid/arm64-v8a/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.droid/bin/Release/arm64-v8a/libsqlcipher.so" />
-    <file target="build/MonoAndroid/armeabi/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.droid/bin/Release/armeabi/libsqlcipher.so" />
-    <file target="build/MonoAndroid/armeabi-v7a/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.droid/bin/Release/armeabi-v7a/libsqlcipher.so" />
-    <file target="build/MonoAndroid/x86/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.droid/bin/Release/x86/libsqlcipher.so" />
-    <file target="build/MonoAndroid/x86_64/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.droid/bin/Release/x86_64/libsqlcipher.so" />
+    <file target="lib/MonoAndroid/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.droid/bin/Release/Couchbase.Lite.Storage.SQLCipher.dll*" />
 
     <!-- Xamarin.iOS -->
-    <file target="build/Xamarin.iOS10/Couchbase.Lite.Storage.SQLCipher.targets" src="src/StorageEngines/SQLCipher/storage.sqlcipher.ios/bin/Release/ios.targets" />
-    <file target="build/Xamarin.iOS10/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.ios/bin/Release/cbforest-sharp.dll" />
-    <file target="build/Xamarin.iOS10/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.ios/bin/Release/SQLitePCL.raw.dll" />
-    <file target="build/Xamarin.iOS10/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.ios/bin/Release/SQLitePCL.ugly.dll" />
+    <file target="lib/Xamarin.iOS10/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.ios/bin/Release/Couchbase.Lite.Storage.SQLCipher.dll*" />
   </files>
 </package>
