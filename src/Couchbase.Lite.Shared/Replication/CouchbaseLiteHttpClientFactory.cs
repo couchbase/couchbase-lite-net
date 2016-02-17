@@ -73,57 +73,54 @@ namespace Couchbase.Lite.Support
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
             ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
 
-            //
-            // Source: http://msdn.microsoft.com/en-us/library/office/dd633677(v=exchg.80).aspx
-            // ServerCertificateValidationCallback returns true if either of the following criteria are met:
-            // The certificate is valid and signed with a valid root certificate.
-            // The certificate is self-signed by the server that returned the certificate.
-            //
-            ServicePointManager.ServerCertificateValidationCallback = 
+            if (ServicePointManager.ServerCertificateValidationCallback == null) {
+                //
+                // Source: http://msdn.microsoft.com/en-us/library/office/dd633677(v=exchg.80).aspx
+                // ServerCertificateValidationCallback returns true if either of the following criteria are met:
+                // The certificate is valid and signed with a valid root certificate.
+                // The certificate is self-signed by the server that returned the certificate.
+                //
+                ServicePointManager.ServerCertificateValidationCallback = 
             (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
-            {
-                // If the certificate is a valid, signed certificate, return true.
-                if (sslPolicyErrors == SslPolicyErrors.None)
                 {
-                    return true;
-                }
 
-                // If there are errors in the certificate chain, look at each error to determine the cause.
-                if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
-                {
-                    if (chain != null && chain.ChainStatus != null)
-                    {
-                        foreach (X509ChainStatus status in chain.ChainStatus)
-                        {
-                            if ((certificate.Subject == certificate.Issuer) &&
-                                (status.Status == X509ChainStatusFlags.UntrustedRoot))
-                            {
-                                // Self-signed certificates with an untrusted root are valid. 
-                                continue;
-                            }
-                            else
-                            {
-                                if (status.Status != X509ChainStatusFlags.NoError)
-                                {
-                                    // If there are any other errors in the certificate chain, the certificate is invalid,
-                                    // so the method returns false.
-                                    return false;
+                    // If the certificate is a valid, signed certificate, return true.
+                    if (sslPolicyErrors == SslPolicyErrors.None) {
+                        return true;
+                    }
+
+                    // If there are errors in the certificate chain, look at each error to determine the cause.
+                    if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0) {
+                        if (chain != null && chain.ChainStatus != null) {
+                            foreach (X509ChainStatus status in chain.ChainStatus) {
+                                if ((certificate.Subject == certificate.Issuer) &&
+                                (status.Status == X509ChainStatusFlags.UntrustedRoot)) {
+                                    // Self-signed certificates with an untrusted root are valid. 
+                                    continue;
+                                }
+                                else {
+                                    if (status.Status != X509ChainStatusFlags.NoError) {
+                                        Log.W(Tag, "Error in SSL verification -> {0} ({1})", status.Status, status.StatusInformation);
+                                        // If there are any other errors in the certificate chain, the certificate is invalid,
+                                        // so the method returns false.
+                                        return false;
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // When processing reaches this line, the only errors in the certificate chain are 
-                    // untrusted root errors for self-signed certificates. These certificates are valid
-                    // for default Exchange server installations, so return true.
-                    return true;
-                }
-                else
-                {
-                    // In all other cases, return false.
-                    return false;
-                }
-            };
+                        // When processing reaches this line, the only errors in the certificate chain are 
+                        // untrusted root errors for self-signed certificates. These certificates are valid
+                        // for default Exchange server installations, so return true.
+                        return true;
+                    }
+                    else {
+                        Log.W(Tag, "Error in SSL verification -> {0}", sslPolicyErrors);
+                        // In all other cases, return false.
+                        return false;
+                    }
+                };
+            }
         }
 
         /// <summary>
