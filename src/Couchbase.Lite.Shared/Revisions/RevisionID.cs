@@ -20,6 +20,7 @@
 //
 using System;
 using Sharpen;
+using System.Globalization;
 
 namespace Couchbase.Lite.Revisions
 {
@@ -92,7 +93,7 @@ namespace Couchbase.Lite.Revisions
             // improper rev IDs; just compare as plain text:
             if (rev1GenerationStr == null || rev2GenerationStr == null)
             {
-                return revId1.CompareToIgnoreCase(revId2);
+                return String.Compare(revId1, revId2, true, CultureInfo.InvariantCulture);
             }
             int rev1Generation;
             int rev2Generation;
@@ -104,7 +105,7 @@ namespace Couchbase.Lite.Revisions
             catch (FormatException)
             {
                 // improper rev IDs; just compare as plain text:
-                return revId1.CompareToIgnoreCase(revId2);
+                return String.Compare(revId1, revId2, true, CultureInfo.InvariantCulture);
             }
             // Compare generation numbers; if they match, compare suffixes:
             if (rev1Generation.CompareTo(rev2Generation) != 0)
@@ -121,7 +122,7 @@ namespace Couchbase.Lite.Revisions
                 else
                 {
                     // just compare as plain text:
-                    return revId1.CompareToIgnoreCase(revId2);
+                    return String.Compare(revId1, revId2, true, CultureInfo.InvariantCulture);
                 }
             }
         }

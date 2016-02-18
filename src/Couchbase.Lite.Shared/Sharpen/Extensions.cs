@@ -315,12 +315,7 @@ namespace Sharpen
         {
             return string.IsNullOrEmpty (uri.Query) ? null : uri.Query;
         }
-        
-        public static HttpURLConnection OpenConnection (this Uri uri)
-        {
-            return new HttpURLConnection (uri, null);
-        }
-            
+ 
         public static void Bind2 (this Socket socket, EndPoint ep)
         {
             if (ep == null)
@@ -375,16 +370,6 @@ namespace Sharpen
         {
             si.FileName = args[0];
             si.Arguments = string.Join (" ", args.Skip (1).Select (a => "\"" + a + "\"").ToArray ());
-        }
-        
-        public static SystemProcess Start (this ProcessStartInfo si)
-        {
-            si.UseShellExecute = false;
-            si.RedirectStandardInput = true;
-            si.RedirectStandardError = true;
-            si.RedirectStandardOutput = true;
-            si.CreateNoWindow = true;
-            return SystemProcess.Start (si);
         }
     }
 }

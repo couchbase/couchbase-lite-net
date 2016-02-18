@@ -46,7 +46,6 @@ using System.Linq;
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
-using Sharpen;
 using System.Collections.Concurrent;
 
 namespace Couchbase.Lite.Auth

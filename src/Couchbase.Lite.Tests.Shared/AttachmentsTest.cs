@@ -628,8 +628,8 @@ namespace Couchbase.Lite
                 Assert.IsNotNull(inputStream);
 
                 var attachmentDataRetrieved = attachmentRetrieved.Content.ToArray();
-                var attachmentDataRetrievedString = Runtime.GetStringForBytes(attachmentDataRetrieved);
-                var attachBodyString = Sharpen.Runtime.GetStringForBytes(attachBodyBytes);
+                var attachmentDataRetrievedString = Encoding.UTF8.GetString(attachmentDataRetrieved);
+                var attachBodyString = Encoding.UTF8.GetString(attachBodyBytes);
                 Assert.AreEqual(attachBodyString, attachmentDataRetrievedString);
                 // Cleanup
                 attachmentRetrieved.Dispose();

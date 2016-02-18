@@ -41,7 +41,6 @@
 //
 
 using Couchbase.Lite.Util;
-using Sharpen;
 using System;
 using System.Diagnostics;
 

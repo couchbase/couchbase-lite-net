@@ -254,15 +254,15 @@ namespace Couchbase.Lite.Replicator
                 return "[]";
             }
 
-            IEnumerable<Byte> json = null;
+            string json = null;
 
             try {
-                json = Manager.GetObjectMapper().WriteValueAsBytes(strings);
+                json = Manager.GetObjectMapper().WriteValueAsString(strings);
             } catch (Exception e) {
                 Log.W(TAG, "Unable to serialize json", e);
             }
 
-            return Uri.EscapeUriString(Runtime.GetStringForBytes(json));
+            return Uri.EscapeUriString(json);
         }
 
         private void QueueRemoteRevision(RevisionInternal rev)

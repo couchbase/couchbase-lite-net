@@ -104,11 +104,6 @@ namespace Sharpen
         {
             tw.WriteLine (ex);
         }
-    
-        internal static string GetStringForBytes (IEnumerable<Byte> chars)
-        {
-            return Encoding.UTF8.GetString (chars.ToArray());
-        }
             
     }
 }
