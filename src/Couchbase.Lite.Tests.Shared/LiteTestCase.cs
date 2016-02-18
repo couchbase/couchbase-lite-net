@@ -675,9 +675,9 @@ namespace Couchbase.Lite
 
     internal class ReplicationErrorObserver
     {
-        private readonly CountDownLatch doneSignal;
+        private readonly CountdownEvent doneSignal;
 
-        public ReplicationErrorObserver(CountDownLatch doneSignal)
+        public ReplicationErrorObserver(CountdownEvent doneSignal)
         {
             this.doneSignal = doneSignal;
         }
@@ -685,9 +685,8 @@ namespace Couchbase.Lite
         public void Changed(ReplicationChangeEventArgs args)
         {
             var replicator = args.Source;
-            if (replicator.LastError != null)
-            {
-                doneSignal.CountDown();
+            if (replicator.LastError != null) {
+                doneSignal.Signal();
             }
         }
     }

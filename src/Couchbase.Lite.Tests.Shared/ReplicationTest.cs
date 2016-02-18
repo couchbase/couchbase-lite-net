@@ -983,7 +983,7 @@ namespace Couchbase.Lite
                 var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
                 var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
                 Log.D(Tag, "Send http request to " + pathToDoc);
-                var httpRequestDoneSignal = new CountDownLatch(1);
+                var httpRequestDoneSignal = new CountdownEvent(1);
                 using (var httpclient = new HttpClient()) {
                     try {
                         var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
@@ -998,11 +998,11 @@ namespace Couchbase.Lite
                         Assert.IsNull(e, "Got IOException: " + e.Message);
                     }
                     finally {
-                        httpRequestDoneSignal.CountDown();
+                        httpRequestDoneSignal.Signal();
                     }
                     Log.D(Tag, "Waiting for http request to finish");
                     try {
-                        httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+                        httpRequestDoneSignal.Wait(TimeSpan.FromSeconds(10));
                         Log.D(Tag, "http request finished");
                     }
                     catch (Exception e) {

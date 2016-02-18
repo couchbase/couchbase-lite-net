@@ -50,6 +50,7 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Revisions;
+using System.Collections.ObjectModel;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -497,7 +498,7 @@ namespace Couchbase.Lite {
                     result.Add(GetRevisionFromRev(rev));
                 }
             }
-            return Sharpen.Collections.UnmodifiableList(result);
+            return new ReadOnlyCollection<SavedRevision>(result);
         }
 
         internal SavedRevision GetRevisionFromRev(RevisionInternal internalRevision)

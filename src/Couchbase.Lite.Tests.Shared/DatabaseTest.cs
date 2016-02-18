@@ -258,18 +258,18 @@ namespace Couchbase.Lite
         {
             const int numDocs = 50;
             var atomicInteger = 0;
-            var doneSignal = new CountDownLatch(1);
+            var doneSignal = new CountdownEvent(1);
 
             database.Changed += (sender, e) => Interlocked.Increment (ref atomicInteger);
 
             database.RunInTransaction(() =>
             {
                 CreateDocuments(database, numDocs);
-                doneSignal.CountDown();
+                doneSignal.Signal();
                 return true;
             });
 
-            var success = doneSignal.Await(TimeSpan.FromSeconds(30));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
             Assert.AreEqual(1, atomicInteger);
         }

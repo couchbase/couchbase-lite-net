@@ -46,6 +46,7 @@ using Couchbase.Lite.Internal;
 using Sharpen;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Store;
+using System.Collections.ObjectModel;
 
 namespace Couchbase.Lite {
     /// <summary>
@@ -154,30 +155,29 @@ namespace Couchbase.Lite {
         /// Older, ancestor, revisions are not guaranteed to have their properties available.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public override IEnumerable<SavedRevision> RevisionHistory {
+        public override IEnumerable<SavedRevision> RevisionHistory 
+        {
             get {
                 var revisions = new List<SavedRevision>();
                 var internalRevisions = Database.Storage.GetRevisionHistory(RevisionInternal, null);
 
-                foreach (var internalRevision in internalRevisions)
-                {
-                    if (internalRevision.RevID.Equals(Id))
-                    {
+                foreach (var internalRevision in internalRevisions) {
+                    if (internalRevision.RevID.Equals(Id)) {
                         revisions.Add(this);
-                    }
-                    else
-                    {
+                    } else {
                         var revision = Document.GetRevisionFromRev(internalRevision);
                         revisions.Add(revision);
                     }
                 }
-                Collections.Reverse(revisions);
-                return Collections.UnmodifiableList(revisions);
+
+                revisions.Reverse();
+                return new ReadOnlyCollection<SavedRevision>(revisions);
             }
         }
 
         /// <summary>Gets the Revision's id.</summary>
-        public override String Id {
+        public override String Id 
+        {
             get {
                 return RevisionInternal.RevID;
             }
@@ -213,7 +213,8 @@ namespace Couchbase.Lite {
                     }
                     CheckedProperties = true;
                 }
-                return Collections.UnmodifiableMap(properties);
+
+                return properties;
             }
         }
 

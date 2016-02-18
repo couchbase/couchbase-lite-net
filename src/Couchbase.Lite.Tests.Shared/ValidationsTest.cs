@@ -101,7 +101,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(validationCalled);
 
             // PUT an invalid update:
-            Sharpen.Collections.Remove(props, "towel");
+            props.Remove("towel");
             rev.SetProperties(props);
             validationCalled = false;
             Assert.Throws<CouchbaseLiteException>(() => rev = database.PutRevision(rev, rev.RevID, false));

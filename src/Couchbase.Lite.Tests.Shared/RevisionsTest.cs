@@ -48,6 +48,7 @@ using NUnit.Framework;
 using Sharpen;
 using System.Linq;
 using Couchbase.Lite.Revisions;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -233,12 +234,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestDocumentChangeListener() {
             var doc = database.CreateDocument();
-            var counter = new CountDownLatch(1);
-            doc.Change += (sender, e) => counter.CountDown();
+            var counter = new CountdownEvent(1);
+            doc.Change += (sender, e) => counter.Signal();
 
             doc.CreateRevision().Save();
 
-            var success = counter.Await(TimeSpan.FromSeconds(5));
+            var success = counter.Wait(TimeSpan.FromSeconds(5));
             Assert.IsTrue(success);
         }
 

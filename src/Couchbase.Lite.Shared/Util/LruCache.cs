@@ -212,7 +212,10 @@ namespace Couchbase.Lite.Util
 
             TValue previous;
             lock (_locker) {
-                previous = Collections.Remove(_hashmap, key);
+                if (_hashmap.TryGetValue(key, out previous)) {
+                    _hashmap.Remove(key);
+                }
+
                 if (previous != null) {
                     Size -= SafeSizeOf(key, previous);
                     _nodes.Remove(key);

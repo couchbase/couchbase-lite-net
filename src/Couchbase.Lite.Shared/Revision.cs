@@ -204,10 +204,10 @@ namespace Couchbase.Lite
                 var attachmentMetadata = GetAttachmentMetadata();
                 var result = new List<String>();
 
-                if (attachmentMetadata != null)
-                {
-                    Collections.AddAll(result, attachmentMetadata.Keys);
+                if (attachmentMetadata != null) {
+                    result.AddRange(attachmentMetadata.Keys);
                 }
+
                 return result;
             }
         }
