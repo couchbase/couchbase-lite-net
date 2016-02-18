@@ -43,6 +43,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -70,6 +71,11 @@ namespace Couchbase.Lite.Support
             this.cookieStore = cookieStore;
             Headers = new ConcurrentDictionary<string,string>();
 
+            SetupSslVerification();
+        }
+
+        internal static void SetupSslVerification()
+        {
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
             ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
 
@@ -81,9 +87,30 @@ namespace Couchbase.Lite.Support
                 // The certificate is self-signed by the server that returned the certificate.
                 //
                 ServicePointManager.ServerCertificateValidationCallback = 
-            (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
+                    (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
                 {
+                    #if __UNITY__
 
+                    //if (UnityEngine.Application.platform == UnityEngine.RuntimePlatform.IPhonePlayer) {
+                    var request = sender as WebRequest;
+                    string requestHostname = request != null ? request.RequestUri.Host : (string)sender;
+                    var collection = new Mono.Security.X509.X509CertificateCollection();
+
+                    collection.AddRange(chain.ChainElements.Cast<X509ChainElement>()
+                        .Select(x => {
+                            return new Mono.Security.X509.X509Certificate(x.Certificate.RawData);
+                        }).ToArray());
+                    var result = Couchbase.Lite.Unity.OSX509Certificates.TrustEvaluateSsl(collection, requestHostname);
+                    if (result == Couchbase.Lite.Unity.OSX509Certificates.SecTrustResult.Proceed ||
+                        result == Couchbase.Lite.Unity.OSX509Certificates.SecTrustResult.Unspecified) {
+                        return true;
+                    }
+
+                    Log.W(Tag, "Native SSL verification failed {0}", result);
+                    return false;
+                    //}
+
+                    #endif
                     // If the certificate is a valid, signed certificate, return true.
                     if (sslPolicyErrors == SslPolicyErrors.None) {
                         return true;
@@ -94,7 +121,7 @@ namespace Couchbase.Lite.Support
                         if (chain != null && chain.ChainStatus != null) {
                             foreach (X509ChainStatus status in chain.ChainStatus) {
                                 if ((certificate.Subject == certificate.Issuer) &&
-                                (status.Status == X509ChainStatusFlags.UntrustedRoot)) {
+                                    (status.Status == X509ChainStatusFlags.UntrustedRoot)) {
                                     // Self-signed certificates with an untrusted root are valid. 
                                     continue;
                                 }
