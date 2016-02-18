@@ -105,7 +105,7 @@ namespace Couchbase.Lite.Replicator
             var requestMessage = CreateConcreteRequest();
 
             if(!requestMessage.Headers.Contains("User-Agent")) {
-                requestMessage.Headers.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SYNC_PROTOCOL_VERSION, Manager.VersionString));
+                requestMessage.Headers.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SyncProtocolVersion, Manager.VersionString));
             }
 
             requestMessage.Headers.Add("Accept", "multipart/related, application/json");           
