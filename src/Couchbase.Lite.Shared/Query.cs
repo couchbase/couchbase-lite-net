@@ -373,28 +373,6 @@ namespace Couchbase.Lite {
             View.SetMap(mapFunction, string.Empty);
         }
 
-        /// <summary>Constructor</summary>
-        internal Query(Database database, Query query) 
-        : this(database, query.View)
-        {
-            Limit = query.Limit;
-            Skip = query.Skip;
-            StartKey = query.StartKey;
-            EndKey = query.EndKey;
-            Descending = query.Descending;
-            Prefetch = query.Prefetch;
-            Keys = query.Keys;
-            GroupLevel = query.GroupLevel;
-            MapOnly = query.MapOnly;
-            StartKeyDocId = query.StartKeyDocId;
-            EndKeyDocId = query.EndKeyDocId;
-            InclusiveStart = query.InclusiveStart;
-            InclusiveEnd = query.InclusiveEnd;
-            IndexUpdateMode = query.IndexUpdateMode;
-            AllDocsMode = query.AllDocsMode;
-        }
-
-
         #endregion
        
 

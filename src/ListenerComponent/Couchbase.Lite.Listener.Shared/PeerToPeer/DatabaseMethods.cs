@@ -72,6 +72,7 @@ namespace Couchbase.Lite.Listener
                 var response = context.CreateResponse();
                 response.JsonBody = new Body(new Dictionary<string, object> {
                     { "db_name", db.Name },
+                    { "db_uuid", db.PublicUUID() },
                     { "doc_count", numDocs },
                     { "update_seq", updateSequence },
                     { "committed_update_seq", updateSequence },

@@ -35,6 +35,7 @@ using Sharpen;
 using Couchbase.Lite.Db;
 using Couchbase.Lite.Storage.ForestDB.Internal;
 using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Storage.ForestDB;
 
 namespace Couchbase.Lite.Store
 {

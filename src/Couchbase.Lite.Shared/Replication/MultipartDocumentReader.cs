@@ -77,7 +77,8 @@ namespace Couchbase.Lite.Support
             this.database = database;
         }
 
-        public static IDictionary<string, object> ReadToDatabase(IEnumerable<byte> data, IDictionary<string, string> headers, 
+        // Convenience method for testing
+        internal static IDictionary<string, object> ReadToDatabase(IEnumerable<byte> data, IDictionary<string, string> headers, 
             Database db)
         {
             var realized = data.ToArray();

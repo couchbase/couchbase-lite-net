@@ -134,6 +134,7 @@ namespace Couchbase.Lite.Internal
 
         #region Methods
 
+        // Used by listener
         public static bool IsValid(Body body)
         {
             return body.GetPropertyForKey("_id") != null ||
@@ -206,21 +207,24 @@ namespace Couchbase.Lite.Internal
             _body = new Body(properties);
         }
 
+        // Used by plugins
         internal void SetPropertyForKey(string key, object value)
         {
             _body.SetPropertyForKey(key, value);
         }
 
+        // Unused, but here for balance
         internal IEnumerable<Byte> GetJson()
         {
             IEnumerable<Byte> result = null;
-            if (_body != null)
-            {
+            if (_body != null) {
                 result = _body.AsJson();
             }
+
             return result;
         }
 
+        // Used by plugins
         internal void SetJson(IEnumerable<Byte> json)
         {
             _body = new Body(json);
@@ -236,6 +240,7 @@ namespace Couchbase.Lite.Internal
             return props.Get("_attachments").AsDictionary<string, object>();
         }
 
+        // Used by listener and plugins
         public Body GetBody()
         {
             if (_body == null) {
@@ -260,7 +265,7 @@ namespace Couchbase.Lite.Internal
 
         internal void SetBody(Body body)
         {
-            this._body = body;
+            _body = body;
         }
 
         public RevisionInternal Copy(string docId, string revId)

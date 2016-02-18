@@ -168,24 +168,6 @@ namespace Couchbase.Lite.Replicator
             this.client = client;
         }
 
-        public string GetDatabaseName()
-        {
-            string result = null;
-            if (databaseURL != null)
-            {
-                result = databaseURL.AbsolutePath;
-                if (result != null)
-                {
-                    int pathLastSlashPos = result.LastIndexOf('/');
-                    if (pathLastSlashPos > 0)
-                    {
-                        result = result.Substring(pathLastSlashPos);
-                    }
-                }
-            }
-            return result;
-        }
-
         public string GetChangesFeedPath()
         {
             if (UsePost)
@@ -491,25 +473,15 @@ namespace Couchbase.Lite.Replicator
             return true;
         }
 
-        public void SetUpstreamError(string message)
-        {
-            Log.W(TAG, this + string.Format(": Server error: {0}", message));
-            this.Error = new Exception(message);
-        }
-
-        Thread thread;
-
         public bool Start()
         {
-            if (IsRunning)
-            {
+            if (IsRunning) {
                 return false;
             }
 
             _httpClient = client.GetHttpClient();
-            this.Error = null;
-            this.thread = new Thread(Run) { IsBackground = true, Name = "Change Tracker Thread" };
-            thread.Start();
+            Error = null;
+            WorkExecutor.StartNew(Run);
 
             return true;
         }
@@ -573,11 +545,6 @@ namespace Couchbase.Lite.Replicator
         public bool IsRunning
         {
             get; private set;
-        }
-
-        internal void SetRequestHeaders(IDictionary<String, Object> requestHeaders)
-        {
-            RequestHeaders = requestHeaders;
         }
 
         private void ProcessLongPollStream(Task<Stream> t)

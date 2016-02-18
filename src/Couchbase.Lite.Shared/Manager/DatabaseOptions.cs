@@ -41,13 +41,13 @@ namespace Couchbase.Lite
         /// <summary>
         /// The identifier for SQLite based storage
         /// </summary>
-        [Obsolete("This will be moving to a StorageEngineTypes struct")]
+        [Obsolete("This will be moving to StorageEngineTypes.SQLite")]
         public const string SQLITE_STORAGE = "SQLite";
 
         /// <summary>
         /// The identifier for ForestDB based storage
         /// </summary>
-        [Obsolete("This will be moving to a StorageEngineTypes struct")]
+        [Obsolete("This will be moving to StorageEngineTypes.ForestDB")]
         public const string FORESTDB_STORAGE = "ForestDB";
 
         #endregion

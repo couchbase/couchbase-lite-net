@@ -454,7 +454,7 @@ namespace Couchbase.Lite
         public void TestRemoteUUID()
         {
             var r1 = database.CreatePullReplication(new Uri("http://alice.local:55555/db"));
-            r1.Options[ReplicationOptionsDictionary.REMOTE_UUID_KEY] = "cafebabe";
+            r1.Options[ReplicationOptionsDictionaryKeys.RemoteUUID] = "cafebabe";
             var check1 = r1.RemoteCheckpointDocID();
 
             var r2 = database.CreatePullReplication(new Uri("http://alice.local:44444/db"));

@@ -685,7 +685,7 @@ namespace Couchbase.Lite
         }
 
 
-
+        // This is used by the listener
         internal Replication ReplicationWithProperties(IDictionary<string, object> properties)
         {
             // Extract the parameters from the JSON request body:
@@ -870,35 +870,6 @@ namespace Couchbase.Lite
             return new Dictionary<string, object>();
         }
 
-
-        internal Replication ReplicationWithDatabase (Database database, Uri url, bool push, bool create, bool start)
-        {
-            foreach (var replication in replications)
-            {
-                if (replication.LocalDatabase == database 
-                    && replication.RemoteUrl.Equals(url) 
-                    && replication.IsPull == !push)
-                {
-                    return replication;
-                }
-            }
-            if (!create)
-            {
-                return null;
-            }
-
-            var replicator = push 
-                ? (Replication)new Pusher (database, url, true, new TaskFactory(new SingleTaskThreadpoolScheduler()))
-                : (Replication)new Puller (database, url, true, new TaskFactory(new SingleTaskThreadpoolScheduler()));
-
-            replications.Add(replicator);
-            if (start)
-            {
-                replicator.Start();
-            }
-            return replicator;
-        }
-
         private string PathForName(string name)
         {
             if (String.IsNullOrEmpty(name) || illegalCharactersPattern.IsMatch(name)) {
@@ -920,55 +891,19 @@ namespace Couchbase.Lite
         }
 
         // Concurrency Management
-        internal Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action) 
-        {
-            return RunAsync(action, CancellationToken.None);
-        }
 
-        internal Task<Boolean> RunAsync(String databaseName, Func<Database, Boolean> action) 
-        {
-            var db = OpenDatabase(databaseName, new DatabaseOptions { Create = true });
-            return RunAsync<Boolean>(() => action (db));
-        }
-
-        internal Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action, CancellationToken token) 
+        internal Task<T> RunAsync<T>(Func<T> action, CancellationToken token) 
         {
             var task = token == CancellationToken.None 
-                   ? workExecutor.StartNew<QueryEnumerator>(action) 
-                    : workExecutor.StartNew<QueryEnumerator>(action, token);
+                   ? workExecutor.StartNew<T>(action) 
+                    : workExecutor.StartNew<T>(action, token);
 
             return task;
         }
 
         internal Task RunAsync(RunAsyncDelegate action, Database database)
         {
-            return RunAsync(()=>{ action(database); });
-        }
-
-        internal Task RunAsync(Action action)
-        {
-            var task = workExecutor.StartNew(action);
-            return task;
-        }
-
-        internal Task RunAsync(Action action, CancellationToken token)
-        {
-            var task = token == CancellationToken.None ?
-                workExecutor.StartNew(action) :
-                    workExecutor.StartNew(action, token);
-            return task;
-        }
-
-        internal Task<T> RunAsync<T>(Func<T> action)
-        {
-            return workExecutor.StartNew(action);
-        }
-
-        internal Task<T> RunAsync<T>(Func<T> action, CancellationToken token)
-        {
-            var task = token == CancellationToken.None 
-                ? workExecutor.StartNew(action) 
-                  : workExecutor.StartNew(action, token);
+            var task = workExecutor.StartNew(()=>{ action(database); });
             return task;
         }
 

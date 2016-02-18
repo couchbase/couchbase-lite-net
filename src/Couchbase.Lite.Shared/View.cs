@@ -348,42 +348,6 @@ namespace Couchbase.Lite {
             return iterator;
         }
 
-        /// <summary>Indexing</summary>
-        internal string ToJSONString(object obj)
-        {
-            if (obj == null)
-                return null;
-
-            string result = null;
-            try
-            {
-                result = Manager.GetObjectMapper().WriteValueAsString(obj);
-            }
-            catch (Exception e)
-            {
-                Log.W(Database.TAG, "Exception serializing object to json: " + obj, e);
-            }
-            return result;
-        }
-
-        internal object FromJSON(IEnumerable<byte> json)
-        {
-            if (json == null)
-            {
-                return null;
-            }
-            object result = null;
-            try
-            {
-                result = Manager.GetObjectMapper().ReadValue<object>(json);
-            }
-            catch (Exception e)
-            {
-                Log.W(Database.TAG, "Exception parsing json", e);
-            }
-            return result;
-        }
-
         internal Status CompileFromDesignDoc()
         {
             MapDelegate map;

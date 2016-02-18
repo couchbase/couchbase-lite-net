@@ -268,21 +268,22 @@ namespace Couchbase.Lite
 
         private static bool IsIPAddressValid(UnicastIPAddressInformation addr)
         {
-            Log.V(TAG, "    Checking IP Address {0}", addr.Address);
-            if(addr.Address.AddressFamily == AddressFamily.InterNetwork) {
-                var bytes = addr.Address.GetAddressBytes();
+            var address = addr.Address;
+            Log.V(TAG, "    Checking IP Address {0}", address);
+            if(address.AddressFamily == AddressFamily.InterNetwork) {
+                var bytes = address.GetAddressBytes();
                 var correct = bytes[0] != 169 && bytes[1] != 254;
                 if(correct) {
-                    Log.I(TAG, "Found acceptable IPv4 address {0}", addr.Address);
+                    Log.I(TAG, "Found acceptable IPv4 address {0}", address);
                 } else {
                     Log.V(TAG, "    Rejecting link-local IPv4 address");
                 }
 
                 return correct;
-            } else if(addr.Address.AddressFamily == AddressFamily.InterNetworkV6) {
-                var correct = !addr.Address.IsIPv6LinkLocal;
+            } else if(address.AddressFamily == AddressFamily.InterNetworkV6) {
+                var correct = !address.IsIPv6LinkLocal;
                 if(correct) {
-                    Log.I(TAG, "Found acceptable IPv6 address {0}", addr.Address);
+                    Log.I(TAG, "Found acceptable IPv6 address {0}", address);
                 } else {
                     Log.V(TAG, "    Rejecting link-local IPv6 address");
                 }

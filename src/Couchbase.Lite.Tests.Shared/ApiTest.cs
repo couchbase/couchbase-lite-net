@@ -897,17 +897,16 @@ namespace Couchbase.Lite
             var reduce = view.Reduce;
             var filter = db.GetFilter("phil");
             var validation = db.GetValidation("val");
-            var result = mgr.RunAsync("db", (database)=>
-                {
-                    Assert.IsNotNull(database);
-                    var serverView = database.GetExistingView("view");
-                    Assert.IsNotNull(serverView);
-                    Assert.AreEqual(database.GetFilter("phil"), filter);
-                    Assert.AreEqual(database.GetValidation("val"), validation);
-                    Assert.AreEqual(serverView.Map, map);
-                    Assert.AreEqual(serverView.Reduce, reduce);
-                    return true;
-                });
+            var result = mgr.RunAsync((database)=>
+            {
+                Assert.IsNotNull(database);
+                var serverView = database.GetExistingView("view");
+                Assert.IsNotNull(serverView);
+                Assert.AreEqual(database.GetFilter("phil"), filter);
+                Assert.AreEqual(database.GetValidation("val"), validation);
+                Assert.AreEqual(serverView.Map, map);
+                Assert.AreEqual(serverView.Reduce, reduce);
+            }, db);
             result.Wait(TimeSpan.FromSeconds(5));
             // blocks until async task has run
             db.Close();

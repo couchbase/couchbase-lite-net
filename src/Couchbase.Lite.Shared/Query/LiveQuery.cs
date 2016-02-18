@@ -316,30 +316,6 @@ namespace Couchbase.Lite
             Update();
         }
 
-        private void RunUpdateAfterQueryFinishes(Task updateQueryTask, CancellationTokenSource updateQueryTaskTokenSource) 
-        {
-            if (!_runningState) {
-                Log.D(TAG, "ReRunUpdateAfterQueryFinishes() fired, but running state == false. Ignoring.");
-                return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
-            }
-
-            try {
-                Log.D(TAG, "Waiting for Query to finish");
-                updateQueryTask.Wait(DEFAULT_QUERY_TIMEOUT, updateQueryTaskTokenSource.Token);
-                if (_runningState && !updateQueryTaskTokenSource.IsCancellationRequested) {
-                    Log.D(TAG, "Running Update() since Query finished");
-                    Update();
-                } else {
-                    Log.D(TAG, "Update() not called because either !runningState ({0}) or cancelled ({1})", _runningState, updateQueryTaskTokenSource.IsCancellationRequested);
-                }
-            } catch (Exception e)
-            {
-                Log.E(TAG, "Got an exception waiting for Update Query Task to finish", e);
-            } finally {
-                UpdateQueryTask = null;
-            }
-        }
-
         /// <summary>
         /// Implements the updating of the <see cref="Rows"/> collection.
         /// </summary>

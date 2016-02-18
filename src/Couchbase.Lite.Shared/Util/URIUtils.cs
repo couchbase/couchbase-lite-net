@@ -203,7 +203,7 @@ namespace Couchbase.Lite.Util
                 if (c == '%') {
                     do {
                         if (i + 2 >= s.Length) {
-                            throw new ArgumentException("Incomplete % sequence at: " + i);
+                            throw new ArgumentException(String.Format("Incomplete % sequence at: {0}", i));
                         }
                         int d1 = HexToInt(s[i + 1]);
                         int d2 = HexToInt(s[i + 2]);

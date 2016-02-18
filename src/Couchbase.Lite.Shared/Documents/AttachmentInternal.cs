@@ -146,7 +146,7 @@ namespace Couchbase.Lite.Internal
             }
         }
 
-        // only if already stored in db blob-store
+        // only if already stored in db blob-store (used by listener)
         public Uri ContentUrl { 
             get {
                 string path = Database.Attachments.PathForKey(_blobKey);

@@ -62,17 +62,18 @@ namespace Couchbase.Lite
         {
         }
 
+        // Used by plugins
         public RevisionInternal RevWithDocIdAndRevId(string docId, string revId)
         {
             IEnumerator<RevisionInternal> iterator = GetEnumerator();
             while (iterator.MoveNext())
             {
                 var rev = iterator.Current;
-                if (docId.Equals(rev.DocID) && revId.Equals(rev.RevID))
-                {
+                if (docId.Equals(rev.DocID) && revId.Equals(rev.RevID)) {
                     return rev;
                 }
             }
+
             return null;
         }
 
@@ -88,6 +89,7 @@ namespace Couchbase.Lite
             return result;
         }
 
+        // Used by plugins
         public IList<string> GetAllRevIds()
         {
             IList<string> result = new List<string>();
@@ -100,21 +102,17 @@ namespace Couchbase.Lite
             return result;
         }
 
-        public void SortByDocID()
-        {
-            Sort((r1, r2) => r1.DocID.CompareTo(r2.DocID));
-        }
-
+        // Used by plugins
         public void SortBySequence(bool ascending = false)
         {
             Sort((r1, r2) => Misc.TDSequenceCompare(r1.Sequence, r2.Sequence, ascending));
         }
 
+        // Used by plugins
         public void Limit(int limit)
         {
-            if (Count > limit)
-            {
-                RemoveRange(limit, Count);
+            if (Count > limit) {
+                RemoveRange(limit, Count - limit);
             }
         }
     }

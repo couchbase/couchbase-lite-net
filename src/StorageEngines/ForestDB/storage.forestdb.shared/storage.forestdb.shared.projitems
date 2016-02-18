@@ -16,5 +16,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)src\ForestRevisionInternal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\CouchbaseBridge.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\AssemblyInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\PluginExtensions.cs" />
   </ItemGroup>
 </Project>

@@ -262,20 +262,11 @@ namespace Couchbase.Lite
             get {
                 return _pendingAttachmentsByDigest ?? (_pendingAttachmentsByDigest = new Dictionary<string, BlobStoreWriter>());
             }
-            set {
-                _pendingAttachmentsByDigest = value;
-            }
         }
 
         #endregion
 
         #region Constructors
-
-        // "_local/*" is not a valid document ID. Local docs have their own API and shouldn't get here.
-        internal static String GenerateDocumentId()
-        {
-            return Misc.CreateGUID();
-        }
 
         internal Database(string directory, string name, Manager manager, bool readOnly)
         {
@@ -792,25 +783,6 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        /* Create a local checkpoint document. This method is called only when importing or
-        replacing the database. The local checkpoint contains the old localUUID of the database 
-        before importing. The old localUUID is used by replicators to get the local checkpoint 
-        from the imported database in order to start replicating from from the current local       
-        checkpoint of the imported database after importing. */
-        internal void CreateLocalCheckpointDoc()
-        {
-
-            var document = new Dictionary<string, object> { { CHECKPOINT_LOCAL_UUID_KEY, PrivateUUID() } };
-            try {
-                PutLocalDocument(LOCAL_CHECKPOINT_DOC_ID, document);
-            } catch(CouchbaseLiteException) {
-                Log.E(TAG, "Could not create local checkpoint document");
-                throw;
-            } catch(Exception e) {
-                throw new CouchbaseLiteException("Error creating local checkpoint document", e);
-            }
-        }
-
         internal object GetLocalCheckpointDocValue(string key)
         {
             if (key == null) {
@@ -848,7 +820,7 @@ namespace Couchbase.Lite
             return _pendingAttachmentsByDigest.Get(digest);
         }
 
-
+        // This is used by the plugins, do not remove
         internal static IDictionary<string, object> StripDocumentJSON(IDictionary<string, object> originalProps)
         {
             // Don't leave in any "_"-prefixed keys except for the ones in SPECIAL_KEYS_TO_LEAVE.
@@ -1208,14 +1180,7 @@ namespace Couchbase.Lite
             _views.Remove(viewName);
         }
 
-        /// <summary>
-        /// Creates a one-shot query with the given map function. This is equivalent to creating an
-        /// anonymous View and then deleting it immediately after querying it. It may be useful during
-        /// development, but in general this is inefficient if this map will be used more than once,
-        /// because the entire view has to be regenerated from scratch every time.
-        /// </summary>
-        /// <returns>The query.</returns>
-        /// <param name="map">Map.</param>
+        // This is only used for testing.  It is a one shot view from scratch
         internal Query SlowQuery(MapDelegate map) 
         {
             return new Query(this, map);
@@ -1232,12 +1197,14 @@ namespace Couchbase.Lite
         {
             return Storage.GetInfo("privateUUID");
         }
-
+            
+        // Used by the listener, do not remove
         internal string PublicUUID()
         {
             return Storage.GetInfo("publicUUID");
         }
 
+        // This method is used by the SQLite plugin, at least
         internal void ReplaceUUIDs(string privUUID = null, string pubUUID = null)
         {
             if (privUUID == null) {
@@ -1334,16 +1301,10 @@ namespace Couchbase.Lite
             var start = Convert.ToInt64(revisions.Get("start"));
             for (var i = 0; i < revIDs.Count; i++) {
                 var revID = revIDs[i];
-                revIDs.Set(i, start-- + "-" + revID);
+                revIDs.Set(i, String.Format("{0}-{1}", start--, revID));
             }
 
             return revIDs;
-        }
-
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal RevisionInternal PutRevision(RevisionInternal rev, String prevRevId)
-        {
-            return PutRevision(rev, prevRevId, false, null);
         }
 
         internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, string prevRevId, bool allowConflict, Uri source)
@@ -1381,20 +1342,7 @@ namespace Couchbase.Lite
             return putRev;
         }
 
-        /// <summary>Stores a new (or initial) revision of a document.</summary>
-        /// <remarks>
-        /// Stores a new (or initial) revision of a document.
-        /// This is what's invoked by a PUT or POST. As with those, the previous revision ID must be supplied when necessary and the call will fail if it doesn't match.
-        /// </remarks>
-        /// <param name="oldRev">The revision to add. If the docID is null, a new UUID will be assigned. Its revID must be null. It must have a JSON body.
-        ///     </param>
-        /// <param name="prevRevId">The ID of the revision to replace (same as the "?rev=" parameter to a PUT), or null if this is a new document.
-        ///     </param>
-        /// <param name="allowConflict">If false, an error status 409 will be returned if the insertion would create a conflict, i.e. if the previous revision already has a child.
-        ///     </param>
-        /// <returns>A new RevisionInternal with the docID, revID and sequence filled in (but no body).
-        ///     </returns>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        //TODO: Remove this method, it only exists for tests
         internal RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId, bool allowConflict)
         {
             return PutRevision(oldRev, prevRevId, allowConflict, null);
@@ -1455,74 +1403,6 @@ namespace Couchbase.Lite
             }
                 
             return posted;
-        }
-
-        internal void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source, bool inConflict)
-        {
-            var change = new DocumentChange(rev, winningRev.RevID, inConflict, source);
-            _changesToNotify.Add(change);
-
-            if (!PostChangeNotifications())
-            {
-                // The notification wasn't posted yet, probably because a transaction is open.
-                // But the Document, if any, needs to know right away so it can update its
-                // currentRevision.
-                var doc = DocumentCache.Get(change.DocumentId);
-                if (doc != null) {
-                    doc.RevisionAdded(change, false);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and
-        /// stores inline attachments into the blob store.
-        /// </summary>
-        /// <remarks>
-        /// Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and
-        /// stores inline attachments into the blob store.
-        /// </remarks>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void ProcessAttachmentsForRevision(IDictionary<string, AttachmentInternal> attachments, RevisionInternal rev, long parentSequence)
-        {
-            Debug.Assert((rev != null));
-            var newSequence = rev.Sequence;
-            Debug.Assert((newSequence > parentSequence));
-            var generation = rev.Generation;
-            Debug.Assert((generation > 0));
-
-            // If there are no attachments in the new rev, there's nothing to do:
-            IDictionary<string, object> revAttachments = null;
-            var properties = rev.GetProperties ();
-            if (properties != null) {
-                revAttachments = properties.Get("_attachments").AsDictionary<string, object>();
-            }
-
-            if (revAttachments == null || revAttachments.Count == 0 || rev.Deleted) {
-                return;
-            }
-
-            foreach (string name in revAttachments.Keys)
-            {
-                var attachment = attachments.Get(name);
-                if (attachment != null)
-                {
-                    // Determine the revpos, i.e. generation # this was added in. Usually this is
-                    // implicit, but a rev being pulled in replication will have it set already.
-                    if (attachment.RevPos == 0)
-                    {
-                        attachment.RevPos = generation;
-                    }
-                    else
-                    {
-                        if (attachment.RevPos > generation)
-                        {
-                            Log.W(TAG, string.Format("Attachment {0} {1} has unexpected revpos {2}, setting to {3}", rev, name, attachment.RevPos, generation));
-                            attachment.RevPos = generation;
-                        }
-                    }
-                }
-            }
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -1641,53 +1521,7 @@ namespace Couchbase.Lite
             attachment.Database = this;
             return attachment;
         }
-            
-        internal static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, long minRevPos, bool attachmentsFollow)
-        {
-            if (minRevPos <= 1 && !attachmentsFollow)
-            {
-                return;
-            }
-
-            rev.MutateAttachments((name, attachment) =>
-            {
-                var revPos = 0L;
-                if (attachment.ContainsKey("revpos"))
-                {
-                    revPos = Convert.ToInt64(attachment["revpos"]);
-                }
-
-                var includeAttachment = (revPos == 0 || revPos >= minRevPos);
-                var stubItOut = !includeAttachment && (!attachment.ContainsKey("stub") || (bool)attachment["stub"] == false);
-                var addFollows = includeAttachment && attachmentsFollow && (!attachment.ContainsKey("follows") || (bool)attachment["follows"] == false);
-
-                if (!stubItOut && !addFollows)
-                {
-                    return attachment; // no change
-                }
-
-                // Need to modify attachment entry
-                var editedAttachment = new Dictionary<string, object>(attachment);
-                editedAttachment.Remove("data");
-
-                if (stubItOut)
-                {
-                    // ...then remove the 'data' and 'follows' key:
-                    editedAttachment.Remove("follows");
-                    editedAttachment["stub"] = true;
-                    Log.V(TAG, String.Format("Stubbed out attachment {0}: revpos {1} < {2}", rev, revPos, minRevPos));
-                }
-                else if (addFollows)
-                {
-                    editedAttachment.Remove("stub");
-                    editedAttachment["follows"] = true;
-                    Log.V(TAG, String.Format("Added 'follows' for attachment {0}: revpos {1} >= {2}", rev, revPos, minRevPos));
-                }
-
-                return editedAttachment;
-            });
-        }
-            
+   
         internal bool ProcessAttachmentsForRevision(RevisionInternal rev, IList<string> ancestry)
         {
             var revAttachments = rev.GetAttachments();
@@ -1805,6 +1639,7 @@ namespace Couchbase.Lite
             return rev.GetAttachments();
         }
             
+        // This is used by the listener
         internal AttachmentInternal GetAttachmentForRevision(RevisionInternal rev, string name)
         {
             Debug.Assert(name != null);
@@ -1820,6 +1655,7 @@ namespace Couchbase.Lite
             return AttachmentForDict(attachments.Get(name).AsDictionary<string, object>(), name);
         }
             
+        // This is used by the listener
         internal RevisionInternal RevisionByLoadingBody(RevisionInternal rev, Status outStatus)
         {
             // First check for no-op -- if we just need the default properties and already have them:
@@ -1874,10 +1710,8 @@ namespace Couchbase.Lite
         ///     </summary>
         /// <remarks>
         /// Updates or deletes an attachment, creating a new document revision in the process.
-        /// Used by the PUT / DELETE methods called on attachment URLs.
+        /// Used by the PUT / DELETE methods called on attachment URLs.  Used by the listener;
         /// </remarks>
-        /// <exclude></exclude>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal RevisionInternal UpdateAttachment(string filename, BlobStoreWriter body, string contentType, AttachmentEncoding encoding, string docID, string oldRevID, Uri source)
         {
             if(StringEx.IsNullOrWhiteSpace(filename) || (body != null && contentType == null) || 

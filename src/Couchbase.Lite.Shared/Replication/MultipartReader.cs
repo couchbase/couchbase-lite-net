@@ -84,7 +84,8 @@ namespace Couchbase.Lite.Support
 
         #region Properties
 
-        public IEnumerable<byte> Boundary
+        // Used in tests
+        internal IEnumerable<byte> Boundary
         {
             get {
                 return _boundary;

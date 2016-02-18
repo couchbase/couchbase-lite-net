@@ -53,12 +53,18 @@ namespace Couchbase.Lite.Store
         /// <summary>
         /// Number of bytes in a 256-bit key
         /// </summary>
+        [Obsolete("Use DataSize")]
         public const int DATA_SIZE = 32;
+
+        public static readonly int DataSize = 32;
 
         /// <summary>
         /// The data type associated with encrypted content
         /// </summary>
+        [Obsolete("Use EncryptedContentType")]
         public const string ENCRYPTED_CONTENT_TYPE = "application/x-beanbag-aes-256";
+
+        public static readonly string EncryptedContentType = "application/x-beanbag-aes-256";
 
         private const int KEY_SIZE = 32;
         private const int BLOCK_SIZE = 16;

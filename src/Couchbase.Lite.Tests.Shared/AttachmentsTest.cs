@@ -184,7 +184,7 @@ namespace Couchbase.Lite
             };
 
             var rev2 = default(RevisionInternal);
-            Assert.DoesNotThrow(() => rev2 = database.PutRevision(new RevisionInternal(props), rev1.RevID));
+            Assert.DoesNotThrow(() => rev2 = database.PutRevision(new RevisionInternal(props), rev1.RevID, false));
             Assert.IsTrue(rev2.Deleted);
 
             // Insert a revision several generations advanced but which hasn't changed the attachment:
@@ -425,7 +425,7 @@ namespace Couchbase.Lite
                 { "bazz", false },
                 { "_attachments", CreateAttachmentsStub(testAttachmentName) }
             };
-            var rev2 = database.PutRevision(new RevisionInternal(props), rev1.RevID);
+            var rev2 = database.PutRevision(new RevisionInternal(props), rev1.RevID, false);
 
             // Add a third revision of the same document:
             var attach2 = Encoding.UTF8.GetBytes("<html>And this is attach2</html>");
@@ -435,7 +435,7 @@ namespace Couchbase.Lite
                 { "bazz", false },
                 { "_attachments", CreateAttachmentsDict(attach2, testAttachmentName, "text/html", false) }
             };
-            var rev3 = database.PutRevision(new RevisionInternal(props), rev2.RevID);
+            var rev3 = database.PutRevision(new RevisionInternal(props), rev2.RevID, false);
 
             // Check the second revision's attachment
             att = database.GetAttachmentForRevision(rev2, testAttachmentName);

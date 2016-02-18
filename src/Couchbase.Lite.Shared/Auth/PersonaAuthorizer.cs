@@ -219,8 +219,8 @@ namespace Couchbase.Lite.Auth
             // split on "."
             if (components.Length < 4)
             {
-                throw new ArgumentException("Invalid assertion given, only " + components.Length 
-                    + " found.  Expected 4+");
+                throw new ArgumentException(String.Format("Invalid assertion given, only {0} found.  Expected 4+",
+                    components.Length));
             }
 
             var component1Decoded = Encoding.UTF8.GetString(StringUtils.ConvertFromUnpaddedBase64String(components[1]));

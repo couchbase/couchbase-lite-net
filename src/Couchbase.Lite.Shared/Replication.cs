@@ -130,6 +130,11 @@ namespace Couchbase.Lite
 
     #endregion
 
+    public struct ReplicationOptionsDictionaryKeys
+    {
+        public static readonly string RemoteUUID = ReplicationOptionsDictionary.REMOTE_UUID_KEY;
+    }
+
     /// <summary>
     /// A class for holding replication options
     /// </summary>
@@ -142,6 +147,7 @@ namespace Couchbase.Lite
         /// This key stores an ID for a remote endpoint whose identifier
         /// is likely to change (i.e. found via Bonjour)
         /// </summary>
+        [Obsolete("This type will be moved to ReplicationOptionsDictionaryKeys.RemoteUUID")]
         public const string REMOTE_UUID_KEY = "remoteUUID";
     }
 
@@ -159,7 +165,10 @@ namespace Couchbase.Lite
         /// This value is also included in all HTTP requests as the
         /// User-Agent version.
         /// </summary>
+        [Obsolete("Use SyncProtocolVersion")]
         public const string SYNC_PROTOCOL_VERSION = "1.2";
+
+        public static readonly string SyncProtocolVersion = "1.2";
 
         internal const string CHANNELS_QUERY_PARAM = "channels";
         internal const string BY_CHANNEL_FILTER_NAME = "sync_gateway/bychannel";
@@ -1145,6 +1154,7 @@ namespace Couchbase.Lite
 
         internal abstract void ProcessInbox(RevisionList inbox);
 
+        // TODO: Evaluate usefulness
         internal bool HasSameSettingsAs(Replication other)
         {
             return LocalDatabase == other.LocalDatabase &&

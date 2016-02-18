@@ -180,8 +180,12 @@ namespace Couchbase.Lite.Support
             return _inbox.Count;
         }
 
-        /// <summary>Empties the queue without processing any of the objects in it.</summary>
-        public void Clear()
+        #endregion
+
+        #region Internal Methods
+
+        // Only used for testing
+        internal void Clear()
         {
             Log.V(TAG, "clear() called, setting _jobQueue to null");
             Unschedule();
@@ -191,10 +195,6 @@ namespace Couchbase.Lite.Support
 
             Log.D(TAG, "Discarded {0} items", itemCount);
         }
-
-        #endregion
-
-        #region Internal Methods
 
         /// <summary>
         /// Calculates the delay to use when scheduling the next batch of objects to process.
