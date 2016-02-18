@@ -25,6 +25,7 @@ using System.Net.Http;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -114,17 +115,13 @@ namespace Couchbase.Lite.Listener
                         if(ancestorId != null) {
                             minRevPos = RevisionInternal.GenerationFromRevID(ancestorId) + 1;
                         }
-
-                        Status status = new Status();
+                            
                         bool attEncodingInfo = context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
-                        if(!db.ExpandAttachments(rev, minRevPos, sendMultipart, attEncodingInfo, status)) {
-                            response.InternalStatus = status.Code;
-                            return response;
-                        }
+                        db.ExpandAttachments(rev, minRevPos, sendMultipart, attEncodingInfo);
                     }
 
                     if(sendMultipart) {
-                        response.MultipartWriter = db.MultipartWriterForRev(rev, "multipart/related");
+                        response.MultipartWriter = MultipartWriterForRev(db, rev, "multipart/related");
                     } else {
                         response.JsonBody = rev.GetBody();
                     }
@@ -174,7 +171,7 @@ namespace Couchbase.Lite.Listener
                             }
 
                             Status status = new Status();
-                            var rev = db.GetDocument(docId, revID, true, status);
+                            var rev = db.GetDocument(docId, revID, true);
                             if(rev != null) {
                                 rev = ApplyOptions(options, rev, context, db, status);
                             }
@@ -230,7 +227,7 @@ namespace Couchbase.Lite.Listener
                     }
 
                     var history = Database.ParseCouchDBRevisionHistory(body.GetProperties());
-                    Status status = new Status();
+                    Status status = new Status(StatusCode.Ok);
                     try {
                       db.ForceInsert(rev, history, null);
                     } catch(CouchbaseLiteException e) {
@@ -315,14 +312,12 @@ namespace Couchbase.Lite.Listener
             RevisionInternal rev = new RevisionInternal(docId, null, deleting);
             rev.SetBody(body);
 
-            StatusCode status = StatusCode.Created;
+            StatusCode status = deleting ? StatusCode.Ok : StatusCode.Created;
             try {
                 if (docId != null && docId.StartsWith("_local")) {
                     outRev = db.Storage.PutLocalRevision(rev, prevRevId, true); //TODO: Doesn't match iOS
                 } else {
-                    Status retStatus = new Status();
-                    outRev = db.PutRevision(rev, prevRevId, allowConflict, retStatus);
-                    status = retStatus.Code;
+                    outRev = db.PutRevision(rev, prevRevId, allowConflict);
                 }
             } catch(CouchbaseLiteException e) {
                 status = e.Code;
@@ -364,8 +359,7 @@ namespace Couchbase.Lite.Listener
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             {
                 Status status = new Status();
-                var rev = db.GetDocument(context.DocumentName, context.GetQueryParam("rev"), false, 
-                    status);
+                var rev = db.GetDocument(context.DocumentName, context.GetQueryParam("rev"), false, status);
                     
                 if(rev ==null) {
                     return context.CreateResponse(status.Code);
@@ -378,9 +372,9 @@ namespace Couchbase.Lite.Listener
                 bool acceptEncoded = acceptEncoding != null && acceptEncoding.Contains("gzip") &&
                     context.RequestHeaders["Range"] == null;
 
-                var attachment = db.GetAttachmentForRevision(rev, context.AttachmentName, status);
+                var attachment = db.GetAttachmentForRevision(rev, context.AttachmentName);
                 if(attachment == null) {
-                    return context.CreateResponse(status.Code);
+                    return context.CreateResponse(StatusCode.AttachmentNotFound);
                 }
 
                 var response = context.CreateResponse();
@@ -465,6 +459,42 @@ namespace Couchbase.Lite.Listener
 
         #region Private Methods
 
+        private static MultipartWriter MultipartWriterForRev(Database db, RevisionInternal rev, string contentType)
+        {
+            var writer = new MultipartWriter(contentType, null);
+            writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
+            writer.AddData(rev.GetBody().AsJson());
+            var attachments = rev.GetAttachments();
+            if (attachments == null) {
+                return writer;
+            }
+
+            foreach (var entry in attachments) {
+                var attachment = entry.Value.AsDictionary<string, object>();
+                if (attachment != null && attachment.GetCast<bool>("follows", false)) {
+                    var disposition = String.Format("attachment; filename={0}", Database.Quote(entry.Key));
+                    writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Disposition", disposition } });
+
+                    var attachObj = default(AttachmentInternal);
+                    try {
+                        attachObj = db.AttachmentForDict(attachment, entry.Key);
+                    } catch(CouchbaseLiteException) {
+                        return null;
+                    }
+
+                    var fileURL = attachObj.ContentUrl;
+                    if (fileURL != null) {
+                        writer.AddFileUrl(fileURL);
+                    } else {
+                        writer.AddStream(attachObj.ContentStream);
+                    }
+                }
+            }
+
+            return writer;
+        }
+
+
         // Factors out the logic of opening the database and reading the document body from the HTTP request
         // and performs the specified logic on the body received in the request, barring any problems
         private static CouchbaseLiteResponse PerformLogicWithDocumentBody(ICouchbaseListenerContext context, 
@@ -477,7 +507,8 @@ namespace Couchbase.Lite.Listener
                 reader.AppendData(context.BodyStream.ReadAllBytes());
                 try {
                     reader.Finish();
-                } catch(InvalidOperationException) {
+                } catch(InvalidOperationException e) {
+                    Log.E(TAG, "Exception trying to read data from multipart upload", e);
                     return context.CreateResponse(StatusCode.BadRequest);
                 }
 
@@ -497,7 +528,8 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevs)) {
-                    dst["_revisions"] = db.Storage.GetRevisionHistory(rev, null);
+                    var revs = db.GetRevisionHistory(rev, null);
+                    dst["_revisions"] = Database.MakeRevisionHistoryDict(revs);
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevsInfo)) {
@@ -530,9 +562,7 @@ namespace Couchbase.Lite.Listener
                 RevisionInternal nuRev = new RevisionInternal(dst);
                 if (options.HasFlag(DocumentContentOptions.IncludeAttachments)) {
                     bool attEncodingInfo = context != null && context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
-                    if(!db.ExpandAttachments(nuRev, 0, false, !attEncodingInfo, outStatus)) {
-                        return null;
-                    }
+                    db.ExpandAttachments(nuRev, 0, false, !attEncodingInfo);
                 }
 
                 rev = nuRev;

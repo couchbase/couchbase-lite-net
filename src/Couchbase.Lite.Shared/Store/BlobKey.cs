@@ -107,11 +107,7 @@ namespace Couchbase.Lite
             const string expectedPrefix = "sha1-";
             var prefixLength = expectedPrefix.Length;
             if (!base64Digest.StartsWith(expectedPrefix, StringComparison.Ordinal)) {
-                Log.I(TAG, "{0} does not start with sha1-", base64Digest);
-                prefixLength = base64Digest.IndexOf('-') + 1;
-                if (prefixLength == -1) {
-                    throw new ArgumentException(String.Format("{0} is not a valid Base64 digest.", base64Digest));
-                }
+                return Enumerable.Repeat<byte>(0, 20).ToArray(); // MD5 is no longer valid
             }
 
             base64Digest = base64Digest.Remove(0, prefixLength);

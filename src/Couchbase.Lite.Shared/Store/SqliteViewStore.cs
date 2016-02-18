@@ -18,6 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+#if !NOSQLITE
 using System;
 using Couchbase.Lite.Util;
 using System.Diagnostics;
@@ -28,6 +29,7 @@ using Couchbase.Lite.Internal;
 using Sharpen;
 using System.Collections;
 using SQLitePCL;
+using Couchbase.Lite.Views;
 
 namespace Couchbase.Lite.Store
 {
@@ -144,17 +146,23 @@ namespace Couchbase.Lite.Store
             return String.Join(", ", names.ToStringArray());
         }
 
-        private bool RunStatements(string sqlStatements)
+        private void RunStatements(string sqlStatements)
         {
             var db = _dbStorage;
-            return db.RunInTransaction(() =>
+            db.RunInTransaction(() =>
             {
-                if(_dbStorage.RunStatements(QueryString(sqlStatements))) {
-                    return new Status(StatusCode.Ok);
+                try {
+                    _dbStorage.RunStatements(QueryString(sqlStatements));
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to run statments ({0})", sqlStatements);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(String.Format("Error running statements ({0})", sqlStatements),
+                        e) { Code = StatusCode.Exception };
                 }
 
-                return new Status(StatusCode.DbError);
-            }).IsSuccessful;
+                return true;
+            });
         }
 
         private string QueryString(string statement)
@@ -173,8 +181,15 @@ namespace Couchbase.Lite.Store
                     "bbox_id INTEGER, " +
                     "geokey BLOB)";
 
-            if (!RunStatements(sql)) {
+            try {
+                RunStatements(sql);
+            } catch(CouchbaseLiteException) {
                 Log.W(TAG, "Couldn't create view index `{0}`", Name);
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException(String.Format("Couldn't create view index `{0}`", Name), e) {
+                    Code = StatusCode.Exception
+                };
             }
         }
 
@@ -248,8 +263,11 @@ namespace Couchbase.Lite.Store
             const string sql = "CREATE INDEX IF NOT EXISTS 'maps_#_keys' on 'maps_#'(key COLLATE JSON);" +
                                "CREATE INDEX IF NOT EXISTS 'maps_#_sequence' ON 'maps_#'(sequence)";
 
-            if (!RunStatements(sql)) {
-                Log.W(TAG, "Couldn't create view SQL index `{0}`", Name);
+            try {
+                RunStatements(sql);
+            } catch(Exception e) {
+                Log.W(TAG, String.Format("Couldn't create view SQL index `{0}`", Name), e);
+                throw;
             }
         }
             
@@ -269,46 +287,43 @@ namespace Couchbase.Lite.Store
             "DELETE ON 'maps_#' WHEN old.bbox_id not null BEGIN " +
             "DELETE FROM bboxes WHERE rowid=old.bbox_id| END";
 
-            if (!RunStatements(sql)) {
+            try {
+                RunStatements(sql);
+            } catch(CouchbaseLiteException) {
                 Log.W(TAG, "Error initializing rtree schema");
-                return false;
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException("Error initializing rtree schema", e) {
+                    Code = StatusCode.Exception
+                };
             }
 
             _initializedRTreeSchema = true;
             return true;
         }
 
-        private static bool GroupTogether(object key1, object key2, int groupLevel)
+        private static bool GroupTogether(byte[] key1, byte[] key2, int groupLevel)
         {
-            var key1List = key1 == null ? null : key1 as IList;
-            var key2List = key2 == null ? null : key2 as IList;
-            if (groupLevel == 0 || key1List == null || key2List == null) {
-                return key1.Equals(key2);
+            if (key1 == null || key2 == null) {
+                return false;
             }
 
-            var end = Math.Min(groupLevel, Math.Min(key1List.Count, key2List.Count));
-            for (int i = 0; i < end; ++i) {
-                if (!key1List[i].Equals(key2List[i])) {
-                    return false;
-                }
+            if (groupLevel == 0) {
+                groupLevel = Int32.MaxValue;
             }
 
-            return true;
+            return JsonCollator.Compare(JsonCollationMode.Unicode, Encoding.UTF8.GetString(key1), Encoding.UTF8.GetString(key2), groupLevel) == 0;
         }
 
-        private static object GroupKey(object key, int groupLevel)
+        private static object GroupKey(byte[] keyJson, int groupLevel)
         {
-            if (groupLevel > 0) {
-                var keyList = key.AsList<object>();
-                if (keyList == null) {
-                    return key;
-                }
+            var key = FromJSON(keyJson);
+            var keyList = key.AsList<object>();
+            if (groupLevel > 0 && keyList != null && keyList.Count > groupLevel) {
+                return new Couchbase.Lite.Util.ArraySegment<object>(keyList.ToArray(), 0, groupLevel);
+            }
 
-                return keyList.SubList(0, groupLevel);
-            }
-            else {
-                return key;
-            }
+            return key;
         }
 
         private static object CallReduce(ReduceDelegate reduce, List<object> keysToReduce, List<object> valuesToReduce)
@@ -317,8 +332,11 @@ namespace Couchbase.Lite.Store
                 return null;
             }
 
+            var lazyKeys = new LazyJsonArray(keysToReduce);
+            var lazyVals = new LazyJsonArray(valuesToReduce);
+
             try {
-                object result = reduce(keysToReduce, valuesToReduce, false);
+                object result = reduce(lazyKeys, lazyVals, false);
                 if(result != null) {
                     return result;
                 }
@@ -329,7 +347,7 @@ namespace Couchbase.Lite.Store
             return null;
         }
 
-        private string ToJSONString(object obj)
+        private static string ToJSONString(object obj)
         {
             if (obj == null)
                 return null;
@@ -344,7 +362,7 @@ namespace Couchbase.Lite.Store
             return result;
         }
 
-        private object FromJSON(IEnumerable<byte> json)
+        private static object FromJSON(IEnumerable<byte> json)
         {
             if (json == null) {
                 return null;
@@ -510,8 +528,16 @@ namespace Couchbase.Lite.Store
             }
 
             const string sql = "DROP TABLE IF EXISTS 'maps_#';UPDATE views SET lastSequence=0, total_docs=0 WHERE view_id=#";
-            if (!RunStatements(sql)) {
+
+            try {
+                RunStatements(sql);
+            } catch(CouchbaseLiteException) {
                 Log.W(TAG, "Couldn't delete view index `{0}`", Name);
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException(String.Format("Couldn't delete view index `{0}`", Name), e) {
+                    Code = StatusCode.Exception
+                };
             }
         }
 
@@ -523,11 +549,15 @@ namespace Couchbase.Lite.Store
                 DeleteIndex();
                 try {
                     db.StorageEngine.Delete("views", "name=?", Name);
-                } catch(Exception) {
-                    return new Status(StatusCode.DbError);
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to delete view {0}", Name);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(String.Format("Error deleting view {0}", Name),
+                        e) { Code = StatusCode.Exception };
                 }
 
-                return new Status(StatusCode.Ok);
+                return true;
             });
 
             _viewId = 0;
@@ -568,19 +598,19 @@ namespace Couchbase.Lite.Store
             return true;
         }
 
-        public Status UpdateIndexes(IEnumerable<IViewStore> inputViews)
+        public bool UpdateIndexes(IEnumerable<IViewStore> inputViews)
         {
             Log.D(TAG, "Checking indexes of ({0}) for {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), Name);
             var db = _dbStorage;
 
-            Status status = null;
+            var status = false;
                 status = db.RunInTransaction(() =>
                 {
                     // If the view the update is for doesn't need any update, don't do anything:
                     long dbMaxSequence = db.LastSequence;
                     long forViewLastSequence = LastSequenceIndexed;
                     if (forViewLastSequence >= dbMaxSequence) {
-                        return new Status(StatusCode.NotModified);
+                        return true;
                     }
 
                     // Check whether we need to update at all,
@@ -616,7 +646,7 @@ namespace Couchbase.Lite.Store
                         long last = view == this ? forViewLastSequence : view.LastSequenceIndexed;
                         viewLastSequence[i++] = last;
                         if (last < 0) {
-                            return new Status(StatusCode.DbError);
+                            throw new CouchbaseLiteException(StatusCode.DbError);
                         }
 
                         if (last < dbMaxSequence) {
@@ -662,7 +692,7 @@ namespace Couchbase.Lite.Store
                             }
 
                             if (!ok) {
-                                return new Status(StatusCode.DbError);
+                                throw new CouchbaseLiteException(StatusCode.DbError);
                             }
 
                             // Update #deleted rows
@@ -676,7 +706,7 @@ namespace Couchbase.Lite.Store
                     }
 
                     if (minLastSequence == dbMaxSequence) {
-                        return new Status(StatusCode.NotModified);
+                        return true;
                     }
 
                     Log.D(TAG, "Updating indexes of ({0}) from #{1} to #{2} ...",
@@ -740,7 +770,13 @@ namespace Couchbase.Lite.Store
                             string docType = checkDocTypes ? c.GetString(6) : null;
 
                             // Skip rows with the same doc_id -- these are losing conflicts.
+                            var conflicts = default(List<string>);
                             while ((keepGoing = c.MoveToNext()) && c.GetLong(0) == doc_id) {
+                                if(conflicts == null) {
+                                    conflicts = new List<string>();
+                                }
+                                
+                                conflicts.Add(c.GetString(3));
                             }
 
                             long realSequence = sequence; // because sequence may be changed, below
@@ -748,8 +784,7 @@ namespace Couchbase.Lite.Store
                                 // Find conflicts with documents from previous indexings.
                                 using (c2 = db.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs " +
                                   "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " +
-                                  "ORDER BY revID DESC " +
-                                  "LIMIT 1", doc_id, minLastSequence)) {
+                                  "ORDER BY revID DESC ", doc_id, minLastSequence)) {
 
                                     if (c2.MoveToNext()) {
                                         string oldRevId = c2.GetString(0);
@@ -769,7 +804,18 @@ namespace Couchbase.Lite.Store
                                             deleted = false;
                                             sequence = oldSequence;
                                             json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
+                                        }
 
+                                        if (!deleted) {
+                                            // Conflict revisions:
+                                            if (conflicts == null) {
+                                                conflicts = new List<string>();
+                                            }
+
+                                            conflicts.Add(oldRevId);
+                                            while (c2.MoveToNext()) {
+                                                conflicts.Add(c2.GetString(0));
+                                            }
                                         }
                                     }
                                 }
@@ -787,6 +833,9 @@ namespace Couchbase.Lite.Store
                             }
 
                             currentDoc["_local_seq"] = sequence;
+                            if(conflicts != null) {
+                                currentDoc["_conflicts"] = conflicts;
+                            }
 
                             // Call the user-defined map() to emit new key/value pairs from this revision:
                             int viewIndex = -1;
@@ -814,15 +863,19 @@ namespace Couchbase.Lite.Store
 
                                     if (emitStatus.IsError) {
                                         c.Dispose();
-                                        return emitStatus;
+                                        return false;
                                     }
                                 }
                             }
 
                             currentView = null;
                         }
-                    } catch (Exception) {
-                        return new Status(StatusCode.DbError);
+                    } catch(CouchbaseLiteException) {
+                        Log.W(TAG, "Failed to update index for {0}", currentView.Name);
+                        throw;
+                    } catch (Exception e) {
+                        throw new CouchbaseLiteException(String.Format("Error updating index for {0}", currentView.Name),
+                            e) { Code = StatusCode.Exception };
                     } finally {
                         if (c != null) {
                             c.Dispose();
@@ -840,17 +893,21 @@ namespace Couchbase.Lite.Store
                         args["total_docs"] = newTotalRows;
                         try {
                             db.StorageEngine.Update("views", args, "view_id=?", view.ViewID.ToString());
-                        } catch (Exception) {
-                            return new Status(StatusCode.DbError);
+                        } catch (CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to update view {0}", view.Name);
+                            throw;
+                        } catch(Exception e) {
+                            throw new CouchbaseLiteException(String.Format("Error updating view {0}", view.Name),
+                                e) { Code = StatusCode.Exception };
                         }
                     }
 
                     Log.D(TAG, "...Finished re-indexing ({0}) to #{1} (deleted {2}, added {3})",
                         ViewNames(views), dbMaxSequence, deletedCount, insertedCount);
-                    return new Status(StatusCode.Ok);
+                    return true;
                 });
 
-            if(status.Code >= StatusCode.BadRequest) {
+            if(!status) {
                 Log.W(TAG, "CouchbaseLite: Failed to rebuild views ({0}): {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), status);
             }
 
@@ -933,11 +990,12 @@ namespace Couchbase.Lite.Store
             // If given keys, sort the output into that order, and add entries for missing keys:
             if (options.Keys != null) {
                 // Group rows by key:
-                var rowsByKey = new Dictionary<object, List<QueryRow>>();
+                var rowsByKey = new Dictionary<string, List<QueryRow>>();
                 foreach (var row in rows) {
-                    var dictRows = rowsByKey.Get(row.Key);
+                    var key = ToJSONString(row.Key);
+                    var dictRows = rowsByKey.Get(key);
                     if (dictRows == null) {
-                        dictRows = rowsByKey[row.Key] = new List<QueryRow>();
+                        dictRows = rowsByKey[key] = new List<QueryRow>();
                     }
 
                     dictRows.Add(row);
@@ -945,7 +1003,7 @@ namespace Couchbase.Lite.Store
 
                 // Now concatenate them in the order the keys are given in options:
                 var sortedRows = new List<QueryRow>();
-                foreach (var key in options.Keys) {
+                foreach (var key in options.Keys.Select(x => ToJSONString(x))) {
                     var dictRows = rowsByKey.Get(key);
                     if (dictRows != null) {
                         sortedRows.AddRange(dictRows);
@@ -981,7 +1039,8 @@ namespace Couchbase.Lite.Store
             List<QueryRow> rows = new List<QueryRow>();
             RunQuery(options, (keyData, valueData, docID, c) =>
             {
-                if(group && !GroupTogether(keyData.Value, lastKeyData.Value, groupLevel)) {
+                var lastKeyValue = lastKeyData != null ? lastKeyData.Value : null;
+                if(group && !GroupTogether(keyData.Value, lastKeyValue, groupLevel)) {
                     if(lastKeyData != null && lastKeyData.Value != null) {
                         // This pair starts a new group, so reduce & record the last one:
                         var key = GroupKey(lastKeyData.Value, groupLevel);
@@ -999,16 +1058,16 @@ namespace Couchbase.Lite.Store
 
                 Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, keyData.Value, valueData.Value);
 
-                object valueOrData = valueData.Value;
-                if(valuesToReduce != null && RowValueIsEntireDoc(valueData)) {
+                object valueOrData = FromJSON(valueData.Value);
+                if(valuesToReduce != null && RowValueIsEntireDoc(valueData.Value)) {
                     // map fn emitted 'doc' as value, which was stored as a "*" placeholder; expand now:
-                    Status status = new Status();
-                    var rev = db.GetDocument(docID, c.GetLong(1), status);
-                    if(rev == null) {
-                        Log.W(TAG, "Couldn't load doc for row value: status {0}", status.Code);
-                    }
-
-                    valueOrData = rev.GetProperties();
+                    try {
+                        var rev = db.GetDocument(docID, c.GetLong(1));
+                        valueOrData = rev.GetProperties();
+                    } catch(CouchbaseLiteException) {
+                        Log.W(TAG, "Couldn't load doc for row value");
+                        throw;
+                    }   
                 }
 
                 keysToReduce.Add(keyData.Value);
@@ -1098,4 +1157,4 @@ namespace Couchbase.Lite.Store
         #endregion
     }
 }
-
+#endif

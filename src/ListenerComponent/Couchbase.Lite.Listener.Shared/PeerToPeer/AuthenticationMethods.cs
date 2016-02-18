@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Listener
                     response.JsonBody = new Body(new Dictionary<string, object> {
                         { "error", "invalid remote_url" }
                     });
-                } else if (!FacebookAuthorizer.RegisterAccessToken(accessToken, email, siteUrl.AbsoluteUri)) {
+                } else if (!FacebookAuthorizer.RegisterAccessToken(accessToken, email, siteUrl)) {
                     response.InternalStatus = StatusCode.BadParam;
                     response.JsonBody = new Body(new Dictionary<string, object> {
                         { "error", "invalid access_token" }

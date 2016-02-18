@@ -6,7 +6,7 @@
     <ProjectGuid>{1B765803-7F61-497E-96D0-3BE5AF32C81A}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Tests</RootNamespace>
-    <ReleaseVersion>1.1</ReleaseVersion>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
@@ -36,16 +36,16 @@
     <Reference Include="System.Net" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
+      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(ProjectDir)../Couchbase.Lite.Net35/vendor/SQLitePCL/sqliteraw.targets" />
+  <Import Project="$(ProjectDir)../Couchbase.Lite.Net35/vendor/SQLitePCL/bld/sqliteraw.targets" />
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
@@ -64,9 +64,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Assets\local-test.properties">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.local-test.properties</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Assets\performance-test.json">
-      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.performance-test.json</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="Assets\test.properties">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.test.properties</LogicalName>
@@ -93,6 +90,9 @@
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
       <Link>Assets\noattachments.cblite</Link>
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.noattachments.cblite</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
+      <Link>Assets\perftest.properties</Link>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
@@ -126,6 +126,18 @@
     <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
       <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
       <Name>System.Net.Http-net_4_5</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net35\cbforest-sharp.Net35.csproj">
+      <Project>{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}</Project>
+      <Name>cbforest-sharp.Net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net35.pinvoke_packaged_sqlcipher.anycpu.csproj">
+      <Project>{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}</Project>
+      <Name>platform.net35.pinvoke_packaged_sqlcipher.anycpu</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_net35.csproj">
+      <Project>{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}</Project>
+      <Name>ugly_net35</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

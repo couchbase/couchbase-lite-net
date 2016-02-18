@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{0A88C2A7-7AD8-46F9-9D31-869E3466B791}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{FF87EED7-5DE9-47E9-82F4-D1DF659D1DC2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Android", "Couchbase.Lite.Android\Couchbase.Lite.Android.csproj", "{5615E423-D0FD-4F99-A99C-061679615CEE}"
 EndProject
@@ -17,6 +17,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Android.Test
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoDroid.Dialog", "Couchbase.Lite.Android.Tests\vendor\MonoDroid.Dialog\MonoDroid.Dialog\MonoDroid.Dialog.csproj", "{33044C7B-47A4-4113-A61A-EB429407F818}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Android.NUnitLite", "Couchbase.Lite.Android.Tests\vendor\Andr.Unit\Android.NUnitLite\Android.NUnitLite.csproj", "{6A005891-A3D6-4398-A729-F645397D573A}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ListenerComponent", "ListenerComponent", "{93A9E803-DBF3-45BE-96FA-87D68422F401}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Listener.Shared", "ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.shproj", "{5AA87149-7173-42A0-8BBC-AC618B404D46}"
@@ -29,6 +33,18 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Listener.Bon
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Listener.Bonjour.Android", "ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Android\Couchbase.Lite.Listener.Bonjour.Android.csproj", "{4549834B-28B6-4A54-A3EC-978D0E582444}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Vendor", "Vendor", "{6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "platform.android.pinvoke_packaged_sqlcipher.anycpu", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.android.pinvoke_packaged_sqlcipher.anycpu.csproj", "{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "portable.profile78", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\portable.profile78.csproj", "{84547E16-A872-418D-82A6-B57ADEE290AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ugly_profile78", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj", "{11440D11-E458-4BB6-ADBB-7C233F952089}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cbforest-sharp.Droid", "Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Droid\cbforest-sharp.Droid.csproj", "{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "cbforest-sharp.Shared", "Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.shproj", "{0BFC8B40-0659-4D45-B111-7CB4CCD22991}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +55,18 @@ Global
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Debug|Any CPU.ActiveCfg = debug|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Debug|Any CPU.Build.0 = debug|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Release|Any CPU.ActiveCfg = release|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Release|Any CPU.Build.0 = release|Any CPU
+		{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1}.Debug|Any CPU.ActiveCfg = debug|anycpu
+		{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1}.Debug|Any CPU.Build.0 = debug|anycpu
+		{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1}.Release|Any CPU.ActiveCfg = release|anycpu
+		{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1}.Release|Any CPU.Build.0 = release|anycpu
+		{33044C7B-47A4-4113-A61A-EB429407F818}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33044C7B-47A4-4113-A61A-EB429407F818}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33044C7B-47A4-4113-A61A-EB429407F818}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33044C7B-47A4-4113-A61A-EB429407F818}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4549834B-28B6-4A54-A3EC-978D0E582444}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4549834B-28B6-4A54-A3EC-978D0E582444}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4549834B-28B6-4A54-A3EC-978D0E582444}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -47,10 +75,22 @@ Global
 		{5615E423-D0FD-4F99-A99C-061679615CEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5615E423-D0FD-4F99-A99C-061679615CEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5615E423-D0FD-4F99-A99C-061679615CEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A005891-A3D6-4398-A729-F645397D573A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A005891-A3D6-4398-A729-F645397D573A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A005891-A3D6-4398-A729-F645397D573A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A005891-A3D6-4398-A729-F645397D573A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6B64CBD5-8D13-4E88-861D-DBBB87254BBC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6B64CBD5-8D13-4E88-861D-DBBB87254BBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B64CBD5-8D13-4E88-861D-DBBB87254BBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6B64CBD5-8D13-4E88-861D-DBBB87254BBC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Debug|Any CPU.ActiveCfg = debug|anycpu
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Debug|Any CPU.Build.0 = debug|anycpu
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Release|Any CPU.ActiveCfg = release|anycpu
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Release|Any CPU.Build.0 = release|anycpu
 		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F970485C-CE53-457A-AAF6-7896C40F8243}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -60,11 +100,18 @@ Global
 		{F970485C-CE53-457A-AAF6-7896C40F8243} = {5D187322-B6C6-4B74-A097-179F97B61B75}
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 		{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
+		{33044C7B-47A4-4113-A61A-EB429407F818} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
+		{6A005891-A3D6-4398-A729-F645397D573A} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 		{5AA87149-7173-42A0-8BBC-AC618B404D46} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{6B64CBD5-8D13-4E88-861D-DBBB87254BBC} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{27CD854D-D0A5-4EA0-A997-04CE8EDD5095} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{8555F0B6-3F1A-4C80-8CCB-3EED653D6242} = {27CD854D-D0A5-4EA0-A997-04CE8EDD5095}
 		{4549834B-28B6-4A54-A3EC-978D0E582444} = {27CD854D-D0A5-4EA0-A997-04CE8EDD5095}
+		{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
+		{84547E16-A872-418D-82A6-B57ADEE290AE} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
+		{11440D11-E458-4BB6-ADBB-7C233F952089} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
+		{71FCF2BD-F5D4-4D1B-A895-7E7F6967D974} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
+		{0BFC8B40-0659-4D45-B111-7CB4CCD22991} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
@@ -97,7 +144,7 @@ Global
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
-		version = 1.1
+		version = 1.1.1
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{5615e423-d0fd-4f99-a99c-061679615cee}*SharedItemsImports = 4

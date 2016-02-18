@@ -55,6 +55,19 @@ using AOT = ObjCRuntime;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
+    public sealed class ServiceErrorEventArgs : EventArgs
+    {
+        public readonly ServiceError ErrorCode;
+
+        public readonly string Stage;
+
+        internal ServiceErrorEventArgs(string stage, ServiceError errorCode)
+        {
+            Stage = stage;
+            ErrorCode = errorCode;
+        }
+    }
+
     public sealed class BrowseService : Service, IResolvableService, IDisposable
     {
         private bool is_resolved = false;
@@ -70,6 +83,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
             remove { _resolved = (ServiceResolvedEventHandler)Delegate.Remove(_resolved, value); }
         }
         private event ServiceResolvedEventHandler _resolved;
+
+        public event EventHandler<ServiceErrorEventArgs> Error;
 
         public BrowseService()
         {
@@ -114,7 +129,11 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 InterfaceIndex, Name, RegType, ReplyDomain, resolve_reply_handler, GCHandle.ToIntPtr(_self));
                 
             if(error != ServiceError.NoError) {
-                throw new ServiceErrorException(error);
+                if (Error != null) {
+                    Error(this, new ServiceErrorEventArgs("Resolve", error));
+                    sd_ref.Deallocate();
+                    return;
+                }
             }
 
             sd_ref.Process();
@@ -133,7 +152,9 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 fullname, ServiceType.TXT, ServiceClass.IN, query_record_reply_handler, GCHandle.ToIntPtr(_self));
                 
             if(error != ServiceError.NoError) {
-                throw new ServiceErrorException(error);
+                Error(this, new ServiceErrorEventArgs("RefreshTxtRecord", error));
+                sd_ref.Deallocate();
+                return;
             }
             
             sd_ref.Process(ServiceParams.Timeout);
@@ -166,7 +187,9 @@ namespace Mono.Zeroconf.Providers.Bonjour
                     hosttarget, ServiceType.A, ServiceClass.IN, browseService.query_record_reply_handler, context);
                 
                 if(error != ServiceError.NoError) {
-                    throw new ServiceErrorException(error);
+                    browseService.Error(browseService, new ServiceErrorEventArgs("ResolveReply (IPv4)", error));
+                    sd_ref.Deallocate();
+                    return;
                 }
             
                 sd_ref.Process(ServiceParams.Timeout);
@@ -177,7 +200,11 @@ namespace Mono.Zeroconf.Providers.Bonjour
                     hosttarget, ServiceType.AAAA, ServiceClass.IN, browseService.query_record_reply_handler, context);
                 
                 if(error != ServiceError.NoError) {
-                    throw new ServiceErrorException(error);
+                    if(error != ServiceError.NoError) {
+                        browseService.Error(browseService, new ServiceErrorEventArgs("ResolveReply (IPv6)", error));
+                        sd_ref.Deallocate();
+                        return;
+                    }
                 }
             
                 sd_ref.Process(ServiceParams.Timeout);

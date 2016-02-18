@@ -18,6 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+#if !NOSQLITE
 using System;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal;
@@ -49,55 +50,48 @@ namespace Couchbase.Lite.Store
 
         private const string LOCAL_CHECKPOINT_DOC_ID = "CBL_LocalCheckpoint";
         private const string TAG = "SqliteCouchStore";
+        private const string DB_FILENAME = "db.sqlite3";
 
-        private const string SCHEMA = @"
-CREATE TABLE docs ( 
-  doc_id INTEGER PRIMARY KEY, 
-  docid TEXT UNIQUE NOT NULL); 
-CREATE INDEX docs_docid ON docs(docid); 
-CREATE TABLE revs ( 
-  sequence INTEGER PRIMARY KEY AUTOINCREMENT, 
-  doc_id INTEGER NOT NULL REFERENCES docs(doc_id) ON DELETE CASCADE, 
-  revid TEXT NOT NULL COLLATE REVID, 
-  parent INTEGER REFERENCES revs(sequence) ON DELETE SET NULL, 
-  current BOOLEAN, 
-  deleted BOOLEAN DEFAULT 0, 
-  json BLOB); 
-CREATE INDEX revs_by_id ON revs(revid, doc_id); 
-CREATE INDEX revs_current ON revs(doc_id, current); 
-CREATE INDEX revs_parent ON revs(parent); 
-CREATE TABLE localdocs ( 
-  docid TEXT UNIQUE NOT NULL, 
-  revid TEXT NOT NULL COLLATE REVID, 
-  json BLOB); 
-CREATE INDEX localdocs_by_docid ON localdocs(docid); 
-CREATE TABLE views ( 
-  view_id INTEGER PRIMARY KEY, 
-  name TEXT UNIQUE NOT NULL,
-  version TEXT, 
-  lastsequence INTEGER DEFAULT 0); 
-CREATE INDEX views_by_name ON views(name); 
-CREATE TABLE maps ( 
-  view_id INTEGER NOT NULL REFERENCES views(view_id) ON DELETE CASCADE, 
-  sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE, 
-  key TEXT NOT NULL COLLATE JSON, 
-  value TEXT); 
-CREATE INDEX maps_keys on maps(view_id, key COLLATE JSON); 
-CREATE TABLE replicators ( 
-  remote TEXT NOT NULL, 
-  push BOOLEAN, 
-  last_sequence TEXT, 
-  UNIQUE (remote, push)); 
-PRAGMA user_version = 3;";
-
-        private static readonly HashSet<string> SPECIAL_KEYS_TO_REMOVE = new HashSet<string> {
-            "_id", "_rev", "_deleted", "_revisions", "_revs_info", "_conflicts", "_deleted_conflicts",
-            "_local_seq"
-        };
-
-        private static readonly HashSet<string> SPECIAL_KEYS_TO_LEAVE = new HashSet<string> {
-            "_removed", "_attachments"
-        };
+        private const string SCHEMA = 
+            // docs            
+            "CREATE TABLE docs ( " +
+            "        doc_id INTEGER PRIMARY KEY, " +
+            "        docid TEXT UNIQUE NOT NULL); " +
+            "    CREATE INDEX docs_docid ON docs(docid); " +
+            // revs
+            "    CREATE TABLE revs ( " +
+            "        sequence INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "        doc_id INTEGER NOT NULL REFERENCES docs(doc_id) ON DELETE CASCADE, " +
+            "        revid TEXT NOT NULL COLLATE REVID, " +
+            "        parent INTEGER REFERENCES revs(sequence) ON DELETE SET NULL, " +
+            "        current BOOLEAN, " +
+            "        deleted BOOLEAN DEFAULT 0, " +
+            "        json BLOB, " +
+            "        no_attachments BOOLEAN, " +
+            "        UNIQUE (doc_id, revid)); " +
+            "    CREATE INDEX revs_parent ON revs(parent); " +
+            "    CREATE INDEX revs_by_docid_revid ON revs(doc_id, revid desc, current, deleted); " +
+            "    CREATE INDEX revs_current ON revs(doc_id, current desc, deleted, revid desc); " +
+            // localdocs
+            "    CREATE TABLE localdocs ( " +
+            "        docid TEXT UNIQUE NOT NULL, " +
+            "        revid TEXT NOT NULL COLLATE REVID, " +
+            "        json BLOB); " +
+            "    CREATE INDEX localdocs_by_docid ON localdocs(docid); " +
+            // views
+            "    CREATE TABLE views ( " +
+            "        view_id INTEGER PRIMARY KEY, " +
+            "        name TEXT UNIQUE NOT NULL," +
+            "        version TEXT, " +
+            "        lastsequence INTEGER DEFAULT 0," +
+            "        total_docs INTEGER DEFAULT -1); " +
+            "    CREATE INDEX views_by_name ON views(name); " +
+            // info
+            "    CREATE TABLE info (" +
+            "        key TEXT PRIMARY KEY," +
+            "        value TEXT);" +
+            // version
+            "    PRAGMA user_version = 17";
 
         #endregion
 
@@ -105,10 +99,11 @@ PRAGMA user_version = 3;";
 
         private static readonly int _SqliteVersion;
 
-        private string _path;
-        private bool _isOpen;
+        private string _directory;
         private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
+        private SymmetricKey _encryptionKey;
+        private bool _readOnly;
 
         #endregion
 
@@ -116,8 +111,17 @@ PRAGMA user_version = 3;";
 
         public ISQLiteStorageEngine StorageEngine { get; private set; }
 
+        public bool IsOpen
+        { 
+            get
+            {
+                return StorageEngine != null && StorageEngine.IsOpen;
+            }
+        }
+
         public ICouchStoreDelegate Delegate { get; set; }
         public int MaxRevTreeDepth { get; set; }
+
         public bool AutoCompact { get; set; }
 
         public int DocumentCount { 
@@ -141,6 +145,38 @@ PRAGMA user_version = 3;";
             }
         }
 
+        internal Status LastDbStatus
+        {
+            get
+            {
+                switch (StorageEngine.LastErrorCode) {
+                    case raw.SQLITE_OK:
+                    case raw.SQLITE_ROW:
+                    case raw.SQLITE_DONE:
+                        return new Status(StatusCode.Ok);
+                    case raw.SQLITE_BUSY:
+                    case raw.SQLITE_LOCKED:
+                        return new Status(StatusCode.DbBusy);
+                    case raw.SQLITE_CORRUPT:
+                        return new Status(StatusCode.CorruptError);
+                    case raw.SQLITE_NOTADB:
+                        return new Status(StatusCode.Unauthorized);
+                    default:
+                        Log.I(TAG, "Other LastErrorCode {0}", StorageEngine.LastErrorCode);
+                        return new Status(StatusCode.DbError);
+                }
+            }
+        }
+
+        internal Status LastDbError
+        {
+            get
+            {
+                var status = LastDbStatus;
+                return (status.Code == StatusCode.Ok) ? new Status(StatusCode.DbError) : status;
+            }
+        }
+
 
         #endregion
 
@@ -152,7 +188,7 @@ PRAGMA user_version = 3;";
             // the app might be linked with a custom version of SQLite (like SQLCipher) instead of the
             // system library, so the actual version/features may differ from what was declared in
             // sqlite3.h at compile time.
-            Log.I(TAG, "Couchbase Lite using SQLite version {0} ({1})", raw.sqlite3_libversion(), raw.sqlite3_sourceid());
+            Log.I(TAG, "Initialized SQLite store (version {0} ({1}))", raw.sqlite3_libversion(), raw.sqlite3_sourceid());
             _SqliteVersion = raw.sqlite3_libversion_number();
 
             Debug.Assert(_SqliteVersion >= 3007000, String.Format("SQLite library is too old ({0}); needs to be at least 3.7", raw.sqlite3_libversion()));
@@ -174,13 +210,13 @@ PRAGMA user_version = 3;";
                         StorageEngine.ExecSQL("ANALYZE");
                         StorageEngine.ExecSQL("ANALYZE sqlite_master");
                         SetInfo("last_optimized", currentSequence.ToString());
-                        return new Status(StatusCode.Ok);
+                        return true;
                     });
                 }
             }
         }
 
-        public bool RunStatements(string sqlStatements)
+        public void RunStatements(string sqlStatements)
         {
             foreach (var quotedStatement in sqlStatements.Split(';')) {
                 var statement = quotedStatement.Replace('|', ';');
@@ -198,15 +234,15 @@ PRAGMA user_version = 3;";
                 if (!StringEx.IsNullOrWhiteSpace(statement)) {
                     try {
                         StorageEngine.ExecSQL(statement);
+                    } catch(CouchbaseLiteException) {
+                        Log.E(TAG, "Error running statement '{0}'", statement);
+                        throw;
                     } catch(Exception e) {
-                        Log.E(TAG, String.Format("Error running statement", statement), e);
-                        return false;
+                        throw new CouchbaseLiteException(String.Format("Error running statement '{0}'", statement), e) { Code = StatusCode.DbError };
                     }
 
                 }
             }
-
-            return true;
         }
 
         public IDictionary<string, object> GetDocumentProperties(IEnumerable<byte> json, string docId, string revId, bool deleted, long sequence)
@@ -233,10 +269,10 @@ PRAGMA user_version = 3;";
             return docProperties;
         }
 
-        public RevisionInternal GetDocument(string docId, long sequence, Status outStatus = null)
+        public RevisionInternal GetDocument(string docId, long sequence)
         {
             RevisionInternal result = null;
-            var status = TryQuery(c =>
+            TryQuery(c =>
             {
                 string revId = c.GetString(0);
                 bool deleted = c.GetInt(1) != 0;
@@ -246,10 +282,6 @@ PRAGMA user_version = 3;";
 
                 return false;
             }, false, "SELECT revid, deleted, json FROM revs WHERE sequence=?", sequence);
-
-            if (outStatus != null) {
-                outStatus.Code = status.Code;
-            }
 
             return result;
         }
@@ -284,7 +316,7 @@ PRAGMA user_version = 3;";
                 }
 
                 return retVal;
-            } catch(SQLException e) {
+            } catch(Exception e) {
                 Log.E(TAG, "Error executing SQL query", e);
             } finally {
                 if (c != null) {
@@ -383,237 +415,75 @@ PRAGMA user_version = 3;";
 
         #region Private Methods
 
-        private bool Open()
+        private void Open()
         {
-            if (_isOpen) {
-                return true;
+            if (IsOpen) {
+                return;
             }
 
             // Create the storage engine.
             StorageEngine = SQLiteStorageEngineFactory.CreateStorageEngine();
 
             // Try to open the storage engine and stop if we fail.
-            if (StorageEngine == null || !StorageEngine.Open(_path)) {
-                var msg = "Unable to create a storage engine, fatal error";
-                Log.E(TAG, msg);
-                throw new CouchbaseLiteException(msg);
+            if (!Directory.Exists(_directory)) {
+                Directory.CreateDirectory(_directory);
+            }
+
+            var path = Path.Combine(_directory, DB_FILENAME);
+            if (StorageEngine == null || !StorageEngine.Open(path, _readOnly, SCHEMA, _encryptionKey)) {
+                throw new CouchbaseLiteException("Unable to create a storage engine", StatusCode.DbError);
             }
 
             // Stuff we need to initialize every time the sqliteDb opens:
-            if (!RunStatements("PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL;")) {
-                Log.E(TAG, "Error turning on foreign keys");
-                return false;
-            }
+            try {
+                RunStatements("PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL;");
 
-            // Check the user_version number we last stored in the sqliteDb:
-            var dbVersion = StorageEngine.GetVersion();
-            bool isNew = dbVersion == 0;
-            if (isNew && !RunStatements("BEGIN TRANSACTION")) {
+                // Check the user_version number we last stored in the sqliteDb:
+                var dbVersion = StorageEngine.GetVersion();
+                bool isNew = dbVersion == 17;
+                if (isNew) {
+                    RunStatements("BEGIN TRANSACTION");
+                }
+
+                // Incompatible version changes increment the hundreds' place:
+                if (dbVersion >= 200) {
+                    throw new CouchbaseLiteException("Database version (" + dbVersion + ") is newer than I know how to work with", StatusCode.DbError);
+                }
+
+                if (dbVersion < 17) {
+                    throw new CouchbaseLiteException("Database version ({0}) is older " +
+                        "than I know how to work with", dbVersion) { Code = StatusCode.DbError };
+                }
+
+                if (dbVersion < 18) {
+                    const string upgradeSql = "ALTER TABLE revs ADD COLUMN doc_type TEXT;" +
+                        "PRAGMA user_version = 18";
+
+                    RunStatements(upgradeSql);
+                    dbVersion = 18;
+                }
+
+                if (dbVersion < 101) {
+                    const string upgradeSql = "PRAGMA user_version = 101";
+                    RunStatements(upgradeSql);
+                    dbVersion = 101;
+                }
+
+                if (isNew) {
+                    RunStatements("END TRANSACTION");
+                }
+
+                if (!isNew && !_readOnly) {
+                    OptimizeSQLIndexes();
+                }
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Error initializing the SQLite storage engine");
                 StorageEngine.Close();
-                return false;
-            }
-
-            // Incompatible version changes increment the hundreds' place:
-            if (dbVersion >= 200)
-            {
-                Log.E(TAG, "Database: Database version (" + dbVersion + ") is newer than I know how to work with");
+                throw;
+            } catch(Exception e) {
                 StorageEngine.Close();
-                return false;
+                throw new CouchbaseLiteException("Unknown error initializing SQLite storage engine", e) { Code = StatusCode.Exception };
             }
-
-            if (dbVersion < 1) {
-                // First-time initialization:
-                // (Note: Declaring revs.sequence as AUTOINCREMENT means the values will always be
-                // monotonically increasing, never reused. See <http://www.sqlite.org/autoinc.html>)
-                if (!RunStatements(SCHEMA)) {
-                    StorageEngine.Close();
-                    return false;
-                }
-
-                dbVersion = 3;
-            }
-
-            if (dbVersion < 3)
-            {
-                var upgradeSql = "CREATE TABLE localdocs ( " + "docid TEXT UNIQUE NOT NULL, " 
-                    + "revid TEXT NOT NULL, " + "json BLOB); " + "CREATE INDEX localdocs_by_docid ON localdocs(docid); "
-                    + "PRAGMA user_version = 3";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 3;
-            }
-
-            if (dbVersion < 4)
-            {
-                var upgradeSql = "CREATE TABLE info ( " + "key TEXT PRIMARY KEY, " + "value TEXT); "
-                    + "INSERT INTO INFO (key, value) VALUES ('privateUUID', '" + Misc.CreateGUID(
-                    ) + "'); " + "INSERT INTO INFO (key, value) VALUES ('publicUUID',  '" + Misc.CreateGUID
-                    () + "'); " + "PRAGMA user_version = 4";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 4;
-            }
-
-            if (dbVersion < 6)
-            {
-                // Version 6: enable Write-Ahead Log (WAL) <http://sqlite.org/wal.html>
-                // Not supported on Android, require SQLite 3.7.0
-                //String upgradeSql  = "PRAGMA journal_mode=WAL; " +
-                var upgradeSql = "PRAGMA user_version = 6";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 6;
-            }
-            if (dbVersion < 7)
-            {
-                // Version 7: enable full-text search
-                // Note: Apple's SQLite build does not support the icu or unicode61 tokenizers :(
-                // OPT: Could add compress/decompress functions to make stored content smaller
-                // Not supported on Android
-                //String upgradeSql = "CREATE VIRTUAL TABLE fulltext USING fts4(content, tokenize=unicodesn); " +
-                //"ALTER TABLE maps ADD COLUMN fulltext_id INTEGER; " +
-                //"CREATE INDEX IF NOT EXISTS maps_by_fulltext ON maps(fulltext_id); " +
-                //"CREATE TRIGGER del_fulltext DELETE ON maps WHEN old.fulltext_id not null " +
-                //"BEGIN DELETE FROM fulltext WHERE rowid=old.fulltext_id| END; " +
-                var upgradeSql = "PRAGMA user_version = 7";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 7;
-            }
-            // (Version 8 was an older version of the geo index)
-            if (dbVersion < 9)
-            {
-                // Version 9: Add geo-query index
-                //String upgradeSql = "CREATE VIRTUAL TABLE bboxes USING rtree(rowid, x0, x1, y0, y1); " +
-                //"ALTER TABLE maps ADD COLUMN bbox_id INTEGER; " +
-                //"ALTER TABLE maps ADD COLUMN geokey BLOB; " +
-                //"CREATE TRIGGER del_bbox DELETE ON maps WHEN old.bbox_id not null " +
-                //"BEGIN DELETE FROM bboxes WHERE rowid=old.bbox_id| END; " +
-                var upgradeSql = "PRAGMA user_version = 9";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 9;
-            }
-            if (dbVersion < 10)
-            {
-                // Version 10: Add rev flag for whether it has an attachment
-                var upgradeSql = "ALTER TABLE revs ADD COLUMN no_attachments BOOLEAN; " + "PRAGMA user_version = 10";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 10;
-            }
-
-            if (dbVersion < 13) {
-                // Version 13: Add rows to track number of rows in the views
-                const string upgradeSql = "ALTER TABLE views ADD COLUMN total_docs INTEGER DEFAULT -1; " +
-                    "PRAGMA user_version = 13";
-                if (!RunStatements(upgradeSql)) {
-                    return false;
-                }
-
-                dbVersion = 13;
-            }
-
-            // (Version 11 used to create the index revs_cur_deleted, which is obsoleted in version 16)
-
-            if (dbVersion < 14)
-            {
-                // Version 14: Add index for getting a document with doc and rev id
-                var upgradeSql = "CREATE INDEX IF NOT EXISTS revs_by_docid_revid ON revs(doc_id, revid desc, current, deleted); " +
-                    "PRAGMA user_version = 14";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 14;
-            }
-            if (dbVersion < 15)
-            {
-                // Version 15: Add sequence index on maps and attachments for revs(sequence) on DELETE CASCADE
-                var upgradeSql = "CREATE INDEX maps_sequence ON maps(sequence);  " +
-                    "PRAGMA user_version = 15";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 15;
-            }
-            if (dbVersion < 16)
-            {
-                // Version 16: Fix the very suboptimal index revs_cur_deleted.
-                // The new revs_current is an optimal index for finding the winning revision of a doc.
-                var upgradeSql = "DROP INDEX IF EXISTS revs_current; " +
-                    "DROP INDEX IF EXISTS revs_cur_deleted; " +
-                    "CREATE INDEX revs_current ON revs(doc_id, current desc, deleted, revid desc); " +
-                    "PRAGMA user_version = 16";
-                if (!RunStatements(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 16;
-            }
-            if (dbVersion < 17) {
-                var upgradeSql = "CREATE INDEX maps_view_sequence ON maps(view_id, sequence);" +
-                    "PRAGMA user_version = 17";
-
-                if (!RunStatements(upgradeSql)) {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 17;
-            }
-            if (dbVersion < 18) {
-                const string upgradeSql = "ALTER TABLE revs ADD COLUMN doc_type TEXT;" +
-                    "PRAGMA user_version = 18";
-
-                if (!RunStatements(upgradeSql)) {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 18;
-            }
-            if (dbVersion < 101) {
-                const string upgradeSql = "PRAGMA user_version = 101";
-                if (!RunStatements(upgradeSql)) {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 101;
-            }
-
-            if (isNew && !RunStatements("END TRANSACTION")) {
-                StorageEngine.Close();
-                return false;
-            }
-
-            if (!isNew) {
-                OptimizeSQLIndexes();
-            }
-
-            _isOpen = true;
-
-            return true;
         }
 
         internal int PruneRevsToMaxDepth(int maxDepth)
@@ -663,7 +533,7 @@ PRAGMA user_version = 3;";
                         outPruned += rowsDeleted;
                     }
 
-                    return new Status(StatusCode.Ok);
+                    return true;
                 });
             } catch (Exception e) {
                 throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
@@ -793,18 +663,19 @@ PRAGMA user_version = 3;";
             return rev;
         }
 
-        private Status RunInOuterTransaction(Func<Status> action)
+        private bool RunInOuterTransaction(RunInTransactionDelegate action)
         {
             if (!InTransaction) {
                 return RunInTransaction(action);
             }
 
-            Status status = null;
+            var status = false;
             try {
                 status = action();
-            } catch(Exception e) {
-                Log.E(TAG, "Exception in RunInOuterTransaction", e);
-                status = new Status(StatusCode.Exception);
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Failed in RunInOuterTransaction");
+                status = false;
+                throw;
             }
 
             return status;
@@ -843,14 +714,10 @@ PRAGMA user_version = 3;";
             if (docType != null) {
                 vals["doc_type"] = docType;
             }
-
-            try {
-                var row = StorageEngine.Insert("revs", null, vals);
-                rev.SetSequence(row);
-                return row;
-            } catch(Exception) {
-                return 0L;
-            }
+                
+            var row = StorageEngine.Insert("revs", null, vals);
+            rev.SetSequence(row);
+            return row;
         }
 
         private string GetWinner(long docNumericId, string oldWinnerRevId, bool oldWinnerWasDeletion, RevisionInternal newRev)
@@ -911,7 +778,7 @@ PRAGMA user_version = 3;";
             }
 
             var revs = new RevisionList();
-            var status = TryQuery(c =>
+            var innerStatus = TryQuery(c =>
             {
                 var rev = new RevisionInternal(docId, c.GetString(1), c.GetInt(2) != 0);
                 rev.SetSequence(c.GetLong(0));
@@ -919,25 +786,12 @@ PRAGMA user_version = 3;";
 
                 return true;
             }, true, sql, docNumericId);
-
-            return status.IsError ? null : revs;
-        }
-
-        private IDictionary<string, object> StripDocumentJSON(IDictionary<string, object> originalProps)
-        {
-            // Don't leave in any "_"-prefixed keys except for the ones in SPECIAL_KEYS_TO_LEAVE.
-            // Keys in SPECIAL_KEYS_TO_REMOVE (_id, _rev, ...) are left out, any others trigger an error.
-            var properties = new Dictionary<string, object>(originalProps.Count);
-            foreach (var pair in originalProps) {
-                if (!pair.Key.StartsWith("_") || SPECIAL_KEYS_TO_LEAVE.Contains(pair.Key)) {
-                    properties[pair.Key] = pair.Value;
-                } else if (!SPECIAL_KEYS_TO_REMOVE.Contains(pair.Key)) {
-                    Log.W(TAG, "Invalid top-level key '{0}' in document to be inserted", pair.Key);
-                    return null;
-                }
+                
+            if (innerStatus.IsError && innerStatus.Code != StatusCode.NotFound) {
+                throw new CouchbaseLiteException("Error getting document revisions ({0})", innerStatus) { Code = StatusCode.DbError };
             }
 
-            return properties;
+            return revs;
         }
 
         internal IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
@@ -947,7 +801,7 @@ PRAGMA user_version = 3;";
                 return null;
             }
 
-            var properties = StripDocumentJSON(originalProps);
+            var properties = Database.StripDocumentJSON(originalProps);
 
             // Create canonical JSON -- this is important, because the JSON data returned here will be used
             // to create the new revision ID, and we need to guarantee that equivalent revision bodies
@@ -961,13 +815,9 @@ PRAGMA user_version = 3;";
             RunInTransaction(() =>
             {
                 RevisionInternal prevRev = GetLocalDocument(rev.GetDocId(), null);
-                try {
-                    result = PutLocalRevision(rev, prevRev == null ? null : prevRev.GetRevId(), true);
-                } catch(CouchbaseLiteException e) {
-                    return e.CBLStatus;
-                }
+                result = PutLocalRevision(rev, prevRev == null ? null : prevRev.GetRevId(), true);
 
-                return new Status(StatusCode.Ok);
+                return true;
             });
 
             return result;
@@ -999,15 +849,16 @@ PRAGMA user_version = 3;";
         #region ICouchStore
         #pragma warning disable 1591
 
-        public bool DatabaseExistsIn(string path)
+        public bool DatabaseExistsIn(string directory)
         {
-            return File.Exists(path);
+            return File.Exists(Path.Combine(directory, DB_FILENAME));
         }
 
-        public bool Open(string path, Manager manager)
+        public void Open(string directory, Manager manager, bool readOnly)
         {
-            _path = path;
-            return Open();
+            _directory = directory;
+            _readOnly = readOnly;
+            Open();
         }
 
         public void Close()
@@ -1017,18 +868,20 @@ PRAGMA user_version = 3;";
             }
         }
 
-        public Status SetInfo(string key, string info)
+        public void SetInfo(string key, string info)
         {
             var vals = new ContentValues(2);
             vals["key"] = key;
             vals["value"] = info;
             try {
                 StorageEngine.InsertWithOnConflict("info", null, vals, ConflictResolutionStrategy.Replace);
-            } catch(Exception) {
-                return new Status(StatusCode.DbError);
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Failed to set info ({0} -> {1})", key, info);
+                throw;
+            } catch(Exception e) {
+                throw new CouchbaseLiteException(String.Format(
+                    "Error setting info ({0} -> {1})", key, info), e) { Code = StatusCode.Exception }; 
             }
-
-            return new Status(StatusCode.Ok);
         }
 
         public string GetInfo(string key)
@@ -1055,9 +908,11 @@ PRAGMA user_version = 3;";
                 args["doc_type"] = null;
                 args["no_attachments"] = 1;
                 StorageEngine.Update("revs", args, "current=0", null);
-            } catch (SQLException e) {
-                Log.E(TAG, "Error compacting", e);
-                throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Error compacting old JSON");
+                throw;
+            } catch (Exception e) {
+                throw new CouchbaseLiteException(e, StatusCode.DbError);
             }
 
             Log.V(TAG, "Deleting old attachments...");
@@ -1067,58 +922,140 @@ PRAGMA user_version = 3;";
                 StorageEngine.ExecSQL("PRAGMA wal_checkpoint(RESTART)");
                 Log.V(TAG, "Vacuuming SQLite sqliteDb...");
                 StorageEngine.ExecSQL("VACUUM");
-            } catch (SQLException e) {
-                Log.E(TAG, "Error vacuuming sqliteDb", e);
-                throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+            } catch(CouchbaseLiteException) {
+                Log.W(TAG, "Error vacuuming Sqlite DB");
+                throw;
+            } catch (Exception e) {
+                throw new CouchbaseLiteException("Error vacuuming Sqlite DB", e) { Code = StatusCode.DbError };
             }
         }
 
-        public Status RunInTransaction(Func<Status> block)
+        public bool RunInTransaction(RunInTransactionDelegate block)
         {
-            Status status = new Status();
+            var status = false;
+            var keepGoing = false;
             int retries = 0;
             do {
+                keepGoing = false;
                 if(!BeginTransaction()) {
-                    return new Status(StatusCode.DbError);
+                    throw new CouchbaseLiteException("Error beginning begin transaction", StatusCode.DbError);
                 }
 
                 try {
                     status = block();
+                } catch(CouchbaseLiteException e) {
+                    if(e.Code == StatusCode.DbBusy) {
+                        // retry if locked out
+                        if(_transactionCount > 1) {
+                            break;
+                        }
+
+                        if(++retries > TRANSACTION_MAX_RETRIES) {
+                            Log.W(TAG, "Db busy, too many retries, giving up");
+                            break;
+                        }
+
+                        Log.D(TAG, "Db busy, retrying transaction ({0})", retries);
+                        Thread.Sleep(TRANSACTION_MAX_RETRY_DELAY);
+                        keepGoing = true;
+                    } else {
+                        Log.W(TAG, "Failed to run transaction");
+                        status = false;
+                        throw;
+                    }
                 } catch(Exception e) {
-                    Log.E(TAG, "Exception in RunInTransaction", e);
-                    status.Code = StatusCode.Exception;
+                    status = false;
+                    throw new CouchbaseLiteException("Error running transaction", e) { Code = StatusCode.Exception };
                 } finally {
-                    EndTransaction(status.IsSuccessful);
+                    EndTransaction(status);
                 }
-
-                if(status.Code == StatusCode.DbBusy) {
-                    // retry if locked out
-                    if(_transactionCount > 1) {
-                        break;
-                    }
-
-                    if(++retries > TRANSACTION_MAX_RETRIES) {
-                        Log.W(TAG, "Db busy, too many retries, giving up");
-                        break;
-                    }
-
-                    Log.D(TAG, "Db busy, retrying transaction ({0})", retries);
-                    Thread.Sleep(TRANSACTION_MAX_RETRY_DELAY);
-                }
-            } while(status.Code == StatusCode.DbBusy);
+            } while(keepGoing);
 
             return status;
         }
 
-        public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status status = null)
+        public void SetEncryptionKey(SymmetricKey key)
         {
-            if (status == null) {
-                status = new Status();
+            _encryptionKey = key;
+        }
+
+        public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
+        {
+            // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export
+            var hasRealEncryption = false;
+            try {
+                hasRealEncryption = raw.sqlite3_compileoption_used("SQLITE_HAS_CODEC") != 0;
+            } catch(EntryPointNotFoundException) {
+                // Android omits the compileoption_used from its system SQLite
+                hasRealEncryption = false;
+            }
+
+            if (!hasRealEncryption) {
+                return new AtomicAction();
+            }
+
+            var action = new AtomicAction();
+            var dbWasClosed = false;
+            var tempPath = default(string);
+
+            // Make a path for a temporary database file:
+            tempPath = Path.Combine(Path.GetTempPath(), Misc.CreateGUID());
+            action.AddLogic(null, () => File.Delete(tempPath), null);
+
+            // Create & attach a temporary database encrypted with the new key:
+            action.AddLogic(() =>
+            {
+                var keyStr = newKey != null ? newKey.HexData : String.Empty;
+                var sql = String.Format("ATTACH DATABASE ? AS rekeyed_db KEY \"x'{0}'\"", keyStr);
+                StorageEngine.ExecSQL(sql, tempPath);
+            }, () =>
+            {
+                if(dbWasClosed) {
+                    return;
+                }
+
+                StorageEngine.ExecSQL("DETACH DATABASE rekeyed_db");
+            });
+
+            // Export the current database's contents to the new one:
+            action.AddLogic(() => 
+            {
+                StorageEngine.ExecSQL("SELECT sqlcipher_export('rekeyed_db')");
+                var version = QueryOrDefault<int>(c => c.GetInt(0), false, 0, "PRAGMA user_version");
+                StorageEngine.ExecSQL(String.Format("PRAGMA rekeyed_db.user_version = {0}", version));
+            }, null, null);
+
+            // Close the database (and re-open it on cleanup):
+            action.AddLogic(() =>
+            {
+                StorageEngine.Close();
+                dbWasClosed = true;
+            }, () =>
+            {
+                Open();
+            }, () =>
+            {
+                SetEncryptionKey(newKey);
+                Open();
+            });
+
+            // Overwrite the old db file with the new one:
+            if (hasRealEncryption) {
+                action.AddLogic(AtomicAction.MoveFile(tempPath, Path.Combine(_directory, DB_FILENAME)));
+            }
+
+            return action;
+        }
+
+        public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
+        {
+            if (outStatus == null) {
+                outStatus = new Status();
             }
 
             long docNumericId = GetDocNumericID(docId);
             if (docNumericId <= 0L) {
-                status.Code = StatusCode.NotFound;
+                outStatus.Code = StatusCode.NotFound;
                 return null;
             }
 
@@ -1133,7 +1070,7 @@ PRAGMA user_version = 3;";
             } else {
                 sb.Append(" FROM revs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1");
             }
-
+                
             var transactionStatus = TryQuery(c =>
             {
                 if(revId == null) {
@@ -1146,21 +1083,20 @@ PRAGMA user_version = 3;";
                 if(withBody) {
                     result.SetJson(c.GetBlob(3));
                 }
-
-                status.Code = StatusCode.Ok;
+                    
                 return false;
             }, true, sb.ToString(), docNumericId, revId);
 
             if (transactionStatus.IsError) {
-                if (transactionStatus.Code == StatusCode.NotFound && revId == null) {
-                    status.Code = StatusCode.Deleted;
+                if (transactionStatus.Code == StatusCode.NotFound) {
+                    outStatus.Code = revId == null ? StatusCode.Deleted : StatusCode.NotFound;
+                    return null;
                 } else {
-                    status.Code = transactionStatus.Code;
+                    throw new CouchbaseLiteException(transactionStatus.Code);
                 }
-
-                return null;
             }
 
+            outStatus.Code = StatusCode.Ok;
             return result;
         }
 
@@ -1481,7 +1417,7 @@ PRAGMA user_version = 3;";
                 return true;
             }, false, "SELECT json FROM revs WHERE no_attachments != 1");
 
-            return status.IsError ? null : allKeys;
+            return status.IsError && status.Code != StatusCode.NotFound ? null : allKeys;
         }
 
         public IEnumerable<QueryRow> GetAllDocs(QueryOptions options)
@@ -1643,11 +1579,8 @@ PRAGMA user_version = 3;";
         public RevisionList ChangesSince(long lastSequence, ChangesOptions options, RevisionFilter filter)
         {
             // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
-            if (options == null) {
-                options = new ChangesOptions();
-            }
 
-            bool includeDocs = options.IsIncludeDocs() || filter != null;
+            bool includeDocs = options.IncludeDocs || filter != null;
             var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
                 "WHERE sequence > ? AND current=1 " +
                 "AND revs.doc_id = docs.doc_id " +
@@ -1658,7 +1591,7 @@ PRAGMA user_version = 3;";
             long lastDocId = 0L;
             TryQuery(c =>
             {
-                if(!options.IsIncludeConflicts()) {
+                if(!options.IncludeConflicts) {
                     // Only count the first rev for a given doc (the rest will be losing conflicts):
                     var docNumericId = c.GetLong(1);
                     if(docNumericId == lastDocId) {
@@ -1684,25 +1617,21 @@ PRAGMA user_version = 3;";
                 return true;
             }, false, sql, lastSequence);
 
-            if (options.IsSortBySequence()) {
+            if (options.SortBySequence) {
                 changes.SortBySequence(!options.Descending);
-                changes.Limit(options.GetLimit());
+                changes.Limit(options.Limit);
             }
 
             return changes;
         }
 
         public RevisionInternal PutRevision(string inDocId, string inPrevRevId, IDictionary<string, object> properties,
-            bool deleting, bool allowConflict, StoreValidation validationBlock, Status outStatus = null)
+            bool deleting, bool allowConflict, StoreValidation validationBlock)
         {
-            if (outStatus == null) {
-                outStatus = new Status();
-            }
-
             IEnumerable<byte> json = null;
             if (properties != null) {
                 try {
-                    json = Manager.GetObjectMapper().WriteValueAsBytes(StripDocumentJSON(properties), true);
+                    json = Manager.GetObjectMapper().WriteValueAsBytes(Database.StripDocumentJSON(properties), true);
                 } catch (Exception e) {
                     throw new CouchbaseLiteException(e, StatusCode.BadJson);
                 }
@@ -1714,7 +1643,7 @@ PRAGMA user_version = 3;";
             string winningRevID = null;
             bool inConflict = false;
 
-            var status = RunInOuterTransaction(() =>
+            RunInOuterTransaction(() =>
             {
                 // Remember, this block may be called multiple times if I have to retry the transaction.
                 newRev = null;
@@ -1742,35 +1671,31 @@ PRAGMA user_version = 3;";
                 ValueTypePtr<bool> wasConflicted = false;
                 string oldWinningRevId = null;
                 if(!isNewDoc) {
-                    try {
-                        // Look up which rev is the winner, before this insertion
-                        oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, wasConflicted);
-                    } catch(CouchbaseLiteException e) {
-                        return e.CBLStatus;
-                    }
+                    // Look up which rev is the winner, before this insertion
+                    oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, wasConflicted);
                 }
 
                 long parentSequence = 0L;
                 if(prevRevId != null) {
                     // Replacing: make sure given prevRevID is current & find its sequence number:
                     if(isNewDoc) {
-                        return new Status(StatusCode.NotFound);
+                        throw new CouchbaseLiteException("Previous revision not found", StatusCode.NotFound);
                     }
 
                     parentSequence = GetSequenceOfDocument(docNumericId, prevRevId, !allowConflict);
                     if(parentSequence == 0L) {
                         // Not found: NotFound or a Conflict, depending on whether there is any current revision
                         if(!allowConflict && DocumentExists(docId, null)) {
-                            return new Status(StatusCode.Conflict);
+                            throw new CouchbaseLiteException(StatusCode.Conflict);
                         }
 
-                        return new Status(StatusCode.NotFound);
+                        throw new CouchbaseLiteException("Previous revision not found", StatusCode.NotFound);
                     }
                 } else {
                     // Inserting first revision.
                     if(deleting && docId != null) {
                         // Didn't specify a revision to delete: NotFound or a Conflict, depending
-                        return DocumentExists(docId, null) ? new Status(StatusCode.Conflict) : new Status(StatusCode.NotFound);
+                        throw new CouchbaseLiteException(DocumentExists(docId, null) ? StatusCode.Conflict : StatusCode.NotFound);
                     }
 
                     if(docId != null) {
@@ -1781,14 +1706,15 @@ PRAGMA user_version = 3;";
                             parentSequence = GetSequenceOfDocument(docNumericId, prevRevId, false);
                         } else if(oldWinningRevId != null) {
                             // The current winning revision is not deleted, so this is a conflict
-                            return new Status(StatusCode.Conflict);
+                            throw new CouchbaseLiteException(StatusCode.Conflict);
                         }
                     } else {
                         // Inserting first revision, with no docID given (POST): generate a unique docID:
                         docId = Misc.CreateGUID();
                         docNumericId = GetOrInsertDocNumericID(docId, ref isNewDoc);
                         if(docNumericId <= 0L) {
-                            return new Status(StatusCode.DbError);
+                            throw new CouchbaseLiteException(String.Format(
+                                "Couldn't write new document {0} to database", docId), StatusCode.DbError);
                         }
                     }
                 }
@@ -1803,7 +1729,8 @@ PRAGMA user_version = 3;";
                 string newRevId = Delegate.GenerateRevID(json, deleting, prevRevId);
                 if(newRevId == null) {
                     // invalid previous revID (no numeric prefix)
-                    return new Status(StatusCode.BadId);
+                    throw new CouchbaseLiteException(String.Format(
+                        "Invalid rev ID {0} for document {1}", prevRevId, docId), StatusCode.BadId);
                 }
 
                 Debug.Assert(docId != null);
@@ -1822,7 +1749,8 @@ PRAGMA user_version = 3;";
 
                     var validationStatus = validationBlock(newRev, prevRev, prevRevId);
                     if(validationStatus.IsError) {
-                        return validationStatus;
+                        throw new CouchbaseLiteException(String.Format("{0} failed validation", newRev), 
+                            validationStatus.Code);
                     }
                 }
 
@@ -1844,7 +1772,12 @@ PRAGMA user_version = 3;";
 
                 var sequence = InsertRevision(newRev, docNumericId, parentSequence, true, hasAttachments, json, docType);
                 if(sequence == 0L) {
-                    //FIXME: This could mean that a duplicate has been encountered
+                    if(StorageEngine.LastErrorCode != raw.SQLITE_CONSTRAINT) {
+                        throw new CouchbaseLiteException(String.Format("Failed to insert revision {0}", newRev),
+                            LastDbError.Code);
+                    }
+
+                    Log.I(TAG, "Duplicate rev insertion {0} / {1}", docId, newRevId);
                     newRev.SetBody(null);
                 }
 
@@ -1855,28 +1788,27 @@ PRAGMA user_version = 3;";
                     args["doc_type"] = null;
                     try {
                         StorageEngine.Update("revs", args, "sequence=?", parentSequence.ToString());
-                    } catch(Exception) {
+                    } catch(CouchbaseLiteException) {
+                        Log.W(TAG, "Failed to update document {0}", docId);
+                        throw;
+                    } catch(Exception e) {
                         StorageEngine.Delete("revs", "sequence=?", sequence.ToString());
-                        return new Status(StatusCode.DbError);
+                        throw new CouchbaseLiteException(String.Format(
+                            "Error updating document {0}", docId), e) { Code = StatusCode.DbError };
                     }
                 }
 
                 if(sequence == 0L) {
                     // duplicate rev; see above
-                    return new Status(StatusCode.Ok);
+                    return true;
                 }
 
                 // Figure out what the new winning rev ID is:
                 winningRevID = GetWinner(docNumericId, oldWinningRevId, oldWinnerWasDeletion, newRev);
 
                 // Success!
-                return deleting ? new Status(StatusCode.Ok) : new Status(StatusCode.Created);
+                return true;
             });
-
-            outStatus.Code = status.Code;
-            if (outStatus.IsError) {
-                return null;
-            }
 
             //// EPILOGUE: A change notification is sent...
             Delegate.DatabaseStorageChanged(new DocumentChange(newRev, winningRevID, inConflict, null));
@@ -1884,7 +1816,7 @@ PRAGMA user_version = 3;";
             return newRev;
         }
 
-        public Status ForceInsert(RevisionInternal inRev, IList<string> revHistory, StoreValidation validationBlock, Uri source)
+        public void ForceInsert(RevisionInternal inRev, IList<string> revHistory, StoreValidation validationBlock, Uri source)
         {
             var rev = inRev.CopyWithDocID(inRev.GetDocId(), inRev.GetRevId());
             rev.SetSequence(0L);
@@ -1892,7 +1824,7 @@ PRAGMA user_version = 3;";
 
             string winningRevId = null;
             bool inConflict = false;
-            var status = RunInTransaction(() =>
+            RunInTransaction(() =>
             {
                 // First look up the document's row-id and all locally-known revisions of it:
                 Dictionary<string, RevisionInternal> localRevs = null;
@@ -1901,25 +1833,40 @@ PRAGMA user_version = 3;";
                 bool isNewDoc = revHistory.Count == 1;
                 var docNumericId = GetOrInsertDocNumericID(docId, ref isNewDoc);
                 if(docNumericId <= 0) {
-                    return new Status(StatusCode.DbError);
+                    throw new CouchbaseLiteException(String.Format("Error inserting document {0}", docId),
+                        StatusCode.DbError);
                 }
 
                 if(!isNewDoc) {
-                    RevisionList localRevsList = GetAllDocumentRevisions(docId, docNumericId, false);
-                    if(localRevsList == null) {
-                        return new Status(StatusCode.DbError);
-                    }
-
-                    localRevs = new Dictionary<string, RevisionInternal>(localRevsList.Count);
-                    foreach(var localRev in localRevsList) {
-                        localRevs[localRev.GetRevId()] = localRev;
-                    }
-
-                    // Look up which rev is the winner, before this insertion
+                    var localRevsList = default(RevisionList);
                     try {
-                        oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, inConflict);
+                        localRevsList = GetAllDocumentRevisions(docId, docNumericId, false);
+                        localRevs = new Dictionary<string, RevisionInternal>(localRevsList.Count);
+                        foreach(var localRev in localRevsList) {
+                            localRevs[localRev.GetRevId()] = localRev;
+                        }
+
+                        // Look up which rev is the winner, before this insertion
+                        try {
+                            oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, inConflict);
+                        } catch(CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to look up winner for {0}", docId);
+                            throw;
+                        } catch(Exception e) {
+                            throw new CouchbaseLiteException(String.Format(
+                                "Error looking up winner for {0}", docId), e) { Code = StatusCode.Exception };
+                        }
                     } catch(CouchbaseLiteException e) {
-                        return e.CBLStatus;
+                        // Don't stop on a not found, because it is not critical.  This can happen
+                        // when two pullers are pulling the same data at the same time.  One will
+                        // insert JUST the document (not the revisions yet), and then yield to the
+                        // other which will see the document and assume revisions are there which aren't.
+                        // In that case, we'd like to continue and insert the missing revisions instead of
+                        // erroring out.  Note that this needs to be changed to a better way.
+                        if(e.Code != StatusCode.NotFound) {
+                            Log.W(TAG, "Error getting document revisions for {0}", docId);
+                            throw;
+                        }
                     }
                 }
 
@@ -1935,7 +1882,8 @@ PRAGMA user_version = 3;";
                     string parentRevId = (revHistory.Count > 1) ? revHistory[1] : null;
                     var validationStatus = validationBlock(rev, oldRev, parentRevId);
                     if(validationStatus.IsError) {
-                        return validationStatus;
+                        throw new CouchbaseLiteException(String.Format("{0} failed validation", rev),
+                            StatusCode.DbError);
                     }
                 }
 
@@ -1962,9 +1910,6 @@ PRAGMA user_version = 3;";
                             // Hey, this is the leaf revision we're inserting:
                             newRev = rev;
                             json = EncodeDocumentJSON(rev);
-                            if(json == null) {
-                                return new Status(StatusCode.BadJson);
-                            }
 
                             docType = rev.GetPropertyForKey("type") as string;
                             current = true;
@@ -1974,16 +1919,35 @@ PRAGMA user_version = 3;";
                         }
 
                         // Insert it:
-                        sequence = InsertRevision(newRev, docNumericId, sequence, current, newRev.GetAttachments() != null, json, docType);
-                        if(sequence <= 0) {
-                            return new Status(StatusCode.DbError);
+                        try {
+                            sequence = InsertRevision(newRev, docNumericId, sequence, current, newRev.GetAttachments() != null, json, docType);
+                        } catch(CouchbaseLiteException e) {
+                            if(e.Code == StatusCode.DbError) {
+                                var sqliteException = e.InnerException as ugly.sqlite3_exception;
+                                if(sqliteException == null) {
+                                    // DbError without an inner sqlite3 exception? Weird...throw
+                                    throw;
+                                }
+
+                                if(sqliteException.errcode != raw.SQLITE_CONSTRAINT) {
+                                    // This is a genuine error inserting the revision
+                                    Log.E(TAG, "Error inserting revision {0} ({1})", newRev, sqliteException.errcode);
+                                    throw;
+                                } else {
+                                    // This situation means that the revision already exists, so go get the existing
+                                    // sequence number
+                                    sequence = GetSequenceOfDocument(docNumericId, newRev.GetRevId(), false);
+                                }
+                            } else {
+                                throw;
+                            }
                         }
                     }
                 }
 
                 if(localParentSequence == sequence) {
                     // No-op: No new revisions were inserted.
-                    return new Status(StatusCode.Ok);
+                    return true;
                 }
 
                 // Mark the latest local rev as no longer current:
@@ -1994,8 +1958,12 @@ PRAGMA user_version = 3;";
                     int changes;
                     try {
                         changes = StorageEngine.Update("revs", args, "sequence=?", localParentSequence.ToString());
-                    } catch(Exception) {
-                        return new Status(StatusCode.DbError);
+                    } catch(CouchbaseLiteException) {
+                        Log.W(TAG, "Failed to update {0}", docId);
+                        throw;
+                    } catch(Exception e) {
+                        throw new CouchbaseLiteException(String.Format("Error updating {0}", docId),
+                            e) { Code = StatusCode.Exception };
                     }
 
                     if(changes == 0) {
@@ -2006,14 +1974,10 @@ PRAGMA user_version = 3;";
 
                 // Figure out what the new winning rev ID is:
                 winningRevId = GetWinner(docNumericId, oldWinningRevId, oldWinnerWasDeletion, rev);
-                return new Status(StatusCode.Created);
+                return true;
             });
-
-            if (status.IsSuccessful) {
-                Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId, inConflict, source));
-            }
-
-            return status;
+                
+            Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId, inConflict, source));
         }
 
         public IDictionary<string, object> PurgeRevisions(IDictionary<string, IList<string>> docsToRev)
@@ -2036,15 +2000,20 @@ PRAGMA user_version = 3;";
                     IEnumerable<string> revsPurged = null;
                     var revIDs = docsToRev[docId];
                     if(revIDs == null) {
-                        return new Status(StatusCode.BadParam);
+                        throw new CouchbaseLiteException(String.Format("Illegal null revIds for {0}", docId),
+                            StatusCode.BadParam);
                     } else if(revIDs.Count == 0) {
                         revsPurged = new List<string>();
                     } else if(revIDs.Contains("*")) {
                         // Delete all revisions if magic "*" revision ID is given:
                         try {
                             StorageEngine.Delete("revs", "doc_id=?", docNumericId.ToString());
-                        } catch(Exception) {
-                            return new Status(StatusCode.DbError);
+                        } catch(CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to delete revisions of {0}", docId);
+                            throw;
+                        } catch(Exception e) {
+                            throw new CouchbaseLiteException(String.Format("Error deleting revisions of {0}", docId),
+                                e) { Code = StatusCode.Exception };
                         }
 
                         revsPurged = new List<string> { "*" };
@@ -2085,8 +2054,12 @@ PRAGMA user_version = 3;";
                             int count = 0;
                             try {
                                 count = StorageEngine.Delete("revs", deleteSql);
-                            } catch(Exception) {
-                                return new Status(StatusCode.DbError);
+                            } catch(CouchbaseLiteException) {
+                                Log.W(TAG, "Failed to delete revisions of {0}", docId);
+                                throw;
+                            } catch(Exception e) {
+                                throw new CouchbaseLiteException(String.Format("Error deleting revisions of {0}", docId),
+                                    e) { Code = StatusCode.Exception };
                             }
 
                             if(count != seqsToPurge.Count) {
@@ -2100,7 +2073,7 @@ PRAGMA user_version = 3;";
                     result["docID"] = revIDs.Where(x => revsPurged.Contains(x));
                 }
 
-                return new Status(StatusCode.Ok);
+                return true;
             });
 
             return result;
@@ -2230,4 +2203,4 @@ PRAGMA user_version = 3;";
         #endregion
     }
 }
-
+#endif

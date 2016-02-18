@@ -84,7 +84,7 @@ namespace Couchbase.Lite.Support
         /// Gets the handler used in the HttpClient
         /// </summary>
         /// <value>The handler.</value>
-        MessageProcessingHandler Handler { get; }
+        HttpMessageHandler Handler { get; }
 
         /// <summary>
         /// Adds default cookies to the HttpClient

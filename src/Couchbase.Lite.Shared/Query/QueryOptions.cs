@@ -203,6 +203,47 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        #if FORESTDB
+
+        /// <summary>
+        /// Transforms this instance into an object suitable for use with
+        /// a CBForest all document query.
+        /// </summary>
+        /// <returns>The transformed options</returns>
+        public CBForest.C4EnumeratorOptions AsC4EnumeratorOptions()
+        {
+            var retVal = default(CBForest.C4EnumeratorOptions);
+            if (Descending) {
+                retVal.flags |= CBForest.C4EnumeratorFlags.Descending;
+            }
+
+            if (IncludeDocs) {
+                retVal.flags |= CBForest.C4EnumeratorFlags.IncludeBodies;
+            }
+
+            if (IncludeDeletedDocs || AllDocsMode == AllDocsMode.IncludeDeleted) {
+                retVal.flags |= CBForest.C4EnumeratorFlags.IncludeDeleted;
+            }
+
+            if (InclusiveEnd) {
+                retVal.flags |= CBForest.C4EnumeratorFlags.InclusiveEnd;
+            }
+
+            if (InclusiveStart) {
+                retVal.flags |= CBForest.C4EnumeratorFlags.InclusiveStart;
+            }
+
+            if (AllDocsMode != AllDocsMode.OnlyConflicts) {
+                retVal.flags |= CBForest.C4EnumeratorFlags.IncludeNonConflicted;
+            }
+
+            retVal.skip = (uint)Skip;
+
+            return retVal;
+        }
+
+        #endif
+
         /// <summary>
         /// Gets the start key for the query
         /// </summary>

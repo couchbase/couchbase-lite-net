@@ -39,10 +39,8 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-
+#if !NOSQLITE
 using System;
-
-using Couchbase.Lite.Storage;
 
 namespace Couchbase.Lite.Store
 {
@@ -50,14 +48,23 @@ namespace Couchbase.Lite.Store
     /// <summary>
     /// An interface for describing an object that can interface with a SQLite database
     /// </summary>
-    public interface ISQLiteStorageEngine
+    internal interface ISQLiteStorageEngine
     {
+
+        /// <summary>
+        /// Gets the last error code encountered by SQLite (note
+        /// that this does not always indicate an error)
+        /// </summary>
+        int LastErrorCode { get; }
 
         /// <summary>
         /// Opens the database
         /// </summary>
         /// <param name="path">The path where the database exists</param>
-        bool Open(String path);
+        /// <param name="readOnly">Whether or not this storage engine is readonly</param> 
+        /// <param name="schema">The schema to use to create the database initially</param>
+        /// <param name="encryptionKey">A key for encrypting the database</param>
+        bool Open(string path, bool readOnly, string schema, SymmetricKey encryptionKey);
 
         /// <summary>
         /// Gets the user version of the database
@@ -163,3 +170,4 @@ namespace Couchbase.Lite.Store
         void Close();
     }
 }
+#endif

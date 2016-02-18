@@ -31,11 +31,8 @@ public class TestScript : MonoBehaviour {
 	public string replicationUrl;
 
 	void Start() {
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-		SQLitePCL.SQLite3Provider.SetDllDirectory (Path.Combine(Application.dataPath, "Plugins"));
-#elif UNITY_EDITOR
 		Log.SetLogger(new UnityLogger());
-#endif
+
 		var path = Application.persistentDataPath;
 		Log.D (TAG, "Database path: " + path);
 

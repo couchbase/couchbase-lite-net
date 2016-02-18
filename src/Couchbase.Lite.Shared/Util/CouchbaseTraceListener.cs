@@ -46,6 +46,7 @@
 #endif
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
@@ -126,7 +127,9 @@ namespace Couchbase.Lite.Util
             Console.Out.Write(Environment.NewLine);
             #endif
         }
+
     #endif
+
         public void WriteLine(SourceLevels level, string message, string category)
         {
             Level = level;

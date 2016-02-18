@@ -18,7 +18,7 @@
     <RootNamespace>Couchbase.Lite.iOS</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <AssemblyName>Couchbase.Lite</AssemblyName>
-    <ReleaseVersion>1.1</ReleaseVersion>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
@@ -27,7 +27,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;__IOS__;TRACE;VERBOSE;</DefineConstants>
+    <DefineConstants>DEBUG;__IOS__;TRACE;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -48,7 +48,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>__IOS__</DefineConstants>
+    <DefineConstants>__IOS__;</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Data" />
@@ -57,20 +57,17 @@
     <Reference Include="Xamarin.iOS" />
     <Reference Include="System.Core" />
     <Reference Include="System" />
-    <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\packages\SQLitePCL.ugly.0.7.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLitePCL.raw">
-      <HintPath>..\packages\SQLitePCL.raw_basic.0.7.1\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="ICSharpCode.SharpZipLib.Portable">
-      <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0002\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
-    </Reference>
     <Reference Include="Stateless">
       <HintPath>..\packages\Stateless.2.5.21.0\lib\portable-net40+sl50+win+wp80\Stateless.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib.Portable">
+      <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0003\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid+Xamarin.iOS10\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
+    </Reference>
+    <Reference Include="ModernHttpClient">
+      <HintPath>..\packages\modernhttpclient.2.4.2\lib\Xamarin.iOS10\ModernHttpClient.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -88,4 +85,14 @@
     <Compile Include="ReloadEventArgs.cs" />
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <ItemGroup>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.unified_ios.pinvoke_packaged_sqlcipher.anycpu.csproj">
+      <Project>{05817DDA-0F3C-4ADF-8AC5-13C314655E23}</Project>
+      <Name>platform.unified_ios.pinvoke_packaged_sqlcipher.anycpu</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj">
+      <Project>{11440D11-E458-4BB6-ADBB-7C233F952089}</Project>
+      <Name>ugly_profile78</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>

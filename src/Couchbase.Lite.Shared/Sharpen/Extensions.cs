@@ -69,26 +69,15 @@ namespace Sharpen
             DateTime time = new DateTime (1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             EPOCH_TICKS = time.Ticks;
         }
-        
-        public static void Add<T> (this IList<T> list, int index, T item)
+
+        public static Exception Flatten(this Exception e)
         {
-            list.Insert (index, item);
-        }
-        
-        public static void AddFirst<T> (this IList<T> list, T item)
-        {
-            list.Insert (0, item);
-        }
-        
-        public static void AddLast<T> (this IList<T> list, T item)
-        {
-            list.Add (item);
-        }
-        
-        public static void RemoveLast<T> (this IList<T> list)
-        {
-            if (list.Count > 0)
-                list.Remove (list.Count - 1);
+            var ae = e as AggregateException;
+            if (ae == null) {
+                return e;
+            }
+
+            return ae.Flatten().InnerException;
         }
 
         public static StringBuilder AppendRange (this StringBuilder sb, string str, int start, int end)
@@ -99,21 +88,6 @@ namespace Sharpen
         public static StringBuilder Delete (this StringBuilder sb, int start, int end)
         {
             return sb.Remove (start, end - start);
-        }
-
-        public static void SetCharAt (this StringBuilder sb, int index, char c)
-        {
-            sb[index] = c;
-        }
-
-        public static int IndexOf (this StringBuilder sb, string str)
-        {
-            return sb.ToString ().IndexOf (str);
-        }
-
-        public static Iterable<T> AsIterable<T> (this IEnumerable<T> s)
-        {
-            return new EnumerableWrapper<T> (s);
         }
 
         public static int BitCount (int val)
@@ -129,102 +103,12 @@ namespace Sharpen
             return count;
         }
 
-        public static IndexOutOfRangeException CreateIndexOutOfRangeException (int index)
-        {
-            return new IndexOutOfRangeException ("Index: " + index);
-        }
-
-        public static CultureInfo CreateLocale (string language, string country, string variant)
-        {
-            return CultureInfo.GetCultureInfo ("en-US");
-        }
-
-        public static string Name (this Encoding e)
-        {
-            return e.BodyName.ToUpper ();
-        }
-        
-        public static string Decode (this Encoding e, byte[] chars, int start, int len)
-        {
-            try {
-                byte[] bom = e.GetPreamble ();
-                if (bom != null && bom.Length > 0) {
-                    if (len >= bom.Length) {
-                        int pos = start;
-                        bool hasBom = true;
-                        for (int n=0; n<bom.Length && hasBom; n++) {
-                            if (bom[n] != chars [pos++])
-                                hasBom = false;
-                        }
-                        if (hasBom) {
-                            len -= pos - start;
-                            start = pos;
-                        }
-                    }
-                }
-                return e.GetString (chars, start, len);
-            } catch (DecoderFallbackException) {
-                throw new CharacterCodingException ();
-            }
-        }
-        
-//      public static string Decode (this Encoding e, ByteBuffer buffer)
-//      {
-//          return e.Decode (buffer.Array (), buffer.ArrayOffset () + buffer.Position (), buffer.Limit () - buffer.Position ());
-//      }
-//
-//      public static ByteBuffer Encode (this Encoding e, CharSequence str)
-//      {
-//          return ByteBuffer.Wrap (e.GetBytes (str.ToString ()));
-//      }
-//
-//      public static ByteBuffer Encode (this Encoding e, string str)
-//      {
-//          return ByteBuffer.Wrap (e.GetBytes (str));
-//      }
-        
-        static UTF8Encoding UTF8Encoder = new UTF8Encoding (false, true);
-        public static Encoding GetEncoding (string name)
-        {
-//          Encoding e = Encoding.GetEncoding (name, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-            try {
-                Encoding e = Encoding.GetEncoding (name.Replace ('_','-'));
-                if (e is UTF8Encoding)
-                    return UTF8Encoder;
-                return e;
-            } catch (ArgumentException) {
-                throw new UnsupportedCharsetException (name);
-            }
-        }
-        
-        public static ICollection<KeyValuePair<T, U>> EntrySet<T, U> (this IDictionary<T, U> s)
-        {
-            return s;
-        }
-
-//      public static void Finish (this Inflater i)
-//      {
-//      }
-        
-//      public static bool AddItem<T> (this IList<T> list, T item)
-//      {
-//          list.Add (item);
-//          return true;
-//      }
-
-        public static bool AddItem<T> (this ICollection<T> list, T item)
-        {
-            list.Add (item);
-            return true;
-        }
-
         public static U Get<T, U> (this IDictionary<T, U> d, T key)
         {
             U val = default(U);
             d.TryGetValue (key, out val);
             return val;
         }
-
         public static U Put<T, U> (this IDictionary<T, U> d, T key, U value)
         {
             U old;
@@ -239,46 +123,6 @@ namespace Sharpen
                 d[val.Key] = val.Value;
         }
 
-        public static object Put (this Hashtable d, object key, object value)
-        {
-            object old = d [key];
-            d[key] = value;
-            return old;
-        }
-
-        public static string Put (this StringDictionary d, string key, string value)
-        {
-            string old = d [key];
-            d[key] = value;
-            return old;
-        }
-
-        public static CultureInfo GetEnglishCulture ()
-        {
-            return CultureInfo.GetCultureInfo ("en-US");
-        }
-
-        public static T GetFirst<T> (this IList<T> list)
-        {
-            return ((list.Count == 0) ? default(T) : list[0]);
-        }
-
-        public static CultureInfo GetGermanCulture ()
-        {
-            CultureInfo r =  CultureInfo.GetCultureInfo ("de-DE");
-            return r;
-        }
-
-        public static T GetLast<T> (this IList<T> list)
-        {
-            return ((list.Count == 0) ? default(T) : list[list.Count - 1]);
-        }
-
-        public static int GetOffset (this TimeZoneInfo tzone, long date)
-        {
-            return (int)tzone.GetUtcOffset (MillisToDateTimeOffset (date, 0).DateTime).TotalMilliseconds;
-        }
-
         public static Stream GetResourceAsStream (this Type type, string name)
         {
             var manifestResourceStream = type.Assembly.GetManifestResourceStream (name);
@@ -288,112 +132,6 @@ namespace Sharpen
             return InputStream.Wrap (manifestResourceStream);
         }
 
-        public static long GetTime (this DateTime dateTime)
-        {
-            return new DateTimeOffset (DateTime.SpecifyKind (dateTime, DateTimeKind.Utc), TimeSpan.Zero).ToMillisecondsSinceEpoch ();
-        }
-
-        public static TimeZoneInfo GetTimeZone (string tzone)
-        {
-            try {
-                TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById (tzone);
-                return tz;
-            } catch {
-                // Not found
-            }
-
-            // Mono and Java allow you to specify timezones by short id (i.e. EST instead of Eastern Standard Time).
-            // Mono on Windows and the microsoft framewokr on windows do not allow this. This hack is to compensate
-            // for that and allow you to match 'EST' to 'Eastern Standard Time' by matching the first letter of each
-            // word to the corresponding character in the short string. Bleh.
-            if (tzone.Length <= 4) {
-                foreach (var timezone in TimeZoneInfo.GetSystemTimeZones ()) {
-                    var parts = timezone.Id.Split (new [] {' '}, StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == tzone.Length) {
-                        bool found = true;
-                        for (int i = 0; i <parts.Length; i++)
-                            found &= parts[i][0] == tzone[i];
-
-                        if (found)
-                            return timezone;
-                    }
-                }
-            }
-            char[] separator = new char[] { ':' };
-            string[] strArray = tzone.Substring (4).Split (separator);
-            int hours, minutes;
-            if (strArray.Length == 1 && strArray[0].Length > 2) {
-                hours = int.Parse (strArray[0].Substring (0, 2));
-                minutes = int.Parse (strArray[0].Substring (2));
-            } else {
-                hours = int.Parse (strArray[0]);
-                minutes = (strArray.Length <= 1) ? 0 : int.Parse (strArray[1]);
-            }
-            TimeSpan t = new TimeSpan (0, hours, minutes, 0, 0);
-            if (tzone[3] == '-')
-                t = -t;
-            return TimeZoneInfo.CreateCustomTimeZone (tzone, t, tzone, tzone);
-        }
-
-        public static void InitCause (this Exception ex, Exception cause)
-        {
-            Console.WriteLine (cause);
-        }
-
-        public static bool IsEmpty<T> (this ICollection<T> col)
-        {
-            return (col.Count == 0);
-        }
-
-        public static bool IsEmpty<T> (this Stack<T> col)
-        {
-            return (col.Count == 0);
-        }
-
-        public static bool IsLower (this char c)
-        {
-            return char.IsLower (c);
-        }
-
-        public static bool IsUpper (this char c)
-        {
-            return char.IsUpper (c);
-        }
-
-        public static Sharpen.Iterator<T> Iterator<T> (this ICollection<T> col)
-        {
-            return new EnumeratorWrapper<T> (col, col.GetEnumerator ());
-        }
-
-        public static Sharpen.Iterator<T> Iterator<T> (this IEnumerable<T> col)
-        {
-            return new EnumeratorWrapper<T> (col, col.GetEnumerator ());
-        }
-
-        /*public static T Last<T> (this ICollection<T> col)
-        {
-            IList<T> list = col as IList<T>;
-            if (list != null) {
-                return list[list.Count - 1];
-            }
-            return col.Last<T> ();
-        }*/
-
-        public static ListIterator<T> ListIterator<T> (this IList<T> col, int n)
-        {
-            return new ListIterator<T> (col, n);
-        }
-
-        public static int LowestOneBit (int val)
-        {
-            return (((int)1) << NumberOfTrailingZeros (val));
-        }
-
-        public static bool Matches (this string str, string regex)
-        {
-            Regex regex2 = new Regex (regex);
-            return regex2.IsMatch (str);
-        }
         
         public static DateTime CreateDate (long milliSecondsSinceEpoch)
         {
@@ -407,72 +145,6 @@ namespace Sharpen
             long num = EPOCH_TICKS + (milliSecondsSinceEpoch * 10000);
             return new DateTimeOffset (num + offset.Ticks, offset);
         }
-
-//      public static CharsetDecoder NewDecoder (this Encoding enc)
-//      {
-//          return new CharsetDecoder (enc);
-//      }
-//
-//      public static CharsetEncoder NewEncoder (this Encoding enc)
-//      {
-//          return new CharsetEncoder (enc);
-//      }
-
-        public static int NumberOfLeadingZeros (int val)
-        {
-            uint num = (uint)val;
-            int count = 0;
-            while ((num & 0x80000000) == 0) {
-                num = num << 1;
-                count++;
-            }
-            return count;
-        }
-
-        public static int NumberOfTrailingZeros (int val)
-        {
-            uint num = (uint)val;
-            int count = 0;
-            while ((num & 1) == 0) {
-                num = num >> 1;
-                count++;
-            }
-            return count;
-        }
-
-        public static int Read (this StreamReader reader, char[] data)
-        {
-            return reader.Read (data, 0, data.Length);
-        }
-
-        public static T Remove<T> (this IList<T> list, T item)
-        {
-            int index = list.IndexOf (item);
-            if (index == -1) {
-                return default(T);
-            }
-            T local = list[index];
-            list.RemoveAt (index);
-            return local;
-        }
-
-        public static T Remove<T> (this IList<T> list, int i)
-        {
-            T old;
-            try {
-                old = list[i];
-                list.RemoveAt (i);
-            } catch (IndexOutOfRangeException) {
-                throw new NoSuchElementException ();
-            }
-            return old;
-        }
-
-        public static T RemoveFirst<T> (this IList<T> list)
-        {
-            return list.Remove<T> (0);
-        }
-
         public static string ReplaceAll (this string str, string regex, string replacement)
         {
             Regex rgx = new Regex (regex);
@@ -611,92 +283,6 @@ namespace Sharpen
         {
             return (((dateTimeOffset.Ticks - dateTimeOffset.Offset.Ticks) - EPOCH_TICKS) / TimeSpan.TicksPerMillisecond);
         }
-
-        public static string ToOctalString (int val)
-        {
-            return Convert.ToString (val, 8);
-        }
-
-        public static string ToHexString (int val)
-        {
-            return Convert.ToString (val, 16);
-        }
-
-        public static string ToString (object val)
-        {
-            return val.ToString ();
-        }
-
-        public static string ToString (int val, int bas)
-        {
-            return Convert.ToString (val, bas);
-        }
-
-        public static IList<U> UpcastTo<T, U> (this IList<T> s) where T : U
-        {
-            List<U> list = new List<U> (s.Count);
-            for (int i = 0; i < s.Count; i++) {
-                list.Add ((U)s[i]);
-            }
-            return list;
-        }
-
-        public static ICollection<U> UpcastTo<T, U> (this ICollection<T> s) where T : U
-        {
-            List<U> list = new List<U> (s.Count);
-            foreach (var v in s) {
-                list.Add ((U)v);
-            }
-            return list;
-        }
-
-        public static T ValueOf<T> (T val)
-        {
-            return val;
-        }
-
-//      public static int GetTotalInFixed (this Inflater inf)
-//      {
-//          if (inf.TotalIn > 0)
-//              return Convert.ToInt32( inf.TotalIn ) + 4;
-//          else
-//              return 0;
-//      }
-//      
-//      public static int GetRemainingInputFixed (this Inflater inf)
-//      {
-//          if (inf.RemainingInput >= 4)
-//              return inf.RemainingInput - 4;
-//          else
-//              return 0;
-//      }
-        
-        public static string GetTestName (object obj)
-        {
-            return GetTestName ();
-        }
-        
-        public static string GetTestName ()
-        {
-            MethodBase met;
-            int n = 0;
-            do {
-                met = new StackFrame (n).GetMethod ();
-                if (met != null) {
-                    foreach (Attribute at in met.GetCustomAttributes (true)) {
-                        if (at.GetType().FullName == "NUnit.Framework.TestAttribute") {
-                            // Convert back to camel case
-                            string name = met.Name;
-                            if (char.IsUpper (name[0]))
-                                name = char.ToLower (name[0]) + name.Substring (1);
-                            return name;
-                        }
-                    }
-                }
-                n++;
-            } while (met != null);
-            return "";
-        }
         
         public static string GetHostAddress (this IPAddress addr)
         {
@@ -734,42 +320,7 @@ namespace Sharpen
         {
             return new HttpURLConnection (uri, null);
         }
-        
-        public static Uri ToURI (this Uri uri)
-        {
-            return uri;
-        }
-        
-        public static Uri ToURL (this Uri uri)
-        {
-            return uri;
-        }
-        
-        public static InputStream GetInputStream (this Socket socket)
-        {
-            return new System.Net.Sockets.NetworkStream (socket);
-        }
-        
-        public static OutputStream GetOutputStream (this Socket socket)
-        {
-            return new System.Net.Sockets.NetworkStream (socket);
-        }
-        
-        public static int GetLocalPort (this Socket socket)
-        {
-            return ((IPEndPoint)socket.LocalEndPoint).Port;
-        }
-        
-        public static int GetPort (this Socket socket)
-        {
-            return ((IPEndPoint)socket.RemoteEndPoint).Port;
-        }
-        
-        public static IPAddress GetInetAddress (this Socket socket)
-        {
-            return ((IPEndPoint)socket.RemoteEndPoint).Address;
-        }
-        
+            
         public static void Bind2 (this Socket socket, EndPoint ep)
         {
             if (ep == null)
@@ -819,12 +370,7 @@ namespace Sharpen
                 return true;
             }
         }
-        
-        public static System.Threading.Semaphore CreateSemaphore (int count)
-        {
-            return new System.Threading.Semaphore (count, int.MaxValue);
-        }
-        
+
         public static void SetCommand (this ProcessStartInfo si, IList<string> args)
         {
             si.FileName = args[0];

@@ -92,7 +92,7 @@ namespace Couchbase.Lite.Support
         {
             _lock.EnterWriteLock();
             sequences.AddItem(++lastSequence);
-            values.AddItem(value);
+            values.Add(value);
             _lock.ExitWriteLock();
             return lastSequence;
         }
@@ -137,7 +137,7 @@ namespace Couchbase.Lite.Support
                 // Garbage-collect inaccessible values:
                 int numToRemove = (int)(sequence - firstValueSequence);
                 for (int i = 0; i < numToRemove; i++) {
-                    values.Remove(0);
+                    values.RemoveAt(0);
                 }
                 firstValueSequence += numToRemove;
                 _lock.ExitWriteLock();

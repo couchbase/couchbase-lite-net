@@ -64,10 +64,39 @@ namespace Couchbase.Lite
 
     internal static class Misc
     {
-        
+        public static void SafeDispose<T>(ref T obj) where T : class, IDisposable
+        {
+            var tmp = obj;
+            obj = null;
+
+            if (tmp != null) {
+                tmp.Dispose();
+            }
+        }
+
+        public static string QuoteString(string param)
+        {
+            var sb = new StringBuilder(param);
+            sb.Replace("\\", "\\\\");
+            sb.Replace("\"", "\\\"");
+            sb.Insert(0, '"');
+            sb.Append('"');
+
+            return sb.ToString();
+        }
+
         public static string CreateGUID()
         {
-            return Guid.NewGuid().ToString().ToLower();
+            var sb = new StringBuilder(Convert.ToBase64String(Guid.NewGuid().ToByteArray()).TrimEnd('='));
+           
+            // URL-safe character set per RFC 4648 sec. 5:
+            sb.Replace('/', '_');
+            sb.Replace('+', '-');
+
+            // prefix a '-' to make it more clear where this string came from and prevent having a leading
+            // '_' character:
+            sb.Insert(0, '-');
+            return sb.ToString();
         }
 
         public static string HexSHA1Digest(IEnumerable<Byte> input)
@@ -158,7 +187,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.Store.SQLException"></exception>
-        public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
+        /*public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
         {
             byte[] result = null;
             using (var cursor = database.IntransactionRawQuery(query, args))
@@ -169,7 +198,7 @@ namespace Couchbase.Lite
                 }
                 return result;
             }
-        }
+        }*/
 
 
         /// <summary>Like equals, but works even if either/both are null</summary>

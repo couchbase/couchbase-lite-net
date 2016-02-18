@@ -52,6 +52,10 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
+#if __IOS__ || __ANDROID__
+using ModernHttpClient;
+#endif
+
 #if NET_3_5
 using System.Net.Couchbase;
 using CredentialCache = System.Net.CredentialCache;
@@ -138,7 +142,11 @@ namespace Couchbase.Lite.Support
                 UseCookies = true
             };
 
+#if __IOS__ || __ANDROID__
+            Handler = new NativeMessageHandler (false, false, new NativeCookieHandler ());
+#else
             Handler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
+#endif
 
             if (retry == false) {
                 return Handler;
@@ -180,10 +188,10 @@ namespace Couchbase.Lite.Support
         {
             var authHandler = BuildHandlerPipeline(chunkedMode, retry);
 
-            // As the handler will not be shared, client.Dispose() needs to be
-            // called once the operation is done to release the unmanaged resources
+            // As the handler will not be shared, client.Dispose() needs to be 
+            // called once the operation is done to release the unmanaged resources 
             // and disposes of the managed resources.
-            var client =  new HttpClient(authHandler, true)
+            var client =  new HttpClient(authHandler, true) 
             {
                 Timeout = ManagerOptions.Default.RequestTimeout
             };
@@ -193,7 +201,7 @@ namespace Couchbase.Lite.Support
             return client;
         }
 
-        public MessageProcessingHandler Handler { get; private set; }
+        public HttpMessageHandler Handler { get; private set; }
 
         public IDictionary<string, string> Headers { get; set; }
 

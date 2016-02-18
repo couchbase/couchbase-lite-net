@@ -51,6 +51,9 @@ namespace Couchbase.Lite
 {
     public class SequenceMapTest : LiteTestCase
     {
+
+        public SequenceMapTest(string storageType) : base(storageType) {}
+
         [Test]
         public void TestSequenceMap()
         {

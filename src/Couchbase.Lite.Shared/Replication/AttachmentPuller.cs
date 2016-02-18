@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Replicator
                 AttachmentRequest req = new AttachmentRequest(att);
 
                 _requestLookup.Add(digest, req);
-                _attachmentsToPull.AddItem (req);
+                _attachmentsToPull.Add (req);
 
                 return req;
             }
@@ -105,8 +105,8 @@ namespace Couchbase.Lite.Replicator
                 while (LocalDatabase != null && _httpConnectionCount + attachmentsToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections) {
                     if (_attachmentsToPull != null && _attachmentsToPull.Count > 0) {
                         // prefer to pull an attachment over a deleted revision
-                        attachmentsToStartNow.AddItem (_attachmentsToPull [0]);
-                        _attachmentsToPull.Remove (0);
+                        attachmentsToStartNow.Add (_attachmentsToPull [0]);
+                        _attachmentsToPull.RemoveAt (0);
                     } else {
                      break;
                     }

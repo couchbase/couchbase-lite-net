@@ -42,28 +42,29 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Collections.Concurrent;
 
 namespace Couchbase.Lite.Auth
 {
     internal class FacebookAuthorizer : Authorizer
     {
-        public const string LoginParameterAccessToken = "access_token";
+        public const string LOGIN_PARAMETER_ACCESS_TOKEN = "access_token";
+        public const string QUERY_PARAMETER = "facebookAccessToken";
+        public const string QUERY_PARAMETER_EMAIL = "email";
 
-        public const string QueryParameter = "facebookAccessToken";
+        private readonly static ConcurrentDictionary<string[], string> _AccessTokens =
+            new ConcurrentDictionary<string[], string>(new StringArrayComparer());
 
-        public const string QueryParameterEmail = "email";
-
-        private static IDictionary<IList<string>, string> accessTokens;
-
-        private string emailAddress;
+        private readonly string _emailAddress;
 
         public FacebookAuthorizer(string emailAddress)
         {
-            this.emailAddress = emailAddress;
+            _emailAddress = emailAddress;
         }
 
         public override string UserInfo { get { return null; } }
@@ -75,10 +76,10 @@ namespace Couchbase.Lite.Auth
         public override IDictionary<string, string> LoginParametersForSite(Uri site)
         {
             IDictionary<string, string> loginParameters = new Dictionary<string, string>();
-            string accessToken = AccessTokenForEmailAndSite(this.emailAddress, site);
+            string accessToken = TokenForSite(site);
             if (accessToken != null)
             {
-                loginParameters[LoginParameterAccessToken] = accessToken;
+                loginParameters[LOGIN_PARAMETER_ACCESS_TOKEN] = accessToken;
                 return loginParameters;
             }
             else
@@ -92,39 +93,50 @@ namespace Couchbase.Lite.Auth
             return new Uri(site.AbsolutePath + "/_facebook").AbsoluteUri;
         }
 
-        public static bool RegisterAccessToken(string accessToken, string email, string
+        public static bool RegisterAccessToken(string accessToken, string email, Uri
              origin)
         {
-            lock (typeof(FacebookAuthorizer))
-            {
-                IList<string> key = new List<string>();
-                key.AddItem(email);
-                key.AddItem(origin);
-                if (accessTokens == null)
-                {
-                    accessTokens = new Dictionary<IList<string>, string>();
-                }
-                Log.D(Database.TAG, "FacebookAuthorizer registering key: " + key);
-                accessTokens[key] = accessToken;
-                return true;
-            }
+            var key = new[] { email, origin.Host };
+            Log.D(Database.TAG, "FacebookAuthorizer registering key: " + key);
+            _AccessTokens.AddOrUpdate(key, k => accessToken, (k, v) => accessToken);
+            return true;
         }
 
-        public static string AccessTokenForEmailAndSite(string email, Uri site)
+        public string TokenForSite(Uri site)
         {
-            try
-            {
-                IList<string> key = new List<string>();
-                key.AddItem(email);
-                key.AddItem(site.ToString().ToLower());
-                Log.D(Database.TAG, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");
-                return accessTokens.Get(key);
+            var key = new[] { _emailAddress, site.Host };
+            Log.D(Database.TAG, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");
+
+            var accessToken = default(string);
+            if (!_AccessTokens.TryGetValue(key, out accessToken)) {
+                return null;
             }
-            catch (Exception e)
+
+            return accessToken;
+        }
+
+        private class StringArrayComparer : IEqualityComparer<string[]>
+        {
+            #region IEqualityComparer
+
+            public bool Equals(string[] x, string[] y)
             {
-                Log.E(Database.TAG, "Error looking up access token", e);
+                return x.SequenceEqual(y);
             }
-            return null;
+
+            public int GetHashCode(string[] obj)
+            {
+                int hc = obj.Length;
+                for (int i = 0; i < obj.Length; ++i) {
+                    hc = unchecked(hc * 17 + obj[i].GetHashCode());
+                }
+
+                return hc;
+            }
+
+            #endregion
+
+
         }
     }
 }

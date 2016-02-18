@@ -39,13 +39,9 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
+using System.Linq;
 
 namespace Couchbase.Lite {
     
@@ -54,195 +50,157 @@ namespace Couchbase.Lite {
     /// </summary>
     public sealed class QueryEnumerator : IEnumerator<QueryRow>, IEnumerable<QueryRow>
     {
+        
+        #region Variables
 
-    #region Constructors
+        private int _count = -1;
+        private readonly IEnumerable<QueryRow> _rows;
+        private IEnumerator<QueryRow> _enumerator;
 
-        internal QueryEnumerator (QueryEnumerator rows)
-        {
-            Database = rows.Database;
-            Rows = rows.Rows;
-            SequenceNumber = rows.SequenceNumber;
+        #endregion
 
-            Reset();
-        }
+        #region Properties
 
-        internal QueryEnumerator (Database database, IEnumerable<QueryRow> rows, Int64 lastSequence)
-        {
-            Database = database;
-            Rows = rows;
-            SequenceNumber = lastSequence;
-
-            Reset();
-        }
-
-    #endregion
-
-    #region Non-public Members
-    
         private Database Database { get; set; }
-
-        private IEnumerable<QueryRow> Rows { get; set; }
-
-        private Int32 CurrentRow { get; set; }
-
-    #endregion
-
-    #region Instance Members
-        //Properties
 
         /// <summary>
         /// Gets the number of rows in the <see cref="Couchbase.Lite.QueryEnumerator"/>.
         /// </summary>
-        /// <value>The number of rows in the <see cref="Couchbase.Lite.QueryEnumerator"/>.</value>
-        public Int32 Count { get { return Rows.Count(); } }
+        public int Count
+        {
+            get {
+                if (_count == -1) {
+                    _count = _rows.Count();
+                }
+
+                return _count;
+            }
+        }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Database"/>'s sequence number at the time the View results were generated.
         /// </summary>
-        /// <value>The sequence number.</value>
-        public Int64 SequenceNumber { get; private set; }
+        public long SequenceNumber { get; private set; }
 
         /// <summary>
         /// Gets whether the <see cref="Couchbase.Lite.Database"/> has changed since 
         /// the <see cref="Couchbase.Lite.View"/> results were generated.
         /// </summary>
-        /// <value><c>true</c> if stale; otherwise, <c>false</c>.</value>
-        public Boolean Stale { get { return SequenceNumber < Database.LastSequenceNumber; } }
+        public bool Stale
+        { 
+            get { 
+                return SequenceNumber < Database.LastSequenceNumber; 
+            } 
+        }
 
+        #endregion
+
+        #region Constructors
+
+        internal QueryEnumerator (QueryEnumerator rows)
+        {
+            Database = rows.Database;
+            _rows = rows._rows;
+            _count = rows._count;
+            _enumerator = _rows.GetEnumerator();
+            SequenceNumber = rows.SequenceNumber;
+        }
+
+        internal QueryEnumerator (Database database, IEnumerable<QueryRow> rows, long lastSequence)
+        {
+            Database = database;
+            _rows = rows;
+            _enumerator = rows.GetEnumerator();
+            SequenceNumber = lastSequence;
+        }
+
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.QueryRow"/> at the specified index in the results.
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.QueryRow"/> at the specified index in the results.</returns>
         /// <param name="index">Index.</param>
-        public QueryRow GetRow(Int32 index) {
-            var row = Rows.ElementAt(index);
+        [Obsolete("Use LINQ ElementAt")]
+        public QueryRow GetRow(int index) {
+            var row = _rows.ElementAt(index);
             row.Database = Database; // Avoid multiple enumerations by doing this here instead of the constructor.
             return row;
         }
 
-    #endregion
+        #endregion
 
-    #region Operator Overloads
+        #region Overloads
+        #pragma warning disable 1591
 
-        /// <summary>
-        /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="Couchbase.Lite.QueryEnumerator"/>.
-        /// </summary>
-        /// <param name="obj">The <see cref="System.Object"/> to compare with the current <see cref="Couchbase.Lite.QueryEnumerator"/>.</param>
-        /// <returns><c>true</c> if the specified <see cref="System.Object"/> is equal to the current
-        /// <see cref="Couchbase.Lite.QueryEnumerator"/>; otherwise, <c>false</c>.</returns>
         public override bool Equals(object obj)
         {
-            if (this == obj)
-            {
+            if (this == obj) {
                 return true;
             }
-            if (obj == null || GetType() != obj.GetType())
-            {
+
+            if (obj == null || GetType() != obj.GetType()) {
                 return false;
             }
+
             return GetHashCode() == obj.GetHashCode();
         }
 
-        /// <summary>
-        /// Serves as a hash function for a <see cref="Couchbase.Lite.QueryEnumerator"/> object.
-        /// </summary>
-        /// <returns>A hash code for this instance that is suitable for use in hashing algorithms and data structures such as a
-        /// hash table.</returns>
         public override int GetHashCode ()
         {
-            var idString = String.Format("{0}{1}{2}{3}", Database.Path, Count, SequenceNumber, Stale);
+            var idString = String.Format("{0}{1}{2}{3}", Database.DbDirectory, Count, SequenceNumber, Stale);
             return idString.GetHashCode ();
         }
 
 
-    #endregion
+        #endregion
 
-    #region IEnumerator Implementation
+        #region IEnumerator
 
-        /// <Docs>The collection was modified after the enumerator was instantiated.</Docs>
-        /// <attribution license="cc4" from="Microsoft" modified="false"></attribution>
-        /// <see cref="M:System.Collections.IEnumerator.MoveNext"></see>
-        /// <see cref="M:System.Collections.IEnumerator.Reset"></see>
-        /// <see cref="T:System.InvalidOperationException"></see>
-        /// <summary>
-        /// Resets the <see cref="Couchbase.Lite.QueryEnumerator"/>'s cursor position 
-        /// so that the next call to next() will return the first row.
-        /// </summary>
         public void Reset() {
-            CurrentRow = -1; 
-            Current = null;
+            _enumerator.Reset();
         }
 
-        /// <summary>
-        /// Gets the current <see cref="Couchbase.Lite.QueryRow"/> from the results.
-        /// </summary>
-        /// <value>The current QueryRow.</value>
-        public QueryRow Current { get; private set; }
-
-        /// <summary>
-        /// Gets the next <see cref="Couchbase.Lite.QueryRow"/> from the results.
-        /// </summary>
-        /// <returns><c>true</c>, if next was moved, <c>false</c> otherwise.</returns>
-        public Boolean MoveNext ()
+        public QueryRow Current 
         {
-            if (++CurrentRow >= Count)
-                return false;
-
-            Current = GetRow(CurrentRow);
-
-            return true;
+            get {
+                var retVal = _enumerator.Current;
+                retVal.Database = Database;
+                return retVal;
+            }
         }
 
-        /// <summary>
-        /// Releases all resource used by the <see cref="Couchbase.Lite.QueryEnumerator"/> object.
-        /// </summary>
-        /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="Couchbase.Lite.QueryEnumerator"/>. The
-        /// <see cref="Dispose"/> method leaves the <see cref="Couchbase.Lite.QueryEnumerator"/> in an unusable state.
-        /// After calling <see cref="Dispose"/>, you must release all references to the
-        /// <see cref="Couchbase.Lite.QueryEnumerator"/> so the garbage collector can reclaim the memory that the
-        /// <see cref="Couchbase.Lite.QueryEnumerator"/> was occupying.</remarks>
+        public bool MoveNext ()
+        {
+            return _enumerator.MoveNext();
+        }
+
         public void Dispose ()
         {
             Database = null;
-            Rows = null;
+            _enumerator.Dispose();
         }
 
-        /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.QueryRow"/> from the results.
-        /// </summary>
-        /// <value>The current QueryRow.</value>
-        Object IEnumerator.Current { get { return Current; } }
+        object System.Collections.IEnumerator.Current { get { return Current; } }
 
-    #endregion
+        #endregion
 
-    #region IEnumerable implementation
+        #region IEnumerable
 
-        /// <summary>
-        /// Gets the enumerator.
-        /// </summary>
-        /// <returns>The enumerator.</returns>
         public IEnumerator<QueryRow> GetEnumerator ()
         {
             return new QueryEnumerator(this);
         }
-
-        #endregion
-
-        #region IEnumerable implementation
-        /// <summary>
-        /// Gets the enumerator.
-        /// </summary>
-        /// <returns>The enumerator.</returns>
-        IEnumerator IEnumerable.GetEnumerator ()
+            
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator ()
         {
             return new QueryEnumerator(this);
         }
 
-    #endregion
+        #pragma warning restore 1591
+        #endregion
 
     }
-
-    
-
 }

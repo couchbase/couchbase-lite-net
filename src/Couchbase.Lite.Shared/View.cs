@@ -89,7 +89,13 @@ namespace Couchbase.Lite {
 
         #region Variables
 
-        internal event TypedEventHandler<View, EventArgs> Changed;
+        private TypedEventHandler<View, EventArgs> _changed;
+        internal event TypedEventHandler<View, EventArgs> Changed
+        {
+            add { _changed = (TypedEventHandler<View, EventArgs>)Delegate.Combine(_changed, value); }
+            remove { _changed = (TypedEventHandler<View, EventArgs>)Delegate.Remove(_changed, value); }
+        }
+
         private ConcurrentQueue<UpdateJob> _updateQueue = new ConcurrentQueue<UpdateJob>();
 
         #endregion
@@ -245,8 +251,8 @@ namespace Couchbase.Lite {
 
             if (changed) {
                 Storage.SetVersion(version);
-                if (Changed != null) {
-                    Changed(this, null);
+                if (_changed != null) {
+                    _changed(this, null);
                 }
             }
 
@@ -295,8 +301,7 @@ namespace Couchbase.Lite {
 
         internal Status UpdateIndex()
         {
-            //TODO: View grouping
-            var viewsToUpdate = new List<IViewStore> { Storage };
+            var viewsToUpdate = ViewsInGroup();
 
             UpdateJob proposedJob = Storage.CreateUpdateJob(viewsToUpdate);
             UpdateJob nextJob = null;
@@ -443,6 +448,17 @@ namespace Couchbase.Lite {
         #endregion
 
         #region Private Methods
+
+        private IEnumerable<IViewStore> ViewsInGroup()
+        {
+            var slash = Name.IndexOf('/');
+            if (slash != -1) {
+                var prefix = Name.Substring(0, slash);
+                return Database.GetAllViews().Where(v => v.Name.StartsWith(prefix)).Select(v => v.Storage);
+            } else {
+                return new List<IViewStore> { Storage };
+            }
+        }
 
         private UpdateJob QueueUpdate(UpdateJob job)
         {

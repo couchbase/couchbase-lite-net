@@ -48,8 +48,11 @@ using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class DocumentTest : LiteTestCase
     {
+
+        public DocumentTest(string storageType) : base(storageType) {}
 
         [Test] // #447
         public void TestDocumentArraysMaintainOrder()
@@ -174,12 +177,10 @@ namespace Couchbase.Lite
             Assert.IsNull(fetchedDoc);
 
             // query all docs and make sure we don't see that document
-            database.GetAllDocs(new QueryOptions());
             Query queryAllDocs = database.CreateAllDocumentsQuery();
             QueryEnumerator queryEnumerator = queryAllDocs.Run();
-            for (IEnumerator<QueryRow> it = queryEnumerator; it.MoveNext();)
+            foreach (var row in queryEnumerator)
             {
-                QueryRow row = it.Current;
                 Assert.IsFalse(row.Document.Id.Equals(docId));
             }
         }

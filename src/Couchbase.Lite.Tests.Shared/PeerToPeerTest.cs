@@ -18,7 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#define USE_AUTH
+//#define USE_AUTH
 
 using System;
 using System.Collections.Generic;
@@ -33,19 +33,22 @@ using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class PeerToPeerTest : LiteTestCase
     {
         private const string TAG = "PeerToPeerTest";
         private const string LISTENER_DB_NAME = "listy";
-        private const int DOCUMENT_COUNT = 100;
+        private const int DOCUMENT_COUNT = 50;
         private const int MIN_ATTACHMENT_LENGTH = 4000;
         private const int MAX_ATTACHMENT_LENGTH = 100000;
 
         private Database _listenerDB;
         private CouchbaseLiteTcpListener _listener;
         private Uri _listenerDBUri;
-        private ushort _port = 60010;
+        private ushort _port = 59840;
         private Random _rng = new Random(DateTime.Now.Millisecond);
+
+        public PeerToPeerTest(string storageType) : base(storageType) {}
 
         [Test]
         public void TestBrowser()
@@ -109,7 +112,8 @@ namespace Couchbase.Lite
         {
             base.TearDown();
 
-            _port++;
+            _listener.Stop();
+            _listenerDB.Close();
         }
 
         [Test]
@@ -136,6 +140,7 @@ namespace Couchbase.Lite
             CreateDocs(database, true);
             var repl = CreateReplication(database, true);
             RunReplication(repl);
+            Assert.IsNull(repl.LastError, "Error during replication");
             VerifyDocs(_listenerDB, true);
         }
 
@@ -145,6 +150,7 @@ namespace Couchbase.Lite
             CreateDocs(_listenerDB, true);
             var repl = CreateReplication(database, false);
             RunReplication(repl);
+            Assert.IsNull(repl.LastError, "Error during replication");
             VerifyDocs(database, true);
         }
 
@@ -170,7 +176,7 @@ namespace Couchbase.Lite
             db.RunInTransaction(() =>
             {
                 for(int i = 1; i <= DOCUMENT_COUNT; i++) {
-                    var doc = database.GetDocument(String.Format("doc-{0}", i));
+                    var doc = db.GetDocument(String.Format("doc-{0}", i));
                     var rev = doc.CreateRevision();
                     rev.SetUserProperties(new Dictionary<string, object> {
                         { "index", i },
@@ -195,7 +201,8 @@ namespace Couchbase.Lite
         private void VerifyDocs(Database db, bool withAttachments)
         {
             for (int i = 1; i <= DOCUMENT_COUNT; i++) {
-                var doc = database.GetDocument(String.Format("doc-{0}", i));
+                var doc = db.GetExistingDocument(String.Format("doc-{0}", i));
+                Assert.IsNotNull(doc);
                 Assert.AreEqual(i, doc.UserProperties["index"]);
                 Assert.AreEqual(false, doc.UserProperties["bar"]);
                 if (withAttachments) {
@@ -203,7 +210,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            Assert.AreEqual(DOCUMENT_COUNT, database.DocumentCount);
+            Assert.AreEqual(DOCUMENT_COUNT, db.DocumentCount);
         }
 
     }

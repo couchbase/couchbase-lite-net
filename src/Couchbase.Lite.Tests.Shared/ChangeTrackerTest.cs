@@ -41,21 +41,19 @@
 //
 
 using System;
-using System.Collections.Generic;
+using System.Collections;
 
+
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Couchbase.Lite.Replicator;
-
-using Couchbase.Lite.Util;
-using Sharpen;
-
-using System.Net.Http;
-using System.Threading.Tasks;
-using NUnit.Framework;
 using Couchbase.Lite.Tests;
-using System.Collections;
-using System.Threading;
-using Couchbase.Lite.Auth;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
+using Sharpen;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -67,7 +65,9 @@ namespace Couchbase.Lite
 {
     public class ChangeTrackerTest : LiteTestCase
     {
-        public const string Tag = "ChangeTracker";
+        public const string TAG = "ChangeTracker";
+
+        public ChangeTrackerTest(string storageType) : base(storageType) {}
 
         private class ChangeTrackerTestClient : IChangeTrackerClient
         {
@@ -193,7 +193,6 @@ namespace Couchbase.Lite
             var scheduler = new SingleTaskThreadpoolScheduler();
             var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
 
-            changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
             var success = changeReceivedSignal.Await(TimeSpan.FromSeconds(30));
@@ -215,11 +214,10 @@ namespace Couchbase.Lite
             var scheduler = new SingleTaskThreadpoolScheduler();
             var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, false, client, new TaskFactory(scheduler));
 
-            changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
             // sleep for a few seconds
-            Thread.Sleep(15 * 1000);
+            Sleep(10 * 1000);
 
             // make sure we got less than 10 requests in those 10 seconds (if it was hammering, we'd get a lot more)
             var handler = client.HttpRequestHandler;
@@ -231,16 +229,16 @@ namespace Couchbase.Lite
 
             // at this point, the change tracker backoff should cause it to sleep for about 3 seconds
             // and so lets wait 3 seconds until it wakes up and starts getting valid responses
-            Thread.Sleep(3 * 1000);
+            Sleep(3 * 1000);
 
             // now find the delta in requests received in a 2s period
             int before = handler.CapturedRequests.Count;
-            Thread.Sleep(2 * 1000);
+            Sleep(2 * 1000);
             int after = handler.CapturedRequests.Count;
 
             // assert that the delta is high, because at this point the change tracker should
             // be hammering away
-            Assert.IsTrue((after - before) > 25);
+            Assert.IsTrue((after - before) > 25, "{0} <= 25", (after - before));
 
             // the backoff numAttempts should have been reset to 0
             Assert.IsTrue(changeTracker.backoff.NumAttempts == 0);
@@ -296,7 +294,6 @@ namespace Couchbase.Lite
             var scheduler = new SingleTaskThreadpoolScheduler();
             var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
 
-            changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
             var success = changeReceivedSignal.Await(TimeSpan.FromSeconds(30));
@@ -318,33 +315,6 @@ namespace Couchbase.Lite
         public void TestChangeTrackerLongPoll() 
         {
             ChangeTrackerTestWithMode(ChangeTrackerMode.LongPoll);
-        }
-
-        [Test]
-        public void TestChangeTrackerWithConflictsIncluded()
-        {
-            Uri testUrl = GetReplicationURL();
-            var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, true, null);
-            Assert.AreEqual("_changes?feed=longpoll&limit=5000&heartbeat=300000&style=all_docs&since=0", changeTracker.GetChangesFeedPath());
-        }
-            
-        [Test]
-        public void TestChangeTrackerWithFilterURL()
-        {
-            var testUrl = GetReplicationURL();
-            var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, false, null);
-            
-            // set filter
-            changeTracker.SetFilterName("filter");
-            
-            // build filter map
-            var filterMap = new Dictionary<string, object>();
-            filterMap["param"] = "value";
-
-            // set filter map
-            changeTracker.SetFilterParams(filterMap);
-            Assert.AreEqual("_changes?feed=longpoll&limit=5000&heartbeat=300000&since=0&filter=filter&param=value", 
-                changeTracker.GetChangesFeedPath());
         }
 
         [Test]
@@ -400,18 +370,11 @@ namespace Couchbase.Lite
                 .LongPoll, 0, false, null);
 
             var docIds = new List<string>();
-            docIds.AddItem("doc1");
-            docIds.AddItem("doc2");
+            docIds.Add("doc1");
+            docIds.Add("doc2");
             changeTracker.SetDocIDs(docIds);
 
             var docIdsJson = "[\"doc1\",\"doc2\"]";
-            var docIdsEncoded = Uri.EscapeUriString(docIdsJson);
-            var expectedFeedPath = string.Format("_changes?feed=longpoll&limit=5000&heartbeat=300000&since=0&filter=_doc_ids&doc_ids={0}", 
-                docIdsEncoded);
-            string changesFeedPath = changeTracker.GetChangesFeedPath();
-            Assert.AreEqual(expectedFeedPath, changesFeedPath);
-
-            changeTracker.UsePost = true;
             var parameters = changeTracker.GetChangesFeedParams();
             Assert.AreEqual("_doc_ids", parameters["filter"]);
             AssertEnumerablesAreEqual(docIds, (IEnumerable)parameters["doc_ids"]);

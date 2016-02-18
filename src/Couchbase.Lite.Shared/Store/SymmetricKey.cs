@@ -32,6 +32,14 @@ using Rackspace.Threading;
 namespace Couchbase.Lite.Store
 {
     /// <summary>
+    /// Type of block returned by SymmetricKey.CreateEncryptor.
+    /// This block can be called repeatedly with input data and returns additional output data.
+    /// At EOF, the block should be called with a null parameter, and
+    /// it will return the remaining encrypted data from its buffer.
+    /// </summary>
+    public delegate byte[] CryptorBlock(byte[] input);
+
+    /// <summary>
     /// Basic AES encryption. Uses a 256-bit (32-byte) key.
     /// </summary>
     public sealed class SymmetricKey 
@@ -59,13 +67,7 @@ namespace Couchbase.Lite.Store
         private const string DEFAULT_SALT = "Salty McNaCl";
         private const int DEFAULT_PBKDF_ROUNDS = 64000;
 
-        /// <summary>
-        /// Type of block returned by SymmetricKey.CreateEncryptor.
-        /// This block can be called repeatedly with input data and returns additional output data.
-        /// At EOF, the block should be called with a null parameter, and
-        /// it will return the remaining encrypted data from its buffer.
-        /// </summary>
-        public delegate byte[] CryptorBlock(byte[] input);
+
 
         #endregion
 
@@ -97,7 +99,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         public string HexData { 
             get {
-                return BitConverter.ToString(KeyData);
+                return BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
             }
         }
 
@@ -164,6 +166,30 @@ namespace Couchbase.Lite.Store
         #region Public Methods
 
         /// <summary>
+        /// Creates a new SymmetricKey using the supplied data
+        /// </summary>
+        /// <param name="keyOrPassword">A password as a string or a byte
+        /// IEnumerable containig key data</param>
+        internal static SymmetricKey Create(object keyOrPassword)
+        {
+            if (keyOrPassword == null) {
+                return null;
+            }
+
+            var password = keyOrPassword as string;
+            if(password != null) {
+                return new SymmetricKey(password);
+            }
+
+            var data = keyOrPassword as IEnumerable<byte>;
+            if (data == null) {
+                throw new InvalidDataException("keyOrPassword must be either string or IEnumerable<byte>");
+            }
+
+            return new SymmetricKey(data.ToArray());
+        }
+
+        /// <summary>
         /// Encrypts a data blob.
         /// The output consists of a 16-byte random initialization vector,
         /// followed by PKCS7-padded ciphertext. 
@@ -221,48 +247,19 @@ namespace Couchbase.Lite.Store
         }
 
         /// <summary>
-        /// Incremental encryption: returns a block that can be called repeatedly with input data and
-        /// returns additional output data. At EOF the block should be called with a nil parameter, and
-        /// it will return the remaining encrypted data from its buffer. 
+        /// Creates a strem that will encrypt the given base stream
         /// </summary>
-        public CryptorBlock CreateEncryptor()
+        /// <returns>The stream to write to for encryption</returns>
+        /// <param name="baseStream">The stream to read from</param>
+        public CryptoStream CreateStream(Stream baseStream)
         {
-            _cryptor.GenerateIV();
-            var encryptor = _cryptor.CreateEncryptor();
-            bool wroteIv = false;
-            byte[] prevBlock = null;
-            var inputBuffer = new List<byte>();
-            return new CryptorBlock((input) => {
-                if(prevBlock == null) {
-                    prevBlock = input;
-                    return new byte[0];
-                }
+            if (_cryptor == null || baseStream == null) {
+                return null;
+            }
 
-                inputBuffer.AddRange(prevBlock);
-                List<byte> outputBuffer = null;
-                if(input != null) {
-                    //Unlike iOS, .NET has no "update" method so we have to manually
-                    //break the input into blocks
-                    outputBuffer = new List<byte>();
-                    while(inputBuffer.Count > encryptor.InputBlockSize) {
-                        var tmpBuffer = new byte[encryptor.OutputBlockSize];
-                        encryptor.TransformBlock(inputBuffer.Take(encryptor.InputBlockSize).ToArray(), 0, encryptor.InputBlockSize, tmpBuffer, 0);
-                        inputBuffer.RemoveRange(0, encryptor.InputBlockSize);
-                        outputBuffer.AddRange(tmpBuffer);
-                    }
-                } else {
-                    var tmp = encryptor.TransformFinalBlock(inputBuffer.ToArray(), 0, inputBuffer.Count);
-                    outputBuffer = new List<byte>(tmp);
-                }
-
-                if(!wroteIv) {
-                    outputBuffer.InsertRange(0, _cryptor.IV);
-                    wroteIv = true;
-                }
-
-                prevBlock = input;
-                return outputBuffer.ToArray();
-            });
+            var retVal = new CryptoStream(baseStream, _cryptor.CreateEncryptor(), CryptoStreamMode.Write);
+            retVal.Write(_cryptor.IV, 0, IV_SIZE);
+            return retVal;
         }
 
         #endregion

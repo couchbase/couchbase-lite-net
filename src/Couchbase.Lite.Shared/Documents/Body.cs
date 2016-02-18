@@ -58,7 +58,7 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private IEnumerable<byte> _json;
+        private byte[] _json;
         private object _jsonObject;
 
         #endregion
@@ -71,7 +71,7 @@ namespace Couchbase.Lite
         /// <param name="json">An enumerable collection of bytes storing JSON</param>
         public Body(IEnumerable<Byte> json)
         {
-            _json = json;
+            _json = json.ToArray();
         }
 
         /// <summary>
@@ -141,7 +141,7 @@ namespace Couchbase.Lite
                 ObjectWriter writer = Manager.GetObjectMapper().WriterWithDefaultPrettyPrinter();
 
                 try {
-                    _json = writer.WriteValueAsBytes(properties);
+                    _json = writer.WriteValueAsBytes(properties).ToArray();
                 } catch (IOException e) {
                     throw new InvalidDataException("The array or dictionary stored is corrupt", e);
                 }
@@ -248,6 +248,21 @@ namespace Couchbase.Lite
             return ExtensionMethods.TryCast<T>(valueObj, out val);
         }
 
+        /// <summary>
+        /// Sets the property for a given key.
+        /// </summary>
+        /// <param name="key">The key to set.</param>
+        /// <param name="value">The value to set.</param>
+        public void SetPropertyForKey(string key, object value)
+        {
+            IDictionary<string, object> theProperties = GetProperties();
+            if (theProperties == null) {
+                throw new InvalidDataException("Cannot parse body properties");
+            }
+
+            theProperties[key] = value;
+        }
+
         #endregion
 
         #region Private Methods
@@ -260,7 +275,7 @@ namespace Couchbase.Lite
             }
 
             try {
-                _json = Manager.GetObjectMapper().WriteValueAsBytes(_jsonObject);
+                _json = Manager.GetObjectMapper().WriteValueAsBytes(_jsonObject).ToArray();
             } catch (IOException e) {
                 throw new InvalidDataException("The array or dictionary stored is corrupt", e);
             }

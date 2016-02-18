@@ -42,12 +42,16 @@
     <Compile Include="$(MSBuildThisFileDirectory)StorageEngineTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ReplicationObserver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\TestNetworkReachabilityManager.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Performance\PerformanceTestCase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Performance\PerformanceTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeerTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)RouterTests.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\FlowControl.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\RequestCorrectHttpMessage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\SyncGateway.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\RemoteEndpoint.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)EncryptionTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)JSViewCompilerTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MultipartTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Performance\" />

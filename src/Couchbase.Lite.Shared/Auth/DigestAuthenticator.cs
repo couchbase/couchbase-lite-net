@@ -24,14 +24,15 @@ using System.Linq;
 using System.Net.Http;
 
 using Sharpen;
+using System.Threading;
 
 namespace Couchbase.Lite.Auth
 {
-
+    //TODO: Make this public in 1.2
     /// <summary>
     /// An authenticator for performing HTTP Digest authentication (RFC 2617)
     /// </summary>
-    public sealed class DigestAuthenticator : IChallengeResponseAuthenticator
+    internal sealed class DigestAuthenticator : IChallengeResponseAuthenticator
     {
 
         #region Variables
@@ -108,7 +109,7 @@ namespace Couchbase.Lite.Auth
                     return null;
                 }
 
-                _components["nc"] = (++_nc).ToString();
+                _components["nc"] = Interlocked.Increment(ref _nc).ToString();
                 var response = DigestCalculator.Calculate(_components);
                 return String.Format("username=\"{0}\", realm=\"{1}\", nonce=\"{2}\", uri=\"{3}\", " +
                     "qop={4}, nc={5}, cnonce=\"{6}\", response=\"{7}\", opaque=\"0\"", _username,

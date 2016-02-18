@@ -54,11 +54,15 @@ namespace Couchbase.Lite.Support
 {
     internal class MultipartDocumentReader : IMultipartReaderDelegate
     {
+        private const string TAG = "MultipartDocumentReader";
+
         private MultipartReader multipartReader;
 
         private BlobStoreWriter curAttachment;
 
         private List<Byte> jsonBuffer;
+
+        private bool _jsonCompressed;
 
         private IDictionary<String, Object> document;
 
@@ -73,21 +77,71 @@ namespace Couchbase.Lite.Support
             this.database = database;
         }
 
+        public static IDictionary<string, object> ReadToDatabase(IEnumerable<byte> data, IDictionary<string, string> headers, 
+            Database db)
+        {
+            var realized = data.ToArray();
+            if (realized.Length == 0) {
+                throw new CouchbaseLiteException(StatusCode.BadJson);
+            }
+
+            var reader = new MultipartDocumentReader(db);
+            reader.SetHeaders(headers);
+            reader.AppendData(data);
+            reader.Finish();
+
+            return reader.document;
+        }
+
         public IDictionary<String, Object> GetDocumentProperties()
         {
             return document;
         }
 
+        public void SetHeaders(IDictionary<string, string> headers)
+        {
+            var contentType = headers.Get("Content-Type");
+            if (contentType != null && contentType.StartsWith("multipart/")) {
+                // Multipart, so initialize the parser:
+                Log.V(TAG, "    Has attachments, {0}", contentType);
+                try {
+                    multipartReader = new MultipartReader(contentType, this);
+                } catch (ArgumentException e) {
+                    throw new CouchbaseLiteException(e, StatusCode.NotAcceptable);
+                }
+
+                attachmentsByName = new Dictionary<string, BlobStoreWriter>();
+                attachmentsBySHA1Digest = new Dictionary<string, BlobStoreWriter>();
+                return;
+            } else if (contentType == null || contentType.StartsWith("application/json") ||
+                contentType.StartsWith("text/plain")) {
+                // No multipart, so no attachments. Body is pure JSON. (We allow text/plain because CouchDB
+                // sends JSON responses using the wrong content-type.)
+                StartJsonBuffer(headers);
+                return;
+            }
+
+            throw new CouchbaseLiteException(StatusCode.NotAcceptable); 
+        }
+
         public void ParseJsonBuffer()
         {
             try {
-                document = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(jsonBuffer.ToArray());
+                var json = jsonBuffer;
+                jsonBuffer = null;
+                if(_jsonCompressed) {
+                    json = json.Decompress().ToList();
+                    if(json == null) {
+                        Log.W(TAG, "Received corrupt gzip encoded JSON part");
+                        throw new CouchbaseLiteException("Received corrupt gzip encoded JSON part", StatusCode.UpStreamError);
+                    }
+                }
+                document = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(json.ToArray());
             } catch (IOException e) {
                 throw new InvalidOperationException("Failed to parse json buffer", e);
             } catch(CouchbaseLiteException e) {
                 throw new InvalidOperationException("Failed to parse json buffer", e);
             }
-            jsonBuffer = null;
         }
 
         public void SetContentType(String contentType)
@@ -123,10 +177,10 @@ namespace Couchbase.Lite.Support
         {
             if (multipartReader != null)
             {
-                if (!multipartReader.Finished())
-                {
+                if (!multipartReader.Finished) {
                     throw new InvalidOperationException("received incomplete MIME multipart response");
                 }
+
                 RegisterAttachments();
             }
             else
@@ -174,7 +228,7 @@ namespace Couchbase.Lite.Support
                         var actualDigest = writer.SHA1DigestString();
                         if (digest != null && !digest.Equals(actualDigest) && !digest.Equals(writer.MD5DigestString()))
                         {
-                            var errMsg = String.Format("Attachment '{0}' has incorrect MD5 digest ({1}; should be either {2} or {3})", attachmentName, digest, actualDigest, writer.MD5DigestString());
+                            var errMsg = String.Format("Attachment '{0}' has incorrect digest ({1}; should be either {2} or {3})", attachmentName, digest, actualDigest, writer.MD5DigestString());
                             throw new InvalidOperationException(errMsg);
                         }
 
@@ -242,37 +296,56 @@ namespace Couchbase.Lite.Support
 
         public void StartedPart(IDictionary<String, String> headers)
         {
-            if (document == null)
-            {
-                jsonBuffer = new List<Byte>(1024);
-            }
-            else
-            {
+            if (document == null) {
+                StartJsonBuffer(headers);
+            } else {
+                Log.V(TAG, "    Starting attachment #{0}...", attachmentsBySHA1Digest.Count + 1);
                 curAttachment = database.AttachmentWriter;
+                if (curAttachment == null) {
+                    const string msg = "Cannot create blob store writer for the attachment";
+                    Log.W(TAG, msg);
+                    throw new CouchbaseLiteException(msg, StatusCode.AttachmentError);
+                }
+
+                var name = default(string);
                 var contentDisposition = headers.Get("Content-Disposition");
-                if (contentDisposition != null && contentDisposition.StartsWith("attachment; filename="))
-                {
+                if (contentDisposition != null && contentDisposition.StartsWith("attachment; filename=")) {
                     // TODO: Parse this less simplistically. Right now it assumes it's in exactly the same
                     // format generated by -[CBL_Pusher uploadMultipartRevision:]. CouchDB (as of 1.2) doesn't
                     // output any headers at all on attachments so there's no compatibility issue yet.
                     var contentDispositionUnquoted = Misc.UnquoteString(contentDisposition);
-                    var name = contentDispositionUnquoted.Substring(21);
-                    if (name != null)
-                    {
+                    name = contentDispositionUnquoted.Substring(21);
+                    if (name != null) {
                         attachmentsByName.Put(name, curAttachment);
                     }
+                }
+
+                var contentEncoding = headers.Get("Content-Encoding");
+                if (contentEncoding == "gzip") {
+                    if (name != null) {
+                        try {
+                            var attachEncoding = document.GetCast<IDictionary<string, object>>("_attachments").
+                            GetCast <IDictionary<string, object>>(name).GetCast<string>("encoding");
+                            if (attachEncoding != "gzip") {
+                                Log.W(TAG, "Attachment '{0}' MIME body is gzipped but attachment isn't", name);
+                                throw new CouchbaseLiteException(StatusCode.UnsupportedType);
+                            }
+                        } catch (NullReferenceException) {
+                            throw new CouchbaseLiteException(StatusCode.UnsupportedType);
+                        }
+                    }
+                } else if (contentEncoding != null) {
+                    Log.W(TAG, "Received unsupported Content-Encoding '{0}'", contentEncoding);
+                    throw new CouchbaseLiteException(StatusCode.UnsupportedType);
                 }
             }
         }
 
         public void AppendToPart(IEnumerable<Byte> data)
         {
-            if (jsonBuffer != null)
-            {
+            if (jsonBuffer != null) {
                 jsonBuffer.AddRange(data);
-            }
-            else
-            {
+            } else if (curAttachment != null) {
                 curAttachment.AppendData(data.ToArray());
             }
         }
@@ -290,6 +363,13 @@ namespace Couchbase.Lite.Support
                 attachmentsBySHA1Digest.Put(sha1String, curAttachment);
                 curAttachment = null;
             }
+        }
+
+        private void StartJsonBuffer(IDictionary<string, string> headers)
+        {
+            jsonBuffer = new List<Byte>(1024);
+            var contentEncoding = headers.Get("Content-Encoding");
+            _jsonCompressed = contentEncoding != null && contentEncoding.Contains("gzip");
         }
     }
 }

@@ -24,25 +24,83 @@ using System.IO;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// An enum representing the current Token being parsed
+    /// in a JSON stream
+    /// </summary>
     public enum JsonToken
     {
+        /// <summary>
+        /// No token
+        /// </summary>
         None,
+        /// <summary>
+        /// Start of an object ("{")
+        /// </summary>
         StartObject,
+        /// <summary>
+        /// Start of an array ("[")
+        /// </summary>
         StartArray,
+        /// <summary>
+        /// Start of a JSON constructor
+        /// </summary>
         StartConstructor,
+        /// <summary>
+        /// An object property name
+        /// </summary>
         PropertyName,
+        /// <summary>
+        /// A comment
+        /// </summary>
         Comment,
+        /// <summary>
+        /// Raw JSON
+        /// </summary>
         Raw,
+        /// <summary>
+        /// An integer
+        /// </summary>
         Integer,
+        /// <summary>
+        /// A float
+        /// </summary>
         Float,
+        /// <summary>
+        /// A string
+        /// </summary>
         String,
+        /// <summary>
+        /// A boolean
+        /// </summary>
         Boolean,
+        /// <summary>
+        /// A null token
+        /// </summary>
         Null,
+        /// <summary>
+        /// An undefined token
+        /// </summary>
         Undefined,
+        /// <summary>
+        /// End of an object ("}")
+        /// </summary>
         EndObject,
+        /// <summary>
+        /// End of an array ("]")
+        /// </summary>
         EndArray,
+        /// <summary>
+        /// A constructor end token.
+        /// </summary>
         EndConstructor,
+        /// <summary>
+        /// A date
+        /// </summary>
         Date,
+        /// <summary>
+        /// Byte data
+        /// </summary>
         Bytes
     }
 
@@ -52,6 +110,10 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IJsonSerializer : IDisposable
     {
+
+        /// <summary>
+        /// Gets the current token when parsing in streaming mode
+        /// </summary>
         JsonToken CurrentToken { get; }
 
         /// <summary>
@@ -78,10 +140,26 @@ namespace Couchbase.Lite
         /// <typeparam name="T">The type of object to return</typeparam>
         T Deserialize<T>(Stream json);
 
+        /// <summary>
+        /// Starts parsing a stream of JSON incrementally, rather than serializing
+        /// the entire object into memory
+        /// </summary>
+        /// <param name="json">The stream containing JSON data</param>
         void StartIncrementalParse(Stream json);
 
+        /// <summary>
+        /// Reads the next token from a JSON stream.  Note that an incremental parse
+        /// must be started first.
+        /// </summary>
+        /// <returns>True if another token was read, false if an incremental parse is not started
+        /// or no more tokens are left</returns>
         bool Read();
 
+        /// <summary>
+        /// A convenience function for deserializing the next object in a stream into
+        /// a .NET object
+        /// </summary>
+        /// <returns>The deserialized object, or null if unable to deserialize</returns>
         IDictionary<string, object> DeserializeNextObject();
 
         /// <summary>
@@ -103,7 +181,32 @@ namespace Couchbase.Lite
         /// <typeparam name="T">The type of object in the list</typeparam>
         IList<T> ConvertToList<T>(object obj);
 
+        /// <summary>
+        /// Makes a deep copy of the serializer in order to start an incremental parse
+        /// that is disposable.
+        /// </summary>
+        /// <returns>The cloned object</returns>
         IJsonSerializer DeepClone();
+
+        #if FORESTDB
+
+        /// <summary>
+        /// Deserializes the CBForest key into a .NET object of a given type
+        /// </summary>
+        /// <returns>The deserialized key</returns>
+        /// <param name="keyReader">The CBForest key reader instance to read from</param>
+        /// <typeparam name="T">The type of object to deserialize into</typeparam>
+        T DeserializeKey<T>(CBForest.C4KeyReader keyReader);
+
+        /// <summary>
+        /// Serializes the given object into a CBForest key
+        /// </summary>
+        /// <returns>The serialized key</returns>
+        /// <param name="keyValue">The object to serialize</param>
+        unsafe CBForest.C4Key* SerializeToKey(object keyValue);
+
+        #endif
+
     }
 }
 

@@ -43,6 +43,12 @@
 using System;
 using System.Threading.Tasks;
 
+#if NET_3_5
+using System.Net.Couchbase;
+#else
+using System.Net;
+#endif
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -90,7 +96,11 @@ namespace Couchbase.Lite
         {
             MaxRetries = 10;
 
+            #if __IOS__ || __ANDROID__
+            MaxOpenHttpConnections = 8;
+            #else
             MaxOpenHttpConnections = 16;
+            #endif
 
             MaxRevsToGetInBulk = 50;
 
@@ -112,13 +122,12 @@ namespace Couchbase.Lite
             }
             #endif
 
+            ServicePointManager.DefaultConnectionLimit = MaxOpenHttpConnections * 2;
             SerializationEngine = new NewtonsoftJsonSerializer();
         }
-
-        //TODO: Honor this
-        /// <summary>Gets or sets, whether changes to the database are disallowed.</summary>
-        /// <remarks>Not currently enforced</remarks>
-        public Boolean ReadOnly { get; set; }
+            
+        /// <summary>Gets or sets, whether changes to databases are disallowed by default.</summary>
+        public bool ReadOnly { get; set; }
 
         /// <summary>
         /// Gets or sets the callback synchronization context.

@@ -53,6 +53,9 @@ namespace Couchbase.Lite
 {
     public class Base64Test : LiteTestCase
     {
+
+        public Base64Test(string storageType) : base(storageType) {}
+
         /// <exception cref="System.IO.IOException"></exception>
         [Test]
         public void TestDecode()

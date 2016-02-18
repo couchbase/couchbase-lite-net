@@ -18,6 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+#if !NOSQLITE
 using System;
 using System.Collections.Generic;
 using SQLitePCL;
@@ -61,9 +62,9 @@ namespace Couchbase.Lite.Db
 
             #region IDatabaseUpgrader
 
-            public Status Import()
+            public void Import()
             {
-                return new Status(StatusCode.Ok);
+                // no-op
             }
 
             public void Backout()
@@ -81,6 +82,7 @@ namespace Couchbase.Lite.Db
             private readonly Database _db;
             private readonly string _path;
             private sqlite3 _sqlite;
+            private string _oldAttachmentsPath;
 
             public int NumDocs { get; private set; }
 
@@ -95,34 +97,14 @@ namespace Couchbase.Lite.Db
                 CanRemoveOldAttachmentsDir = true;
             }
 
-            private static Status SqliteErrToStatus(int sqliteErr)
+            public v1_upgrader(Database db, sqlite3 sqlite)
             {
-                if (sqliteErr == raw.SQLITE_OK || sqliteErr == raw.SQLITE_DONE) {
-                    return new Status(StatusCode.Ok);
-                }
-
-                Log.W(TAG, "Upgrade failed: SQLite error {0}", sqliteErr);
-                switch (sqliteErr) {
-                    case raw.SQLITE_NOTADB:
-                        return new Status(StatusCode.BadRequest);
-                    case raw.SQLITE_PERM:
-                        return new Status(StatusCode.Forbidden);
-                    case raw.SQLITE_CORRUPT:
-                    case raw.SQLITE_IOERR:
-                        return new Status(StatusCode.CorruptError);
-                    case raw.SQLITE_CANTOPEN:
-                        return new Status(StatusCode.NotFound);
-                    default:
-                        return new Status(StatusCode.DbError);
-                }
+                _db = db;
+                _sqlite = sqlite;
+                CanRemoveOldAttachmentsDir = false;
             }
 
-            private static int CollateRevIDs(object user_data, string s1, string s2)
-            {
-                throw new NotImplementedException();
-            }
-
-            private Status PrepareSQL(ref sqlite3_stmt stmt, string sql)
+            internal void PrepareSQL(ref sqlite3_stmt stmt, string sql)
             {
                 int err;
                 if (stmt != null) {
@@ -131,14 +113,15 @@ namespace Couchbase.Lite.Db
                     err = raw.sqlite3_prepare_v2(_sqlite, sql, out stmt);
                 }
 
-                if (err != 0) {
-                    Log.W(TAG, "Couldn't compile SQL `{0}` : {1}", sql, raw.sqlite3_errmsg(_sqlite));
+                var status = SqliteErrToStatus(err);
+                if (status.IsError) {
+                    throw new CouchbaseLiteException(String.Format("Couldn't compile SQL `{0}` : ({1} / {2} / {3})", sql, 
+                        raw.sqlite3_errcode(_sqlite), raw.sqlite3_extended_errcode(_sqlite), raw.sqlite3_errmsg(_sqlite)),
+                        status.Code);
                 }
-
-                return SqliteErrToStatus(err);
             }
 
-            private Status ImportDoc(string docID, long docNumericID)
+            private void ImportDoc(string docID, long docNumericID)
             {
                 // CREATE TABLE revs (
                 //  sequence INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -151,11 +134,8 @@ namespace Couchbase.Lite.Db
                 //  no_attachments BOOLEAN,
                 //  UNIQUE (doc_id, revid) );
                 sqlite3_stmt revQuery = null;
-                Status status = PrepareSQL(ref revQuery, "SELECT sequence, revid, parent, current, deleted, json" +
+                PrepareSQL(ref revQuery, "SELECT sequence, revid, parent, current, deleted, json" +
                                 " FROM revs WHERE doc_id=? ORDER BY sequence");
-                if (status.IsError) {
-                    return status;
-                }
 
                 raw.sqlite3_bind_int64(revQuery, 1, docNumericID);
 
@@ -177,10 +157,16 @@ namespace Couchbase.Lite.Db
                         }
 
                         var nuJson = new List<byte>(json);
-                        status = AddAttachmentsToSequence(sequence, nuJson);
-                        if (status.IsError) {
+                        try {
+                            AddAttachmentsToSequence(sequence, nuJson);
+                        } catch(CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to add attachments to sequence {0}", sequence);
                             raw.sqlite3_finalize(revQuery);
-                            return status;
+                            throw;
+                        } catch(Exception e) {
+                            raw.sqlite3_finalize(revQuery);
+                            throw new CouchbaseLiteException(String.Format(
+                                "Error adding attachments to sequence {0}", sequence), e) { Code = StatusCode.DbError };
                         }
 
                         json = nuJson;
@@ -199,13 +185,14 @@ namespace Couchbase.Lite.Db
                         Log.D(TAG, "Upgrading doc {0} history {1}", rev, Manager.GetObjectMapper().WriteValueAsString(history));
                         try {
                             _db.ForceInsert(rev, history, null);
-                        } catch (CouchbaseLiteException e) {
-                            status = e.CBLStatus;
-                        }
-
-                        if (status.IsError) {
+                        } catch (CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to insert revision {0} into target database", rev);
                             raw.sqlite3_finalize(revQuery);
-                            return status;
+                            throw;
+                        } catch(Exception e) {
+                            raw.sqlite3_finalize(revQuery);
+                            throw new CouchbaseLiteException(String.Format(
+                                "Error inserting revision {0} into target database", rev), e) { Code = StatusCode.Exception };
                         }
 
                         NumRevs++;
@@ -216,10 +203,15 @@ namespace Couchbase.Lite.Db
 
                 raw.sqlite3_finalize(revQuery);
                 ++NumDocs;
-                return SqliteErrToStatus(err);
+                if (err != raw.SQLITE_OK) {
+                    var s = SqliteErrToStatus(err);
+                    if (s.IsError) {
+                        throw new CouchbaseLiteException(s.Code);
+                    }
+                }
             }
 
-            private Status AddAttachmentsToSequence(long sequence, List<byte> json)
+            private void AddAttachmentsToSequence(long sequence, List<byte> json)
             {
                 // CREATE TABLE attachments (
                 //  sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE,
@@ -231,10 +223,16 @@ namespace Couchbase.Lite.Db
                 //  encoding INTEGER DEFAULT 0,
                 //  encoded_length INTEGER );
                 sqlite3_stmt attQuery = null;
-                Status status = PrepareSQL(ref attQuery, "SELECT filename, key, type, length,"
+                try {
+                    PrepareSQL(ref attQuery, "SELECT filename, key, type, length,"
                                 + " revpos, encoding, encoded_length FROM attachments WHERE sequence=?");
-                if (status.IsError) {
-                    return status;
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to create SQLite query for attachments table in source database '{0}'", _path);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(String.Format(
+                        "Error creating SQLite query for attachments table in source database '{0}'", _path),
+                        e) { Code = StatusCode.DbError };
                 }
 
                 raw.sqlite3_bind_int64(attQuery, 1, sequence);
@@ -253,7 +251,8 @@ namespace Couchbase.Lite.Db
 
                     if (key.Length != SHA1.Create().HashSize / 8) {
                         raw.sqlite3_finalize(attQuery);
-                        return new Status(StatusCode.CorruptError);
+                        throw new CouchbaseLiteException(String.Format(
+                            "Digest key length incorrect ({0})", Convert.ToBase64String(key)), StatusCode.CorruptError);
                     }
 
                     var blobKey = new BlobKey(key);
@@ -272,7 +271,9 @@ namespace Couchbase.Lite.Db
 
                 raw.sqlite3_finalize(attQuery);
                 if (err != raw.SQLITE_DONE) {
-                    return SqliteErrToStatus(err);
+                    throw new CouchbaseLiteException(String.Format(
+                        "Failed to finalize attachment query ({0}: {1})", err, raw.sqlite3_errmsg(_sqlite)),
+                        SqliteErrToStatus(err).Code);
                 }
 
                 if (attachments.Count > 0) {
@@ -285,11 +286,9 @@ namespace Couchbase.Lite.Db
 
                     json.InsertRange(json.Count - 1, attJson.Skip(1).Take(attJson.Count() - 2));
                 }
-
-                return new Status(StatusCode.Ok);
             }
 
-            private Status ImportLocalDocs()
+            internal void ImportLocalDocs()
             {
                 // CREATE TABLE localdocs (
                 //  docid TEXT UNIQUE NOT NULL,
@@ -297,10 +296,7 @@ namespace Couchbase.Lite.Db
                 //  json BLOB );
 
                 sqlite3_stmt localQuery = null;
-                Status status = PrepareSQL(ref localQuery, "SELECT docid, json FROM localdocs");
-                if (status.IsError) {
-                    return status;
-                }
+                PrepareSQL(ref localQuery, "SELECT docid, json FROM localdocs");
 
                 int err;
                 while (raw.SQLITE_ROW == (err = raw.sqlite3_step(localQuery))) {
@@ -323,23 +319,26 @@ namespace Couchbase.Lite.Db
                 }
 
                 raw.sqlite3_finalize(localQuery);
-                return SqliteErrToStatus(err);
+                if (err != raw.SQLITE_OK) {
+                    var s = SqliteErrToStatus(err);
+                    if (s.IsError) {
+                        throw new CouchbaseLiteException(s.Code);
+                    }
+                }
             }
 
-            private Status ImportInfo()
+            internal void ImportInfo()
             {
                 //TODO: Revisit this once pluggable storage is finished
                 // CREATE TABLE info (key TEXT PRIMARY KEY, value TEXT);
                 sqlite3_stmt infoQuery = null;
-                var status = PrepareSQL(ref infoQuery, "SELECT key, value FROM info");
-                if (status.IsError) {
-                    return status;
-                }
+                PrepareSQL(ref infoQuery, "SELECT key, value FROM info");
 
                 int err = raw.sqlite3_step(infoQuery);
                 if (err != raw.SQLITE_ROW) {
                     raw.sqlite3_finalize(infoQuery);
-                    return SqliteErrToStatus(err);
+                    throw new CouchbaseLiteException(String.Format("SQLite error {0} ({1}) reading info table from source database '{2}'",
+                        err, raw.sqlite3_errmsg(_sqlite), _path), SqliteErrToStatus(err).Code);
                 }
 
                 string privateUUID = null, publicUUID = null;
@@ -354,7 +353,8 @@ namespace Couchbase.Lite.Db
                 err = raw.sqlite3_step(infoQuery);
                 if (err != raw.SQLITE_ROW) {
                     raw.sqlite3_finalize(infoQuery);
-                    return SqliteErrToStatus(err);
+                    throw new CouchbaseLiteException(String.Format("SQLite error {0} ({1}) reading info table from source database '{2}'",
+                        err, raw.sqlite3_errmsg(_sqlite), _path), SqliteErrToStatus(err).Code);
                 }
 
                 key = raw.sqlite3_column_text(infoQuery, 0);
@@ -367,55 +367,58 @@ namespace Couchbase.Lite.Db
 
                 raw.sqlite3_finalize(infoQuery);
                 if (publicUUID == null || privateUUID == null) {
-                    return new Status(StatusCode.CorruptError);
+                    throw new CouchbaseLiteException("UUIDs missing from source database", StatusCode.CorruptError);
                 }
 
-                if (!_db.ReplaceUUIDs(privateUUID, publicUUID)) {
-                    return new Status(StatusCode.DbError);
+                try {
+                    _db.ReplaceUUIDs(privateUUID, publicUUID);
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to replace UUIDs in database");
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException("Error replacing UUIDs in database", e) { Code = StatusCode.DbError };
                 }
-
-                return new Status(StatusCode.Ok);
             }
 
-            private Status MoveAttachmentsDir()
+            private void MoveAttachmentsDir()
             {
-                var oldAttachmentsPath = Path.Combine(Path.ChangeExtension(_db.Path, null), "attachments");
+                _oldAttachmentsPath = Path.Combine(Path.ChangeExtension(_path, null), "attachments");
                 var newAttachmentsPath = _db.AttachmentStorePath;
-                if (oldAttachmentsPath.Equals(newAttachmentsPath)) {
-                    Log.D(TAG, "Skip moving the attachments folder as no path change ('{0}' vs '{1}').", oldAttachmentsPath, newAttachmentsPath);
-                    return new Status(StatusCode.Ok);
+                if (_oldAttachmentsPath.Equals(newAttachmentsPath)) {
+                    Log.D(TAG, "Skip moving the attachments folder as no path change ('{0}' vs '{1}').", _oldAttachmentsPath, newAttachmentsPath);
+                    return;
                 }
 
-                if (!Directory.Exists(oldAttachmentsPath)) {
-                    return new Status(StatusCode.Ok);
+                if (!Directory.Exists(_oldAttachmentsPath)) {
+                    _oldAttachmentsPath = Path.Combine(Path.GetDirectoryName(_path), Path.ChangeExtension(_path, null) + " attachments");
+                    if (!Directory.Exists(_oldAttachmentsPath)) {
+                        return;
+                    }
                 }
-
-                Log.D(TAG, "Moving {0} to {1}", oldAttachmentsPath, newAttachmentsPath);
+                    
+                Log.D(TAG, "Moving {0} to {1}", _oldAttachmentsPath, newAttachmentsPath);
                 Directory.Delete(newAttachmentsPath, true);
                 Directory.CreateDirectory(newAttachmentsPath);
 
                 try {
                     if (CanRemoveOldAttachmentsDir) {
                         // Need to ensure upper case
-                        foreach(var file in Directory.GetFiles(oldAttachmentsPath)) {
+                        foreach(var file in Directory.GetFiles(_oldAttachmentsPath)) {
                             var filename = Path.GetFileNameWithoutExtension(file).ToUpperInvariant();
                             var extension = Path.GetExtension(file);
                             var newPath = Path.Combine(newAttachmentsPath, filename + extension);
                             File.Move(file, newPath);
                         }
 
-                        Directory.Delete(Path.ChangeExtension(_db.Path, null), true);
+                        Directory.Delete(Path.ChangeExtension(_db.DbDirectory, null), true);
                     } else {
-                        DirectoryCopy(oldAttachmentsPath, newAttachmentsPath);
+                        DirectoryCopy(_oldAttachmentsPath, newAttachmentsPath);
                     }
                 } catch(IOException e) {
                     if (!(e is DirectoryNotFoundException)) {
-                        Log.W(TAG, "Upgrade failed:  Couldn't move attachments", e);
-                        return new Status(StatusCode.Exception);
+                        throw new CouchbaseLiteException("Upgrade failed:  Couldn't move attachments", StatusCode.Exception);
                     }
                 }
-
-                return new Status(StatusCode.Ok);
             }
 
             private static void DirectoryCopy(string sourceDirName, string destDirName)
@@ -465,32 +468,39 @@ namespace Couchbase.Lite.Db
 
             #region IDatabaseUpgrader
 
-            public Status Import()
+            public void Import()
             {
-                int version = DatabaseUpgraderFactory.SchemaVersion(_path);
+                // Rename the old database file for migration:
+                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffixv1 + "-mgr");
+                if (!MoveSqliteFiles(_path, destPath)) {
+                    Log.W(TAG, "Upgrade failed: Cannot rename the old sqlite files");
+                    MoveSqliteFiles(destPath, _path);
+                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                }
+
+                int version = DatabaseUpgraderFactory.SchemaVersion(destPath);
                 if (version < 0) {
-                    Log.W(TAG, "Upgrade failed: Cannot determine database schema version");
-                    return new Status(StatusCode.CorruptError);
+                    throw new CouchbaseLiteException("Cannot determine database schema version", StatusCode.CorruptError);
                 }
 
                 // Open source (SQLite) database:
-                var err = raw.sqlite3_open_v2(_path, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
+                var err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
                 if (err > 0) {
-                    return SqliteErrToStatus(err);
+                    throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
                 }
 
                 raw.sqlite3_create_collation(_sqlite, "JSON", raw.SQLITE_UTF8, CollateRevIDs);
                 sqlite3_stmt stmt = null;
-                var status = PrepareSQL(ref stmt, "SELECT name FROM sqlite_master WHERE type='table' AND name='maps'");
+                PrepareSQL(ref stmt, "SELECT name FROM sqlite_master WHERE type='table' AND name='maps'");
 
                 err = raw.sqlite3_step(stmt);
                 if (err == raw.SQLITE_ROW) {
                     sqlite3_stmt stmt2 = null;
-                    status = PrepareSQL(ref stmt2, "SELECT * FROM maps");
+                    PrepareSQL(ref stmt2, "SELECT * FROM maps");
                     while ((err = raw.sqlite3_step(stmt2)) == raw.SQLITE_ROW) {
                         int viewId = raw.sqlite3_column_int(stmt2, 0);
                         sqlite3_stmt stmt3 = null;
-                        status = PrepareSQL(ref stmt3, "CREATE TABLE IF NOT EXISTS maps_" + viewId + 
+                         PrepareSQL(ref stmt3, "CREATE TABLE IF NOT EXISTS maps_" + viewId + 
                             " (sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE," +
                             "key TEXT NOT NULL COLLATE JSON," +
                             "value TEXT," +
@@ -505,17 +515,20 @@ namespace Couchbase.Lite.Db
                         var key = raw.sqlite3_column_text(stmt2, 2);
                         var value = raw.sqlite3_column_text(stmt2, 3);
 
-                        var insertSql = String.Format("INSERT INTO maps_{0} (sequence, key, value) VALUES ({1}, {2}, {3}",
-                                            viewId, sequence, key, value);
+                        var insertSql = String.Format("INSERT INTO maps_{0} (sequence, key, value) VALUES (?, ?, ?)",
+                                            viewId);
                         
-                        status = PrepareSQL(ref stmt3, insertSql);
+                        PrepareSQL(ref stmt3, insertSql);
+                        raw.sqlite3_bind_int64(stmt3, 0, sequence);
+                        raw.sqlite3_bind_text(stmt3, 1, key);
+                        raw.sqlite3_bind_text(stmt3, 2, value);
                         raw.sqlite3_step(stmt3);
                         raw.sqlite3_finalize(stmt3);
                     }
 
                     raw.sqlite3_finalize(stmt2);
                     stmt2 = null;
-                    status = PrepareSQL(ref stmt2, "DROP TABLE maps");
+                    PrepareSQL(ref stmt2, "DROP TABLE maps");
                     raw.sqlite3_step(stmt2);
                     raw.sqlite3_finalize(stmt2);
                 }
@@ -523,49 +536,58 @@ namespace Couchbase.Lite.Db
                 raw.sqlite3_finalize(stmt);
                 raw.sqlite3_close(_sqlite);
                 if (err != raw.SQLITE_DONE) {
-                    return SqliteErrToStatus(err);
+                    throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
                 }
 
                 if (version >= 101) {
-                    return new Status(StatusCode.Ok);
+                    _db.Delete();
+                    MoveSqliteFiles(destPath, _path);
+                    var secondaryUpgrade = new v11_upgrader(_db, _path);
+                    secondaryUpgrade.Import();
+
+                    var fromDir = Path.Combine(Path.GetDirectoryName(_path), _db.Name + Manager.DatabaseSuffix);
+                    var toDir = _db.DbDirectory;
+                    try {
+                        Directory.Move(fromDir, toDir);
+                    } catch (Exception ex) {
+                        Log.W(TAG, "Failed to move directory '{0}' to '{1}' {2}", fromDir, toDir, ex.ToString());
+                    }
+                    return;
                 }
 
                 Log.D(TAG, "Upgrading database v1.0 ({0}) to v1.1 at {1} ...", version, _path);
 
-                // Rename the old database file for migration:
-                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffix + "-mgr");
-                if (!MoveSqliteFiles(_path, destPath)) {
-                    Log.W(TAG, "Upgrade failed: Cannot rename the old sqlite files");
-                    MoveSqliteFiles(destPath, _path);
-
-                    return new Status(StatusCode.InternalServerError);
-                }
-
                 err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
                 if (err > 0) {
-                    return SqliteErrToStatus(err);
+                    throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
                 }
 
                 raw.sqlite3_create_collation(_sqlite, "REVID", raw.SQLITE_UTF8, CollateRevIDs);
 
                 // Open destination database:
-                if (!_db.Open()) {
+                try {
+                    _db.Open();
+                } catch(CouchbaseLiteException) {
                     Log.W(TAG, "Upgrade failed: Couldn't open new db");
-                    return new Status(StatusCode.DbError);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException("Error during upgrade; couldn't open new db", e) { Code = StatusCode.Exception };
                 }
 
-                status = MoveAttachmentsDir();
-                if (status.IsError) {
-                    return status;
+                try {
+                    MoveAttachmentsDir();
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to move attachments directory for database at '{0}'", _path);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(String.Format(
+                        "Error moving attachments directory for database at '{0}'", _path), e) { Code = StatusCode.Exception };
                 }
 
                 // Upgrade documents:
                 // CREATE TABLE docs (doc_id INTEGER PRIMARY KEY, docid TEXT UNIQUE NOT NULL);
                 sqlite3_stmt docQuery = null;
-                status = PrepareSQL(ref docQuery, "SELECT doc_id, docid FROM docs");
-                if (status.IsError) {
-                    return status;
-                }
+                PrepareSQL(ref docQuery, "SELECT doc_id, docid FROM docs");
 
                 _db.RunInTransaction(() =>
                 {
@@ -574,65 +596,382 @@ namespace Couchbase.Lite.Db
                     while(raw.SQLITE_ROW == (transactionErr = raw.sqlite3_step(docQuery))) {
                         long docNumericID = raw.sqlite3_column_int64(docQuery, 0);
                         string docID = raw.sqlite3_column_text(docQuery, 1);
-                        Status transactionStatus = ImportDoc(docID, docNumericID);
-                        if(transactionStatus.IsError) {
-                            status = transactionStatus;
-                            return false;
+                        try {
+                            ImportDoc(docID, docNumericID);
+                        } catch(CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to import document #{0} ({1})", docNumericID, docID);
+                            throw;
+                        } catch(Exception e) {
+                            throw new CouchbaseLiteException(String.Format("Error importing document #{0} ({1}",
+                                docNumericID, docID), e) { Code = StatusCode.Exception };
                         }
                         
                         if((++count % 1000) == 0) {
                             Log.I(TAG, "Migrated {0} documents", count);
                         }
                     }
-
-                    status = SqliteErrToStatus(transactionErr);
+                        
                     return transactionErr == raw.SQLITE_DONE;
                 });
 
                 raw.sqlite3_finalize(docQuery);
-                if (status.IsError) {
-                    return status;
+
+                try {
+                    ImportLocalDocs();
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to import local docs for database '{0}'", _path);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(String.Format(
+                        "Error importing local docs for database '{0}'", _path), e) { Code = StatusCode.Exception };
                 }
 
-                status = ImportLocalDocs();
-                if (status.IsError) {
-                    return status;
+                try {
+                    ImportInfo();
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to import info for database '{0}'", _path);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(String.Format(
+                        "Error importing info for database '{0}'", _path), e) { Code = StatusCode.Exception };
                 }
 
-                status = ImportInfo();
-                if (status.IsError) {
-                    return status;
-                }
-
-                err = raw.sqlite3_close(_sqlite);
+                raw.sqlite3_close(_sqlite);
                 _sqlite = null;
                 File.Delete(destPath);
                 File.Delete(destPath + "-wal");
                 File.Delete(destPath + "-shm");
 
-                return status;
             }
 
             public void Backout()
             {
+                var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffixv1 + "-mgr");
+                if (!File.Exists(destPath)) {
+                    // Upgrader failed to even do the first step, nothing to backout
+                    return;
+                }
+
                 // Move attachments dir back to the old path
                 var newAttachmentsPath = _db.AttachmentStorePath;
-                if (Directory.Exists(newAttachmentsPath)) {
-                    var oldAttachmentsPath = Path.ChangeExtension(_db.Path, null) + Path.PathSeparator + "attachments";
+                if (_oldAttachmentsPath != null && Directory.Exists(newAttachmentsPath)) {
                     if (CanRemoveOldAttachmentsDir) {
                         try {
-                            Directory.Move(newAttachmentsPath, oldAttachmentsPath);
+                            Directory.CreateDirectory(_oldAttachmentsPath);
                         } catch(IOException) {
                         }
                     }
                 }
 
                 _db.Delete();
+                MoveSqliteFiles(destPath, _path);
+
             }
 
             #endregion
 
         }
+
+        private class v11_upgrader : IDatabaseUpgrader
+        {
+            private const string TAG = "v11_upgrader";
+            private const string SUFFIX = ".cblite2";
+            private readonly Database _db;
+            private readonly string _path;
+
+            public int NumDocs { get; private set; }
+
+            public int NumRevs { get; private set; }
+
+            public bool CanRemoveOldAttachmentsDir { get; set; }
+
+            public v11_upgrader(Database db, string path)
+            {
+                _db = db;
+                _path = path;
+                CanRemoveOldAttachmentsDir = true;
+            }
+             
+            public void Import()
+            {
+                var newPath = Path.Combine(Path.GetDirectoryName(_path), _db.Name + SUFFIX);
+                if (Directory.Exists(newPath)) {
+                    Log.W(TAG, "Upgrade to v1.2 failed ({0} already exists)", newPath);
+                    throw new CouchbaseLiteException(StatusCode.PreconditionFailed);
+                }
+
+                Directory.CreateDirectory(newPath);
+                var sqliteFilePath = Path.Combine(newPath, "db.sqlite3");
+                try {
+                    File.Copy(_path, sqliteFilePath);
+                    if (File.Exists(_path + "-wal")) {
+                        File.Copy(_path + "-wal", sqliteFilePath + "-wal");
+                    }
+
+                    if (File.Exists(_path + "-shm")) {
+                        File.Copy(_path + "-shm", sqliteFilePath + "-shm");
+                    }
+                } catch(IOException e) {
+                    Log.W(TAG, "Upgrade to v1.2 failed (Couldn't copy sqlite files: {0})", e.ToString());
+                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                }
+
+                var oldAttachmentsPath = Path.Combine(Path.GetDirectoryName(_path), _db.Name + " attachments");
+                try {
+                    if (Directory.Exists(oldAttachmentsPath)) {
+                        var newAttachmentsPath = Path.Combine(newPath, "attachments");
+                        Directory.CreateDirectory(newAttachmentsPath);
+
+                        foreach (var att in Directory.GetFiles(oldAttachmentsPath)) {
+                            File.Copy(att, Path.Combine(newAttachmentsPath, Path.GetFileName(att))); 
+                        }
+                    }
+                } catch(IOException e) {
+                    Log.W(TAG, "Upgrade to v1.2 failed (Couldn't copy attachment files: {0})", e.ToString());
+                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                }
+
+                File.Delete(_path);
+                File.Delete(_path + "-wal");
+                File.Delete(_path + "-shm");
+                Directory.Delete(oldAttachmentsPath, true);
+            }
+
+            public void Backout()
+            {
+                var newPath = Path.Combine(Path.GetDirectoryName(_path), _db.Name + SUFFIX);
+                Directory.Delete(newPath, true);
+            }
+
+        }
+
+        private class v12_upgrader : IDatabaseUpgrader
+        {
+            private sqlite3 _sqlite;
+            private Database _db;
+            private string _path;
+            private v1_upgrader _inner;
+
+            public v12_upgrader(Database db, string path)
+            {
+                _path = Path.Combine(path, "db.sqlite3");
+                _db = db;
+            }
+
+            private void UpdateAttachmentFollows(List<byte> json)
+            {
+                var obj = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(json);
+                var attachments = obj.Get("_attachments").AsDictionary<string, object>();
+                var newAttachments = new Dictionary<string, object>();
+                foreach (var key in attachments.Keys) {
+                    var attachmentData = attachments.Get(key).AsDictionary<string, object>();
+                    attachmentData["follows"] = true;
+                    attachmentData.Remove("stub");
+                    newAttachments[key] = attachmentData;
+                }
+
+                obj["_attachments"] = newAttachments;
+
+                var nuJson = Manager.GetObjectMapper().WriteValueAsBytes(obj);
+                json.Clear();
+                json.AddRange(nuJson);
+            }
+
+            private void ImportDoc(string docID, long docNumericID)
+            {
+                // CREATE TABLE revs (
+                //  sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                //  doc_id INTEGER NOT NULL REFERENCES docs(doc_id) ON DELETE CASCADE,
+                //  revid TEXT NOT NULL COLLATE REVID,
+                //  parent INTEGER REFERENCES revs(sequence) ON DELETE SET NULL,
+                //  current BOOLEAN,
+                //  deleted BOOLEAN DEFAULT 0,
+                //  json BLOB,
+                //  no_attachments BOOLEAN,
+                //  UNIQUE (doc_id, revid) );
+                sqlite3_stmt revQuery = null;
+                _inner.PrepareSQL(ref revQuery, "SELECT sequence, revid, parent, current, deleted, json, no_attachments" +
+                    " FROM revs WHERE doc_id=? ORDER BY sequence");
+
+                raw.sqlite3_bind_int64(revQuery, 1, docNumericID);
+
+                var tree = new Dictionary<long, IList<object>>();
+
+                int err;
+                while (raw.SQLITE_ROW == (err = raw.sqlite3_step(revQuery))) {
+                    long sequence = raw.sqlite3_column_int64(revQuery, 0);
+                    string revID = raw.sqlite3_column_text(revQuery, 1);
+                    long parentSeq = raw.sqlite3_column_int64(revQuery, 2);
+                    bool current = raw.sqlite3_column_int(revQuery, 3) != 0;
+                    bool noAtts = raw.sqlite3_column_int(revQuery, 6) != 0;
+
+                    if (current) {
+                        // Add a leaf revision:
+                        bool deleted = raw.sqlite3_column_int(revQuery, 4) != 0;
+                        IEnumerable<byte> json = raw.sqlite3_column_blob(revQuery, 5);
+                        if (json == null) {
+                            json = Encoding.UTF8.GetBytes("{}");
+                        }
+
+                        var nuJson = json.ToList();
+                        if (!noAtts) {
+                            try {
+                                UpdateAttachmentFollows(nuJson);
+                            } catch(CouchbaseLiteException) {
+                                Log.E(TAG, "Failed to process attachments");
+                                throw;
+                            } catch(Exception e) {
+                                throw new CouchbaseLiteException("Error processing attachments", e);
+                            }
+                        }
+
+                        json = nuJson;
+                        RevisionInternal rev = new RevisionInternal(docID, revID, deleted);
+                        rev.SetJson(json);
+
+                        var history = new List<string>();
+                        history.Add(revID);
+                        while (parentSeq > 0) {
+                            var ancestor = tree.Get(parentSeq);
+                            Debug.Assert(ancestor != null, String.Format("Couldn't find parent sequence of {0} (doc {1})", parentSeq, docID));
+                            history.Add((string)ancestor[0]);
+                            parentSeq = (long)ancestor[1];
+                        }
+
+                        Log.D(TAG, "Upgrading doc {0} history {1}", rev, Manager.GetObjectMapper().WriteValueAsString(history));
+                        try {
+                            _db.ForceInsert(rev, history, null);
+                        } catch (CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to insert revision {0} into target database", rev);
+                            raw.sqlite3_finalize(revQuery);
+                            throw;
+                        } catch(Exception e) {
+                            raw.sqlite3_finalize(revQuery);
+                            throw new CouchbaseLiteException(String.Format(
+                                "Error inserting revision {0} into target database", rev), e) { Code = StatusCode.Exception };
+                        }
+
+                        NumRevs++;
+                    } else {
+                        tree[sequence] = new List<object> { revID, parentSeq };
+                    }
+                }
+
+                raw.sqlite3_finalize(revQuery);
+                ++NumDocs;
+                if (err != raw.SQLITE_OK) {
+                    var s = SqliteErrToStatus(err);
+                    if (s.IsError) {
+                        throw new CouchbaseLiteException(s.Code);
+                    }
+                }
+            }
+
+            #region IDatabaseUpgrader implementation
+
+            public void Import()
+            {
+                // Open source (SQLite) database:
+                var err = raw.sqlite3_open_v2(_path, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
+                _inner = new v1_upgrader(_db, _sqlite);
+                if (err > 0) {
+                    throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
+                }
+
+                raw.sqlite3_create_collation(_sqlite, "JSON", raw.SQLITE_UTF8, CollateRevIDs);
+                raw.sqlite3_create_collation(_sqlite, "REVID", raw.SQLITE_UTF8, CollateRevIDs);
+
+                // Open destination database:
+                try {
+                    _db.Open();
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Upgrade failed: Couldn't open new db");
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException("Error during upgrade; couldn't open new db", e) { Code = StatusCode.Exception };
+                }
+
+                // Upgrade documents:
+                // CREATE TABLE docs (doc_id INTEGER PRIMARY KEY, docid TEXT UNIQUE NOT NULL);
+                sqlite3_stmt docQuery = null;
+                _inner.PrepareSQL(ref docQuery, "SELECT doc_id, docid FROM docs");
+
+                _db.RunInTransaction(() =>
+                {
+                    int transactionErr;
+                    int count = 0;
+                    while(raw.SQLITE_ROW == (transactionErr = raw.sqlite3_step(docQuery))) {
+                        long docNumericID = raw.sqlite3_column_int64(docQuery, 0);
+                        string docID = raw.sqlite3_column_text(docQuery, 1);
+                        try {
+                            ImportDoc(docID, docNumericID);
+                        } catch(CouchbaseLiteException) {
+                            Log.W(TAG, "Failed to import document #{0} ({1})", docNumericID, docID);
+                            throw;
+                        } catch(Exception e) {
+                            throw new CouchbaseLiteException(String.Format("Error importing document #{0} ({1}",
+                                docNumericID, docID), e) { Code = StatusCode.Exception };
+                        }
+
+                        if((++count % 1000) == 0) {
+                            Log.I(TAG, "Migrated {0} documents", count);
+                        }
+                    }
+
+                    return transactionErr == raw.SQLITE_DONE;
+                });
+
+                raw.sqlite3_finalize(docQuery);
+
+                try {
+                    _inner.ImportLocalDocs();
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to import local docs for database '{0}'", _path);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(String.Format(
+                        "Error importing local docs for database '{0}'", _path), e) { Code = StatusCode.Exception };
+                }
+
+                try {
+                    _inner.ImportInfo();
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Failed to import info for database '{0}'", _path);
+                    throw;
+                } catch(Exception e) {
+                    throw new CouchbaseLiteException(String.Format(
+                        "Error importing info for database '{0}'", _path), e) { Code = StatusCode.Exception };
+                }
+
+                raw.sqlite3_close(_sqlite);
+                _sqlite = null;
+
+                foreach (var ext in new List<string> { "", "-wal", "-shm" }) {
+                    File.Delete(_path + ext);
+                }
+            }
+
+            public void Backout()
+            {
+                var directory = Path.GetDirectoryName(_path);
+                File.Delete(Path.Combine(directory, "db.forest"));
+                File.Delete(Path.Combine(directory, "db.forest.0"));
+                File.Delete(Path.Combine(directory, "db.forest.meta"));
+            }
+
+            public int NumDocs { get; private set; }
+
+            public int NumRevs { get; private set; }
+
+            public bool CanRemoveOldAttachmentsDir {
+                get { return false; }
+                set { }
+            }
+
+            #endregion
+
+
+        }
     }
 }
-
+#endif

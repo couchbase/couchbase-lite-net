@@ -50,12 +50,112 @@ using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Store;
+using System.Threading.Tasks;
+using System.IO;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class DatabaseTest : LiteTestCase
     {
         const String TooLongName = "a11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110";
+
+        public DatabaseTest(string storageType) : base(storageType) {}
+
+        #if !NET_3_5
+        [Test]
+        public void TestParallelLibrary()
+        {
+            const int docCount = 200;
+
+            Parallel.Invoke(() => {
+                Parallel.For(0, docCount, i =>
+                {
+                    Assert.DoesNotThrow(() => database.GetExistingDocument(i.ToString()));
+                });
+            }, () => {
+                Parallel.For(0, docCount, i =>
+                {
+                    Assert.DoesNotThrow(() => database.GetExistingDocument(i.ToString()));
+                });
+            });
+        }
+
+        #endif
+
+        [Test]
+        public void TestReadOnlyDb()
+        {
+            CreateDocuments(database, 10);
+            database.Close();
+
+            var options = new ManagerOptions();
+            options.ReadOnly = true;
+            var readOnlyManager = new Manager(new DirectoryInfo(manager.Directory), options);
+            database = readOnlyManager.GetExistingDatabase(database.Name);
+            Assert.IsNotNull(database);
+            var e = Assert.Throws<CouchbaseLiteException>(() => CreateDocuments(database, 1));
+            Assert.AreEqual(StatusCode.Forbidden, e.Code);
+            database.Close();
+
+            var dbOptions = new DatabaseOptions();
+            dbOptions.ReadOnly = true;
+            database = manager.OpenDatabase(database.Name, dbOptions);
+            Assert.IsNotNull(database);
+            e = Assert.Throws<CouchbaseLiteException>(() => CreateDocuments(database, 1));
+            Assert.AreEqual(StatusCode.Forbidden, e.Code);
+            database.Close();
+
+            dbOptions.ReadOnly = false;
+            database = manager.OpenDatabase(database.Name, dbOptions);
+            Assert.DoesNotThrow(() => CreateDocuments(database, 1));
+        }
+
+        [Test]
+        public void TestUpgradeDatabase()
+        {
+            // Install a canned database:
+            using (var dbStream = GetAsset("ios120.zip")) {
+                Assert.DoesNotThrow(() => manager.ReplaceDatabase("replacedb", dbStream, true));
+            }
+
+            // Open installed db with storageType set to this test's storage type:
+            var options = new DatabaseOptions();
+            options.StorageType = _storageType;
+            var replacedb = default(Database);
+            Assert.DoesNotThrow(() => replacedb = manager.OpenDatabase("replacedb", options));
+            Assert.IsNotNull(replacedb);
+
+            // Verify storage type matches what we requested:
+            Assert.IsInstanceOf(database.Storage.GetType(), replacedb.Storage);
+
+            // Test db contents:
+            CheckRowsOfReplacedDB("replacedb", rows =>
+            {
+                Assert.AreEqual(1, rows.Count);
+                var doc = rows.ElementAt(0).Document;
+                Assert.AreEqual("doc1", doc.Id);
+                Assert.AreEqual(2, doc.CurrentRevision.Attachments.Count());
+                var att1 = doc.CurrentRevision.GetAttachment("attach1");
+                Assert.IsNotNull(att1);
+                Assert.AreEqual(att1.Length, att1.Content.Count());
+
+                var att2 = doc.CurrentRevision.GetAttachment("attach2");
+                Assert.IsNotNull(att2);
+                Assert.AreEqual(att2.Length, att2.Content.Count());
+            });
+
+            // Close and re-open the db using SQLite storage type. Should fail if it used to be ForestDB:
+            Assert.DoesNotThrow(() => replacedb.Close().Wait(15000));
+            options.StorageType = DatabaseOptions.SQLITE_STORAGE;
+            if (_storageType == DatabaseOptions.SQLITE_STORAGE) {
+                Assert.DoesNotThrow(() => replacedb = manager.OpenDatabase("replacedb", options));
+                Assert.IsNotNull(replacedb);
+            } else {
+                var e = Assert.Throws<CouchbaseLiteException>(() => replacedb = manager.OpenDatabase("replacedb", options));
+                Assert.AreEqual(StatusCode.InvalidStorageType, e.Code);
+            }
+        }
 
         [Test]
         public void TestValidDatabaseNames([Values("foo", "try1", "foo-bar", "goofball99", TooLongName)] String testName)
@@ -233,7 +333,8 @@ namespace Couchbase.Lite
 
             Assert.IsNull(database.DocumentCache.Get(document.Id));
 
-            var cachedDocument = database.UnsavedRevisionDocumentCache.Get(document.Id);
+            var cachedDocument = default(WeakReference);
+            database.UnsavedRevisionDocumentCache.TryGetValue(document.Id, out cachedDocument);
             Assert.IsTrue(cachedDocument.Target == document);
 
             var checkedDocument = database.GetDocument(document.Id);
@@ -249,7 +350,8 @@ namespace Couchbase.Lite
             properties.Add("test", "test");
             document.PutProperties(properties);
 
-            var cachedDocument = database.UnsavedRevisionDocumentCache.Get(document.Id);
+            var cachedDocument = default(WeakReference);
+            database.UnsavedRevisionDocumentCache.TryGetValue(document.Id, out cachedDocument);
             Assert.IsNull(cachedDocument);
 
             var checkedDocument = database.GetDocument(document.Id);
@@ -424,6 +526,27 @@ namespace Couchbase.Lite
             newRev2b.Save(true);
             sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict);
             Assert.IsTrue(outIsConflict);
+        }
+
+        private void CheckRowsOfReplacedDB(string dbName, Action<QueryEnumerator> onComplete)
+        {
+            var replacedb = default(Database);
+            Assert.DoesNotThrow(() => replacedb = manager.OpenDatabase(dbName, null));
+            Assert.IsNotNull(replacedb);
+
+            var view = replacedb.GetView("myview");
+            Assert.IsNotNull(view);
+            view.SetMap((doc, emit) =>
+            {
+                emit(doc.Get("_id"), null);
+            }, "1.0");
+
+            var query = view.CreateQuery();
+            Assert.IsNotNull(query);
+            query.Prefetch = true;
+            var rows = default(QueryEnumerator);
+            Assert.DoesNotThrow(() => rows = query.Run());
+            onComplete(rows);
         }
     }
 }

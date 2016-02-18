@@ -129,6 +129,21 @@ namespace Couchbase.Lite
     #endregion
 
     /// <summary>
+    /// A class for holding replication options
+    /// </summary>
+    [DictionaryContract(OptionalKeys=new object[] { 
+        ReplicationOptionsDictionary.REMOTE_UUID_KEY, typeof(string) 
+    })]
+    public sealed class ReplicationOptionsDictionary : ContractedDictionary
+    {
+        /// <summary>
+        /// This key stores an ID for a remote endpoint whose identifier
+        /// is likely to change (i.e. found via Bonjour)
+        /// </summary>
+        public const string REMOTE_UUID_KEY = "remoteUUID";
+    }
+
+    /// <summary>
     /// A Couchbase Lite pull or push <see cref="Couchbase.Lite.Replication"/>
     /// between a local and a remote <see cref="Couchbase.Lite.Database"/>.
     /// </summary>
@@ -145,6 +160,7 @@ namespace Couchbase.Lite
         private const int RETRY_DELAY = 60; // Seconds
         private const int SAVE_LAST_SEQUENCE_DELAY = 2; //Seconds
         private const string TAG = "Replication";
+        private const string LOCAL_CHECKPOINT_LOCAL_UUID_KEY = "localUUID";
 
         #endregion
 
@@ -186,7 +202,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// The list of currently active HTTP messages
         /// </summary>
-        protected readonly IDictionary<HttpRequestMessage, Task> _requests;
+        protected readonly ConcurrentDictionary<HttpRequestMessage, Task> _requests;
 
         /// <summary>
         /// Whether or not the LastSequence property has changed
@@ -199,7 +215,6 @@ namespace Couchbase.Lite
         protected internal string sessionID;
 
         private bool _savingCheckpoint;
-        private bool _overdueForSave;
         private IDictionary<string, object> _remoteCheckpoint;
         private bool _continuous;
         private int _revisionsFailed;
@@ -207,6 +222,9 @@ namespace Couchbase.Lite
         private string _remoteCheckpointDocID;
         private CancellationTokenSource _retryIfReadyTokenSource;
         private Task _retryIfReadyTask;
+        private readonly Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
+        private HashSet<string> _pendingDocumentIDs;
+        private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
 
         #endregion
 
@@ -281,7 +299,7 @@ namespace Couchbase.Lite
         public IEnumerable<string> Channels {
             get
             {
-                if (FilterParams == null || FilterParams.IsEmpty())
+                if (FilterParams == null || FilterParams.Count == 0)
                 {
                     return new List<string>();
                 }
@@ -383,9 +401,11 @@ namespace Couchbase.Lite
             set
             {
                 if (value != _lastError) {
-                    Log.E(TAG, " Progress: set error = ", value);
-                    _lastError = value;
+                    var newException = value.Flatten();
+                    Log.E(TAG, " Progress: set error = ", newException);
+                    _lastError = newException;
                     NotifyChangeListeners();
+
                 }
             }
         }
@@ -474,28 +494,37 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Gets or sets custom options on this replication
+        /// </summary>
+        public ReplicationOptionsDictionary Options { get; set; }
+       
+        /// <summary>
+        /// Returns whether or not the replication may be stopped at 
+        /// the point of time in question
+        /// </summary>
+        protected virtual bool IsSafeToStop
+        {
+            get { return true; }
+        }
+
+        /// <summary>
         /// Gets or sets the last sequence that this replication processed from its source database
         /// </summary>
         protected internal string LastSequence
         {
-            get { return lastSequence; }
+            get { return _lastSequence; }
             set {
-                if (value != null && !value.Equals(lastSequence)) {
-                    Log.V(TAG, "Setting LastSequence to " + value + " from( " + lastSequence + ")");
-                    lastSequence = value;
+                if (value != null && !value.Equals(_lastSequence)) {
+                    Log.V(TAG, "Setting LastSequence to " + value + " from( " + _lastSequence + ")");
+                    _lastSequence = value;
 
                     if (!lastSequenceChanged) {
                         lastSequenceChanged = true;
-
-                        Task.Delay(SAVE_LAST_SEQUENCE_DELAY).ContinueWith(task =>
-                        {
-                            SaveLastSequence(null);
-                        });
                     }
                 }
             }
         }
-        private String lastSequence = "0";
+        private string _lastSequence = "0";
 
         /// <summary>
         /// Gets or sets the client factory used to create HttpClient objects 
@@ -553,7 +582,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal string ServerType { get; set; }
+        internal RemoteServerVersion ServerType { get; set; }
         internal Batcher<RevisionInternal> Batcher { get; set; }
         internal Func<RevisionInternal, RevisionInternal> RevisionBodyTransformationFunction { get; private set; }
 
@@ -583,11 +612,13 @@ namespace Couchbase.Lite
         protected Replication(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor)
         {
             LocalDatabase = db;
+            _eventContext = LocalDatabase.Manager.CapturedContext;
             Continuous = continuous;
             // NOTE: Consider running a separate scheduler for all http requests.
             WorkExecutor = workExecutor;
             CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
+            Options = new ReplicationOptionsDictionary();
             RequestHeaders = new Dictionary<String, Object>();
             _requests = new ConcurrentDictionary<HttpRequestMessage, Task>();
 
@@ -604,11 +635,11 @@ namespace Couchbase.Lite
                     Authenticator = authorizer;
                 }
 
-                var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter);
+                var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QUERY_PARAMETER);
 
                 if (facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken))
                 {
-                    var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameterEmail);
+                    var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QUERY_PARAMETER_EMAIL);
                     var authorizer = new FacebookAuthorizer(email);
                     Uri remoteWithQueryRemoved = null;
 
@@ -621,7 +652,7 @@ namespace Couchbase.Lite
                         throw new ArgumentException("Invalid URI format.", "remote", e);
                     }
 
-                    FacebookAuthorizer.RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved.ToString());
+                    FacebookAuthorizer.RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved);
 
                     Authenticator = authorizer;
                 }
@@ -641,7 +672,10 @@ namespace Couchbase.Lite
             {
                 try {
                     Log.V(TAG, "*** BEGIN ProcessInbox ({0} sequences)", inbox.Count);
-                    FireTrigger(ReplicationTrigger.Resume);
+                    if(Continuous) {
+                        FireTrigger(ReplicationTrigger.Resume);
+                    }
+
                     ProcessInbox (new RevisionList(inbox));
 
                     Log.V(TAG, "*** END ProcessInbox (lastSequence={0})", LastSequence);
@@ -678,13 +712,62 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Gets a collection of document IDs that have been scheduled for replication
+        /// but not yet completed.
+        /// </summary>
+        /// <returns>The pending document IDs.</returns>
+        public ICollection<string> GetPendingDocumentIDs()
+        {
+            if (IsPull || (_stateMachine.State > ReplicationState.Initial && _pendingDocumentIDs != null)) {
+                return _pendingDocumentIDs;
+            }
+
+            var lastSequence = LastSequence;
+            if (lastSequence == null || lastSequence == "0") {
+                var checkpointID = RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
+                lastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointID);
+                if (lastSequence == null) {
+                    var doc = LocalDatabase.GetLocalCheckpointDoc();
+                    var importedUUID = doc == null ? null : doc.GetCast<string>(LOCAL_CHECKPOINT_LOCAL_UUID_KEY);
+                    if (importedUUID != null) {
+                        checkpointID = RemoteCheckpointDocID(importedUUID);
+                        lastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointID);
+                    }
+                }
+            }
+
+            if (!LocalDatabase.IsOpen) {
+                Log.D(TAG, "LocalDatabase is not open, so ruling Replication as stopped.  Returning empty pending ID set");
+                return new HashSet<string>();
+            }
+
+            var revs = LocalDatabase.UnpushedRevisionsSince(lastSequence, LocalDatabase.GetFilter(Filter), FilterParams);
+            if (revs != null) {
+                _pendingDocumentIDs = new HashSet<string>(revs.GetAllDocIds());
+                return _pendingDocumentIDs;
+            }
+
+            Log.W(TAG, "Error getting unpushed revisions");
+            return new HashSet<string>();
+        }
+
+        /// <summary>
+        /// Checks if the specified document is pending replication
+        /// </summary>
+        /// <returns><c>true</c> if this document is pending, otherwise, <c>false</c>.</returns>
+        /// <param name="doc">The document to check.</param>
+        public bool IsDocumentPending(Document doc)
+        {
+            return doc != null && GetPendingDocumentIDs().Contains(doc.Id);
+        }
+
+        /// <summary>
         /// Restarts the <see cref="Couchbase.Lite.Replication"/>.
         /// </summary>
         public void Restart()
         {
-            // TODO: add the "started" flag and check it here
+            Changed += WaitForStopped;
             Stop();
-            Start();
         }
 
         /// <summary>Sets an HTTP cookie for the Replication.</summary>
@@ -741,17 +824,11 @@ namespace Couchbase.Lite
         /// <param name="minVersion">Minimum version.</param>
         protected internal bool CheckServerCompatVersion(string minVersion)
         {
-            if (StringEx.IsNullOrWhiteSpace(ServerType)) {
+            if (ServerType == null) {
                 return false;
             }
 
-            const string prefix = "Couchbase Sync Gateway/";
-            if (ServerType.StartsWith(prefix, StringComparison.Ordinal)) {
-                var version = ServerType.Substring(prefix.Length);
-                return string.Compare(version, minVersion, StringComparison.Ordinal) >= 0;
-            }
-
-            return false;
+            return ServerType.IsSyncGateway && string.Compare(ServerType.Version, minVersion, StringComparison.Ordinal) >= 0;
         }
 
         /// <summary>
@@ -893,22 +970,22 @@ namespace Couchbase.Lite
         protected virtual void StartInternal()
         {
             Log.V(TAG, "Replication Start");
-            if (!LocalDatabase.Open()) {
-                // Race condition: db closed before replication starts
-                Log.W(TAG, "Not starting replication because db.isOpen() returned false.");
+            if (!LocalDatabase.IsOpen) {
+                Log.W(TAG, "Not starting replication because database is closed");
                 FireTrigger(ReplicationTrigger.StopImmediate);
                 return;
             }
 
             if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri)) {
+                LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
                 FireTrigger(ReplicationTrigger.GoOffline);
             }
 
             if(!LocalDatabase.AddReplication(this) || !LocalDatabase.AddActiveReplication(this)) {
                 Log.W(TAG, "Replication did not start");
+                FireTrigger(ReplicationTrigger.StopImmediate);
                 return;
             }
-
 
             SetupRevisionBodyTransformationFunction();
 
@@ -1010,8 +1087,12 @@ namespace Couchbase.Lite
             var newCount = Interlocked.Add(ref _completedChangesCount, value);
             Log.V(TAG, "<<<Updated completedChanges count to {0}", _completedChangesCount);
             NotifyChangeListeners();
-            if (Continuous && newCount == _changesCount) {
-                FireTrigger(ReplicationTrigger.WaitingForChanges);
+            if (newCount == _changesCount && IsSafeToStop) {
+                if(Continuous) {
+                    FireTrigger(ReplicationTrigger.WaitingForChanges);
+                } else {
+                    FireTrigger(ReplicationTrigger.StopGraceful);
+                }
             }
         }
 
@@ -1029,7 +1110,10 @@ namespace Couchbase.Lite
             Log.V(TAG, ">>>Updating changesCount from {0} by {1}", _changesCount, value);
             Interlocked.Add(ref _changesCount, value);
             Log.V(TAG, "<<<Updated changesCount to {0}", _changesCount);
-            FireTrigger(ReplicationTrigger.Resume);
+            if(Continuous) {
+                FireTrigger(ReplicationTrigger.Resume);
+            }
+
             NotifyChangeListeners();
         }
 
@@ -1067,35 +1151,39 @@ namespace Couchbase.Lite
 
         internal abstract void ProcessInbox(RevisionList inbox);
 
+        internal bool HasSameSettingsAs(Replication other)
+        {
+            return LocalDatabase == other.LocalDatabase &&
+            IsPull == other.IsPull &&
+            RemoteCheckpointDocID("").Equals(other.RemoteCheckpointDocID(""));
+        }
+
         internal virtual void Stopping()
         {
             Log.V(TAG, "Stopping");
+            if (!LocalDatabase.IsOpen) {
+                return; // This logic has already been handled by DatabaseClosing()
+            }
 
             lastSequenceChanged = true; // force save the sequence
             SaveLastSequence (() => 
             {
-                Log.V (TAG, "Set batcher to null");
-                Batcher = null;
-                if (LocalDatabase != null) {
-                    var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
-                    if (reachabilityManager != null) {
-                        reachabilityManager.StatusChanged -= NetworkStatusChanged;
-                        reachabilityManager.StopListening ();
-                    }
-
-                    LocalDatabase.ForgetReplication(this);
+                var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+                if (reachabilityManager != null) {
+                    reachabilityManager.StatusChanged -= NetworkStatusChanged;
+                    reachabilityManager.StopListening ();
                 }
 
-                ClearDbRef ();
+                LocalDatabase.ForgetReplication(this);
             });
         }
 
-        internal void SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
+        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
         {
             try {
                 var urlStr = BuildRelativeURLString(relativePath);
                 var url = new Uri(urlStr);
-                SendAsyncRequest(method, url, body, completionHandler, requestTokenSource);
+                return SendAsyncRequest(method, url, body, completionHandler, requestTokenSource);
             } catch (UriFormatException e) {
                 Log.E(TAG, "Malformed URL for async request", e);
                 throw;
@@ -1119,11 +1207,12 @@ namespace Couchbase.Lite
             return remoteUrlString + relativePath;
         }
 
-        internal void SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
+        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
         {
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
+
 
             var client = clientFactory.GetHttpClient(false);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
@@ -1156,56 +1245,53 @@ namespace Couchbase.Lite
             var t = client.SendAsync(message, token) .ContinueWith(response =>
             {
                 try {
-                    lock(_requests) {
-                        _requests.Remove(message);
-                    }
 
                     HttpResponseMessage result = null;
                     Exception error = null;
-                    if (!response.IsFaulted && !response.IsCanceled) {
+                    if(!response.IsFaulted && !response.IsCanceled) {
                         result = response.Result;
                         UpdateServerType(result);
                     } else if(response.IsFaulted) {
                         error = response.Exception.InnerException;
                         Log.E(TAG, "Http Message failed to send: {0}", message);
                         Log.E(TAG, "Http exception", response.Exception.InnerException);
-                        if (message.Content != null) {
+                        if(message.Content != null) {
                             Log.E(TAG, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
                         }
                     }
 
-                    if (completionHandler != null) {
+                    if(completionHandler != null) {
                         object fullBody = null;
 
                         try {
-                            if (response.Status != TaskStatus.RanToCompletion) {
+                            if(response.Status != TaskStatus.RanToCompletion) {
                                 Log.D(TAG, "SendAsyncRequest did not run to completion.", response.Exception);
                             }
 
                             if(response.IsCanceled) {
                                 error = new Exception("SendAsyncRequest Task has been canceled.");
-                            } else  {
+                            } else {
                                 error = error is AggregateException
                                     ? response.Exception.Flatten()
                                     : response.Exception;
                             }
 
-                            if (error == null) {
-                                if (!result.IsSuccessStatusCode) {
+                            if(error == null) {
+                                if(!result.IsSuccessStatusCode) {
                                     result = response.Result;
                                     error = new HttpResponseException(result.StatusCode);
                                 }
                             }
 
-                            if (error == null) {
+                            if(error == null) {
                                 var content = result.Content;
-                                if (content != null) {
+                                if(content != null) {
                                     fullBody = mapper.ReadValue<object>(content.ReadAsStreamAsync().Result);
                                 }
 
                                 error = null;
                             }
-                        } catch (Exception e) {
+                        } catch(Exception e) {
                             error = e;
                             Log.E(TAG, "SendAsyncRequest has an error occurred.", e);
                         }
@@ -1213,15 +1299,18 @@ namespace Couchbase.Lite
                         completionHandler(fullBody, error);
                     }
 
-                    return result;
+                    if(result != null) {
+                        result.Dispose();
+                    }
                 } finally {
+                    Task dummy;
+                    _requests.TryRemove(message, out dummy);
                     client.Dispose();
                 }
-            }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
+            }, token);
 
-            lock(_requests) {
-                _requests[message] = t;
-            }
+            _requests.AddOrUpdate(message, k => t, (k, v) => t);
+            return message;
         }
 
         internal void SendAsyncMultipartDownloaderRequest(HttpMethod method, string relativePath, object body, Database db, RemoteRequestCompletionBlock onCompletion)
@@ -1261,7 +1350,7 @@ namespace Couchbase.Lite
 
                         var status = response.StatusCode;
                         if ((Int32)status.GetStatusCode() >= 300) {
-                            Log.E(TAG, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode()));
+                            Log.E(TAG, "Got error {0}", status.GetStatusCode());
                             Log.E(TAG, "Request was for: " + message);
                             Log.E(TAG, "Status reason: " + response.ReasonPhrase);
                             error = new WebException(response.ReasonPhrase);
@@ -1332,6 +1421,7 @@ namespace Couchbase.Lite
                         error = e;
                     } finally {
                         client.Dispose();
+                        responseMessage.Result.Dispose();
                     }
                 }), WorkExecutor.Scheduler);
             } catch (UriFormatException e) {
@@ -1430,13 +1520,21 @@ namespace Couchbase.Lite
             message.Headers.Add("Accept", "*/*");
 
             var client = clientFactory.GetHttpClient(false);
+            var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+            if(challengeResponseAuth != null) {
+                var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                if(authHandler != null) {
+                    authHandler.Authenticator = challengeResponseAuth;
+                }
+                challengeResponseAuth.PrepareWithRequest(message);
+            }
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null) {
                 client.DefaultRequestHeaders.Authorization = authHeader;
             }
 
-            client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(response=> 
+            var t = client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(response=> 
             {
                 multiPartEntity.Dispose();
                 if (response.Status != TaskStatus.RanToCompletion)
@@ -1472,9 +1570,12 @@ namespace Couchbase.Lite
                         completionHandler (fullBody, response.Exception);
                     }
                 } finally {
+                    Task dummy;
+                    _requests.TryRemove(message, out dummy);
                     client.Dispose();
                 }
             }, CancellationTokenSource.Token);
+            _requests.TryAdd(message, t);
         }
 
         // Pusher overrides this to implement the .createTarget option
@@ -1485,58 +1586,66 @@ namespace Couchbase.Lite
         /// Its ID is based on the local database ID (the private one, to make the result unguessable)
         /// and the remote database's URL.
         /// </remarks>
+        internal string RemoteCheckpointDocID(string localUUID)
+        {
+            if (!LocalDatabase.IsOpen) {
+                return null;
+            }
+
+            // canonicalization: make sure it produces the same checkpoint id regardless of
+            // ordering of filterparams / docids
+            IDictionary<String, Object> filterParamsCanonical = null;
+            if (FilterParams != null) {
+                filterParamsCanonical = new SortedDictionary<String, Object>(FilterParams);
+            }
+
+            List<String> docIdsSorted = null;
+            if (DocIds != null) {
+                docIdsSorted = new List<String>(DocIds);
+                docIdsSorted.Sort();
+            }
+
+            // use a treemap rather than a dictionary for purposes of canonicalization
+            var spec = new SortedDictionary<String, Object>();
+            spec.Put("localUUID", localUUID);
+            spec.Put("push", !IsPull);
+            spec.Put("continuous", Continuous);
+
+            if (Filter != null) {
+                spec.Put("filter", Filter);
+            }
+            if (filterParamsCanonical != null) {
+                spec.Put("filterParams", filterParamsCanonical);
+            }
+            if (docIdsSorted != null) {
+                spec.Put("docids", docIdsSorted);
+            }
+
+            string remoteUUID;
+            var hasValue = Options.TryGetValue<string>(ReplicationOptionsDictionary.REMOTE_UUID_KEY, out remoteUUID);
+            if (hasValue) {
+                spec["remoteURL"] = remoteUUID;
+            } else {
+                spec["remoteURL"] = RemoteUrl.AbsoluteUri;
+            }
+
+            IEnumerable<byte> inputBytes = null;
+            try {
+                inputBytes = Manager.GetObjectMapper().WriteValueAsBytes(spec);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            return Misc.HexSHA1Digest(inputBytes);
+        }
+
         internal string RemoteCheckpointDocID()
         {
-            if (_remoteCheckpointDocID != null) {
-                return _remoteCheckpointDocID;
-            } else {
-                // TODO: Needs to be consistent with -hasSameSettingsAs: --
-                // TODO: If a.remoteCheckpointID == b.remoteCheckpointID then [a hasSameSettingsAs: b]
-
-                if (LocalDatabase == null) {
-                    return null;
-                }
-
-                // canonicalization: make sure it produces the same checkpoint id regardless of
-                // ordering of filterparams / docids
-                IDictionary<String, Object> filterParamsCanonical = null;
-                if (FilterParams != null) {
-                    filterParamsCanonical = new SortedDictionary<String, Object>(FilterParams);
-                }
-
-                List<String> docIdsSorted = null;
-                if (DocIds != null) {
-                    docIdsSorted = new List<String>(DocIds);
-                    docIdsSorted.Sort();
-                }
-
-                // use a treemap rather than a dictionary for purposes of canonicalization
-                var spec = new SortedDictionary<String, Object>();
-                spec.Put("localUUID", LocalDatabase.PrivateUUID());
-                spec.Put("remoteURL", RemoteUrl.AbsoluteUri);
-                spec.Put("push", !IsPull);
-                spec.Put("continuous", Continuous);
-
-                if (Filter != null) {
-                    spec.Put("filter", Filter);
-                }
-                if (filterParamsCanonical != null) {
-                    spec.Put("filterParams", filterParamsCanonical);
-                }
-                if (docIdsSorted != null) {
-                    spec.Put("docids", docIdsSorted);
-                }
-
-                IEnumerable<byte> inputBytes = null;
-                try {
-                    inputBytes = Manager.GetObjectMapper().WriteValueAsBytes(spec);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-
-                _remoteCheckpointDocID = Misc.HexSHA1Digest(inputBytes);
-                return _remoteCheckpointDocID;
+            if (_remoteCheckpointDocID == null) {
+                _remoteCheckpointDocID = RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
             }
+
+            return _remoteCheckpointDocID;
         }
 
         internal RevisionInternal TransformRevision(RevisionInternal rev)
@@ -1603,12 +1712,19 @@ namespace Couchbase.Lite
             }
         }
 
-        internal void DatabaseClosing()
+        internal void DatabaseClosing(CountdownEvent evt)
         {
+            Log.I(TAG, "Database closed while replication running, shutting down");
             lastSequenceChanged = true; // force save the sequence
-            SaveLastSequence (() => {
-                Stop ();
-                ClearDbRef ();
+            SaveLastSequence(() => {
+                var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+                if (reachabilityManager != null) {
+                    reachabilityManager.StatusChanged -= NetworkStatusChanged;
+                    reachabilityManager.StopListening();
+                }
+
+                Stop();
+                evt.Signal();
             });
         }
 
@@ -1632,11 +1748,28 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
+        private void WaitForStopped (object sender, ReplicationChangeEventArgs e)
+        {
+            if (e.Status != ReplicationStatus.Stopped) {
+                return;
+            }
+                
+            Changed -= WaitForStopped;
+            Start();
+        }
+
         private void FetchRemoteCheckpointDoc()
         {
             lastSequenceChanged = false;
             var checkpointId = RemoteCheckpointDocID();
             var localLastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointId);
+
+            if (localLastSequence == null && GetLastSequenceFromLocalCheckpoint() == null) {
+                Log.I(TAG, "No local checkpoint, not getting remote one");
+                MaybeCreateRemoteDB();
+                BeginReplicating();
+                return;
+            }
 
             SendAsyncRequest(HttpMethod.Get, "/_local/" + checkpointId, null, (response, e) => 
             {
@@ -1666,6 +1799,14 @@ namespace Couchbase.Lite
 
                         if (remoteLastSequence != null && remoteLastSequence.Equals (localLastSequence)) {
                             LastSequence = localLastSequence;
+                            if(LastSequence == null) {
+                                // Try to get the last sequence from the local checkpoint document
+                                // created only when importing a database. This allows the
+                                // replicator to continue replicating from the current local checkpoint
+                                // of the imported database after importing.
+                                _lastSequence = GetLastSequenceFromLocalCheckpoint();
+                            }
+
                             Log.V (TAG, "Replicating from lastSequence=" + LastSequence);
                         } else {
                             Log.V (TAG, "lastSequence mismatch: I had " + localLastSequence + ", remote had " + remoteLastSequence);
@@ -1677,6 +1818,25 @@ namespace Couchbase.Lite
                     Log.E(TAG, "Error", ex);
                 }
             });
+        }
+
+        // If the local database has been copied from one pre-packaged in the app, this method returns
+        // a pre-existing checkpointed sequence to start from. This allows first-time replication to be
+        // fast and avoid starting over from sequence zero.
+        private string GetLastSequenceFromLocalCheckpoint()
+        {
+            lastSequenceChanged = false;
+            var db = LocalDatabase;
+            var doc = db.GetLocalCheckpointDoc();
+            if (doc != null) {
+                var localUUID = doc.GetCast<string>(LOCAL_CHECKPOINT_LOCAL_UUID_KEY);
+                if (localUUID != null) {
+                    var checkpointID = RemoteCheckpointDocID(localUUID);
+                    return db.LastSequenceWithCheckpointId(checkpointID);
+                }
+            }
+
+            return null;
         }
 
         private static bool Is404(Exception e)
@@ -1700,12 +1860,11 @@ namespace Couchbase.Lite
             if (_savingCheckpoint) {
                 // If a save is already in progress, don't do anything. (The completion block will trigger
                 // another save after the first one finishes.)
-                _overdueForSave = true;
+                Task.Delay(500).ContinueWith(t => SaveLastSequence(completionHandler));
                 return;
             }
 
             lastSequenceChanged = false;
-            _overdueForSave = false;
 
             Log.D(TAG, "saveLastSequence() called. lastSequence: " + LastSequence);
 
@@ -1722,35 +1881,19 @@ namespace Couchbase.Lite
             }
 
             _savingCheckpoint = true;
-            SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => 
+            var message = SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => 
             {
                 _savingCheckpoint = false;
                 if (e != null) {
-                    Log.V (TAG, "Unable to save remote checkpoint", e);
+                    Log.V(TAG, "Unable to save remote checkpoint", e);
                 }
-
-                if (LocalDatabase == null) {
-                    Log.W(TAG, "Database is null, ignoring remote checkpoint response");
-                    if (completionHandler != null) {
-                        completionHandler ();
-                    }
-                    return;
-                }
-
-                if (!LocalDatabase.Open()) {
-                    Log.W(TAG, "Database is closed, ignoring remote checkpoint response");
-                    if (completionHandler != null)
-                    {
-                        completionHandler ();
-                    }
-                    return;
-                }
+                    
+                
 
                 if (e != null) {
                     switch (GetStatusFromError(e)) {
                         case StatusCode.NotFound:
                             _remoteCheckpoint = null;
-                            _overdueForSave = true;
                             break;
                         case StatusCode.Conflict:
                             RefreshRemoteCheckpointDoc();
@@ -1761,19 +1904,30 @@ namespace Couchbase.Lite
                             break;
                     }
                 } else {
-                    Log.D(TAG, "Save checkpoint response: " + result.ToString());
+                    Log.D(TAG, "Save checkpoint response: " + result);
                     var response = result.AsDictionary<string, object>();
                     body.Put ("_rev", response.Get ("rev"));
                     _remoteCheckpoint = body;
-                    LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
+                    var localDb = LocalDatabase;
+                    if(localDb.Storage == null) {
+                        Log.W(TAG, "Database is null or closed, ignoring remote checkpoint response");
+                        if(completionHandler != null) {
+                            completionHandler();
+                        }
+                        return;
+                    }
+
+                    localDb.SetLastSequence(LastSequence, remoteCheckpointDocID);
                 }
 
-                if (_overdueForSave) {
-                    SaveLastSequence (completionHandler);
-                } else if (completionHandler != null) {
+                if (completionHandler != null) {
                     completionHandler ();
                 }
             });
+
+            // This request should not be canceled when the replication is told to stop:
+            Task dummy;
+            _requests.TryRemove(message, out dummy);
         }
 
         private void AddRequestHeaders(HttpRequestMessage request)
@@ -1787,7 +1941,8 @@ namespace Couchbase.Lite
         {
             var server = response.Headers.Server;
             if (server != null && server.Any()) {
-                ServerType = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null).ToStringArray());
+                var serverString = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null).ToStringArray());
+                ServerType = new RemoteServerVersion(serverString);
                 Log.V(TAG, "Server Version: " + ServerType);
             }
         }
@@ -1815,8 +1970,8 @@ namespace Couchbase.Lite
 
             SendAsyncRequest(HttpMethod.Get, "/_local/" + RemoteCheckpointDocID(), null, (result, e) =>
             {
-                if (LocalDatabase == null) {
-                    Log.W(TAG, "db == null while refreshing remote checkpoint.  aborting");
+                if (!LocalDatabase.IsOpen) {
+                    Log.W(TAG, "Db closed while refreshing remote checkpoint.  Aborting");
                     return;
                 }
 
@@ -1859,17 +2014,6 @@ namespace Couchbase.Lite
                     return rev;
                 };
             }
-        }
-
-        private void ClearDbRef()
-        {
-            Log.D(TAG, "ClearDbRef...");
-            if (LocalDatabase != null && _savingCheckpoint && LastSequence != null)
-            {
-                LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
-            }
-
-            LocalDatabase = null;
         }
 
         private void CheckSessionAtPath(string sessionPath)
@@ -1933,6 +2077,7 @@ namespace Couchbase.Lite
 
             // ignored transitions
             _stateMachine.Configure(ReplicationState.Running).Ignore(ReplicationTrigger.Start);
+            _stateMachine.Configure(ReplicationState.Initial).Ignore(ReplicationTrigger.StopGraceful);
             _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.StopGraceful);
             _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.StopGraceful);
             _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.StopImmediate);
@@ -2027,6 +2172,7 @@ namespace Couchbase.Lite
                 CompletedChangesCount, ChangesCount,
                 _stateMachine.State, Batcher == null ? 0 : Batcher.Count(), _requests.Count);
 
+            _pendingDocumentIDs = null;
             var evt = _changed;
             if (evt == null) {
                 return;
@@ -2036,10 +2182,21 @@ namespace Couchbase.Lite
 
             // Ensure callback runs on captured context, which should be the UI thread.
             var stackTrace = Environment.StackTrace;
-            LocalDatabase.Manager.CapturedContext.StartNew(() =>
-            {
-                evt(this, args);
-            });
+
+            lock(_eventQueue) {
+                _eventQueue.Enqueue(args);
+            }
+
+            if (_eventContext != null) {
+                _eventContext.StartNew(() =>
+                {
+                    lock (_eventQueue) { 
+                        while (_eventQueue.Count > 0) {
+                            evt(this, _eventQueue.Dequeue());
+                        }
+                    }
+                });
+            }
         }
 
         #endregion
@@ -2054,14 +2211,45 @@ namespace Couchbase.Lite
     {
         private readonly Replication _source;
         private readonly ReplicationStateTransition _transition;
+        private readonly int _changesCount;
+        private readonly int _completedChangesCount;
+        private readonly ReplicationStatus _status;
 
         /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.
+        /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.  Do not
+        /// rely on this variable for the current state of the replicator as it may have changed
+        /// between the time the args were created and the time that the event was raised.
+        /// Instead use the various other properties.
         /// </summary>
-        /// <value>The <see cref="Couchbase.Lite.Replication"/> that raised the event.</value>
         public Replication Source 
         {
             get { return _source; }
+        }
+
+        /// <summary>
+        /// Gets the number of changes scheduled for the replication at the
+        /// time the event was created.
+        /// </summary>
+        public int ChangesCount
+        {
+            get { return _changesCount; }
+        }
+
+        /// <summary>
+        /// Gets the number of changes completed by the replication at the
+        /// time the event was created.
+        /// </summary>
+        public int CompletedChangesCount
+        {
+            get { return _completedChangesCount; }
+        }
+
+        /// <summary>
+        /// Gets the status of the replication at the time the event was created
+        /// </summary>
+        public ReplicationStatus Status
+        {
+            get { return _status; }
         }
 
         /// <summary>
@@ -2082,6 +2270,9 @@ namespace Couchbase.Lite
         {
             _source = sender;
             _transition = transition;
+            _changesCount = sender.ChangesCount;
+            _completedChangesCount = sender.CompletedChangesCount;
+            _status = sender.Status;
         }
     }
 

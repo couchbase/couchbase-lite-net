@@ -142,8 +142,7 @@ namespace Couchbase.Lite.Internal
                     return Database.Attachments.BlobStreamForKey(_blobKey);
                 }
 
-                var ms = new MemoryStream(_data.ToArray());
-                return new GZipStream(ms, CompressionMode.Decompress, true);
+                return new MemoryStream(Content.ToArray());
             }
         }
 

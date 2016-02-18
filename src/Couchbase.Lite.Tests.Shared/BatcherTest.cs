@@ -39,48 +39,27 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-
-
 using System;
-using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-
 using NUnit.Framework;
-using System.Threading;
 
 namespace Couchbase.Lite
 {
     public class BatcherTest : LiteTestCase
     {
-        public const string Tag = "BatcherTest";
+        public const string TAG = "BatcherTest";
 
-        private Int32 inboxCapacity;
-
-        private Int32 processorDelay;
-
+        private int inboxCapacity;
+        private int processorDelay;
         private CountdownEvent doneSignal = null;
 
-        private void AssertNumbersConsecutive(IList<string> itemsToProcess)
-        {
-            var previousItemNumber = -1;
-            foreach(var itemString in itemsToProcess)
-            {
-                if (previousItemNumber == -1)
-                {
-                    previousItemNumber = Int32.Parse(itemString);
-                }
-                else
-                {
-                    var curItemNumber = Int32.Parse(itemString);
-                    Assert.IsTrue(curItemNumber == previousItemNumber + 1);
-                    previousItemNumber = curItemNumber;
-                }
-            }
-        }
+        public BatcherTest(string storageType) : base(storageType) {}
 
         [Test]
         public void TestBatcherSingleBatch()
@@ -104,15 +83,6 @@ namespace Couchbase.Lite
 
             var success = doneSignal.Wait(TimeSpan.FromSeconds(35));
             Assert.IsTrue(success);
-        }
-
-        public void TestBatcherSingleBatchProcessor(IList<string> itemsToProcess)
-        {
-            Log.V(Tag, "TestBatcherSingleBatchProcessor : process called with : " + itemsToProcess.Count);
-
-            AssertNumbersConsecutive(itemsToProcess);
-
-            doneSignal.Signal();
         }
 
         [Test]
@@ -141,16 +111,7 @@ namespace Couchbase.Lite
             var success = doneSignal.Wait(TimeSpan.FromSeconds(35));
             Assert.IsTrue(success);
         }
-
-        public void TestBatcherBatchSize5Processor(IList<string> itemsToProcess)
-        {
-            Log.V(Tag, "TestBatcherBatchSize5 : process called with : " + itemsToProcess.Count);
-
-            AssertNumbersConsecutive(itemsToProcess);
-
-            doneSignal.Signal();
-        }
-
+            
         [Test]
         public void TestBatcherCancel()
         {
@@ -189,6 +150,42 @@ namespace Couchbase.Lite
             batcher.QueueObject(0);
             Assert.False(evt.Wait(TimeSpan.FromSeconds(1.5)), "Batcher ran too many times");
             Assert.True(evt.CurrentCount == 1, "Batcher never ran");
+        }
+
+        private void TestBatcherSingleBatchProcessor(IList<string> itemsToProcess)
+        {
+            Log.V(TAG, "TestBatcherSingleBatchProcessor : process called with : " + itemsToProcess.Count);
+
+            AssertNumbersConsecutive(itemsToProcess);
+
+            doneSignal.Signal();
+        }
+
+        private void TestBatcherBatchSize5Processor(IList<string> itemsToProcess)
+        {
+            Log.V(TAG, "TestBatcherBatchSize5 : process called with : " + itemsToProcess.Count);
+
+            AssertNumbersConsecutive(itemsToProcess);
+
+            doneSignal.Signal();
+        }
+
+        private void AssertNumbersConsecutive(IList<string> itemsToProcess)
+        {
+            var previousItemNumber = -1;
+            foreach(var itemString in itemsToProcess)
+            {
+                if (previousItemNumber == -1)
+                {
+                    previousItemNumber = Int32.Parse(itemString);
+                }
+                else
+                {
+                    var curItemNumber = Int32.Parse(itemString);
+                    Assert.IsTrue(curItemNumber == previousItemNumber + 1);
+                    previousItemNumber = curItemNumber;
+                }
+            }
         }
     }
 }

@@ -74,6 +74,16 @@ namespace Couchbase.Lite {
         }
 
     #endregion
+
+        internal static bool IsValidDocumentId(string id)
+        {
+            // http://wiki.apache.org/couchdb/HTTP_Document_API#Documents
+            if (String.IsNullOrEmpty (id)) {
+                return false;
+            }
+
+            return id [0] != '_' || id.StartsWith ("_design/", StringComparison.InvariantCultureIgnoreCase);
+        }
     
     #region Instance Members
 
@@ -93,7 +103,7 @@ namespace Couchbase.Lite {
         /// Gets if the <see cref="Couchbase.Lite.Document"/> is deleted.
         /// </summary>
         /// <value><c>true</c> if deleted; otherwise, <c>false</c>.</value>
-        public Boolean Deleted { get { return CurrentRevision == null && LeafRevisions.Any (); } }
+        public bool Deleted { get { return CurrentRevision == null && LeafRevisions.Any (); } }
 
         /// <summary>
         /// If known, gets the Id of the current <see cref="Couchbase.Lite.Revision"/>, otherwise null.
@@ -115,7 +125,16 @@ namespace Couchbase.Lite {
         public SavedRevision CurrentRevision { 
             get {
                 if (currentRevision == null) {
-                    currentRevision = GetRevisionWithId(null);
+                    try {
+                        var rev = GetRevisionWithId(null);
+                        if(rev != null && !rev.IsDeletion) {
+                            currentRevision = rev;
+                        }
+                    } catch(CouchbaseLiteException e) {
+                        if (e.Code != StatusCode.Deleted) {
+                            throw;
+                        }
+                    }
                 }
 
                 return currentRevision;
@@ -318,7 +337,7 @@ namespace Couchbase.Lite {
         public SavedRevision PutProperties(IDictionary<String, Object> properties)
         {
             var prevID = (string)properties.Get("_rev");
-            return PutProperties(properties, prevID, allowConflict: false);
+            return PutProperties(properties, prevID, false);
         }
 
         /// <summary>
@@ -429,28 +448,24 @@ namespace Couchbase.Lite {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       
         internal SavedRevision PutProperties(IDictionary<String, Object> properties, String prevID, Boolean allowConflict)
         {
-            string newId = properties == null ? null : properties.GetCast<string>("_id");
+            var propsCopy = properties == null ? null : new Dictionary<string, object>(properties);
+            string newId = propsCopy == null ? null : propsCopy.GetCast<string>("_id");
             if (newId != null && !newId.Equals(Id, StringComparison.InvariantCultureIgnoreCase))  {
-                Log.W(Database.TAG, String.Format("Trying to put wrong _id to this: {0} properties: {1}", this, properties)); // TODO: Make sure all string formats use .NET codes, and not Java.
+                Log.W(Database.TAG, String.Format("Trying to put wrong _id to this: {0} properties: {1}", this, propsCopy)); // TODO: Make sure all string formats use .NET codes, and not Java.
             }
 
             // Process _attachments dict, converting CBLAttachments to dicts:
             IDictionary<string, object> attachments = null;
-            if (properties != null && properties.ContainsKey("_attachments")) {
-                attachments = properties.Get("_attachments").AsDictionary<string,object>();
+            if (propsCopy != null && propsCopy.ContainsKey("_attachments")) {
+                attachments = propsCopy.Get("_attachments").AsDictionary<string,object>();
             }
 
             if (attachments != null && attachments.Count > 0) {
                 var updatedAttachments = Attachment.InstallAttachmentBodies(attachments, Database);
-                properties["_attachments"] = updatedAttachments;
+                propsCopy["_attachments"] = updatedAttachments;
             }
                 
-            Status status = new Status();
-            var newRev = Database.PutDocument(Id, properties, prevID, allowConflict, status);
-            if (newRev == null) {
-                throw new CouchbaseLiteException(status.Code);
-            }
-                
+            var newRev = Database.PutDocument(Id, propsCopy, prevID, allowConflict);
             return GetRevisionFromRev(newRev);
         }
 
@@ -473,10 +488,10 @@ namespace Couchbase.Lite {
                 // add it to result, unless we are not supposed to include deleted and it's deleted
                 if (!includeDeleted && rev.IsDeleted())
                 {
+                    // don't add it
                 }
                 else
                 {
-                    // don't add it
                     result.Add(GetRevisionFromRev(rev));
                 }
             }

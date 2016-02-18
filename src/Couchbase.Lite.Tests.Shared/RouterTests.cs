@@ -47,6 +47,7 @@ using WebHeaderCollection = System.Net.Couchbase.WebHeaderCollection;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class RouterTests : LiteTestCase
     {
         private const string TAG = "RouterTests";
@@ -55,6 +56,8 @@ namespace Couchbase.Lite
         private int _minHeartbeat = 5000;
         private CouchbaseLiteTcpListener _listener;
         private HttpWebResponse _lastResponse;
+
+        public RouterTests(string storageType) : base(storageType) {}
 
         [Test]
         public void TestServer()
@@ -286,6 +289,8 @@ namespace Couchbase.Lite
                     }
                 }
             });
+
+            CollectionAssert.AreEquivalent(expectedResult, result["rows"] as IEnumerable);
         }
 
         [Test]
@@ -444,7 +449,7 @@ namespace Couchbase.Lite
             });
 
             // Check if the current last sequence indexed has been changed:
-            Thread.Sleep(8000);
+            Sleep(8000);
             Assert.IsTrue(prevSequenceIndexed < view.LastSequenceIndexed);
 
             // Confirm the result with stale = ok:
@@ -553,9 +558,8 @@ namespace Couchbase.Lite
                 },
                 { "total_rows", 4L }
             });
-
-            //TODO.JHB: Should .NET also implement views so that groups are updated at once like iOS?
-            //Assert.IsFalse(database.GetView("design/view").IsStale);
+                
+            Assert.IsFalse(database.GetView("design/view").IsStale);
             Assert.IsFalse(database.GetView("design/view2").IsStale);
 
             //NOTE.JHB: The _rev property differs from iOS.  Should investigate later.
@@ -833,7 +837,7 @@ namespace Couchbase.Lite
                 });
 
             Assert.IsFalse(mre.IsSet);
-            Thread.Sleep(2500);
+            Sleep(2500);
             Assert.IsFalse(mre.IsSet);
             Assert.AreEqual(2, heartbeat);
 
@@ -874,7 +878,7 @@ namespace Couchbase.Lite
                 });
 
                 // Should initially have a response and one line of output:
-                Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                Sleep(TimeSpan.FromMilliseconds(500));
                 Assert.IsNotNull(response);
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
                 Assert.IsTrue(body.Count > 0);
@@ -886,7 +890,7 @@ namespace Couchbase.Lite
                     { "message", "hej" } 
                 }), HttpStatusCode.Created, null);
 
-                Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                Sleep(TimeSpan.FromMilliseconds(500));
 
                 Assert.IsTrue(body.Count > 0);
                 Assert.IsFalse(mre.IsSet);
@@ -925,7 +929,7 @@ namespace Couchbase.Lite
                     mre.Set();
                 });
 
-                Thread.Sleep(2500);
+                Sleep(2500);
                 Assert.IsNotNull(response);
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
                 Assert.IsTrue(body.Count > 0);
@@ -1353,7 +1357,7 @@ namespace Couchbase.Lite
         protected override void SetUp()
         {
             foreach (var name in manager.AllDatabaseNames) {
-                var db = manager.GetDatabaseWithoutOpening(name, true);
+                var db = manager.GetDatabase(name, true);
                 db.Delete();
             }
 
@@ -1376,7 +1380,7 @@ namespace Couchbase.Lite
             Log.D(TAG, "----- CLOSING DB -----");
             Assert.IsNotNull(database);
             var dbName = database.Name;
-            Assert.IsTrue(database.Close(), "Couldn't close DB");
+            Assert.DoesNotThrow(() => database.Close().Wait(15000), "Couldn't close DB");
             database = null;
 
             Log.D(TAG, "----- REOPENING DB -----");
@@ -1534,7 +1538,7 @@ namespace Couchbase.Lite
                 Assert.AreEqual(expectedStatus, _lastResponse.StatusCode);
 
                 if (expectedResult != null) {
-                    Assert.AreEqual(expectedResult, result);
+                    AssertAreEqual(expectedResult, result);
                 }
             });
 

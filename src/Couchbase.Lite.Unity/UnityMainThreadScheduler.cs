@@ -2,7 +2,7 @@
 //  UnityMainThreadScheduler.cs
 //
 //  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
+//      Jim Borden  <jim.borden@couchbase.com>
 //
 //  Copyright (c) 2015 Couchbase, Inc All rights reserved.
 //
@@ -67,7 +67,7 @@ namespace Couchbase.Lite.Unity
                 if (_taskScheduler == null)
                 {
                     Debug.LogError("UnityMainThreadScheduler must be initialized from the main thread by attaching it on" +
-                                   "to an object in the scene");
+                        "to an object in the scene");
                     throw new InvalidOperationException();
                 }
 
@@ -93,7 +93,7 @@ namespace Couchbase.Lite.Unity
                 if (_taskScheduler == null)
                 {
                     Debug.LogError("UnityMainThreadScheduler must be initialized from the main thread by attaching it on" +
-                                   "to an object in the scene");
+                        "to an object in the scene");
                     throw new InvalidOperationException();
                 }
 

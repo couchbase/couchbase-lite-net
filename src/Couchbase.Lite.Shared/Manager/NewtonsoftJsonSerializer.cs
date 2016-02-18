@@ -21,10 +21,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Util;
+
+#if FORESTDB
+using CBForest;
+#endif
 
 namespace Couchbase.Lite
 {
@@ -66,6 +71,7 @@ namespace Couchbase.Lite
         {
             return JsonConvert.SerializeObject(obj, pretty ? Formatting.Indented : Formatting.None, settings);
         }
+
         public T DeserializeObject<T>(string json)
         {
             T item;
@@ -105,7 +111,11 @@ namespace Couchbase.Lite
 
         public bool Read()
         {
-            return _textReader != null && _textReader.Read();
+            try {
+                return _textReader != null && _textReader.Read();
+            } catch (Exception e) {
+                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+            }
         }
 
         public IDictionary<string, object> DeserializeNextObject()
@@ -139,22 +149,48 @@ namespace Couchbase.Lite
             }
 
             var jObj = obj as JArray;
-            return jObj == null ? null : jObj.ToObject<IList<T>>();
+            return jObj == null ? null : jObj.Select(x => x.ToObject<T>()).ToList();
         }
 
         public IJsonSerializer DeepClone()
         {
             return new NewtonsoftJsonSerializer();
         }
+
+        #if FORESTDB
+
+        public unsafe C4Key* SerializeToKey(object value)
+        {
+            var retVal = Native.c4key_new();
+            using (var jsonWriter = new JsonC4KeyWriter(retVal)) {
+                var serializer = new JsonSerializer();
+                serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                serializer.Serialize(jsonWriter, value);
+            }
+
+            return retVal;
+        }
+
+        public T DeserializeKey<T>(C4KeyReader keyReader)
+        {
+            using (var jsonReader = new JsonC4KeyReader(keyReader)) {
+                var serializer = new JsonSerializer();
+                serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                return serializer.Deserialize<T>(jsonReader);
+            }
+        }
+
+        #endif
             
         #endregion
-
 
         #region IDisposable
 
         public void Dispose()
         {
-            ((IDisposable)_textReader).Dispose();
+            if (_textReader != null) {
+                ((IDisposable)_textReader).Dispose();
+            }
         }
 
         #pragma warning restore 1591

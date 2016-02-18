@@ -41,6 +41,8 @@
 //
 
 using System.Collections.Generic;
+using System.Linq;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Sharpen;
@@ -55,7 +57,7 @@ namespace Couchbase.Lite
         {
         }
             
-        public RevisionList(IList<RevisionInternal> list) : base(list)
+        public RevisionList(IList<RevisionInternal> list) : base(list.Distinct())
         {
         }
 
@@ -80,7 +82,7 @@ namespace Couchbase.Lite
             while (iterator.MoveNext())
             {
                 RevisionInternal rev = iterator.Current;
-                result.AddItem(rev.GetDocId());
+                result.Add(rev.GetDocId());
             }
             return result;
         }
@@ -92,29 +94,19 @@ namespace Couchbase.Lite
             while (iterator.MoveNext())
             {
                 RevisionInternal rev = iterator.Current;
-                result.AddItem(rev.GetRevId());
+                result.Add(rev.GetRevId());
             }
             return result;
         }
 
-        public virtual void SortBySequence(bool ascending = false)
+        public virtual void SortByDocID()
         {
-            this.Sort(new SortBySequenceImpl(ascending));
+            Sort((r1, r2) => r1.GetDocId().CompareTo(r2.GetDocId()));
         }
 
-        private sealed class SortBySequenceImpl : IComparer<RevisionInternal>
+        public virtual void SortBySequence(bool ascending = false)
         {
-            private readonly bool _ascending;
-
-            public SortBySequenceImpl(bool ascending = false)
-            {
-                _ascending = ascending;
-            }
-
-            public int Compare(RevisionInternal rev1, RevisionInternal rev2)
-            {
-                return Misc.TDSequenceCompare(rev1.GetSequence(), rev2.GetSequence(), _ascending);
-            }
+            Sort((r1, r2) => Misc.TDSequenceCompare(r1.GetSequence(), r2.GetSequence(), ascending));
         }
 
         public virtual void Limit(int limit)

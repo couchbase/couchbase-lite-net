@@ -17,6 +17,8 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.iOS.Tests", "Couchbase.Lite.iOS.Tests\Couchbase.Lite.iOS.Tests.csproj", "{AF7359A0-D709-491C-8DEE-5C5C1E9521B1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoTouch.NUnitLite", "Couchbase.Lite.iOS.Tests\vendor\Touch.Unit\NUnitLite\MonoTouch.NUnitLite.csproj", "{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ListenerComponent", "ListenerComponent", "{93A9E803-DBF3-45BE-96FA-87D68422F401}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Listener.Shared", "ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.shproj", "{5AA87149-7173-42A0-8BBC-AC618B404D46}"
@@ -29,6 +31,16 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Listener.Bon
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Listener.Bonjour.iOS", "ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.iOS\Couchbase.Lite.Listener.Bonjour.iOS.csproj", "{2B3FFAFB-5BE1-493A-9647-901FACAD7801}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Vendor", "Vendor", "{B45532B6-11FB-4046-ABAD-5CC3FB9D64CD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "platform.unified_ios.pinvoke_packaged_sqlcipher.anycpu", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.unified_ios.pinvoke_packaged_sqlcipher.anycpu.csproj", "{05817DDA-0F3C-4ADF-8AC5-13C314655E23}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "portable.profile78", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\portable.profile78.csproj", "{84547E16-A872-418D-82A6-B57ADEE290AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ugly_profile78", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj", "{11440D11-E458-4BB6-ADBB-7C233F952089}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cbforest-sharp.iOS", "Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.iOS\cbforest-sharp.iOS.csproj", "{A5757777-CDFE-43BF-8260-D342BF83B773}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|iPhone = Debug|iPhone
@@ -37,6 +49,22 @@ Global
 		Release|iPhoneSimulator = Release|iPhoneSimulator
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{05817DDA-0F3C-4ADF-8AC5-13C314655E23}.Debug|iPhone.ActiveCfg = debug|anycpu
+		{05817DDA-0F3C-4ADF-8AC5-13C314655E23}.Debug|iPhone.Build.0 = debug|anycpu
+		{05817DDA-0F3C-4ADF-8AC5-13C314655E23}.Debug|iPhoneSimulator.ActiveCfg = debug|anycpu
+		{05817DDA-0F3C-4ADF-8AC5-13C314655E23}.Debug|iPhoneSimulator.Build.0 = debug|anycpu
+		{05817DDA-0F3C-4ADF-8AC5-13C314655E23}.Release|iPhone.ActiveCfg = debug|anycpu
+		{05817DDA-0F3C-4ADF-8AC5-13C314655E23}.Release|iPhone.Build.0 = debug|anycpu
+		{05817DDA-0F3C-4ADF-8AC5-13C314655E23}.Release|iPhoneSimulator.ActiveCfg = debug|anycpu
+		{05817DDA-0F3C-4ADF-8AC5-13C314655E23}.Release|iPhoneSimulator.Build.0 = debug|anycpu
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Debug|iPhone.ActiveCfg = debug|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Debug|iPhone.Build.0 = debug|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Debug|iPhoneSimulator.ActiveCfg = debug|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Debug|iPhoneSimulator.Build.0 = debug|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Release|iPhone.ActiveCfg = release|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Release|iPhone.Build.0 = release|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Release|iPhoneSimulator.ActiveCfg = release|Any CPU
+		{11440D11-E458-4BB6-ADBB-7C233F952089}.Release|iPhoneSimulator.Build.0 = release|Any CPU
 		{1F2AD9A3-58D5-46A2-8AA5-5863B705921D}.Debug|iPhone.ActiveCfg = Debug|Any CPU
 		{1F2AD9A3-58D5-46A2-8AA5-5863B705921D}.Debug|iPhone.Build.0 = Debug|Any CPU
 		{1F2AD9A3-58D5-46A2-8AA5-5863B705921D}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
@@ -69,6 +97,30 @@ Global
 		{590609C7-0AC7-49AF-A888-8D90812F351F}.Release|iPhone.Build.0 = Release|iPhone
 		{590609C7-0AC7-49AF-A888-8D90812F351F}.Release|iPhoneSimulator.ActiveCfg = Release|iPhoneSimulator
 		{590609C7-0AC7-49AF-A888-8D90812F351F}.Release|iPhoneSimulator.Build.0 = Release|iPhoneSimulator
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Debug|iPhone.ActiveCfg = debug|anycpu
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Debug|iPhone.Build.0 = debug|anycpu
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Debug|iPhoneSimulator.ActiveCfg = debug|anycpu
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Debug|iPhoneSimulator.Build.0 = debug|anycpu
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Release|iPhone.ActiveCfg = debug|anycpu
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Release|iPhone.Build.0 = debug|anycpu
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Release|iPhoneSimulator.ActiveCfg = debug|anycpu
+		{84547E16-A872-418D-82A6-B57ADEE290AE}.Release|iPhoneSimulator.Build.0 = debug|anycpu
+		{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}.Debug|iPhone.ActiveCfg = Debug|Any CPU
+		{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}.Debug|iPhone.Build.0 = Debug|Any CPU
+		{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
+		{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
+		{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}.Release|iPhone.ActiveCfg = Release|Any CPU
+		{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}.Release|iPhone.Build.0 = Release|Any CPU
+		{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
+		{A5757777-CDFE-43BF-8260-D342BF83B773}.Debug|iPhone.ActiveCfg = Debug|Any CPU
+		{A5757777-CDFE-43BF-8260-D342BF83B773}.Debug|iPhone.Build.0 = Debug|Any CPU
+		{A5757777-CDFE-43BF-8260-D342BF83B773}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
+		{A5757777-CDFE-43BF-8260-D342BF83B773}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
+		{A5757777-CDFE-43BF-8260-D342BF83B773}.Release|iPhone.ActiveCfg = Release|Any CPU
+		{A5757777-CDFE-43BF-8260-D342BF83B773}.Release|iPhone.Build.0 = Release|Any CPU
+		{A5757777-CDFE-43BF-8260-D342BF83B773}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{A5757777-CDFE-43BF-8260-D342BF83B773}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
 		{AF7359A0-D709-491C-8DEE-5C5C1E9521B1}.Debug|iPhone.ActiveCfg = Debug|iPhone
 		{AF7359A0-D709-491C-8DEE-5C5C1E9521B1}.Debug|iPhone.Build.0 = Debug|iPhone
 		{AF7359A0-D709-491C-8DEE-5C5C1E9521B1}.Debug|iPhoneSimulator.ActiveCfg = Debug|iPhoneSimulator
@@ -82,11 +134,16 @@ Global
 		{590609C7-0AC7-49AF-A888-8D90812F351F} = {5D187322-B6C6-4B74-A097-179F97B61B75}
 		{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 		{AF7359A0-D709-491C-8DEE-5C5C1E9521B1} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
+		{9A9B24AF-1103-43D4-8EC0-9EC0155322FC} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 		{5AA87149-7173-42A0-8BBC-AC618B404D46} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{1F2AD9A3-58D5-46A2-8AA5-5863B705921D} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{27CD854D-D0A5-4EA0-A997-04CE8EDD5095} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{8555F0B6-3F1A-4C80-8CCB-3EED653D6242} = {27CD854D-D0A5-4EA0-A997-04CE8EDD5095}
 		{2B3FFAFB-5BE1-493A-9647-901FACAD7801} = {27CD854D-D0A5-4EA0-A997-04CE8EDD5095}
+		{05817DDA-0F3C-4ADF-8AC5-13C314655E23} = {B45532B6-11FB-4046-ABAD-5CC3FB9D64CD}
+		{84547E16-A872-418D-82A6-B57ADEE290AE} = {B45532B6-11FB-4046-ABAD-5CC3FB9D64CD}
+		{11440D11-E458-4BB6-ADBB-7C233F952089} = {B45532B6-11FB-4046-ABAD-5CC3FB9D64CD}
+		{A5757777-CDFE-43BF-8260-D342BF83B773} = {B45532B6-11FB-4046-ABAD-5CC3FB9D64CD}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
@@ -119,7 +176,7 @@ Global
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
-		version = 1.1
+		version = 1.1.1
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{5615e423-d0fd-4f99-a99c-061679615cee}*SharedItemsImports = 4
