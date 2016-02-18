@@ -1,4 +1,4 @@
-﻿//
+//
 //  PeerToPeerTest.cs
 //
 //  Author:
@@ -35,6 +35,7 @@ using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
 using Couchbase.Lite.Security;
+using System.Text;
 
 namespace Couchbase.Lite
 {
@@ -54,6 +55,37 @@ namespace Couchbase.Lite
         private Random _rng = new Random(DateTime.Now.Millisecond);
 
         public PeerToPeerTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestExternalReplicationStart()
+        {
+            CreateDocuments(database, 10);
+            var request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
+            request.ContentType = "application/json";
+            request.Method = "POST";
+            var body = @"{""source"":""cblitetest"",""target"":""http://localhost:4984/db/""}";
+            var bytes = Encoding.UTF8.GetBytes(body);
+            request.ContentLength = bytes.Length;
+            request.GetRequestStream().Write(bytes, 0, bytes.Length);
+
+            var response = (HttpWebResponse)request.GetResponse();
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+            request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
+            request.ContentType = "application/json";
+            request.Method = "POST";
+            body = @"{""source"":""http://localhost:4984/db/"",""target"":""test_db"",""create_target"":true}";
+            bytes = Encoding.UTF8.GetBytes(body);
+            request.ContentLength = bytes.Length;
+            request.GetRequestStream().Write(bytes, 0, bytes.Length);
+
+            response = (HttpWebResponse)request.GetResponse();
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+            var createdDb = manager.GetExistingDatabase("test_db");
+            Assert.IsNotNull(createdDb);
+            Assert.AreEqual(10, createdDb.GetDocumentCount());
+        }
 
         [Test]
         public void TestSsl()

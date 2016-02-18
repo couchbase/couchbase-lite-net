@@ -93,7 +93,7 @@ namespace Couchbase.Lite.Replicator
             _revs = revs;
             _db = database;
             _clientFactory = clientFactory;
-            _requestHeaders = requestHeaders;
+            _requestHeaders = requestHeaders ?? new Dictionary<string, object>();
             _tokenSource = tokenSource ?? new CancellationTokenSource();
             _body = CreatePostBody(revs, _db);
         }
