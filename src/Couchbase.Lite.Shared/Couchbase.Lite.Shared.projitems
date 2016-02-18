@@ -51,7 +51,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\SavedRevision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\UnsavedRevision.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Arrays.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\BufferedOutputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CharSequence.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Collections.cs" />

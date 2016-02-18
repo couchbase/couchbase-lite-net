@@ -133,12 +133,25 @@ namespace Couchbase.Lite
                 return false;
             }
             
-			return Arrays.Equals(Bytes, oBlobKey.Bytes);
+            if (Bytes.Length != oBlobKey.Bytes.Length) {
+                return false;
+            }
+
+            for (int i = 0; i < Bytes.Length; i++) {
+                if (!Bytes[i].Equals (oBlobKey.Bytes[i])) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public override int GetHashCode()
         {
-            return Arrays.HashCode(Bytes);
+            var hashCode = 1;
+            foreach(var item in Bytes) {
+                hashCode = 31 * hashCode + item.GetHashCode();
+            }
+            return hashCode;
         }
 
         public override string ToString()

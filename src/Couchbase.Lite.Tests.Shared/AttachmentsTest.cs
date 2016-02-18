@@ -576,7 +576,7 @@ namespace Couchbase.Lite
             // look it up in blob store and make sure it's there
             var blobKey = new BlobKey(sha1Base64Digest);
             var blob = attachments.BlobForKey(blobKey);
-            Assert.IsTrue(Arrays.Equals(Encoding.UTF8.GetBytes(testBlob).ToArray(), blob));
+            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes(testBlob).ToArray(), blob);
         }
 
         /// <summary>https://github.com/couchbase/couchbase-lite-android/issues/134</summary>
