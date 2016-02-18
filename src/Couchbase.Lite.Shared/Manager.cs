@@ -424,7 +424,7 @@ namespace Couchbase.Lite
                 var db = GetDatabase(name, true);
                 var attachmentsPath = db.AttachmentStorePath;
                 if(attachmentStreams != null) {
-                    StreamUtils.CopyStreamsToFolder(attachmentStreams, new FilePath(attachmentsPath));
+                    StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsPath);
                 }
             } catch (Exception e) {
                 Log.E(Database.TAG, string.Empty, e);

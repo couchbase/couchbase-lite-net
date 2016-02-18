@@ -81,11 +81,11 @@ namespace Couchbase.Lite
 
         private Stream outStream;
 
-        private FileInfo tempFile;
+        private string tempFile;
 
         public string FilePath
         {
-            get { return tempFile == null ? null : tempFile.FullName; }
+            get { return tempFile; }
         }
 
         public BlobStoreWriter(BlobStore store)
@@ -113,13 +113,13 @@ namespace Couchbase.Lite
         {
             string uuid = Misc.CreateGUID();
             string filename = string.Format("{0}.blobtmp", uuid);
-            FilePath tempDir = store.TempDir();
-            tempFile = new FilePath(tempDir, filename);
+            var tempDir = store.TempDir();
+            tempFile = Path.Combine(tempDir, filename);
             if (store.EncryptionKey == null) {
-                outStream = new BufferedStream(File.Open (tempFile.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite));
+                outStream = new BufferedStream(File.Open (tempFile, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite));
             } else {
                 outStream = store.EncryptionKey.CreateStream(
-                    new BufferedStream(File.Open(tempFile.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)));
+                    new BufferedStream(File.Open(tempFile, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)));
             }
         }
 
@@ -188,7 +188,7 @@ namespace Couchbase.Lite
                 Log.W(Database.TAG, "Exception closing output stream", e);
             }
 
-            tempFile.Delete();
+            File.Delete(tempFile);
         }
 
         /// <summary>Installs a finished blob into the store.</summary>
@@ -201,9 +201,8 @@ namespace Couchbase.Lite
 
             // Move temp file to correct location in blob store:
             string destPath = store.PathForKey(blobKey);
-            FilePath destPathFile = new FilePath(destPath);
             try {
-                tempFile.MoveTo(destPathFile);
+                File.Move(tempFile, destPath);
             } catch(Exception) {
                 // If the move fails, assume it means a file with the same name already exists; in that
                 // case it must have the identical contents, so we're still OK.

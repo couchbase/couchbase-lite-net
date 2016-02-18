@@ -53,11 +53,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\UnsavedRevision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Extensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FileChannel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FileHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FileLock.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FileOutputStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FilePath.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FilenameFilter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\HttpURLConnection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InputStreamReader.cs" />
@@ -65,7 +61,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ListIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\MessageDigest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\OutputStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\PrintWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Process.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Proxy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Runtime.cs" />
@@ -92,7 +87,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Range.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SequenceMap.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\StringUtils.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\SystemLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\URIUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\AuthenticatorFactory.cs" />

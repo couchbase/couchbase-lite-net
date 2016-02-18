@@ -51,20 +51,19 @@ namespace Couchbase.Lite.Util
     internal static class StreamUtils
     {
         /// <exception cref="System.IO.IOException"></exception>
-        internal static void CopyStreamsToFolder(IDictionary<String, Stream> streams, FilePath folder)
+        internal static void CopyStreamsToFolder(IDictionary<String, Stream> streams, string folder)
         {
             foreach (var entry in streams)
             {
                 var filename = Path.GetFileNameWithoutExtension(entry.Key).ToUpperInvariant() + Path.GetExtension(entry.Key);
-                var file = new FilePath(folder, filename);
-                CopyStreamToFile(entry.Value, file);
+                CopyStreamToFile(entry.Value, filename);
             }
         }
 
         /// <exception cref="System.IO.IOException"></exception>
-        internal static void CopyStreamToFile(Stream inStream, FilePath file)
+        internal static void CopyStreamToFile(Stream inStream, string file)
         {
-            var outStream = new FileStream(file.GetAbsolutePath(), FileMode.OpenOrCreate);
+            var outStream = new FileStream(file, FileMode.OpenOrCreate);
             var n = 0;
             var buffer = new byte[16384];
             while ((n = inStream.Read(buffer, 0, buffer.Length)) > 0)
