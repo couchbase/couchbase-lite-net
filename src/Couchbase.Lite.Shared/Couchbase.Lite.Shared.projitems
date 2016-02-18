@@ -51,8 +51,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\SavedRevision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\UnsavedRevision.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\AbstractCollection.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\AbstractSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Arrays.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\BufferedOutputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CharSequence.cs" />
@@ -81,7 +79,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\String.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\StringTokenizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\SynchronizedList.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\TreeSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\WrappedSystemStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobStore.cs" />
