@@ -1101,7 +1101,7 @@ namespace Couchbase.Lite
                 {
                     int numTimesCalled = 0;
                     if (e.Error != null) {
-                        throw new RuntimeException(e.Error);
+                        throw new ApplicationException("Fail", e.Error);
                     }
                     if (numTimesCalled++ > 0) {
                         Assert.IsTrue(e.Rows.Count > 0);
@@ -2567,7 +2567,7 @@ namespace Couchbase.Lite
                 allDocsLiveQuery.Changed += (sender, e) =>
                 {
                     if (e.Error != null) {
-                        throw new RuntimeException(e.Error);
+                        throw new ApplicationException("Fail", e.Error);
                     }
                     if (numTimesCalled++ > 0 && e.Rows.Count > 0) {
                         Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
@@ -2638,7 +2638,7 @@ namespace Couchbase.Lite
                 allDocsLiveQuery.Changed += (sender, e) =>
                 {
                     if (e.Error != null) {
-                        throw new RuntimeException(e.Error);
+                        throw new ApplicationException("Fail", e.Error);
                     }
                     if (numTimesCalled++ > 0 && e.Rows.Count > 0) {
                         Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));

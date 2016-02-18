@@ -2223,8 +2223,8 @@ namespace Couchbase.Lite
             // code consistently generates the same ID given equivalent revisions.
             try {
                 md5Digest = MessageDigest.GetInstance("MD5");
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
+            } catch (NotSupportedException e) {
+                throw new CouchbaseLiteException("Failed to acquire a class to create MD5", e);
             }
 
             var length = 0;

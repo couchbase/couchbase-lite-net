@@ -57,6 +57,8 @@ namespace Couchbase.Lite
 
     internal class ValidationContext : IValidationContext
     {
+        private const string Tag = "ValidationContext";
+
         IList<String> changedKeys;
 
         private RevisionInternal InternalRevision { get; set; }
@@ -111,14 +113,14 @@ namespace Couchbase.Lite
             get {
                 if (InternalRevision != null)
                 {
-                    try
-                    {
+                    try {
                         InternalRevision = Database.LoadRevisionBody(InternalRevision);
                         return new SavedRevision(Database, InternalRevision);
-                    }
-                    catch (CouchbaseLiteException e)
-                    {
-                        throw new RuntimeException(e);
+                    } catch (CouchbaseLiteException) {
+                        Log.E(Tag, "Failed to get CurrentRevision");
+                        throw;
+                    } catch(Exception e) {
+                        throw new CouchbaseLiteException("Error getting CurrentRevision", e);
                     }
                 }
                 return null;

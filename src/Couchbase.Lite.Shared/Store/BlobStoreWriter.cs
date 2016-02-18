@@ -97,18 +97,14 @@ namespace Couchbase.Lite
                 sha1Digest.Reset();
                 md5Digest = MessageDigest.GetInstance("MD5");
                 md5Digest.Reset();
+            } catch (NotSupportedException e) {
+                throw new CouchbaseLiteException("Could not get an instance of SHA-1 or MD5 for BlobStoreWriter.", e);
             }
-            catch (NoSuchAlgorithmException e)
-            {
-                throw new InvalidOperationException("Could not get an instance of SHA-1 or MD5." , e);
-            }
-            try
-            {
+
+            try {
                 OpenTempFile();
-            }
-            catch (FileNotFoundException e)
-            {
-                throw new InvalidOperationException("Unable to open temporary file.", e);
+            } catch (FileNotFoundException e) {
+                throw new CouchbaseLiteException("Unable to open temporary file for BlobStoreWriter.", e);
             }
         }
 
@@ -148,8 +144,7 @@ namespace Couchbase.Lite
             byte[] buffer = new byte[16384];
             int len;
             length = 0;
-            try
-            {
+            try {
                 while ((len = inputStream.Read(buffer)) != -1)
                 {
                     var dataToWrite = buffer;
@@ -159,19 +154,12 @@ namespace Couchbase.Lite
                     md5Digest.Update(buffer, 0, len);
                     length += len;
                 }
-            }
-            catch (IOException e)
-            {
-                throw new RuntimeException("Unable to read from stream.", e);
-            }
-            finally
-            {
-                try
-                {
+            } catch (IOException e) {
+                throw new CouchbaseLiteException("Unable to read from stream.", e);
+            } finally {
+                try {
                     inputStream.Close();
-                }
-                catch (IOException e)
-                {
+                } catch (IOException e) {
                     Log.W(Database.TAG, "Exception closing input stream", e);
                 }
             }

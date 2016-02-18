@@ -685,8 +685,7 @@ namespace Couchbase.Lite
 
                     Log.V(TAG, "*** END ProcessInbox for {0} (lastSequence={1})", _replicatorID, LastSequence);
                 } catch(Exception e) {
-                    Log.E(TAG, "ProcessInbox failed: ", e);
-                    throw new RuntimeException(e);
+                    throw new CouchbaseLiteException("ProcessInbox failed", e);
                 }
             });
 
@@ -1515,7 +1514,7 @@ namespace Couchbase.Lite
             }
 
             string remoteUUID;
-            var hasValue = Options.TryGetValue<string>(ReplicationOptionsDictionary.REMOTE_UUID_KEY, out remoteUUID);
+            var hasValue = Options.TryGetValue<string>(ReplicationOptionsDictionaryKeys.RemoteUUID, out remoteUUID);
             if (hasValue) {
                 spec["remoteURL"] = remoteUUID;
             } else {
@@ -1525,8 +1524,11 @@ namespace Couchbase.Lite
             IEnumerable<byte> inputBytes = null;
             try {
                 inputBytes = Manager.GetObjectMapper().WriteValueAsBytes(spec);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            } catch(CouchbaseLiteException) {
+                Log.E(TAG, "Failed to serialize remote checkpoint doc ID");
+                throw;
+            } catch (Exception e) {
+                throw new CouchbaseLiteException("Error serializing remote checkpoint doc ID", e);
             }
 
             return Misc.HexSHA1Digest(inputBytes);

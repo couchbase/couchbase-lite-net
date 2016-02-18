@@ -71,9 +71,9 @@ namespace Couchbase.Lite.Util
 
             try {
                 return Uri.UnescapeDataString(s);
-            } catch (UnsupportedEncodingException e) {
+            } catch (Exception e) {
                 // This is highly unlikely since we always use UTF-8 encoding.
-                throw new CouchbaseLiteException(e, StatusCode.Exception);
+                throw new CouchbaseLiteException(String.Format("Failed to decode string {0}", s), e);
             }
         }
             

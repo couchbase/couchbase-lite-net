@@ -51,8 +51,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\SavedRevision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\UnsavedRevision.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\EnumeratorWrapper.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Exceptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Extensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FileChannel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FileHelper.cs" />
