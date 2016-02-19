@@ -89,32 +89,23 @@ namespace Couchbase.Lite.Support
                 ServicePointManager.ServerCertificateValidationCallback = 
                     (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
                 {
-                    #if __UNITY__
-
-                    //if (UnityEngine.Application.platform == UnityEngine.RuntimePlatform.IPhonePlayer) {
-                    var request = sender as WebRequest;
-                    string requestHostname = request != null ? request.RequestUri.Host : (string)sender;
-                    var collection = new Mono.Security.X509.X509CertificateCollection();
-
-                    collection.AddRange(chain.ChainElements.Cast<X509ChainElement>()
-                        .Select(x => {
-                            return new Mono.Security.X509.X509Certificate(x.Certificate.RawData);
-                        }).ToArray());
-                    var result = Couchbase.Lite.Unity.OSX509Certificates.TrustEvaluateSsl(collection, requestHostname);
-                    if (result == Couchbase.Lite.Unity.OSX509Certificates.SecTrustResult.Proceed ||
-                        result == Couchbase.Lite.Unity.OSX509Certificates.SecTrustResult.Unspecified) {
-                        return true;
-                    }
-
-                    Log.W(Tag, "Native SSL verification failed {0}", result);
-                    return false;
-                    //}
-
-                    #endif
                     // If the certificate is a valid, signed certificate, return true.
                     if (sslPolicyErrors == SslPolicyErrors.None) {
                         return true;
                     }
+
+                    #if __UNITY__
+
+                    // Workaround for Unity on mobile (it likely won't reach this point on desktop)
+                    if(chain != null && chain.ChainElements != null) {
+                        var root = chain.ChainElements.Cast<X509ChainElement>().Last().Certificate.IssuerName;
+                        if(Couchbase.Lite.Unity.X509RootManager.Contains(root)) {
+                            return true;
+                        }
+                    }
+
+                    #endif
+
 
                     // If there are errors in the certificate chain, look at each error to determine the cause.
                     if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0) {
