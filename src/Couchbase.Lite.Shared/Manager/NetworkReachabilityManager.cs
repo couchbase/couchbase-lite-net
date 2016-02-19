@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Linq;
 using System.Net.Http;
+using Couchbase.Lite.Support;
 
 #if __ANDROID__
 using Android.App;
@@ -36,6 +37,7 @@ namespace Couchbase.Lite
 
         public bool CanReach(string remoteUri)
         {
+            CouchbaseLiteHttpClientFactory.SetupSslVerification();
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(remoteUri);
             request.AllowWriteStreamBuffering = false;
             request.Timeout = 5000;

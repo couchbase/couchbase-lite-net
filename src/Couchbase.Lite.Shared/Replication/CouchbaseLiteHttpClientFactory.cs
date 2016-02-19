@@ -43,6 +43,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -70,6 +71,11 @@ namespace Couchbase.Lite.Support
             this.cookieStore = cookieStore;
             Headers = new ConcurrentDictionary<string,string>();
 
+            SetupSslVerification();
+        }
+
+        internal static void SetupSslVerification()
+        {
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
             ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
 
@@ -81,20 +87,32 @@ namespace Couchbase.Lite.Support
                 // The certificate is self-signed by the server that returned the certificate.
                 //
                 ServicePointManager.ServerCertificateValidationCallback = 
-            (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
+                    (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
                 {
-
                     // If the certificate is a valid, signed certificate, return true.
                     if (sslPolicyErrors == SslPolicyErrors.None) {
                         return true;
                     }
+
+                    #if __UNITY__
+
+                    // Workaround for Unity on mobile (it likely won't reach this point on desktop)
+                    if(chain != null && chain.ChainElements != null) {
+                        var root = chain.ChainElements.Cast<X509ChainElement>().Last().Certificate.IssuerName;
+                        if(Couchbase.Lite.Unity.X509RootManager.Contains(root)) {
+                            return true;
+                        }
+                    }
+
+                    #endif
+
 
                     // If there are errors in the certificate chain, look at each error to determine the cause.
                     if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0) {
                         if (chain != null && chain.ChainStatus != null) {
                             foreach (X509ChainStatus status in chain.ChainStatus) {
                                 if ((certificate.Subject == certificate.Issuer) &&
-                                (status.Status == X509ChainStatusFlags.UntrustedRoot)) {
+                                    (status.Status == X509ChainStatusFlags.UntrustedRoot)) {
                                     // Self-signed certificates with an untrusted root are valid. 
                                     continue;
                                 }
