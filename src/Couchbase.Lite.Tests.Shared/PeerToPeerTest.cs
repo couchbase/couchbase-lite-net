@@ -154,6 +154,9 @@ namespace Couchbase.Lite
                 var request = (HttpWebRequest)WebRequest.Create("https://127.0.0.1:59841/");
                 var response = (HttpWebResponse)request.GetResponse();
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+                request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:59841/");
+                Assert.Throws<WebException>(() => response = (HttpWebResponse)request.GetResponse());
             } finally {
                 sslListener.Stop();
             }
