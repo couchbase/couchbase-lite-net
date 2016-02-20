@@ -165,7 +165,7 @@ namespace Couchbase.Lite.Support
                 Timeout = ManagerOptions.Default.RequestTimeout
             };
 
-            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SYNC_PROTOCOL_VERSION, Manager.VersionString));
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SyncProtocolVersion, Manager.VersionString));
             client.DefaultRequestHeaders.Connection.Add("keep-alive");
 
             foreach(var header in Headers)

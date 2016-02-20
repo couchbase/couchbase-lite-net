@@ -131,14 +131,14 @@ namespace Couchbase.Lite
 
     public struct ReplicationOptionsDictionaryKeys
     {
-        public static readonly string RemoteUUID = ReplicationOptionsDictionary.REMOTE_UUID_KEY;
+        public static readonly string RemoteUUID = ReplicationOptionsDictionary.RemoteUUIDKey;
     }
 
     /// <summary>
     /// A class for holding replication options
     /// </summary>
     [DictionaryContract(OptionalKeys=new object[] { 
-        ReplicationOptionsDictionary.REMOTE_UUID_KEY, typeof(string) 
+        ReplicationOptionsDictionary.RemoteUUIDKey, typeof(string) 
     })]
     public sealed class ReplicationOptionsDictionary : ContractedDictionary
     {
@@ -148,6 +148,8 @@ namespace Couchbase.Lite
         /// </summary>
         [Obsolete("This type will be moved to ReplicationOptionsDictionaryKeys.RemoteUUID")]
         public const string REMOTE_UUID_KEY = "remoteUUID";
+
+        internal const string RemoteUUIDKey = "remoteUUID";
     }
 
     /// <summary>

@@ -106,7 +106,7 @@ namespace Couchbase.Lite.Store
         private string _directory;
         private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
-        private SymmetricKey _encryptionKey;
+        private SymmetricKey _encryptionKey = null;
         private bool _readOnly;
 
         #endregion

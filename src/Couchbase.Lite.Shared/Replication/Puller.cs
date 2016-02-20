@@ -360,7 +360,7 @@ namespace Couchbase.Lite.Replicator
             BulkDownloader dl;
             try
             {
-                dl = new BulkDownloader(WorkExecutor, ClientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
+                dl = new BulkDownloader(ClientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
                 dl.CookieStore = CookieContainer;
                 dl.DocumentDownloaded += (sender, args) =>
                 {

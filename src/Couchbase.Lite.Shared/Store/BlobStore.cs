@@ -309,7 +309,7 @@ namespace Couchbase.Lite
                         File.Delete(attachment);
                         ++numDeleted;
                     } catch(Exception e) {
-                        Log.E(Database.TAG, "Error deleting attachment");
+                        Log.E(Database.TAG, "Error deleting attachment", e);
                     }
                 }
             }

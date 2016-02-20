@@ -65,7 +65,6 @@ namespace Couchbase.Lite.Internal
 
         protected readonly string _docId;
         protected readonly string _revId;
-        protected bool _missing;
         protected Body _body;
 
         #endregion

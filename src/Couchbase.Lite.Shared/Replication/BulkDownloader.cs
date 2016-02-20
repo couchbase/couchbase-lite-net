@@ -61,7 +61,6 @@ namespace Couchbase.Lite.Replicator
         private CancellationTokenSource _tokenSource;
         private MultipartDocumentReader _docReader;
         private Database _db;
-        private IList<RevisionInternal> _revs;
         private readonly CouchbaseLiteHttpClient _httpClient;
         private readonly object _body;
 
@@ -86,10 +85,9 @@ namespace Couchbase.Lite.Replicator
         internal IAuthenticator Authenticator { get; set; }
 
         /// <exception cref="System.Exception"></exception>
-        public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
+        public BulkDownloader(IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
         {
             _bulkGetUri = new Uri(AppendRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true"));
-            _revs = revs;
             _db = database;
             _httpClient = clientFactory.GetHttpClient(CookieStore, true);
             _requestHeaders = requestHeaders ?? new Dictionary<string, object>();
