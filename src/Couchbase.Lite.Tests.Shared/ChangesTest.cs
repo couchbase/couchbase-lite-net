@@ -42,12 +42,11 @@
 * and limitations under the License.
 */
 
+using System;
 using System.Collections.Generic;
-using Couchbase.Lite;
+
 using Couchbase.Lite.Internal;
 using NUnit.Framework;
-using Sharpen;
-using System;
 
 namespace Couchbase.Lite
 {

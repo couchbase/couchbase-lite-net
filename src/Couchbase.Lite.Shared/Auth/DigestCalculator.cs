@@ -21,9 +21,9 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
-using Couchbase.Lite.Util;
-using Sharpen;
 using System.Text;
+
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Auth
 {

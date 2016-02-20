@@ -44,23 +44,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using Couchbase.Lite.Util;
-using NUnit.Framework;
-using Sharpen;
-using Newtonsoft.Json.Linq;
-using System.Threading;
-using Couchbase.Lite.Views;
-using Couchbase.Lite.Tests;
-using System.Threading.Tasks;
 using System.Diagnostics;
-using System.Collections;
-#if !NET_3_5
-//using CBForest;
-#endif
-using Couchbase.Lite.Store;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Tests;
+using Couchbase.Lite.Util;
+using Couchbase.Lite.Views;
+using Newtonsoft.Json.Linq;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
@@ -326,7 +320,7 @@ namespace Couchbase.Lite
             for (int i = 0; i < n; i++)
             {
                 var doc = new Dictionary<string, object>();
-                doc.Put("_id", string.Format("{0}", i));
+                doc["_id"] = string.Format("{0}", i);
 
                 var key = new List<string>();
                 for (int j = 0; j < 256; j++)
@@ -976,7 +970,7 @@ namespace Couchbase.Lite
             }
             catch (Exception e)
             {
-                Sharpen.Runtime.PrintStackTrace(e);
+                Log.E(Tag, "Exception during TestIndexUpdateMode", e);
             }
             Assert.AreEqual(6, query.Run().Count);
         }
@@ -1273,7 +1267,7 @@ namespace Couchbase.Lite
             foreach (object key in testKeys)
             {
                 IDictionary<string, object> docProperties = new Dictionary<string, object>();
-                docProperties.Put("_id", (i++).ToString());
+                docProperties["_id"] = (i++).ToString();
                 docProperties["name"] = key;
                 PutDoc(database, docProperties);
             }
@@ -1343,7 +1337,7 @@ namespace Couchbase.Lite
             foreach (object key in testKeys)
             {
                 IDictionary<string, object> docProperties = new Dictionary<string, object>();
-                docProperties.Put("_id", (i++).ToString());
+                docProperties["_id"] = (i++).ToString();
                 docProperties["name"] = key;
                 PutDoc(database, docProperties);
             }
@@ -1464,7 +1458,7 @@ namespace Couchbase.Lite
             liveQuery.Start();
 
             var properties = new Dictionary<string, object>();
-            properties.Put("name", "test");
+            properties["name"] = "test";
             SavedRevision rev = null;
             database.RunInTransaction(() =>
             {
@@ -1703,7 +1697,7 @@ namespace Couchbase.Lite
             var query2 = view.CreateQuery().ToLiveQuery();
             query2.Start();
 
-            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+            var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
             for(int i = 0; i < 50; i++) {
                 database.GetDocument(string.Format("doc{0}-{1}", i, docIdTimestamp)).PutProperties(new Dictionary<string, object> { {
                         "jim",

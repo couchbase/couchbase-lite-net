@@ -42,16 +42,14 @@
 * and limitations under the License.
 */
 
-using Couchbase.Lite;
-using NUnit.Framework;
-using Sharpen;
-using Couchbase.Lite.Util;
-using System.Net.Http;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Net.Http;
+
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Store;
-using System.Threading;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {

@@ -51,14 +51,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\SavedRevision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\UnsavedRevision.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Extensions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InputStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InputStreamReader.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\MessageDigest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\OutputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Runtime.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\StringTokenizer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\WrappedSystemStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobStoreWriter.cs" />
@@ -141,6 +134,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Platform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionID.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\MessageDigest.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

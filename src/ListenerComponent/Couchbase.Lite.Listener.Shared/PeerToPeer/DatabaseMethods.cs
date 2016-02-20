@@ -26,10 +26,8 @@ using System.Linq;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Util;
-using Sharpen;
-using Couchbase.Lite.Store;
 using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {

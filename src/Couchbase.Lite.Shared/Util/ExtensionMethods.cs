@@ -49,9 +49,8 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
-
-using Sharpen;
-using System.Threading.Tasks;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Couchbase.Lite
 {
@@ -59,6 +58,86 @@ namespace Couchbase.Lite
 
     internal static class ExtensionMethods
     {
+        public static void PutAll<T, U> (this IDictionary<T, U> d, IDictionary<T, U> values)
+        {
+            foreach (var val in values) {
+                d[val.Key] = val.Value;
+            }
+        }
+
+        public static void Sort<T> (this IList<T> list)
+        {
+            List<T> sorted = new List<T> (list);
+            sorted.Sort ();
+            for (int i = 0; i < list.Count; i++) {
+                list[i] = sorted[i];
+            }
+        }
+
+        public static void Sort<T> (this IList<T> list, IComparer<T> comparer)
+        {
+            List<T> sorted = new List<T> (list);
+            sorted.Sort (comparer);
+            for (int i = 0; i < list.Count; i++) {
+                list[i] = sorted[i];
+            }
+        }
+
+        public static bool RegionMatches (this string str, int toOffset, string other, int ooffset, int len)
+        {
+            if (toOffset < 0 || ooffset < 0 || toOffset + len > str.Length || ooffset + len > other.Length) {
+                return false;
+            }
+
+            return string.Compare (str, toOffset, other, ooffset, len) == 0;
+        }
+
+        public static string ReplaceAll (this string str, string regex, string replacement)
+        {
+            Regex rgx = new Regex (regex);
+
+            if (replacement.IndexOfAny (new char[] { '\\','$' }) != -1) {
+                // Back references not yet supported
+                StringBuilder sb = new StringBuilder ();
+                for (int n=0; n<replacement.Length; n++) {
+                    char c = replacement [n];
+                    if (c == '$') {
+                        throw new NotSupportedException("Back references not supported");
+                    }
+                    if (c == '\\') {
+                        c = replacement[++n];
+                    }
+
+                    sb.Append (c);
+                }
+                replacement = sb.ToString ();
+            }
+
+            return rgx.Replace (str, replacement);
+        }
+
+        public static Exception Flatten(this Exception e)
+        {
+            var ae = e as AggregateException;
+            if (ae == null) {
+                return e;
+            }
+
+            return ae.Flatten().InnerException;
+        }
+            
+        public static long MillisecondsSinceEpoch(this DateTime dt)
+        {
+            return (long)((dt - Misc.Epoch).TotalMilliseconds);
+        }
+
+        public static U Get<T, U> (this IDictionary<T, U> d, T key)
+        {
+            U val = default(U);
+            d.TryGetValue (key, out val);
+            return val;
+        }
+
         public static IEnumerable<byte> Decompress(this IEnumerable<byte> compressedData)
         {
 

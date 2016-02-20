@@ -46,9 +46,7 @@ using System.IO;
 using System.Linq;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
@@ -317,7 +315,7 @@ namespace Couchbase.Lite.Support
                     var contentDispositionUnquoted = Misc.UnquoteString(contentDisposition);
                     name = contentDispositionUnquoted.Substring(21);
                     if (name != null) {
-                        attachmentsByName.Put(name, curAttachment);
+                        attachmentsByName[name] = curAttachment;
                     }
                 }
 
@@ -361,7 +359,7 @@ namespace Couchbase.Lite.Support
             {
                 curAttachment.Finish();
                 String sha1String = curAttachment.SHA1DigestString();
-                attachmentsBySHA1Digest.Put(sha1String, curAttachment);
+                attachmentsBySHA1Digest[sha1String] = curAttachment;
                 curAttachment = null;
             }
         }

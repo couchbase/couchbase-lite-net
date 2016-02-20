@@ -41,15 +41,13 @@
 //
 
 using System;
-using System.Collections.Generic;
-
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Store;
-using Sharpen;
-using System.Threading;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
+
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite {
 

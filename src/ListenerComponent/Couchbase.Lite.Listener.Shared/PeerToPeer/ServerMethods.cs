@@ -23,7 +23,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite.Replicator;
-using Sharpen;
 
 namespace Couchbase.Lite.Listener
 {

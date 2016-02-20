@@ -47,15 +47,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Couchbase.Lite;
 
-namespace Sharpen
+/*namespace Sharpen
 {
     internal class Runtime
     {
 
         internal static long CurrentTimeMillis ()
         {
-            return DateTime.UtcNow.ToMillisecondsSinceEpoch ();
+            return DateTime.UtcNow.MillisecondsSinceEpoch();
         }
             
         static Hashtable properties;
@@ -107,3 +108,4 @@ namespace Sharpen
             
     }
 }
+*/

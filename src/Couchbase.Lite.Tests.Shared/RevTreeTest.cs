@@ -42,13 +42,12 @@
 * and limitations under the License.
 */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework;
-using Couchbase.Lite;
+
 using Couchbase.Lite.Internal;
-using Sharpen;
-using System;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
@@ -65,8 +64,8 @@ namespace Couchbase.Lite
         {
             var rev = new RevisionInternal("FakeDocId", "1-abcd", false);
             var revProperties = new Dictionary<string, object>();
-            revProperties.Put("_id", rev.DocID);
-            revProperties.Put("_rev", rev.RevID);
+            revProperties["_id"] = rev.DocID;
+            revProperties["_rev"] = rev.RevID;
             revProperties["message"] = "hi";
             rev.SetProperties(revProperties);
 
@@ -80,8 +79,8 @@ namespace Couchbase.Lite
         {
             var rev = new RevisionInternal("MyDocId", "4-abcd", false);
             var revProperties = new Dictionary<string, object>();
-            revProperties.Put("_id", rev.DocID);
-            revProperties.Put("_rev", rev.RevID);
+            revProperties["_id"] = rev.DocID;
+            revProperties["_rev"] = rev.RevID;
             revProperties["message"] = "hi";
             rev.SetProperties(revProperties);
 
@@ -96,8 +95,8 @@ namespace Couchbase.Lite
             VerifyHistory(database, rev, revHistory);
             var conflict = new RevisionInternal("MyDocId", "5-abcd", false);
             var conflictProperties = new Dictionary<string, object>();
-            conflictProperties.Put("_id", conflict.DocID);
-            conflictProperties.Put("_rev", conflict.RevID);
+            conflictProperties["_id"] = conflict.DocID;
+            conflictProperties["_rev"] = conflict.RevID;
             conflictProperties["message"] = "yo";
             conflict.SetProperties(conflictProperties);
             

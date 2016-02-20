@@ -40,21 +40,9 @@
 // and limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Net;
-using Couchbase.Lite;
-using Couchbase.Lite.Auth;
-using Couchbase.Lite.Internal;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
-using NUnit.Framework;
-using Sharpen;
-using System.Threading.Tasks;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Replicator
 {

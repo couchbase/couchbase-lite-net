@@ -41,14 +41,9 @@
 //
 
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Sharpen;
+
 using Couchbase.Lite.Internal;
-using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite 
 {
@@ -165,7 +160,7 @@ namespace Couchbase.Lite
                 var result = new Dictionary<String, Object>();
                 foreach (string key in Properties.Keys) {
                     if (!key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase)) {
-                        result.Put(key, Properties.Get(key));
+                        result[key] = Properties.Get(key);
                     }
                 }
 

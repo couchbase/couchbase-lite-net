@@ -20,15 +20,15 @@
 //
 using System;
 using System.Collections.Generic;
-using SQLitePCL;
-using Couchbase.Lite.Util;
-using System.Text;
-using System.Security.Cryptography;
-using System.Linq;
-using Couchbase.Lite.Internal;
-using Sharpen;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Util;
+using SQLitePCL;
 
 namespace Couchbase.Lite.Db
 {

@@ -50,18 +50,15 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
-using Couchbase.Lite.Store;
 
 
 #if !NET_3_5
-using StringEx = System.String;
 using System.Net;
+using StringEx = System.String;
 #else
 using System.Net.Couchbase;
 #endif
@@ -312,7 +309,9 @@ namespace Couchbase.Lite.Replicator
                         // Prefer to pull bulk revisions:
                         var range = new Couchbase.Lite.Util.ArraySegment<RevisionInternal>(_bulkRevsToPull.ToArray(), 0, nBulk);
                         bulkWorkToStartNow.AddRange(range);
-                        _bulkRevsToPull.RemoveAll(range);
+                        foreach (var val in range) {
+                            _bulkRevsToPull.Remove(val);
+                        }
                     } else {
                         // Prefer to pull an existing revision over a deleted one:
                         IList<RevisionInternal> queue = _revsToPull;
@@ -444,7 +443,7 @@ namespace Couchbase.Lite.Replicator
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
             var keys = bulkRevs.Select(rev => rev.DocID).ToArray();
             var body = new Dictionary<string, object>();
-            body.Put("keys", keys);
+            body["keys"] = keys;
 
             SendAsyncRequest(HttpMethod.Post, "/_all_docs?include_docs=true", body, (result, e) =>
             {

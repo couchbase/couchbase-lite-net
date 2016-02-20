@@ -26,16 +26,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 using CBForest;
-using Couchbase.Lite.Internal;
-using Couchbase.Lite.Util;
-using Sharpen;
 using Couchbase.Lite.Db;
-using Couchbase.Lite.Storage.ForestDB.Internal;
+using Couchbase.Lite.Internal;
 using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Storage.ForestDB;
+using Couchbase.Lite.Storage.ForestDB.Internal;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Store
 {

@@ -42,7 +42,6 @@
 
 using System;
 using System.Collections.Generic;
-using Sharpen;
 
 namespace Couchbase.Lite.Util
 {
@@ -125,7 +124,7 @@ namespace Couchbase.Lite.Util
 
             lock (_locker) {
                 CreateCount++;
-                mapValue = _hashmap.Put(key, createdValue);
+                mapValue = _hashmap[key] = createdValue;
                 _nodes.Remove(key);
                 _nodes.AddFirst(key);
                 if (mapValue != null) {
@@ -161,7 +160,7 @@ namespace Couchbase.Lite.Util
             lock (_locker) {
                 PutCount++;
                 Size += SafeSizeOf(key, value);
-                previous = _hashmap.Put(key, value);
+                previous = _hashmap[key] = value;
                 if (previous != null) {
                     Size -= SafeSizeOf(key, previous);
                 }

@@ -50,9 +50,7 @@ using System.Net.Sockets;
 using System.Text;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
-using Sharpen;
 
 namespace Couchbase.Lite
 {
@@ -64,6 +62,12 @@ namespace Couchbase.Lite
 
     internal static class Misc
     {
+        internal static readonly DateTime Epoch = new DateTime(1970, 1, 1);
+        public static DateTime CreateDate(long milliSecondsSinceEpoch)
+        {
+            return Epoch.AddMilliseconds(milliSecondsSinceEpoch);
+        }
+
         public static void SafeDispose<T>(ref T obj) where T : class, IDisposable
         {
             var tmp = obj;
@@ -157,12 +161,9 @@ namespace Couchbase.Lite
             return param.Replace("\"", string.Empty);
         }
 
-        public static bool IsTransientNetworkError(Exception error)
+        public static bool IsTransientNetworkError(Exception e)
         {
-            var ae = error as AggregateException;
-            if (ae != null) {
-                error = Sharpen.Extensions.Flatten(ae);
-            }
+            var error = e.Flatten();
 
             if (error is IOException
                 || error is TimeoutException

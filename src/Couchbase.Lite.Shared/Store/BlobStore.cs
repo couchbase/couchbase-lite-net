@@ -43,10 +43,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Couchbase.Lite;
-using Couchbase.Lite.Util;
-using Sharpen;
+
 using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
@@ -209,10 +208,10 @@ namespace Couchbase.Lite
                 tmp = Path.Combine(_path, Guid.NewGuid().ToString());
                 var fos = File.Open(tmp, FileMode.Create);
                 byte[] buffer = new byte[65536];
-                int lenRead = ((InputStream)inputStream).Read(buffer);
+                int lenRead = inputStream.Read(buffer, 0, buffer.Length);
                 while (lenRead > 0)  {
                     fos.Write(buffer, 0, lenRead);
-                    lenRead = ((InputStream)inputStream).Read(buffer);
+                    lenRead = inputStream.Read(buffer, 0, buffer.Length);
                 }
 
                 inputStream.Close();
@@ -334,7 +333,7 @@ namespace Couchbase.Lite
                     raf.Close();
                 }
                 catch (Exception e) {
-                    Runtime.PrintStackTrace(e, Console.Error);
+                    Log.E(TAG, "Error in IsGZipped", e);
                 }
             }
 

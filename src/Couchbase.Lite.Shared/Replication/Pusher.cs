@@ -53,11 +53,9 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
-using Couchbase.Lite.Store;
-using Couchbase.Lite.Revisions;
 
 #if !NET_3_5
 using StringEx = System.String;

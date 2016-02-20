@@ -42,24 +42,20 @@
 * and limitations under the License.
 */
 
-using System.Collections.Generic;
 using System;
-using System.Text;
-using System.Linq;
-using NUnit.Framework;
-using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using Sharpen;
-using Newtonsoft.Json.Linq;
-using Couchbase.Lite.Util;
-using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.IO;
-using Couchbase.Lite.Store;
+using System.Linq;
 using System.Net;
-using System.Threading;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Collections;
+using System.Text;
+
+using Couchbase.Lite;
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
@@ -234,7 +230,7 @@ namespace Couchbase.Lite
                 // The API prevents new insertions with MD5 hashes, so we need to insert this bypassing the API
                 // to simulate a legacy document
                 var engine = store.StorageEngine;
-                var docName = "doc" + Convert.ToString(DateTime.UtcNow.ToMillisecondsSinceEpoch());
+                var docName = "doc" + Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
                 var contentVals = new ContentValues();
                 contentVals["docid"] = docName;
                 engine.Insert("docs", null, contentVals);
@@ -273,9 +269,9 @@ namespace Couchbase.Lite
                 contentVals["json"] = Encoding.UTF8.GetBytes(json);
                 engine.Insert("revs", null, contentVals);
 
-                var attachmentStream = (InputStream)GetAsset("attachment.png");
+                var attachmentStream = GetAsset("attachment.png");
                 var fileStream = File.OpenWrite(Path.Combine(database.AttachmentStorePath, "92CD480700976EE63B55600EF429048C.blob"));
-                attachmentStream.Wrapped.CopyTo(fileStream);
+                attachmentStream.CopyTo(fileStream);
                 attachmentStream.Dispose();
                 fileStream.Dispose();
 
@@ -289,9 +285,9 @@ namespace Couchbase.Lite
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
 
-                attachmentStream = (InputStream)GetAsset("attachment.png");
+                attachmentStream = GetAsset("attachment.png");
                 var baos = new MemoryStream();
-                attachmentStream.Wrapped.CopyTo(baos);
+                attachmentStream.CopyTo(baos);
                 attachmentStream.Dispose();
                 endpoint = baseEndpoint + "/attachment?rev=1-1153b140e4c8674e2e6425c94de860a0";
 
@@ -341,9 +337,9 @@ namespace Couchbase.Lite
                 response = client.SendAsync(deleteRequest).Result;
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
-                attachmentStream = (InputStream)GetAsset("attachment2.png");
+                attachmentStream = GetAsset("attachment2.png");
                 baos = new MemoryStream();
-                attachmentStream.Wrapped.CopyTo(baos);
+                attachmentStream.CopyTo(baos);
                 attachmentStream.Dispose();
                 endpoint = baseEndpoint + "/attachment?rev=5-4737cb66c6a7ef1b11e872cb6fa4d51a";
 

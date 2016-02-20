@@ -41,14 +41,11 @@
 //
 
 using System;
-using System.IO;
-using Couchbase.Lite;
-using Couchbase.Lite.Util;
-using Sharpen;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using Couchbase.Lite.Store;
-using System.Security.Cryptography;
+
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
@@ -139,13 +136,13 @@ namespace Couchbase.Lite
             }
         }
 
-        internal void Read(InputStream inputStream)
+        internal void Read(Stream inputStream)
         {
             byte[] buffer = new byte[16384];
             int len;
             length = 0;
             try {
-                while ((len = inputStream.Read(buffer)) != -1)
+                while ((len = inputStream.Read(buffer, 0, buffer.Length)) != -1)
                 {
                     var dataToWrite = buffer;
 

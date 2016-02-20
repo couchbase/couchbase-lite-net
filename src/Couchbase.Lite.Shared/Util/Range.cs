@@ -40,8 +40,6 @@
 // and limitations under the License.
 //
 
-using Sharpen;
-
 namespace Couchbase.Lite.Support
 {
     internal class Range

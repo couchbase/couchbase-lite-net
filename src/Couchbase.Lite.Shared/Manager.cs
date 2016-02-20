@@ -51,14 +51,12 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Db;
+using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Store;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using ICSharpCode.SharpZipLib.Zip;
-using Sharpen;
-using Couchbase.Lite.Internal;
-using System.Diagnostics;
-using Couchbase.Lite.Store;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -574,7 +572,7 @@ namespace Couchbase.Lite
                 }
 
                 db.Name = name;
-                databases.Put(name, db);
+                databases[name] = db;
                 Shared.OpenedDatabase(db);
             }
 

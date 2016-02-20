@@ -44,8 +44,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-using Sharpen;
-
 namespace Couchbase.Lite.Util
 {
     internal static class StreamUtils

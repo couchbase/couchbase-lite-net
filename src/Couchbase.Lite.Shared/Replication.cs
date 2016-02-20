@@ -54,7 +54,6 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
 using Couchbase.Lite.Replicator;
 using Stateless;
 using System.Collections.Concurrent;
@@ -339,7 +338,7 @@ namespace Couchbase.Lite
 
                     Filter = BY_CHANNEL_FILTER_NAME;
                     var filterParams = new Dictionary<string, object>();
-                    filterParams.Put(CHANNELS_QUERY_PARAM, String.Join(",", value.ToStringArray()));
+                    filterParams[CHANNELS_QUERY_PARAM] = String.Join(",", value.ToStringArray());
                     FilterParams = filterParams;
                 }
                 else if (Filter != null && Filter.Equals(BY_CHANNEL_FILTER_NAME))
@@ -628,7 +627,7 @@ namespace Couchbase.Lite
             _requests = new ConcurrentDictionary<HttpRequestMessage, Task>();
 
             // FIXME: Refactor to visitor pattern.
-            if (RemoteUrl.GetQuery() != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.GetQuery()))
+            if (RemoteUrl.Query != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.Query))
             {
                 var uri = new Uri(remote.ToString());
                 var personaAssertion = URIUtils.GetQueryParameter(uri, PersonaAuthorizer.QueryParameter);
@@ -650,7 +649,7 @@ namespace Couchbase.Lite
 
                     try
                     {
-                        remoteWithQueryRemoved = new UriBuilder(remote.Scheme, remote.GetHost(), remote.Port, remote.AbsolutePath).Uri;
+                        remoteWithQueryRemoved = new UriBuilder(remote.Scheme, remote.Host, remote.Port, remote.AbsolutePath).Uri;
                     }
                     catch (UriFormatException e)
                     {
@@ -665,7 +664,7 @@ namespace Couchbase.Lite
                 // communicating with sync gw / couchdb
                 try
                 {
-                    RemoteUrl = new UriBuilder(remote.Scheme, remote.GetHost(), remote.Port, remote.AbsolutePath).Uri;
+                    RemoteUrl = new UriBuilder(remote.Scheme, remote.Host, remote.Port, remote.AbsolutePath).Uri;
                 }
                 catch (UriFormatException e)
                 {
@@ -791,7 +790,7 @@ namespace Couchbase.Lite
                 Expires = expirationDate,
                 Secure = secure,
                 HttpOnly = httpOnly,
-                Domain = RemoteUrl.GetHost()
+                Domain = RemoteUrl.Host
             };
 
             cookie.Path = !string.IsNullOrEmpty(path) 
@@ -1499,18 +1498,18 @@ namespace Couchbase.Lite
 
             // use a treemap rather than a dictionary for purposes of canonicalization
             var spec = new SortedDictionary<String, Object>();
-            spec.Put("localUUID", localUUID);
-            spec.Put("push", !IsPull);
-            spec.Put("continuous", Continuous);
+            spec["localUUID"] = localUUID;
+            spec["push"] = !IsPull;
+            spec["continuous"] = Continuous;
 
             if (Filter != null) {
-                spec.Put("filter", Filter);
+                spec["filter"] = Filter;
             }
             if (filterParamsCanonical != null) {
-                spec.Put("filterParams", filterParamsCanonical);
+                spec["filterParams"] = filterParamsCanonical;
             }
             if (docIdsSorted != null) {
-                spec.Put("docids", docIdsSorted);
+                spec["docids"] = docIdsSorted;
             }
 
             string remoteUUID;
@@ -1764,7 +1763,9 @@ namespace Couchbase.Lite
 
             var body = new Dictionary<String, Object>();
             if (_remoteCheckpoint != null) {
-                body.PutAll(_remoteCheckpoint);
+                foreach (var pair in _remoteCheckpoint) {
+                    body[pair.Key] = pair.Value;
+                }
             }
 
             body["lastSequence"] = LastSequence;
@@ -1795,7 +1796,7 @@ namespace Couchbase.Lite
                 } else {
                     Log.D(TAG, "Save checkpoint response for {0}: {1}", _replicatorID, result.ToString());
                     var response = result.AsDictionary<string, object>();
-                    body.Put ("_rev", response.Get ("rev"));
+                    body["_rev"] = response.Get ("rev");
                     _remoteCheckpoint = body;
                     var localDb = LocalDatabase;
                     if(localDb.Storage == null) {

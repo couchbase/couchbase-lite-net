@@ -1,4 +1,4 @@
-//
+﻿//
 // MessageDigest.cs
 //
 // Author:
@@ -41,7 +41,7 @@
 * either express or implied. See the License for the specific language governing permissions
 * and limitations under the License.
 */
-namespace Sharpen
+namespace Couchbase.Lite.Util
 {
     using System;
     using System.IO;
@@ -49,10 +49,17 @@ namespace Sharpen
 
     internal abstract class MessageDigest
     {
+
+        #region Constructors
+
         protected MessageDigest ()
         {
         }
-        
+
+        #endregion
+
+        #region Public Methods
+
         public void Digest (byte[] buffer, int o, int len)
         {
             byte[] d = Digest ();
@@ -70,79 +77,116 @@ namespace Sharpen
         public static MessageDigest GetInstance (string algorithm)
         {
             switch (algorithm.ToLower ()) {
-            case "sha-1":
-                return new MessageDigest<SHA1Managed> ();
-            case "md5":
-                return new MessageDigest<MD5CryptoServiceProvider> ();
+                case "sha-1":
+                    return new MessageDigest<SHA1Managed> ();
+                case "md5":
+                    return new MessageDigest<MD5CryptoServiceProvider> ();
             }
+
             throw new NotSupportedException (string.Format ("The requested algorithm \"{0}\" is not supported.", algorithm));
         }
 
         public abstract void Reset ();
-        public abstract void Update (byte[] b);
-        public abstract void Update (byte b);
-        public abstract void Update (byte[] b, int offset, int len);
+        public abstract void Update (byte[] input);
+        public abstract void Update (byte input);
+        public abstract void Update (byte[] input, int offset, int len);
+
+        #endregion
     }
 
 
     internal class MessageDigest<TAlgorithm> : MessageDigest where TAlgorithm : HashAlgorithm, new()
     {
+
+        #region Variables
+
         private TAlgorithm _hash;
         private CryptoStream _stream;
 
+        #endregion
+
+        #region Constructors
+
         public MessageDigest ()
         {
-            this.Init ();
         }
+
+        #endregion
+
+        #region Public Methods
 
         public override byte[] Digest ()
         {
-            this._stream.FlushFinalBlock ();
-            byte[] hash = this._hash.Hash;
-            this.Reset ();
+            _stream.FlushFinalBlock ();
+            byte[] hash = _hash.Hash;
+            Clear ();
             return hash;
         }
 
-        public void Dispose ()
+        public void Clear ()
         {
-            if (this._stream != null) {
-                this._stream.Dispose ();
+            var stream = _stream;
+            _stream = null;
+            if (stream != null) {
+                stream.Dispose ();
             }
-            this._stream = null;
         }
 
-        public override int GetDigestLength ()
-        {
-            return (this._hash.HashSize / 8);
-        }
+        #endregion
+
+        #region Private Methods
 
         private void Init ()
         {
-            this._hash = Activator.CreateInstance<TAlgorithm> ();
-            this._stream = new CryptoStream (Stream.Null, this._hash, CryptoStreamMode.Write);
+            if (_hash == null) {
+                _hash = Activator.CreateInstance<TAlgorithm> ();
+            }
+
+            if (_stream == null) {
+                _stream = new CryptoStream (Stream.Null, _hash, CryptoStreamMode.Write);
+            }
         }
+
+
+        #endregion
+
+        #region Overrides
+
+        public override int GetDigestLength ()
+        {
+            return (_hash.HashSize / 8);
+        }
+
 
         public override void Reset ()
         {
-            this.Dispose ();
-            this.Init ();
+            Clear ();
+            Init ();
         }
 
         public override void Update (byte[] input)
         {
-            this._stream.Write (input, 0, input.Length);
+            Init();
+            _stream.Write (input, 0, input.Length);
         }
 
         public override void Update (byte input)
         {
-            this._stream.WriteByte (input);
+            Init();
+            _stream.WriteByte (input);
         }
 
         public override void Update (byte[] input, int index, int count)
         {
-            if (count < 0)
-                Console.WriteLine ("Argh!");
-            this._stream.Write (input, index, count);
+            if (count < 0) {
+                throw new ArgumentOutOfRangeException("count", "must be greater than or equal to zero");
+            }
+
+            Init();
+            _stream.Write (input, index, count);
         }
+
+        #endregion
+
     }
 }

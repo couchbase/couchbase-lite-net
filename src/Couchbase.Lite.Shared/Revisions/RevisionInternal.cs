@@ -42,12 +42,8 @@
 
 using System;
 using System.Collections.Generic;
+
 using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using Sharpen;
-using System.Text;
-using System.Linq;
-using Couchbase.Lite.Store;
 using Couchbase.Lite.Revisions;
 
 #if !NET_3_5

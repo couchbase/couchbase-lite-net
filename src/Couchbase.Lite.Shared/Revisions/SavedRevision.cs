@@ -42,13 +42,13 @@
 
 using System;
 using System.Collections.Generic;
-using Couchbase.Lite.Internal;
-using Sharpen;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Store;
 using System.Collections.ObjectModel;
 
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Util;
+
 namespace Couchbase.Lite {
+    
     /// <summary>
     /// A saved Couchbase Lite <see cref="Couchbase.Lite.Document"/> <see cref="Couchbase.Lite.Revision"/>.
     /// </summary>

@@ -19,18 +19,18 @@
 //  limitations under the License.
 //
 using System;
-using System.Net;
-using NUnit.Framework;
-using System.Text;
-using Sharpen;
-using System.IO;
-using Couchbase.Lite.Util;
-using System.Net.Http;
-using System.Threading;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Util;
+using NUnit.Framework;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -219,7 +219,7 @@ namespace Couchbase.Lite.Tests
             stream.Write(beginning, 0, beginning.Length);
 
             for (int i = 0; i < count; i++) {
-                var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
                 var docId = string.Format("doc{0}-{1}", i, docIdTimestamp);         
 
                 docList.Add(docId);
@@ -297,9 +297,9 @@ namespace Couchbase.Lite.Tests
             if (attachmentName != null)
             {
                 // add attachment to document
-                var attachmentStream = (InputStream)GetAsset(attachmentName);
+                var attachmentStream = GetAsset(attachmentName);
                 var baos = new MemoryStream();
-                attachmentStream.Wrapped.CopyTo(baos);
+                attachmentStream.CopyTo(baos);
                 attachmentStream.Dispose();
                 var attachmentBase64 = Convert.ToBase64String(baos.ToArray());
                 baos.Dispose();
@@ -327,7 +327,7 @@ namespace Couchbase.Lite.Tests
         {
             var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
             Log.D(Tag, "Fetching assembly resource: " + assetPath);
-            var stream = GetType().GetResourceAsStream(assetPath);
+            var stream = GetType().Assembly.GetManifestResourceStream(assetPath);
             return stream;
         }
 

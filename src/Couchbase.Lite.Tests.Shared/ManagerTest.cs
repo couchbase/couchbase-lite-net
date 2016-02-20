@@ -40,14 +40,13 @@
 // and limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Couchbase.Lite;
-using NUnit.Framework;
-using Sharpen;
+
 using Couchbase.Lite.Db;
-using System;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
@@ -93,7 +92,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestUpgradeOldDatabaseFiles()
         {
-            var testDirName = "test-directory-" + Runtime.CurrentTimeMillis();
+            var testDirName = "test-directory-" + DateTime.UtcNow.MillisecondsSinceEpoch();
             var rootDirPath = RootDirectory.FullName;
             var testDirPath = Path.Combine(rootDirPath, testDirName);
             var testDirInfo = Directory.CreateDirectory(testDirPath);

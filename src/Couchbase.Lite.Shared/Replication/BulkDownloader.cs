@@ -32,24 +32,22 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//using System;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
+
 using Couchbase.Lite;
+using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
-using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
-using System.Threading;
-using System.Net.Http.Headers;
-using Couchbase.Lite.Auth;
-using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -336,9 +334,9 @@ namespace Couchbase.Lite.Replicator
 
 
                 var mapped = new Dictionary<string, object> ();
-                mapped.Put ("id", source.DocID);
-                mapped.Put ("rev", source.RevID);
-                mapped.Put ("atts_since", attsSince);
+                mapped["id"] = source.DocID;
+                mapped["rev"] = source.RevID;
+                mapped["atts_since"] = attsSince;
 
                 return mapped;
             };
@@ -355,7 +353,7 @@ namespace Couchbase.Lite.Replicator
             }       
             
             var retval = new Dictionary<string, object>();
-            retval.Put("docs", keys);
+            retval["docs"] = keys;
             return retval;
         }
 

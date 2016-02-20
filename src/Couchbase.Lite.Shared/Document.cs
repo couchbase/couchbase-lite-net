@@ -42,15 +42,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
+
 using Couchbase.Lite.Internal;
-using Couchbase.Lite.Util;
-using Sharpen;
-using Couchbase.Lite.Store;
 using Couchbase.Lite.Revisions;
-using System.Collections.ObjectModel;
+using Couchbase.Lite.Util;
 
 #if !NET_3_5
 using StringEx = System.String;

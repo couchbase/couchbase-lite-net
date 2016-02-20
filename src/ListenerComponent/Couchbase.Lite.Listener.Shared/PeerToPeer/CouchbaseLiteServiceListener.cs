@@ -20,13 +20,13 @@
 //
 using System;
 using System.Collections.Generic;
-using Couchbase.Lite.Util;
-using System.Security;
-using Sharpen;
-using System.Runtime.InteropServices;
-using System.Text;
-using Couchbase.Lite.Listener.Tcp;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
+using System.Security;
+using System.Text;
+
+using Couchbase.Lite.Listener.Tcp;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {

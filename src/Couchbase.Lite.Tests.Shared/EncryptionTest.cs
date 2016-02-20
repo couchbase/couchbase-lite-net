@@ -19,13 +19,13 @@
 //  limitations under the License.
 //
 using System;
-using NUnit.Framework;
 using System.Collections.Generic;
-using System.Text;
-using Sharpen;
 using System.IO;
+using System.Text;
+
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {

@@ -44,6 +44,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -54,8 +55,6 @@ using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
-using Sharpen;
-using System.Net;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -200,7 +199,7 @@ namespace Couchbase.Lite.Replicator
             {
                 filterName = "_doc_ids";
                 filterParams = new Dictionary<string, object>();
-                filterParams.Put("doc_ids", docIDs);
+                filterParams["doc_ids"] = docIDs;
             }
             if (filterName != null)
             {
@@ -626,7 +625,7 @@ namespace Couchbase.Lite.Replicator
             if (docIDs != null && docIDs.Count > 0) {
                 filterName = "_doc_ids";
                 filterParams = new Dictionary<string, object>();
-                filterParams.Put("doc_ids", docIDs);
+                filterParams["doc_ids"] = docIDs;
             }
 
             var bodyParams = new Dictionary<string, object>();

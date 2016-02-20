@@ -52,10 +52,8 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
-using Sharpen;
 
 namespace Couchbase.Lite
 {
@@ -149,7 +147,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestBasicAuthenticationSuccess()
         {
-            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
             {
                 Assert.Inconclusive("Server tests disabled.");
                 return;
@@ -175,7 +173,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestBasicAuthenticationWrongPassword()
         {
-            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
             {
                 Assert.Inconclusive("Server tests disabled.");
                 return;

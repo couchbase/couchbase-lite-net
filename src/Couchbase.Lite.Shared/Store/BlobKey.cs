@@ -42,11 +42,9 @@
 
 using System;
 using System.IO;
-using System.Text;
-using Sharpen;
-using Couchbase.Lite;
-using Couchbase.Lite.Util;
 using System.Linq;
+
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {

@@ -41,24 +41,21 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
+using Couchbase.Lite.Db;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Store;
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
-using Sharpen;
-using System.Collections.Concurrent;
-using Couchbase.Lite.Db;
-using System.Threading;
 using Couchbase.Lite.Revisions;
-
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
 
 #if !NET_3_5
 using System.Net;
@@ -286,7 +283,7 @@ namespace Couchbase.Lite
 
             _changesToNotify = new List<DocumentChange>();
             Scheduler = new TaskFactory(new SingleTaskThreadpoolScheduler());
-            StartTime = DateTime.UtcNow.ToMillisecondsSinceEpoch ();
+            StartTime = DateTime.UtcNow.MillisecondsSinceEpoch();
         }
 
         #endregion
@@ -1150,7 +1147,7 @@ namespace Couchbase.Lite
                 _views = new Dictionary<string, View>();
             }
 
-            _views.Put(view.Name, view);
+            _views[view.Name] = view;
             return view;
         }
 
@@ -1301,7 +1298,7 @@ namespace Couchbase.Lite
             var start = Convert.ToInt64(revisions.Get("start"));
             for (var i = 0; i < revIDs.Count; i++) {
                 var revID = revIDs[i];
-                revIDs.Set(i, String.Format("{0}-{1}", start--, revID));
+                revIDs[i] = String.Format("{0}-{1}", start--, revID);
             }
 
             return revIDs;

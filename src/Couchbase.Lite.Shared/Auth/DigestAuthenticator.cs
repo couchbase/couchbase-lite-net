@@ -22,17 +22,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-
-using Sharpen;
 using System.Threading;
 
 namespace Couchbase.Lite.Auth
 {
-    //TODO: Make this public in 1.2
     /// <summary>
     /// An authenticator for performing HTTP Digest authentication (RFC 2617)
     /// </summary>
-    internal sealed class DigestAuthenticator : IChallengeResponseAuthenticator
+    public sealed class DigestAuthenticator : IChallengeResponseAuthenticator
     {
 
         #region Variables

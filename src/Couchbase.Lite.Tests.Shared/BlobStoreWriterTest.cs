@@ -45,7 +45,6 @@
 using System.IO;
 
 using NUnit.Framework;
-using Sharpen;
 
 namespace Couchbase.Lite
 {
@@ -59,9 +58,9 @@ namespace Couchbase.Lite
         [Test]
         public void TestBasicOperation()
         {
-            var attachmentStream = (InputStream)GetAsset("attachment.png");
+            var attachmentStream = GetAsset("attachment.png");
             var memoryStream = new MemoryStream();
-            attachmentStream.Wrapped.CopyTo(memoryStream);
+            attachmentStream.CopyTo(memoryStream);
             var bytes = memoryStream.ToArray();
 
             var attachments = database.Attachments;
@@ -80,7 +79,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestBlobStoreWriterForBody()
         {
-            var attachmentStream = (InputStream)GetAsset("attachment.png");
+            var attachmentStream = GetAsset("attachment.png");
 
             var blobStoreWriter = Attachment.BlobStoreWriterForBody(attachmentStream, database);
 

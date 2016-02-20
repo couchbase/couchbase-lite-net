@@ -19,15 +19,14 @@
 //  limitations under the License.
 //
 using System;
-using System.Net.Http.Headers;
 using System.Collections.Generic;
-using Sharpen;
-using System.Text;
 using System.Net;
+
 using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
+    [Obsolete("This class is no longer needed, and will be removed")]
     public sealed class DigestAuthHeaderValue
     {
         private readonly IDictionary<string, string> _components = new Dictionary<string, string>();

@@ -26,13 +26,12 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
+using Couchbase.Lite.Db;
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Util;
 using SQLitePCL;
 using SQLitePCL.Ugly;
-using Couchbase.Lite.Revisions;
-using Sharpen;
-using Couchbase.Lite.Db;
-using Couchbase.Lite.Internal;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -478,7 +477,7 @@ namespace Couchbase.Lite.Store
                     maxGen = RevisionID.GetGeneration(maxGenRevId);
 
                     if ((maxGen - minGen + 1) > maxDepth) {
-                        toPrune.Put(docNumericID, (maxGen - minGen));
+                        toPrune[docNumericID] = (maxGen - minGen);
                     }
                 }
 

@@ -19,17 +19,17 @@
 //  limitations under the License.
 //
 using System;
-using Couchbase.Lite.Util;
-using System.Diagnostics;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+
 using Couchbase.Lite.Internal;
-using Sharpen;
-using System.Collections;
-using SQLitePCL;
-using Couchbase.Lite.Views;
 using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Util;
+using Couchbase.Lite.Views;
+using SQLitePCL;
 
 namespace Couchbase.Lite.Store 
 {

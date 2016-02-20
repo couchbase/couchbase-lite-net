@@ -18,7 +18,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)CollationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)FakeHttpWebResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)LiteTestCase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)LocalDocsTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ManagerTest.cs" />

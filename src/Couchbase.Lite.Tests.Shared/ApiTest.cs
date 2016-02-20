@@ -42,17 +42,15 @@
 
 using System;
 using System.Collections.Generic;
-using Couchbase.Lite;
-using Sharpen;
-using Couchbase.Lite.Util;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using NUnit.Framework;
-using System.Security.Permissions;
-using System.Diagnostics;
 using System.Threading.Tasks;
+
+using Couchbase.Lite;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
@@ -371,13 +369,13 @@ namespace Couchbase.Lite
         public void TestDeleteDocumentViaTombstoneRevision()
         {
             var properties = new Dictionary<string, object>();
-            properties.Put("testName", "testDeleteDocument");
+            properties["testName"] = "testDeleteDocument";
             var doc = CreateDocumentWithProperties(database, properties);
             Assert.IsTrue(!doc.Deleted);
             Assert.IsTrue(!doc.CurrentRevision.IsDeletion);
 
             var props = new Dictionary<string, object>(doc.Properties);
-            props.Put("_deleted", true);
+            props["_deleted"] = true;
             var deletedRevision = doc.PutProperties(props);
             Assert.IsTrue(doc.Deleted);
             Assert.IsTrue(deletedRevision.IsDeletion);
@@ -598,7 +596,7 @@ namespace Couchbase.Lite
 
             var latestRevision = doc.CurrentRevision;
             var propertiesUpdated = new Dictionary<string, object>();
-            propertiesUpdated.Put("propertiesUpdated", "testUpdateDocWithAttachments");
+            propertiesUpdated["propertiesUpdated"] = "testUpdateDocWithAttachments";
 
             var newUnsavedRevision = latestRevision.CreateRevision();
             newUnsavedRevision.SetUserProperties(propertiesUpdated);

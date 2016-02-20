@@ -19,7 +19,6 @@
 // limitations under the License.
 //
 using System;
-using Sharpen;
 using System.Globalization;
 
 namespace Couchbase.Lite.Revisions
@@ -68,59 +67,22 @@ namespace Couchbase.Lite.Revisions
 
         internal static int CBLCollateRevIDs(string revId1, string revId2)
         {
-            string rev1GenerationStr = null;
-            string rev2GenerationStr = null;
-            string rev1Hash = null;
-            string rev2Hash = null;
-            var st1 = new StringTokenizer(revId1, "-");
-            try
-            {
-                rev1GenerationStr = st1.NextToken();
-                rev1Hash = st1.NextToken();
-            }
-            catch (Exception)
-            {
-            }
-            StringTokenizer st2 = new StringTokenizer(revId2, "-");
-            try
-            {
-                rev2GenerationStr = st2.NextToken();
-                rev2Hash = st2.NextToken();
-            }
-            catch (Exception)
-            {
-            }
+            var parsed1 = RevisionID.ParseRevId(revId1);
+            var parsed2 = RevisionID.ParseRevId(revId2);
+
             // improper rev IDs; just compare as plain text:
-            if (rev1GenerationStr == null || rev2GenerationStr == null)
-            {
+            if (parsed1.Item1 == -1 || parsed2.Item1 == -1) {
                 return String.Compare(revId1, revId2, true, CultureInfo.InvariantCulture);
             }
-            int rev1Generation;
-            int rev2Generation;
-            try
-            {
-                rev1Generation = System.Convert.ToInt32(rev1GenerationStr);
-                rev2Generation = System.Convert.ToInt32(rev2GenerationStr);
-            }
-            catch (FormatException)
-            {
-                // improper rev IDs; just compare as plain text:
-                return String.Compare(revId1, revId2, true, CultureInfo.InvariantCulture);
-            }
+
             // Compare generation numbers; if they match, compare suffixes:
-            if (rev1Generation.CompareTo(rev2Generation) != 0)
-            {
-                return rev1Generation.CompareTo(rev2Generation);
-            }
-            else
-            {
-                if (rev1Hash != null && rev2Hash != null)
-                {
+            if (parsed1.Item1 != parsed2.Item1) {
+                return parsed1.Item1 - parsed2.Item1;
+            } else {
+                if (parsed1.Item2 != null && parsed2.Item2 != null) {
                     // compare suffixes if possible
-                    return String.CompareOrdinal(rev1Hash, rev2Hash);
-                }
-                else
-                {
+                    return String.CompareOrdinal(parsed1.Item2, parsed2.Item2);
+                } else {
                     // just compare as plain text:
                     return String.Compare(revId1, revId2, true, CultureInfo.InvariantCulture);
                 }

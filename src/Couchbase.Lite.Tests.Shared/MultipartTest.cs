@@ -19,16 +19,15 @@
 //  limitations under the License.
 //
 using System;
-using NUnit.Framework;
-using Couchbase.Lite.Support;
-using System.Text;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
-using Sharpen;
-using Couchbase.Lite.Tests;
-using Couchbase.Lite.Util;
+using System.Linq;
+using System.Text;
 using System.Threading;
+
+using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
@@ -75,7 +74,7 @@ namespace Couchbase.Lite
             // Compression flags & OS type will differ depending on which platform this test is run on
             // So we need to compare for "almost" equality.  In this particular output the compression
             // flags are on byte 97 and the os type is in byte 98
-            var expectedOutput = GetType().GetResourceAsStream("MultipartStars.mime").ReadAllBytes();
+            var expectedOutput = GetType().Assembly.GetManifestResourceStream("MultipartStars.mime").ReadAllBytes();
             Assert.AreEqual(expectedOutput.Take(96), output.Take(96));
             Assert.AreEqual(expectedOutput.Skip(98), output.Skip(98));
         }
@@ -83,7 +82,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestMultipartDocumentReader()
         {
-            var mime = GetType().GetResourceAsStream("Multipart1.mime").ReadAllBytes();
+            var mime = GetType().Assembly.GetManifestResourceStream("Multipart1.mime").ReadAllBytes();
             var headers = new Dictionary<string, string> {
                 { "Content-Type", "multipart/mixed; boundary=\"BOUNDARY\"" }
             };
@@ -111,7 +110,7 @@ namespace Couchbase.Lite
             Assert.IsNotNull(writer);
             Assert.AreEqual(52, writer.GetLength());
 
-            mime = GetType().GetResourceAsStream("MultipartBinary.mime").ReadAllBytes();
+            mime = GetType().Assembly.GetManifestResourceStream("MultipartBinary.mime").ReadAllBytes();
             headers["Content-Type"] = "multipart/mixed; boundary=\"dc0bf3cdc9a6c6e4c46fe2a361c8c5d7\"";
             Assert.DoesNotThrow(() => dict = MultipartDocumentReader.ReadToDatabase(mime, headers, database));
             AssertDictionariesAreEqual(new Dictionary<string, object> {
@@ -148,7 +147,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(24758, writer.GetLength());
 
             // Read data that's equivalent to the last one except the JSON is gzipped:
-            mime = GetType().GetResourceAsStream("MultipartGZipped.mime").ReadAllBytes();
+            mime = GetType().Assembly.GetManifestResourceStream("MultipartGZipped.mime").ReadAllBytes();
             headers["Content-Type"] = "multipart/mixed; boundary=\"d7a34c160fd136b5baf17055012e611abcb45dd3fe39fb81831ffd5dc920\"";
             var unzippedDict = default(IDictionary<string, object>);
             Assert.DoesNotThrow(() => unzippedDict = MultipartDocumentReader.ReadToDatabase(mime, headers, database));
@@ -260,7 +259,8 @@ namespace Couchbase.Lite
                 do {
                     Assert.IsTrue(r.Location < mime.Length, "Parser didn't stop at end");
                     r.Length = Math.Min(chunkSize, mime.Length - r.Location);
-                    reader.AppendData(mime.SubList(r.Location, r.Length));
+                    var sublist = new Couchbase.Lite.Util.ArraySegment<byte>(mime, r.Location, r.Length);
+                    reader.AppendData(sublist);
                     r.Location += chunkSize;
                 } while(!reader.Finished);
             }
@@ -272,7 +272,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestGZipped()
         {
-            var mime = GetType().GetResourceAsStream("MultipartStars.mime").ReadAllBytes();
+            var mime = GetType().Assembly.GetManifestResourceStream("MultipartStars.mime").ReadAllBytes();
             var reader = new MultipartReader("multipart/related; boundary=\"BOUNDARY\"", this);
             reader.AppendData(mime);
             Assert.IsTrue(reader.Finished);

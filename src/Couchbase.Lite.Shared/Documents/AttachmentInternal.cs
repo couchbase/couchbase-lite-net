@@ -40,15 +40,13 @@
 // and limitations under the License.
 //
 
-using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using Sharpen;
-using System.Collections.Generic;
-using System.IO;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.IO.Compression;
+
+using Couchbase.Lite;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal

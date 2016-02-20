@@ -42,11 +42,10 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework;
-using Couchbase.Lite;
+
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
-using Sharpen;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {

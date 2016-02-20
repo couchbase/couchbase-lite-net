@@ -40,11 +40,10 @@
 // and limitations under the License.
 //
 
-using System.IO;
-using Couchbase.Lite;
-using Couchbase.Lite.Util;
-using Sharpen;
 using System;
+using System.IO;
+
+using Couchbase.Lite;
 
 namespace Couchbase.Lite.Util
 {

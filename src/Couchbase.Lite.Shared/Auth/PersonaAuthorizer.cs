@@ -43,11 +43,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
-using Sharpen;
-using System.Text;
 
 namespace Couchbase.Lite.Auth
 {
@@ -232,14 +232,14 @@ namespace Couchbase.Lite.Auth
                 var component1Json = mapper.ReadValue<object>(component1Decoded).AsDictionary<object, object>();
                 var principal = component1Json.Get("principal").AsDictionary<object, object>();
 
-                result.Put(AssertionFieldEmail, principal.Get("email"));
+                result[AssertionFieldEmail] = principal.Get("email");
 
                 var component3Json = mapper.ReadValue<object>(component3Decoded).AsDictionary<object, object>();
-                result.Put(AssertionFieldOrigin, component3Json.Get("aud"));
+                result[AssertionFieldOrigin] = component3Json.Get("aud");
 
                 var expObject = (long)component3Json.Get("exp");
                 Log.D(Database.TAG, "PersonaAuthorizer exp: " + expObject + " class: " + expObject.GetType());
-                var expDate = Extensions.CreateDate(expObject);
+                var expDate = Misc.CreateDate(expObject);
                 result[AssertionFieldExpiration] = expDate;
             }
             catch (IOException e)

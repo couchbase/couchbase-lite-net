@@ -41,17 +41,16 @@
 //
 
 using System;
-using NUnit.Framework;
 using System.Collections.Generic;
-using System.Linq;
-using Sharpen;
-using System.Threading;
-using Newtonsoft.Json.Linq;
-using Couchbase.Lite.Internal;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Store;
-using System.Threading.Tasks;
 using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
@@ -296,7 +295,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestGetActiveReplications()
         {
-            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
             {
                 Assert.Inconclusive("Replication tests disabled.");
                 return;

@@ -41,10 +41,9 @@
 //
 
 using System.Collections.Generic;
-using Couchbase.Lite;
-using NUnit.Framework;
-using Sharpen;
+
 using Couchbase.Lite.Internal;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
