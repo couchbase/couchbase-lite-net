@@ -69,5 +69,9 @@
       <Project>{9AD3BADD-4F48-4208-B601-E63987C12049}</Project>
       <Name>Couchbase.Lite.Listener.Net45</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\StorageEngines\SystemSQLite\storage.systemsqlite.net45\storage.systemsqlite.net45.csproj">
+      <Project>{88BB6717-85C9-46F0-923B-C263C08A189B}</Project>
+      <Name>storage.systemsqlite.net45</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

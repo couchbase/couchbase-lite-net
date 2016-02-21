@@ -160,7 +160,8 @@ namespace Couchbase.Lite.Util
             lock (_locker) {
                 PutCount++;
                 Size += SafeSizeOf(key, value);
-                previous = _hashmap[key] = value;
+                previous = _hashmap.Get(key);
+                _hashmap[key] = value;
                 if (previous != null) {
                     Size -= SafeSizeOf(key, previous);
                 }
