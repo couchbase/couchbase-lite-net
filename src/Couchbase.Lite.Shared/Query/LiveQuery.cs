@@ -59,7 +59,7 @@ namespace Couchbase.Lite
 
         private const string TAG = "LiveQuery";
         private const int DEFAULT_QUERY_TIMEOUT = 90000; // milliseconds.
-        private const double DEFAULT_UPDATE_INTERVAL = 0.5;
+        private const double DEFAULT_UPDATE_INTERVAL = 0.2;
 
         #endregion
 
@@ -82,6 +82,7 @@ namespace Couchbase.Lite
         private bool _willUpdate;
         private bool _updateAgain;
         private double _updateInterval = DEFAULT_UPDATE_INTERVAL;
+        private DateTime _lastUpdatedAt = DateTime.MinValue;
         private volatile bool _observing;
         private bool _runningState;
 
@@ -110,6 +111,18 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The last error.</value>
         public Exception LastError { get; private set; }
+
+        /// <summary>
+        /// The shortest interval at which the query will update, regardless of how often the
+        /// database changes. Defaults to 200ms. Increase this if the query is expensive and
+        /// the database updates frequently, to limit CPU consumption.
+        /// </summary>
+        /// <value>The update interval.</value>
+        public TimeSpan UpdateInterval 
+        {
+            get { return TimeSpan.FromSeconds(_updateInterval); }
+            set { _updateInterval = value.TotalSeconds; }
+        }
 
         // If a query is running and the user calls Stop() on this query, the Task
         // will be used in order to cancel the query in progress.
@@ -286,8 +299,10 @@ namespace Couchbase.Lite
             }
 
             _willUpdate = true;
-            Log.D(TAG, "Will update after {0} sec...", updateInterval);
-            Task.Delay(TimeSpan.FromSeconds(updateInterval)).ContinueWith(t =>
+            var updateDelay = ((_lastUpdatedAt + TimeSpan.FromSeconds(updateInterval)) - DateTime.Now).TotalSeconds;
+            updateDelay = Math.Max(0, Math.Min(_updateInterval, updateDelay));
+            Log.D(TAG, "Will update after {0} sec...", updateDelay);
+            Task.Delay(TimeSpan.FromSeconds(updateDelay)).ContinueWith(t =>
             {
                 if(_willUpdate) {
                     Update();
@@ -331,7 +346,7 @@ namespace Couchbase.Lite
         private void Update()
         {
             _willUpdate = false;
-            long lastSequence = Database.LastSequenceNumber;
+            long lastSequence = Database.GetLastSequenceNumber();
             if (_rows != null && _lastSequence >= lastSequence) {
                 return; // db hasn't changed since last query
             }
@@ -353,6 +368,7 @@ namespace Couchbase.Lite
 
             _updateAgain = false;
             _isUpdatingAtSequence = lastSequence;
+            _lastUpdatedAt = DateTime.Now;
             UpdateQueryTokenSource = new CancellationTokenSource();
 
             UpdateQueryTask = Task.Factory.StartNew<QueryEnumerator>(base.Run, UpdateQueryTokenSource.Token)

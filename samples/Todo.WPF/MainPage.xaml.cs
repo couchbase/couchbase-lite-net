@@ -24,8 +24,15 @@ namespace Todo.WPF
     /// </summary>
     public partial class MainPage : Page
     {
+        private const string DOCUMENT_DISPLAY_PROPERTY_NAME = "text";
+        private const string CHECKBOX_PROPERTY_NAME = "check";
+        private const string CREATION_DATE_PROPERTY_NAME = "created_at";
+
         private LiveQuery _query;
         private Database _db;
+        private SimpleViewModel _viewModel;
+        private Replication _puller;
+        private Replication _pusher;
 
         public static readonly DependencyProperty TodosProperty 
             = DependencyProperty.Register("Todos", typeof(ObservableCollection<Document>), typeof(MainPage), new FrameworkPropertyMetadata());
@@ -51,39 +58,81 @@ namespace Todo.WPF
             };
         }
 
+        private void UpdateReplications(string syncURL)
+        {
+            
+            if (_puller != null)
+            {
+                _puller.Stop();
+            }
+
+            if(_pusher != null)
+            {
+                _pusher.Stop();
+            }
+
+            if (String.IsNullOrEmpty(syncURL))
+            {
+                return;
+            }
+
+            var uri = new Uri(syncURL);
+            _puller = _db.CreatePullReplication(uri);
+            _puller.Continuous = true;
+            _puller.Start();
+
+            _pusher = _db.CreatePushReplication(uri);
+            _pusher.Continuous = true;
+            _pusher.Start();
+        }
+
         private void InitializeCouchbase()
         {
             _db = Manager.SharedInstance.GetDatabase("wpf-lite");
-            
+            _viewModel = new SimpleViewModel(new SimpleModel(Manager.SharedInstance, "wpf-lite"));
+            if (_viewModel.SyncURL != null)
+            {
+                UpdateReplications(_viewModel.SyncURL);
+            }
+
+            _viewModel.PropertyChanged += (sender, args) =>
+            {
+                Console.WriteLine("Replication URL changed to {0}", _viewModel.SyncURL);
+                UpdateReplications(_viewModel.SyncURL);
+            };
+
             var view = _db.GetView("todos");
 
             if (view.Map == null)
             {
                 view.SetMap((props, emit) =>
                 {
-                    Console.WriteLine("Mapper mapping");
-                    emit(DateTime.UtcNow.ToString(), props["text"]);
+                    object date;
+                    if (!props.TryGetValue(CREATION_DATE_PROPERTY_NAME, out date)) {
+                        return;
+                    }
+
+                    object deleted;
+                    if (props.TryGetValue("_deleted", out deleted)) {
+                        return;
+                    }
+
+                    emit(date, props["text"]);
                 }, "1");
             }
 
             _query = view.CreateQuery().ToLiveQuery();
             _query.Changed += QueryChanged;
-            _query.Completed += QueryCompleted;
             _query.Start();
-        }
-
-        private void QueryCompleted(object sender, QueryCompletedEventArgs e)
-        {
-            if (e.Rows.Count == 0)
-            {
-                var input = FindName("NewTodoBox") as TextBox;
-                input.Focus();
-            }
         }
 
         private void QueryChanged(object sender, QueryChangeEventArgs e)
         {
-            Console.WriteLine("Found {0} new rows", e.Rows.Count());
+            if (Todos.Count == e.Rows.Count) {
+                return;
+            }
+
+            Console.WriteLine("Query reports {0} rows", e.Rows.Count);
             UpdateDataContextSync(e.Rows);
         }
 
@@ -91,22 +140,21 @@ namespace Todo.WPF
         {
             // Insert a new doc.
             var props = new Dictionary<string, object>
-                {
-                    { "text", text ?? "Create a new todo!" },
-                    { "completed", false }
-                };
+            {
+                { DOCUMENT_DISPLAY_PROPERTY_NAME, text ?? "Create a new todo!" },
+                { CHECKBOX_PROPERTY_NAME, false },
+                { CREATION_DATE_PROPERTY_NAME, DateTime.Now }
+            };
+
             var doc = _db.CreateDocument();
-            var rev = doc.CreateRevision();
-            rev.SetProperties(props);
-            rev.Save();
+            doc.PutProperties(props);
         }
 
         private void UpdateDataContextSync(QueryEnumerator results)
         {
             var rows = results.Select(row => row.Document);
             Todos.Clear();
-            foreach (var row in rows)
-            {
+            foreach (var row in rows) {
                 Todos.Add(row);
             }
         }
@@ -121,13 +169,37 @@ namespace Todo.WPF
             CreateNewDocument(text);
             box.Clear();
         }
+
+        private void OnRowCheck(object sender, RoutedEventArgs e)
+        {
+            var checkBox = sender as CheckBox;
+            var doc = (Document)checkBox.DataContext;
+            doc.Update(rev =>
+            {
+                var props = rev.UserProperties;
+                var existingChecked = (bool)props[CHECKBOX_PROPERTY_NAME];
+                if (existingChecked == checkBox.IsChecked) {
+                    return false;
+                }
+
+                props[CHECKBOX_PROPERTY_NAME] = checkBox.IsChecked;
+                rev.SetUserProperties(props);
+                return true;
+            });
+        }
+
+        private void LaunchReplicationConfig(object sender, RoutedEventArgs e)
+        {
+            var window = new ConfigWindow(_viewModel);
+            window.ShowDialog();
+        }
     }
 
     public class DocumentToTextConverter: IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            if (targetType == typeof(String))
+            if (targetType == typeof(String) || targetType == typeof(bool?))
                 return ((Document)value).GetProperty(parameter.ToString());
             else
                 throw new NotImplementedException();

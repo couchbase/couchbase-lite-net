@@ -61,8 +61,8 @@ namespace Couchbase.Lite.Listener
         {
             return PerformLogicWithDatabase(context, true, db =>
             {
-                int numDocs = db.DocumentCount;
-                long updateSequence = db.LastSequenceNumber;
+                int numDocs = db.GetDocumentCount();
+                long updateSequence = db.GetLastSequenceNumber();
                 if (numDocs < 0 || updateSequence < 0) {
                     return context.CreateResponse(StatusCode.DbError);
                 }
@@ -74,7 +74,7 @@ namespace Couchbase.Lite.Listener
                     { "update_seq", updateSequence },
                     { "committed_update_seq", updateSequence },
                     { "purge_seq", 0 }, //TODO: Implement
-                    { "disk_size", db.TotalDataSize },
+                    { "disk_size", db.GetTotalDataSize() },
                     { "start_time", db.StartTime * 1000 }
                 });
 
@@ -146,7 +146,7 @@ namespace Couchbase.Lite.Listener
         {
             return PerformLogicWithDatabase(context, true, db =>
             {
-                if(context.CacheWithEtag(db.LastSequenceNumber.ToString())) {
+                if(context.CacheWithEtag(db.GetLastSequenceNumber().ToString())) {
                     return context.CreateResponse(StatusCode.NotModified);
                 }
 
@@ -304,7 +304,7 @@ namespace Couchbase.Lite.Listener
                 var response = context.CreateResponse();
                 responseState.Response = response;
                 if (context.ChangesFeedMode < ChangesFeedMode.Continuous) {
-                    if(context.CacheWithEtag(db.LastSequenceNumber.ToString())) {
+                    if(context.CacheWithEtag(db.GetLastSequenceNumber().ToString())) {
                         response.InternalStatus = StatusCode.NotModified;
                         return response;
                     }
@@ -473,7 +473,7 @@ namespace Couchbase.Lite.Listener
 
             return PerformLogicWithDatabase(context, true, db =>
             {
-                if (context.CacheWithEtag(db.LastSequenceNumber.ToString())) {
+                if (context.CacheWithEtag(db.GetLastSequenceNumber().ToString())) {
                     response.InternalStatus = StatusCode.NotModified;
                     return response;
                 }
@@ -710,7 +710,7 @@ namespace Couchbase.Lite.Listener
                 { "rows", result },
                 { "total_rows", result.Count },
                 { "offset", options.Skip },
-                { "update_seq", options.UpdateSeq ? (object)db.LastSequenceNumber : null }
+                { "update_seq", options.UpdateSeq ? (object)db.GetLastSequenceNumber() : null }
             });
             return response;
         }

@@ -224,6 +224,11 @@ namespace Couchbase.Lite
         /// <value>The sequence number.</value>
         public Int64 SequenceNumber { get; private set; }
 
+        /// <summary>
+        /// Returns the value of the QueryRow and interprets it as the given type
+        /// </summary>
+        /// <returns>The value of the QueryRow and interprets it as the given type.</returns>
+        /// <typeparam name="T">The type to interpret the result as</typeparam>
         public T ValueAs<T>()
         {
             var value = _parsedValue;

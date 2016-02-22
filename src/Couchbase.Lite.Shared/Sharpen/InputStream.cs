@@ -48,9 +48,7 @@ namespace Sharpen
 
     internal class InputStream : IDisposable
     {
-        private long mark;
         internal Stream Wrapped;
-        protected Stream BaseStream;
 
         public static implicit operator InputStream (Stream s)
         {
@@ -89,18 +87,6 @@ namespace Sharpen
             // Always create a wrapper stream (not directly Wrapped) since the subclass
             // may be overriding methods that need to be called when used through the Stream class
             return new WrappedSystemStream (this);
-        }
-
-        public virtual void Mark (int readlimit)
-        {
-            if (Wrapped is WrappedSystemStream)
-                ((WrappedSystemStream)Wrapped).InputStream.Mark (readlimit);
-            else {
-                if (BaseStream is WrappedSystemStream)
-                    ((WrappedSystemStream)BaseStream).OnMark (readlimit);
-                if (Wrapped != null)
-                    this.mark = Wrapped.Position;
-            }
         }
         
         public virtual bool MarkSupported ()
@@ -142,17 +128,6 @@ namespace Sharpen
                 totalRead++;
             }
             return totalRead;
-        }
-
-        public virtual void Reset ()
-        {
-            if (Wrapped is WrappedSystemStream)
-                ((WrappedSystemStream)Wrapped).InputStream.Reset ();
-            else {
-                if (Wrapped == null)
-                    throw new IOException ();
-                Wrapped.Position = mark;
-            }
         }
 
         public virtual long Skip (long cnt)

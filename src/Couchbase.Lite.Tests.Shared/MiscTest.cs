@@ -50,6 +50,8 @@ using System.Net.Http;
 using System.Collections.Generic;
 using System;
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Store;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -60,21 +62,38 @@ namespace Couchbase.Lite
         public MiscTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestNetworkAvailabilityChanged()
+        {
+            var countdown = 2;
+            var handler = new NetworkReachabilityManager();
+            handler.StatusChanged += (sender, args) => {
+                if(args.Status == NetworkReachabilityStatus.Reachable) {
+                    countdown -= 1;
+                }
+            };
+
+            handler.InvokeNetworkChangeEvent(NetworkReachabilityStatus.Unreachable);
+            handler.InvokeNetworkChangeEvent(NetworkReachabilityStatus.Reachable);
+            handler.InvokeNetworkChangeEvent(NetworkReachabilityStatus.Reachable);
+            Assert.AreEqual(0, countdown);
+        }
+
+        [Test]
         public void TestServerVersionParsing()
         {
             var oldVersion = new RemoteServerVersion("Couchbase Sync Gateway/1.1.0");
             Assert.IsTrue(oldVersion.IsSyncGateway);
             Assert.AreEqual("Couchbase Sync Gateway", oldVersion.Name);
             Assert.AreEqual("1.1.0", oldVersion.Version);
-            Assert.IsNullOrEmpty(oldVersion.Branch);
-            Assert.IsNullOrEmpty(oldVersion.Commit);
+            Assert.AreEqual(String.Empty, oldVersion.Branch);
+            Assert.AreEqual(String.Empty, oldVersion.Commit);
 
             var nonSGVersion = new RemoteServerVersion("CouchDB/1.6.1");
             Assert.IsFalse(nonSGVersion.IsSyncGateway);
             Assert.AreEqual("CouchDB", nonSGVersion.Name);
             Assert.AreEqual("1.6.1", nonSGVersion.Version);
-            Assert.IsNullOrEmpty(nonSGVersion.Branch);
-            Assert.IsNullOrEmpty(nonSGVersion.Commit);
+            Assert.AreEqual(String.Empty, nonSGVersion.Branch);
+            Assert.AreEqual(String.Empty, nonSGVersion.Commit);
 
             var newVersion = new RemoteServerVersion("Couchbase Sync Gateway/1.2 branch/fix/server_header commit/5bfcf79");
             Assert.IsTrue(newVersion.IsSyncGateway);
@@ -111,6 +130,17 @@ namespace Couchbase.Lite
             string expected = "attachment; filename=attach";
             string result = Misc.UnquoteString(testString);
             Assert.AreEqual(expected, result);
+        }
+
+        [Test]
+        public void TestForestDBViewNameEscaping()
+        {
+            var invalidName = "#@vuName!!/crazy:Ãû";
+            var escapedName = ForestDBViewStore.ViewNameToFilename(invalidName);
+            Assert.AreEqual("@23@40vuName@21@21@2fcrazy@3aÃû.viewindex", escapedName);
+
+            var unescapedName = ForestDBViewStore.FileNameToViewName(escapedName);
+            Assert.AreEqual(invalidName, unescapedName);
         }
 
         [Test]

@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using Android.App;
 using Android.Content;
-using Android.Views;
-using Android.Widget;
+using Android.Net.Wifi;
 using Android.OS;
 using Android.Preferences;
 using Android.Util;
-using CouchbaseSample.Android.Helper;
+using Android.Views;
+using Android.Widget;
 using Couchbase.Lite;
 using CouchbaseSample.Android.Document;
-using Org.Apache.Http.Conn;
-using Android.Net;
-using Android.Net.Wifi;
+using CouchbaseSample.Android.Helper;
+using System.Linq;
+using Couchbase.Lite.Store;
 
 namespace SimpleAndroidSync
 {
@@ -27,13 +28,24 @@ namespace SimpleAndroidSync
         Replication Pull { get; set; }
         Replication Push { get; set; }
 
+        private ListView listView;
+
         protected override void OnCreate (Bundle bundle)
         {
             base.OnCreate (bundle);
 
             RequestWindowFeature(WindowFeatures.IndeterminateProgress);
 
-            Database = Manager.SharedInstance.GetDatabase(Tag.ToLower());
+            var opts = new DatabaseOptions();
+            opts.Create = true;
+
+			// To use this feature, add the Couchbase.Lite.Storage.ForestDB nuget package
+            opts.StorageType = DatabaseOptions.FORESTDB_STORAGE;
+
+			// To use this feature add the Couchbase.Lite.Storage.SQLCipher nuget package,
+			// or uncomment the above line and add the Couchbase.Lite.Storage.ForestDB package
+			//opts.EncryptionKey = new SymmetricKey("foo");
+            Database = Manager.SharedInstance.OpenDatabase(Tag.ToLower(), opts);
 
             Query = List.GetQuery(Database);
             Query.Completed += (sender, e) => 
@@ -70,7 +82,7 @@ namespace SimpleAndroidSync
             layout.AddView(newItemText);
 
             // Create our table
-            var listView = new ListView(this);
+            listView = new ListView(this);
             listView.LayoutParameters = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MatchParent, 
                 ViewGroup.LayoutParams.MatchParent);
@@ -112,6 +124,10 @@ namespace SimpleAndroidSync
             addMenu.SetShowAsAction(ShowAsAction.Always);
             addMenu.SetOnMenuItemClickListener(new DelegatedMenuItemListener(OnConfigClicked));
 
+            var cleanMenu = menu.Add("Clean");
+            cleanMenu.SetShowAsAction(ShowAsAction.Always);
+            cleanMenu.SetOnMenuItemClickListener(new DelegatedMenuItemListener(OnCleanClicked));
+
             return true;
         }
 
@@ -122,14 +138,22 @@ namespace SimpleAndroidSync
             return true;
         }
 
+        private bool OnCleanClicked(IMenuItem menuItem)
+        {
+            ((ListLiveQueryAdapter)listView.Adapter).Clean();
+            return true;
+        }
+
         private void AddItem(string text)
         {
+            var jsonDate = DateTime.UtcNow.ToString ("o"); // ISO 8601 date/time format.
             var doc = Database.CreateDocument();
             var props = new Dictionary<string, object>
             {
+                { "created_at", jsonDate },
                 { "type", "list" },
                 { "text", text },
-                { "checked", false}
+                { "check", false}
             };
             doc.PutProperties(props);
         }
@@ -213,25 +237,40 @@ namespace SimpleAndroidSync
                         Resource.Layout.ListItemView, null);
                 }
 
-                var document = this[position];
+                var queryRow = this[position];
 
                 var text = view.FindViewById<TextView>(Resource.Id.text);
-                text.Text = (string)document.GetProperty("text");
+                text.Text = (string)queryRow.Key;
 
-                var checkBox = view.FindViewById<CheckBox>(Resource.Id.check);
-                var isChecked = (bool)document.GetProperty("checked");
+                var checkBox = view.FindViewById<ContextCheckBox>(Resource.Id.check);
+                checkBox.DataContext = queryRow;
+
+                var isChecked = Convert.ToBoolean(queryRow.Value);
+                checkBox.Click -= OnClick;
                 checkBox.Checked = isChecked;
-                checkBox.Click += (object sender, EventArgs e) => 
-                {
-                    var props = new Dictionary<string, object>(document.Properties);
-                    if ((bool)props["checked"] != checkBox.Checked)
-                    {
-                        props["checked"] = checkBox.Checked;
-                        document.PutProperties(props);
-                    }
-                };
+                checkBox.Click += OnClick;
 
                 return view;
+            }
+
+            private void OnClick(object sender, EventArgs e)
+            {
+                var checkBox = sender as ContextCheckBox;
+                var dataSource = checkBox.DataContext as QueryRow;
+                if (Convert.ToBoolean(dataSource.Value) != checkBox.Checked)
+                {
+                    var props = dataSource.Document.Properties;
+                    props["check"] = checkBox.Checked;
+                    dataSource.Document.PutProperties(props);
+                }
+            }
+
+            public void Clean()
+            {
+                var checkedRows = base.enumerator.Where(row => row.ValueAs<bool>()).Select(row => row.Document);
+                foreach (var checkedRow in checkedRows) {
+                    checkedRow.Delete();
+                }
             }
         }
     }

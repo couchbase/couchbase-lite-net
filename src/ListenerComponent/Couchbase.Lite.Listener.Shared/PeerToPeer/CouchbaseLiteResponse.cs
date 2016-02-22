@@ -230,52 +230,54 @@ namespace Couchbase.Lite.Listener
         public bool WriteToContext()
         {
             bool syncWrite = true;
-            if (JsonBody != null) {
-                if (!Chunked && !Headers.ContainsKey("Content-Type")) {
-                    var accept = _requestHeaders["Accept"];
-                    if (accept != null) {
-                        if (accept.Contains("*/*") || accept.Contains("application/json")) {
-                            _responseWriter.AddHeader("Content-Type", "application/json");
-                        } else if (accept.Contains("text/plain")) {
-                            _responseWriter.AddHeader("Content-Type", "text/plain; charset=utf-8");
-                        } else {
-                            Reset();
-                            _responseWriter.AddHeader("Content-Type", "application/json");
-                            InternalStatus = StatusCode.NotAcceptable;
+            if (_requestMethod != "HEAD") { 
+                if (JsonBody != null) {
+                    if (!Chunked && !Headers.ContainsKey("Content-Type")) {
+                        var accept = _requestHeaders["Accept"];
+                        if (accept != null) {
+                            if (accept.Contains("*/*") || accept.Contains("application/json")) {
+                                _responseWriter.AddHeader("Content-Type", "application/json");
+                            } else if (accept.Contains("text/plain")) {
+                                _responseWriter.AddHeader("Content-Type", "text/plain; charset=utf-8");
+                            } else {
+                                Reset();
+                                _responseWriter.AddHeader("Content-Type", "application/json");
+                                InternalStatus = StatusCode.NotAcceptable;
+                            }
                         }
                     }
-                }
                     
-                var json = JsonBody.AsJson().ToArray();
-                if (!Chunked) {
-                    _responseWriter.ContentEncoding = Encoding.UTF8;
-                    _responseWriter.ContentLength = json.Length;
-                }
-
-                if(!WriteToStream(json)) {
-                    return false;
-                }
-            } else if (BinaryBody != null) {
-                this["Content-Type"] = BaseContentType;
-                _responseWriter.ContentEncoding = Encoding.UTF8;
-                var data = BinaryBody.ToArray();
-                if (!Chunked) {
-                    _responseWriter.ContentLength = data.LongLength;
-                }
-
-                if (!WriteToStream(data)) {
-                    return false;
-                }
-            } else if (MultipartWriter != null) {
-                MultipartWriter.WriteAsync(_responseWriter.OutputStream).ContinueWith(t =>
-                {
-                    if(t.IsCompleted && t.Result) {
-                        TryClose();
-                    } else {
-                        Log.I(TAG, "Multipart async write did not finish properly");
+                    var json = JsonBody.AsJson().ToArray();
+                    if (!Chunked) {
+                        _responseWriter.ContentEncoding = Encoding.UTF8;
+                        _responseWriter.ContentLength = json.Length;
                     }
-                });
-                syncWrite = false;
+
+                    if(!WriteToStream(json)) {
+                        return false;
+                    }
+                } else if (BinaryBody != null) {
+                    this["Content-Type"] = BaseContentType;
+                    _responseWriter.ContentEncoding = Encoding.UTF8;
+                    var data = BinaryBody.ToArray();
+                    if (!Chunked) {
+                        _responseWriter.ContentLength = data.LongLength;
+                    }
+
+                    if (!WriteToStream(data)) {
+                        return false;
+                    }
+                } else if (MultipartWriter != null) {
+                    MultipartWriter.WriteAsync(_responseWriter.OutputStream).ContinueWith(t =>
+                    {
+                        if(t.IsCompleted && t.Result) {
+                            TryClose();
+                        } else {
+                            Log.I(TAG, "Multipart async write did not finish properly");
+                        }
+                    });
+                    syncWrite = false;
+                }
             }
 
             if (syncWrite) {

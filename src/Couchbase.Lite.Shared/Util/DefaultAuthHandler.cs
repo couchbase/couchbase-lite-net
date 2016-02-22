@@ -62,7 +62,6 @@ namespace Couchbase.Lite.Replicator
 
         #region Variables
 
-        private bool _chunkedMode = false;
         private object _locker = new object();
         private readonly CookieStore _cookieStore;
         private readonly ConcurrentDictionary<HttpResponseMessage, int> _retryMessages = new ConcurrentDictionary<HttpResponseMessage,int>();
@@ -78,9 +77,8 @@ namespace Couchbase.Lite.Replicator
 
         #region Constructors
 
-        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore, bool chunkedMode)
+        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore)
         {
-            _chunkedMode = chunkedMode;
             _cookieStore = cookieStore;
             InnerHandler = context;
         }
@@ -136,7 +134,7 @@ namespace Couchbase.Lite.Replicator
 
         protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if(request.Content != null) {
+            if(request.Content != null && !(request.Content is CompressedContent)) {
                 // This helps work around .NET 3.5's tendency to read from filestreams
                 // multiple times (the second time will be zero length since the filestream
                 // is already at the end)

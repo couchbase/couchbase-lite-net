@@ -19,7 +19,6 @@
 // limitations under the License.
 //
 #if FORESTDB
-
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -158,7 +157,13 @@ namespace Couchbase.Lite.Store
 
         static ForestDBCouchStore()
         {
-            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (659bfa836d49e141229253a3da06f3aae68d5954))");
+            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (a1925dea1bb414786817e349aea56202878a27a8))");
+            try {
+                // Pick a function with no side effects to test
+                Native.c4rev_getGeneration("1-111111111111111111");
+            } catch(DllNotFoundException) {
+                Log.W(TAG, "WARNING: ForestDB Native components missing");
+            }
         }
 
         public ForestDBCouchStore()
@@ -194,6 +199,11 @@ namespace Couchbase.Lite.Store
         #endregion
 
         #region Private Methods
+
+        private CBForestHistoryEnumerator GetHistoryFromSequence(long sequence)
+        {
+            return new CBForestHistoryEnumerator(Forest, sequence, true);
+        }
 
         private long[] GetLastSequenceNumbers()
         {
@@ -412,6 +422,11 @@ namespace Couchbase.Lite.Store
         private void SelectCurrentRevision(CBForestDocStatus status)
         {
             ForestDBBridge.Check(err => Native.c4doc_selectCurrentRevision(status.GetDocument()));
+        }
+
+        private void LoadRevisionBody(CBForestDocStatus status)
+        {
+            ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(status.GetDocument(), err));
         }
 
         private IDictionary<string, object> GetAllDocsEntry(string docId)
@@ -669,13 +684,13 @@ namespace Couchbase.Lite.Store
             {
                 var enumerator = new CBForestHistoryEnumerator(doc, false);
                 foreach(var next in enumerator) {
-                    if(ancestorRevIds != null && ancestorRevIds.Contains((string)next.SelectedRev.revID)) {
-                        break;
-                    }
-
                     var newRev = new RevisionInternal(next.GetDocument(), false);
                     newRev.SetMissing(!Native.c4doc_hasRevisionBody(next.GetDocument()));
                     history.Add(newRev);
+
+                    if(ancestorRevIds != null && ancestorRevIds.Contains((string)next.SelectedRev.revID)) {
+                        break;
+                    }
                 }
             });
 
@@ -751,8 +766,8 @@ namespace Couchbase.Lite.Store
                     var conflicts = default(IList<string>);
                     if (options.AllDocsMode >= AllDocsMode.ShowConflicts && next.IsConflicted) {
                         SelectCurrentRevision(next);
-                        ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(next.GetDocument(), err));
-                        using (var innerEnumerator = new CBForestHistoryEnumerator(next, true, false)) {
+                        LoadRevisionBody(next);
+                        using (var innerEnumerator = GetHistoryFromSequence(next.Sequence)) {
                             conflicts = innerEnumerator.Select(x => (string)x.SelectedRev.revID).ToList();
                         }
 
@@ -1163,7 +1178,7 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<string> GetAllViews()
         {
-            return System.IO.Directory.EnumerateFiles(Directory, "*."+ForestDBViewStore.VIEW_INDEX_PATH_EXTENSION).
+            return System.IO.Directory.GetFiles(Directory, "*."+ForestDBViewStore.VIEW_INDEX_PATH_EXTENSION).
                 Select(x => ForestDBViewStore.FileNameToViewName(Path.GetFileName(x)));
         }
 

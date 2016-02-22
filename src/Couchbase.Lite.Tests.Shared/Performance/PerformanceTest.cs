@@ -370,6 +370,7 @@ namespace Couchbase.Lite
 
                 return true;
             });
+            Assert.IsTrue(success, "Transaction failed");
 
             var remote = GetReplicationURL();
             var repl = database.CreatePushReplication(remote);
@@ -405,8 +406,8 @@ namespace Couchbase.Lite
                     try {
                         doc.PutProperties(props);
                         docs[i] = doc;
-                    } catch(CouchbaseLiteException e) {
-                        Log.E(TAG, "Document creation failed");
+                    } catch(Exception e) {
+                        Log.E(TAG, "Document creation failed", e);
                         return false;
                     }
                 }

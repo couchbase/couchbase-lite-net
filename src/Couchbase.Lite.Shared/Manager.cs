@@ -80,11 +80,10 @@ namespace Couchbase.Lite
         /// The version of Couchbase Lite that is running
         /// </summary>
         public static readonly string VersionString;
-        private const string TAG = "Manager";
 
-        /// <summary>
-        /// The error domain used for HTTP status codes.
-        /// </summary>
+        internal static readonly string PLATFORM = Platform.Name;
+
+        private const string TAG = "Manager";
         private const string HttpErrorDomain = "CBLHTTP";
 
         internal const string DatabaseSuffixv0 = ".touchdb";
@@ -173,15 +172,19 @@ namespace Couchbase.Lite
                 }
             }
 
-            #if !OFFICIAL
-            VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
-            #else
+
             var colonPos = gitVersion.IndexOf(':');
+            var branchName = "no branch";
             if(colonPos != -1) {
+                branchName = gitVersion.Substring(0, colonPos);
                 gitVersion = gitVersion.Substring(colonPos + 2);
             }
 
-            VersionString = String.Format("1.1.1 ({0})", gitVersion.TrimEnd());
+            #if !OFFICIAL
+            VersionString = String.Format(".NET {0}/{1} Unofficial ({2})/{3}", PLATFORM, Platform.Architecture, branchName.Replace('/', '\\'), 
+                gitVersion.TrimEnd());
+            #else
+            VersionString = String.Format(".NET {0}/{1} 1.2/{2}", PLATFORM, Platform.Architecture, gitVersion.TrimEnd());
             #endif
 
             Log.I(TAG, "Starting Manager version: " + VersionString);
@@ -246,9 +249,8 @@ namespace Couchbase.Lite
             workExecutor = new TaskFactory(new SingleTaskThreadpoolScheduler());
             Log.D(TAG, "New Manager uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
 
-            this.NetworkReachabilityManager = new NetworkReachabilityManager();
-
-            SharedCookieStore = new CookieStore(this.directoryFile.FullName);
+            _networkReachabilityManager = new NetworkReachabilityManager();
+            _networkReachabilityManager.StartListening();
             StorageType = "SQLite";
         }
 
@@ -305,7 +307,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Close() 
         {
-            Log.D(TAG, "Closing " + this);
+            _networkReachabilityManager.StopListening();
             foreach (var database in databases.Values.ToArray()) {
                 var replicators = database.AllReplications;
 
@@ -477,7 +479,7 @@ namespace Couchbase.Lite
                     }
 
                     using (var destStream = File.OpenWrite(path)) {
-                        if (entry.CompressedSize > 0) {
+                        if (entry.CompressedSize != 0) {
                             zipStream.CopyTo(destStream);
                         }
                     }
@@ -539,13 +541,13 @@ namespace Couchbase.Lite
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;
         private readonly List<Replication> replications;
+        private readonly NetworkReachabilityManager _networkReachabilityManager;
         internal readonly TaskFactory workExecutor;
 
         // Instance Properties
         internal TaskFactory CapturedContext { get; private set; }
         internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
-        internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
-        internal CookieStore SharedCookieStore { get; set; } 
+        internal INetworkReachabilityManager NetworkReachabilityManager { get { return _networkReachabilityManager; } }
         internal SharedState Shared { get; private set; }
 
         // Instance Methods
@@ -603,6 +605,11 @@ namespace Couchbase.Lite
             }
         }
 
+        private bool ContainsExtension(string name)
+        {
+            return DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES.Any(x => name.Contains(x));
+        }
+
         private Tuple<string, string> GetDbNameAndExtFromZip(Stream compressedStream) {
             string dbName = null;
             string extension = null;
@@ -611,7 +618,7 @@ namespace Couchbase.Lite
                 while ((next = zipStream.GetNextEntry()) != null) {
                     var fileInfo = next.IsDirectory ? 
                         (FileSystemInfo)new DirectoryInfo(next.Name) : (FileSystemInfo)new FileInfo(next.Name);
-                    if (DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES.Contains(fileInfo.Extension.TrimStart('.'))) {
+                    if (ContainsExtension(fileInfo.Name)) {
                         dbName = Path.GetFileNameWithoutExtension(fileInfo.Name);
                         extension = Path.GetExtension(fileInfo.Name);
                         break;

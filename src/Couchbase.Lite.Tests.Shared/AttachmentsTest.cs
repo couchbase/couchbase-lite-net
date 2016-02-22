@@ -214,6 +214,7 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("This test is only valid for a SQLite based store, since any others will be too new to see this issue");
             }
 
+            var authorizationHeader = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes("jim:borden")));
             using (var client = new HttpClient()) {
                 var couchDbUri = String.Format("http://{0}:5984/", GetReplicationServer());
 
@@ -224,8 +225,9 @@ namespace Couchbase.Lite
                     Assert.Inconclusive("Apache CouchDB not running");
                 }
 
-                var dbName = "a" + Misc.CreateGUID();
+                var dbName = "a" + Guid.NewGuid();
                 var putRequest = new HttpRequestMessage(HttpMethod.Put, new Uri(couchDbUri + dbName));
+                putRequest.Headers.Authorization = authorizationHeader;
                 var response = client.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
@@ -281,6 +283,7 @@ namespace Couchbase.Lite
                 var baseEndpoint = String.Format("http://{0}:5984/{1}/{2}", GetReplicationServer(), dbName, docName);
                 var endpoint = baseEndpoint;
                 putRequest = new HttpRequestMessage(HttpMethod.Put, new Uri(endpoint));
+                putRequest.Headers.Authorization = authorizationHeader;
                 putRequest.Content = new StringContent("{\"foo\":false}");
                 putRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
                 response = client.SendAsync(putRequest).Result;
@@ -296,6 +299,7 @@ namespace Couchbase.Lite
                 putRequest = new HttpRequestMessage(HttpMethod.Put, new Uri(endpoint));
                 putRequest.Content = new ByteArrayContent(baos.ToArray());
                 putRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+                putRequest.Headers.Authorization = authorizationHeader;
                 baos.Dispose();
                 response = client.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
@@ -304,6 +308,7 @@ namespace Couchbase.Lite
                 putRequest = new HttpRequestMessage(HttpMethod.Put, new Uri(endpoint));
                 putRequest.Content = new StringContent("{\"foo\":true,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}");
                 putRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                putRequest.Headers.Authorization = authorizationHeader;
                 response = client.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
@@ -315,6 +320,7 @@ namespace Couchbase.Lite
                 putRequest = new HttpRequestMessage(HttpMethod.Put, new Uri(endpoint));
                 putRequest.Content = new StringContent("{\"foo\":false,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}");
                 putRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                putRequest.Headers.Authorization = authorizationHeader;
                 response = client.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
@@ -332,6 +338,7 @@ namespace Couchbase.Lite
                 Assert.AreEqual("md5-ks1IBwCXbuY7VWAO9CkEjA==", attachmentDict["digest"]);
 
                 var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, baseEndpoint + "/attachment?rev=4-a91f8875144c6162874371c07a08ea17");
+                deleteRequest.Headers.Authorization = authorizationHeader;
                 response = client.SendAsync(deleteRequest).Result;
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
@@ -344,6 +351,7 @@ namespace Couchbase.Lite
                 putRequest = new HttpRequestMessage(HttpMethod.Put, endpoint);
                 putRequest.Content = new ByteArrayContent(baos.ToArray());
                 putRequest.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+                putRequest.Headers.Authorization = authorizationHeader;
                 baos.Dispose();
                 response = client.SendAsync(putRequest).Result;
                 Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
@@ -362,6 +370,7 @@ namespace Couchbase.Lite
                 Assert.AreEqual("sha1-9ijdmMf0mK7c11WQPw7DBQcX5pE=", attachmentDict["digest"]);
 
                 deleteRequest = new HttpRequestMessage(HttpMethod.Delete, couchDbUri + dbName);
+                deleteRequest.Headers.Authorization = authorizationHeader;
                 response = client.SendAsync(deleteRequest).Result;
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             }

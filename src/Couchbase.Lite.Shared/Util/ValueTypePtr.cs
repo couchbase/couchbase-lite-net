@@ -69,6 +69,15 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
+        #region Overrides
+
+        public override string ToString()
+        {
+            return IsNull ? "<No Value>" : Value.ToString();
+        }
+
+        #endregion
+
     }
 }
 

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{0A88C2A7-7AD8-46F9-9D31-869E3466B791}"
 EndProject
@@ -44,11 +44,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ugly_net35", "Couchbase.Lit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "platform.net35.pinvoke_packaged_sqlcipher.anycpu", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net35.pinvoke_packaged_sqlcipher.anycpu.csproj", "{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cbforest-sharp.Net35", "Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net35\cbforest-sharp.Net35.csproj", "{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8555f0b6-3f1a-4c80-8ccb-3eed653d6242}*SharedItemsImports = 13
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{5aa87149-7173-42a0-8bbc-ac618b404d46}*SharedItemsImports = 13
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{81999cc3-2db5-42da-976f-20ef8ae047e1}*SharedItemsImports = 4
+		Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{7032fec5-bfbb-440e-97b0-139a8e54d1c5}*SharedItemsImports = 4
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{0a88c2a7-7ad8-46f9-9d31-869e3466b791}*SharedItemsImports = 13
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{146576de-ef8a-43ee-ad43-eaf81a2479a4}*SharedItemsImports = 4
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{ed22fdf0-b378-4950-9e59-681726ac02f6}*SharedItemsImports = 4
@@ -126,6 +129,14 @@ Global
 		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|Any CPU.Build.0 = release|Any CPU
 		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|anycpu.ActiveCfg = release|Any CPU
 		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|anycpu.Build.0 = release|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Debug|Any CPU.ActiveCfg = DebugFacade|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Debug|Any CPU.Build.0 = DebugFacade|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Debug|anycpu.ActiveCfg = Debug|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Debug|anycpu.Build.0 = Debug|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Release|Any CPU.ActiveCfg = ReleaseFacade|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Release|Any CPU.Build.0 = ReleaseFacade|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Release|anycpu.ActiveCfg = Release|Any CPU
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}.Release|anycpu.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -144,6 +155,7 @@ Global
 		{ED22FDF0-B378-4950-9E59-681726AC02F6} = {27CD854D-D0A5-4EA0-A997-04CE8EDD5095}
 		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
+		{7032FEC5-BFBB-440E-97B0-139A8E54D1C5} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

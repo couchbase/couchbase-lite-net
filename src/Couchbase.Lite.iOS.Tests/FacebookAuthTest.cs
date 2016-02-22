@@ -105,9 +105,6 @@ namespace Couchbase.Lite
 
                 var url = remoteDb.RemoteUri;
 
-                var cookieStore = new CookieStore(manager.Directory);
-                var httpClientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
-                manager.DefaultHttpClientFactory = httpClientFactory;
                 Replication replicator = database.CreatePushReplication(url);
                 replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(token);
 

@@ -55,13 +55,12 @@ namespace Couchbase.Lite {
 
         private int _count = -1;
         private readonly IEnumerable<QueryRow> _rows;
-        private IEnumerator<QueryRow> _enumerator;
+        private readonly IEnumerator<QueryRow> _enumerator;
+        private readonly Database _database;
 
         #endregion
 
         #region Properties
-
-        private Database Database { get; set; }
 
         /// <summary>
         /// Gets the number of rows in the <see cref="Couchbase.Lite.QueryEnumerator"/>.
@@ -89,7 +88,7 @@ namespace Couchbase.Lite {
         public bool Stale
         { 
             get { 
-                return SequenceNumber < Database.LastSequenceNumber; 
+                return SequenceNumber < _database.GetLastSequenceNumber(); 
             } 
         }
 
@@ -99,7 +98,7 @@ namespace Couchbase.Lite {
 
         internal QueryEnumerator (QueryEnumerator rows)
         {
-            Database = rows.Database;
+            _database = rows._database;
             _rows = rows._rows;
             _count = rows._count;
             _enumerator = _rows.GetEnumerator();
@@ -108,8 +107,9 @@ namespace Couchbase.Lite {
 
         internal QueryEnumerator (Database database, IEnumerable<QueryRow> rows, long lastSequence)
         {
-            Database = database;
+            _database = database;
             _rows = rows;
+            _count = rows.Count();
             _enumerator = rows.GetEnumerator();
             SequenceNumber = lastSequence;
         }
@@ -126,7 +126,7 @@ namespace Couchbase.Lite {
         [Obsolete("Use LINQ ElementAt")]
         public QueryRow GetRow(int index) {
             var row = _rows.ElementAt(index);
-            row.Database = Database; // Avoid multiple enumerations by doing this here instead of the constructor.
+            row.Database = _database; // Avoid multiple enumerations by doing this here instead of the constructor.
             return row;
         }
 
@@ -150,7 +150,7 @@ namespace Couchbase.Lite {
 
         public override int GetHashCode ()
         {
-            var idString = String.Format("{0}{1}{2}{3}", Database.DbDirectory, Count, SequenceNumber, Stale);
+            var idString = String.Format("{0}{1}{2}{3}", _database.DbDirectory, Count, SequenceNumber, Stale);
             return idString.GetHashCode ();
         }
 
@@ -167,7 +167,7 @@ namespace Couchbase.Lite {
         {
             get {
                 var retVal = _enumerator.Current;
-                retVal.Database = Database;
+                retVal.Database = _database;
                 return retVal;
             }
         }
@@ -179,7 +179,6 @@ namespace Couchbase.Lite {
 
         public void Dispose ()
         {
-            Database = null;
             _enumerator.Dispose();
         }
 

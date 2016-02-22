@@ -9,6 +9,7 @@ using CoreGraphics;
 using System.Drawing;
 using Couchbase.Lite;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Store;
 
 namespace CouchbaseSample
 {
@@ -34,6 +35,7 @@ namespace CouchbaseSample
     LiveQuery DoneQuery { get; set; }
 
     #region Initialization/Configuration
+
     public RootViewController () : base ("RootViewController", null)
     {
       Title = NSBundle.MainBundle.LocalizedString ("Grocery Sync", "Grocery Sync");
@@ -74,7 +76,7 @@ namespace CouchbaseSample
       case 960:
         backgroundImage = UIImage.FromBundle ("Default@2x");
         break;
-      case 1136:
+      default:
         backgroundImage = UIImage.FromBundle ("Default-568h@2x");
         break;
       }
@@ -89,13 +91,6 @@ namespace CouchbaseSample
       newLocation.Y = -65f;
             background.Frame = new CGRect(newLocation, background.Frame.Size);
 
-      // Handle iOS 7 specific code.
-      if (AppDelegate.CurrentSystemVersion < AppDelegate.iOS7) {
-        TableView.BackgroundColor = UIColor.Clear;
-        TableView.BackgroundView = null;
-        NavigationController.NavigationBar.TintColor = UIColor.FromRGB (0.564f, 0.0f, 0.015f);
-      }
-
       View.InsertSubviewBelow (background, View.Subviews [0]);
     }
 
@@ -109,7 +104,16 @@ namespace CouchbaseSample
 
     void InitializeDatabase ()
     {
-        var db = Manager.SharedInstance.GetDatabase ("grocery-sync");
+        var opts = new DatabaseOptions();
+
+        //To use this feature, add the Couchbase.Lite.Storage.ForestDB nuget package
+        //opts.StorageType = DatabaseOptions.FORESTDB_STORAGE;
+
+        // To use this feature, add either the Couchbase.Lite.Storage.SQLCipher nuget package
+        // or uncomment the above line and add the Couchbase.Lite.Storage.ForestDB nuget package
+        //opts.EncryptionKey = new SymmetricKey("foo");
+        opts.Create = true;
+        var db = Manager.SharedInstance.OpenDatabase ("grocery-sync", opts);
         if (db == null)
             throw new ApplicationException ("Could not create database");
 
@@ -151,7 +155,7 @@ namespace CouchbaseSample
 
     void InitializeCouchbaseSummaryView ()
     {
-            var view = Database.GetExistingView("Done") ?? Database.GetView ("Done");
+            var view = Database.GetView ("Done");
                 
             var mapBlock = new MapDelegate ((doc, emit) => 
                 {
@@ -159,7 +163,7 @@ namespace CouchbaseSample
                     doc.TryGetValue (CreationDatePropertyName, out date);
 
                     object checkedOff;
-                    doc.TryGetValue ("check", out checkedOff);
+                    doc.TryGetValue (CheckboxPropertyName, out checkedOff);
 
                     if (date != null) {
                        emit (new[] { checkedOff, date }, null);
@@ -306,9 +310,7 @@ namespace CouchbaseSample
     {
       var navController = ParentViewController as UINavigationController;
       var controller = new ConfigViewController ();
-      if (AppDelegate.CurrentSystemVersion >= AppDelegate.iOS7) {
-        controller.EdgesForExtendedLayout = UIRectEdge.None;
-      }
+      controller.EdgesForExtendedLayout = UIRectEdge.None;
       navController.PushViewController (controller, true);
     }
 
@@ -328,11 +330,17 @@ namespace CouchbaseSample
 
         Uri newRemoteUrl = null;
         var syncPoint = NSUserDefaults.StandardUserDefaults.StringForKey (ConfigViewController.SyncUrlKey);
+            if (pull != null && pull.RemoteUrl.AbsoluteUri == syncPoint)
+            {
+                return;
+            }
+
+            ForgetSync ();
         if (!String.IsNullOrWhiteSpace (syncPoint))
             newRemoteUrl = new Uri (syncPoint);
         else
             return;
-        ForgetSync ();
+        
 
         pull = Database.CreatePullReplication (newRemoteUrl);
             push = Database.CreatePushReplication (newRemoteUrl);
@@ -368,19 +376,14 @@ namespace CouchbaseSample
       Debug.WriteLine (String.Format ("Sync: {2} Progress: {0}/{1};", active.CompletedChangesCount - lastTotal, active.ChangesCount - lastTotal, active == push ? "Push" : "Pull"));
 
       var progress = (float)(active.CompletedChangesCount - lastTotal) / (float)(Math.Max (active.ChangesCount - lastTotal, 1));
-
-      if (AppDelegate.CurrentSystemVersion < AppDelegate.iOS7) {
-        ShowSyncStatusLegacy ();
-      } else {
-        ShowSyncStatus ();
-      }
+       ShowSyncStatus ();
 
             Debug.WriteLine (String.Format ("({0:F})", progress));
 
       if (active == pull) {
-        if (AppDelegate.CurrentSystemVersion >= AppDelegate.iOS7) Progress.TintColor = UIColor.White;
+        Progress.TintColor = UIColor.White;
       } else {
-        if (AppDelegate.CurrentSystemVersion >= AppDelegate.iOS7) Progress.TintColor = UIColor.LightGray;
+        Progress.TintColor = UIColor.LightGray;
       }
 
       Progress.Hidden = false;
@@ -457,8 +460,6 @@ namespace CouchbaseSample
 
     void ForgetSync ()
     {
-      var nctr = NSNotificationCenter.DefaultCenter;
-
       if (pull != null) {
         pull.Changed -= ReplicationProgress;
         pull.Stop();

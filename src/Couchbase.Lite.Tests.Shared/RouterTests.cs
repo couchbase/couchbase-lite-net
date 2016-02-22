@@ -571,7 +571,7 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
+                                    { "_rev", "1-cfdd78e822bbcbc25c91e9deb9537c4b" },
                                     { "message", "hi" }
                                 }
                             }
@@ -589,10 +589,10 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
+                                    { "_rev", "1-cfdd78e822bbcbc25c91e9deb9537c4b" },
                                     { "_revisions", new Dictionary<string, object> {
                                             { "start", 1L },
-                                            { "ids", new List<object> { "66d2a05927e5851025c6d204956afff4" } }
+                                            { "ids", new List<object> { "cfdd78e822bbcbc25c91e9deb9537c4b" } }
                                         }
                                     },
                                     { "message", "hi" }
@@ -750,9 +750,9 @@ namespace Couchbase.Lite
                                     { "_revisions", new Dictionary<string, object> {
                                             { "start", 3L },
                                             { "ids", new List<object> { 
-                                                    "849ef0cb3227570b179053f30435c834",
-                                                    "f4aa17f89f2d613c362f23148b74b794",
-                                                    "73f49cb1381a29e8d6d50e840c51cfa5"
+                                                    "69e1c04b38d144220169834e4a1d6b65",
+                                                    "641a9554032af9bcb2351b2780161a4d",
+                                                    "9c7ff8308d0c89a7f1fe0f4b683655c2"
                                                 } 
                                             }
                                         }

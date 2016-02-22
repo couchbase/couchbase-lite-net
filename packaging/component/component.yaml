@@ -10,13 +10,13 @@ source-url: https://github.com/couchbase/couchbase-lite-net
 documentation-url: http://developer.couchbase.com/mobile/develop/guides/couchbase-lite/native-api/index.html
 packages:
   "mobile":
-    - Couchbase.Lite, Version=1.1.1.1
+    - Couchbase.Lite, Version=1.2.0.3
 summary: A lightweight, document-oriented (NoSQL), syncable database engine.
 details: Details.md
 screenshots:
   - screenshots/screenshot1.png
 getting-started: GettingStarted.md
-version: "1.1.1"
+version: "1.2.0.3"
 skip_docs: true
 no_build: true
 is_shell: true

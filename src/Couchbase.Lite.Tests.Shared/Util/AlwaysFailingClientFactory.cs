@@ -46,6 +46,7 @@ using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Util;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -73,7 +74,7 @@ namespace Couchbase.Lite.Tests
             HttpHandler = new FailEveryRequestHandler();
         }
 
-        public HttpClient GetHttpClient(bool chunkedMode)
+        public HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
         {
             var mockHttpClient = new HttpClient(HttpHandler);
             return mockHttpClient;

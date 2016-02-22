@@ -129,7 +129,7 @@ namespace Sharpen
             if (manifestResourceStream == null) {
                 return null;
             }
-            return InputStream.Wrap (manifestResourceStream);
+            return manifestResourceStream;
         }
 
         

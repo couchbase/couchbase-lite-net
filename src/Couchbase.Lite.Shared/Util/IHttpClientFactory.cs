@@ -44,6 +44,7 @@ using System;
 using System.Net.Http;
 using System.Collections.Generic;
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Util;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -57,22 +58,10 @@ namespace Couchbase.Lite.Support
     /// An interface describing an object capable of creating and customizing 
     /// an HttpClient object
     /// </summary>
-    public interface IHttpClientFactory
+    internal interface IHttpClientFactory
     {
-        /// <summary>
-        /// Gets the HttpClient object for use in replication
-        /// </summary>
-        /// <param name="chunkedMode">A flag for chunked mode (i.e. the connection stays open for heartbeat, etc)</param>
-        /// <returns>The http client.</returns>
-        HttpClient GetHttpClient(bool chunkedMode);
-
-        /// <summary>
-        /// Gets the HttpClient object for use in replication
-        /// </summary>
-        /// <param name="chunkedMode">A flag for chunked mode (i.e. the connection stays open for heartbeat, etc)</param>
-        /// <param name="retry">A flag to enable/disable the retry handler</param>
-        /// <returns>The http client.</returns>
-        HttpClient GetHttpClient(bool chunkedMode, bool retry);
+        // Create an HTTP client based on the cookie store
+        HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler);
 
         /// <summary>
         /// Gets or sets the headers used by default in the HttpClient
@@ -84,26 +73,6 @@ namespace Couchbase.Lite.Support
         /// Gets the handler used in the HttpClient
         /// </summary>
         /// <value>The handler.</value>
-        HttpMessageHandler Handler { get; }
-
-        /// <summary>
-        /// Adds default cookies to the HttpClient
-        /// </summary>
-        /// <param name="cookies">The cookies to add</param>
-        void AddCookies(CookieCollection cookies);
-
-        /// <summary>
-        /// Deletes cookies from the HttpClient
-        /// </summary>
-        /// <param name="domain">The domain to search for the cookie</param>
-        /// <param name="name">The name of the cookie</param>
-        void DeleteCookie(Uri domain, string name);
-
-        /// <summary>
-        /// Gets the container holding the cookies for the HttpClient
-        /// </summary>
-        /// <returns>The cookie container.</returns>
-        CookieContainer GetCookieContainer();
+        MessageProcessingHandler Handler { get; }
     }
 }
-

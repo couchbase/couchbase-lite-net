@@ -59,7 +59,6 @@ namespace Couchbase.Lite.Listener.Tcp
 
         #endregion
 
-
         #region Constructors
 
         /// <summary>
@@ -82,7 +81,8 @@ namespace Couchbase.Lite.Listener.Tcp
             _manager = manager;
             _realm = realm;
             _listener = new HttpListener();
-            string prefix = String.Format("http://*:{0}/", port);
+            string prefix = options.HasFlag(CouchbaseLiteTcpOptions.UseTLS) ? String.Format("https://*:{0}/", port) :
+                String.Format("http://*:{0}/", port);
             _listener.Prefixes.Add(prefix);
             _allowBasicAuth = options.HasFlag(CouchbaseLiteTcpOptions.AllowBasicAuth);
         }
@@ -181,7 +181,13 @@ namespace Couchbase.Lite.Listener.Tcp
                 return;
             }
 
-            _listener.Start();
+            try {
+                _listener.Start();
+            } catch (HttpListenerException) {
+                throw new InvalidOperationException("The process cannot bind to the port.  Please use netsh to authorize the route as an administrator.  For " +
+                "more details see https://github.com/couchbase/couchbase-lite-net/wiki/Gotchas");
+            }
+
             _listener.GetContextAsync().ContinueWith((t) => ProcessContext(t.Result));
         }
 

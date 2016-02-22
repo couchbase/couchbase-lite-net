@@ -62,8 +62,6 @@ namespace Couchbase.Lite.Tests
     {
         const string Tag = "MockHttpClientFactory";
 
-        private readonly CookieStore cookieStore;
-
         public MockHttpRequestHandler HttpHandler { get; private set;}
 
         public MessageProcessingHandler Handler {
@@ -74,30 +72,25 @@ namespace Couchbase.Lite.Tests
 
         public IDictionary<string, string> Headers { get; set; }
 
-        public MockHttpClientFactory(bool defaultFail = true) : this (null, defaultFail) { }
+        public MockHttpClientFactory(bool defaultFail = true) : this(null, defaultFail){}
 
-        public MockHttpClientFactory(DirectoryInfo cookieStoreDirectory, bool defaultFail = true)
+        public MockHttpClientFactory(Database db, bool defaultFail = true)
         {
-            cookieStore = new CookieStore(cookieStoreDirectory != null 
-                ? cookieStoreDirectory.FullName
-                : null);
             HttpHandler = new MockHttpRequestHandler(defaultFail);
-            HttpHandler.CookieContainer = cookieStore;
+            HttpHandler.CookieContainer = new CookieStore(db, "MockHttpClient");
             HttpHandler.UseCookies = true;
-            HttpHandler.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+            HttpHandler.AutomaticDecompression = System.Net.DecompressionMethods.Deflate | System.Net.DecompressionMethods.GZip;
 
             Headers = new Dictionary<string,string>();
         }
 
-        public HttpClient GetHttpClient(bool chunkedMode)
+        public HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
         {
-            var client = new HttpClient(HttpHandler, false);
-
-            foreach(var header in Headers)
-            {
+            var handler = useRetryHandler ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler) : (HttpMessageHandler)HttpHandler;
+            var client = new HttpClient(handler, false);
+            foreach (var header in Headers) {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
-                if (!success)
-                {
+                if (!success) {
                     Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
                 }
             }
@@ -107,17 +100,17 @@ namespace Couchbase.Lite.Tests
 
         public void AddCookies(CookieCollection cookies)
         {
-            cookieStore.Add(cookies);
+            HttpHandler.CookieContainer.Add(cookies);
         }
 
         public void DeleteCookie(Uri uri, string name)
         {
-            cookieStore.Delete(uri, name);
+            (HttpHandler.CookieContainer as CookieStore).Delete(uri, name);
         }
 
         public CookieContainer GetCookieContainer()
         {
-            return cookieStore;
+            return HttpHandler.CookieContainer;
         }
     }
 }

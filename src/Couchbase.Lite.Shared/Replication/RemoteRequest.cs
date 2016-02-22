@@ -33,7 +33,7 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 
-using System;
+/*using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -68,6 +68,8 @@ namespace Couchbase.Lite.Replicator
         protected internal object body;
 
         protected internal IAuthenticator Authenticator { get; set; }
+
+        internal CookieStore CookieStore { get; set; }
 
 //        public event EventHandler<RemoteRequestEventArgs> WillComplete;
 
@@ -105,58 +107,10 @@ namespace Couchbase.Lite.Replicator
             Log.V(Tag, "RemoteRequest created, url: {0}", url);
         }
 
-        public virtual void Run()
-        {
-            Log.V(Tag, "{0}: RemoteRequest run() called, url: {1}".Fmt(this, url));
-
-            HttpClient httpClient = null;
-            var requestMessage = CreateConcreteRequest();
-
-                httpClient = clientFactory.GetHttpClient(false);
-                var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
-                if (challengeResponseAuth != null) {
-                    var authHandler = clientFactory.Handler as DefaultAuthHandler;
-                    if (authHandler != null) {
-                        authHandler.Authenticator = challengeResponseAuth;
-                    }
-
-                    challengeResponseAuth.PrepareWithRequest(requestMessage);
-                }
-                   
-                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
-                if (authHeader != null)
-                {
-                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
-                }
-
-                requestMessage.Headers.Add("Accept", "multipart/related, application/json");           
-                AddRequestHeaders(requestMessage);
-
-                SetBody(requestMessage);
-
-            ExecuteRequest(httpClient, requestMessage).ContinueWith(t => 
-            {
-                Log.V(Tag, "{0}: RemoteRequest run() finished, url: {1}".Fmt(this, url));
-                if(httpClient != null) {
-                    httpClient.Dispose();
-                }
-
-                requestMessage.Dispose();
-            });
-        }
-
         public virtual void Abort()
         {
             _tokenSource.Cancel();
             _tokenSource = new CancellationTokenSource();
-        }
-
-        protected internal void AddRequestHeaders(HttpRequestMessage request)
-        {
-            foreach (string requestHeaderKey in requestHeaders.Keys)
-            {
-                request.Headers.Add(requestHeaderKey, requestHeaders[requestHeaderKey].ToString());
-            }
         }
 
         public void OnEvent(EventHandler<RemoteRequestEventArgs> evt, Object result, Exception error)
@@ -192,6 +146,7 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 request.Content = entity;
+
             } else {
                 Log.W(Tag + ".SetBody", "No body found for this request to {0}", request.RequestUri);
             }
@@ -240,7 +195,8 @@ namespace Couchbase.Lite.Replicator
                     return tcs.Task;
                 }
                 Log.V(Tag, "{0}: RemoteRequest calling httpClient.execute", this);
-                response = httpClient.SendAsync(req, _tokenSource.Token).Result;
+                return httpClient.SendAsync(req, _tokenSource.Token).ContinueWith(t =>
+                {
 
                 Log.V(Tag, "{0}: RemoteRequest called httpClient.execute", this);
                 var status = response.StatusCode;
@@ -308,3 +264,4 @@ namespace Couchbase.Lite.Replicator
         }
     }
 }
+*/

@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite.Listener.Bonjour</id>
     <title>Couchbase Lite - Bonjour P2P Discovery Service</title>
-    <version>1.1.1</version>
+    <version>1.2.0.3</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,19 +12,21 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Enables Bonjour/DNS-SD Discovery for Peer-to-Peer Couchbase Lite applications.</description>
     <releaseNotes>
-      This package adds a component for consumption by Couchbase.Lite.Listener to enabled broadcast and browse
-      over Bonjour/DNS-SD.  The 1.1.1 release is a maintanence release on 1.1.0.  For full notes please refer to
-      https://github.com/couchbase/couchbase-lite-net/releases/tag/1.1.1
+      1.2.0.3 puts an upper limit on one of our deps due to an upstream change t
+      hat breaks binary compatibility.
+
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
     </releaseNotes>
-    <copyright>Copyright 2015</copyright>
+    <copyright>Copyright 2015-2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database bonjour dns-sd p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <dependency id="Couchbase.Lite" version="1.1.1.1" />
-      <dependency id="Couchbase.Lite.Listener" version="1.1.1" />
+      <dependency id="Couchbase.Lite" version="1.2.0.3" />
+      <dependency id="Couchbase.Lite.Listener" version="1.2.0.3" />
     </dependencies>
   </metadata>
   <files>
+    <file target="" src="packaging/nuget/readme.txt" />
     <file target="lib/net45" src="src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net45/bin/Release/Couchbase.Lite.Listener.Bonjour.*" />
     <file target="lib/MonoAndroid" src="src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Android/bin/Release/Couchbase.Lite.Listener.Bonjour.*" />
     <file target="lib/Xamarin.iOS10" src="src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.iOS/bin/Release/Couchbase.Lite.Listener.Bonjour.*" />

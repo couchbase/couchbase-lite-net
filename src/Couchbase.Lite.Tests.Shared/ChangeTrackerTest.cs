@@ -71,6 +71,7 @@ namespace Couchbase.Lite
 
         private class ChangeTrackerTestClient : IChangeTrackerClient
         {
+
             #region IChangeTrackerClient implementation
 
             public delegate void ChangeTrackerStoppedDelegate(ChangeTracker tracker);
@@ -87,10 +88,10 @@ namespace Couchbase.Lite
 
             public ChangeTrackerReceivedChangeDelegate ReceivedChangeDelegate { get; set; }
 
-            private CountDownLatch stoppedSignal;
-            private CountDownLatch changedSignal;
+            private CountdownEvent stoppedSignal;
+            private CountdownEvent changedSignal;
 
-            public ChangeTrackerTestClient(CountDownLatch stoppedSignal, CountDownLatch changedSignal)
+            public ChangeTrackerTestClient(CountdownEvent stoppedSignal, CountdownEvent changedSignal)
             {
                 this.stoppedSignal = stoppedSignal;
                 this.changedSignal = changedSignal;
@@ -106,7 +107,7 @@ namespace Couchbase.Lite
 
                 if (stoppedSignal != null)
                 {
-                    stoppedSignal.CountDown();
+                    stoppedSignal.Signal();
                 }
             }
 
@@ -119,7 +120,7 @@ namespace Couchbase.Lite
 
                 if (changedSignal != null)
                 {
-                    changedSignal.CountDown();
+                    changedSignal.Signal();
                 }
             }
 
@@ -142,9 +143,9 @@ namespace Couchbase.Lite
 
             #region IHttpClientFactory implementation
 
-            public HttpClient GetHttpClient(bool longPoll)
+            public HttpClient GetHttpClient()
             {
-                return HttpClientFactory.GetHttpClient(longPoll);
+                return HttpClientFactory.GetHttpClient(null, false);
             }
 
             public IDictionary<string, string> Headers
@@ -169,8 +170,8 @@ namespace Couchbase.Lite
 
         private void ChangeTrackerTestWithMode(ChangeTrackerMode mode)
         {
-            var changeTrackerFinishedSignal = new CountDownLatch(1);
-            var changeReceivedSignal = new CountDownLatch(1);
+            var changeTrackerFinishedSignal = new CountdownEvent(1);
+            var changeReceivedSignal = new CountdownEvent(1);
             var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, changeReceivedSignal);
 
             client.ReceivedChangeDelegate = (IDictionary<string, object> change) =>
@@ -191,28 +192,28 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
+            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, true, client, new TaskFactory(scheduler));
 
             changeTracker.Start();
 
-            var success = changeReceivedSignal.Await(TimeSpan.FromSeconds(30));
+            var success = changeReceivedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
 
             changeTracker.Stop();
 
-            success = changeTrackerFinishedSignal.Await(TimeSpan.FromSeconds(30));
+            success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
         }
 
         private void TestChangeTrackerBackoff(MockHttpClientFactory httpClientFactory)
         {
-            var changeTrackerFinishedSignal = new CountDownLatch(1);
+            var changeTrackerFinishedSignal = new CountdownEvent(1);
             var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, null);
             client.HttpClientFactory = httpClientFactory;
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, false, client, new TaskFactory(scheduler));
+            var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, true, false, client, new TaskFactory(scheduler));
 
             changeTracker.Start();
 
@@ -245,7 +246,7 @@ namespace Couchbase.Lite
 
             changeTracker.Stop();
 
-            var success = changeTrackerFinishedSignal.Await(TimeSpan.FromSeconds(30));
+            var success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
         }
 
@@ -266,8 +267,8 @@ namespace Couchbase.Lite
             string statusMessage,
             Int32 numExpectedChangeCallbacks) 
         {
-            var changeTrackerFinishedSignal = new CountDownLatch(1);
-            var changeReceivedSignal = new CountDownLatch(numExpectedChangeCallbacks);
+            var changeTrackerFinishedSignal = new CountdownEvent(1);
+            var changeReceivedSignal = new CountdownEvent(numExpectedChangeCallbacks);
             var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, changeReceivedSignal);
 
             MockHttpRequestHandler.HttpResponseDelegate sentinal = RunChangeTrackerTransientErrorDefaultResponder();
@@ -292,16 +293,16 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
+            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, true, client, new TaskFactory(scheduler));
 
             changeTracker.Start();
 
-            var success = changeReceivedSignal.Await(TimeSpan.FromSeconds(30));
+            var success = changeReceivedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
 
             changeTracker.Stop();
 
-            success = changeTrackerFinishedSignal.Await(TimeSpan.FromSeconds(30));
+            success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
         }
 
@@ -367,7 +368,7 @@ namespace Couchbase.Lite
         {
             var testURL = GetReplicationURL();
             var changeTracker = new ChangeTracker(testURL, ChangeTrackerMode
-                .LongPoll, 0, false, null);
+                .LongPoll, 0, false, true, null);
 
             var docIds = new List<string>();
             docIds.Add("doc1");

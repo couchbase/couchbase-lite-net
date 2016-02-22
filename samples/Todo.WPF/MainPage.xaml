@@ -13,6 +13,11 @@
         <mp:DocumentToTextConverter x:Key="DocToText" />
     </Page.Resources>
     <StackPanel Height="321" Margin="0,0,0,0" VerticalAlignment="Top">
+        <Menu Width="Auto" Height="20">
+            <MenuItem Header="Config">
+                <MenuItem Header="Replication..." Click="LaunchReplicationConfig" />
+            </MenuItem>
+        </Menu>
         <Grid>
             <TextBox TextWrapping="Wrap" VerticalAlignment="Top" KeyDown="TextBox_KeyDown" Name="NewTodoBox" />
             <TextBlock IsHitTestVisible="False" Text="Enter a todo item" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
@@ -31,8 +36,14 @@
         <ItemsControl Height="303" Margin="0,0,0,0" ItemsSource="{Binding Todos}" Name="items">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <!--<Label Content="{Binding Converter={StaticResource DocToText}, ConverterParameter='text'}" />-->
-                    <TextBlock Text="{Binding Converter={StaticResource DocToText}, ConverterParameter='text'}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="25" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Converter={StaticResource DocToText}, ConverterParameter='text', Mode=OneWay}" Grid.Column="0" />
+                        <CheckBox Grid.Column="1" Click="OnRowCheck" IsChecked="{Binding Converter={StaticResource DocToText}, ConverterParameter='check', Mode=OneTime}" />
+                    </Grid>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

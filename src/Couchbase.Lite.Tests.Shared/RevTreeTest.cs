@@ -91,7 +91,7 @@ namespace Couchbase.Lite
             revHistory.Add("2-abcd");
             revHistory.Add("1-abcd");
             database.ForceInsert(rev, revHistory, null);
-            Assert.AreEqual(1, database.DocumentCount);
+            Assert.AreEqual(1, database.GetDocumentCount());
 
             VerifyHistory(database, rev, revHistory);
             var conflict = new RevisionInternal("MyDocId", "5-abcd", false);
@@ -108,7 +108,7 @@ namespace Couchbase.Lite
             conflictHistory.Add("2-abcd");
             conflictHistory.Add("1-abcd");
             database.ForceInsert(conflict, conflictHistory, null);
-            Assert.AreEqual(1, database.DocumentCount);
+            Assert.AreEqual(1, database.GetDocumentCount());
             VerifyHistory(database, conflict, conflictHistory);
             
             // Add an unrelated document:
@@ -126,7 +126,7 @@ namespace Couchbase.Lite
             Assert.IsNull(rev2);
 
             // Make sure no duplicate rows were inserted for the common revisions:
-            Assert.IsTrue(database.LastSequenceNumber <= 8);
+            Assert.IsTrue(database.GetLastSequenceNumber() <= 8);
             // Make sure the revision with the higher revID wins the conflict:
             var current = database.GetDocument(rev.GetDocId(), null, 
                 true);

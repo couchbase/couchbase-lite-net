@@ -57,8 +57,12 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 
+
 #if !NET_3_5
 using StringEx = System.String;
+using System.Net;
+#else
+using System.Net.Couchbase;
 #endif
 
 namespace Couchbase.Lite.Replicator
@@ -143,7 +147,8 @@ namespace Couchbase.Lite.Replicator
                 ? ChangeTrackerMode.LongPoll 
                 : ChangeTrackerMode.OneShot;
 
-            _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
+            var initialSync = LocalDatabase.IsOpen && LocalDatabase.GetDocumentCount() == 0;
+            _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, initialSync, this, WorkExecutor);
             _changeTracker.Authenticator = Authenticator;
             if(DocIds != null) {
                 if(ServerType != null && ServerType.Name == "CouchDB") {
@@ -160,7 +165,21 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
-            _changeTracker.Start();
+            if (ServerType == null) {
+                var initialRequest = WebRequest.CreateHttp(RemoteUrl);
+                initialRequest.Method = "HEAD";
+                initialRequest.GetResponseAsync().ContinueWith(t =>
+                {
+                    var result = t.Result;
+                    ServerType = new RemoteServerVersion(result.Headers["Server"]);
+                    _changeTracker.UsePost = CheckServerCompatVersion("0.93");
+                    _changeTracker.Start();
+                });
+
+            } else {
+                _changeTracker.UsePost = CheckServerCompatVersion("0.93");
+                _changeTracker.Start();
+            }
         }
 
 
@@ -327,6 +346,11 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
+            if(!_canBulkGet) {
+                PullBulkWithAllDocs(bulkRevs);
+                return;
+            }
+
             Log.D(TAG, "{0} bulk-fetching {1} remote revisions...", this, nRevs);
             Log.V(TAG, "{0} bulk-fetching remote revisions: {1}", this, bulkRevs);
 
@@ -337,6 +361,7 @@ namespace Couchbase.Lite.Replicator
             try
             {
                 dl = new BulkDownloader(WorkExecutor, ClientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
+                dl.CookieStore = CookieContainer;
                 dl.DocumentDownloaded += (sender, args) =>
                 {
                     var props = args.DocumentProperties;
@@ -360,9 +385,14 @@ namespace Couchbase.Lite.Replicator
                         QueueDownloadedRevision(rev);
                     } else {
                         var status = StatusFromBulkDocsResponseItem(props);
-                        LastError = new CouchbaseLiteException(status.Code);
+                        Log.W(TAG, "Error downloading {0}", rev);
+                        var error = new CouchbaseLiteException(status.Code);
+                        LastError = error;
                         RevisionFailed();
                         SafeIncrementCompletedChangesCount();
+                        if(IsDocumentError(error)) {
+                            _pendingSequences.RemoveSequence(rev.GetSequence());
+                        }
                     }
                 };
 
@@ -389,7 +419,7 @@ namespace Couchbase.Lite.Replicator
                     }
 
                     SafeAddToCompletedChangesCount(remainingRevs.Count);
-
+                    LastSequence = _pendingSequences.GetCheckpointedValue();
                     --_httpConnectionCount;
 
                     PullRemoteRevisions();
@@ -399,8 +429,65 @@ namespace Couchbase.Lite.Replicator
             }
 
             dl.Authenticator = Authenticator;
-            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.None, WorkExecutor.Scheduler);
+            WorkExecutor.StartNew(dl.Start, CancellationTokenSource.Token, TaskCreationOptions.None, WorkExecutor.Scheduler);
         }
+
+        // Get as many revisions as possible in one _all_docs request.
+        // This is compatible with CouchDB, but it only works for revs of generation 1 without attachments.
+        private void PullBulkWithAllDocs(IList<RevisionInternal> bulkRevs)
+        {
+            // http://wiki.apache.org/couchdb/HTTP_Bulk_Document_API
+            ++_httpConnectionCount;
+
+            var remainingRevs = new List<RevisionInternal>(bulkRevs);
+            var keys = bulkRevs.Select(rev => rev.GetDocId()).ToArray();
+            var body = new Dictionary<string, object>();
+            body.Put("keys", keys);
+
+            SendAsyncRequest(HttpMethod.Post, "/_all_docs?include_docs=true", body, (result, e) =>
+            {
+                var res = result.AsDictionary<string, object>();
+                if(e != null) {
+                    LastError = e;
+                    RevisionFailed();
+                    SafeAddToCompletedChangesCount(bulkRevs.Count);
+                } else {
+                    // Process the resulting rows' documents.
+                    // We only add a document if it doesn't have attachments, and if its
+                    // revID matches the one we asked for.
+                    var rows = res.Get("rows").AsList<IDictionary<string, object>>();
+                    Log.V(TAG, "Checking {0} bulk-fetched remote revisions", rows.Count);
+
+                    foreach(var row in rows) {
+                        var doc = row.Get("doc").AsDictionary<string, object>();
+                        if(doc != null && doc.Get("_attachments") == null) {
+                            var rev = new RevisionInternal(doc);
+                            var pos = remainingRevs.IndexOf(rev);
+                            if(pos > -1) {
+                                rev.SetSequence(remainingRevs[pos].GetSequence());
+                                remainingRevs.RemoveAt(pos);
+                                QueueDownloadedRevision(rev);
+                            }
+                        }
+                    }
+                }
+
+                // Any leftover revisions that didn't get matched will be fetched individually:
+                if(remainingRevs.Count > 0) {
+                    Log.V(TAG, "Bulk-fetch didn't work for {0} of {1} revs; getting individually", remainingRevs.Count, bulkRevs.Count);
+                    foreach(var rev in remainingRevs) {
+                        QueueRemoteRevision(rev);
+                    }
+                    PullRemoteRevisions();
+                }
+
+                --_httpConnectionCount;
+
+                // Start another task if there are still revisions waiting to be pulled:
+                PullRemoteRevisions();
+            });
+        }
+
 
 		private bool ShouldRetryDownload(string docId)
         {
@@ -537,6 +624,12 @@ namespace Couchbase.Lite.Replicator
                         CompletedChangesCount + " -> " + (CompletedChangesCount + 1) 
                         + " due to error pulling remote revision");
                     SafeIncrementCompletedChangesCount();
+                    if(IsDocumentError(e as HttpResponseException)) {
+                        // Make sure this document is skipped because it is not available
+                        // even though the server is functioning
+                        _pendingSequences.RemoveSequence(rev.GetSequence());
+                        LastSequence = _pendingSequences.GetCheckpointedValue();
+                    }
                 } else {
                     var properties = result.AsDictionary<string, object>();
                     var gotRev = new PulledRevision(properties);
@@ -555,6 +648,25 @@ namespace Couchbase.Lite.Replicator
                 --_httpConnectionCount;
                 PullRemoteRevisions ();
             });
+        }
+
+        private static bool IsDocumentError(HttpResponseException e)
+        {
+            if (e == null) {
+                return false;
+            }
+
+            return e.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                e.StatusCode == System.Net.HttpStatusCode.Forbidden || e.StatusCode == System.Net.HttpStatusCode.Gone;
+        }
+
+        private static bool IsDocumentError(CouchbaseLiteException e)
+        {
+            if (e == null) {
+                return false;
+            }
+
+            return e.Code == StatusCode.NotFound || e.Code == StatusCode.Forbidden;
         }
 
         /// <summary>This will be called when _revsToInsert fills up:</summary>
@@ -642,8 +754,8 @@ namespace Couchbase.Lite.Replicator
 
         public override IDictionary<string, string> Headers 
         {
-            get { return clientFactory.Headers; } 
-            set { clientFactory.Headers = value; } 
+            get { return ClientFactory.Headers; } 
+            set { ClientFactory.Headers = value; } 
         }
 
         protected override void StopGraceful()
@@ -807,6 +919,11 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
+            var removed = change.Get("removed") != null;
+            if (removed) {
+                return;
+            }
+
             if (!Document.IsValidDocumentId(docID)) {
                 if (!docID.StartsWith("_user/", StringComparison.InvariantCultureIgnoreCase)) {
                     Log.W(TAG, string.Format("{0}: Received invalid doc ID from _changes: {1} ({2})", this, docID, Manager.GetObjectMapper().WriteValueAsString(change)));
@@ -855,9 +972,9 @@ namespace Couchbase.Lite.Replicator
             WorkExecutor.StartNew(() => ProcessChangeTrackerStopped(tracker));
         }
 
-        public HttpClient GetHttpClient(bool longPoll)
+        public HttpClient GetHttpClient()
         {
-            var client = ClientFactory.GetHttpClient(longPoll);
+            var client = ClientFactory.GetHttpClient(CookieContainer, false);
             var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
             if (challengeResponseAuth != null) {
                 var authHandler = ClientFactory.Handler as DefaultAuthHandler;

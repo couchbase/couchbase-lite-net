@@ -164,7 +164,7 @@ namespace Couchbase.Lite.Tests
         public void AddResponderThrowExceptionAllRequests() 
         {
             HttpResponseDelegate responder = (request) => {
-                throw new WebException("Test WebException", WebExceptionStatus.UnknownError);
+                throw new WebException("Test WebException", WebExceptionStatus.ConnectionClosed);
             };
             SetResponder("*", responder);
         }

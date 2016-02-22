@@ -41,18 +41,13 @@
 //
 
 using System.Collections.Generic;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Support;
-using Sharpen;
 using System.Net.Http;
-using System;
-using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Replicator
 {
     internal interface IChangeTrackerClient
     {
-        HttpClient GetHttpClient(bool longPoll);
+        HttpClient GetHttpClient();
         void ChangeTrackerReceivedChange(IDictionary<string, object> change);
         void ChangeTrackerStopped(ChangeTracker tracker);
 

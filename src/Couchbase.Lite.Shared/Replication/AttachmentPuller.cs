@@ -225,8 +225,8 @@ namespace Couchbase.Lite.Replicator
 
         public override IDictionary<string, string> Headers 
         {
-            get { return clientFactory.Headers; } 
-            set { clientFactory.Headers = value; } 
+            get { return ClientFactory.Headers; } 
+            set { ClientFactory.Headers = value; } 
         }
 
         protected override void StopGraceful()

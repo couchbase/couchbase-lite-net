@@ -49,6 +49,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Security;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
@@ -69,12 +70,13 @@ namespace Couchbase.Lite.Support
     {
         const string Tag = "CouchbaseLiteHttpClientFactory";
 
-        private readonly CookieStore cookieStore;
+#if __IOS__ || __ANDROID__
+        protected NativeMessageHandler nativeHandler = new NativeMessageHandler (false, false, new NativeCookieHandler ());
+#endif
 
-        public CouchbaseLiteHttpClientFactory(CookieStore cookieStore)
+        public CouchbaseLiteHttpClientFactory()
         {
-            this.cookieStore = cookieStore;
-            Headers = new ConcurrentDictionary<string,string>();
+            Headers = new ConcurrentDictionary<string, string>();
 
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
             ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
@@ -135,89 +137,63 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        internal HttpMessageHandler BuildHandlerPipeline (bool chunkedMode, bool retry)
+        internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, bool useRetryHandler)
         {
+#if __IOS__ || __ANDROID__
+            var handler = nativeHandler;
+#else
+
             var handler = new HttpClientHandler {
-                CookieContainer = cookieStore,
+                CookieContainer = store,
                 UseCookies = true
             };
-
-#if __IOS__ || __ANDROID__
-            Handler = new NativeMessageHandler (false, false, new NativeCookieHandler ());
-#else
-            Handler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
 #endif
 
-            if (retry == false) {
+            // For now, we are not using the client cert for identity verification, just to
+            // satisfy Mono so it doesn't matter if the user doesn't choose it.
+            //handler.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
+
+            if(handler.SupportsAutomaticDecompression) {
+                handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
+            }
+
+            Handler = new DefaultAuthHandler (handler, store);
+
+            if (!useRetryHandler) {
                 return Handler;
             }
 
             var retryHandler = new TransientErrorRetryHandler(Handler);
-
             return retryHandler;
         }
 
-        internal void SetDefaultHeaders(HttpClient client)
+        public HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
         {
+            var authHandler = BuildHandlerPipeline(cookieStore, useRetryHandler);
+
+            // As the handler will not be shared, client.Dispose() needs to be 
+            // called once the operation is done to release the unmanaged resources 
+            // and disposes of the managed resources.
+            var client =  new HttpClient(authHandler, true) 
+            {
+                Timeout = ManagerOptions.Default.RequestTimeout
+            };
+
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SYNC_PROTOCOL_VERSION, Manager.VersionString));
+
             foreach(var header in Headers)
             {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
                 if (!success)
                     Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
             }
-        }
-
-        public HttpClient GetHttpClient(bool chunkedMode)
-        {
-            var authHandler = BuildHandlerPipeline(chunkedMode, false);
-
-            // As the handler will not be shared, client.Dispose() needs to be 
-            // called once the operation is done to release the unmanaged resources 
-            // and disposes of the managed resources.
-            var client =  new HttpClient(authHandler, true) 
-            {
-                Timeout = ManagerOptions.Default.RequestTimeout
-            };
-
-            SetDefaultHeaders(client);
 
             return client;
         }
 
-        public HttpClient GetHttpClient(bool chunkedMode, bool retry)
-        {
-            var authHandler = BuildHandlerPipeline(chunkedMode, retry);
-
-            // As the handler will not be shared, client.Dispose() needs to be 
-            // called once the operation is done to release the unmanaged resources 
-            // and disposes of the managed resources.
-            var client =  new HttpClient(authHandler, true) 
-            {
-                Timeout = ManagerOptions.Default.RequestTimeout
-            };
-
-            SetDefaultHeaders(client);
-
-            return client;
-        }
-
-        public HttpMessageHandler Handler { get; private set; }
+        public MessageProcessingHandler Handler { get; private set; }
 
         public IDictionary<string, string> Headers { get; set; }
-
-        public void AddCookies(CookieCollection cookies)
-        {
-            cookieStore.Add(cookies);
-        }
-
-        public void DeleteCookie(Uri uri, string name)
-        {
-            cookieStore.Delete(uri, name);
-        }
-
-        public CookieContainer GetCookieContainer()
-        {
-            return cookieStore;
-        }
+       
     }
 }

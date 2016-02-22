@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Util
                         {
                             TryExecuteTask(item);
                             if (item.Status == TaskStatus.Faulted) {
-                                Log.E(Tag, "Task {0} faulted {1}", item.Id, item.Exception);
+                                Log.D(Tag, "Task {0} faulted {1}", item.Id, item.Exception);
                             }
                         }
                     } 

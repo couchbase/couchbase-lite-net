@@ -26,7 +26,7 @@
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;TRACE;VERBOSE;NET_3_5;FORESTDB;</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;VERBOSE;NET_3_5;FORESTDB;OFFICIAL;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>False</ConsolePause>
@@ -44,7 +44,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>False</ConsolePause>
-    <DefineConstants>NET_3_5;FORESTDB;</DefineConstants>
+    <DefineConstants>NET_3_5;FORESTDB;OFFICIAL;</DefineConstants>
     <DebugSymbols>true</DebugSymbols>
     <CustomCommands>
       <CustomCommands>
@@ -64,10 +64,10 @@
     <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="System.Management" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <Import Project="vendor/SQLitePCL/bld/sqliteraw.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -79,6 +79,26 @@
     <Compile Include="StringEx.cs" />
     <Compile Include="StreamEx.cs" />
     <Compile Include="EnumEx.cs" />
+    <Compile Include="Mono.Security\X509CertificateBuilder.cs" />
+    <Compile Include="Mono.Security\X509Builder.cs" />
+    <Compile Include="Mono.Security\ASN1.cs" />
+    <Compile Include="Mono.Security\PKCS7.cs" />
+    <Compile Include="Mono.Security\ASN1Convert.cs" />
+    <Compile Include="Mono.Security\X509Certificate.cs" />
+    <Compile Include="Mono.Security\PKCS1.cs" />
+    <Compile Include="Mono.Security\X509ExtensionCollection.cs" />
+    <Compile Include="Mono.Security\X509CertificateCollection.cs" />
+    <Compile Include="Mono.Security\X509Extension.cs" />
+    <Compile Include="Mono.Security\PKCS12.cs" />
+    <Compile Include="Mono.Security\PKCS8.cs" />
+    <Compile Include="Mono.Security\PrivateKey.cs" />
+    <Compile Include="Mono.Security\BitConverterLE.cs" />
+    <Compile Include="Mono.Security\X501Name.cs" />
+    <Compile Include="Mono.Security\X520Attributes.cs" />
+    <Compile Include="Mono.Security\RC4.cs" />
+    <Compile Include="Mono.Security\CryptoConvert.cs" />
+    <Compile Include="Mono.Security\ARC4Managed.cs" />
+    <Compile Include="Mono.Security\CryptoTools.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -108,5 +128,12 @@
       <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
       <Name>Stateless</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Net35\cbforest-sharp.Net35.csproj">
+      <Project>{7032FEC5-BFBB-440E-97B0-139A8E54D1C5}</Project>
+      <Name>cbforest-sharp.Net35</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Mono.Security\" />
   </ItemGroup>
 </Project>

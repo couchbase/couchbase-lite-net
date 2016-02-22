@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}</ProjectGuid>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
+    <OutputType>Library</OutputType>
+    <AssemblyName>storage.systemsqlite.net35</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="AfterBuild">
+    <Message Text="Copying native components..." />
+    <Copy SourceFiles="net35.targets" DestinationFolder="$(OutputPath)" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\x86\sqlite3.dll" DestinationFolder="$(OutputPath)\x86" />
+    <Copy SourceFiles="..\..\..\Couchbase.Lite.Shared\vendor\SQLitePCL\bld\x64\sqlite3.dll" DestinationFolder="$(OutputPath)\x64" />
+  </Target>
+  <ItemGroup>
+    <Compile Include="Dummy.cs" />
+  </ItemGroup>
+</Project>

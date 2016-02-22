@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
@@ -15,6 +15,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\SSLGenerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authorizer.cs" />
@@ -181,9 +182,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteServerVersion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CompressedContent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseOptions.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Platform.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
