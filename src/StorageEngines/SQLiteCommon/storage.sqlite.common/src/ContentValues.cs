@@ -45,7 +45,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Couchbase.Lite.Store
+#if SQLITE
+namespace Couchbase.Lite.Storage.SystemSQLite
+#else
+namespace Couchbase.Lite.Storage.SQLCipher
+#endif
 {
 
     /// <summary>

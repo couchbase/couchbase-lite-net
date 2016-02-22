@@ -58,7 +58,11 @@ using SQLitePCL.Ugly;
 using StringEx = System.String;
 #endif
 
-namespace Couchbase.Lite
+#if SQLITE
+namespace Couchbase.Lite.Storage.SystemSQLite
+#else
+namespace Couchbase.Lite.Storage.SQLCipher
+#endif
 {
     internal sealed class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
     {

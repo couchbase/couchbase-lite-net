@@ -31,11 +31,12 @@ using CBForest;
 using Couchbase.Lite.Db;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Revisions;
-using Couchbase.Lite.Storage.ForestDB;
 using Couchbase.Lite.Storage.ForestDB.Internal;
+using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Store
+
+namespace Couchbase.Lite.Storage.ForestDB
 {
 
     #region Delegates

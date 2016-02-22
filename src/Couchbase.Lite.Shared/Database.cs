@@ -780,6 +780,14 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
+        internal static IDatabaseUpgrader CreateUpgrader(Database upgradeFrom, string upgradeTo)
+        {
+            // Right now only SQLite has upgrade logic
+            var sqliteType = GetSQLiteStorageClass();
+            var sqliteStorage = (ICouchStore)Activator.CreateInstance(sqliteType);
+            return sqliteStorage.CreateUpgrader(upgradeFrom, upgradeTo);
+        }
+
         internal object GetLocalCheckpointDocValue(string key)
         {
             if (key == null) {
@@ -1980,7 +1988,8 @@ namespace Couchbase.Lite
             IsOpen = true;
 
             if (upgrade) {
-                var upgrader = Storage.CreateUpgrader(this, DbDirectory);
+                var upgrader = primarySQLite ? Storage.CreateUpgrader(this, DbDirectory) 
+                    : otherStorageInstance.CreateUpgrader(this, DbDirectory);
                 try {
                     upgrader.Import();
                 } catch(CouchbaseLiteException e) {
@@ -2006,14 +2015,14 @@ namespace Couchbase.Lite
         {
             do {
                 if (_SqliteStorageType == null) {
-                    Type attemptOne = Type.GetType("Couchbase.Lite.Store.SqliteCouchStore, Couchbase.Lite.Storage.SQLCipher");
+                    Type attemptOne = Type.GetType("Couchbase.Lite.Storage.SQLCipher.SqliteCouchStore, Couchbase.Lite.Storage.SQLCipher");
                     if (attemptOne != null) {
                         Log.I(TAG, "Loaded Couchbase.Lite.Storage.SQLCipher plugin");
                         _SqliteStorageType = attemptOne;
                         break;
                     }
 
-                    _SqliteStorageType = Type.GetType("Couchbase.Lite.Store.SqliteCouchStore, Couchbase.Lite.Storage.SystemSQLite");
+                    _SqliteStorageType = Type.GetType("Couchbase.Lite.Storage.SystemSQLite.SqliteCouchStore, Couchbase.Lite.Storage.SystemSQLite");
                     if (_SqliteStorageType != null) {
                         Log.I(TAG, "Loaded Couchbase.Lite.Storage.SystemSQLite plugin.  SQLite encryption functionality will not be available");
                         break;
@@ -2031,7 +2040,7 @@ namespace Couchbase.Lite
         {
             do {
                 if (_ForestDBStorageType == null) {
-                    _ForestDBStorageType = Type.GetType("Couchbase.Lite.Store.ForestDBCouchStore, Couchbase.Lite.Storage.ForestDB");
+                    _ForestDBStorageType = Type.GetType("Couchbase.Lite.Storage.ForestDB.ForestDBCouchStore, Couchbase.Lite.Storage.ForestDB");
                     if (_ForestDBStorageType != null) {
                         Log.I(TAG, "Loaded Couchbase.Lite.Storage.ForestDB plugin");
                         break;

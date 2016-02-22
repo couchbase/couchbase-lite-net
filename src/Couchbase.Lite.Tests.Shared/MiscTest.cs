@@ -50,6 +50,7 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
+using Couchbase.Lite.Storage.ForestDB;
 
 namespace Couchbase.Lite
 {

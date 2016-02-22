@@ -26,11 +26,16 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
+using Couchbase.Lite.Db;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using SQLitePCL;
 
-namespace Couchbase.Lite.Db
+#if SQLITE
+namespace Couchbase.Lite.Storage.SystemSQLite
+#else
+namespace Couchbase.Lite.Storage.SQLCipher
+#endif
 {
     internal static partial class DatabaseUpgraderFactory
     {

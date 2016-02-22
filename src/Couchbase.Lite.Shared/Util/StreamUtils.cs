@@ -54,7 +54,8 @@ namespace Couchbase.Lite.Util
             foreach (var entry in streams)
             {
                 var filename = Path.GetFileNameWithoutExtension(entry.Key).ToUpperInvariant() + Path.GetExtension(entry.Key);
-                CopyStreamToFile(entry.Value, filename);
+                var file = Path.Combine(folder, filename);
+                CopyStreamToFile(entry.Value, file);
             }
         }
 

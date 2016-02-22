@@ -27,11 +27,16 @@ using System.Text;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
 using SQLitePCL;
 
-namespace Couchbase.Lite.Store 
+#if SQLITE
+namespace Couchbase.Lite.Storage.SystemSQLite
+#else
+namespace Couchbase.Lite.Storage.SQLCipher
+#endif
 {
     internal sealed class SqliteViewStore : IViewStore, IQueryRowStore
     {

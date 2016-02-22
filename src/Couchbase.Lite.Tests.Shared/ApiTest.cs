@@ -126,13 +126,13 @@ namespace Couchbase.Lite
             Assert.IsTrue(deleteme.Exists());
 
             var dbPath = deleteme.DbDirectory;
-            Assert.IsTrue(File.Exists(dbPath));
-            Assert.IsTrue(File.Exists(deleteme.AttachmentStorePath));
+            Assert.IsTrue(Directory.Exists(dbPath));
+            Assert.IsTrue(Directory.Exists(deleteme.AttachmentStorePath));
 
             deleteme.Delete();
             Assert.IsFalse(deleteme.Exists());
-            Assert.IsFalse(File.Exists(dbPath));
-            Assert.IsFalse(File.Exists(deleteme.AttachmentStorePath));
+            Assert.IsFalse(Directory.Exists(dbPath));
+            Assert.IsFalse(Directory.Exists(deleteme.AttachmentStorePath));
 
             // delete again, even though already deleted
             deleteme.Delete();          

@@ -970,7 +970,7 @@ namespace Couchbase.Lite
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 var data = r.GetResponseStream().ReadAllBytes();
                 Assert.AreEqual(data, attach1);
-                Assert.AreEqual("text/plain", r.ContentType);
+                Assert.AreEqual("text/plain; charset=utf-8", r.ContentType);
                 var etag = r.GetResponseHeader("Etag");
                 Assert.IsTrue(etag.Length > 0);
             });
@@ -982,7 +982,7 @@ namespace Couchbase.Lite
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 var data = r.GetResponseStream().ReadAllBytes();
                 Assert.AreEqual(data, attach2);
-                Assert.AreEqual("text/plain", r.ContentType);
+                Assert.AreEqual("text/plain; charset=utf-8", r.ContentType);
                 var etag = r.GetResponseHeader("Etag");
                 Assert.IsTrue(etag.Length > 0);
             });
@@ -1114,7 +1114,7 @@ namespace Couchbase.Lite
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 var body = new Body(r.GetResponseStream().ReadAllBytes());
                 Assert.AreEqual(attach1, body.AsJson());
-                Assert.AreEqual("text/plain", r.GetResponseHeader("Content-Type"));
+                Assert.AreEqual("text/plain; charset=utf-8", r.GetResponseHeader("Content-Type"));
                 var etag = r.GetResponseHeader("Etag");
                 Assert.IsTrue(etag.Length > 0);
             });
@@ -1124,7 +1124,7 @@ namespace Couchbase.Lite
             {
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 Assert.AreEqual(attach2, r.GetResponseStream().ReadAllBytes());
-                Assert.AreEqual("application/json", r.GetResponseHeader("Content-Type"));
+                Assert.AreEqual("application/json; charset=utf-8", r.GetResponseHeader("Content-Type"));
                 var etag = r.GetResponseHeader("Etag");
                 Assert.IsTrue(etag.Length > 0);
             });
@@ -1312,6 +1312,23 @@ namespace Couchbase.Lite
             _listener.Start();
             var basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:borden"));
             _listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
+
+            SendRequest("GET", "/cblitetest", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
+            });
+
+            basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:bogus"));
+            SendRequest("GET", "/cblitetest", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+            });
+
+            SendRequest("GET", "/cblitetest", null, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+            });
+
             SendRequest("GET", "/", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
             {
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
@@ -1320,12 +1337,12 @@ namespace Couchbase.Lite
             basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:bogus"));
             SendRequest("GET", "/", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
             {
-                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
             });
 
             SendRequest("GET", "/", null, null, false, (r) =>
             {
-                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
             });
 
             _listener.Stop();

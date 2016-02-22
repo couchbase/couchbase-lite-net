@@ -29,6 +29,7 @@ using System.Threading;
 using Couchbase.Lite.Db;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using SQLitePCL;
 using SQLitePCL.Ugly;
@@ -37,7 +38,11 @@ using SQLitePCL.Ugly;
 using StringEx = System.String;
 #endif
 
-namespace Couchbase.Lite.Store
+#if SQLITE
+namespace Couchbase.Lite.Storage.SystemSQLite
+#else
+namespace Couchbase.Lite.Storage.SQLCipher
+#endif
 {
     #if __IOS__
     [Foundation.Preserve(AllMembers = true)]

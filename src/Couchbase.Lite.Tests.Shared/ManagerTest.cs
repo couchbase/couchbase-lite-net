@@ -47,6 +47,7 @@ using System.Linq;
 
 using Couchbase.Lite.Db;
 using NUnit.Framework;
+using Couchbase.Lite.Storage.SQLCipher;
 
 namespace Couchbase.Lite
 {

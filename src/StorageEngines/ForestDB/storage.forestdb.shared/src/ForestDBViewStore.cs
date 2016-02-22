@@ -36,9 +36,10 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
 using Couchbase.Lite.Storage.ForestDB.Internal;
+using Couchbase.Lite.Store;
 
 
-namespace Couchbase.Lite.Store
+namespace Couchbase.Lite.Storage.ForestDB
 {
     internal unsafe delegate void C4KeyActionDelegate(C4Key*[] key);
 

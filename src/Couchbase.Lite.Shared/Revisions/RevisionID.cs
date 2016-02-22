@@ -33,10 +33,12 @@ namespace Couchbase.Lite.Revisions
 
             var generation = 0;
             var dashPos = revID.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
-            if (dashPos > 0)
-            {
-                generation = Convert.ToInt32(revID.Substring(0, dashPos));
+            if (dashPos > 0) {
+                if (!Int32.TryParse(revID.Substring(0, dashPos), out generation)) {
+                    return 0;
+                }
             }
+
             return generation;
         }
 
@@ -72,6 +74,13 @@ namespace Couchbase.Lite.Revisions
 
             // improper rev IDs; just compare as plain text:
             if (parsed1.Item1 == -1 || parsed2.Item1 == -1) {
+                var gen1 = RevisionID.GetGeneration(revId1);
+                var gen2 = RevisionID.GetGeneration(revId2);
+                if (gen1 != 0 && gen2 != 0) {
+                    return gen1 - gen2;
+                }
+
+                // improper rev IDs; just compare as plain text:
                 return String.Compare(revId1, revId2, true, CultureInfo.InvariantCulture);
             }
 

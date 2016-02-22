@@ -254,12 +254,12 @@ namespace Couchbase.Lite
 
         protected int GetReplicationPort()
         {
-            return (int)_runtimeTestProperties["replicationPort"];
+            return Convert.ToInt32(_runtimeTestProperties["replicationPort"]);
         }
 
         protected int GetReplicationAdminPort()
         {
-            return (int)_runtimeTestProperties["replicationAdminPort"];
+            return Convert.ToInt32(_runtimeTestProperties["replicationAdminPort"]);
         }
 
         protected string GetReplicationAdminUser()

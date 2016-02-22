@@ -40,8 +40,13 @@
 // and limitations under the License.
 //
 using System;
+using Couchbase.Lite.Store;
 
-namespace Couchbase.Lite.Store
+#if SQLITE
+namespace Couchbase.Lite.Storage.SystemSQLite
+#else
+namespace Couchbase.Lite.Storage.SQLCipher
+#endif
 {
 
     /// <summary>

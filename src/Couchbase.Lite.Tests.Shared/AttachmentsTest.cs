@@ -56,6 +56,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
+using Couchbase.Lite.Storage.SQLCipher;
 
 namespace Couchbase.Lite
 {

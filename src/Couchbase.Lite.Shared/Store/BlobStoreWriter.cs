@@ -142,7 +142,7 @@ namespace Couchbase.Lite
             int len;
             length = 0;
             try {
-                while ((len = inputStream.Read(buffer, 0, buffer.Length)) != -1)
+                while ((len = inputStream.Read(buffer, 0, buffer.Length)) > 0)
                 {
                     var dataToWrite = buffer;
 

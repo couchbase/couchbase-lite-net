@@ -23,10 +23,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using Couchbase.Lite.Db;
 using Couchbase.Lite.Util;
 using SQLitePCL;
 
-namespace Couchbase.Lite.Db
+#if SQLITE
+namespace Couchbase.Lite.Storage.SystemSQLite
+#else
+namespace Couchbase.Lite.Storage.SQLCipher
+#endif
 {
     internal static partial class DatabaseUpgraderFactory
     {
