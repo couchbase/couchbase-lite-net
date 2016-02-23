@@ -47,27 +47,59 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite {
-    
+
+    public struct AttachmentMetadataDictionaryKeys
+    {
+        public static readonly string ContentType = AttachmentMetadataDictionary.ContentType;
+        public static readonly string Length = AttachmentMetadataDictionary.Length;
+        public static readonly string Follows = AttachmentMetadataDictionary.Follows;
+        public static readonly string Digest = AttachmentMetadataDictionary.Digest;
+        public static readonly string Stub = AttachmentMetadataDictionary.Stub;
+        public static readonly string EncodedLength = AttachmentMetadataDictionary.EncodedLength;
+        public static readonly string Encoding = AttachmentMetadataDictionary.Encoding;
+    }
+
     [DictionaryContract(RequiredKeys=new object[] { 
-        AttachmentMetadataDictionary.CONTENT_TYPE, typeof(string),
-        AttachmentMetadataDictionary.LENGTH, typeof(long),
-        AttachmentMetadataDictionary.DIGEST, typeof(string)
+        AttachmentMetadataDictionary.ContentType, typeof(string),
+        AttachmentMetadataDictionary.Length, typeof(long),
+        AttachmentMetadataDictionary.Digest, typeof(string)
     },
         OptionalKeys=new object[] {
-        AttachmentMetadataDictionary.FOLLOWS, typeof(bool),
-        AttachmentMetadataDictionary.STUB, typeof(bool),
-        AttachmentMetadataDictionary.ENCODED_LENGTH, typeof(long),
-        AttachmentMetadataDictionary.ENCODING, typeof(string)
+        AttachmentMetadataDictionary.Follows, typeof(bool),
+        AttachmentMetadataDictionary.Stub, typeof(bool),
+        AttachmentMetadataDictionary.EncodedLength, typeof(long),
+        AttachmentMetadataDictionary.Encoding, typeof(string)
     })]
     internal sealed class AttachmentMetadataDictionary : ContractedDictionary
     {
+        [Obsolete("Use AttachmentMetadataDictionaryKeys.ContentType")]
         public const string CONTENT_TYPE = "content_type";
+
+        [Obsolete("Use AttachmentMetadataDictionaryKeys.Length")]
         public const string LENGTH = "length";
+
+        [Obsolete("Use AttachmentMetadataDictionaryKeys.Follows")]
         public const string FOLLOWS = "follows";
+
+        [Obsolete("Use AttachmentMetadataDictionaryKeys.Digest")]
         public const string DIGEST = "digest";
+
+        [Obsolete("Use AttachmentMetadataDictionaryKeys.Stub")]
         public const string STUB = "stub";
+
+        [Obsolete("Use AttachmentMetadataDictionaryKeys.EncodedLength")]
         public const string ENCODED_LENGTH = "encoded_length";
+
+        [Obsolete("Use AttachmentMetadataDictionaryKeys.Encoding")]
         public const string ENCODING = "encoding";
+
+        internal const string ContentType = "content_type";
+        internal const string Length = "length";
+        internal const string Follows = "follows";
+        internal const string Digest = "digest";
+        internal const string Stub = "stub";
+        internal const string EncodedLength = "encoded_length";
+        internal const string Encoding = "encoding";
 
         public AttachmentMetadataDictionary() : base() {}
 

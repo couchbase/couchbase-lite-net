@@ -52,9 +52,9 @@ namespace Couchbase.Lite.Auth
 {
     internal class FacebookAuthorizer : Authorizer
     {
-        public const string LOGIN_PARAMETER_ACCESS_TOKEN = "access_token";
-        public const string QUERY_PARAMETER = "facebookAccessToken";
-        public const string QUERY_PARAMETER_EMAIL = "email";
+        internal const string LoginParameterAccessToken = "access_token";
+        internal const string QueryParameter = "facebookAccessToken";
+        internal const string QueryParameterEmail = "email";
 
         private readonly static ConcurrentDictionary<string[], string> _AccessTokens =
             new ConcurrentDictionary<string[], string>(new StringArrayComparer());
@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Auth
             string accessToken = TokenForSite(site);
             if (accessToken != null)
             {
-                loginParameters[LOGIN_PARAMETER_ACCESS_TOKEN] = accessToken;
+                loginParameters[LoginParameterAccessToken] = accessToken;
                 return loginParameters;
             }
             else
