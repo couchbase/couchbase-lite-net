@@ -47,7 +47,7 @@ namespace Couchbase.Lite {
     /// <summary>
     /// The main class of exception used for indicating Couchbase Lite errors
     /// </summary>
-    public class CouchbaseLiteException : ApplicationException {
+    public class CouchbaseLiteException : Exception {
 
         internal StatusCode Code { get; set; }
 
