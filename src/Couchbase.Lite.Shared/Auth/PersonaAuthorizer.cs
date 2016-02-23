@@ -53,17 +53,17 @@ namespace Couchbase.Lite.Auth
 {
     internal class PersonaAuthorizer : Authorizer
     {
-        public const string LoginParameterAssertion = "assertion";
+        internal const string LoginParameterAssertion = "assertion";
 
         private static IDictionary<string, string> assertions;
 
-        public const string AssertionFieldEmail = "email";
+        internal const string AssertionFieldEmail = "email";
 
-        public const string AssertionFieldOrigin = "origin";
+        internal const string AssertionFieldOrigin = "origin";
 
-        public const string AssertionFieldExpiration = "exp";
+        internal const string AssertionFieldExpiration = "exp";
 
-        public const string QueryParameter = "personaAssertion";
+        internal const string QueryParameter = "personaAssertion";
 
         private bool skipAssertionExpirationCheck;
 

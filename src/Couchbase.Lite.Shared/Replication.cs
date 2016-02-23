@@ -640,11 +640,11 @@ namespace Couchbase.Lite
                     Authenticator = authorizer;
                 }
 
-                var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QUERY_PARAMETER);
+                var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter);
 
                 if (facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken))
                 {
-                    var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QUERY_PARAMETER_EMAIL);
+                    var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameterEmail);
                     var authorizer = new FacebookAuthorizer(email);
                     Uri remoteWithQueryRemoved = null;
 
