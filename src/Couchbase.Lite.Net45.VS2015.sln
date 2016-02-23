@@ -62,6 +62,7 @@ Global
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8bfa15b7-957d-4ad1-9019-9df98f1ee9eb}*SharedItemsImports = 4
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8555f0b6-3f1a-4c80-8ccb-3eed653d6242}*SharedItemsImports = 13
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{5aa87149-7173-42a0-8bbc-ac618b404d46}*SharedItemsImports = 13
+		Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{b357bac7-529e-4d81-a0d2-71041b19c8de}*SharedItemsImports = 4
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{c87e0c01-aad6-46da-9935-c772c112bb18}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{88bb6717-85c9-46f0-923b-c263c08a189b}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{f376966c-ccab-4c5c-a81a-e2a754aa7a4c}*SharedItemsImports = 4
@@ -73,8 +74,8 @@ Global
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{0bfc8b40-0659-4d45-b111-7cb4ccd22991}*SharedItemsImports = 13
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{ff87eed7-5de9-47e9-82f4-d1df659d1dc2}*SharedItemsImports = 13
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{79fc4a01-1e39-468f-8e55-195bc918232e}*SharedItemsImports = 13
-		Couchbase.Lite.Shared\vendor\cbforest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
 		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
+		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_Ubuntu|Any CPU = Debug_Ubuntu|Any CPU
