@@ -399,7 +399,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             // Update the documentType:
             if (isWinner) {
                 var type = properties == null ? null : properties.GetCast<string>("type");
-                ForestDBBridge.Check(err => Native.c4doc_setType(doc, type, err));
+                Native.c4doc_setType(doc, type);
             }
 
             // Save:

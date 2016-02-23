@@ -86,6 +86,7 @@ namespace Couchbase.Lite
 
         static ManagerOptions()
         {
+            SerializationEngine = new NewtonsoftJsonSerializer();
             Default = new ManagerOptions();
         }
 
@@ -122,7 +123,6 @@ namespace Couchbase.Lite
             #endif
 
             ServicePointManager.DefaultConnectionLimit = MaxOpenHttpConnections * 3;
-            SerializationEngine = new NewtonsoftJsonSerializer();
         }
             
         /// <summary>Gets or sets, whether changes to databases are disallowed by default.</summary>

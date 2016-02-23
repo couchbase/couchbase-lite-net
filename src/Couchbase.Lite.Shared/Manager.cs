@@ -267,7 +267,8 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Default storage type for newly created databases.
-        /// There are two options, "SQLite" (the default) or "ForestDB".
+        /// There are two options, StorageEngineTypes.SQLite (the default) or 
+        /// StorageEngineTypes.ForestDB.
         /// </summary>
         public string StorageType { get; set; }
 
