@@ -35,7 +35,9 @@ namespace Couchbase.Lite
         
         #region Constants
 
-        private static readonly JsonSerializerSettings settings = new JsonSerializerSettings { 
+        private static readonly string Tag = typeof(NewtonsoftJsonSerializer).Name;
+
+        private static JsonSerializerSettings settings = new JsonSerializerSettings { 
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         };
 
@@ -46,10 +48,31 @@ namespace Couchbase.Lite
         #region Variables
 
         private JsonTextReader _textReader;
+        private JsonSerializationSettings _settings = new JsonSerializationSettings();
 
         #endregion
 
         #region Properties
+
+        public JsonSerializationSettings Settings
+        {
+            get { return _settings; }
+            set { 
+                if (_settings == value) {
+                    return;
+                }
+
+                Log.I(Tag, "Changing global JSON serialization settings from {0} to {1}", _settings, value);
+                _settings = value;
+                if (_settings.DateTimeHandling == DateTimeHandling.UseDateTime) {
+                    settings.DateParseHandling = DateParseHandling.DateTime;
+                    settings.DateTimeZoneHandling = DateTimeZoneHandling.Local;
+                } else {
+                    settings.DateParseHandling = DateParseHandling.DateTimeOffset;
+                    settings.DateTimeZoneHandling = DateTimeZoneHandling.RoundtripKind;
+                }
+            }
+        }
 
         public JsonToken CurrentToken
         {

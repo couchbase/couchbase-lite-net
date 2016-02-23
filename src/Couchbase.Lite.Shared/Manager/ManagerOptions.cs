@@ -73,6 +73,16 @@ namespace Couchbase.Lite
         //Make public in the future
         internal static IJsonSerializer SerializationEngine { get; set; }
 
+        /// <summary>
+        /// Gets or sets the values pertaining to serialization and
+        /// deserialization
+        /// </summary>
+        public static JsonSerializationSettings SerializationSettings 
+        {
+            get { return SerializationEngine.Settings; }
+            set { SerializationEngine.Settings = value; }
+        }
+
         #if __IOS__
 
         /// <summary>

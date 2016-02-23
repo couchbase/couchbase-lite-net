@@ -61,6 +61,30 @@ namespace Couchbase.Lite
         public MiscTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestRoundTripDateTimeOffset()
+        {
+            var expectedTime = new DateTimeOffset (2016, 01, 01, 12, 0, 0, new TimeSpan (-9, 0, 0));
+            var expectedTime2 = expectedTime.LocalDateTime;
+            var props = new Dictionary<string, object> {
+                { "text", "This is text" },
+                { "time", expectedTime }
+            };
+            var json = Manager.GetObjectMapper().WriteValueAsString(props);
+            var deserialized = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(json);
+            var resultObj = deserialized.Get("time");
+            Assert.IsInstanceOf<DateTime>(resultObj);
+            Assert.AreEqual(expectedTime2, resultObj);
+
+            ManagerOptions.SerializationSettings = new JsonSerializationSettings { DateTimeHandling = DateTimeHandling.UseDateTimeOffset };
+            json = Manager.GetObjectMapper().WriteValueAsString(props);
+            deserialized = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(json);
+            resultObj = deserialized.Get("time");
+            Assert.IsInstanceOf<DateTimeOffset>(resultObj);
+            Assert.AreEqual(expectedTime, resultObj);
+            Assert.AreEqual(expectedTime.Offset, ((DateTimeOffset)resultObj).Offset);
+        }
+
+        [Test]
         public void TestNetworkAvailabilityChanged()
         {
             var countdown = 2;

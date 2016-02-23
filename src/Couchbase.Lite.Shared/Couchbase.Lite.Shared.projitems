@@ -136,6 +136,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\MessageDigest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\LogTo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonSerializationSettings.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

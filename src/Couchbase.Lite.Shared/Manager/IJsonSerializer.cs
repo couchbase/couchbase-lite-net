@@ -110,6 +110,7 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IJsonSerializer : IDisposable
     {
+        JsonSerializationSettings Settings { get; set; }
 
         /// <summary>
         /// Gets the current token when parsing in streaming mode
