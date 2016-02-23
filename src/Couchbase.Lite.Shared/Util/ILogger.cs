@@ -142,6 +142,7 @@ namespace Couchbase.Lite.Util
         /// the class or activity where the log call occurs.
         /// </param>
         /// <param name="tr">The exception you would like logged.</param>
+        [Obsolete("This method signature is not like the others and will be removed")]
         void W(string tag, Exception tr);
 
         /// <summary>Send a WARN message and log the exception.</summary>

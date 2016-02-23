@@ -99,7 +99,7 @@ namespace Couchbase.Lite
         [TestFixtureTearDown]
         public void FixtureTearDown()
         {
-            Log.SetDefaultLoggerWithLevel(SourceLevels.All);
+            Log.SetDefaultLogger();
         }
 
         [Test]

@@ -23,6 +23,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 
 namespace Couchbase.Lite.Util
 {
@@ -74,6 +75,15 @@ namespace Couchbase.Lite.Util
             }
 
             return item != null;
+        }
+
+        #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            return Manager.GetObjectMapper().WriteValueAsString(this);
         }
 
         #endregion

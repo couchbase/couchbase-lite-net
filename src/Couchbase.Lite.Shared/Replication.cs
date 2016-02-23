@@ -237,7 +237,6 @@ namespace Couchbase.Lite
         private static int _lastSessionID;
         private string _remoteCheckpointDocID;
         private CancellationTokenSource _retryIfReadyTokenSource;
-        private Task _retryIfReadyTask;
         private readonly Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
         private HashSet<string> _pendingDocumentIDs;
         private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
