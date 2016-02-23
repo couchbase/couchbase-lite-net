@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         #region Constants
 
-        private const string TAG = "SqliteViewStore";
+        private static readonly string Tag = typeof(SqliteViewStore).Name;
         private string _emitSql;
 
         #endregion
@@ -159,7 +159,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     _dbStorage.RunStatements(QueryString(sqlStatements));
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Failed to run statments ({0})", sqlStatements);
+                    Log.W(Tag, "Failed to run statments ({0})", sqlStatements);
                     throw;
                 } catch(Exception e) {
                     throw new CouchbaseLiteException(String.Format("Error running statements ({0})", sqlStatements),
@@ -189,7 +189,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 RunStatements(sql);
             } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Couldn't create view index `{0}`", Name);
+                Log.W(Tag, "Couldn't create view index `{0}`", Name);
                 throw;
             } catch(Exception e) {
                 throw new CouchbaseLiteException(String.Format("Couldn't create view index `{0}`", Name), e) {
@@ -241,7 +241,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 //TODO: bbox, geo, fulltext
             } else {
                 keyJSON = Manager.GetObjectMapper().WriteValueAsString(key);
-                Log.V(TAG, "    emit({0}, {1}", keyJSON, valueJSON);
+                Log.V(Tag, "    emit({0}, {1}", keyJSON, valueJSON);
             }
 
             if (keyJSON == null) {
@@ -271,7 +271,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 RunStatements(sql);
             } catch(Exception e) {
-                Log.W(TAG, String.Format("Couldn't create view SQL index `{0}`", Name), e);
+                Log.W(Tag, String.Format("Couldn't create view SQL index `{0}`", Name), e);
                 throw;
             }
         }
@@ -283,7 +283,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }
 
             if (raw.sqlite3_compileoption_used("SQLITE_ENABLE_RTREE") == 0) {
-                Log.W(TAG, "Can't geo-query: SQLite isn't built with the Rtree module");
+                Log.W(Tag, "Can't geo-query: SQLite isn't built with the Rtree module");
                 return false;
             }
 
@@ -295,7 +295,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 RunStatements(sql);
             } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Error initializing rtree schema");
+                Log.W(Tag, "Error initializing rtree schema");
                 throw;
             } catch(Exception e) {
                 throw new CouchbaseLiteException("Error initializing rtree schema", e) {
@@ -346,7 +346,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     return result;
                 }
             } catch(Exception e) {
-                Log.E(TAG, "Exception in reduce block", e);
+                Log.E(Tag, "Exception in reduce block", e);
             }
 
             return null;
@@ -496,7 +496,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             args.Add(limit);
             args.Add(options.Skip);
 
-            Log.D(TAG, "Query {0}: {1}\n\tArguments: {2}", Name, sql, Manager.GetObjectMapper().WriteValueAsString(args));
+            Log.D(Tag, "Query {0}: {1}\n\tArguments: {2}", Name, sql, Manager.GetObjectMapper().WriteValueAsString(args));
 
             var dbStorage = _dbStorage;
             var status = new Status();
@@ -537,7 +537,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 RunStatements(sql);
             } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Couldn't delete view index `{0}`", Name);
+                Log.W(Tag, "Couldn't delete view index `{0}`", Name);
                 throw;
             } catch(Exception e) {
                 throw new CouchbaseLiteException(String.Format("Couldn't delete view index `{0}`", Name), e) {
@@ -555,7 +555,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     db.StorageEngine.Delete("views", "name=?", Name);
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Failed to delete view {0}", Name);
+                    Log.W(Tag, "Failed to delete view {0}", Name);
                     throw;
                 } catch(Exception e) {
                     throw new CouchbaseLiteException(String.Format("Error deleting view {0}", Name),
@@ -605,7 +605,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         public bool UpdateIndexes(IEnumerable<IViewStore> inputViews)
         {
-            Log.D(TAG, "Checking indexes of ({0}) for {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), Name);
+            Log.D(Tag, "Checking indexes of ({0}) for {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), Name);
             var db = _dbStorage;
 
             var status = false;
@@ -635,7 +635,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         var mapBlock = viewDelegate == null ? null : viewDelegate.Map;
                         if (mapBlock == null) {
                             Debug.Assert(view != this, String.Format("Cannot index view {0}: no map block registered", view.Name));
-                            Log.V(TAG, "    {0} has no map block; skipping it", view.Name);
+                            Log.V(Tag, "    {0} has no map block; skipping it", view.Name);
                             continue;
                         }
 
@@ -660,7 +660,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             }
 
                             minLastSequence = Math.Min(minLastSequence, last);
-                            Log.V(TAG, "    {0} last indexed at #{1}", view.Name, last);
+                            Log.V(Tag, "    {0} last indexed at #{1}", view.Name, last);
 
                             string docType = viewDelegate.DocumentType;
                             if (docType != null) {
@@ -714,7 +714,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         return true;
                     }
 
-                    Log.D(TAG, "Updating indexes of ({0}) from #{1} to #{2} ...",
+                    Log.D(Tag, "Updating indexes of ({0}) from #{1} to #{2} ...",
                         ViewNames(views), minLastSequence, dbMaxSequence);
 
                     // This is the emit() block, which gets called from within the user-defined map() block
@@ -726,6 +726,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     int insertedCount = 0;
                     EmitDelegate emit = (key, value) =>
                     {
+                        if(key == null) {
+                            Log.W(Tag, "Emit function called with a null key; ignoring");
+                            return;
+                        }
+
                         StatusCode s = currentView.Emit(key, value, value == currentDoc, sequence);
                         if (s != StatusCode.Ok) {
                             emitStatus.Code = s;
@@ -833,7 +838,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             // Get the document properties, to pass to the map function:
                             currentDoc = db.GetDocumentProperties(json, docId, revId, deleted, sequence);
                             if (currentDoc == null) {
-                                Log.W(TAG, "Failed to parse JSON of doc {0} rev {1}", docId, revId);
+                                Log.W(Tag, "Failed to parse JSON of doc {0} rev {1}", docId, revId);
                                 continue;
                             }
 
@@ -857,12 +862,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                         }
                                     }
 
-                                    Log.V(TAG, "    #{0}: map \"{1}\" for view {2}...",
+                                    Log.V(Tag, "    #{0}: map \"{1}\" for view {2}...",
                                         sequence, docId, e.Current.Name);
                                     try {
                                         mapBlocks[viewIndex](currentDoc, emit);
                                     } catch (Exception x) {
-                                        Log.E(TAG, String.Format("Exception in map() block for view {0}", currentView.Name), x);
+                                        Log.E(Tag, String.Format("Exception in map() block for view {0}", currentView.Name), x);
                                         emitStatus.Code = StatusCode.Exception;
                                     }
 
@@ -876,7 +881,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             currentView = null;
                         }
                     } catch(CouchbaseLiteException) {
-                        Log.W(TAG, "Failed to update index for {0}", currentView.Name);
+                        Log.W(Tag, "Failed to update index for {0}", currentView.Name);
                         throw;
                     } catch (Exception e) {
                         throw new CouchbaseLiteException(String.Format("Error updating index for {0}", currentView.Name),
@@ -899,7 +904,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         try {
                             db.StorageEngine.Update("views", args, "view_id=?", view.ViewID.ToString());
                         } catch (CouchbaseLiteException) {
-                            Log.W(TAG, "Failed to update view {0}", view.Name);
+                            Log.W(Tag, "Failed to update view {0}", view.Name);
                             throw;
                         } catch(Exception e) {
                             throw new CouchbaseLiteException(String.Format("Error updating view {0}", view.Name),
@@ -907,13 +912,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         }
                     }
 
-                    Log.D(TAG, "...Finished re-indexing ({0}) to #{1} (deleted {2}, added {3})",
+                    Log.D(Tag, "...Finished re-indexing ({0}) to #{1} (deleted {2}, added {3})",
                         ViewNames(views), dbMaxSequence, deletedCount, insertedCount);
                     return true;
                 });
 
             if(!status) {
-                Log.W(TAG, "CouchbaseLite: Failed to rebuild views ({0}): {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), status);
+                Log.W(Tag, "CouchbaseLite: Failed to rebuild views ({0}): {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), status);
             }
 
             return status;
@@ -963,7 +968,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     }
                 }
 
-                Log.V(TAG, "Query {0}: Found row with key={1}, value={2}, id={3}",
+                Log.V(Tag, "Query {0}: Found row with key={1}, value={2}, id={3}",
                     Name, keyData.Value, valueData.Value, docId);
 
                 QueryRow row = null;
@@ -1009,6 +1014,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 // Now concatenate them in the order the keys are given in options:
                 var sortedRows = new List<QueryRow>();
                 foreach (var key in options.Keys.Select(x => ToJSONString(x))) {
+                    if (key == null) {
+                        continue;
+                    }
+
                     var dictRows = rowsByKey.Get(key);
                     if (dictRows != null) {
                         sortedRows.AddRange(dictRows);
@@ -1029,7 +1038,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             var reduce = Delegate.Reduce;
             if (options.ReduceSpecified) {
                 if (options.Reduce && reduce == null) {
-                    Log.W(TAG, "Cannot use reduce option in view {0} which has no reduce block defined", Name);
+                    Log.W(Tag, "Cannot use reduce option in view {0} which has no reduce block defined", Name);
                     return null;
                 }
             }
@@ -1061,7 +1070,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     lastKeyData = keyData;
                 }
 
-                Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, keyData.Value, valueData.Value);
+                Log.V(Tag, "    Query {0}: Will reduce row with key={1}, value={2}", Name, keyData.Value, valueData.Value);
 
                 object valueOrData = FromJSON(valueData.Value);
                 if(valuesToReduce != null && RowValueIsEntireDoc(valueData.Value)) {
@@ -1070,7 +1079,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         var rev = db.GetDocument(docID, c.GetLong(1));
                         valueOrData = rev.GetProperties();
                     } catch(CouchbaseLiteException) {
-                        Log.W(TAG, "Couldn't load doc for row value");
+                        Log.W(Tag, "Couldn't load doc for row value");
                         throw;
                     }   
                 }
@@ -1084,7 +1093,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 // Finish the last group (or the entire list, if no grouping):
                 var key = group ? GroupKey(lastKeyData.Value, groupLevel) : null;
                 var reduced = CallReduce(reduce, keysToReduce, valuesToReduce);
-                Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, Manager.GetObjectMapper().WriteValueAsString(key),
+                Log.V(Tag, "    Query {0}: Will reduce row with key={1}, value={2}", Name, Manager.GetObjectMapper().WriteValueAsString(key),
                     Manager.GetObjectMapper().WriteValueAsString(reduced));
 
                 var row = new QueryRow(null, 0, key, reduced, null, this);

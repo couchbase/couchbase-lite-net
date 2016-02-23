@@ -68,6 +68,40 @@ namespace Couchbase.Lite
 
         public ViewsTest(string storageType) : base(storageType) {}
 
+        [Test]
+        public void TestEmitNullKey()
+        {
+            var view = database.GetView("vu");
+            Assert.IsNotNull(view);
+            view.SetMap((doc, emit) =>
+            {
+                // null key -> ignored
+                emit(null, null);
+            }, "1");
+
+            Assert.IsNotNull(view.Map);
+            Assert.AreEqual(0, view.TotalRows);
+
+            // insert 1 doc
+            var props = new Dictionary<string, object> {
+                { "_id", "11111" }
+            };
+            Assert.DoesNotThrow(() => PutDoc(database, props));
+
+            // regular query
+            var testQuery = view.CreateQuery();
+            Assert.IsNotNull(testQuery);
+            var e = testQuery.Run();
+            Assert.IsNotNull(e);
+            Assert.AreEqual(0, e.Count);
+
+            // query with null key. it should be ignored.
+            testQuery.Keys = new string[] { null };
+            e = testQuery.Run();
+            Assert.IsNotNull(e);
+            Assert.AreEqual(0, e.Count);
+        }
+
         [Test] 
         public void TestIssue490()
         {
