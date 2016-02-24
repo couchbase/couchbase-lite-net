@@ -43,6 +43,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Auth
 {
@@ -101,8 +102,19 @@ namespace Couchbase.Lite.Auth
 
         #endregion
 
-        #region IAuthenticator
+        #region Overrides
         #pragma warning disable 1591
+
+        public override string ToString()
+        {
+            return String.Format("[BasicAuthenticator ({0}:{1})]", 
+                new SecureLogString(_username, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogString(_password, LogMessageSensitivity.Insecure));
+        }
+
+        #endregion
+
+        #region IAuthenticator
 
         public string LoginPathForSite(Uri site) 
         {

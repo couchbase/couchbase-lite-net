@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Support
             var contentType = headers.Get("Content-Type");
             if (contentType != null && contentType.StartsWith("multipart/")) {
                 // Multipart, so initialize the parser:
-                Log.V(TAG, "    Has attachments, {0}", contentType);
+                Log.To.Sync.V(TAG, "{0} has attachments, {1}", this, contentType);
                 try {
                     multipartReader = new MultipartReader(contentType, this);
                 } catch (ArgumentException e) {
@@ -174,16 +174,14 @@ namespace Couchbase.Lite.Support
 
         public void Finish()
         {
-            if (multipartReader != null)
-            {
+            Log.To.Sync.V(TAG, "{0} finished loading ({1} attachments)", this, attachmentsBySHA1Digest.Count);
+            if (multipartReader != null) {
                 if (!multipartReader.Finished) {
-                    throw new InvalidOperationException("received incomplete MIME multipart response");
+                    throw new CouchbaseLiteException("{0} received incomplete MIME response", this) { Code = StatusCode.UpStreamError };
                 }
 
                 RegisterAttachments();
-            }
-            else
-            {
+            } else {
                 ParseJsonBuffer();
             }
         }
@@ -298,12 +296,10 @@ namespace Couchbase.Lite.Support
             if (document == null) {
                 StartJsonBuffer(headers);
             } else {
-                Log.V(TAG, "    Starting attachment #{0}...", attachmentsBySHA1Digest.Count + 1);
+                Log.To.Sync.V(TAG, "{0} starting attachment #{1}...", this, attachmentsBySHA1Digest.Count + 1);
                 curAttachment = database.AttachmentWriter;
                 if (curAttachment == null) {
-                    const string msg = "Cannot create blob store writer for the attachment";
-                    Log.W(TAG, msg);
-                    throw new CouchbaseLiteException(msg, StatusCode.AttachmentError);
+                    throw new CouchbaseLiteException("Cannot create blob store writer for the attachment", StatusCode.AttachmentError);
                 }
 
                 var name = default(string);
@@ -334,7 +330,7 @@ namespace Couchbase.Lite.Support
                         }
                     }
                 } else if (contentEncoding != null) {
-                    Log.W(TAG, "Received unsupported Content-Encoding '{0}'", contentEncoding);
+                    Log.To.Sync.W(TAG, "Received unsupported Content-Encoding '{0}'", contentEncoding);
                     throw new CouchbaseLiteException(StatusCode.UnsupportedType);
                 }
             }
@@ -351,14 +347,12 @@ namespace Couchbase.Lite.Support
 
         public void FinishedPart()
         {
-            if (jsonBuffer != null)
-            {
+            if (jsonBuffer != null) {
                 ParseJsonBuffer();
-            }
-            else
-            {
+            } else {
                 curAttachment.Finish();
-                String sha1String = curAttachment.SHA1DigestString();
+                var sha1String = curAttachment.SHA1DigestString();
+                Log.To.Sync.V(TAG, "{0} finished attachment #{1}: {2}", this, attachmentsBySHA1Digest.Count + 1, curAttachment);
                 attachmentsBySHA1Digest[sha1String] = curAttachment;
                 curAttachment = null;
             }

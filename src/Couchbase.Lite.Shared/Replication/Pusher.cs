@@ -182,6 +182,7 @@ namespace Couchbase.Lite.Replicator
 
                 var rev = change.AddedRevision;
                 if (LocalDatabase.RunFilter(_filter, FilterParams, rev)) {
+                    Log.To.Sync.V(TAG, "{0} queuing {1} {2}", this, LocalDatabase.GetSequence(rev), rev);
                     AddToInbox(rev);
                 }
             }
@@ -242,12 +243,12 @@ namespace Couchbase.Lite.Replicator
             // Post the revisions to the destination. "new_edits":false means that the server should
             // use the given _rev IDs instead of making up new ones.
             var numDocsToSend = docsToSend.Count;
-            if (numDocsToSend == 0)
-            {
+            if (numDocsToSend == 0) {
                 return;
             }
 
-            Log.V(TAG, string.Format("{0}: POSTing " + numDocsToSend + " revisions to _bulk_docs: {1}", this, docsToSend));
+            Log.To.Sync.I(TAG, "{0} sending {1} revisions", this, numDocsToSend);
+            Log.To.Sync.V(TAG, "{0} sending {1}", this, revChanges);
 
             var bulkDocsBody = new Dictionary<string, object>();
             bulkDocsBody["docs"] = docsToSend;
@@ -255,19 +256,16 @@ namespace Couchbase.Lite.Replicator
             SafeAddToChangesCount(numDocsToSend);
 
             SendAsyncRequest(HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, e) => {
-                if (e == null)
-                {
+                if (e == null) {
                     var failedIds = new HashSet<string>();
                     // _bulk_docs response is really an array not a dictionary
                     var items = result.AsList<object>();
-                    foreach(var item in items)
-                    {
+                    foreach(var item in items) {
                         var itemObject = item.AsDictionary<string, object>();
                         var status = StatusFromBulkDocsResponseItem(itemObject);
-                        if (!status.IsSuccessful)
-                        {
+                        if (!status.IsSuccessful) {
                             // One of the docs failed to save.
-                            Log.W(TAG, "_bulk_docs got an error: " + item);
+                            Log.To.Sync.I(TAG, "_bulk_docs got an error: " + item);
 
                             // 403/Forbidden means validation failed; don't treat it as an error
                             // because I did my job in sending the revision. Other statuses are
@@ -281,24 +279,20 @@ namespace Couchbase.Lite.Replicator
                     }
 
                     // Remove from the pending list all the revs that didn't fail:
-                    foreach (var revisionInternal in revChanges)
-                    {
-                        if (!failedIds.Contains(revisionInternal.DocID))
-                        {
+                    foreach (var revisionInternal in revChanges) {
+                        if (!failedIds.Contains(revisionInternal.DocID)) {
                             RemovePending(revisionInternal);
                         }
                     }
                 }
 
-                if (e != null) 
-                {
+                if (e != null) {
                     LastError = e;
                     RevisionFailed();
-                } 
-                else 
-                {
-                    Log.V(TAG, string.Format("POSTed to _bulk_docs: {0}", docsToSend));
+                } else {
+                    Log.To.Sync.V(TAG, "{0} sent {1}", this, revChanges);
                 }
+
                 SafeAddToCompletedChangesCount(numDocsToSend);
             });
         }
@@ -306,6 +300,7 @@ namespace Couchbase.Lite.Replicator
         private bool UploadMultipartRevision(RevisionInternal revision)
         {
             MultipartContent multiPart = null;
+            var length = default(double);
             var revProps = revision.GetProperties();
 
             var attachments = revProps.Get("_attachments").AsDictionary<string,object>();
@@ -322,6 +317,7 @@ namespace Couchbase.Lite.Replicator
                             var jsonContent = new StringContent(json, utf8charset, "application/json");
                             //jsonContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment");
                             multiPart.Add(jsonContent);
+                            length += json.Length;
                         } catch (IOException e) {
                             throw new ArgumentException("Not able to serialize revision properties into a multipart request content.", e);
                         }
@@ -336,6 +332,7 @@ namespace Couchbase.Lite.Replicator
                     if (inputStream == null) {
                         Log.W(TAG, "Unable to find blob file for blobKey: " + blobKey + " - Skipping upload of multipart revision.");
                         multiPart = null;
+                        length = 0;
                     } else {
                         string contentType = null;
                         if (attachment.ContainsKey("content_type")) {
@@ -356,6 +353,7 @@ namespace Couchbase.Lite.Replicator
                         content.Headers.ContentType = new MediaTypeHeaderValue(contentType ?? "application/octet-stream");
 
                         multiPart.Add(content);
+                        length += inputStream.Length;
                     }
                 }
             }
@@ -367,7 +365,7 @@ namespace Couchbase.Lite.Replicator
             var path = string.Format("/{0}?new_edits=false", revision.DocID);
 
             // TODO: need to throttle these requests
-            Log.D(TAG, "Uploading multipart request.  Revision: " + revision);
+            Log.To.Sync.D(TAG, "{0} uploading multipart request.  Revision: {1}", this, revision);
             SafeAddToChangesCount(1);
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
             {
@@ -379,17 +377,17 @@ namespace Couchbase.Lite.Replicator
                             UploadJsonRevision(revision);
                         }
                     } else {
-                        Log.E (TAG, "Exception uploading multipart request", e);
                         LastError = e;
                         RevisionFailed();
                     }
                 } else {
-                    Log.D (TAG, "Uploaded multipart request.  Result: " + result);
+                    Log.To.Sync.V(TAG, "{0} sent multipart {1}", this, revision);
                     SafeIncrementCompletedChangesCount();
                     RemovePending(revision);
                 }
             });
 
+            Log.To.Sync.V(TAG, "{0} queuing revision (multipart, {1}kb)", this, length / 1024.0);
             return true;
         }
             
@@ -416,7 +414,7 @@ namespace Couchbase.Lite.Replicator
                 } 
                 else 
                 {
-                    Log.V(TAG, "Sent {0} (JSON), response={1}", rev, result);
+                    Log.To.Sync.V(TAG, "{0} sent {1} (JSON), response={2}", this, rev, new LogJsonString(result));
                     SafeIncrementCompletedChangesCount();
                     RemovePending (rev);
                 }
@@ -437,28 +435,23 @@ namespace Couchbase.Lite.Replicator
 
         protected internal override void MaybeCreateRemoteDB()
         {
-            if (!CreateTarget)
-            {
+            if (!CreateTarget) {
                 return;
             }
 
             _creatingTarget = true;
-
-            Log.V(TAG, "Remote db might not exist; creating it...");
+            Log.To.Sync.I(TAG, "{0} remote db might not exist; creating it...", this);
 
             SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) =>
             {
                 _creatingTarget = false;
-                if (e is HttpResponseException && ((HttpResponseException)e).StatusCode.GetStatusCode() != StatusCode.PreconditionFailed)
-                {
-                    // this is fatal: no db to push to!
-                    Log.E(TAG, "Failed to create remote db", e);
+                if (e is HttpResponseException && ((HttpResponseException)e).StatusCode.GetStatusCode() != StatusCode.PreconditionFailed) {
+                    
+                    Log.To.Sync.I(TAG, String.Format("{0} failed to create remote db", this), e);
                     LastError = e;
-                    Stop();
-                }
-                else
-                {
-                    Log.V(TAG, "Created remote db");
+                    Stop(); // this is fatal: no db to push to!
+                } else {
+                    Log.To.Sync.I(TAG, "{0} created remote db", this);
                     CreateTarget = false;
                     BeginReplicating();
                 }
@@ -733,6 +726,11 @@ namespace Couchbase.Lite.Replicator
                     Log.E(TAG, "Unhandled exception in Pusher.ProcessInbox", ex);
                 }
             });
+        }
+
+        public override string ToString()
+        {
+            return String.Format("Pusher {0}", ReplicatorID);
         }
 
         #endregion

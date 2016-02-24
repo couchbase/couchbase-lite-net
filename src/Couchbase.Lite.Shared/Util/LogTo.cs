@@ -89,63 +89,63 @@ namespace Couchbase.Lite.Util
 
         internal void I(string tag, string msg)
         {
-            if (ShouldLog(Log.LogLevel.Info)) {
+            if (ShouldLog(Log.LogLevel.Base)) {
                 Log.Logger.I(MakeTag(tag), msg);
             }
         }
 
         internal void I(string tag, string msg, Exception tr)
         {
-            if (ShouldLog(Log.LogLevel.Info)) {
+            if (ShouldLog(Log.LogLevel.Base)) {
                 Log.Logger.I(MakeTag(tag), msg, tr);
             }
         }
-
+            
         internal void I(string tag, string format, params object[] args)
         {
-            if (ShouldLog(Log.LogLevel.Info)) {
+            if (ShouldLog(Log.LogLevel.Base)) {
                 Log.Logger.I(MakeTag(tag), format, args);
             }
         }
 
         internal void W(string tag, string msg)
         {
-            if (ShouldLog(Log.LogLevel.Warning)) {
+            if (ShouldLog(Log.LogLevel.Base)) {
                 Log.Logger.W(MakeTag(tag), msg);
             }
         }
 
         internal void W(string tag, string msg, Exception tr)
         {
-            if (ShouldLog(Log.LogLevel.Warning)) {
+            if (ShouldLog(Log.LogLevel.Base)) {
                 Log.Logger.W(MakeTag(tag), msg, tr);
             }
         }
 
         internal void W(string tag, string format, params object[] args)
         {
-            if (ShouldLog(Log.LogLevel.Warning)) {
+            if (ShouldLog(Log.LogLevel.Base)) {
                 Log.Logger.W(MakeTag(tag), format, args);
             }
         }
 
         internal void E(string tag, string msg)
         {
-            if (ShouldLog(Log.LogLevel.Error)) {
+            if (ShouldLog(Log.LogLevel.Base)) {
                 Log.Logger.E(MakeTag(tag), msg);
             }
         }
 
         internal void E(string tag, string msg, Exception tr)
         {
-            if (ShouldLog(Log.LogLevel.Error)) {
+            if (ShouldLog(Log.LogLevel.Base)) {
                 Log.Logger.E(MakeTag(tag), msg, tr);
             }
         }
 
         internal void E(string tag, string format, params object[] args)
         {
-            if (ShouldLog(Log.LogLevel.Error)) {
+            if (ShouldLog(Log.LogLevel.Base)) {
                 Log.Logger.E(MakeTag(tag), format, args);
             }
         }
@@ -161,9 +161,9 @@ namespace Couchbase.Lite.Util
                 return false;
             }
 
-            return Level.HasFlag(level);
+            return Level >= level;
         }
-
+            
         public override int GetHashCode()
         {
             return _domain.GetHashCode();
@@ -217,12 +217,12 @@ namespace Couchbase.Lite.Util
                 CreateAndAddLogger(domain);
             }
 
-            _allLoggers["*"] = new DomainLogger(null, false) { Level = Log.LogLevel.Normal };
+            _allLoggers["*"] = new DomainLogger(null, false) { Level = Log.LogLevel.Base };
         }
 
         internal void CreateAndAddLogger(string domain)
         {
-            var logger = new DomainLogger(domain, true) { Level = Log.LogLevel.Normal };
+            var logger = new DomainLogger(domain, true) { Level = Log.LogLevel.Base };
             _allLoggers[domain] = logger;
         }
 

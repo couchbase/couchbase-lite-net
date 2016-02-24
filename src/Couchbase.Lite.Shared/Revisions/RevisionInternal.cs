@@ -45,6 +45,8 @@ using System.Collections.Generic;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Revisions;
+using System.Text;
+using Couchbase.Lite.Util;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -281,11 +283,6 @@ namespace Couchbase.Lite.Internal
             return result;
         }
 
-        public override string ToString()
-        {
-            return "{" + this._docId + " #" + this._revId + (Deleted ? "DEL" : string.Empty) + "}";
-        }
-         
         // Calls the block on every attachment dictionary. The block can return a different dictionary,
         // which will be replaced in the rev's properties. If it returns nil, the operation aborts.
         // Returns YES if any changes were made.
@@ -339,6 +336,12 @@ namespace Couchbase.Lite.Internal
         #endregion
 
         #region Overrides
+
+        public override string ToString()
+        {
+            return String.Format("{{{0} #{1}{2}}}", 
+                new SecureLogString(_docId, LogMessageSensitivity.PotentiallyInsecure), _revId, Deleted ? "" : String.Empty);
+        }
 
         public override bool Equals(object o)
         {

@@ -788,6 +788,19 @@ namespace Couchbase.Lite
             return sqliteStorage.CreateUpgrader(upgradeFrom, upgradeTo);
         }
 
+        internal long GetSequence(RevisionInternal rev)
+        {
+            var sequence = rev.Sequence;
+            if (sequence <= 0) {
+                sequence = Storage.GetRevisionSequence(rev);
+                if (sequence > 0) {
+                    rev.Sequence = sequence;
+                }
+            }
+
+            return sequence;
+        }
+
         internal object GetLocalCheckpointDocValue(string key)
         {
             if (key == null) {

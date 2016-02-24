@@ -21,6 +21,8 @@
 using System;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
+using Couchbase.Lite.Auth;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
@@ -43,20 +45,16 @@ namespace Couchbase.Lite
         [TestFixtureTearDown]
         public void OneTimeTearDown()
         {
-            Log.Level = Log.LogLevel.Normal;
+            Log.Level = Log.LogLevel.Base;
             Log.SetDefaultLogger();
         }
 
         [TestCase(Log.LogLevel.None, Result=0)]
-        [TestCase(Log.LogLevel.Error, Result=1)]
-        [TestCase(Log.LogLevel.Warning, Result=1)]
-        [TestCase(Log.LogLevel.Info, Result=1)]
+        [TestCase(Log.LogLevel.Base, Result=1)]
         #if DEBUG
-        [TestCase(Log.LogLevel.All, Result=5)]
-        [TestCase(Log.LogLevel.Debug, Result=1)]
+        [TestCase(Log.LogLevel.Debug, Result=5)]
         #else
-        [TestCase(Log.LogLevel.All, Result=4)]
-        [TestCase(Log.LogLevel.Debug, Result=0)]
+        [TestCase(Log.LogLevel.Debug, Result=4)]
         #endif
         public int TestLogLevel(Log.LogLevel inputLevel)
         {
@@ -82,15 +80,11 @@ namespace Couchbase.Lite
         }
 
         [TestCase(Log.LogLevel.None, Result=0)]
-        [TestCase(Log.LogLevel.Error, Result=1)]
-        [TestCase(Log.LogLevel.Warning, Result=1)]
-        [TestCase(Log.LogLevel.Info, Result=1)]
+        [TestCase(Log.LogLevel.Base, Result=1)]
         #if DEBUG
-        [TestCase(Log.LogLevel.All, Result=5)]
-        [TestCase(Log.LogLevel.Debug, Result=1)]
+        [TestCase(Log.LogLevel.Debug, Result=5)]
         #else
-        [TestCase(Log.LogLevel.All, Result=4)]
-        [TestCase(Log.LogLevel.Debug, Result=0)]
+        [TestCase(Log.LogLevel.Debug, Result=4)]
         #endif
         public int TestOverrideLogLevel(Log.LogLevel inputLevel)
         {
@@ -114,6 +108,35 @@ namespace Couchbase.Lite
             Log.To.Database.E(TAG, "TEST");
 
             return count;
+        }
+
+        [Test]
+        public void TestSecureLogging()
+        {
+            var auth = new BasicAuthenticator("jim", "borden");
+            var rev = new RevisionInternal("sensitive", "1-abcdef", false);
+            var lastMessage = default(string);
+            _logCallback = (level, tag, msg) =>
+            {
+                lastMessage = msg;
+            };
+
+            Log.I(TAG, "{0}", auth);
+            Assert.AreEqual("[BasicAuthenticator (<redacted>:<redacted>)]", lastMessage);
+
+            Log.I(TAG, "{0}", rev);
+            Assert.AreEqual("{<redacted> #1-abcdef}", lastMessage);
+
+            Log.ScrubSensitivity = LogScrubSensitivity.PotentiallyInsecureOK;
+            Log.I(TAG, "{0}", auth);
+            Assert.AreEqual("[BasicAuthenticator (jim:<redacted>)]", lastMessage);
+
+            Log.I(TAG, "{0}", rev);
+            Assert.AreEqual("{sensitive #1-abcdef}", lastMessage);
+
+            Log.ScrubSensitivity = LogScrubSensitivity.AllOK;
+            Log.I(TAG, "{0}", auth);
+            Assert.AreEqual("[BasicAuthenticator (jim:borden)]", lastMessage);
         }
 
         private void DoCallback(Log.LogLevel level, string tag, string msg)
@@ -157,22 +180,22 @@ namespace Couchbase.Lite
 
         public void I(string tag, string msg)
         {
-            DoCallback(Log.LogLevel.Info, tag, msg);
+            DoCallback(Log.LogLevel.Base, tag, msg);
         }
 
         public void I(string tag, string msg, Exception tr)
         {
-            DoCallback(Log.LogLevel.Info, tag, msg);
+            DoCallback(Log.LogLevel.Base, tag, msg);
         }
 
         public void I(string tag, string format, params object[] args)
         {
-            DoCallback(Log.LogLevel.Info, tag, String.Format(format, args));
+            DoCallback(Log.LogLevel.Base, tag, String.Format(format, args));
         }
 
         public void W(string tag, string msg)
         {
-            DoCallback(Log.LogLevel.Warning, tag, msg);
+            DoCallback(Log.LogLevel.Base, tag, msg);
         }
 
         public void W(string tag, Exception tr)
@@ -182,27 +205,27 @@ namespace Couchbase.Lite
 
         public void W(string tag, string msg, Exception tr)
         {
-            DoCallback(Log.LogLevel.Warning, tag, msg);
+            DoCallback(Log.LogLevel.Base, tag, msg);
         }
 
         public void W(string tag, string format, params object[] args)
         {
-            DoCallback(Log.LogLevel.Warning, tag, String.Format(format, args));
+            DoCallback(Log.LogLevel.Base, tag, String.Format(format, args));
         }
 
         public void E(string tag, string msg)
         {
-            DoCallback(Log.LogLevel.Error, tag, msg);
+            DoCallback(Log.LogLevel.Base, tag, msg);
         }
 
         public void E(string tag, string msg, Exception tr)
         {
-            DoCallback(Log.LogLevel.Error, tag, msg);
+            DoCallback(Log.LogLevel.Base, tag, msg);
         }
 
         public void E(string tag, string format, params object[] args)
         {
-            DoCallback(Log.LogLevel.Error, tag, String.Format(format, args));
+            DoCallback(Log.LogLevel.Base, tag, String.Format(format, args));
         }
 
         #endregion

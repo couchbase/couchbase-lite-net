@@ -44,6 +44,8 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Util;
+using System.Text;
 
 namespace Couchbase.Lite
 {
@@ -112,5 +114,21 @@ namespace Couchbase.Lite
                 RemoveRange(limit, Count - limit);
             }
         }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder("[");
+            IEnumerator<RevisionInternal> iterator = GetEnumerator();
+            while (iterator.MoveNext()) {
+                var rev = iterator.Current;
+                sb.AppendFormat("{0}, ", rev);
+            }
+
+            sb.Remove(sb.Length - 2, 2);
+            sb.Append("]");
+
+            return sb.ToString();
+        }
+
     }
 }

@@ -539,7 +539,7 @@ namespace Couchbase.Lite
         }
 
         // Instance Fields
-        private readonly ManagerOptions _options;
+        internal readonly ManagerOptions _options;
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;
         private readonly List<Replication> replications;

@@ -291,9 +291,7 @@ namespace Couchbase.Lite.Replicator
             }
             AddRequestHeaders(Request);
 
-            var maskedRemoteWithoutCredentials = url.ToString();
-            maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
-            Log.V(TAG, "Making request to " + maskedRemoteWithoutCredentials);
+            Log.V(TAG, "Making request to {0}", new SecureLogUri(url));
 
             if (tokenSource.Token.IsCancellationRequested) {
                 return;

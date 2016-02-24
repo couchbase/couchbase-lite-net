@@ -55,17 +55,30 @@ namespace Couchbase.Lite.Util
 
         #region Enums
 
-        [Flags]
+        /// <summary>
+        /// A level of logging verbosity
+        /// </summary>
         public enum LogLevel
         {
-            None = 0,
-            Debug = 1 << 0,
-            Verbose = 1 << 1,
-            Info = 1 << 2,
-            Warning = 1 << 3,
-            Error = 1 << 4,
-            Normal = Info | Warning | Error,
-            All = Debug | Verbose | Info | Warning | Error
+            /// <summary>
+            /// No logs are output
+            /// </summary>
+            None,
+
+            /// <summary>
+            /// Informational logs are output (the default for most)
+            /// </summary>
+            Base,
+
+            /// <summary>
+            /// Verbose logs are output
+            /// </summary>
+            Verbose,
+
+            /// <summary>
+            /// Debugging logs are output (Only applicable in debug builds)
+            /// </summary>
+            Debug
         }
 
         #endregion
@@ -73,6 +86,8 @@ namespace Couchbase.Lite.Util
         #region Variables
 
         internal static readonly LogTo To = new LogTo();
+
+        internal static LogScrubSensitivity ScrubSensitivity { get; set; }
 
         #endregion
 
@@ -99,7 +114,7 @@ namespace Couchbase.Lite.Util
 
         static Log()
         {
-            Level = LogLevel.Normal;
+            Level = LogLevel.Base;
         }
 
         #endregion
@@ -146,24 +161,21 @@ namespace Couchbase.Lite.Util
         public static bool SetDefaultLoggerWithLevel(SourceLevels level)
         {
             if (level.HasFlag(SourceLevels.All)) {
-                Level = LogLevel.All;
+                Level = LogLevel.Debug;
             } else {
-                if (level.HasFlag(SourceLevels.ActivityTracing)) {
-                    Level |= LogLevel.Debug;
+                if (level.HasFlag(SourceLevels.Information) ||
+                    level.HasFlag(SourceLevels.Warning) ||
+                    level.HasFlag(SourceLevels.Error)) {
+                    Level = LogLevel.Base;
                 }
                 if (level.HasFlag(SourceLevels.Verbose)) {
-                    Level |= LogLevel.Verbose;
+                    Level = LogLevel.Verbose;
                 }
-                if (level.HasFlag(SourceLevels.Information)) {
-                    Level |= LogLevel.Info;
-                }
-                if (level.HasFlag(SourceLevels.Warning)) {
-                    Level |= LogLevel.Warning;
-                }
-                if (level.HasFlag(SourceLevels.Error)) {
-                    Level |= LogLevel.Error;
+                if (level.HasFlag(SourceLevels.ActivityTracing)) {
+                    Level = LogLevel.Debug;
                 }
             }
+
             return SetLogger(LoggerFactory.CreateLogger());
         }
 

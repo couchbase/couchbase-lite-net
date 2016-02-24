@@ -230,5 +230,10 @@ namespace Couchbase.Lite
         {
             return blobKey;
         }
+
+        public override string ToString()
+        {
+            return String.Format("BlobStoreWriter len={0}kb, digest={1}, SHA1={2}", (double)length / 1024.0, MD5DigestString(), SHA1DigestString());
+        }
     }
 }

@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Auth
 {
@@ -52,6 +53,17 @@ namespace Couchbase.Lite.Auth
         {
             _username = username;
             _password = password;
+        }
+
+        #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            return String.Format("[DigestAuthenticator ({0}:{1})", 
+                new SecureLogString(_username, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogString(_password, LogMessageSensitivity.Insecure));
         }
 
         #endregion

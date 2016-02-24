@@ -47,6 +47,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 using System.Collections.Concurrent;
+using System.Text;
 
 namespace Couchbase.Lite.Auth
 {
@@ -112,6 +113,22 @@ namespace Couchbase.Lite.Auth
             }
 
             return accessToken;
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder("[FacebookAuthorizer (");
+            foreach (var pair in _AccessTokens) {
+                if (pair.Key[0] == _emailAddress) {
+                    sb.AppendFormat("key={0} value={1}, ", 
+                        new SecureLogJsonString(pair.Key, LogMessageSensitivity.PotentiallyInsecure), 
+                        new SecureLogString(pair.Value, LogMessageSensitivity.Insecure));
+                }
+            }
+
+            sb.Remove(sb.Length - 2, 2);
+            sb.Append(")]");
+            return sb.ToString();
         }
 
         private class StringArrayComparer : IEqualityComparer<string[]>

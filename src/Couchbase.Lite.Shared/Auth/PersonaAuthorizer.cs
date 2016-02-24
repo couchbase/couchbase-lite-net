@@ -262,5 +262,21 @@ namespace Couchbase.Lite.Auth
         {
             return String.Format("{0}:{1}", email, site);
         }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder("[PersonaAuthorizer (");
+            foreach (var pair in assertions) {
+                if (pair.Key.StartsWith(emailAddress)) {
+                    sb.AppendFormat("key={0} value={1}, ", 
+                        new SecureLogString(pair.Key, LogMessageSensitivity.PotentiallyInsecure),
+                        new SecureLogString(pair.Value, LogMessageSensitivity.Insecure));
+                }
+            }
+
+            sb.Remove(sb.Length - 2, 2);
+            sb.Append(")]");
+            return sb.ToString();
+        }
     }
 }
