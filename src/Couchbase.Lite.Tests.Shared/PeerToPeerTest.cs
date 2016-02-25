@@ -203,24 +203,27 @@ namespace Couchbase.Lite
             }
             #endif
 
+            Log.SetDomainLevels("DISCOVERY++");
+
             //Use a short timeout to speed up the test since it is performed locally
             //Android will get stuck in DNSProcessResult which hangs indefinitely if
             //no results are found (Which will happen if registration is aborted between
             //the resolve reply and query record steps)
             ServiceParams.Timeout = TimeSpan.FromSeconds(3); 
-            var mre = new ManualResetEventSlim();
+            var mre1 = new ManualResetEventSlim();
+            var mre2 = new ManualResetEventSlim();
             CouchbaseLiteServiceBrowser browser = new CouchbaseLiteServiceBrowser(new ServiceBrowser());
             browser.ServiceResolved += (sender, e) => {
-                Log.D(TAG, "Discovered service: {0}", e.Service.Name);
+                Log.To.Discovery.I(TAG, "Discovered service: {0}", e.Service.Name);
                 if(e.Service.Name == TAG) {
-                    mre.Set();
+                    mre1.Set();
                 }
             };
 
             browser.ServiceRemoved += (o, args) => {
-                Log.D(TAG, "Service destroyed: {0}", args.Service.Name);
+                Log.To.Discovery.I(TAG, "Service destroyed: {0}", args.Service.Name);
                 if(args.Service.Name == TAG) {
-                    mre.Set();
+                    mre2.Set();
                 }
             };
             browser.Start();
@@ -228,14 +231,15 @@ namespace Couchbase.Lite
             CouchbaseLiteServiceBroadcaster broadcaster = new CouchbaseLiteServiceBroadcaster(new RegisterService(), 59840);
             broadcaster.Name = TAG;
             broadcaster.Start();
-            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)));
+            Assert.IsTrue(mre1.Wait(TimeSpan.FromSeconds(10)));
 
             //FIXME.JHB:  Why does Linux hate this part sporadically?
-            mre.Reset();
             broadcaster.Dispose();
-            var success = mre.Wait(TimeSpan.FromSeconds(10));
+            var success = mre2.Wait(TimeSpan.FromSeconds(10));
             browser.Dispose();
             Assert.IsTrue(success);
+            mre1.Dispose();
+            mre2.Dispose();
         }
 
         [TestCase(false)]

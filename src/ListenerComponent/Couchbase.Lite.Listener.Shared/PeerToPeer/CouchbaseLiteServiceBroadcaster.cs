@@ -21,6 +21,7 @@
 using System;
 
 using Mono.Zeroconf;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
@@ -115,8 +116,10 @@ namespace Couchbase.Lite.Listener
             if (_running) {
                 return;
             }
+
             _running = true;
             _registerService.Register();
+            Log.To.Discovery.I(TAG, "Started {0}", this);
         }
 
         /// <summary>
@@ -130,6 +133,16 @@ namespace Couchbase.Lite.Listener
 
             _running = false;
             _registerService.Unregister();
+            Log.To.Discovery.I(TAG, "Stopped {0}", this);
+        }
+
+        #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            return string.Format("CouchbaseLiteServiceBroadcaster[Name={0}, Type={1}, Port={2}]", Name, Type, Port);
         }
 
         #endregion

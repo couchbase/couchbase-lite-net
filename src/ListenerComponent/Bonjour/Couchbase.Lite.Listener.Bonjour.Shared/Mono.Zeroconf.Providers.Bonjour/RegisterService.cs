@@ -57,7 +57,10 @@ namespace Mono.Zeroconf.Providers.Bonjour
 {
     public sealed class RegisterService : Service, IRegisterService, IDisposable
     {
+        private static readonly string Tag = typeof(RegisterService).Name;
+        #if __UNITY_ANDROID__
         private static ManualResetEventSlim _primedEvent = new ManualResetEventSlim();
+        #endif
 
         private Thread thread;
         private ServiceRef sd_ref;
@@ -168,7 +171,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 ProcessRegister();
             } catch(ThreadAbortException) {
                 Thread.ResetAbort();
-                Log.D("RegisterService", "Register thread aborted");
+                Log.To.Discovery.I(Tag, "Finished");
             }
             
             thread = null;
@@ -186,12 +189,14 @@ namespace Mono.Zeroconf.Providers.Bonjour
             }
 
             _self = GCHandle.Alloc(this);
+            Log.To.Discovery.V(Tag, "{0} preparing to enter DNSServiceRegister");
             ServiceError error = Native.DNSServiceRegister(out sd_ref, 
                 auto_rename ? ServiceFlags.None : ServiceFlags.NoAutoRename, InterfaceIndex,
                 Name, RegType, ReplyDomain, HostTarget, (ushort)IPAddress.HostToNetworkOrder((short)Port), txt_rec_length, txt_rec,
                 register_reply_handler, GCHandle.ToIntPtr(_self));
 
             if(error != ServiceError.NoError) {
+                Log.To.Discovery.W(Tag, "Got error in DNSServiceRegister {0}", error);
                 Error(this, new ServiceErrorEventArgs("ProcessRegister", error));
                 sd_ref.Deallocate();
                 return;
@@ -219,6 +224,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         {
             var handle = GCHandle.FromIntPtr(context);
             var registerService = handle.Target as RegisterService;
+            Log.To.Discovery.D(Tag, "Entered OnRegisterReply for {0} (ref 0x{1})", registerService, sdRef.Raw.ToString("X"));
             RegisterServiceEventArgs args = new RegisterServiceEventArgs();
             
             args.Service = registerService;

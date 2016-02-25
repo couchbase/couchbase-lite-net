@@ -123,9 +123,26 @@ namespace Couchbase.Lite.Util
 
         public static void SetLevelForDomain(string domain, LogLevel level)
         {
+            Log.D("Log", "Setting {0} to {1}", domain, level);
             var gotLogger = Log.To.GetLogger(domain);
             if (gotLogger != null) {
                 gotLogger.Level = level;
+            }
+        }
+
+        internal static void SetDomainLevels(string descriptor)
+        {
+            Log.To.ClearLogLevels();
+            var entries = descriptor.Split(',');
+            foreach (var entry in entries) {
+                var trimmed = entry.Trim();
+                int verbosity = 1;
+                while (entry[entry.Length - verbosity] == '+') {
+                    verbosity++;
+                }
+
+                var domain = trimmed.Substring(0, entry.Length - verbosity + 1);
+                SetLevelForDomain(domain, (LogLevel)verbosity);
             }
         }
 

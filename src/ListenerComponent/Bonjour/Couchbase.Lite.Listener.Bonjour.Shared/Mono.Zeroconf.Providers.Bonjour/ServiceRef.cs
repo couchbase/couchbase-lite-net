@@ -31,11 +31,13 @@ using System.Threading;
 using System.Collections;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Couchbase.Lite.Util;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
     internal struct ServiceRef
     {
+        private static readonly string Tag = typeof(ServiceRef).Name;
         public static readonly ServiceRef Zero;
     
         private IntPtr raw;
@@ -47,9 +49,11 @@ namespace Mono.Zeroconf.Providers.Bonjour
     
         public void Deallocate()
         {
-            var localRaw = raw;
-            raw = IntPtr.Zero;
-            Task.Delay(1000).ContinueWith(t => Native.DNSServiceRefDeallocate(localRaw));
+            var localRaw = Interlocked.Exchange(ref raw, IntPtr.Zero);
+            if (localRaw != IntPtr.Zero) {
+                Log.To.Discovery.V(Tag, "Deallocating ServiceRef (0x{0})", localRaw.ToString("X"));
+                Task.Delay(1000).ContinueWith(t => Native.DNSServiceRefDeallocate(localRaw));
+            }
         }
 
         public ServiceError ProcessSingle()

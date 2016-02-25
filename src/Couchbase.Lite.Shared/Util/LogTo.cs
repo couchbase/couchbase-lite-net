@@ -184,7 +184,7 @@ namespace Couchbase.Lite.Util
     {
         private static readonly string Tag = typeof(LogTo).Name;
         private static readonly List<string> Domains = new List<string> { "DATABASE", "QUERY", "VIEW", "ROUTER", "SYNC",
-            "SYNC_PERF", "CHANGE_TRACKER", "VALIDATION", "UPGRADE", "LISTENER" };
+            "SYNC_PERF", "CHANGE_TRACKER", "VALIDATION", "UPGRADE", "LISTENER", "DISCOVERY" };
 
         private readonly Dictionary<string, DomainLogger> _allLoggers = 
             new Dictionary<string, DomainLogger>(StringComparer.InvariantCultureIgnoreCase);
@@ -208,6 +208,8 @@ namespace Couchbase.Lite.Util
         internal DomainLogger Upgrade { get { return _allLoggers[Domains[8]]; } }
 
         internal DomainLogger Listener { get { return _allLoggers[Domains[9]]; } }
+
+        internal DomainLogger Discovery { get { return _allLoggers[Domains[10]]; } }
 
         internal DomainLogger All { get { return _allLoggers["*"]; } }
 
@@ -235,6 +237,13 @@ namespace Couchbase.Lite.Util
             }
 
             return retVal;
+        }
+
+        internal void ClearLogLevels()
+        {
+            foreach (var domain in Domains) {
+                Log.SetLevelForDomain(domain, Log.LogLevel.None);
+            }
         }
     }
 }

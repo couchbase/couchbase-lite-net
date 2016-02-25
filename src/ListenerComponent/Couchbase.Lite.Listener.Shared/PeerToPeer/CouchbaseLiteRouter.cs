@@ -192,9 +192,14 @@ namespace Couchbase.Lite.Listener
             CouchbaseLiteResponse responseObject = CheckForAltMethod(context, responseState.Response);
             if (!responseState.IsAsync) {
                 try {
+                    Log.To.Router.I(TAG, "Processing response for {0}...", context.RequestUrl.PathAndQuery);
+                    Log.To.Router.V(TAG, "Processing request range...");
                     responseObject.ProcessRequestRanges();
+                    Log.To.Router.V(TAG, "Writing headers...");
                     responseObject.WriteHeaders();
+                    Log.To.Router.V(TAG, "Writing body...");
                     responseObject.WriteToContext();
+                    Log.To.Router.I(TAG, "Response successfully processed!");
                 } catch(Exception e) {
                     Log.To.Router.E(TAG, "Exception writing response", e);
                     responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();
