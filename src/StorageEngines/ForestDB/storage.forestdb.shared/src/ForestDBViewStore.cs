@@ -555,6 +555,10 @@ namespace Couchbase.Lite.Storage.ForestDB
                     docRevision = _dbStorage.GetDocument(next.DocID, null, options.IncludeDocs);
                 }
 
+                Log.To.Query.V(Tag, "Query {0} found row with key={1}, value={2}, id={3}", Name,
+                    new SecureLogJsonString(key, LogMessageSensitivity.PotentiallyInsecure), 
+                    new SecureLogString(value, LogMessageSensitivity.PotentiallyInsecure), 
+                    new SecureLogString(next.DocID, LogMessageSensitivity.PotentiallyInsecure));
                 yield return new QueryRow(next.DocID, next.DocSequence, key, value, docRevision, this);
             }
         }
@@ -598,6 +602,9 @@ namespace Couchbase.Lite.Storage.ForestDB
                     valsToReduce.Clear();
                     if(row != null) {
                         var rowCopy = row;
+                        Log.To.Query.V(Tag, "Query {0} reduced row with key={1} value={2}", Name,
+                            new SecureLogJsonString(key, LogMessageSensitivity.PotentiallyInsecure), 
+                            new SecureLogJsonString(value, LogMessageSensitivity.PotentiallyInsecure));
                         row = null;
                         yield return rowCopy;
                     }

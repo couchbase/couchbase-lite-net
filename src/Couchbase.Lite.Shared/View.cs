@@ -338,9 +338,9 @@ namespace Couchbase.Lite {
             }
 
             if (iterator != null) {
-                Log.D(TAG, "Query {0}: Returning iterator", Name);
+                Log.To.Query.I(TAG, "Query {0}: Returning iterator", Name);
             } else {
-                Log.D(TAG, "Query {0}: Failed", Name);
+                Log.To.Query.I(TAG, "Query {0}: Failed", Name);
             }
 
             return iterator;

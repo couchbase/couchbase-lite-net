@@ -496,7 +496,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             args.Add(limit);
             args.Add(options.Skip);
 
-            Log.D(Tag, "Query {0}: {1}\n\tArguments: {2}", Name, sql, Manager.GetObjectMapper().WriteValueAsString(args));
+            Log.To.Query.I(Tag, "Query {0}: {1}\n\tArguments: {2}", Name, sql, new SecureLogJsonString(args, LogMessageSensitivity.PotentiallyInsecure));
 
             var dbStorage = _dbStorage;
             var status = new Status();
@@ -968,8 +968,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     }
                 }
 
-                Log.V(Tag, "Query {0}: Found row with key={1}, value={2}, id={3}",
-                    Name, keyData.Value, valueData.Value, docId);
+                Log.To.Query.V(Tag, "Query {0}: Found row with key={1}, value={2}, id={3}",
+                    Name, new SecureLogString(keyData.Value, LogMessageSensitivity.PotentiallyInsecure),
+                    new SecureLogString(valueData.Value, LogMessageSensitivity.PotentiallyInsecure),
+                    new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
 
                 QueryRow row = null;
                 if(false) {
@@ -1070,7 +1072,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     lastKeyData = keyData;
                 }
 
-                Log.V(Tag, "    Query {0}: Will reduce row with key={1}, value={2}", Name, keyData.Value, valueData.Value);
+                Log.To.Query.V(Tag, "Query {0}: Will reduce row with key={1}, value={2}", Name, 
+                    new SecureLogString(keyData.Value, LogMessageSensitivity.PotentiallyInsecure),
+                    new SecureLogString(valueData.Value, LogMessageSensitivity.PotentiallyInsecure));
 
                 object valueOrData = FromJSON(valueData.Value);
                 if(valuesToReduce != null && RowValueIsEntireDoc(valueData.Value)) {
@@ -1079,7 +1083,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         var rev = db.GetDocument(docID, c.GetLong(1));
                         valueOrData = rev.GetProperties();
                     } catch(CouchbaseLiteException) {
-                        Log.W(Tag, "Couldn't load doc for row value");
+                        Log.To.Query.W(Tag, "Couldn't load doc for row value");
                         throw;
                     }   
                 }
@@ -1093,8 +1097,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 // Finish the last group (or the entire list, if no grouping):
                 var key = group ? GroupKey(lastKeyData.Value, groupLevel) : null;
                 var reduced = CallReduce(reduce, keysToReduce, valuesToReduce);
-                Log.V(Tag, "    Query {0}: Will reduce row with key={1}, value={2}", Name, Manager.GetObjectMapper().WriteValueAsString(key),
-                    Manager.GetObjectMapper().WriteValueAsString(reduced));
+                Log.To.Query.V(Tag, "Query {0}: Reduced to key={1}, value={2}", Name,
+                    new SecureLogJsonString(key, LogMessageSensitivity.PotentiallyInsecure),
+                    new SecureLogJsonString(reduced, LogMessageSensitivity.PotentiallyInsecure));
 
                 var row = new QueryRow(null, 0, key, reduced, null, this);
                 if (options.Filter == null || options.Filter(row)) {

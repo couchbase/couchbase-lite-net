@@ -386,6 +386,7 @@ namespace Couchbase.Lite {
         /// </exception>
         public virtual QueryEnumerator Run() 
         {
+            Log.To.Query.I(TAG, "{0} running...", this);
             Database.Open();
 
             ValueTypePtr<long> outSequence = 0;
@@ -465,8 +466,12 @@ namespace Couchbase.Lite {
             return string.Format("[Query: Database={0}, Limit={1}, Skip={2}, Descending={3}, StartKey={4},{18}" +
                 "EndKey={5}, StartKeyDocId={6}, EndKeyDocId={7}, InclusiveStart={8}, InclusiveEnd={9},{18}" +
                 "IndexUpdateMode={10}, AllDocsMode={11}, Keys={12}, MapOnly={13}, GroupLevel={14}, Prefetch={15},{18}" +
-                "IncludeDeleted={16}, PostFilter={17}]", Database, Limit, Skip, Descending, StartKey, EndKey, StartKeyDocId, 
-                EndKeyDocId, InclusiveStart, InclusiveEnd, IndexUpdateMode, AllDocsMode, Keys, MapOnly, GroupLevel, Prefetch, 
+                "IncludeDeleted={16}, PostFilter={17}]", Database, Limit, Skip, Descending, 
+                new SecureLogJsonString(StartKey, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogJsonString(EndKey, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogString(StartKeyDocId, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogString(EndKeyDocId, LogMessageSensitivity.PotentiallyInsecure),
+                InclusiveStart, InclusiveEnd, IndexUpdateMode, AllDocsMode, Keys, MapOnly, GroupLevel, Prefetch, 
                 IncludeDeleted, PostFilter, Environment.NewLine);
         }
 

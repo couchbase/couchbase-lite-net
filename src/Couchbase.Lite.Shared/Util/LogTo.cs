@@ -182,7 +182,7 @@ namespace Couchbase.Lite.Util
 
     internal sealed class LogTo
     {
-        private static readonly string Tag = typeof(LogTo).Name.Split('.').Last();
+        private static readonly string Tag = typeof(LogTo).Name;
         private static readonly List<string> Domains = new List<string> { "DATABASE", "QUERY", "VIEW", "ROUTER", "SYNC",
             "SYNC_PERF", "CHANGE_TRACKER", "VALIDATION", "UPGRADE", "LISTENER" };
 

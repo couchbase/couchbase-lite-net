@@ -814,9 +814,10 @@ namespace Couchbase.Lite.Storage.ForestDB
                         { "_conflicts", conflicts }
                     };
                     Log.To.Query.V(TAG, "AllDocs: Found row with key=\"{0}\", value={1}",
-                        docID, value);
+                        new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), 
+                        new SecureLogJsonString(value, LogMessageSensitivity.PotentiallyInsecure));
                 } else {
-                    Log.To.Query.V(TAG, "AllDocs: No such row with key=\"{0}\"", docID);
+                    Log.To.Query.V(TAG, "AllDocs: No such row with key=\"{0}\"", new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                 }
 
                 var row = new QueryRow(value == null ? null : docID, sequenceNumber, docID, value, 

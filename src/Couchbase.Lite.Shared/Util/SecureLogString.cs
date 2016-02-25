@@ -19,6 +19,7 @@
 // limitations under the License.
 //
 using System;
+using System.Text;
 
 namespace Couchbase.Lite.Util
 {
@@ -57,16 +58,33 @@ namespace Couchbase.Lite.Util
 
     internal sealed class SecureLogString : SecureLogItem
     {
-        private readonly string _string;
+        private string _string;
+        private readonly byte[] _bytes;
+
+        private string String
+        {
+            get {
+                if (_string == null) {
+                    _string = Encoding.UTF8.GetString(_bytes);
+                }
+
+                return _string;
+            }
+        }
 
         public SecureLogString(string str, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
         {
             _string = str;
         }
 
+        public SecureLogString(byte[] utf8Bytes, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
+        {
+            _bytes = utf8Bytes;
+        }
+
         public override string ToString()
         {
-            return ShouldLog ? _string : Redacted;
+            return ShouldLog ? String : Redacted;
         }
     }
 

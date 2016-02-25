@@ -301,7 +301,7 @@ namespace Couchbase.Lite
             _willUpdate = true;
             var updateDelay = ((_lastUpdatedAt + TimeSpan.FromSeconds(updateInterval)) - DateTime.Now).TotalSeconds;
             updateDelay = Math.Max(0, Math.Min(_updateInterval, updateDelay));
-            Log.D(TAG, "Will update after {0} sec...", updateDelay);
+            Log.To.Query.I(TAG, "{0} will update after {1} sec...", this, updateDelay);
             Task.Delay(TimeSpan.FromSeconds(updateDelay)).ContinueWith(t =>
             {
                 if(_willUpdate) {
@@ -381,6 +381,15 @@ namespace Couchbase.Lite
         }
 
         #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            return base.ToString().Insert(1, "Live");
+        }
+
+        #endregion
     
     }
 
