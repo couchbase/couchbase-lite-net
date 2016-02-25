@@ -80,6 +80,7 @@ namespace Couchbase.Lite.Support
             ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
 
             if (ServicePointManager.ServerCertificateValidationCallback == null) {
+                Log.I(Tag, "No preexisting SSL verification logic, proceeding to set...");
                 //
                 // Source: http://msdn.microsoft.com/en-us/library/office/dd633677(v=exchg.80).aspx
                 // ServerCertificateValidationCallback returns true if either of the following criteria are met:
@@ -97,9 +98,9 @@ namespace Couchbase.Lite.Support
                     #if __UNITY__
 
                     // Workaround for Unity on mobile (it likely won't reach this point on desktop)
-                    if(chain != null && chain.ChainElements != null) {
+                    if (chain != null && chain.ChainElements != null) {
                         var root = chain.ChainElements.Cast<X509ChainElement>().Last().Certificate.IssuerName;
-                        if(Couchbase.Lite.Unity.X509RootManager.Contains(root)) {
+                        if (Couchbase.Lite.Unity.X509RootManager.Contains(root)) {
                             return true;
                         }
                     }
@@ -138,6 +139,8 @@ namespace Couchbase.Lite.Support
                         return false;
                     }
                 };
+            } else {
+                Log.I(Tag, "SSL verification logic already set, not setting");
             }
         }
 

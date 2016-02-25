@@ -46,6 +46,7 @@ namespace Couchbase.Lite.Unity
     /// </remarks>
     public class UnityMainThreadScheduler : MonoBehaviour
     {
+        
         #region Private Variables
 
         private static readonly BlockingCollection<Task> _jobQueue = new BlockingCollection<Task>();
@@ -56,18 +57,23 @@ namespace Couchbase.Lite.Unity
 
         public static string PersistentDataPath { get; private set; }
 
+        public static bool TaskSchedulerReady
+        {
+            get {
+                return _taskScheduler != null;
+            }
+        }
+
         /// <summary>
         /// The task scheduler for scheduling actions to run on the Unity3D
         /// main thread
         /// </summary>
         public static TaskScheduler TaskScheduler
         {
-            get
-            {
-                if (_taskScheduler == null)
-                {
+            get {
+                if (_taskScheduler == null) {
                     Debug.LogError("UnityMainThreadScheduler must be initialized from the main thread by attaching it on" +
-                        "to an object in the scene");
+                    "to an object in the scene");
                     throw new InvalidOperationException();
                 }
 
@@ -83,17 +89,14 @@ namespace Couchbase.Lite.Unity
         /// <value>The task factory.</value>
         public static TaskFactory TaskFactory
         {
-            get
-            {
-                if (_taskFactory != null)
-                {
+            get {
+                if (_taskFactory != null) {
                     return _taskFactory;
                 }
 
-                if (_taskScheduler == null)
-                {
+                if (_taskScheduler == null) {
                     Debug.LogError("UnityMainThreadScheduler must be initialized from the main thread by attaching it on" +
-                        "to an object in the scene");
+                    "to an object in the scene");
                     throw new InvalidOperationException();
                 }
 
@@ -109,8 +112,7 @@ namespace Couchbase.Lite.Unity
 
         void OnEnable()
         {
-            if (_taskScheduler != null)
-            {
+            if (_taskScheduler != null) {
                 return;
             }
 
@@ -122,8 +124,7 @@ namespace Couchbase.Lite.Unity
         {
             Task nextTask;
             bool gotTask = _jobQueue.TryTake(out nextTask);
-            if (gotTask && nextTask.Status == TaskStatus.WaitingToRun)
-            {
+            if (gotTask && nextTask.Status == TaskStatus.WaitingToRun) {
                 _taskScheduler.TryExecuteTaskHack(nextTask);
             }
         }

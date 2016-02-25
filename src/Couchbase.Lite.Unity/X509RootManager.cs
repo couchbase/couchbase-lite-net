@@ -30,6 +30,7 @@ using System.Text;
 
 using Couchbase.Lite.Util;
 using MSX = Mono.Security.X509;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite.Unity {
 
@@ -78,8 +79,9 @@ namespace Couchbase.Lite.Unity {
         public static void AddRootCertificate(IEnumerable<byte> certData)
         {
             var cert = new MSX.X509Certificate(certData.ToArray());
-            Log.I("Foo", "Adding {0} (issued by {1}) to trusted roots", cert.SubjectName, cert.IssuerName);
+            Log.I(Tag, "Adding {0} (issued by {1}) to trusted roots", cert.SubjectName, cert.IssuerName);
             _CustomRoots.Add(cert);
+            CouchbaseLiteHttpClientFactory.SetupSslVerification();
         }
 
         #endregion
