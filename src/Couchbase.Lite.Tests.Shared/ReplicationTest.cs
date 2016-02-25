@@ -752,7 +752,7 @@ namespace Couchbase.Lite
                 {
                     var changesCount = e.Source.ChangesCount;
                     var completedChangesCount = e.Source.CompletedChangesCount;
-                    var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
+                    var msg = String.Format("changes: {0} completed changes: {1}", changesCount, completedChangesCount);
                     Log.D(Tag, msg);
                     if (changesCount > 0 && changesCount == completedChangesCount
                     && replicationCaughtUpSignal.CurrentCount > 0) {
@@ -1896,7 +1896,7 @@ namespace Couchbase.Lite
                 {
                     changesCount = e.ChangesCount;
                     completedChangesCount = e.CompletedChangesCount;
-                    var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
+                    var msg = String.Format("changes: {0} completed changes: {1}", changesCount, completedChangesCount);
                     Log.D(Tag, msg);
                     if (changesCount == completedChangesCount
                     && changesCount == numDocs
@@ -2566,7 +2566,7 @@ namespace Couchbase.Lite
                         throw new ApplicationException("Fail", e.Error);
                     }
                     if (numTimesCalled++ > 0 && e.Rows.Count > 0) {
-                        Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
+                        Assert.IsTrue(e.Rows.Count > numDocsBeforePull, String.Format("e.Rows.Count ({0}) <= numDocsBeforePull ({1})", e.Rows.Count, numDocsBeforePull));
                     }
                     Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
                     foreach (var row in e.Rows) {
@@ -2637,7 +2637,7 @@ namespace Couchbase.Lite
                         throw new ApplicationException("Fail", e.Error);
                     }
                     if (numTimesCalled++ > 0 && e.Rows.Count > 0) {
-                        Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
+                        Assert.IsTrue(e.Rows.Count > numDocsBeforePull, String.Format("e.Rows.Count ({0}) <= numDocsBeforePull ({1})", e.Rows.Count, numDocsBeforePull));
                     }
                     Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
                     foreach (var row in e.Rows) {

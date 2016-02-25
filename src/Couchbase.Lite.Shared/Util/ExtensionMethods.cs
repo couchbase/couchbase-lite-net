@@ -262,11 +262,6 @@ namespace Couchbase.Lite
             }
         }
 
-        public static String Fmt(this String str, params Object[] vals)
-        {
-            return String.Format(str, vals);
-        }
-
         public static Byte[] ReadAllBytes(this Stream stream)
         {
             var chunkBuffer = new byte[Attachment.DefaultStreamChunkSize];

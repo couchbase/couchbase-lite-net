@@ -161,5 +161,10 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>Max revs to get in bulk download</value>
         public int MaxRevsToGetInBulk { get; set; }
+
+        public override string ToString()
+        {
+            return String.Format("ManagerOptions[MaxRetries={0}, ReadOnly={1}, CallbackScheduler={2}, RequestTimeout={3}, MaxOpenHttpConnections={4}, MaxRevsToGetInBulk={5}]", MaxRetries, ReadOnly, CallbackScheduler.GetType().Name, RequestTimeout, MaxOpenHttpConnections, MaxRevsToGetInBulk);
+        }
     }
 }

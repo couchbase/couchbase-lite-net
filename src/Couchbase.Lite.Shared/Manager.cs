@@ -110,7 +110,12 @@ namespace Couchbase.Lite
         // FIXME: SharedInstance lifecycle is undefined, so returning default manager for now.
         public static Manager SharedInstance { 
             get { 
-                return sharedManager ?? (sharedManager = new Manager(defaultDirectory, ManagerOptions.Default)); 
+                if (sharedManager == null) {
+                    sharedManager = new Manager(defaultDirectory, ManagerOptions.Default);
+                    Log.To.Database.I(TAG, "{0} is the SharedInstance", sharedManager);
+                }
+
+                return sharedManager;
             }
             set { 
                 sharedManager = value;
@@ -248,11 +253,10 @@ namespace Couchbase.Lite
             var scheduler = options.CallbackScheduler;
             CapturedContext = new TaskFactory(scheduler);
             workExecutor = new TaskFactory(new SingleTaskThreadpoolScheduler());
-            Log.D(TAG, "New Manager uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
-
             _networkReachabilityManager = new NetworkReachabilityManager();
             _networkReachabilityManager.StartListening();
             StorageType = "SQLite";
+            Log.To.Database.I(TAG, "Created {0}", this);
         }
 
     #endregion
@@ -309,6 +313,11 @@ namespace Couchbase.Lite
         /// </summary>
         public void Close() 
         {
+            if (this == SharedInstance) {
+                throw new InvalidOperationException("Please don't call Close() on the SharedInstance");
+            }
+
+            Log.To.Database.I(TAG, "CLOSING {0}", this);
             _networkReachabilityManager.StopListening();
             foreach (var database in databases.Values.ToArray()) {
                 var replicators = database.AllReplications;
@@ -323,7 +332,7 @@ namespace Couchbase.Lite
             }
 
             databases.Clear();
-            Log.D(TAG, "Manager is Closed");
+            Log.To.Database.I(TAG, "CLOSED {0}", this);
         }
 
         /// <summary>
@@ -924,7 +933,7 @@ namespace Couchbase.Lite
 
         public override string ToString()
         {
-            return String.Format("[Manager] {0}", Directory);
+            return String.Format("Manager[Dir={0} Options={1}]", Directory, _options);
         }
 
         #pragma warning restore 1591

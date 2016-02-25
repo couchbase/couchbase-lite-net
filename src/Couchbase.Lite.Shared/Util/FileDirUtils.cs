@@ -82,7 +82,7 @@ namespace Couchbase.Lite.Util
             try {
                 Directory.Delete (attachmentsFile, true);
             } catch (Exception ex) {
-                Log.E(Tag, "Error deleting the '{0}' directory.".Fmt(attachmentsFile), ex);
+                Log.E(Tag, String.Format("Error deleting the '{0}' directory.", attachmentsFile), ex);
                 success = false;
             }
             return success;

@@ -44,6 +44,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Couchbase.Lite.Util;
 
 #if SQLITE
 namespace Couchbase.Lite.Storage.SystemSQLite
@@ -394,11 +395,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             foreach (string name in mValues.Keys)
             {
                 string value = GetAsString(name);
-                if (sb.Length > 0)
-                {
+                if (sb.Length > 0) {
                     sb.Append(" ");
                 }
-                sb.Append(name + "=" + value);
+
+                sb.AppendFormat("{0}={1}", name, new SecureLogString(value, LogMessageSensitivity.PotentiallyInsecure));
             }
             return sb.ToString();
         }

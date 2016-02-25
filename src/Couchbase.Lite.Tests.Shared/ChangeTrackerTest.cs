@@ -220,7 +220,7 @@ namespace Couchbase.Lite
             // make sure we got less than 10 requests in those 10 seconds (if it was hammering, we'd get a lot more)
             var handler = client.HttpRequestHandler;
             Assert.IsTrue(handler.CapturedRequests.Count < 25);
-            Assert.IsTrue(changeTracker.backoff.NumAttempts > 0, "Observed attempts: {0}".Fmt(changeTracker.backoff.NumAttempts));
+            Assert.IsTrue(changeTracker.backoff.NumAttempts > 0, String.Format("Observed attempts: {0}", changeTracker.backoff.NumAttempts));
 
             handler.ClearResponders();
             handler.AddResponderReturnEmptyChangesFeed();

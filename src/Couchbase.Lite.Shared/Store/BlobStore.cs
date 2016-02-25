@@ -352,6 +352,8 @@ namespace Couchbase.Lite
             if (!Directory.Exists(path)) {
                 throw new CouchbaseLiteException("Unable to create directory for: {0}", path);
             }
+
+            Log.To.Database.I(TAG, "{0} created temporary directory {1}", this, path);
             return path;
         }
 
@@ -491,6 +493,9 @@ namespace Couchbase.Lite
             }
         }
 
-
+        public override string ToString()
+        {
+            return String.Format("[BlobStore{0}: {1}]", EncryptionKey == null ? String.Empty : " (encrypted)", _path);
+        }
     }
 }

@@ -171,7 +171,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     case raw.SQLITE_NOTADB:
                         return new Status(StatusCode.Unauthorized);
                     default:
-                        Log.I(TAG, "Other LastErrorCode {0}", StorageEngine.LastErrorCode);
+                        Log.To.Database.I(TAG, "Other LastErrorCode {0}", StorageEngine.LastErrorCode);
                         return new Status(StatusCode.DbError);
                 }
             }
@@ -215,7 +215,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 if (lastOptimized <= currentSequence / 10) {
                     RunInTransaction(() =>
                     {
-                        Log.D(TAG, "Optimizing SQL indexes (curSeq={0}, last run at {1})", currentSequence, lastOptimized);
+                        Log.To.Database.I(TAG, "Optimizing SQL indexes (curSeq={0}, last run at {1})", currentSequence, lastOptimized);
                         StorageEngine.ExecSQL("ANALYZE");
                         StorageEngine.ExecSQL("ANALYZE sqlite_master");
                         SetInfo("last_optimized", currentSequence.ToString());
@@ -387,6 +387,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return;
             }
 
+            Log.To.Database.I(TAG, "Opening {0}", this);
             // Create the storage engine.
             StorageEngine = SQLiteStorageEngineFactory.CreateStorageEngine();
 
@@ -516,9 +517,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
         {
             try {
                 _transactionCount = StorageEngine.BeginTransaction();
-                Log.D(TAG, "Begin transaction (level " + _transactionCount + ")");
-            } catch (SQLException e) {
-                Log.E(TAG," Error calling beginTransaction()" , e);
+                Log.To.Database.I(TAG, "Begin transaction (level {0})", _transactionCount);
+            } catch (Exception e) {
+                Log.To.Database.W(TAG, "Failed to created SQLite transaction" , e);
                 return false;
             }
 
@@ -529,18 +530,15 @@ namespace Couchbase.Lite.Storage.SQLCipher
         {
             Debug.Assert((_transactionCount > 0));
 
+            Log.To.Database.I(TAG, "{0} transaction (level {1})", commit ? "Commit" : "Abort", _transactionCount);
             if (commit) {
-                Log.V(TAG, "    Committing transaction (level " + _transactionCount + ")");
                 StorageEngine.SetTransactionSuccessful();
-            }
-            else {
-                Log.V(TAG, "    CANCEL transaction (level " + _transactionCount + ")");
             }
 
             try  {
                 _transactionCount = StorageEngine.EndTransaction();
-            } catch (SQLException e)  {
-                Log.E(TAG, " Error calling EndTransaction()", e);
+            } catch (Exception e)  {
+                Log.To.Database.W(TAG, "Failed to end transaction", e);
                 return false;
             }
 
@@ -1745,7 +1743,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             LastDbError.Code);
                     }
 
-                    Log.I(TAG, "Duplicate rev insertion {0} / {1}", docId, newRevId);
+                    Log.To.Database.I(TAG, "Duplicate rev insertion {0} / {1}", 
+                        new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), newRevId);
                     newRev.SetBody(null);
                 }
 
@@ -2015,7 +2014,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         }, true, sql, docNumericId);
 
                         seqsToPurge.ExceptWith(seqsToKeep);
-                        Log.D(TAG, "Purging doc '{0}' revs ({1}); asked for ({2})", docId, String.Join(", ", revsToPurge.ToStringArray()), String.Join(", ", revIDs.ToStringArray()));
+                        Log.To.Database.I(TAG, "Purging doc '{0}' revs ({1}); asked for ({2})", 
+                            new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
+                            new LogJsonString(revsToPurge.ToStringArray()),
+                            new LogJsonString(revIDs));
+                        
                         if(seqsToPurge.Any()) {
                             // Now delete the sequences to be purged.
                             var deleteSql = String.Format("sequence in ({0})", String.Join(", ", seqsToPurge.ToStringArray()));

@@ -417,6 +417,7 @@ namespace Couchbase.Lite
         /// Thrown if an issue occurs while deleting the <see cref="Couchbase.Lite.Database" /></exception>
         public void Delete()
         {
+            Log.To.Database.I(TAG, "Deleting {0}", this);
             Close().Wait();
             if (!Exists()) {
                 return;
@@ -747,7 +748,7 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Database"/>.</returns>
         public override string ToString()
         {
-            return "Database[" + DbDirectory + "]";
+            return String.Format("Database[{0}]", DbDirectory);
         }
 
         /// <summary>
@@ -1328,7 +1329,8 @@ namespace Couchbase.Lite
         internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, string prevRevId, bool allowConflict, Uri source)
         {
             bool deleting = properties == null || properties.GetCast<bool>("_deleted");
-            Log.D(TAG, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}", docId, prevRevId, deleting, allowConflict);
+            Log.To.Database.I(TAG, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}", 
+                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), prevRevId, deleting, allowConflict);
             if ((prevRevId != null && docId == null) || (deleting && docId == null)) {
                 throw new CouchbaseLiteException(StatusCode.BadId);
             }
@@ -1350,7 +1352,7 @@ namespace Couchbase.Lite
 
             var putRev = Storage.PutRevision(docId, prevRevId, properties, deleting, allowConflict, source, validationBlock);
             if (putRev != null) {
-                Log.D(TAG, "--> created {0}", putRev);
+                Log.To.Database.I(TAG, "--> created {0}", putRev);
                 if (!string.IsNullOrEmpty(docId)) {
                     var dummy = default(WeakReference);
                     UnsavedRevisionDocumentCache.TryRemove(docId, out dummy);
@@ -1408,13 +1410,15 @@ namespace Couchbase.Lite
                         Source = this
                     };
 
+                    Log.To.Database.I(TAG, "{0} posting change notifications: seq {1}", this, 
+                        new LogJsonString(from change in outgoingChanges select change.AddedRevision.Sequence));
                     var changeEvent = _changed;
                     if (changeEvent != null)
                         changeEvent(this, args);
 
                     posted = true;
                 } catch (Exception e) {
-                    Log.E(TAG, "Got exception posting change notifications", e);
+                    Log.To.Database.E(TAG, "Got exception posting change notifications", e);
                 } finally {
                     _isPostingChangeNotifications = false;
                 }
@@ -1843,7 +1847,7 @@ namespace Couchbase.Lite
             _closingTask = tcs.Task;
             var retVal = _closingTask; // Will be nulled later
 
-            Log.D(TAG, "Closing database at {0}", DbDirectory);
+            Log.To.Database.I(TAG, "Closing {0}", this);
             if (_views != null) {
                 foreach (var view in _views) {
                     view.Value.Close();
@@ -1897,7 +1901,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Log.D(TAG, "Opening {0}", Name);
+            Log.To.Database.I(TAG, "Opening {0}", this);
             _readonly = _readonly || options.ReadOnly;
 
             // Instantiate storage:
@@ -1942,7 +1946,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            Log.I(TAG, "Using {0} for db at {1}; upgrade={2}", primaryStorage, DbDirectory, upgrade);
+            Log.To.Database.I(TAG, "Using {0} for db at {1}; upgrade={2}", primaryStorage.Name, DbDirectory, upgrade);
             Storage = primaryStorageInstance;
             Storage.Delegate = this;
             Storage.AutoCompact = AUTO_COMPACT;
@@ -2085,15 +2089,15 @@ namespace Couchbase.Lite
         // Deletes obsolete attachments from the sqliteDb and blob store.
         private bool GarbageCollectAttachments()
         {
-            Log.D(TAG, "Scanning database revisions for attachments...");
+            Log.To.Database.I(TAG, "Scanning database revisions for attachments...");
             var keys = Storage.FindAllAttachmentKeys();
             if (keys == null) {
                 return false;
             }
 
-            Log.D(TAG, "...found {0} attachments", keys.Count);
+            Log.To.Database.I(TAG, "    ...found {0} attachments", keys.Count);
             var numDeleted = Attachments.DeleteBlobsExceptWithKeys(keys);
-            Log.D(TAG, "    ... deleted {0} obsolete attachment files.", numDeleted);
+            Log.To.Database.I(TAG, "    ... deleted {0} obsolete attachment files.", numDeleted);
 
             return numDeleted >= 0;
         }
@@ -2196,7 +2200,7 @@ namespace Couchbase.Lite
 
         public void DatabaseStorageChanged(DocumentChange change)
         {
-            Log.D(TAG, "Added: {0}", change.AddedRevision);
+            Log.To.Database.I(TAG, "Added: {0}", change.AddedRevision);
             if (_changesToNotify == null) {
                 _changesToNotify = new List<DocumentChange>();
             }

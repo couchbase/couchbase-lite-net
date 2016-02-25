@@ -340,7 +340,7 @@ namespace Couchbase.Lite.Internal
         public override string ToString()
         {
             return String.Format("{{{0} #{1}{2}}}", 
-                new SecureLogString(_docId, LogMessageSensitivity.PotentiallyInsecure), _revId, Deleted ? "" : String.Empty);
+                new SecureLogString(_docId, LogMessageSensitivity.PotentiallyInsecure), _revId, Deleted ? "DEL" : String.Empty);
         }
 
         public override bool Equals(object o)

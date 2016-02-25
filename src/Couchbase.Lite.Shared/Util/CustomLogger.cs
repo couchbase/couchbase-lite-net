@@ -101,7 +101,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) {
-                _ts.WriteLine(SourceLevels.Verbose, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); 
+                _ts.WriteLine(SourceLevels.Verbose, String.Format("{0}:\r\n{1}", msg, Flatten(tr)), tag); 
             }
         }
 
@@ -129,7 +129,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-                _ts.WriteLine(SourceLevels.ActivityTracing, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); 
+                _ts.WriteLine(SourceLevels.ActivityTracing, String.Format("{0}:\r\n{1}", msg, Flatten(tr)), tag); 
             }
         }
 
@@ -147,7 +147,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) {
-                _ts.WriteLine(SourceLevels.Information, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); 
+                _ts.WriteLine(SourceLevels.Information, String.Format("{0}:\r\n{1}", msg, Flatten(tr)), tag); 
             }
         }
 
@@ -177,7 +177,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-                _ts.WriteLine(SourceLevels.Warning, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); 
+                _ts.WriteLine(SourceLevels.Warning, String.Format("{0}:\r\n{1}", msg, Flatten(tr)), tag); 
             }
         }
 
@@ -200,7 +200,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-                _ts.Fail("{0}: {1}".Fmt(tag, msg), Flatten(tr).ToString()); 
+                _ts.Fail(String.Format("{0}: {1}", tag, msg), Flatten(tr).ToString()); 
             }
         }
 

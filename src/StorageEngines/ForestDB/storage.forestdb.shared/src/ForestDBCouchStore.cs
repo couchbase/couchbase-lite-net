@@ -163,6 +163,23 @@ namespace Couchbase.Lite.Storage.ForestDB
         static ForestDBCouchStore()
         {
             Log.I(TAG, "Initialized ForestDB store (version 'BETA' (077fff0e1ddd6b876b617116d5865a1f1d023107))");
+            Native.c4log_register(C4LogLevel.Debug, (level, msg) =>
+            {
+                switch(level) {
+                    case C4LogLevel.Debug:
+                        Log.To.Database.V("ForestDB", msg);
+                        break;
+                    case C4LogLevel.Info:
+                        Log.To.Database.I("ForestDB", msg);
+                        break;
+                    case C4LogLevel.Warning:
+                        Log.To.Database.W("ForestDB", msg);
+                        break;
+                    case C4LogLevel.Error:
+                        Log.To.Database.E("ForestDB", msg);
+                        break;
+                }
+            });
         }
 
         public ForestDBCouchStore()
@@ -177,10 +194,10 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public RevisionInternal GetDocument(string docId, long sequence)
         {
-            Log.To.Database.D(TAG, "Read {0} seq {1}", docId, sequence);
             var retVal = default(RevisionInternal);
             WithC4Document(docId, sequence, doc =>
             {
+                Log.To.Database.D(TAG, "Read {0} seq {1}", docId, sequence);
                 retVal = new ForestRevisionInternal(doc, true);
             });
 
@@ -336,6 +353,10 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         private C4Database* Reopen()
         {
+            if (_encryptionKey != null) {
+                Log.To.Database.I(TAG, "Database is encrypted; setting CBForest encryption key");
+            }
+
             var forestPath = Path.Combine(Directory, DB_FILENAME);
             try {
                 return (C4Database*)ForestDBBridge.Check(err => 
@@ -540,7 +561,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             try {
                 success = block();
             } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Failed to run transaction");
+                Log.To.Database.W(TAG, "Failed to run transaction");
                 success = false;
                 throw;
             } catch(Exception e) {
@@ -559,7 +580,6 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
         {
-            Log.To.Database.D(TAG, "Read {0} rev {1}", docId, revId);
             if (outStatus == null) {
                 outStatus = new Status();
             }
@@ -567,6 +587,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             var retVal = default(RevisionInternal);
             WithC4Document(docId, revId, withBody, false, doc =>
             {
+                Log.To.Database.D(TAG, "Read {0} rev {1}", docId, revId);
                 if(doc == null) {
                     outStatus.Code = StatusCode.NotFound;
                     return;
@@ -896,7 +917,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 return result;
             }
 
-            Log.D(TAG, "Purging {0} docs...", docsToRev.Count);
+            Log.To.Database.I(TAG, "Purging {0} docs...", docsToRev.Count);
             RunInTransaction(() =>
             {
                 foreach(var docRevPair in docsToRev) {
@@ -913,7 +934,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                             // Delete all revisions if magic "*" revision ID is given:
                             ForestDBBridge.Check(err => Native.c4db_purgeDoc(Forest, doc->docID, err));
                             revsPurged = new List<string> { "*" };
-                            Log.D(TAG, "Purged document '{0}'", docID);
+                            Log.To.Database.I(TAG, "Purged document '{0}'", new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                         } else {
                             var purged = new List<string>();
                             foreach(var revID in revIDs) {
@@ -924,7 +945,9 @@ namespace Couchbase.Lite.Storage.ForestDB
 
                             if(purged.Count > 0) {
                                 ForestDBBridge.Check(err => Native.c4doc_save(doc, (uint)MaxRevTreeDepth, err));
-                                Log.D(TAG, "Purged doc '{0}' revs {1}", docID, Manager.GetObjectMapper().WriteValueAsString(revIDs));
+                                Log.To.Database.I(TAG, "Purged doc '{0}' revs {1}", 
+                                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure),
+                                    new LogJsonString(revIDs));
                             }
 
                             revsPurged = purged;
@@ -1122,6 +1145,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                         putRev.GetAttachments() != null, allowConflict, err));
                     var isWinner = SaveDocument(doc, newRevID, properties);
                     putRev.Sequence = (long)doc->sequence;
+                    Log.To.Database.D(TAG, "Saved {0}", docId);
                     change = ChangeWithNewRevision(putRev, isWinner, doc, source);
                     transactionSuccess = true;
                 });
@@ -1159,6 +1183,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                     // Save updated doc back to the database:
                     var isWinner = SaveDocument(doc, revHistory[0], inRev.GetProperties());
                     inRev.Sequence = (long)doc->sequence;
+                    Log.To.Database.D(TAG, "Saved {0}", inRev.DocID);
                     change = ChangeWithNewRevision(inRev, isWinner, doc, source);
                 });
 
