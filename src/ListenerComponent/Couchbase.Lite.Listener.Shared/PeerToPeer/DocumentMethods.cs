@@ -515,7 +515,7 @@ namespace Couchbase.Lite.Listener
                 try {
                     reader.Finish();
                 } catch(InvalidOperationException e) {
-                    Log.E(TAG, "Exception trying to read data from multipart upload", e);
+                    Log.To.Router.E(TAG, "Exception trying to read data from multipart upload", e);
                     return context.CreateResponse(StatusCode.BadRequest);
                 }
 

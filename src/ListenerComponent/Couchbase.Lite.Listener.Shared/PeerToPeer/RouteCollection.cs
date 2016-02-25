@@ -20,6 +20,7 @@
 //
 using System;
 using System.Collections.Generic;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
@@ -32,6 +33,7 @@ namespace Couchbase.Lite.Listener
 
         #region Constants
 
+        private static readonly string Tag = typeof(RouteCollection).Name;
         public const int EndpointNotFoundStatus = -2; // To distinguish a legitimate 404 response from an actual endpoint not being found
         private static readonly RestMethod NOT_FOUND = 
             context => {
@@ -45,6 +47,7 @@ namespace Couchbase.Lite.Listener
         #region Variables
 
         private readonly RouteTree _routeTree = new RouteTree();
+        private readonly string _name;
 
         #endregion
 
@@ -54,8 +57,9 @@ namespace Couchbase.Lite.Listener
         /// Constructor
         /// </summary>
         /// <param name="map">A dictionary containing URL strings and their logic</param>
-        public RouteCollection(IDictionary<string, RestMethod> map)
+        public RouteCollection(string name, IDictionary<string, RestMethod> map)
         {
+            _name = name;
             AddRoutes(map);
         }
 
@@ -97,20 +101,28 @@ namespace Couchbase.Lite.Listener
         /// <param name="request">The incoming request</param>
         public RestMethod LogicForRequest(Uri request)
         {
+            Log.To.Router.V(Tag, "Begin searching for logic for {0} {1}...", _name, request.PathAndQuery);
             var branch = _routeTree.Trunk;
             //MS .NET will automatically unescape the string so we need to be careful here
             var tmp = request.AbsolutePath.Split('?')[0];
             string[] components = tmp.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 
             foreach (var component in components) {
+                Log.To.Router.V(Tag, "Next component in path is {0}...", component);
                 var nextBranch = branch.GetChild(component, false);
                 if (nextBranch == null) {
+                    Log.To.Router.V(Tag, "Intermediate component not found");
                     return NOT_FOUND;
                 }
                 branch = nextBranch;
             }
                 
-            return branch.Logic ?? NOT_FOUND;
+            if (branch.Logic == null) {
+                Log.To.Router.V(Tag, "No logic for endpoint");
+                return NOT_FOUND;
+            }
+
+            return branch.Logic;
         }
 
         /// <summary>
@@ -120,7 +132,10 @@ namespace Couchbase.Lite.Listener
         /// <param name="request">The incoming request</param>
         public bool HasLogicForRequest(Uri request)
         {
-            return LogicForRequest(request) != NOT_FOUND;
+            var logic = LogicForRequest(request);
+            var retVal = logic != NOT_FOUND;
+            Log.To.Router.V(Tag, "{0} method {1}found for {2}", _name, retVal ? String.Empty : "not ", request.PathAndQuery);
+            return retVal;
         }
 
         #endregion

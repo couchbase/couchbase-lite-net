@@ -19,18 +19,14 @@
 //  limitations under the License.
 //
 using System;
-
-using Couchbase.Lite.Util;
-using WebSocketSharp.Server;
-using System.Security.Principal;
-using System.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using Couchbase.Lite.Security;
-using System.Security.Cryptography;
-using WebSocketSharp.Net;
+using System.Security.Principal;
 using System.Threading.Tasks;
-using System.Net.Http.Headers;
+
+using Couchbase.Lite.Security;
+using Couchbase.Lite.Util;
+using WebSocketSharp.Net;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
@@ -111,10 +107,12 @@ namespace Couchbase.Lite.Listener.Tcp
                 _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls;
                 _listener.SslConfiguration.ClientCertificateRequired = false;
                 if (sslCert == null) {
-                    Log.I(TAG, "Generating X509 certificate for listener...");
+                    Log.To.Listener.I(TAG, "Generating X509 certificate for listener...");
                     sslCert = X509Manager.GenerateTransientCertificate("Couchbase-P2P");
                 }
 
+                Log.To.Listener.I(TAG, "Using X509 certificate {0} (issued by {1})",
+                    sslCert.Subject, sslCert.Issuer);
                 _listener.SslConfiguration.ServerCertificate = sslCert;
             }
         }
@@ -126,6 +124,7 @@ namespace Couchbase.Lite.Listener.Tcp
         private AuthenticationSchemes SelectAuthScheme(HttpListenerRequest request)
         {
             if (request.Url.LocalPath == "/") {
+                Log.To.Listener.V(TAG, "Disregarding authentication for root request");
                 return AuthenticationSchemes.Anonymous;
             }
 
@@ -148,6 +147,9 @@ namespace Couchbase.Lite.Listener.Tcp
                 return null;
             }
 
+            Log.To.Listener.V(TAG, "Request from user {0}, so require password {1}",
+                new SecureLogString(identity.Name, LogMessageSensitivity.PotentiallyInsecure),
+                new SecureLogString(password, LogMessageSensitivity.Insecure));
             return new NetworkCredential(identity.Name, password);
         }
 
@@ -156,7 +158,9 @@ namespace Couchbase.Lite.Listener.Tcp
         {
             var isLocal = System.Net.IPAddress.IsLoopback(context.Request.RemoteEndPoint.Address) ||
                           context.Request.LocalEndPoint == context.Request.RemoteEndPoint;
-            
+
+            Log.To.Listener.I(TAG, "Received new {0} {1} connection", 
+                _usesTLS ? "secure" : "plain", isLocal ? "local" : "remote");
             var getContext = Task.Factory.FromAsync<HttpListenerContext>(_listener.BeginGetContext, _listener.EndGetContext, null);
             getContext.ContinueWith(t => ProcessRequest(t.Result));
 
@@ -166,6 +170,7 @@ namespace Couchbase.Lite.Listener.Tcp
                                  context.Request.LocalEndPoint.Port);
             uriBuilder.UserName = context.User != null && context.User.Identity != null ? context.User.Identity.Name : null;
             internalContext.Sender = uriBuilder.Uri;
+            Log.To.Listener.D(TAG, "Sender set to {0}", internalContext.Sender);
             _router.HandleRequest(internalContext);
         }
 
@@ -179,12 +184,8 @@ namespace Couchbase.Lite.Listener.Tcp
                 return;
             }
                 
-            try {
-                _listener.Start();
-            } catch (HttpListenerException) {
-                throw new InvalidOperationException("The process cannot bind to the port.  Please use netsh to authorize the route as an administrator.  For " +
-                "more details see https://github.com/couchbase/couchbase-lite-net/wiki/Gotchas");
-            }
+            base.Start();
+            _listener.Start();
 
             var getContext = Task.Factory.FromAsync<HttpListenerContext>(_listener.BeginGetContext, _listener.EndGetContext, null);
             getContext.ContinueWith(t => ProcessRequest(t.Result));
@@ -196,6 +197,7 @@ namespace Couchbase.Lite.Listener.Tcp
                 return;
             }
 
+            base.Stop();
             _listener.Stop();
         }
 
@@ -205,12 +207,22 @@ namespace Couchbase.Lite.Listener.Tcp
                 return;
             }
 
+            base.Abort();
             _listener.Stop();
         }
 
         protected override void DisposeInternal()
         {
             ((IDisposable)_listener).Dispose();
+        }
+
+        #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            return string.Format("CouchbaseLiteTcpListener[Prefixes={0}]", new LogJsonString(_listener.Prefixes));
         }
 
         #endregion

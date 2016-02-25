@@ -25,12 +25,14 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 using Mono.Security.X509;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Security
 {
     //http://www.freekpaans.nl/2015/04/creating-self-signed-x-509-certificates-using-mono-security/
     public static class X509Manager
     {
+        private static readonly string Tag = typeof(X509Manager).Name;
 
         /// <summary>
         /// Generates an X509 certificate for temporary use.  It is not persisted to disk.
@@ -147,7 +149,11 @@ namespace Couchbase.Lite.Security
             cb.SubjectPublicKey = key;
             cb.Hash = hashName;
 
+            Log.To.Listener.I(Tag, "Generating X509 certificate, this is expensive...");
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             byte[] rawcert = cb.Sign(key);
+            sw.Stop();
+            Log.To.Listener.I(Tag, "Finished generating X509 certificate; took {0} sec", sw.ElapsedMilliseconds / 1000.0);
             PKCS12 p12 = new PKCS12();
             if (!String.IsNullOrEmpty(password)) {
                 p12.Password = password;
@@ -155,6 +161,7 @@ namespace Couchbase.Lite.Security
             Hashtable attributes = GetAttributes();
             p12.AddCertificate(new Mono.Security.X509.X509Certificate(rawcert), attributes);
             p12.AddPkcs8ShroudedKeyBag(key, attributes);
+
             return p12.GetBytes();
         }
 

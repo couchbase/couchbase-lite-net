@@ -41,7 +41,7 @@ namespace Couchbase.Lite.Listener
             filterSource = filterSource.Replace("function", "function _f1");
             return (rev, filterParams) =>
             {
-                var engine = new Engine().SetValue("log", new Action<object>((line) => Log.I("JSViewCompiler", line.ToString())));
+                var engine = new Engine().SetValue("log", new Action<object>((line) => Log.To.Router.I("JSFilterCompiler", line.ToString())));
                 var retVal = engine.Execute(filterSource).Invoke("_f1", new NoThrowDictionary(rev.Properties), 
                     new NoThrowDictionary(filterParams));
                 

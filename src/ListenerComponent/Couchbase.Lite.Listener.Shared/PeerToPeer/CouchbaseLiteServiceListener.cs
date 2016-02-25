@@ -36,9 +36,10 @@ namespace Couchbase.Lite.Listener
     /// </summary>
     public abstract class CouchbaseLiteServiceListener : IDisposable
     {
-
+        
         #region Variables
 
+        private static readonly string Tag = typeof(CouchbaseLiteServiceListener).Name;
         internal readonly CouchbaseLiteRouter _router = new CouchbaseLiteRouter();
         private bool _disposed;
         private Dictionary<string, string> _passwordMap = new Dictionary<string, string>();
@@ -90,18 +91,27 @@ namespace Couchbase.Lite.Listener
         /// <summary>
         /// Start listening and processing requests
         /// </summary>
-        public abstract void Start();
+        public virtual void Start()
+        {
+            Log.To.Listener.I(Tag, "Starting {0}", this);
+        }
 
         /// <summary>
         /// Stop listening and processing requests, but handle
         /// the currently received ones
         /// </summary>
-        public abstract void Stop();
+        public virtual void Stop()
+        {
+            Log.To.Listener.I(Tag, "Stopping {0}", this);
+        }
 
         /// <summary>
         /// Stop listening and processing requests immediately
         /// </summary>
-        public abstract void Abort();
+        public virtual void Abort()
+        {
+            Log.To.Listener.I(Tag, "Aborting {0}", this);
+        }
 
         /// <summary>
         /// Sets up passwords for HTTP authentication

@@ -157,7 +157,7 @@ namespace Couchbase.Lite.Listener
         // Attempts to write the heartbeat message to the client
         private void SendHeartbeatResponse(object state)
         {
-            Log.D(TAG, "Sending heartbeat to client");
+            Log.To.Router.I(TAG, "Sending heartbeat to client");
             if (!Response.WriteData((byte[])state, false)) {
                 if (_heartbeatTimer != null) {
                     _heartbeatTimer.Dispose();
@@ -196,7 +196,7 @@ namespace Couchbase.Lite.Listener
                 if (ChangesFeedMode == ChangesFeedMode.LongPoll) {
                     _changes.Add(rev);
                 } else {
-                    Log.D(TAG, "Sending continuous change chunk");
+                    Log.To.Router.V(TAG, "Sending continuous change chunk");
                     var written = Response.SendContinuousLine(DatabaseMethods.ChangesDictForRev(rev, this), ChangesFeedMode);
                     if (!written) {
                         Terminate();

@@ -48,7 +48,7 @@ namespace Couchbase.Lite.Listener
 
             return (doc, emit) =>
             {
-                var engine = new Engine().SetValue("log", new Action<object>((line) => Log.I("JSViewCompiler", line.ToString())));
+                var engine = new Engine().SetValue("log", new Action<object>((line) => Log.To.Router.I("JSViewCompiler", line.ToString())));
                 engine.SetValue("emit", emit);
                 engine.Execute(source).Invoke("_f1", doc);
             };
@@ -65,7 +65,7 @@ namespace Couchbase.Lite.Listener
             }
 
             source = source.Replace("function", "function _f2");
-            var engine = new Engine().Execute(source).SetValue("log", new Action<object>((line) => Log.I("JSViewCompiler", line.ToString())));
+            var engine = new Engine().Execute(source).SetValue("log", new Action<object>((line) => Log.To.Router.I("JSViewCompiler", line.ToString())));
 
             return (keys, values, rereduce) => {
                 var result = engine.Invoke("_f2", keys, values, rereduce);
