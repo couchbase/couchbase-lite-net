@@ -139,6 +139,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager\JsonSerializationSettings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SecureLogString.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\LogJsonString.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\LogDomains.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\LogGroup.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

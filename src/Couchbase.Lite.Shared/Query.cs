@@ -430,7 +430,7 @@ namespace Couchbase.Lite {
                         }
 
                         if (error != null) {
-                            Log.E(TAG, "Exception caught in runAsyncInternal", error);
+                            Log.To.Query.E(TAG, String.Format("{0} exception in RunAsync", this), error);
                             throw error; // Rethrow innner exceptions.
                         }
                         return runTask.Result; // Give additional continuation functions access to the results task.

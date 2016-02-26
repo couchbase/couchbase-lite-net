@@ -193,7 +193,7 @@ namespace Couchbase.Lite
             VersionString = String.Format(".NET {0}/{1} 1.2/{2}", PLATFORM, Platform.Architecture, gitVersion.TrimEnd());
             #endif
 
-            Log.I(TAG, "Starting Manager version: " + VersionString);
+            Log.To.All.I(TAG, "Starting Manager version: {0}", VersionString);
         }
 
         /// <summary>

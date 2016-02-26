@@ -359,7 +359,7 @@ namespace Couchbase.Lite {
                 return new Status(StatusCode.NotFound);
             }
 
-            Log.D(TAG, "{0}: Attempting to compile {1} from design doc", Name, language);
+            Log.To.View.I(TAG, "{0}: Attempting to compile {1} from design doc", Name, language);
             if (Compiler == null) {
                 return new Status(StatusCode.NotImplemented);
             }
@@ -377,7 +377,8 @@ namespace Couchbase.Lite {
 
             MapDelegate mapDelegate = Compiler.CompileMap(mapSource, language);
             if (mapDelegate == null) {
-                Log.W(TAG, "View {0} could not compile {1} map fn: {2}", Name, language, mapSource);
+                Log.To.View.W(TAG, "{0} could not compile {1} map fn: {2}", Name, language, 
+                    new SecureLogString(mapSource, LogMessageSensitivity.PotentiallyInsecure));
                 return new Status(StatusCode.CallbackError);
             }
 
@@ -386,7 +387,8 @@ namespace Couchbase.Lite {
             if (reduceSource != null) {
                 reduceDelegate = Compiler.CompileReduce(reduceSource, language);
                 if (reduceDelegate == null) {
-                    Log.W(TAG, "View {0} could not compile {1} reduce fn: {2}", Name, language, mapSource);
+                    Log.To.View.W(TAG, "{0} could not compile {1} reduce fn: {2}", Name, language, 
+                        new SecureLogString(reduceSource, LogMessageSensitivity.PotentiallyInsecure));
                     return new Status(StatusCode.CallbackError);
                 }
             }

@@ -46,6 +46,7 @@ using System.Linq;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
+using System;
 
 namespace Couchbase.Lite
 {
@@ -75,8 +76,7 @@ namespace Couchbase.Lite
 
             var privateUUID = database.PrivateUUID();
             var publicUUID = database.PublicUUID();
-            Log.V(Tag, "DB private UUID = '" + privateUUID + "', public UUID = '" + 
-                publicUUID + "'");
+            Console.WriteLine("DB private UUID = '{0}', public UUID = '{1}'", privateUUID, publicUUID);
             Assert.IsTrue(privateUUID.Length >= 20);
             Assert.IsTrue(publicUUID.Length >= 20);
 
@@ -90,7 +90,7 @@ namespace Couchbase.Lite
             var rev1 = new RevisionInternal(body);
 
             rev1 = database.PutRevision(rev1, null, false);
-            Log.V(Tag, "Created " + rev1);
+            Console.WriteLine("Created {0}", rev1);
             Assert.IsTrue(rev1.DocID.Length >= 10);
             Assert.IsTrue(rev1.RevID.StartsWith("1-"));
 
@@ -114,7 +114,7 @@ namespace Couchbase.Lite
             var rev2 = new RevisionInternal(body);
             var rev2input = rev2;
             rev2 = database.PutRevision(rev2, rev1.RevID, false);
-            Log.V(Tag, "Updated " + rev1);
+            Console.WriteLine("Updated {0}", rev1);
             Assert.AreEqual(rev1.DocID, rev2.DocID);
             Assert.IsTrue(rev2.RevID.StartsWith("2-"));
 
@@ -132,7 +132,7 @@ namespace Couchbase.Lite
             // Check the changes feed, with and without filters:
             var changeRevisions = database.ChangesSince(0, ChangesOptions.Default, null, null);
 
-            Log.V(Tag, "Changes = " + changeRevisions);
+            Console.WriteLine("Changes = {0}", changeRevisions);
             Assert.AreEqual(1, changeRevisions.Count);
 
             changeRevisions = database.ChangesSince(0, ChangesOptions.Default, 

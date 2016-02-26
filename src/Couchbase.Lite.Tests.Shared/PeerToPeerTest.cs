@@ -203,7 +203,8 @@ namespace Couchbase.Lite
             }
             #endif
 
-            Log.SetDomainLevels("DISCOVERY++");
+            Log.Domains.All.Level = Log.LogLevel.None;
+            Log.Domains.Discovery.Level = Log.LogLevel.Debug;
 
             //Use a short timeout to speed up the test since it is performed locally
             //Android will get stuck in DNSProcessResult which hangs indefinitely if

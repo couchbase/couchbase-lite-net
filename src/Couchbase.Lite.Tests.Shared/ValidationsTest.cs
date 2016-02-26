@@ -47,6 +47,7 @@ using System.Collections.Generic;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
+using System;
 
 namespace Couchbase.Lite
 {
@@ -72,7 +73,7 @@ namespace Couchbase.Lite
                 validationCalled = true;
 
                 bool hoopy = newRevision.IsDeletion || (newRevision.Properties.Get("towel") != null);
-                Log.V(ValidationsTest.Tag, string.Format("--- Validating {0} --> {1}", newRevision.Properties, hoopy));
+                Console.WriteLine("--- Validating {0} --> {1}", newRevision.Properties, hoopy);
                 if (!hoopy)
                 {
                     context.Reject("Where's your towel?");

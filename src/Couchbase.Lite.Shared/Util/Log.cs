@@ -87,6 +87,12 @@ namespace Couchbase.Lite.Util
 
         internal static readonly LogTo To = new LogTo();
 
+        /// <summary>
+        /// The available logging domains (for use with setting the
+        /// logging level on various domains)
+        /// </summary>
+        public static readonly LogDomains Domains = new LogDomains(To);
+
         internal static LogScrubSensitivity ScrubSensitivity { get; set; }
 
         #endregion
@@ -94,8 +100,8 @@ namespace Couchbase.Lite.Util
         #region Properties
 
         /// <summary>
-        /// Gets or sets the global logging level.  Individual tags may be
-        /// overriden by calling SetTagLevel and family.
+        /// Gets or sets the logging level for Log.* calls (domains
+        /// must be set with SetLevelForDomain or SetDomainLevels
         /// </summary>
         public static LogLevel Level 
         {
@@ -120,31 +126,6 @@ namespace Couchbase.Lite.Util
         #endregion
 
         #region Public Methods
-
-        public static void SetLevelForDomain(string domain, LogLevel level)
-        {
-            Log.D("Log", "Setting {0} to {1}", domain, level);
-            var gotLogger = Log.To.GetLogger(domain);
-            if (gotLogger != null) {
-                gotLogger.Level = level;
-            }
-        }
-
-        internal static void SetDomainLevels(string descriptor)
-        {
-            Log.To.ClearLogLevels();
-            var entries = descriptor.Split(',');
-            foreach (var entry in entries) {
-                var trimmed = entry.Trim();
-                int verbosity = 1;
-                while (entry[entry.Length - verbosity] == '+') {
-                    verbosity++;
-                }
-
-                var domain = trimmed.Substring(0, entry.Length - verbosity + 1);
-                SetLevelForDomain(domain, (LogLevel)verbosity);
-            }
-        }
 
         /// <summary>
         /// Sets the logger.

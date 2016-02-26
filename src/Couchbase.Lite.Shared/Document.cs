@@ -61,6 +61,7 @@ namespace Couchbase.Lite {
     /// </summary>
     public sealed class Document {
 
+        private static readonly string Tag = typeof(Document).Name;
         SavedRevision currentRevision;
             
     #region Constructors
@@ -156,11 +157,11 @@ namespace Couchbase.Lite {
         /// </exception>
         public IEnumerable<SavedRevision> RevisionHistory {
             get {
-                if (CurrentRevision == null)
-                {
-                    Log.W(Database.TAG, "get_RevisionHistory called but no CurrentRevision");
+                if (CurrentRevision == null) {
+                    Log.To.Database.W(Tag, "RevisionHistory called but no CurrentRevision");
                     return null;
                 }
+
                 return CurrentRevision.RevisionHistory;
             }
         }
@@ -452,7 +453,7 @@ namespace Couchbase.Lite {
             var propsCopy = properties == null ? null : new Dictionary<string, object>(properties);
             string newId = propsCopy == null ? null : propsCopy.GetCast<string>("_id");
             if (newId != null && !newId.Equals(Id, StringComparison.InvariantCultureIgnoreCase))  {
-                Log.W(Database.TAG, String.Format("Trying to put wrong _id to this: {0} properties: {1}", this, propsCopy)); // TODO: Make sure all string formats use .NET codes, and not Java.
+                Log.To.Database.W(Tag, "{0} trying to put wrong _id to properties: {1}", this, propsCopy);
             }
 
             // Process _attachments dict, converting CBLAttachments to dicts:

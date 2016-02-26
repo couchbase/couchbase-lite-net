@@ -74,7 +74,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             int err = raw.sqlite3_open_v2(path, out sqlite, raw.SQLITE_OPEN_READONLY, null);
             if (err != 0) {
                 var errMsg = raw.sqlite3_errmsg(sqlite);
-                Log.W(TAG, "Couldn't open SQLite {0} : {1}", path, errMsg);
+                Log.To.Upgrade.W(TAG, "Couldn't open SQLite {0} : {1}", path, errMsg);
                 return version;
             }
 
@@ -87,7 +87,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
             } else {
                 var errMsg = raw.sqlite3_errmsg(sqlite);
-                Log.W(TAG, "Couldn't compile SQL `{0}` : {1}", sql, errMsg);
+                Log.To.Upgrade.W(TAG, "Couldn't compile SQL `{0}` : {1}", sql, errMsg);
             }
 
             raw.sqlite3_finalize(versionQuery);
@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return new Status(StatusCode.Ok);
             }
 
-            Log.W(TAG, "Upgrade failed: SQLite error {0}", sqliteErr);
+            Log.To.Upgrade.W(TAG, "Upgrade failed: SQLite error {0}", sqliteErr);
             switch (sqliteErr) {
                 case raw.SQLITE_NOTADB:
                     return new Status(StatusCode.BadRequest);

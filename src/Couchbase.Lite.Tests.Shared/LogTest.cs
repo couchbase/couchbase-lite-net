@@ -23,6 +23,7 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
+using System.Linq;
 
 namespace Couchbase.Lite
 {
@@ -90,7 +91,7 @@ namespace Couchbase.Lite
         {
             var count = 0;
             Log.Level = Log.LogLevel.None;
-            Log.To.Database.Level = inputLevel;
+            Log.Domains.Database.Level = inputLevel;
             _logCallback = (level, tag, msg) =>
             {
                 Console.WriteLine("Received {0} message from {1}", level, tag);
@@ -137,6 +138,30 @@ namespace Couchbase.Lite
             Log.ScrubSensitivity = LogScrubSensitivity.AllOK;
             Log.I(TAG, "{0}", auth);
             Assert.AreEqual("[BasicAuthenticator (jim:borden)]", lastMessage);
+        }
+
+        [Test]
+        public void TestLogGrouping()
+        {
+            Log.Domains.Group(Log.Domains.Database, Log.Domains.Query).Level = Log.LogLevel.Verbose;
+            Assert.AreEqual(Log.LogLevel.Verbose, Log.Domains.Database.Level);
+            Assert.AreEqual(Log.LogLevel.Verbose, Log.Domains.Query.Level);
+
+            Log.Domains.All.Level = Log.LogLevel.Base;
+            Assert.AreEqual(Log.LogLevel.Base, Log.Domains.Database.Level);
+            Assert.AreEqual(Log.LogLevel.Base, Log.Domains.Query.Level);
+
+            Log.Domains.Except(Log.Domains.Sync).Level = Log.LogLevel.Verbose;
+            foreach (var logger in Log.To.AllLoggers.Cast<DomainLogger>()) {
+                if (logger.Domain == "SYNC") {
+                    Assert.AreEqual(Log.LogLevel.Base, logger.Level);
+                } else {
+                    Assert.AreEqual(Log.LogLevel.Verbose, logger.Level);
+                }
+            }
+
+            Assert.DoesNotThrow(() => Log.Domains.Group().Level = Log.LogLevel.Base);
+            Assert.DoesNotThrow(() => Log.Domains.Except().Level = Log.LogLevel.Base);
         }
 
         private void DoCallback(Log.LogLevel level, string tag, string msg)

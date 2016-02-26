@@ -24,14 +24,19 @@ using System.Linq;
 
 namespace Couchbase.Lite.Util
 {
-    public sealed class DomainLogger
+    public interface IDomainLogging
+    {
+        Log.LogLevel Level { get; set; }
+    }
+
+    internal sealed class DomainLogger : IDomainLogging
     {
         private readonly string _domain;
         private readonly bool _makeTag;
 
         public Log.LogLevel Level { get; set; }
 
-        internal string Domain 
+        public string Domain 
         {
             get { return _domain; }
         }
@@ -182,68 +187,58 @@ namespace Couchbase.Lite.Util
 
     internal sealed class LogTo
     {
-        private static readonly string Tag = typeof(LogTo).Name;
-        private static readonly List<string> Domains = new List<string> { "DATABASE", "QUERY", "VIEW", "ROUTER", "SYNC",
-            "SYNC_PERF", "CHANGE_TRACKER", "VALIDATION", "UPGRADE", "LISTENER", "DISCOVERY" };
+        private readonly DomainLogger[] _allLoggers;
 
-        private readonly Dictionary<string, DomainLogger> _allLoggers = 
-            new Dictionary<string, DomainLogger>(StringComparer.InvariantCultureIgnoreCase);
+        internal IEnumerable<IDomainLogging> AllLoggers
+        {
+            get {
+                return _allLoggers.Cast<IDomainLogging>();
+            }
+        }
 
-        internal DomainLogger Database { get { return _allLoggers[Domains[0]]; } }
+        internal DomainLogger Database { get { return _allLoggers[0]; } }
 
-        internal DomainLogger Query { get { return _allLoggers[Domains[1]]; } }
+        internal DomainLogger Query { get { return _allLoggers[1]; } }
 
-        internal DomainLogger View { get { return _allLoggers[Domains[2]]; } }
+        internal DomainLogger View { get { return _allLoggers[2]; } }
 
-        internal DomainLogger Router { get { return _allLoggers[Domains[3]]; } }
+        internal DomainLogger Router { get { return _allLoggers[3]; } }
 
-        internal DomainLogger Sync { get { return _allLoggers[Domains[4]]; } }
+        internal DomainLogger Sync { get { return _allLoggers[4]; } }
 
-        internal DomainLogger SyncPerf { get { return _allLoggers[Domains[5]]; } }
+        internal DomainLogger SyncPerf { get { return _allLoggers[5]; } }
 
-        internal DomainLogger ChangeTracker { get { return _allLoggers[Domains[6]]; } }
+        internal DomainLogger ChangeTracker { get { return _allLoggers[6]; } }
 
-        internal DomainLogger Validation { get { return _allLoggers[Domains[7]]; } }
+        internal DomainLogger Validation { get { return _allLoggers[7]; } }
 
-        internal DomainLogger Upgrade { get { return _allLoggers[Domains[8]]; } }
+        internal DomainLogger Upgrade { get { return _allLoggers[8]; } }
 
-        internal DomainLogger Listener { get { return _allLoggers[Domains[9]]; } }
+        internal DomainLogger Listener { get { return _allLoggers[9]; } }
 
-        internal DomainLogger Discovery { get { return _allLoggers[Domains[10]]; } }
+        internal DomainLogger Discovery { get { return _allLoggers[10]; } }
 
-        internal DomainLogger All { get { return _allLoggers["*"]; } }
+        internal DomainLogger All { get { return _allLoggers[11]; } }
 
         internal LogTo()
         {
-            foreach (var domain in Domains) {
-                CreateAndAddLogger(domain);
+            var domains = new[] { "DATABASE", "QUERY", "VIEW", "ROUTER", "SYNC",
+                "SYNC PERF", "CHANGE TRACKER", "VALIDATION", "UPGRADE", "LISTENER", "DISCOVERY" };
+            _allLoggers = new DomainLogger[domains.Length + 1];
+            int i = 0;
+            foreach (var domain in domains) {
+                CreateAndAddLogger(domain, i++);
             }
 
-            _allLoggers["*"] = new DomainLogger(null, false) { Level = Log.LogLevel.Base };
+            SyncPerf.Level = Log.LogLevel.None;
+
+            _allLoggers[_allLoggers.Length - 1] = new DomainLogger(null, false) { Level = Log.LogLevel.Base };
         }
 
-        internal void CreateAndAddLogger(string domain)
+        private void CreateAndAddLogger(string domain, int index)
         {
             var logger = new DomainLogger(domain, true) { Level = Log.LogLevel.Base };
-            _allLoggers[domain] = logger;
-        }
-
-        internal DomainLogger GetLogger(string domain)
-        {
-            var retVal = default(DomainLogger);
-            if (!_allLoggers.TryGetValue(domain, out retVal)) {
-                All.W(Tag, "Invalid domain {0}, valid values are {1}", domain, Manager.GetObjectMapper().WriteValueAsString(Domains));
-                return null;
-            }
-
-            return retVal;
-        }
-
-        internal void ClearLogLevels()
-        {
-            foreach (var domain in Domains) {
-                Log.SetLevelForDomain(domain, Log.LogLevel.None);
-            }
+            _allLoggers[index] = logger;
         }
     }
 }
