@@ -131,14 +131,26 @@ namespace Couchbase.Lite
 
     public struct ReplicationOptionsDictionaryKeys
     {
+        /// <summary>
+        /// If specified, this will be used in place of the remote URL for calculating
+        /// the remote checkpoint in the replication process.  Useful if the remote URL
+        /// changes frequently (e.g. P2P discovery scenario)
+        /// </summary>
         public static readonly string RemoteUUID = ReplicationOptionsDictionary.RemoteUUIDKey;
+
+        /// <summary>
+        /// Defines the interval (in seconds) between polls in continuous ("long poll") replication mode.  
+        /// Default is 0, which means try again immediately.
+        /// </summary>
+        public static readonly string PollInterval = ReplicationOptionsDictionary.PollInterval;
     }
 
     /// <summary>
     /// A class for holding replication options
     /// </summary>
     [DictionaryContract(OptionalKeys=new object[] { 
-        ReplicationOptionsDictionary.RemoteUUIDKey, typeof(string) 
+        ReplicationOptionsDictionary.RemoteUUIDKey, typeof(string),
+        ReplicationOptionsDictionary.PollInterval, typeof(double)
     })]
     public sealed class ReplicationOptionsDictionary : ContractedDictionary
     {
@@ -150,6 +162,7 @@ namespace Couchbase.Lite
         public const string REMOTE_UUID_KEY = "remoteUUID";
 
         internal const string RemoteUUIDKey = "remoteUUID";
+        internal const string PollInterval = "poll";
     }
 
     /// <summary>

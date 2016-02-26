@@ -146,6 +146,13 @@ namespace Couchbase.Lite.Replicator
             var initialSync = LocalDatabase.IsOpen && LocalDatabase.GetDocumentCount() == 0;
             _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, initialSync, this, WorkExecutor);
             _changeTracker.Authenticator = Authenticator;
+            var pollInterval = 0.0;
+            if (Options.TryGetValue<double>(ReplicationOptionsDictionaryKeys.PollInterval, out pollInterval)) {
+                _changeTracker.PollInterval = TimeSpan.FromSeconds(pollInterval);
+            } else {
+                _changeTracker.PollInterval = TimeSpan.Zero;
+            }
+
             if(DocIds != null) {
                 if(ServerType != null && ServerType.Name == "CouchDB") {
                     _changeTracker.SetDocIDs(DocIds.ToList());
