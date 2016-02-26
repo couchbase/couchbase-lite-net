@@ -17,3 +17,6 @@
 [submodule "vendor/JSON.NET"]
 	path = vendor/JSON.NET
 	url = https://github.com/couchbasedeps/Newtonsoft.Json.git
+[submodule "vendor/Jint"]
+	path = vendor/Jint
+	url = https://github.com/Nogrod/jint
