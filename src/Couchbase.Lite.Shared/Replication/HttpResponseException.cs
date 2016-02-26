@@ -42,12 +42,14 @@
 
 using System;
 using System.Net;
+using System.Runtime.Serialization;
 
 namespace Couchbase.Lite
 {
     /// <summary>
     /// An exception for encapsulating HTTP errors
     /// </summary>
+    [Serializable]
     public class HttpResponseException : Exception
     {
 
@@ -59,6 +61,23 @@ namespace Couchbase.Lite
 
         internal HttpResponseException (HttpStatusCode statusCode) { StatusCode = statusCode; }
 
+        internal HttpResponseException(string message) : this(message, null)
+        {
+            
+        }
+
+        internal HttpResponseException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+            StatusCode = HttpStatusCode.InternalServerError;
+        }
+
+        protected HttpResponseException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
+            StatusCode = (HttpStatusCode)info.GetInt32("HttpResponseStatusCode");
+        }
+
         /// <summary>
         /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.HttpResponseException"/>.
         /// </summary>
@@ -66,6 +85,13 @@ namespace Couchbase.Lite
         public override string ToString ()
         {
             return string.Format ("[HttpResponseException: StatusCode = {0}]", StatusCode);
+        }
+
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            base.GetObjectData(info, context);
+
+            info.AddValue("HttpResponseStatusCode", (int)StatusCode);
         }
     }
 }

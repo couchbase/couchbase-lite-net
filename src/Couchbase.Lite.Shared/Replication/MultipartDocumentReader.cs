@@ -274,7 +274,7 @@ namespace Couchbase.Lite.Support
                     if (attachment.Get("data") != null && length > 1000)
                     {
                         var msg = String.Format("Attachment '{0}' sent inline (len={1}).  Large attachments "
-                            + "should be sent in MIME parts for reduced memory overhead.", attachmentName);
+                            + "should be sent in MIME parts for reduced memory overhead.", attachmentName, length);
                         Log.W(Database.TAG, msg);
                     }
                 }

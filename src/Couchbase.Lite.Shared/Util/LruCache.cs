@@ -152,8 +152,12 @@ namespace Couchbase.Lite.Util
             
         public TValue Put(TKey key, TValue value)
         {
-            if (key == null || value == null) {
-                throw new ArgumentNullException("key == null || value == null");
+            if (key == null) {
+                throw new ArgumentNullException("key");
+            }
+
+            if (value == null) {
+                throw new ArgumentNullException("value");
             }
 
             TValue previous;
@@ -258,6 +262,7 @@ namespace Couchbase.Lite.Util
             return 1;
         }
             
+        // Used by tests
         public void EvictAll()
         {
             lock(_locker) {
@@ -265,13 +270,6 @@ namespace Couchbase.Lite.Util
                 MaxSize = 0;
                 Trim();
                 MaxSize = oldMax;
-            }
-        }
-            
-        public IDictionary<TKey, TValue> Snapshot()
-        {
-            lock (_locker) {
-                return new Dictionary<TKey, TValue>(_hashmap);
             }
         }
 

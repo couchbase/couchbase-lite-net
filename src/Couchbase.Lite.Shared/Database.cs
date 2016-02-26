@@ -1119,41 +1119,7 @@ namespace Couchbase.Lite
 
             return result;
         }
-
-        internal static string JoinQuotedObjects(IEnumerable<Object> objects)
-        {
-            var strings = new List<String>();
-            foreach (var obj in objects)
-            {
-                strings.Add(obj != null ? obj.ToString() : null);
-            }
-            return JoinQuoted(strings);
-        }
-
-        internal static string JoinQuoted(IEnumerable<string> strings)
-        {
-            if (!strings.Any()) {
-                return String.Empty;
-            }
-
-            var result = "'";
-            var first = true;
-
-            foreach (string str in strings)
-            {
-                if (first)
-                    first = false;
-                else
-                    result = result + "','";
-
-                result = result + Quote(str);
-            }
-
-            result = result + "'";
-
-            return result;
-        }
-
+  
         internal static string Quote(string str)
         {
             return str.Replace("'", "''");
@@ -2200,6 +2166,10 @@ namespace Couchbase.Lite
 
         public void DatabaseStorageChanged(DocumentChange change)
         {
+            if (change == null) {
+                return;
+            }
+
             Log.To.Database.I(TAG, "Added: {0}", change.AddedRevision);
             if (_changesToNotify == null) {
                 _changesToNotify = new List<DocumentChange>();

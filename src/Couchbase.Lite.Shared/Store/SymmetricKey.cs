@@ -135,6 +135,11 @@ namespace Couchbase.Lite.Store
             if(password == null) {
                 throw new ArgumentNullException("password");
             }
+
+            if (salt == null) {
+                throw new ArgumentNullException("salt");
+            }
+
             if(salt.Length <= 4) {
                 throw new ArgumentOutOfRangeException("salt", "Value is too short");
             }
@@ -160,7 +165,7 @@ namespace Couchbase.Lite.Store
         public SymmetricKey(byte[] keyData) 
         {
             InitCryptor();
-            if(keyData.Length != KEY_SIZE) {
+            if(keyData == null || keyData.Length != KEY_SIZE) {
                 throw new ArgumentOutOfRangeException("keyData", "Value is incorrect size");
             }
 
@@ -202,6 +207,10 @@ namespace Couchbase.Lite.Store
         /// </summary>
         public byte[] EncryptData(byte[] data)
         {
+            if (data == null) {
+                return null;
+            }
+
             byte[] encrypted = null;
             _cryptor.GenerateIV();
             using(var ms = new MemoryStream())
@@ -237,7 +246,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         public Stream DecryptStream(Stream stream)
         {
-            if(!stream.CanRead) {
+            if(stream == null || !stream.CanRead) {
                 throw new ArgumentException("Unable to read from stream", "stream");
             }
 

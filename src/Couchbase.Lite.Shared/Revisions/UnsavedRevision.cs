@@ -307,7 +307,7 @@ namespace Couchbase.Lite
             try {
                 byte[] inputBytes = null;
                 var request = WebRequest.Create(contentUrl);
-                var response = request.GetResponse();
+                using(var response = request.GetResponse())
                 using(var inputStream = response.GetResponseStream()) {
                     var length = inputStream.Length;
                     inputBytes = inputStream.ReadAllBytes();

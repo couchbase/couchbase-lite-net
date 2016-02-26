@@ -167,7 +167,7 @@ namespace Couchbase.Lite
         {
             try {
                 outStream.Flush();
-                outStream.Close();
+                outStream.Dispose();
             } catch (IOException e) {
                 Log.W(Database.TAG, "Exception closing output stream", e);
             }
@@ -180,7 +180,7 @@ namespace Couchbase.Lite
         public void Cancel()
         {
             try {
-                outStream.Close();
+                outStream.Dispose();
             } catch (IOException e) {
                 Log.W(Database.TAG, "Exception closing output stream", e);
             }

@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Util
         /// <param name="val">The object to cast to its contained type</param>
         public static implicit operator T(ValueTypePtr<T> val) 
         {
-            return val.Value;
+            return val == null ? default(T) : val.Value;
         }
 
         /// <param name="val">The value to convert to a value type pointer</param>

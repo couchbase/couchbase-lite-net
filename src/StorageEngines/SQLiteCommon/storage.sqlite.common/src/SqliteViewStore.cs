@@ -27,6 +27,7 @@ using System.Text;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Storage.Internal;
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
@@ -753,7 +754,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     }
 
                     if (!allDocTypes && docTypes.Count > 0) {
-                        sql.AppendFormat("AND doc_type IN ({0}) ", Database.JoinQuoted(docTypes));
+                    sql.AppendFormat("AND doc_type IN ({0}) ", Utility.JoinQuoted(docTypes));
                     }
 
                     sql.Append("AND revs.doc_id = docs.doc_id " +

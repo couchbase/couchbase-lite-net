@@ -65,15 +65,6 @@ namespace Couchbase.Lite
             }
         }
 
-        public static void Sort<T> (this IList<T> list)
-        {
-            List<T> sorted = new List<T> (list);
-            sorted.Sort ();
-            for (int i = 0; i < list.Count; i++) {
-                list[i] = sorted[i];
-            }
-        }
-
         public static void Sort<T> (this IList<T> list, IComparer<T> comparer)
         {
             List<T> sorted = new List<T> (list);
@@ -255,13 +246,6 @@ namespace Couchbase.Lite
             return Manager.GetObjectMapper().ConvertToList<TValue>(value);
         }
 
-        public static IEnumerable ToEnumerable(this IEnumerator enumerator)
-        {
-            while(enumerator.MoveNext()) {
-                yield return enumerator.Current;
-            }
-        }
-
         public static Byte[] ReadAllBytes(this Stream stream)
         {
             var chunkBuffer = new byte[Attachment.DefaultStreamChunkSize];
@@ -312,33 +296,7 @@ namespace Couchbase.Lite
             Debug.Assert(userinfo != null);
             return new AuthenticationHeaderValue(scheme, userinfo);
         }
-
-        public static string ToQueryString(this IDictionary<string, object> parameters)
-        {
-            var maps = parameters.Select(kvp =>
-            {
-                var key = Uri.EscapeUriString(kvp.Key);
-
-                string value;
-                if (kvp.Value is string) 
-                {
-                    value = Uri.EscapeUriString(kvp.Value as String);
-                }
-                else if (kvp.Value is ICollection)
-                {
-                    value = Uri.EscapeUriString(Manager.GetObjectMapper().WriteValueAsString(kvp.Value));
-                }
-                else
-                {
-                    value = Uri.EscapeUriString(kvp.Value.ToString());
-                }
-
-                return String.Format("{0}={1}", key, value);
-            });
-
-            return String.Join("&", maps.ToArray());
-        }
-
+            
         #if NET_3_5
 
         public static IEnumerable<FileInfo> EnumerateFiles(this DirectoryInfo info, string searchPattern, SearchOption option) {
@@ -359,39 +317,6 @@ namespace Couchbase.Lite
         }
 
         #endif
-
-        private static bool IsNumeric<T>()
-        {
-            Type type = typeof(T);
-            return IsNumeric(type);
-        }
-
-        private static bool IsNumeric(Type type)
-        {
-            switch (Type.GetTypeCode(type)) {
-                case TypeCode.Byte:
-                case TypeCode.Decimal:
-                case TypeCode.Double:
-                case TypeCode.Int16:
-                case TypeCode.Int32:
-                case TypeCode.Int64:
-                case TypeCode.SByte:
-                case TypeCode.Single:
-                case TypeCode.UInt16:
-                case TypeCode.UInt32:
-                case TypeCode.UInt64:
-                    return true;
-
-                case TypeCode.Object:
-                    if ( type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
-                    {
-                        return IsNumeric(Nullable.GetUnderlyingType(type));
-                    }
-                    return false;
-            }
-
-            return false;
-        }
             
     }
 }

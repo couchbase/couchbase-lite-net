@@ -73,6 +73,10 @@ namespace Couchbase.Lite.Auth
 
         public string ResponseFromChallenge(HttpResponseMessage message)
         {
+            if (message == null) {
+                return null;
+            }
+
             var challenge = message.Headers.GetValues("WWW-Authenticate").First();
             _components = DigestCalculator.ParseIntoComponents(challenge);
             if (_components == null) {
@@ -89,7 +93,7 @@ namespace Couchbase.Lite.Auth
 
         public void PrepareWithRequest(HttpRequestMessage request)
         {
-            if (_components == null) {
+            if (_components == null || request == null) {
                 return;
             }
 

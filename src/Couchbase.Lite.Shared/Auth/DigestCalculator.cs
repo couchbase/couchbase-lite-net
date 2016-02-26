@@ -70,6 +70,7 @@ namespace Couchbase.Lite.Auth
             return BitConverter.ToString(responsemd5.Digest()).Replace("-", "").ToLowerInvariant();
         }
 
+        [Obsolete("Only used by a deprecated listener method")]
         public static string Calculate(IDictionary<string, string> components, Func<string, MessageDigest, bool> passwordDigestBlock)
         {
             MessageDigest ha1md5 = MessageDigest.GetInstance("md5");

@@ -105,6 +105,7 @@ namespace Couchbase.Lite.Support
             _lock.ExitWriteLock();
         }
 
+        // Used by tests
         public bool IsEmpty()
         {
             _lock.EnterReadLock();

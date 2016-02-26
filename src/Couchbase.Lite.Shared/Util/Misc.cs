@@ -78,17 +78,6 @@ namespace Couchbase.Lite
             }
         }
 
-        public static string QuoteString(string param)
-        {
-            var sb = new StringBuilder(param);
-            sb.Replace("\\", "\\\\");
-            sb.Replace("\"", "\\\"");
-            sb.Insert(0, '"');
-            sb.Append('"');
-
-            return sb.ToString();
-        }
-
         public static string CreateGUID()
         {
             var sb = new StringBuilder(Convert.ToBase64String(Guid.NewGuid().ToByteArray()).TrimEnd('='));

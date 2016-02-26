@@ -53,6 +53,10 @@ namespace Couchbase.Lite.Util
             get { return null; }
             set
             { 
+                if (value == null) {
+                    throw new ArgumentNullException("value");
+                }
+
                 if ((value.Length % 2) == 1) {
                     throw new ArgumentException("RequiredKeys needs an even number of entries:  key, type, key, type, ...");
                 }
@@ -87,6 +91,10 @@ namespace Couchbase.Lite.Util
             get { return null; }
             set
             { 
+                if (value == null) {
+                    throw new ArgumentNullException("value");
+                }
+
                 if ((value.Length % 2) == 1) {
                     throw new ArgumentException("OptionalKeys needs an even number of entries:  key, type, key, type, ...");
                 }

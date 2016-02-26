@@ -241,7 +241,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 try {
                     LastErrorCode = statement.step();
-                    if (LastErrorCode != SQLiteResult.OK)
+                    if (LastErrorCode != raw.SQLITE_OK)
                         throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
                 } catch (Exception e) {
                     Log.To.Database.E(TAG, "Error getting user version", e);
@@ -457,7 +457,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     LastErrorCode = command.step();
                     command.Dispose();
-                    if (LastErrorCode == SQLiteResult.ERROR)
+                    if (LastErrorCode == raw.SQLITE_ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
 
                     int changes = _writeConnection.changes();
@@ -511,7 +511,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try
                 {
                     LastErrorCode = command.step();
-                    if (LastErrorCode == SQLiteResult.ERROR)
+                    if (LastErrorCode == raw.SQLITE_ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection),
                             StatusCode.DbError);
                 }
@@ -557,7 +557,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try
                 {
                     var result = command.step();
-                    if (result == SQLiteResult.ERROR)
+                    if (result == raw.SQLITE_ERROR)
                         throw new CouchbaseLiteException("Error deleting from table " + table, StatusCode.DbError);
 
                     resultCount = _writeConnection.changes();
@@ -832,7 +832,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     command = BuildCommand(db, sql, paramArgs);
                     LastErrorCode = command.step();
-                    if (LastErrorCode == SQLiteResult.ERROR) {
+                    if (LastErrorCode == raw.SQLITE_ERROR) {
                         throw new CouchbaseLiteException("SQLite error: " + raw.sqlite3_errmsg(db), StatusCode.DbError);
                     }
                 } catch (ugly.sqlite3_exception e) {

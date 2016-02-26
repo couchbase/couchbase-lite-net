@@ -123,15 +123,15 @@ namespace Couchbase.Lite
 
             byte[] sha1hash = new byte[40];
             try {
-                var fis = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                byte[] buffer = new byte[65536];
-                int lenRead = fis.Read(buffer, 0, buffer.Length);
-                while (lenRead > 0)
-                {
-                    md.Update(buffer, 0, lenRead);
-                    lenRead = fis.Read(buffer, 0, buffer.Length);
+                using(var fis = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                    byte[] buffer = new byte[65536];
+                    int lenRead = fis.Read(buffer, 0, buffer.Length);
+                    while (lenRead > 0)
+                    {
+                        md.Update(buffer, 0, lenRead);
+                        lenRead = fis.Read(buffer, 0, buffer.Length);
+                    }
                 }
-                fis.Close();
             } catch (IOException) {
                 Log.E(Database.TAG, "Error readin tmp file to compute key");
             }
@@ -201,40 +201,6 @@ namespace Couchbase.Lite
             return fileStream;
         }
 
-        public bool StoreBlobStream(Stream inputStream, out BlobKey outKey)
-        {
-            var tmp = default(string);
-            try {
-                tmp = Path.Combine(_path, Guid.NewGuid().ToString());
-                var fos = File.Open(tmp, FileMode.Create);
-                byte[] buffer = new byte[65536];
-                int lenRead = inputStream.Read(buffer, 0, buffer.Length);
-                while (lenRead > 0)  {
-                    fos.Write(buffer, 0, lenRead);
-                    lenRead = inputStream.Read(buffer, 0, buffer.Length);
-                }
-
-                inputStream.Close();
-                fos.Close();
-            } catch (IOException e) {
-                Log.E(Database.TAG, "Error writing blog to tmp file", e);
-                outKey = null;
-                return false;
-            }
-
-            outKey = KeyForBlobFromFile(tmp);
-            var keyPath = PathForKey(outKey);
-            if (File.Exists(keyPath)) {
-                // object with this hash already exists, we should delete tmp file and return true
-                File.Delete(tmp);
-            } else {
-                // does not exist, we should rename tmp file to this name
-                File.Move(tmp, keyPath);
-            }
-
-            return true;
-        }
-
         public bool StoreBlob(byte[] data, BlobKey outKey)
         {
             BlobKey newKey = KeyForBlob(data);
@@ -257,13 +223,13 @@ namespace Couchbase.Lite
             } finally {
                 if (fos != null) {
                     try {
-                        fos.Close();
-                    }
-                    catch (IOException) {
+                        fos.Dispose();
+                    } catch (IOException) {
+                        // ignore
                     }
                 }
             }
-            // ignore
+
             return true;
         }
 
@@ -288,17 +254,6 @@ namespace Couchbase.Lite
             return Directory.GetFiles(_path).Length;
         }
 
-        public long TotalDataSize()
-        {
-            long total = 0;
-            var info = new DirectoryInfo(_path);
-            foreach (var attachment in info.GetFiles()) {
-                total += attachment.Length;
-            }
-
-            return total;
-        }
-
         public int DeleteBlobsExceptWithKeys(ICollection<BlobKey> keysToKeep)
         {
             int numDeleted = 0;
@@ -315,29 +270,6 @@ namespace Couchbase.Lite
             }
 
             return numDeleted;
-        }
-
-        public int DeleteBlobs()
-        {
-            return DeleteBlobsExceptWithKeys(new List<BlobKey>());
-        }
-
-        public bool IsGZipped(BlobKey key)
-        {
-            var magic = 0;
-            var path = PathForKey(key);
-            if (File.Exists(path) && ((File.GetAttributes (path) & FileAttributes.Offline) == 0)) {
-                try {
-                    var raf = new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    magic = raf.ReadByte() & unchecked((0xff)) | ((raf.ReadByte() << 8) & unchecked((0xff00)));
-                    raf.Close();
-                }
-                catch (Exception e) {
-                    Log.E(TAG, "Error in IsGZipped", e);
-                }
-            }
-
-            return magic == 0;
         }
 
         public string TempDir()

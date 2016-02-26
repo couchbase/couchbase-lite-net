@@ -39,6 +39,7 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
+#define CONTRACTS_FULL
 
 using System;
 using System.Collections.Generic;
@@ -130,8 +131,12 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns><c>true</c> if the given name is a valid <see cref="Couchbase.Lite.Database"/> name, otherwise <c>false</c>.</returns>
         /// <param name="name">The Database name to validate.</param>
-        public static Boolean IsValidDatabaseName(String name) 
+        public static bool IsValidDatabaseName(string name) 
         {
+            if (name == null) {
+                return false;
+            }
+
             if (name.Length > 0 && name.Length < 240 && ContainsOnlyLegalCharacters(name) && Char.IsLower(name[0])) {
                 return true;
             }
@@ -209,6 +214,14 @@ namespace Couchbase.Lite
         /// <exception cref="T:System.IO.DirectoryNotFoundException">Thrown when there is an error while accessing or creating the given directory.</exception>
         public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
+            if (directoryFile == null) {
+                throw new ArgumentNullException("directoryFile");
+            }
+
+            if (options == null) {
+                throw new ArgumentNullException("options");
+            }
+
             this.directoryFile = directoryFile;
             _options = options ?? DefaultOptions;
             this.databases = new Dictionary<string, Database>();
@@ -410,6 +423,10 @@ namespace Couchbase.Lite
         [Obsolete("This will only work for v1 (.cblite) databases")]
         public void ReplaceDatabase(string name, Stream databaseStream, IDictionary<string, Stream> attachmentStreams)
         {
+            if (databaseStream == null) {
+                throw new ArgumentNullException("databaseStream");
+            }
+
             try {
                 var tempPath = Path.Combine(Path.GetTempPath(), name + "-upgrade");
                 if(System.IO.Directory.Exists(tempPath)) {
@@ -453,6 +470,14 @@ namespace Couchbase.Lite
         /// </remarks>
         public void ReplaceDatabase(string name, Stream compressedStream, bool autoRename)
         {
+            if (name == null) {
+                throw new ArgumentNullException("name");
+            }
+
+            if (compressedStream == null) {
+                throw new ArgumentNullException("compressedStream");
+            }
+
             var zipInfo = GetDbNameAndExtFromZip(compressedStream);
             var zipDbName = zipInfo.Item1;
             var extension = zipInfo.Item2;
@@ -595,6 +620,10 @@ namespace Couchbase.Lite
         /// <param name="database">The database to remove</param>
         public void ForgetDatabase (Database database)
         {
+            if (database == null) {
+                return;
+            }
+
             // remove from cached list of dbs
             databases.Remove(database.Name);
             if (Shared != null) {

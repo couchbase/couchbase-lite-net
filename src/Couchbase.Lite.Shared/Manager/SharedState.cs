@@ -115,11 +115,6 @@ namespace Couchbase.Lite.Internal
             }
         }
 
-        public bool IsDatabaseOpened(Database db)
-        {
-            return _openDatabaseNames.ContainsKey(db.Name);
-        }
-
         #endregion
     }
 }

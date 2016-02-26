@@ -265,8 +265,12 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <param name="id">The <see cref="Couchbase.Lite.Revision"/> id.</param>
         /// <returns>The <see cref="Couchbase.Lite.Revision"/> with the specified id if it exists, otherwise null</returns>
-        public SavedRevision GetRevision(String id)
+        public SavedRevision GetRevision(string id)
         {
+            if (id == null) {
+                return null;
+            }
+
             if (CurrentRevision != null && id.Equals(CurrentRevision.Id))
                 return CurrentRevision;
 
@@ -363,6 +367,9 @@ namespace Couchbase.Lite {
         public SavedRevision Update(UpdateDelegate updateDelegate)
         {
             Debug.Assert(updateDelegate != null);
+            if (updateDelegate == null) {
+                return null;
+            }
 
             var lastErrorCode = StatusCode.Unknown;
             do

@@ -53,6 +53,7 @@ namespace Couchbase.Lite {
     {
         internal RevisionInternal AddedRevision { get; private set; }
 
+        // Used by plugins
         internal DocumentChange(RevisionInternal addedRevision, string winningRevisionId, bool isConflict, Uri sourceUrl)
         {
             AddedRevision = addedRevision;

@@ -143,6 +143,10 @@ namespace Couchbase.Lite.Support
         /// <param name="fileUrl">The file URL to read data from</param>
         public bool AddFileUrl(Uri fileUrl)
         {
+            if (fileUrl == null) {
+                return false;
+            }
+
             FileInfo info;
             try {
                 info = new FileInfo(Uri.UnescapeDataString(fileUrl.AbsolutePath));
@@ -198,19 +202,19 @@ namespace Couchbase.Lite.Support
             _isDisposed = true;
             Log.D(TAG, "Closed");
             if (_output != null) {
-                _output.Close();
+                _output.Dispose();
                 _output = null;
             }
 
             if (_currentInput != null) {
-                _currentInput.Close();
+                _currentInput.Dispose();
                 _currentInput = null;
             }
 
             for (int i = _nextInputIndex; i < _inputs.Count; i++) {
                 var nextStream = _inputs[i] as Stream;
                 if (nextStream != null) {
-                    nextStream.Close();
+                    nextStream.Dispose();
                 }
             }
 

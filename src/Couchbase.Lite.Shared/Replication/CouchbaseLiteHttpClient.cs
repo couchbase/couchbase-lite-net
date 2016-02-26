@@ -68,6 +68,7 @@ namespace Couchbase.Lite
         public void Dispose()
         {
             _httpClient.Dispose();
+            _authHandler.Dispose();
         }
     }
 }

@@ -459,40 +459,40 @@ namespace Couchbase.Lite.Util
         private static string GetWindowsName()
         {
             string result = string.Empty;
-            var searcher = new System.Management.ManagementObjectSearcher("SELECT Caption FROM Win32_OperatingSystem");
-            foreach (var os in searcher.Get())
-            {
-                result = os["Caption"].ToString();
-                break;
+            using (var searcher = new System.Management.ManagementObjectSearcher("SELECT Caption FROM Win32_OperatingSystem")) {
+                foreach (var os in searcher.Get()) {
+                    result = os["Caption"].ToString();
+                    break;
+                }
+                return result;
             }
-            return result;
         }
 
         private static string GetWindowsArchitecture()
         {
             string result = string.Empty;
-            var searcher = new System.Management.ManagementObjectSearcher("SELECT Architecture FROM Win32_Processor");
-            foreach (var cpu in searcher.Get())
-            {
-                var type = (ushort)cpu["Architecture"];
-                switch(type) {
-                    case 0:
-                        result = "x86";
-                        break;
-                    case 5:
-                        result = "ARM";
-                        break;
-                    case 9:
-                        result = "x86_64";
-                        break;
-                    default:
-                        result = String.Format("Rare ({0})", type);
-                        break;
-                }
+            using (var searcher = new System.Management.ManagementObjectSearcher("SELECT Architecture FROM Win32_Processor")) {
+                foreach (var cpu in searcher.Get()) {
+                    var type = (ushort)cpu["Architecture"];
+                    switch (type) {
+                        case 0:
+                            result = "x86";
+                            break;
+                        case 5:
+                            result = "ARM";
+                            break;
+                        case 9:
+                            result = "x86_64";
+                            break;
+                        default:
+                            result = String.Format("Rare ({0})", type);
+                            break;
+                    }
 
-                break;
+                    break;
+                }
+                return result;
             }
-            return result;
         }
 
         #endif

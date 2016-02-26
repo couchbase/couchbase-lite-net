@@ -55,66 +55,9 @@ namespace Couchbase.Lite.Util
         {
             var name = Path.GetFileNameWithoutExtension(path);
             if (name == null) {
-                Log.E(Database.TAG, "Unable to determine database name from path");
+                Log.To.Database.E(Tag, "Unable to determine database name from {0}", path);
             }
             return name;
-        }
-           
-
-        /// <exception cref="System.IO.IOException"></exception>
-        public static void CopyFile(FileInfo sourceFile, FileInfo destFile)
-        {
-            if (!File.Exists(destFile.FullName))
-            {
-                File.Open (destFile.FullName, FileMode.CreateNew).Close ();
-            }
-
-            sourceFile.CopyTo(destFile.FullName);
-        }
-
-        public static bool DeleteRecursive (string attachmentsFile)
-        {
-            if(!Directory.Exists(attachmentsFile)) {
-                return true;
-            }
-
-            var success = true;
-            try {
-                Directory.Delete (attachmentsFile, true);
-            } catch (Exception ex) {
-                Log.E(Tag, String.Format("Error deleting the '{0}' directory.", attachmentsFile), ex);
-                success = false;
-            }
-            return success;
-        }
-
-        /// <exception cref="System.IO.IOException"></exception>
-        public static void CopyFolder(FileSystemInfo sourcePath, FileSystemInfo destinationPath)
-        {
-            var sourceDirectory = sourcePath as DirectoryInfo;
-            if (sourceDirectory != null)
-            {
-                var destPath = Path.Combine(Path.GetDirectoryName(destinationPath.FullName), Path.GetFileName(sourceDirectory.Name));
-                var destinationDirectory = new DirectoryInfo(destPath);
-
-                //if directory not exists, create it
-                if (!destinationDirectory.Exists)
-                {
-                    destinationDirectory.Create();
-                }
-                //list all the directory contents
-                var fileInfos = sourceDirectory.GetFileSystemInfos();
-                foreach (var fileInfo in fileInfos)
-                {
-                    //construct the src and dest file structure
-                    //recursive copy
-                    CopyFolder(fileInfo, destinationDirectory);
-                }
-            }
-            else
-            {
-                CopyFile((FileInfo)sourcePath, (FileInfo)destinationPath);
-            }
         }
     }
 }

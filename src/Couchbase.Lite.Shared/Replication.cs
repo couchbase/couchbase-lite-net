@@ -1314,6 +1314,7 @@ namespace Couchbase.Lite
                 } finally {
                     Task dummy;
                     _requests.TryRemove(message, out dummy);
+                    message.Dispose();
                 }
             }, token);
 
@@ -2197,6 +2198,10 @@ namespace Couchbase.Lite
         /// <param name="transition">The transition that caused the state in the replication, if applicable</param>
         public ReplicationChangeEventArgs (Replication sender, ReplicationStateTransition transition)
         {
+            if (sender == null) {
+                throw new ArgumentNullException("sender");
+            }
+
             _source = sender;
             _transition = transition;
             _changesCount = sender.ChangesCount;

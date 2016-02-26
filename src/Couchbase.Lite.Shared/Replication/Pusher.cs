@@ -93,6 +93,7 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
+        //TODO: Why isn't this used?
         private bool CanSendCompressedRequests
         {
             get {

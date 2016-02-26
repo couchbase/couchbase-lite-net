@@ -59,20 +59,6 @@ namespace Couchbase.Lite.Util
         #endregion
 
         #region Public Methods
-
-        public static string Decode(string s)
-        {
-            if (s == null) {
-                return null;
-            }
-
-            try {
-                return Uri.UnescapeDataString(s);
-            } catch (Exception e) {
-                // This is highly unlikely since we always use UTF-8 encoding.
-                throw new CouchbaseLiteException(String.Format("Failed to decode string {0}", s), e);
-            }
-        }
             
         public static string GetQueryParameter(Uri uri, string key)
         {
@@ -117,12 +103,7 @@ namespace Couchbase.Lite.Util
 
             return null;
         }
-            
-        public static string Encode(string s)
-        {
-            return Encode(s, null);
-        }
-            
+
         public static string Encode(string s, string allow)
         {
             if (s == null) {
@@ -194,31 +175,32 @@ namespace Couchbase.Lite.Util
             }
 
             StringBuilder result = new StringBuilder(s.Length);
-            MemoryStream @out = new MemoryStream();
-            for (int i = 0; i < s.Length;) {
-                char c = s[i];
-                if (c == '%') {
-                    do {
-                        if (i + 2 >= s.Length) {
-                            throw new ArgumentException(String.Format("Incomplete % sequence at: {0}", i));
-                        }
-                        int d1 = HexToInt(s[i + 1]);
-                        int d2 = HexToInt(s[i + 2]);
-                        if (d1 == -1 || d2 == -1) {
-                            throw new ArgumentException("Invalid % sequence " + s.Substring(i, 3) + " at " + i);
-                        }
-                        @out.WriteByte(unchecked((byte)((d1 << 4) + d2)));
-                        i += 3;
-                    } while (i < s.Length && s[i] == '%');
-                    result.Append(charset.GetString(@out.ToArray()));
-                    @out.Reset();
-                }
-                else {
-                    if (convertPlus && c == '+') {
-                        c = ' ';
+            using (MemoryStream outStream = new MemoryStream()) {
+                for (int i = 0; i < s.Length;) {
+                    char c = s[i];
+                    if (c == '%') {
+                        do {
+                            if (i + 2 >= s.Length) {
+                                throw new ArgumentException(String.Format("Incomplete % sequence at: {0}", i));
+                            }
+                            int d1 = HexToInt(s[i + 1]);
+                            int d2 = HexToInt(s[i + 2]);
+                            if (d1 == -1 || d2 == -1) {
+                                throw new ArgumentException("Invalid % sequence " + s.Substring(i, 3) + " at " + i);
+                            }
+                            outStream.WriteByte(unchecked((byte)((d1 << 4) + d2)));
+                            i += 3;
+                        } while (i < s.Length && s[i] == '%');
+                        result.Append(charset.GetString(outStream.ToArray()));
+                        outStream.Reset();
                     }
-                    result.Append(c);
-                    i++;
+                    else {
+                        if (convertPlus && c == '+') {
+                            c = ' ';
+                        }
+                        result.Append(c);
+                        i++;
+                    }
                 }
             }
 

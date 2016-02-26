@@ -22,5 +22,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)src\DatabaseUpgraderFactory_Upgraders.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\DatabaseUpgraderFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\Properties\AssemblyInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\RevIdCollator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\Utility.cs" />
   </ItemGroup>
 </Project>

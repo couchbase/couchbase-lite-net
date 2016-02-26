@@ -155,6 +155,10 @@ namespace Couchbase.Lite.Util
         /// <param name="cookies">The cookies to add</param>
         public new void Add(CookieCollection cookies)
         {
+            if (cookies == null) {
+                return;
+            }
+
             foreach (Cookie cookie in cookies) {
                 Add(cookie, false);
             }

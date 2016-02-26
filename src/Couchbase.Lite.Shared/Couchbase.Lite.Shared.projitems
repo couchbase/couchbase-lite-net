@@ -55,8 +55,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobStoreWriter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\RevIdCollator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\SQLException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\Status.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\DefaultAuthHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ExtensionMethods.cs" />
@@ -72,7 +70,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\SequenceMap.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\StringUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\URIUtils.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\AuthenticatorFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\IAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authenticator.cs" />

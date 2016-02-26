@@ -29,6 +29,7 @@ using System.Threading;
 using Couchbase.Lite.Db;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Storage.Internal;
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using SQLitePCL;
@@ -380,6 +381,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
         #endregion
 
         #region Private Methods
+
+        private static string JoinQuotedObjects(IEnumerable<Object> objects)
+        {
+            var strings = new List<String>();
+            foreach (var obj in objects)
+            {
+                strings.Add(obj != null ? obj.ToString() : null);
+            }
+            return Utility.JoinQuoted(strings);
+        }
 
         private void Open()
         {
@@ -1325,7 +1336,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             var sql = String.Format("SELECT revid FROM revs " +
                 "WHERE doc_id=? and revid in ({0}) and revid <= ? " +
-                "ORDER BY revid DESC LIMIT 1", Database.JoinQuoted(revIds));
+                "ORDER BY revid DESC LIMIT 1", Utility.JoinQuoted(revIds));
 
             return QueryOrDefault(c => c.GetString(0), false, null, sql, docNumericId, rev.RevID);
         }
@@ -1338,7 +1349,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             var sql = String.Format("SELECT docid, revid FROM revs, docs " +
                       "WHERE revid in ({0}) AND docid IN ({1}) " +
-                "AND revs.doc_id == docs.doc_id", Database.JoinQuoted(revs.GetAllRevIds()), Database.JoinQuoted(revs.GetAllDocIds()));
+                "AND revs.doc_id == docs.doc_id", Utility.JoinQuoted(revs.GetAllRevIds()), Utility.JoinQuoted(revs.GetAllDocIds()));
 
             int count = 0;
             var status = TryQuery(c =>
@@ -1409,7 +1420,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     return null;
                 }
 
-                sql.AppendFormat(" revs.doc_id IN (SELECT doc_id FROM docs WHERE docid IN ({0})) AND", Database.JoinQuotedObjects(options.Keys));
+                sql.AppendFormat(" revs.doc_id IN (SELECT doc_id FROM docs WHERE docid IN ({0})) AND", JoinQuotedObjects(options.Keys));
             }
 
             sql.Append(" docs.doc_id = revs.doc_id AND current=1");
@@ -1500,7 +1511,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         rows.Add(row);
                     }
                 }
-            } catch(SQLException e) {
+            } catch(Exception e) {
                 Log.E(TAG, "Error in all docs query", e);
                 return null;
             } finally {

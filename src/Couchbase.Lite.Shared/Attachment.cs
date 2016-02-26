@@ -247,7 +247,7 @@ namespace Couchbase.Lite {
         public string ContentType {
             get {
                 var contentType = default(string);
-                if (!Metadata.TryGetValue<string>(AttachmentMetadataDictionary.CONTENT_TYPE, out contentType)) {
+                if (!Metadata.TryGetValue<string>(AttachmentMetadataDictionaryKeys.ContentType, out contentType)) {
                     throw new CouchbaseLiteException("Content type of attachment corrupt", StatusCode.BadAttachment);
                 }
 
@@ -316,10 +316,10 @@ namespace Couchbase.Lite {
         /// Gets the length in bytes of the content.
         /// </summary>
         /// <value>The length in bytes of the content.</value>
-        public Int64 Length {
+        public long Length {
             get {
                 Object length;
-                var success = Metadata.TryGetValue(AttachmentMetadataDictionary.LENGTH, out length);
+                var success = Metadata.TryGetValue(AttachmentMetadataDictionaryKeys.Length, out length);
                 return success ? (Int64)length : 0;
             }
         }

@@ -80,7 +80,7 @@ namespace Couchbase.Lite
 
         private bool HasRows {
             get {
-                return _currentStep == SQLiteResult.ROW; 
+                return _currentStep == raw.SQLITE_ROW; 
             }
         }
 
