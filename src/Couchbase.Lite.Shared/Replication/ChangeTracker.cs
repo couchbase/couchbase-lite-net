@@ -75,11 +75,11 @@ namespace Couchbase.Lite.Replicator
 
         private int _heartbeatMilliseconds = 300000;
 
-        private Uri databaseURL;
+        protected Uri databaseURL;
 
-        private IChangeTrackerClient client;
+        protected IChangeTrackerClient _changeTrackerClient;
 
-        private ChangeTrackerMode mode;
+        protected ChangeTrackerMode _mode;
 
         private Object lastSequenceID;
 
@@ -143,10 +143,10 @@ namespace Couchbase.Lite.Replicator
         {
             // does not work, do not use it.
             this.databaseURL = databaseURL;
-            this.mode = mode;
+            this._mode = mode;
             this.includeConflicts = includeConflicts;
             this.lastSequenceID = lastSequenceID;
-            this.client = client;
+            this._changeTrackerClient = client;
             this.RequestHeaders = new Dictionary<string, object>();
             this.tokenSource = new CancellationTokenSource();
             _initialSync = initialSync;
@@ -165,7 +165,7 @@ namespace Couchbase.Lite.Replicator
 
         public void SetClient(IChangeTrackerClient client)
         {
-            this.client = client;
+            this._changeTrackerClient = client;
         }
 
         public string GetChangesFeedPath()
@@ -222,7 +222,7 @@ namespace Couchbase.Lite.Replicator
             return path.ToString();
         }
 
-        public Uri GetChangesFeedURL()
+        public virtual Uri GetChangesFeedURL()
         {
             var dbURLString = databaseURL.ToString();
             if(!dbURLString.EndsWith("/", StringComparison.Ordinal)) {
@@ -244,7 +244,7 @@ namespace Couchbase.Lite.Replicator
         {
             IsRunning = true;
 
-            var clientCopy = client;
+            var clientCopy = _changeTrackerClient;
             if (clientCopy == null)
             {
                 // This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
@@ -289,7 +289,7 @@ namespace Couchbase.Lite.Replicator
             try {
                 changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
 
-                var option = mode == ChangeTrackerMode.LongPoll ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead;
+                var option = _mode == ChangeTrackerMode.LongPoll ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead;
                 _httpClient.Authenticator = Authenticator;
                 var info = _httpClient.SendAsync(
                     Request, 
@@ -337,7 +337,7 @@ namespace Couchbase.Lite.Replicator
 
                     Log.To.ChangeTracker.I(TAG, String.Format("{0} ChangeFeedResponseHandler faulted", this),
                         err);
-                    if (mode != ChangeTrackerMode.LongPoll || !Misc.IsTransientNetworkError(err)) {
+                    if (_mode != ChangeTrackerMode.LongPoll || !Misc.IsTransientNetworkError(err)) {
                         Stop();
                     } else if(IsRunning) {
                         backoff.SleepAppropriateAmountOfTime();
@@ -367,7 +367,7 @@ namespace Couchbase.Lite.Replicator
                     return Task.FromResult(false);
                 }
 
-                if (Misc.IsTransientError(status) && mode == ChangeTrackerMode.LongPoll) {
+                if (Misc.IsTransientError(status) && _mode == ChangeTrackerMode.LongPoll) {
                     Log.To.ChangeTracker.I(TAG, "{0} transient error ({1}) detected, sleeping...", this,
                         status);
                     backoff.SleepAppropriateAmountOfTime();
@@ -386,7 +386,7 @@ namespace Couchbase.Lite.Replicator
                 return Task.FromResult(false);
             }
 
-            switch (mode)  {
+            switch (_mode)  {
                 case ChangeTrackerMode.LongPoll:
                     if (response.Content == null) {
                         throw Misc.CreateExceptionAndLog(Log.To.ChangeTracker, status.GetStatusCode(), TAG,
@@ -435,15 +435,19 @@ namespace Couchbase.Lite.Replicator
 
         public bool ReceivedChange(IDictionary<string, object> change)
         {
+            if (change == null) {
+                return false;
+            }
+
             var seq = change.Get("seq");
             if (seq == null) {
                 return false;
             }
 
             //pass the change to the client on the thread that created this change tracker
-            if (client != null) {
+            if (_changeTrackerClient != null) {
                 Log.To.ChangeTracker.V(TAG, "{0} posting change", this);
-                client.ChangeTrackerReceivedChange(change);
+                _changeTrackerClient.ChangeTrackerReceivedChange(change);
             }
 
             lastSequenceID = seq;
@@ -498,14 +502,14 @@ namespace Couchbase.Lite.Replicator
             return true;
         }
 
-        public bool Start()
+        public virtual bool Start()
         {
             if (IsRunning) {
                 return false;
             }
 
             Log.To.ChangeTracker.I(TAG, "Starting {0}...", this);
-            _httpClient = client.GetHttpClient();
+            _httpClient = _changeTrackerClient.GetHttpClient();
             Error = null;
             WorkExecutor.StartNew(Run);
             Log.To.ChangeTracker.I(TAG, "Started {0}", this);
@@ -513,7 +517,7 @@ namespace Couchbase.Lite.Replicator
             return true;
         }
 
-        public void Stop()
+        public virtual void Stop()
         {
             // Lock to prevent multiple calls to Stop() method from different
             // threads (eg. one from ChangeTracker itself and one from any other
@@ -550,12 +554,12 @@ namespace Couchbase.Lite.Replicator
 
         public void Stopped()
         {
-            if (client != null)
+            if (_changeTrackerClient != null)
             {
                 Log.To.ChangeTracker.V(TAG, "{0} posting stopped to client", this);
-                client.ChangeTrackerStopped(this);
+                _changeTrackerClient.ChangeTrackerStopped(this);
             }
-            client = null;
+            _changeTrackerClient = null;
             Log.To.ChangeTracker.D(TAG, "change tracker client should be null now");
         }
 
@@ -628,7 +632,7 @@ namespace Couchbase.Lite.Replicator
 
         private string GetFeed()
         {
-            switch (mode)
+            switch (_mode)
             {
                 case ChangeTrackerMode.LongPoll:
                     return "longpoll";
