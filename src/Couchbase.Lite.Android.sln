@@ -35,9 +35,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Listener.Bon
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Vendor", "Vendor", "{6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "websocket-sharp.shared", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.shproj", "{891A08FC-F143-4325-BC16-B9864D036B99}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "websocket-sharp.shared", "..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.shproj", "{891A08FC-F143-4325-BC16-B9864D036B99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp.droid", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.droid.csproj", "{E1153FA4-356A-454D-B32E-136102F2482F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp.droid", "..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.droid.csproj", "{E1153FA4-356A-454D-B32E-136102F2482F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-droid", "ListenerComponent\Couchbase.Lite.Listener.Shared\vendor\Mono\Mono.Security\Mono.Security-droid.csproj", "{83F75E53-48BE-4F3C-8D79-62CBD5050792}"
 EndProject
