@@ -1,6 +1,3 @@
-[submodule "src/Couchbase.Lite.Unity/vendor/JSON.NET"]
-	path = src/Couchbase.Lite.Unity/vendor/JSON.NET
-	url = https://github.com/couchbasedeps/Newtonsoft.Json.git
 [submodule "src/StorageEngines/SQLCipher/SQLitePCL"]
 	path = src/StorageEngines/SQLCipher/SQLitePCL
 	url = https://github.com/couchbasedeps/SQLitePCL.raw
@@ -17,3 +14,6 @@
 [submodule "vendor/websocket-sharp"]
 	path = vendor/websocket-sharp
 	url = https://github.com/couchbasedeps/websocket-sharp
+[submodule "vendor/JSON.NET"]
+	path = vendor/JSON.NET
+	url = https://github.com/couchbasedeps/Newtonsoft.Json.git
