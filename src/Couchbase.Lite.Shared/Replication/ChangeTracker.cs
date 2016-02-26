@@ -73,8 +73,6 @@ namespace Couchbase.Lite.Replicator
     {
         private const string TAG = "ChangeTracker";
 
-        const Int32 LongPollModeLimit = 500;
-
         private Int32 _heartbeatMilliseconds = 300000;
 
         private Uri databaseURL;
@@ -177,10 +175,6 @@ namespace Couchbase.Lite.Replicator
             var path = new StringBuilder("_changes?feed=");
             path.Append(GetFeed());
 
-            if (mode == ChangeTrackerMode.LongPoll)
-            {
-                path.Append(string.Format("&limit={0}", LongPollModeLimit));
-            }
             path.Append(string.Format("&heartbeat={0}", _heartbeatMilliseconds));
             if (includeConflicts) {
                 path.Append("&style=all_docs");
@@ -642,10 +636,6 @@ namespace Couchbase.Lite.Replicator
                 _initialSync = false;
                 // On first replication we can skip getting deleted docs. (SG enhancement in ver. 1.2)
                 bodyParams["active_only"] = true;
-            }
-
-            if (mode == ChangeTrackerMode.LongPoll) {
-                bodyParams["limit"] = LongPollModeLimit;
             }
 
             if (filterName != null) {
