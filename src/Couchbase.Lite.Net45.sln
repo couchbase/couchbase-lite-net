@@ -33,7 +33,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp", "..\vendo
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "websocket-sharp.shared", "..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.shproj", "{891A08FC-F143-4325-BC16-B9864D036B99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-net_4_5", "ListenerComponent\Couchbase.Lite.Listener.Shared\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj", "{D68D4FED-CA32-4800-A628-58BAE485562C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-net_4_5", "..\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj", "{D68D4FED-CA32-4800-A628-58BAE485562C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "StorageEngines", "StorageEngines", "{04FF2F69-CFD6-4C7E-AA54-A481F615167C}"
 EndProject
