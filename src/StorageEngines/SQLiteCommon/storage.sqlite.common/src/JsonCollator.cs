@@ -152,7 +152,7 @@ namespace Couchbase.Lite
 
         private static double ReadNumber(String str, int start, out int endOfNumber) 
         {
-            return StringUtils.Strtod (str, start, out endOfNumber);
+            return JsonCollator.Strtod (str, start, out endOfNumber);
         }
 
         private static int DigitToInt(char ch) 

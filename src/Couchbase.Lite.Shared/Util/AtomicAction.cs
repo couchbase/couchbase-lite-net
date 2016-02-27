@@ -118,6 +118,14 @@ namespace Couchbase.Lite.Util
             });
         }
 
+        public static AtomicAction MoveFile(string srcPath, string dstPath)
+        {
+            var seq = new AtomicAction();
+            seq.AddLogic(AtomicAction.DeleteFile(dstPath));
+            seq.AddLogic(AtomicAction.MoveFileUnsafe(srcPath, dstPath));
+            return seq;
+        }
+
         public static AtomicAction MoveFileUnsafe(string srcPath, string dstPath)
         {
             if (srcPath == null || dstPath == null) {
@@ -192,6 +200,11 @@ namespace Couchbase.Lite.Util
             _performs.Add(perform ?? NULL_ACTION);
             _backOuts.Add(backOut ?? NULL_ACTION);
             _cleanUps.Add(cleanUp ?? NULL_ACTION);
+        }
+
+        public void AddLogic(Action perform, Action backoutOrCleanup)
+        {
+            AddLogic(perform, backoutOrCleanup, backoutOrCleanup);
         }
 
         /// <summary>
