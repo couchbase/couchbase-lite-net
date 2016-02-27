@@ -51,14 +51,71 @@ using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.ForestDB;
+using Couchbase.Lite.Configuration;
+using System.IO;
+using System.Text;
 
 namespace Couchbase.Lite
 {
+    internal class MemoryConfigSaveDestination : IConfigSaveDestination
+    {
+        public Stream WriteStream { get; private set; }
+
+        public string Result
+        {
+            get {
+                return Encoding.UTF8.GetString(RawResult);
+            }
+        }
+
+        public byte[] RawResult
+        {
+            get {
+                return ((MemoryStream)WriteStream).ToArray();
+            }
+        }
+
+        public MemoryConfigSaveDestination() 
+        {
+            WriteStream = new MemoryStream();
+        }
+    }
+
+    internal class MemoryConfigLoadSource : IConfigLoadSource
+    {
+
+        public Stream ReadStream { get; private set; }
+
+        public MemoryConfigLoadSource(byte[] data)
+        {
+            ReadStream = new MemoryStream(data);
+        }
+
+    }
+
     public class MiscTest : LiteTestCase
     {
         const string Tag = "MiscTest";
 
         public MiscTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestConfiguration()
+        {
+            Log.Domains.Database.Level = Log.LogLevel.Verbose;
+            Log.Domains.Query.Level = Log.LogLevel.Debug;
+            Log.Domains.ChangeTracker.Level = Log.LogLevel.None;
+
+            var saveDest = new MemoryConfigSaveDestination();
+            Configure.SaveTo(saveDest);
+
+            Log.Domains.All.Level = Log.LogLevel.Base;
+            var loadSource = new MemoryConfigLoadSource(saveDest.RawResult);
+            Assert.IsTrue(Configure.LoadFrom(loadSource).Wait(1000));
+            Assert.AreEqual(Log.LogLevel.Verbose, Log.Domains.Database.Level);
+            Assert.AreEqual(Log.LogLevel.Debug, Log.Domains.Query.Level);
+            Assert.AreEqual(Log.LogLevel.None, Log.Domains.ChangeTracker.Level);
+        }
 
         [Test]
         public void TestRoundTripDateTimeOffset()
