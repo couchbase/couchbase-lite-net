@@ -91,7 +91,7 @@ namespace Couchbase.Lite.Tests
             foreach (var header in Headers) {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
                 if (!success) {
-                    Log.W(Tag, String.Format("Unabled to add header to request: {0}: {1}", header.Key, header.Value));
+                    Console.WriteLine("Unable to add header to request: {0}: {1}", header.Key, header.Value);
                 }
             }
 

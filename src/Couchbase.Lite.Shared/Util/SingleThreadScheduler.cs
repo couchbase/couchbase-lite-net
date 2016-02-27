@@ -51,7 +51,7 @@ namespace Couchbase.Lite.Util
         protected override void QueueTask(Task task) 
         {
             if (_disposed) {
-                Log.D(Tag, "SingleThreadScheduler is disposed, ignoring task {0}", task.Id);
+                Log.To.NoDomain.W(Tag, "SingleThreadScheduler is disposed, ignoring task {0}", task.Id);
                 return;
             }
 
@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Util
                 Drain();
             }
 
-            Log.D(Tag, "SingleThreadScheduler finished");
+            Log.To.NoDomain.D(Tag, "SingleThreadScheduler finished");
         }
 
         private void Drain() 

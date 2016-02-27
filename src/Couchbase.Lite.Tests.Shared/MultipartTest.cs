@@ -176,7 +176,7 @@ namespace Couchbase.Lite
         public void TestMultiStreamWriterSync()
         {
             for (int bufferSize = 1; bufferSize < 128; bufferSize++) {
-                Log.D(TAG, "Buffer size = {0}", bufferSize);
+                WriteDebug("Buffer size = {0}", bufferSize);
                 var mp = CreateWriter(bufferSize);
                 var outputBytes = mp.AllOutput();
                 Assert.IsNotNull(outputBytes);
@@ -250,7 +250,7 @@ namespace Couchbase.Lite
             };
 
             for (int chunkSize = 1; chunkSize <= mime.Length; ++chunkSize) {
-                Log.D(TAG, "--- chunkSize = {0}", chunkSize);
+                WriteDebug("--- chunkSize = {0}", chunkSize);
                 Reset();
                 var reader = new MultipartReader("multipart/related; boundary=\"BOUNDARY\"", this);
                 Assert.IsFalse(reader.Finished);

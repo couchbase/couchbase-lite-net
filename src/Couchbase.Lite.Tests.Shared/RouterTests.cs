@@ -828,7 +828,7 @@ namespace Couchbase.Lite
                     while (stream.Read(data, 0, data.Length) > 0)
                     {
                         if(data[0] == 13 && data[1] == 10) {
-                            Log.D(TAG, "Heartbeat came at {0} seconds", (DateTime.Now - start).TotalSeconds);
+                            WriteDebug("Heartbeat came at {0} seconds", (DateTime.Now - start).TotalSeconds);
                             heartbeat += 1;
                         }
                     }
@@ -1394,13 +1394,13 @@ namespace Couchbase.Lite
 
         private void ReopenDatabase()
         {
-            Log.D(TAG, "----- CLOSING DB -----");
+            WriteDebug("----- CLOSING DB -----");
             Assert.IsNotNull(database);
             var dbName = database.Name;
             Assert.DoesNotThrow(() => database.Close().Wait(15000), "Couldn't close DB");
             database = null;
 
-            Log.D(TAG, "----- REOPENING DB -----");
+            WriteDebug("----- REOPENING DB -----");
             var db2 = manager.GetDatabase(dbName);
             Assert.IsNotNull(db2, "Couldn't make a new database instance");
             database = db2;
@@ -1482,13 +1482,13 @@ namespace Couchbase.Lite
                         }
                         throw;
                     } else {
-                        Log.D(TAG, "{0} {1} --> {2}", method, path, ((HttpWebResponse)e.Response).StatusCode);
+                        WriteDebug("{0} {1} --> {2}", method, path, ((HttpWebResponse)e.Response).StatusCode);
                     }
                     response = (HttpWebResponse)e.Response;
                 }
 
                 Assert.IsNotNull(response);
-                Log.D(TAG, "{0} {1} --> {2}", method, path, response.StatusCode);
+                WriteDebug("{0} {1} --> {2}", method, path, response.StatusCode);
 
                 callback(response);
                 if (!keepAlive) {
@@ -1593,7 +1593,7 @@ namespace Couchbase.Lite
                 { "message", "goodbye" },
                 { "_rev", revId }
             }), HttpStatusCode.Created, null);
-            Log.D(TAG, "PUT returned {0}", result);
+            WriteDebug("PUT returned {0}", result);
             revId = result.GetCast<string>("rev");
             Assert.IsNotNull(revId);
             Assert.IsTrue(revId.StartsWith("2-"));

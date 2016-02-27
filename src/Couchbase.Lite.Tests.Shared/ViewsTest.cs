@@ -428,7 +428,7 @@ namespace Couchbase.Lite
             view.UpdateIndex();
 
             IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
-            Log.V(Tag, "View dump: " + dumpResult);
+            WriteDebug("View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"one\"", dumpResult[0]["key"]);
             Assert.AreEqual(1, dumpResult[0]["seq"]);
@@ -468,7 +468,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(view.IsStale);
             view.UpdateIndex();
             dumpResult = view.Storage.Dump().ToList();
-            Log.V(Tag, "View dump: " + dumpResult);
+            WriteDebug("View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"one\"", dumpResult[2]["key"]);
             Assert.AreEqual(1, dumpResult[2]["seq"]);
@@ -946,7 +946,7 @@ namespace Couchbase.Lite
             view.UpdateIndex();
 
             IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
-            Log.V(Tag, "View dump: " + dumpResult);
+            WriteDebug("View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"App\"", dumpResult[0]["key"]);
             Assert.AreEqual("1.95", dumpResult[0]["val"]);
@@ -1004,7 +1004,7 @@ namespace Couchbase.Lite
             }
             catch (Exception e)
             {
-                Log.E(Tag, "Exception during TestIndexUpdateMode", e);
+                Console.WriteLine("Exception during TestIndexUpdateMode", e);
             }
             Assert.AreEqual(6, query.Run().Count);
         }
@@ -1451,7 +1451,7 @@ namespace Couchbase.Lite
             {
                 QueryRow row = rows[i];
                 IDictionary<string, object> rowAsJson = row.AsJSONDictionary();
-                Log.D(Tag, string.Empty + rowAsJson);
+                WriteDebug(string.Empty + rowAsJson);
                 IList<object> key = (IList<object>)rowAsJson["key"];
                 IDictionary<string, object> doc = (IDictionary<string, object>)rowAsJson.Get("doc");
                 string id = (string)rowAsJson["id"];

@@ -69,7 +69,7 @@ namespace Couchbase.Lite
             var body = new Body(documentProperties);
             var rev1 = new RevisionInternal(body);
             rev1 = database.Storage.PutLocalRevision(rev1, null, true);
-            Log.V(Tag, "Created " + rev1);
+            WriteDebug("Created " + rev1);
             Assert.AreEqual("_local/doc1", rev1.DocID);
             Assert.IsTrue(rev1.RevID.StartsWith("1-"));
 
@@ -89,7 +89,7 @@ namespace Couchbase.Lite
             var rev2 = new RevisionInternal(body);
             var rev2input = rev2;
             rev2 = database.Storage.PutLocalRevision(rev2, rev1.RevID, true);
-            Log.V(Tag, "Updated " + rev1);
+            WriteDebug("Updated " + rev1);
             Assert.AreEqual(rev1.DocID, rev2.DocID);
             Assert.IsTrue(rev2.RevID.StartsWith("2-"));
             

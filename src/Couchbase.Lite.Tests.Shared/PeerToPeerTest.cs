@@ -355,7 +355,7 @@ namespace Couchbase.Lite
 
         private void CreateDocs(Database db, bool withAttachments)
         {
-            Log.D(TAG, "Creating {0} documents in {1}", DOCUMENT_COUNT, db.Name);
+            WriteDebug("Creating {0} documents in {1}", DOCUMENT_COUNT, db.Name);
             db.RunInTransaction(() =>
             {
                 for(int i = 1; i <= DOCUMENT_COUNT; i++) {

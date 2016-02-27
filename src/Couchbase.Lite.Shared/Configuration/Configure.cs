@@ -48,7 +48,7 @@ namespace Couchbase.Lite.Configuration
                 var readStream = source.ReadStream;
                 if (readStream == null || !readStream.CanRead) {
                     var e = new InvalidOperationException("Cannot read from configuration source");
-                    Log.To.All.E(Tag, "Error loading configuration values", e);
+                    Log.To.NoDomain.E(Tag, "Error loading configuration values", e);
                     throw e;
                 }
 
@@ -67,7 +67,7 @@ namespace Couchbase.Lite.Configuration
             var writeStream = destination.WriteStream;
             if (writeStream == null || !writeStream.CanWrite) {
                 var e = new InvalidOperationException("Cannot write to configuration destination");
-                Log.To.All.E(Tag, "Error saving configuration values", e);
+                Log.To.NoDomain.E(Tag, "Error saving configuration values", e);
                 throw e;
             }
 

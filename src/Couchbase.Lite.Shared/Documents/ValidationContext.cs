@@ -111,9 +111,10 @@ namespace Couchbase.Lite
                         InternalRevision = Database.LoadRevisionBody(InternalRevision);
                         return new SavedRevision(Database, InternalRevision);
                     } catch (CouchbaseLiteException) {
-                        Log.E(Tag, "Failed to get CurrentRevision");
+                        Log.To.Validation.E(Tag, "Failed to get CurrentRevision");
                         throw;
                     } catch(Exception e) {
+                        Log.To.Validation.E(Tag, "Got non-Couchbase exception in CurrentRevision, rethrowing...", e);
                         throw new CouchbaseLiteException("Error getting CurrentRevision", e);
                     }
                 }

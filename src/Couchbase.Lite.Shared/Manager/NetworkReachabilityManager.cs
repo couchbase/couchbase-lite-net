@@ -75,8 +75,8 @@ namespace Couchbase.Lite
                     return true; //Getting an HTTP error technically means we can connect
                 }
 
-                Log.I(TAG, "Didn't get successful connection to {0}", remoteUri);
-                Log.D(TAG, "   Cause: ", e);
+                Log.To.Sync.I(TAG, "Didn't get successful connection to {0}", remoteUri);
+                Log.To.Sync.V(TAG, "   Cause: ", e);
                 LastError = e;
                 return false;
             }
@@ -105,15 +105,15 @@ namespace Couchbase.Lite
 
             public override void OnReceive(Context context, Intent intent)
             {
-                Log.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
+                Log.To.Sync.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
 
                 if (_ignoreNotifications) {
-                    Log.D(Tag + ".OnReceive", "Ignoring received intent: {0}", intent.ToString());
+                    Log.To.Sync.D(Tag + ".OnReceive", "Ignoring received intent: {0}", intent.ToString());
                     _ignoreNotifications = false;
                     return;
                 }
 
-                Log.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
+                Log.To.Sync.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
 
                 var manager = (ConnectivityManager)context.GetSystemService(Context.ConnectivityService);
                 var networkInfo = manager.ActiveNetworkInfo;
@@ -208,11 +208,11 @@ namespace Couchbase.Lite
         
         internal void OnNetworkChange(object sender, EventArgs args)
         {
-            Log.I(TAG, "Network change detected, analyzing connection status...");
+            Log.To.Sync.I(TAG, "Network change detected, analyzing connection status...");
             var status = NetworkReachabilityStatus.Unknown;
                        // https://social.msdn.microsoft.com/Forums/vstudio/en-US/a6b3541b-b7de-49e2-a7a6-ba0687761af5/networkavailabilitychanged-event-does-not-fire
             if(!NetworkInterface.GetIsNetworkAvailable()) {
-                Log.I(TAG, "NetworkInterface.GetIsNetworkAvailable() indicated no network available");
+                Log.To.Sync.I(TAG, "NetworkInterface.GetIsNetworkAvailable() indicated no network available");
                 status = NetworkReachabilityStatus.Unreachable;
             } else {
                 var firstValidIP = NetworkInterface.GetAllNetworkInterfaces().Where(IsInterfaceValid)
@@ -221,10 +221,10 @@ namespace Couchbase.Lite
                     .Select(x => x.Address).FirstOrDefault();
 
                 if(firstValidIP == null) {
-                    Log.I(TAG, "No acceptable IP addresses found, signaling network unreachable");
+                    Log.To.Sync.I(TAG, "No acceptable IP addresses found, signaling network unreachable");
                     status = NetworkReachabilityStatus.Unreachable;
                 } else {
-                    Log.I(TAG, "At least one acceptable IP address found ({0}), signaling network reachable", firstValidIP);
+                    Log.To.Sync.I(TAG, "At least one acceptable IP address found ({0}), signaling network reachable", firstValidIP);
                     status = NetworkReachabilityStatus.Reachable;
                 }
             }
@@ -245,53 +245,53 @@ namespace Couchbase.Lite
 
         private static bool IsInterfaceValid(NetworkInterface ni)
         {
-            Log.V(TAG, "    Testing {0} ({1})...", ni.Name, ni.Description);
+            Log.To.Sync.V(TAG, "    Testing {0} ({1})...", ni.Name, ni.Description);
             if(ni.OperationalStatus != OperationalStatus.Up) {
-                Log.V(TAG, "    NIC invalid (not up)");
+                Log.To.Sync.V(TAG, "    NIC invalid (not up)");
                 return false;
             }
 
             if((!AllowLoopback && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) || ni.NetworkInterfaceType == NetworkInterfaceType.Tunnel
                 || ni.Description.IndexOf("Loopback", StringComparison.OrdinalIgnoreCase) >= 0) {
-                Log.V(TAG, "    NIC invalid (not outward facing)");
+                Log.To.Sync.V(TAG, "    NIC invalid (not outward facing)");
                 return false;
             }
 
             if(ni.Description.IndexOf("virtual", StringComparison.OrdinalIgnoreCase) >= 0) {
-                Log.V(TAG, "    NIC invalid (virtual)");
+                Log.To.Sync.V(TAG, "    NIC invalid (virtual)");
                 return false;
             }
 
-            Log.I(TAG, "Found Acceptable NIC {0} ({1})", ni.Name, ni.Description);
+            Log.To.Sync.I(TAG, "Found Acceptable NIC {0} ({1})", ni.Name, ni.Description);
             return true;
         }
 
         private static bool IsIPAddressValid(UnicastIPAddressInformation addr)
         {
             var address = addr.Address;
-            Log.V(TAG, "    Checking IP Address {0}", address);
+            Log.To.Sync.V(TAG, "    Checking IP Address {0}", address);
             if(address.AddressFamily == AddressFamily.InterNetwork) {
                 var bytes = address.GetAddressBytes();
                 var correct = bytes[0] != 169 && bytes[1] != 254;
                 if(correct) {
-                    Log.I(TAG, "Found acceptable IPv4 address {0}", address);
+                    Log.To.Sync.I(TAG, "Found acceptable IPv4 address {0}", address);
                 } else {
-                    Log.V(TAG, "    Rejecting link-local IPv4 address");
+                    Log.To.Sync.V(TAG, "    Rejecting link-local IPv4 address");
                 }
 
                 return correct;
             } else if(address.AddressFamily == AddressFamily.InterNetworkV6) {
                 var correct = !address.IsIPv6LinkLocal;
                 if(correct) {
-                    Log.I(TAG, "Found acceptable IPv6 address {0}", address);
+                    Log.To.Sync.I(TAG, "Found acceptable IPv6 address {0}", address);
                 } else {
-                    Log.V(TAG, "    Rejecting link-local IPv6 address");
+                    Log.To.Sync.V(TAG, "    Rejecting link-local IPv6 address");
                 }
 
                 return correct;
             }
 
-            Log.V(TAG, "   IP Address type is invalid");
+            Log.To.Sync.V(TAG, "   IP Address type is invalid");
             return false;
         }
 

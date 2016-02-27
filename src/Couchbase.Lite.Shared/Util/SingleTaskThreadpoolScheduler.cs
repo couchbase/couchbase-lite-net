@@ -40,10 +40,15 @@ namespace Couchbase.Lite.Util
                         }
 
                         var success = TryExecuteTask((Task)s);
-                        if (!success)
+                        if (!success) {
+                            if(((Task)s).Status == TaskStatus.Faulted) {
+                                Log.To.NoDomain.E(Tag, "A task in the scheduler failed to run", ((Task)s).Exception);
+                            }
+
                             throw new InvalidOperationException("A spawned task failed to run correctly.");
+                        }
                     } catch (Exception ex) {
-                        Log.E(Tag, "Spawned task throw an unhandled exception.", ex);
+                        Log.To.NoDomain.E(Tag, "Spawned task throw an unhandled exception.", ex);
                     } finally {
                         _CurrentThreadIsProcessingItems = false;
                     }
@@ -79,15 +84,17 @@ namespace Couchbase.Lite.Util
 
                         if (item.Status < TaskStatus.Running)
                         {
-                            TryExecuteTask(item);
-                            if (item.Status == TaskStatus.Faulted) {
-                                Log.D(Tag, "Task {0} faulted {1}", item.Id, item.Exception);
+                            var success = TryExecuteTask(item);
+                            if (!success) {
+                                if(((Task)s).Status == TaskStatus.Faulted) {
+                                    Log.To.NoDomain.E(Tag, "A task in the scheduler failed to run", ((Task)s).Exception);
+                                }
                             }
                         }
                     } 
                 }
                 catch (Exception e) {
-                    Log.E(Tag, "Unhandled exception in runloop", e);
+                    Log.To.NoDomain.E(Tag, "Unhandled exception in runloop", e);
                     throw;
                 } finally {
                     _CurrentThreadIsProcessingItems = false;
@@ -98,20 +105,20 @@ namespace Couchbase.Lite.Util
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) 
         {
             if (!_CurrentThreadIsProcessingItems) {
-                Log.V(Tag, "Thread {0} not processing items, so cannot execute inline", Thread.CurrentThread.ManagedThreadId);
+                Log.To.NoDomain.V(Tag, "Thread {0} not processing items, so cannot execute inline", Thread.CurrentThread.ManagedThreadId);
                 return false;
             }
 
             if (taskWasPreviouslyQueued) {
                 if (TryDequeue(task)) {
-                    Log.V(Tag, "Executing previously queued task {0} inline", task.Id);
+                    Log.To.NoDomain.V(Tag, "Executing previously queued task {0} inline", task.Id);
                     return TryExecuteTask(task);
                 } else {
-                    Log.V(Tag, "Failed to dequeue task {0}", task.Id);
+                    Log.To.NoDomain.V(Tag, "Failed to dequeue task {0}", task.Id);
                     return false;
                 }
             } else {
-                Log.V(Tag, "Executing task {0} inline", task.Id);
+                Log.To.NoDomain.V(Tag, "Executing task {0} inline", task.Id);
                 return TryExecuteTask(task);
             }
         } 

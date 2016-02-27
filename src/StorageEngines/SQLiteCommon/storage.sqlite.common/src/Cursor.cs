@@ -114,7 +114,7 @@ namespace Couchbase.Lite
                 _currentStep = _statement.step();
 
                 if (_currentStep != raw.SQLITE_OK && _currentStep != raw.SQLITE_ROW && _currentStep != raw.SQLITE_DONE) {
-                    Log.E("Cursor", "currentStep: " + _currentStep);
+                    Log.To.Database.W("Cursor", "Couldn't move to next value ({0})", _currentStep);
                 }
             }
 

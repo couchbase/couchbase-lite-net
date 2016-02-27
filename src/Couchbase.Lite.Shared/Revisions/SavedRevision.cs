@@ -54,13 +54,19 @@ namespace Couchbase.Lite {
     /// </summary>
     public sealed class SavedRevision : Revision {
 
+        #region Constants
+
+        private static readonly string Tag = typeof(SavedRevision).Name;
+
+        #endregion
+
         #region Variables
 
         private string _parentRevID;
 
         #endregion
 
-    #region Constructors
+        #region Constructors
 
         /// <summary>Constructor</summary>
         internal SavedRevision(Document document, RevisionInternal revision)
@@ -76,9 +82,9 @@ namespace Couchbase.Lite {
             _parentRevID = parentRevId;
         }
 
-    #endregion
+        #endregion
     
-    #region Non-public Members
+        #region Non-public Members
 
         internal RevisionInternal RevisionInternal { get; private set; }
 
@@ -102,7 +108,7 @@ namespace Couchbase.Lite {
                 var loadRevision = Database.LoadRevisionBody(RevisionInternal);
                 if (loadRevision == null)
                 {
-                    Log.W(Database.TAG, "Couldn't load body/sequence of {0}" + this);
+                    Log.To.Database.W(Tag, "Couldn't load body/sequence of {0}", this);
                     return false;
                 }
                 RevisionInternal = loadRevision;
@@ -116,9 +122,9 @@ namespace Couchbase.Lite {
             }
         }
 
-    #endregion
+        #endregion
 
-    #region Instance Members
+        #region Instance Members
 
         /// <summary>
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>.
@@ -270,10 +276,17 @@ namespace Couchbase.Lite {
         /// </exception>
         public SavedRevision DeleteDocument() { return CreateRevision(null); }
 
-    #endregion
-    
+        #endregion
+
+        #region
+
+        public override string ToString()
+        {
+            var docId = Document == null ? "(null)" : Document.Id;
+            return string.Format("[SavedRevision[ID={0}, Rev={1}, Deletion={2}]", 
+                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), Id, IsDeletion);
+        }
+
+        #endregion
     }
-
-    
-
 }

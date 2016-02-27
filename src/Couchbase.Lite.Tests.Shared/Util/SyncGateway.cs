@@ -140,7 +140,7 @@ namespace Couchbase.Lite.Tests
         public void VerifyDocumentExists(string docId) 
         {
             var pathToDoc = _remoteUri.AppendPath(docId);
-            Log.D(Tag, "Send http request to " + pathToDoc);
+            LiteTestCase.WriteDebug("Send http request to " + pathToDoc);
 
             var httpRequestDoneSignal = new CountdownEvent(1);
             Task.Factory.StartNew(() =>
@@ -159,7 +159,7 @@ namespace Couchbase.Lite.Tests
                         responseStringTask.Wait(TimeSpan.FromSeconds(10));
                         responseString = responseStringTask.Result;
                         Assert.IsTrue(responseString.Contains(docId));
-                        Log.D(Tag, "result: " + responseString);
+                        LiteTestCase.WriteDebug("result: " + responseString);
                     }
                     else
                     {
@@ -261,7 +261,7 @@ namespace Couchbase.Lite.Tests
             // push a document to server
             var replicationUrlTrailingDoc1 = new Uri(string.Format("{0}/{1}", _remoteUri, docId));
             var pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
-            Log.D(Tag, "Send http request to " + pathToDoc1);
+            LiteTestCase.WriteDebug("Send http request to " + pathToDoc1);
             try
             {
                 HttpResponseMessage response;
@@ -271,7 +271,7 @@ namespace Couchbase.Lite.Tests
                 var postTask = _httpClient.PutAsync(pathToDoc1.AbsoluteUri, new StringContent(docJson, Encoding.UTF8, "application/json"));
                 response = postTask.Result;
                 var statusLine = response.StatusCode;
-                Log.D(Tag, "Got response: " + statusLine);
+                LiteTestCase.WriteDebug("Got response: " + statusLine);
                 Assert.IsTrue(statusLine == HttpStatusCode.Created);
             }
             catch (ProtocolViolationException e)
@@ -326,7 +326,7 @@ namespace Couchbase.Lite.Tests
         private Stream GetAsset(string name)
         {
             var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
-            Log.D(Tag, "Fetching assembly resource: " + assetPath);
+            LiteTestCase.WriteDebug("Fetching assembly resource: " + assetPath);
             var stream = GetType().Assembly.GetManifestResourceStream(assetPath);
             return stream;
         }

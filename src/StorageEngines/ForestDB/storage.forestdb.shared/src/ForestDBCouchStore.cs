@@ -162,7 +162,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         static ForestDBCouchStore()
         {
-            Log.I(TAG, "Initialized ForestDB store (version 'BETA' (55aed7836cbddc350309436895b406f85520f96c))");
+            Log.To.Database.I(TAG, "Initialized ForestDB store (version 'BETA' (55aed7836cbddc350309436895b406f85520f96c))");
             Native.c4log_register(C4LogLevel.Debug, (level, msg) =>
             {
                 switch(level) {
@@ -252,7 +252,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                     remainingIDs = options.Keys.Cast<string>().ToList();
                     enumerator = new CBForestDocEnumerator(Forest, remainingIDs.ToArray(), forestOps);
                 } catch(InvalidCastException) {
-                    Log.E(TAG, "options.keys must contain strings");
+                    Log.To.Database.E(TAG, "options.keys must contain strings");
                     throw;
                 }
             } else {
@@ -899,7 +899,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                                     var key = new BlobKey(entry.Value.GetCast<string>("digest"));
                                     keys.Add(key);
                                 } catch(Exception){
-                                    Log.W(TAG, "Invalid digest {0}; skipping", entry.Value.GetCast<string>("digest"));
+                                    Log.To.Database.W(TAG, "Invalid digest {0}; skipping", entry.Value.GetCast<string>("digest"));
                                 }
                             }
                         }
@@ -986,7 +986,9 @@ namespace Couchbase.Lite.Storage.ForestDB
                 try {
                     properties = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(doc->body);
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Invalid JSON for document {0}", docId);
+                    Log.To.Database.W(TAG, "Invalid JSON for document {0}\n{1}", 
+                        new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
+                        new SecureLogString(doc->body.ToArray(), LogMessageSensitivity.PotentiallyInsecure));
                     return;
                 }
 
@@ -1206,7 +1208,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 } catch(InvalidOperationException) {
                     return null;
                 } catch(Exception e) {
-                    Log.E(TAG, String.Format("Error creating view storage for {0}", name), e);
+                    Log.To.View.E(TAG, String.Format("Error creating view storage for {0}", name), e);
                     return null;
                 }
             }

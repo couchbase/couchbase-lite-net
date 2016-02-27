@@ -54,6 +54,8 @@ namespace Couchbase.Lite
     ///     </remarks>
     internal class BlobStoreWriter
     {
+        private static readonly string Tag = typeof(BlobStoreWriter).Name;
+
         /// <summary>The underlying blob store where it should be stored.</summary>
         /// <remarks>The underlying blob store where it should be stored.</remarks>
         private BlobStore store;
@@ -152,12 +154,13 @@ namespace Couchbase.Lite
                     length += len;
                 }
             } catch (IOException e) {
+                Log.To.Database.E(Tag, "Got IOException in Read(), rethrowing...", e);
                 throw new CouchbaseLiteException("Unable to read from stream.", e);
             } finally {
                 try {
                     inputStream.Close();
                 } catch (IOException e) {
-                    Log.W(Database.TAG, "Exception closing input stream", e);
+                    Log.To.Database.W(Tag, "Exception closing input stream", e);
                 }
             }
         }
@@ -169,7 +172,7 @@ namespace Couchbase.Lite
                 outStream.Flush();
                 outStream.Dispose();
             } catch (IOException e) {
-                Log.W(Database.TAG, "Exception closing output stream", e);
+                Log.To.Database.W(Tag, "Exception closing output stream", e);
             }
 
             blobKey = new BlobKey(sha1Digest.Digest());

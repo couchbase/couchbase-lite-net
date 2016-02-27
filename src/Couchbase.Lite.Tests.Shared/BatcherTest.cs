@@ -154,7 +154,9 @@ namespace Couchbase.Lite
 
         private void TestBatcherSingleBatchProcessor(IList<string> itemsToProcess)
         {
-            Log.V(TAG, "TestBatcherSingleBatchProcessor : process called with : " + itemsToProcess.Count);
+            #if DEBUG
+            Console.WriteLine("TestBatcherSingleBatchProcessor : process called with : " + itemsToProcess.Count);
+            #endif
 
             AssertNumbersConsecutive(itemsToProcess);
 
@@ -163,7 +165,9 @@ namespace Couchbase.Lite
 
         private void TestBatcherBatchSize5Processor(IList<string> itemsToProcess)
         {
-            Log.V(TAG, "TestBatcherBatchSize5 : process called with : " + itemsToProcess.Count);
+            #if DEBUG
+            Console.WriteLine("TestBatcherBatchSize5 : process called with : " + itemsToProcess.Count);
+            #endif
 
             AssertNumbersConsecutive(itemsToProcess);
 

@@ -267,7 +267,7 @@ namespace Couchbase.Lite.Util
 
         internal DomainLogger Discovery { get { return _allLoggers[10]; } }
 
-        internal DomainLogger All { get { return _allLoggers[11]; } }
+        internal DomainLogger NoDomain { get { return _allLoggers[11]; } }
 
         internal LogTo()
         {

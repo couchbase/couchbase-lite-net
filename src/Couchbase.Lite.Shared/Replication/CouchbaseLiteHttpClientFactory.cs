@@ -172,7 +172,7 @@ namespace Couchbase.Lite.Support
             {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
                 if (!success)
-                    Log.W(Tag, String.Format("Unabled to add header to request: {0}: {1}", header.Key, header.Value));
+                    Log.To.Sync.W(Tag, String.Format("Unabled to add header to request: {0}: {1}", header.Key, header.Value));
             }
 
             var transientHandler = authHandler as TransientErrorRetryHandler;

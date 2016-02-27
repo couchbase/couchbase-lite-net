@@ -198,7 +198,7 @@ namespace Couchbase.Lite
             VersionString = String.Format(".NET {0}/{1} 1.2/{2}", PLATFORM, Platform.Architecture, gitVersion.TrimEnd());
             #endif
 
-            Log.To.All.I(TAG, "Starting Manager version: {0}", VersionString);
+            Log.To.NoDomain.I(TAG, "Starting Manager version: {0}", VersionString);
         }
 
         /// <summary>
@@ -439,7 +439,7 @@ namespace Couchbase.Lite
                 fileStream.Dispose();
                 var success = UpgradeDatabase(new FileInfo(Path.Combine(tempPath, name + DatabaseSuffixv1)));
                 if(!success) {
-                    Log.E(TAG, "Unable to replace database (upgrade failed)");
+                    Log.To.Upgrade.W(TAG, "Unable to replace database (upgrade failed)");
                     System.IO.Directory.Delete(tempPath, true);
                     return;
                 }
@@ -452,7 +452,7 @@ namespace Couchbase.Lite
                     StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsPath);
                 }
             } catch (Exception e) {
-                Log.E(Database.TAG, string.Empty, e);
+                Log.To.Upgrade.E(TAG, "Got exception in ReplaceDatabase, rethrowing...", e);
                 throw new CouchbaseLiteException("Error upgrading database", e) { Code = StatusCode.Exception };
             }
         }
@@ -538,7 +538,7 @@ namespace Couchbase.Lite
             if (!success) {
                 db.Delete();
                 System.IO.Directory.Move(db.DbDirectory + "-old", db.DbDirectory);
-                Log.E(TAG, "Unable to replace database (upgrade failed)");
+                Log.To.Upgrade.W(TAG, "Unable to replace database (upgrade failed)");
                 System.IO.Directory.Delete(tempPath, true);
                 return;
             }
@@ -602,7 +602,7 @@ namespace Couchbase.Lite
                 var path = PathForName(name);
                 db = new Database(path, name, this, _options.ReadOnly);
                 if (mustExist && !db.Exists()) {
-                    Log.W(TAG, "mustExist is true and db ({0}) does not exist", name);
+                    Log.To.Database.I(TAG, "{0} does not exist, returning null", name);
                     return null;
                 }
 
@@ -693,14 +693,14 @@ namespace Couchbase.Lite
 
                 if (!oldFilename.Equals(newFilename) && newFile.Exists) {
                     var msg = String.Format("Cannot move {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
-                    Log.W(Database.TAG, msg);
+                    Log.To.Upgrade.W(TAG, msg);
                     return false;
                 }
 
                 var name = Path.GetFileNameWithoutExtension(Path.Combine(path.DirectoryName, newFilename));
                 var db = GetDatabase(name, false);
                 if (db == null) {
-                    Log.W(TAG, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
+                    Log.To.Upgrade.W(TAG, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
                     return false;
                 }
                 db.Dispose();
@@ -709,12 +709,12 @@ namespace Couchbase.Lite
                 try {
                     upgrader.Import();
                 } catch(CouchbaseLiteException e) {
-                    Log.W(TAG, "Upgrade failed for {0} (Status {1})", path.Name, e.CBLStatus);
+                    Log.To.Upgrade.W(TAG, "Upgrade failed for {0} (Status {1})", path.Name, e.CBLStatus);
                     upgrader.Backout();
                     return false;
                 }
 
-                Log.D(TAG, "...Success!");
+                Log.To.Upgrade.I(TAG, "...Success!");
                 return true;
             } finally {
                 StorageType = previousStorageType;
@@ -878,7 +878,8 @@ namespace Couchbase.Lite
                         string email = facebook.Get("email") as string;
                         results["authorizer"] = new FacebookAuthorizer(email);
                     } else {
-                        Log.W(TAG, "Invalid authorizer settings {0}", auth);
+                        Log.To.Sync.W(TAG, "Invalid authorizer settings {0}", 
+                            new SecureLogJsonString(auth, LogMessageSensitivity.Insecure));
                     }
                 }
             }

@@ -55,6 +55,12 @@ namespace Couchbase.Lite
     /// </summary>
     public class UnsavedRevision : Revision, IDisposable {
 
+        #region Constants
+
+        private static readonly string Tag = typeof(UnsavedRevision).Name;
+
+        #endregion
+
     #region Non-public Members
         IDictionary<String, Object> properties;
 
@@ -315,7 +321,7 @@ namespace Couchbase.Lite
 
                 SetAttachment(name, contentType, inputBytes);
             } catch (IOException e) {
-                Log.E(Database.TAG, "Error opening stream for url: {0}", contentUrl);
+                Log.To.Database.E(Tag, "Error opening stream for url: {0}", contentUrl);
                 throw new Exception(String.Format("Error opening stream for url: {0}", contentUrl), e);
             }
         }
@@ -338,6 +344,17 @@ namespace Couchbase.Lite
         }
 
     #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            var docId = Document == null ? "(null)" : Document.Id;
+            return String.Format("UnsavedRevision[ID={0}, Rev={1}, Deletion={2}]", 
+                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), Id, IsDeletion);
+        }
+
+        #endregion
 
         #region IDisposable
 

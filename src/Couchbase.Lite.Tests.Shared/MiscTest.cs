@@ -241,7 +241,7 @@ namespace Couchbase.Lite
                     Assert.Pass();
                 });
             } catch (HttpRequestException e) {
-                Log.E(Tag, "Transient exception not handled", e);
+                Console.WriteLine("Transient exception not handled {0}", e);
                 Assert.Fail("Transient exception not handled");
             }
         }

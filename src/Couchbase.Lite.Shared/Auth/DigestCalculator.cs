@@ -36,7 +36,7 @@ namespace Couchbase.Lite.Auth
             var components = new Dictionary<string, string>();
             var authHeaderValue = AuthenticationHeaderValue.Parse(rawHeader);
             if (authHeaderValue.Scheme != "Digest") {
-                Log.W(TAG, "Invalid scheme {0}", authHeaderValue.Scheme);
+                Log.To.Sync.W(TAG, "Invalid scheme {0}", authHeaderValue.Scheme);
                 return null;
             }
 
@@ -80,7 +80,7 @@ namespace Couchbase.Lite.Auth
             var ha1Str = String.Format("{0}:{1}:", components.Get("username"), components.Get("realm"));
             ha1md5.Update(Encoding.UTF8.GetBytes(ha1Str));
             if (!passwordDigestBlock(components.Get("username"), ha1md5)) {
-                Log.W(TAG, "No password entered from passwordDigestBlock");
+                Log.To.Listener.W(TAG, "No password entered from passwordDigestBlock");
                 return null;
             }
 

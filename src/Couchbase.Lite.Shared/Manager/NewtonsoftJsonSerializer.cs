@@ -62,7 +62,7 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                Log.I(Tag, "Changing global JSON serialization settings from {0} to {1}", _settings, value);
+                Log.To.Database.I(Tag, "Changing global JSON serialization settings from {0} to {1}", _settings, value);
                 _settings = value;
                 if (_settings.DateTimeHandling == DateTimeHandling.UseDateTime) {
                     settings.DateParseHandling = DateParseHandling.DateTime;
@@ -140,12 +140,12 @@ namespace Couchbase.Lite
         public IDictionary<string, object> DeserializeNextObject()
         {
             if (_textReader == null) {
-                Log.W(TAG, "DeserializeNextObject is only valid after a call to StartIncrementalParse");
+                Log.To.Sync.W(TAG, "DeserializeNextObject is only valid after a call to StartIncrementalParse");
                 return null;
             }
 
             try {
-                return JObject.ReadFrom(_textReader).ToObject<IDictionary<string, object>>();
+                return JToken.ReadFrom(_textReader).ToObject<IDictionary<string, object>>();
             } catch(Exception e) {
                 throw new CouchbaseLiteException(e, StatusCode.BadJson);
             }

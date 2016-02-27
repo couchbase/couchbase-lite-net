@@ -71,11 +71,11 @@ namespace Couchbase.Lite
                 Assert.IsTrue(Log.Level.HasFlag(level));
             };
 
-            Log.V(TAG, "TEST");
-            Log.D(TAG, "TEST");
-            Log.I(TAG, "TEST");
-            Log.W(TAG, "TEST");
-            Log.E(TAG, "TEST");
+            Log.To.NoDomain.V(TAG, "TEST");
+            Log.To.NoDomain.D(TAG, "TEST");
+            Log.To.NoDomain.I(TAG, "TEST");
+            Log.To.NoDomain.W(TAG, "TEST");
+            Log.To.NoDomain.E(TAG, "TEST");
 
             return count;
         }
@@ -122,21 +122,21 @@ namespace Couchbase.Lite
                 lastMessage = msg;
             };
 
-            Log.I(TAG, "{0}", auth);
+            Log.To.NoDomain.I(TAG, "{0}", auth);
             Assert.AreEqual("[BasicAuthenticator (<redacted>:<redacted>)]", lastMessage);
 
-            Log.I(TAG, "{0}", rev);
+            Log.To.NoDomain.I(TAG, "{0}", rev);
             Assert.AreEqual("{<redacted> #1-abcdef}", lastMessage);
 
             Log.ScrubSensitivity = LogScrubSensitivity.PotentiallyInsecureOK;
-            Log.I(TAG, "{0}", auth);
+            Log.To.NoDomain.I(TAG, "{0}", auth);
             Assert.AreEqual("[BasicAuthenticator (jim:<redacted>)]", lastMessage);
 
-            Log.I(TAG, "{0}", rev);
+            Log.To.NoDomain.I(TAG, "{0}", rev);
             Assert.AreEqual("{sensitive #1-abcdef}", lastMessage);
 
             Log.ScrubSensitivity = LogScrubSensitivity.AllOK;
-            Log.I(TAG, "{0}", auth);
+            Log.To.NoDomain.I(TAG, "{0}", auth);
             Assert.AreEqual("[BasicAuthenticator (jim:borden)]", lastMessage);
         }
 

@@ -118,7 +118,7 @@ namespace Couchbase.Lite.Support
         /// <param name="stream">The stream to be processed.</param>
         public void AddStream(Stream stream)
         {
-            Log.D(TAG, "Adding stream of unknown length: {0}", stream);
+            Log.To.Database.D(TAG, "Adding stream of unknown length: {0}", stream);
             _inputs.Add(stream);
             Length = -1; // length is now unknown
         }
@@ -200,7 +200,7 @@ namespace Couchbase.Lite.Support
             }
 
             _isDisposed = true;
-            Log.D(TAG, "Closed");
+            Log.To.Database.V(TAG, "{0} closing", this);
             if (_output != null) {
                 _output.Dispose();
                 _output = null;
@@ -230,7 +230,7 @@ namespace Couchbase.Lite.Support
             _nextInputIndex = 0;
             using (var ms = new MemoryStream()) {
                 if (!WriteAsync(ms).Wait(TimeSpan.FromSeconds(30))) {
-                    Log.W(TAG, "Unable to get output!");
+                    Log.To.Database.W(TAG, "{0} unable to get output!", this);
                     return null;
                 }
                     
@@ -318,6 +318,15 @@ namespace Couchbase.Lite.Support
             }
 
             return false;
+        }
+
+        #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            return String.Format("MultiStreamWriter[Length={0}, IsOpen={1}, InputCount={2}]", Length, IsOpen, _inputs.Count);
         }
 
         #endregion

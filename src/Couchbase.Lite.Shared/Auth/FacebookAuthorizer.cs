@@ -53,6 +53,7 @@ namespace Couchbase.Lite.Auth
 {
     internal class FacebookAuthorizer : Authorizer
     {
+        private static readonly string Tag = typeof(FacebookAuthorizer).Name;
         internal const string LoginParameterAccessToken = "access_token";
         internal const string QueryParameter = "facebookAccessToken";
         internal const string QueryParameterEmail = "email";
@@ -97,7 +98,9 @@ namespace Couchbase.Lite.Auth
              origin)
         {
             var key = new[] { email, origin.Host };
-            Log.D(Database.TAG, "FacebookAuthorizer registering key: " + key);
+            Log.To.Sync.I(Tag, "Registering Facebook key [{0}, {1}]", 
+                new SecureLogString(email, LogMessageSensitivity.PotentiallyInsecure),
+                origin.Host);
             _AccessTokens.AddOrUpdate(key, k => accessToken, (k, v) => accessToken);
             return true;
         }
@@ -105,7 +108,9 @@ namespace Couchbase.Lite.Auth
         public string TokenForSite(Uri site)
         {
             var key = new[] { _emailAddress, site.Host };
-            Log.D(Database.TAG, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");
+            Log.To.Sync.V(Tag, "Searching for Facebook key [{0}, {1}]",
+                new SecureLogString(_emailAddress, LogMessageSensitivity.PotentiallyInsecure),
+                site.Host);
 
             var accessToken = default(string);
             if (!_AccessTokens.TryGetValue(key, out accessToken)) {

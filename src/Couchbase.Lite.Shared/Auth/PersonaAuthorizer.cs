@@ -53,6 +53,8 @@ namespace Couchbase.Lite.Auth
 {
     internal class PersonaAuthorizer : Authorizer
     {
+        private static readonly string Tag = typeof(PersonaAuthorizer).Name;
+
         internal const string LoginParameterAssertion = "assertion";
 
         private static IDictionary<string, string> assertions;
@@ -100,9 +102,9 @@ namespace Couchbase.Lite.Auth
 
             var exp = (DateTime)parsedAssertion.Get(AssertionFieldExpiration);
             var now = DateTime.Now;
-            if (exp < now)
-            {
-                Log.W(Database.TAG, string.Format("{0} assertion for {1} expired: {2}", GetType(), emailAddress, exp));
+            if (exp < now) {
+                Log.To.Sync.W(Tag, string.Format("Assertion for {0} expired: {1}", 
+                    new SecureLogString(emailAddress, LogMessageSensitivity.PotentiallyInsecure), exp));
                 return true;
             }
 
@@ -114,7 +116,8 @@ namespace Couchbase.Lite.Auth
             var assertion = AssertionForEmailAndSite(emailAddress, site);
             if (assertion == null)
             {
-                Log.W(Database.TAG, String.Format("{0} {1} no assertion found for: {2}", GetType(), emailAddress, site));
+                Log.To.Sync.W(Tag, String.Format("No assertion found for email: {0}, site: {1}", 
+                    new SecureLogString(emailAddress, LogMessageSensitivity.PotentiallyInsecure), site));
                 return null;
             }
 
@@ -165,20 +168,14 @@ namespace Couchbase.Lite.Auth
                 var origin = (string)result.Get(AssertionFieldOrigin);
 
                 // Normalize the origin URL string:
-                try
-                {
-                    Uri originURL;
-                    if(origin == null || !Uri.TryCreate(origin, UriKind.Absolute, out originURL)) {
-                        throw new ArgumentException("Invalid origin");
-                    }
-                    origin = originURL.AbsoluteUri.ToLower();
+                Uri originURL;
+                if(origin == null || !Uri.TryCreate(origin, UriKind.Absolute, out originURL)) {
+                    Log.To.Sync.E(Tag, "Error registering assertion: Invalid origin {0}", origin);
+                    throw new ArgumentException("Invalid persona origin received");
                 }
-                catch (UriFormatException e)
-                {
-                    string message = "Error registering assertion: " + assertion;
-                    Log.E(Database.TAG, message, e);
-                    throw new ArgumentException(message, e);
-                }
+
+                origin = originURL.AbsoluteUri.ToLower();
+  
                 return RegisterAssertion(assertion, email, origin);
             }
         }
@@ -200,7 +197,8 @@ namespace Couchbase.Lite.Auth
                 {
                     assertions = new Dictionary<string, string>();
                 }
-                Log.D(Database.TAG, "PersonaAuthorizer registering key: " + key);
+                Log.To.Sync.I(Tag, "Registering key [{0}, {1}]",
+                    new SecureLogString(email, LogMessageSensitivity.PotentiallyInsecure), origin);
                 assertions[key] = assertion;
                 return email;
             }
@@ -217,8 +215,7 @@ namespace Couchbase.Lite.Auth
             var result = new Dictionary<string, object>();
             var components = assertion.Split('.');
             // split on "."
-            if (components.Length < 4)
-            {
+            if (components.Length < 4) {
                 throw new ArgumentException(String.Format("Invalid assertion given, only {0} found.  Expected 4+",
                     components.Length));
             }
@@ -238,23 +235,24 @@ namespace Couchbase.Lite.Auth
                 result[AssertionFieldOrigin] = component3Json.Get("aud");
 
                 var expObject = (long)component3Json.Get("exp");
-                Log.D(Database.TAG, "PersonaAuthorizer exp: " + expObject + " class: " + expObject.GetType());
                 var expDate = Misc.CreateDate(expObject);
                 result[AssertionFieldExpiration] = expDate;
+            } catch (Exception e) {
+                Log.To.Sync.E(Tag, String.Format("Got exception while parsing assertion ({0}), rethrowing...",
+                    new SecureLogString(assertion, LogMessageSensitivity.Insecure)), e);
+                throw new ArgumentException("Error parsing asserting", e);
             }
-            catch (IOException e)
-            {
-                string message = "Error parsing assertion: " + assertion;
-                Log.E(Database.TAG, message, e);
-                throw new ArgumentException(message, e);
-            }
+
             return result;
         }
 
         public static string AssertionForEmailAndSite(string email, Uri site)
         {
             var key = GetKeyForEmailAndSite(email, site.ToString());
-            Log.D(Database.TAG, "PersonaAuthorizer looking up key: " + key + " from list of assertions");
+            Log.To.Sync.V(Tag, "Searching for key [{0}, {1}]", 
+                new SecureLogString(email, LogMessageSensitivity.PotentiallyInsecure),
+                site);
+            
             return assertions.Get(key);
         }
 

@@ -245,7 +245,7 @@ namespace Couchbase.Lite
                             Debug.Assert(SequenceNumber != 0);
                             value = storage.DocumentProperties(SourceDocumentId, SequenceNumber);
                             if (value == null) {
-                                Log.W(TAG, "Couldn't load doc for row value");
+                                Log.To.Query.W(TAG, "Couldn't load doc for row value");
                             }
                         }
                     } else {

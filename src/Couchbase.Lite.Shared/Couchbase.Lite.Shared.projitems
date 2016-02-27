@@ -85,7 +85,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\StreamUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\BulkDownloader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\BulkDownloaderDelegate.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequestEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequestCompletionBlock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\IChangeTrackerClient.cs" />

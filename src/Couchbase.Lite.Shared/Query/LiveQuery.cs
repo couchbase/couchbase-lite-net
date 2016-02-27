@@ -166,7 +166,7 @@ namespace Couchbase.Lite
             while (true) {
                 try {
                     if (UpdateQueryTask.Status != TaskStatus.Canceled || UpdateQueryTask.Status != TaskStatus.RanToCompletion) {
-                        Log.W(TAG, "Run called white update query task still running.");
+                        Log.To.Query.W(TAG, "Run called white update query task still running.");
                     }
                     WaitForRows();
                     break;
@@ -201,10 +201,10 @@ namespace Couchbase.Lite
         public void Start()
         {
             if (_runningState) {
-                Log.D(TAG, "start() called, but runningState is already true.  Ignoring.");
+                Log.To.Query.D(TAG, "start() called, but runningState is already true.  Ignoring.");
                 return;
             } else {
-                Log.D(TAG, "start() called");
+                Log.To.Query.I(TAG, "{0} starting", this);
                 _runningState = true;
             }
 
@@ -225,10 +225,10 @@ namespace Couchbase.Lite
         public void Stop()
         {
             if (!_runningState) {
-                Log.D(TAG, "stop() called, but runningState is already false.  Ignoring.");
+                Log.To.Query.D(TAG, "stop() called, but runningState is already false.  Ignoring.");
                 return;
             } else {
-                Log.D(TAG, "stop() called");
+                Log.To.Query.I(TAG, "{0} stopping", this);
                 _runningState = false;
             }
 
@@ -242,9 +242,6 @@ namespace Couchbase.Lite
             // with willUpdate set to false.  was needed to make testLiveQueryStop() unit test pass.
             if (UpdateQueryTokenSource != null && UpdateQueryTokenSource.Token.CanBeCanceled) {
                 UpdateQueryTokenSource.Cancel();
-                Log.D(TAG, "canceled update query token Source");
-            } else {
-                Log.D(TAG, "not cancelling update query token source.");
             }
 
             _willUpdate = false;
@@ -271,7 +268,7 @@ namespace Couchbase.Lite
                     }
                     break;
                 } catch (OperationCanceledException e) { //TODO: Review
-                    Log.D(TAG, "Got operation cancel exception waiting for rows", e);
+                    Log.To.Query.D(TAG, "Got operation cancel exception waiting for rows", e);
                     continue;
                 } catch (Exception e) {
                     Log.E(TAG, "Got interrupted exception waiting for rows", e);
@@ -364,7 +361,7 @@ namespace Couchbase.Lite
             }
 
             if (runTask.Status != TaskStatus.RanToCompletion) {
-                Log.W(TAG, String.Format("Query Updated task did not run to completion ({0})", runTask.Status), runTask.Exception);
+                Log.To.Query.W(TAG, String.Format("Query Updated task did not run to completion ({0})", runTask.Status), runTask.Exception);
                 return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
             }
 

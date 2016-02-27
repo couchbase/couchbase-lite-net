@@ -74,7 +74,7 @@ namespace Couchbase.Lite
             foreach (string dbName in manager.AllDatabaseNames)
             {
                 Database db = manager.GetDatabase(dbName);
-                Log.I(TAG, "Database '" + dbName + "':" + db.GetDocumentCount() + " documents");
+                Console.WriteLine("Database '" + dbName + "':" + db.GetDocumentCount() + " documents");
             }
 
             var options = new ManagerOptions();
@@ -394,12 +394,12 @@ namespace Couchbase.Lite
             // clear the cache so all documents/revisions will be re-fetched:
             db.DocumentCache.EvictAll();
             
-            Log.I(TAG, "----- all documents -----");
+            Console.WriteLine( "----- all documents -----");
 
             var query = db.CreateAllDocumentsQuery();
             //query.prefetch = YES;
             
-            Log.I(TAG, "Getting all documents: " + query);
+            Console.WriteLine("Getting all documents: " + query);
 
             var rows = query.Run();
 
@@ -408,14 +408,14 @@ namespace Couchbase.Lite
             var n = 0;
             foreach (var row in rows)
             {
-                Log.I(TAG, "    --> " + Manager.GetObjectMapper().WriteValueAsString(row.AsJSONDictionary()));
+                Console.WriteLine("    --> " + Manager.GetObjectMapper().WriteValueAsString(row.AsJSONDictionary()));
 
                 var doc = row.Document;
 
                 Assert.IsNotNull(doc, "Couldn't get doc from query");
                 Assert.IsNotNull(doc.CurrentRevision.PropertiesAvailable, "QueryRow should have preloaded revision contents");
 
-                Log.I(TAG, "        Properties =" + Manager.GetObjectMapper().WriteValueAsString(doc.Properties));
+                Console.WriteLine("        Properties =" + Manager.GetObjectMapper().WriteValueAsString(doc.Properties));
 
                 Assert.IsNotNull(doc.Properties, "Couldn't get doc properties");
                 Assert.AreEqual("testDatabase", doc.GetProperty("testName"));
@@ -469,7 +469,7 @@ namespace Couchbase.Lite
 
             var doc = CreateDocumentWithProperties(db, properties);
             var rev1ID = doc.CurrentRevisionId;
-            Log.I(TAG, "1st revision: " + rev1ID);
+            Console.WriteLine("1st revision: " + rev1ID);
             Assert.IsTrue (rev1ID.StartsWith ("1-", StringComparison.Ordinal), "1st revision looks wrong: " + rev1ID);
             Assert.AreEqual(doc.UserProperties, properties);
 
@@ -479,11 +479,11 @@ namespace Couchbase.Lite
             Assert.IsNotNull(doc.PutProperties(properties));
 
             var rev2ID = doc.CurrentRevisionId;
-            Log.I(TAG, "rev2ID" + rev2ID);
+            Console.WriteLine("rev2ID" + rev2ID);
             Assert.IsTrue(rev2ID.StartsWith("2-", StringComparison.Ordinal), "2nd revision looks wrong:" + rev2ID);
 
             var revisions = doc.RevisionHistory.ToList();
-            Log.I(TAG, "Revisions = " + revisions);
+            Console.WriteLine("Revisions = " + revisions);
             Assert.AreEqual(revisions.Count, 2);
 
             var rev1 = revisions[0];
@@ -861,7 +861,7 @@ namespace Couchbase.Lite
                 doneSignal.Signal();
             }, manager.CapturedContext.Scheduler);
 
-            Log.I(TAG, "Waiting for async query to finish...");
+            Console.WriteLine("Waiting for async query to finish...");
             var success = task.Wait(TimeSpan.FromSeconds(130));
             Assert.IsTrue(success, "Done signal timed out. Query.RunAsync() has never run or returned the result.");
         }
@@ -1028,7 +1028,7 @@ namespace Couchbase.Lite
             query.StartKey = 23;
             query.EndKey = 33;
 
-            Log.I(TAG, "Created  " + query);
+            Console.WriteLine("Created  " + query);
 
             // these are the keys that we expect to see in the livequery change listener callback
             var expectedKeys = new HashSet<Int64>();
@@ -1043,7 +1043,7 @@ namespace Couchbase.Lite
                 var rows = e.Rows;
                 foreach(var row in rows) {
                     if (expectedKeys.Contains(Convert.ToInt64(row.Key))) {
-                        Log.I(TAG, " doneSignal decremented " + doneSignal.CurrentCount);
+                        Console.WriteLine(" doneSignal decremented " + doneSignal.CurrentCount);
                         doneSignal.Signal();
                     }
                 }

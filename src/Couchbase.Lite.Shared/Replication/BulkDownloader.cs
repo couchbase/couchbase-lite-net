@@ -114,7 +114,7 @@ namespace Couchbase.Lite.Replicator
 
             ExecuteRequest(_httpClient, requestMessage).ContinueWith(t => 
             {
-                Log.V(Tag, "RemoteRequest run() finished, url: {0}", _bulkGetUri);
+                Log.To.Sync.V(Tag, "RemoteRequest run() finished, url: {0}", _bulkGetUri);
                 if(httpClient != null) {
                     httpClient.Dispose();
                 }
@@ -131,7 +131,7 @@ namespace Couchbase.Lite.Replicator
                 try {
                     bodyBytes = Manager.GetObjectMapper().WriteValueAsBytes(_body).ToArray();
                 } catch (Exception e) {
-                    Log.E(Tag, "Error serializing body of request", e);
+                    Log.To.Sync.E(Tag, "Error serializing body of request", e);
                 }
 
                 HttpContent entity = new ByteArrayContent(bodyBytes);
@@ -143,7 +143,7 @@ namespace Couchbase.Lite.Replicator
                 request.Content = entity;
 
             } else {
-                Log.W(Tag + ".SetBody", "No body found for this request to {0}", request.RequestUri);
+                Log.To.Sync.W(Tag, "No body found for this request to {0}", request.RequestUri);
             }
         }
 
@@ -169,7 +169,7 @@ namespace Couchbase.Lite.Replicator
             request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
             request.Headers.Add("X-Accept-Part-Encoding", "gzip");
 
-            Log.D(Tag, ".ExecuteRequest", "Sending request: {0}", request);
+            Log.To.Sync.V(Tag, "Sending request: {0}", request);
             var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
             httpClient.Authenticator = Authenticator;
             return httpClient.SendAsync(request, requestTokenSource.Token).ContinueWith(t =>
@@ -179,7 +179,7 @@ namespace Couchbase.Lite.Replicator
                     response = t.Result;
                 } catch(Exception e) {
                     var err = (e is AggregateException) ? e.InnerException : e;
-                    Log.E(Tag, "Unhandled Exception", err);
+                    Log.To.Sync.E(Tag, "Unhandled exception while getting bulk documents", err);
                     error = err;
                     RespondWithResult(fullBody, err, response);
                     return;
@@ -228,7 +228,7 @@ namespace Couchbase.Lite.Replicator
                                 } catch (IOException) { }
                             }
                         } else {
-                            Log.V(Tag, "contentTypeHeader is not multipart = {0}", contentTypeHeader.ToString());
+                            Log.To.Sync.D(Tag, "contentTypeHeader is not multipart = {0}", contentTypeHeader.ToString());
                             if (entity != null) {
                                 try {
                                     inputStream = entity.ReadAsStreamAsync().Result;
@@ -246,7 +246,7 @@ namespace Couchbase.Lite.Replicator
                 catch (Exception e)
                 {
                     var err = (e is AggregateException) ? e.InnerException : e;
-                    Log.E(Tag, "Unhandled Exception", err);
+                    Log.To.Sync.E(Tag, "Exception while processing bulk download response", err);
                     error = err;
                     RespondWithResult(fullBody, err, response);
                 }
@@ -346,7 +346,7 @@ namespace Couchbase.Lite.Replicator
             } 
             catch (Exception ex)
             {
-                Log.E(Tag, "Error generating bulk request data.", ex);
+                Log.To.Sync.E(Tag, "Error generating bulk request data.", ex);
             }       
             
             var retval = new Dictionary<string, object>();

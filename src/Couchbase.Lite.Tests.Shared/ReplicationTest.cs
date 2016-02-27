@@ -159,7 +159,7 @@ namespace Couchbase.Lite
             var pull = database.CreatePullReplication(db.RemoteUri);
             RunReplication(pull);
 
-            Log.D("TestPullManyDocuments", "Document count at end {0}", database.GetDocumentCount());
+            WriteDebug("Document count at end {0}", database.GetDocumentCount());
             tester(pull);
         }
 
@@ -310,7 +310,7 @@ namespace Couchbase.Lite
         {
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 const int numPrePopulatedDocs = 100;
-                Log.I(Tag, "Creating {0} pre-populated documents", numPrePopulatedDocs);
+                Console.WriteLine("Creating {0} pre-populated documents", numPrePopulatedDocs);
 
                 var prePopulateDB = EnsureEmptyDatabase("prepobdb");
                 Assert.IsNotNull(prePopulateDB, "Couldn't create pre-populated DB");
@@ -327,14 +327,14 @@ namespace Couchbase.Lite
                     return true;
                 });
 
-                Log.I(Tag, "Pushing pre-populated documents ...");
+                Console.WriteLine("Pushing pre-populated documents ...");
                 var pusher = prePopulateDB.CreatePushReplication(remoteDb.RemoteUri);
                 RunReplication(pusher);
                 Assert.AreEqual(ReplicationStatus.Stopped, pusher.Status);
                 Assert.AreEqual(numPrePopulatedDocs, pusher.CompletedChangesCount);
                 Assert.AreEqual(numPrePopulatedDocs, pusher.ChangesCount);
 
-                Log.I(Tag, "Pulling pre-populated documents ...");
+                Console.WriteLine("Pulling pre-populated documents ...");
                 var puller = prePopulateDB.CreatePullReplication(remoteDb.RemoteUri);
                 RunReplication(puller);
                 Assert.AreEqual(ReplicationStatus.Stopped, pusher.Status);
@@ -753,7 +753,7 @@ namespace Couchbase.Lite
                     var changesCount = e.Source.ChangesCount;
                     var completedChangesCount = e.Source.CompletedChangesCount;
                     var msg = String.Format("changes: {0} completed changes: {1}", changesCount, completedChangesCount);
-                    Log.D(Tag, msg);
+                    WriteDebug(msg);
                     if (changesCount > 0 && changesCount == completedChangesCount
                     && replicationCaughtUpSignal.CurrentCount > 0) {
                         replicationCaughtUpSignal.Signal();
@@ -978,13 +978,13 @@ namespace Couchbase.Lite
                 // make sure doc1 is deleted
                 var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
                 var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
-                Log.D(Tag, "Send http request to " + pathToDoc);
+                WriteDebug("Send http request to " + pathToDoc);
                 var httpRequestDoneSignal = new CountdownEvent(1);
                 using (var httpclient = new HttpClient()) {
                     try {
                         var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
                         var statusLine = getDocResponse.StatusCode;
-                        Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
+                        WriteDebug("statusLine " + statusLine);
                         Assert.AreEqual(Couchbase.Lite.StatusCode.NotFound, statusLine.GetStatusCode());                        
                     }
                     catch (ProtocolViolationException e) {
@@ -996,13 +996,13 @@ namespace Couchbase.Lite
                     finally {
                         httpRequestDoneSignal.Signal();
                     }
-                    Log.D(Tag, "Waiting for http request to finish");
+                    WriteDebug("Waiting for http request to finish");
                     try {
                         httpRequestDoneSignal.Wait(TimeSpan.FromSeconds(10));
-                        Log.D(Tag, "http request finished");
+                        WriteDebug("http request finished");
                     }
                     catch (Exception e) {
-                        Log.E(Tag, "Exception during TestPusherDeletedDoc", e);
+                        Console.WriteLine("Exception during TestPusherDeletedDoc", e);
                     }
                 }
             }
@@ -1102,7 +1102,7 @@ namespace Couchbase.Lite
                     if (numTimesCalled++ > 0) {
                         Assert.IsTrue(e.Rows.Count > 0);
                     }
-                    Log.D(Database.TAG, "rows " + e.Rows);
+                    WriteDebug("rows " + e.Rows);
                 };
 
                 // the first time this is called back, the rows will be empty.
@@ -1897,7 +1897,7 @@ namespace Couchbase.Lite
                     changesCount = e.ChangesCount;
                     completedChangesCount = e.CompletedChangesCount;
                     var msg = String.Format("changes: {0} completed changes: {1}", changesCount, completedChangesCount);
-                    Log.D(Tag, msg);
+                    WriteDebug(msg);
                     if (changesCount == completedChangesCount
                     && changesCount == numDocs
                     && replicationCaughtUpSignal.CurrentCount > 0) {
@@ -1928,7 +1928,7 @@ namespace Couchbase.Lite
                 // (e.g. saving checkpoint) are all drained to prevent accessing to 
                 // the database after the manager is closed during the test tearing 
                 // down state.
-                Log.V(Tag, "Wait for a few seconds to ensure all pending replication tasks are drained ...");
+                WriteDebug("Wait for a few seconds to ensure all pending replication tasks are drained ...");
                 StopReplication(pusher);
             }
         }
@@ -2101,7 +2101,7 @@ namespace Couchbase.Lite
                     var lengthAsStr = content["length"];
                     var length = Convert.ToInt64(lengthAsStr);
                     Assert.AreEqual(expectedLength, length);
-                    Log.D(Tag, "TestContinuousPusherWithAttachment() finished");
+                    WriteDebug("TestContinuousPusherWithAttachment() finished");
                 } finally {
                     StopReplication(pusher);
                 }
@@ -2544,10 +2544,10 @@ namespace Couchbase.Lite
                 var puller = database.CreatePullReplication(remoteDb.RemoteUri);
                 puller.Changed += (sender, e) =>
                 {
-                    Log.D(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
+                    WriteDebug("Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
                     if (puller.Status != ReplicationStatus.Stopped)
                         return;
-                    Log.D(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
+                    WriteDebug("Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
                 };
                 int numDocsBeforePull = database.GetDocumentCount();
                 View view = database.GetView("testPullerWithLiveQueryView");
@@ -2568,7 +2568,7 @@ namespace Couchbase.Lite
                     if (numTimesCalled++ > 0 && e.Rows.Count > 0) {
                         Assert.IsTrue(e.Rows.Count > numDocsBeforePull, String.Format("e.Rows.Count ({0}) <= numDocsBeforePull ({1})", e.Rows.Count, numDocsBeforePull));
                     }
-                    Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
+                    WriteDebug("rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
                     foreach (var row in e.Rows) {
                         if (docList.Contains(row.DocumentId)) {
                             mre.Signal();
@@ -2576,7 +2576,7 @@ namespace Couchbase.Lite
                         }
                     }
 
-                    Log.D(Tag, "Remaining docs to be found: {0}", mre.CurrentCount);
+                    WriteDebug("Remaining docs to be found: {0}", mre.CurrentCount);
                 };
 
                 var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
@@ -2615,10 +2615,10 @@ namespace Couchbase.Lite
                 var puller = database.CreatePullReplication(remoteDb.RemoteUri);
                 puller.Changed += (sender, e) =>
                 {
-                    Log.D(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
+                    WriteDebug("Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
                     if (puller.Status != ReplicationStatus.Stopped)
                         return;
-                    Log.D(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
+                    WriteDebug("Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
                 };
                 int numDocsBeforePull = database.GetDocumentCount();
                 View view = database.GetView("testPullerWithLiveQueryView");
@@ -2639,7 +2639,7 @@ namespace Couchbase.Lite
                     if (numTimesCalled++ > 0 && e.Rows.Count > 0) {
                         Assert.IsTrue(e.Rows.Count > numDocsBeforePull, String.Format("e.Rows.Count ({0}) <= numDocsBeforePull ({1})", e.Rows.Count, numDocsBeforePull));
                     }
-                    Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
+                    WriteDebug("rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
                     foreach (var row in e.Rows) {
                         if (docList.Contains(row.DocumentId)) {
                             mre.Signal();
@@ -2647,7 +2647,7 @@ namespace Couchbase.Lite
                         }
                     }
 
-                    Log.D(Tag, "Remaining docs to be found: {0}", mre.CurrentCount);
+                    WriteDebug("Remaining docs to be found: {0}", mre.CurrentCount);
                 };
 
                 // the first time this is called back, the rows will be empty.
@@ -2685,7 +2685,7 @@ namespace Couchbase.Lite
                         return;
                     }
 
-                    Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
+                    WriteDebug("New replication status {0}", e.Source.Status);
                     if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
                         e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
                         wait.Signal();
@@ -2712,7 +2712,7 @@ namespace Couchbase.Lite
                         return;
                     }
 
-                    Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
+                    WriteDebug("New replication status {0}", e.Source.Status);
                     if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
                         e.Source.CompletedChangesCount == e.Source.ChangesCount) {
                         wait.Signal();
@@ -2863,12 +2863,12 @@ namespace Couchbase.Lite
                     }
 
                     if (firstBulkGet == null || firstBulkGet.Equals(str)) {
-                        Log.D(Tag, "Rejecting this bulk get because it looks like the first batch");
+                        WriteDebug("Rejecting this bulk get because it looks like the first batch");
                         firstBulkGet = str;
                         throw new OperationCanceledException();
                     }
 
-                    Log.D(Tag, "Letting this bulk get through");
+                    WriteDebug("Letting this bulk get through");
                     return new RequestCorrectHttpMessage();
                 });
 
@@ -2895,7 +2895,7 @@ namespace Couchbase.Lite
 
                 CreatePullAndTest((int)(Manager.DefaultOptions.MaxRevsToGetInBulk * 1.5), remoteDb, repl =>
                 {
-                    Log.D(Tag, "Document count increased to {0} with last sequence '{1}'", database.GetDocumentCount(), repl.LastSequence);
+                    WriteDebug("Document count increased to {0} with last sequence '{1}'", database.GetDocumentCount(), repl.LastSequence);
                     Assert.IsTrue(database.GetDocumentCount() > 0, "Didn't get docs from second bulk get batch");
                     Assert.AreEqual(gotSequence, Int32.Parse(repl.LastSequence), "LastSequence was advanced");
                 });
@@ -2953,13 +2953,13 @@ namespace Couchbase.Lite
                 push.Changed += (sender, args) =>
                 {
                     if (args.Status == ReplicationStatus.Offline) {
-                        Log.I(Tag, "Replication went offline");
+                        Console.WriteLine("Replication went offline");
                         offlineEvent.Set();
                     } else if (args.Status == ReplicationStatus.Active) {
-                        Log.I(Tag, "Replication resumed");
+                        Console.WriteLine("Replication resumed");
                         resumedEvent.Set();
                     } else if (args.Status == ReplicationStatus.Idle) {
-                        Log.I(Tag, "Replication finished");
+                        Console.WriteLine("Replication finished");
                         finishedEvent.Set();
                     }
                 };
@@ -2967,12 +2967,12 @@ namespace Couchbase.Lite
                 push.Start();
 
                 // ***** PULL OUT NETWORK CABLE OR SOMETHING HERE ***** //
-                Task.Delay(1000).ContinueWith(t => Log.W(Tag, "***** Test will continue when network connectivity is lost... *****"));
+                Task.Delay(1000).ContinueWith(t => Console.WriteLine("***** Test will continue when network connectivity is lost... *****"));
                 Assert.True(offlineEvent.WaitOne(TimeSpan.FromSeconds(60)));
                 CreateDocuments(database, 10);
 
                 // ***** UNDO THE ABOVE CHANGES AND RESTORE CONNECTIVITY ***** //
-                Log.W(Tag, "***** Test will continue when network connectivity is restored... *****");
+                Console.WriteLine("***** Test will continue when network connectivity is restored... *****");
                 resumedEvent.Reset();
                 Assert.True(resumedEvent.WaitOne(TimeSpan.FromSeconds(60)));
                 finishedEvent.Reset();
@@ -2990,13 +2990,13 @@ namespace Couchbase.Lite
                 pull.Changed += (sender, args) =>
                 {
                     if (args.Status == ReplicationStatus.Offline) {
-                        Log.I(Tag, "Replication went offline");
+                        Console.WriteLine("Replication went offline");
                         offlineEvent.Set();
                     } else if (args.Status == ReplicationStatus.Active) {
-                        Log.I(Tag, "Replication resumed");
+                        Console.WriteLine("Replication resumed");
                         resumedEvent.Set();
                     } else if (args.Status == ReplicationStatus.Idle) {
-                        Log.I(Tag, "Replication finished");
+                        Console.WriteLine("Replication finished");
                         finishedEvent.Set();
                     }
                 };
@@ -3004,13 +3004,13 @@ namespace Couchbase.Lite
                 offlineEvent.Reset();
                 pull.Start();
                 // ***** PULL OUT NETWORK CABLE OR SOMETHING HERE ***** //
-                Task.Delay(2000).ContinueWith(t => Log.W(Tag, "***** Test will continue when network connectivity is lost... *****"));
+                Task.Delay(2000).ContinueWith(t => Console.WriteLine("***** Test will continue when network connectivity is lost... *****"));
                 Assert.True(offlineEvent.WaitOne(TimeSpan.FromSeconds(60)));
 
                 remoteDb.AddDocuments(10, false);
 
                 // ***** UNDO THE ABOVE CHANGES AND RESTORE CONNECTIVITY ***** //
-                Log.W(Tag, "***** Test will continue when network connectivity is restored... *****");
+                Console.WriteLine("***** Test will continue when network connectivity is restored... *****");
                 resumedEvent.Reset();
                 Assert.True(resumedEvent.WaitOne(TimeSpan.FromSeconds(60)));
                 finishedEvent.Reset();

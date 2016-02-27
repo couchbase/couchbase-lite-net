@@ -111,8 +111,8 @@ namespace Couchbase.Lite.Util
         /// </summary>
         public static LogLevel Level 
         {
-            get { return To.All.Level; }
-            set { To.All.Level = value; }
+            get { return To.NoDomain.Level; }
+            set { To.NoDomain.Level = value; }
         }
 
         private static object logger = LoggerFactory.CreateLogger();
@@ -191,7 +191,7 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void V(string tag, string msg)
         {
-            To.All.V(tag, msg);
+            To.NoDomain.V(tag, msg);
         }
 
         /// <summary>Send a VERBOSE message and log the exception.</summary>
@@ -203,7 +203,7 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void V(string tag, string msg, Exception tr)
         {
-            To.All.V(tag, msg, tr);
+            To.NoDomain.V(tag, msg, tr);
         }
 
         /// <summary>Send a VERBOSE message</summary>
@@ -215,7 +215,7 @@ namespace Couchbase.Lite.Util
         /// <param name="args">The message format arguments</param>
         public static void V(string tag, string format, params object[] args)
         {
-            To.All.V(tag, format, args);
+            To.NoDomain.V(tag, format, args);
         }
 
         /// <summary>Send a DEBUG message.</summary>
@@ -227,7 +227,7 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string msg)
         {
-            To.All.D(tag, msg);
+            To.NoDomain.D(tag, msg);
         }
 
         /// <summary>Send a DEBUG message and log the exception.</summary>
@@ -240,7 +240,7 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string msg, Exception tr)
         {
-            To.All.D(tag, msg, tr);
+            To.NoDomain.D(tag, msg, tr);
         }
 
         /// <summary>Send a DEBUG message</summary>
@@ -253,7 +253,7 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string format, params object[] args)
         {
-            To.All.D(tag, format, args);
+            To.NoDomain.D(tag, format, args);
         }
 
         /// <summary>Send an INFO message.</summary>
@@ -264,7 +264,7 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void I(string tag, string msg)
         {
-            To.All.I(tag, msg);
+            To.NoDomain.I(tag, msg);
         }
 
         /// <summary>Send a INFO message and log the exception.</summary>
@@ -276,7 +276,7 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void I(string tag, string msg, Exception tr)
         {
-            To.All.I(tag, msg, tr);
+            To.NoDomain.I(tag, msg, tr);
         }
 
         /// <summary>Send a INFO message</summary>
@@ -288,7 +288,7 @@ namespace Couchbase.Lite.Util
         /// <param name="args">The message format arguments</param>
         public static void I(string tag, string format, params object[] args)
         {
-            To.All.I(tag, format, args);
+            To.NoDomain.I(tag, format, args);
         }
 
         /// <summary>Send a WARN message.</summary>
@@ -299,7 +299,7 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void W(string tag, string msg)
         {
-            To.All.W(tag, msg);
+            To.NoDomain.W(tag, msg);
         }
 
         /// <summary>Send a WARN message.</summary>
@@ -308,7 +308,7 @@ namespace Couchbase.Lite.Util
         [Obsolete("This method signature is not like the others and will be removed")]
         public static void W(string tag, Exception tr)
         {
-            To.All.W(tag, "No message, do not call this method");
+            To.NoDomain.W(tag, "No message, do not call this method");
         }
 
         /// <summary>Send a WARN message and log the exception.</summary>
@@ -320,7 +320,7 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void W(string tag, string msg, Exception tr)
         {
-            To.All.W(tag, msg, tr);
+            To.NoDomain.W(tag, msg, tr);
         }
 
         /// <summary>Send a WARN message and log the exception.</summary>
@@ -332,7 +332,7 @@ namespace Couchbase.Lite.Util
         /// <param name="args">The message format arguments</param>
         public static void W(string tag, string format, params object[] args)
         {
-            To.All.I(tag, format, args);
+            To.NoDomain.I(tag, format, args);
         }
 
         /// <summary>Send an ERROR message.</summary>
@@ -343,7 +343,7 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void E(string tag, string msg)
         {
-            To.All.E(tag, msg);
+            To.NoDomain.E(tag, msg);
         }
 
         /// <summary>Send a ERROR message and log the exception.</summary>
@@ -355,7 +355,7 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void E(string tag, string msg, Exception tr)
         {
-            To.All.E(tag, msg, tr);
+            To.NoDomain.E(tag, msg, tr);
         }
 
         /// <summary>Send a ERROR message</summary>
@@ -367,7 +367,7 @@ namespace Couchbase.Lite.Util
         /// <param name="args">The message format arguments</param>
         public static void E(string tag, string format, params object[] args)
         {
-            To.All.E(tag, format, args);
+            To.NoDomain.E(tag, format, args);
         }
 
         #endregion

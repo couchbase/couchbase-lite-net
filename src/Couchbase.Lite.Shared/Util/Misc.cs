@@ -98,7 +98,7 @@ namespace Couchbase.Lite
             try {
                 md = MessageDigest.GetInstance("SHA-1");
             } catch (NotSupportedException) {
-                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
+                Log.To.NoDomain.E("Misc", "SHA-1 digest is unavailable.");
                 return null;
             }
 

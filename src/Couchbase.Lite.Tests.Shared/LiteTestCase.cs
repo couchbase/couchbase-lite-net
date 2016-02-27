@@ -54,6 +54,7 @@ using System.Threading.Tasks;
 using Couchbase.Lite.Tests;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
+using System.Diagnostics;
 
 namespace Couchbase.Lite
 {
@@ -107,10 +108,16 @@ namespace Couchbase.Lite
             _runtimeTestProperties.Load(stream);
         }
 
+        [Conditional("DEBUG")]
+        public static void WriteDebug(string message, params object[] args)
+        {
+            Console.WriteLine(message, args);
+        }
+
         [SetUp]
         protected virtual void SetUp()
         {
-            Log.V(TAG, "SetUp");
+            WriteDebug("SetUp");
             #if !NET_3_5
             /*if (_storageType == "ForestDB") {
                 CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, (level, message) =>
@@ -133,7 +140,7 @@ namespace Couchbase.Lite
             }
 
             while (milliseconds > 0) {
-                Log.I(TAG, "Sleeping...");
+                Console.WriteLine("Sleeping...");
                 Thread.Sleep(Math.Min(milliseconds, 1000));
                 milliseconds -= 1000;
             }
@@ -147,7 +154,7 @@ namespace Couchbase.Lite
         protected Stream GetAsset(string name)
         {
             var assetPath = Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
-            Log.D(TAG, "Fetching assembly resource: " + assetPath);
+            WriteDebug("Fetching assembly resource: " + assetPath);
             var stream = GetType().Assembly.GetManifestResourceStream(assetPath);
             return stream;
         }
@@ -214,7 +221,7 @@ namespace Couchbase.Lite
                     db.Close();
                     status = true;
                 } catch (Exception e) { 
-                    Log.E(TAG, "Cannot delete database " + e.Message);
+                    Console.WriteLine("Cannot delete database " + e.Message);
                 }
 
                 Assert.IsTrue(status);
@@ -238,7 +245,7 @@ namespace Couchbase.Lite
                     _runtimeTestProperties.Load(localProperties);
                 }
             } catch (IOException) {
-                Log.W(TAG, "Error trying to read from local-test.properties, does this file exist?");
+                Console.WriteLine("Error trying to read from local-test.properties, does this file exist?");
             }
         }
 
@@ -310,7 +317,7 @@ namespace Couchbase.Lite
         private void AssertAreEqual(object first, object second, bool nestedCall)
         {
             if (!nestedCall) {
-                Log.D(TAG, "Starting equality comparison");
+                WriteDebug("Starting equality comparison");
             }
 
             var firstDic = first.AsDictionary<string, object>();
@@ -338,7 +345,7 @@ namespace Couchbase.Lite
             //I'm tired of NUnit misunderstanding that objects are dictionaries and trying to compare them as collections...
             Assert.AreEqual(first.Keys.Count, second.Keys.Count, "Differing number of keys in dictionary");
             foreach (var key in first.Keys) {
-                Log.D(TAG, "Analyzing key {0}", key);
+                WriteDebug("Analyzing key {0}", key);
                 var firstObj = first[key];
                 var secondObj = second[key];
                 AssertAreEqual(firstObj, secondObj, true);
@@ -376,7 +383,7 @@ namespace Couchbase.Lite
         [TearDown]
         protected virtual void TearDown()
         {
-            Log.V(TAG, "tearDown");
+            WriteDebug("tearDown");
             StopDatabase();
             StopCBLite();
             Manager.DefaultOptions.RestoreDefaults();
