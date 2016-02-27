@@ -33,9 +33,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Listener.Bon
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Vendor", "Vendor", "{B45532B6-11FB-4046-ABAD-5CC3FB9D64CD}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "websocket-sharp.shared", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.shproj", "{891A08FC-F143-4325-BC16-B9864D036B99}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "websocket-sharp.shared", "..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.shproj", "{891A08FC-F143-4325-BC16-B9864D036B99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp.ios", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj", "{DCE46CB2-0317-4A62-9613-AE6A240C46DB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp.ios", "..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj", "{DCE46CB2-0317-4A62-9613-AE6A240C46DB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "StorageEngines", "StorageEngines", "{8EE5A6CB-B46E-4D0E-AEE3-28D86EE0368C}"
 EndProject

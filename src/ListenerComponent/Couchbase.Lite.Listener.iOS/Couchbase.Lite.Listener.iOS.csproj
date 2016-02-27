@@ -52,7 +52,7 @@
       <IsAppExtension>False</IsAppExtension>
       <IsWatchApp>False</IsWatchApp>
     </ProjectReference>
-    <ProjectReference Include="..\..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj">
+    <ProjectReference Include="..\..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj">
       <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
       <Name>websocket-sharp.ios</Name>
     </ProjectReference>
