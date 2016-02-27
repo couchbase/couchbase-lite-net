@@ -19,17 +19,20 @@
 // limitations under the License.
 //
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Couchbase.Lite.Util
 {
-    internal sealed class LogGroup : IDomainLogging
+    internal sealed class LogGroup : IDomainLogging, IEnumerable<IDomainLogging>
     {
-        private readonly IDomainLogging[] _components;
+        private readonly IEnumerable<IDomainLogging> _components;
 
         public Log.LogLevel Level
         {
             get {
-                return _components[0].Level;
+                var tmp = _components.FirstOrDefault();
+                return tmp == null ? Log.LogLevel.None : tmp.Level;
             }
             set { 
                 foreach (var component in _components) {
@@ -43,6 +46,19 @@ namespace Couchbase.Lite.Util
             _components = components;
         }
         
+        #region IEnumerable implementation
+
+        public IEnumerator<IDomainLogging> GetEnumerator()
+        {
+            return _components.GetEnumerator();
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
     }
 }
 

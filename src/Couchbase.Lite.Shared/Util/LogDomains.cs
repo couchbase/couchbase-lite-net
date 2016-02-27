@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Util
     /// Contains all the available logging domains for the library,
     /// along with some functions to easily manipulate their verbosity
     /// </summary>
-    public sealed class LogDomains : IEnumerable<IDomainLogging>
+    public sealed class LogDomains
     {
 
         #region Private Variables
@@ -164,7 +164,7 @@ namespace Couchbase.Lite.Util
         public IDomainLogging All
         {
             get {
-                return new LogGroup(_source.AllLoggers.ToArray());
+                return GetAll();
             }
         }
 
@@ -202,31 +202,24 @@ namespace Couchbase.Lite.Util
         /// <param name="loggers">The loggers to exclude</param>
         public IDomainLogging Except(params IDomainLogging[] loggers)
         {
-            var allLoggers = _source.AllLoggers.ToList();
-            foreach (var logger in loggers) {
-                allLoggers.Remove(logger);
-            }
+            var exclusiveList = from logger in GetAll()
+                                         where !loggers.Contains(logger)
+                                         select logger;
 
-            return new LogGroup(allLoggers.ToArray());
+            return new LogGroup(exclusiveList.ToArray());
         }
 
         #endregion
 
-        #region IEnumerable implementation
+        #region Private Methods
 
-        public IEnumerator<IDomainLogging> GetEnumerator()
+        private LogGroup GetAll()
         {
-            return _source.AllLoggers.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
+            return new LogGroup(Database, Query, View, Router, Sync, ChangeTracker,
+                Validation, Upgrade, Listener, Discovery);
         }
 
         #endregion
-
-
     }
 }
 

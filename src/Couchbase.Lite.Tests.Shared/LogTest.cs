@@ -152,8 +152,9 @@ namespace Couchbase.Lite
             Assert.AreEqual(Log.LogLevel.Base, Log.Domains.Query.Level);
 
             Log.Domains.Except(Log.Domains.Sync).Level = Log.LogLevel.Verbose;
-            foreach (var logger in Log.To.AllLoggers.Cast<DomainLogger>()) {
-                if (logger.Domain == "SYNC") {
+            foreach (var logger in Log.Domains.All) {
+                var castLogger = (DomainLogger)logger;
+                if (castLogger.Domain == "SYNC") {
                     Assert.AreEqual(Log.LogLevel.Base, logger.Level);
                 } else {
                     Assert.AreEqual(Log.LogLevel.Verbose, logger.Level);

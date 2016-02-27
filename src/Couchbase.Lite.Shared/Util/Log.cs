@@ -93,6 +93,12 @@ namespace Couchbase.Lite.Util
         /// </summary>
         public static readonly LogDomains Domains = new LogDomains(To);
 
+        /// <summary>
+        /// Gets or sets a value indicated if logging is disabled (if so,
+        /// nothing will be logged)
+        /// </summary>
+        public static bool Disabled { get; set; }
+
         internal static LogScrubSensitivity ScrubSensitivity { get; set; }
 
         #endregion
@@ -101,7 +107,7 @@ namespace Couchbase.Lite.Util
 
         /// <summary>
         /// Gets or sets the logging level for Log.* calls (domains
-        /// must be set with SetLevelForDomain or SetDomainLevels
+        /// must be set with their respective interfaces
         /// </summary>
         public static LogLevel Level 
         {

@@ -24,7 +24,7 @@ using System.Linq;
 
 namespace Couchbase.Lite.Util
 {
-    public interface IDomainLogging
+    public interface IDomainLogging : IEnumerable<IDomainLogging>
     {
         Log.LogLevel Level { get; set; }
     }
@@ -183,18 +183,67 @@ namespace Couchbase.Lite.Util
 
             return other._domain == _domain;
         }
+
+        public IEnumerator<IDomainLogging> GetEnumerator()
+        {
+            return new OneShotEnumerator(this);
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #region Private Classes
+
+        private class OneShotEnumerator : IEnumerator<IDomainLogging>
+        {
+            private readonly DomainLogger _parent;
+            private bool _moved;
+
+            public OneShotEnumerator(DomainLogger parent)
+            {
+                _parent = parent;
+            }
+
+            public bool MoveNext()
+            {
+                var moved = _moved;
+                _moved = true;
+                return !moved;
+            }
+
+            public void Reset()
+            {
+                _moved = false;
+            }
+
+            object System.Collections.IEnumerator.Current
+            {
+                get {
+                    return _parent;
+                }
+            }
+
+            public void Dispose()
+            {
+                // No op
+            }
+
+            public IDomainLogging Current
+            {
+                get {
+                    return _parent;
+                }
+            }
+        }
+
+        #endregion
     }
 
     internal sealed class LogTo
     {
         private readonly DomainLogger[] _allLoggers;
-
-        internal IEnumerable<IDomainLogging> AllLoggers
-        {
-            get {
-                return _allLoggers.Cast<IDomainLogging>();
-            }
-        }
 
         internal DomainLogger Database { get { return _allLoggers[0]; } }
 
