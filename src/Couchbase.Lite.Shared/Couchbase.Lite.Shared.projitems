@@ -137,10 +137,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\LogJsonString.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\LogDomains.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\LogGroup.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Configuration\IConfigLoadSource.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Configuration\IConfigSaveDestination.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Configuration\Configure.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Configuration\ConfigurationSetting.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Configuration\CouchbaseConfigSection.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

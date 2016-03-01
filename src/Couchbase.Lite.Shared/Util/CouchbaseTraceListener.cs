@@ -65,36 +65,34 @@ namespace Couchbase.Lite.Util
             #if DEBUG
             TraceOutputOptions = TraceOptions.ThreadId | TraceOptions.DateTime;
             #else
-            TraceOutputOptions = TraceOptions.DateTime;
+            TraceOutputOptions = TraceOptions.ThreadId | TraceOptions.DateTime;
             #endif
         }
 
         void WriteOptionalTraceInfo()
         {
             var traceInfo = new TraceEventCache();
-            #if !__MOBILE__ && !NET_3_5
-            if (TraceOutputOptions.HasFlag(TraceOptions.ThreadId))
-            {
-                PrintThreadId(traceInfo);
-            }
-            if (TraceOutputOptions.HasFlag(TraceOptions.DateTime))
-            {
+            #if !NET_3_5
+            if (TraceOutputOptions.HasFlag(TraceOptions.DateTime)) {
                 PrintDateTime(traceInfo);
+            }
+            if (TraceOutputOptions.HasFlag(TraceOptions.ThreadId)) {
+                PrintThreadId(traceInfo);
             }
             #endif
         }
 
-        #if !__MOBILE__ && !NET_3_5
+        #if !NET_3_5
         void PrintThreadId(TraceEventCache info)
         {
             #if __DEBUGGER__
             Debugger.Log((int)SourceLevels.Critical, Category, "Thread Name: " + info.ThreadId + Environment.NewLine);
             #endif
             #if __CONSOLE__
-            WriteIndent();
-            Console.Out.Write("Thread Name: ");
+            Console.Out.Write("[");
             Console.Out.Write(info.ThreadId);
-            Console.Out.Write(Environment.NewLine);
+            Console.Out.Write("]");
+            Console.Out.Write(" ");
             #endif
         }
 
@@ -104,27 +102,12 @@ namespace Couchbase.Lite.Util
             Debugger.Log((int)SourceLevels.Critical, Category, "Date Time: " + info.DateTime + Environment.NewLine);
             #endif
             #if __CONSOLE__
-            WriteIndent();
-            Console.Out.Write("Date Time:   ");
-            Console.Out.Write(info.DateTime.ToString("yyyy-M-d hh:mm:ss.fff"));
-            Console.Out.Write(Environment.NewLine);
+            Console.Out.Write(info.DateTime.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK"));
+            Console.Out.Write(" ");
             #endif
         }
 
         #endif
-
-        void PrintTimeStamp(TraceEventCache info)
-        {
-            #if __DEBUGGER__
-            Debugger.Log((int)SourceLevels.Critical, Category, "Timestamp: " + info.Timestamp + Environment.NewLine);
-            #endif
-            #if __CONSOLE__
-            WriteIndent();
-            Console.Out.Write("Timestamp:   ");
-            Console.Out.Write(info.Timestamp);
-            Console.Out.Write(Environment.NewLine);
-            #endif
-        }
 
         static string LevelToString(SourceLevels level)
         {
@@ -179,13 +162,14 @@ namespace Couchbase.Lite.Util
             Debugger.Log((int)Level, category, message + Environment.NewLine);
             #endif
             #if __CONSOLE__
+            WriteOptionalTraceInfo();
             Console.Out.Write(category);
             Console.Out.Write(": ");
             Console.Out.Write(message);
             Console.Out.Write(Environment.NewLine);
             Console.Out.Flush();
             #endif
-            WriteOptionalTraceInfo();
+
         }      
 
         public override void Write(object o)
@@ -232,10 +216,10 @@ namespace Couchbase.Lite.Util
             Debugger.Log((int)SourceLevels.Critical, Category, message + Environment.NewLine);
             #endif
             #if __CONSOLE__
+            WriteOptionalTraceInfo();
             Console.Out.Write(message);
             Console.Out.Write(Environment.NewLine);
             #endif
-            WriteOptionalTraceInfo();
         }
 
         public override void Fail (string message, string detailMessage)
