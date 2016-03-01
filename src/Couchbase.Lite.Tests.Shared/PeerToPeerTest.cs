@@ -36,6 +36,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
 using Couchbase.Lite.Security;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -85,6 +86,20 @@ namespace Couchbase.Lite
             var createdDb = manager.GetExistingDatabase("test_db");
             Assert.IsNotNull(createdDb);
             Assert.AreEqual(10, createdDb.GetDocumentCount());
+        }
+
+        [Test]
+        public void TestRecreatedEndpoint()
+        {
+            CreateDocs(database, false);
+            var repl = CreateReplication(database, true);
+            RunReplication(repl);
+
+            Thread.Sleep(1000);
+            _listenerDB.Delete();
+            _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
+            RunReplication(repl);
+            VerifyDocs(_listenerDB, false);
         }
 
         [Test]
