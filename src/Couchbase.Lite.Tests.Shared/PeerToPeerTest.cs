@@ -35,6 +35,7 @@ using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
 using Couchbase.Lite.Security;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -54,6 +55,20 @@ namespace Couchbase.Lite
         private Random _rng = new Random(DateTime.Now.Millisecond);
 
         public PeerToPeerTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestRecreatedEndpoint()
+        {
+            CreateDocs(database, false);
+            var repl = CreateReplication(database, true);
+            RunReplication(repl);
+
+            Thread.Sleep(1000);
+            _listenerDB.Delete();
+            _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
+            RunReplication(repl);
+            VerifyDocs(_listenerDB, false);
+        }
 
         [Test]
         public void TestSsl()

@@ -1262,9 +1262,7 @@ namespace Couchbase.Lite
                             if(response.IsCanceled) {
                                 error = new Exception("SendAsyncRequest Task has been canceled.");
                             } else {
-                                error = error is AggregateException
-                                    ? response.Exception.Flatten()
-                                    : response.Exception;
+                                error = Extensions.Flatten(response.Exception);
                             }
 
                             if(error == null) {
@@ -1737,6 +1735,7 @@ namespace Couchbase.Lite
                             Log.V(TAG, "{0} replicating from lastSequence={1}", _replicatorID, LastSequence);
                         } else {
                             Log.V(TAG, "{0} lastSequence mismatch: I had {1}, remote had {2}", _replicatorID, localLastSequence, remoteLastSequence);
+                            _lastSequence = "0";
                         }
 
                         BeginReplicating ();
