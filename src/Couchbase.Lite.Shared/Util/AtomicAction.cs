@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Util
         public static AtomicAction MoveDirectoryUnsafe(string srcPath, string dstPath)
         {
             if (srcPath == null || dstPath == null) {
-                Log.W(TAG, "srcPath or dstPath in MoveDirectoryUnsafe is null");
+                Log.To.NoDomain.W(TAG, "srcPath or dstPath in MoveDirectoryUnsafe is null");
                 return null;
             }
 
@@ -87,7 +87,7 @@ namespace Couchbase.Lite.Util
         public static AtomicAction DeleteDirectory(string path)
         {
             if (path == null) {
-                Log.W(TAG, "path in DeleteDirectory is null");
+                Log.To.NoDomain.W(TAG, "path in DeleteDirectory is null");
                 return null;
             }
 
@@ -129,7 +129,7 @@ namespace Couchbase.Lite.Util
         public static AtomicAction MoveFileUnsafe(string srcPath, string dstPath)
         {
             if (srcPath == null || dstPath == null) {
-                Log.W(TAG, "srcPath or dstPath in MoveFileUnsafe is null");
+                Log.To.NoDomain.W(TAG, "srcPath or dstPath in MoveFileUnsafe is null");
                 return null;
             }
 
@@ -139,7 +139,7 @@ namespace Couchbase.Lite.Util
         public static AtomicAction DeleteFile(string path)
         {
             if (path == null) {
-                Log.W(TAG, "path in DeleteFile is null");
+                Log.To.NoDomain.W(TAG, "path in DeleteFile is null");
                 return null;
             }
 
@@ -232,7 +232,7 @@ namespace Couchbase.Lite.Util
                 try {
                     _performs[_nextStep]();
                 } catch(Exception e) {
-                    Log.W(TAG, "Error performing step #{0}: {1}", _nextStep, e);
+                    Log.To.NoDomain.W(TAG, String.Format("Error backing out step #{0}", _nextStep), e);
                     FailedStep = _nextStep;
                     if (_nextStep > 0) {
                         BackOut(); // back out the steps that already completed
@@ -250,7 +250,7 @@ namespace Couchbase.Lite.Util
                 try {
                     _backOuts[_nextStep]();
                 } catch(Exception e) {
-                    Log.W(TAG, "Error backing out step #{0}: {1}", _nextStep, e);
+                    Log.To.NoDomain.W(TAG, String.Format("Error backing out step #{0}", _nextStep), e);
                     throw new CouchbaseLiteException(e, StatusCode.Exception);
                 }
             }
@@ -263,7 +263,7 @@ namespace Couchbase.Lite.Util
                 try {
                     _cleanUps[_nextStep]();
                 } catch(Exception e) {
-                    Log.W(TAG, "Error cleaning up step #{0}: {1}", _nextStep, e);
+                    Log.To.NoDomain.W(TAG, String.Format("Error backing out step #{0}", _nextStep), e);
                     throw new CouchbaseLiteException(e, StatusCode.Exception);
                 }
             }

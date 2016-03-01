@@ -160,11 +160,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     _dbStorage.RunStatements(QueryString(sqlStatements));
                 } catch(CouchbaseLiteException) {
-                    Log.W(Tag, "Failed to run statments ({0})", sqlStatements);
+                    Log.To.Database.E(Tag, "Failed to run statments ({0}), rethrowing...", 
+                        new SecureLogString(sqlStatements, LogMessageSensitivity.PotentiallyInsecure));
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException(String.Format("Error running statements ({0})", sqlStatements),
-                        e) { Code = StatusCode.Exception };
+                    Log.To.Database.E(Tag, String.Format("Exception running sql statements ({0}), " +
+                        "throwing CouchbaseLiteException",
+                        new SecureLogString(sqlStatements, LogMessageSensitivity.PotentiallyInsecure)), e);
+                    throw new CouchbaseLiteException("Error running SQL statements", e);
                 }
 
                 return true;
@@ -190,12 +193,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 RunStatements(sql);
             } catch(CouchbaseLiteException) {
-                Log.W(Tag, "Couldn't create view index `{0}`", Name);
+                Log.To.Database.E(Tag, "Couldn't create view index `{0}`, rethrowing...", Name);
                 throw;
             } catch(Exception e) {
-                throw new CouchbaseLiteException(String.Format("Couldn't create view index `{0}`", Name), e) {
-                    Code = StatusCode.Exception
-                };
+                Log.To.Database.E(Tag, String.Format("Couldn't create view index `{0}`, throwing CouchbaseLiteException",
+                    Name), e);
+                throw new CouchbaseLiteException(String.Format("Couldn't create view index `{0}`", Name), e);
             }
         }
 
@@ -242,7 +245,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 //TODO: bbox, geo, fulltext
             } else {
                 keyJSON = Manager.GetObjectMapper().WriteValueAsString(key);
-                Log.V(Tag, "    emit({0}, {1}", keyJSON, valueJSON);
+                Log.To.Query.V(Tag, "    emit({0}, {1}", 
+                        new SecureLogString(keyJSON, LogMessageSensitivity.PotentiallyInsecure),
+                        new SecureLogString(valueJSON, LogMessageSensitivity.PotentiallyInsecure));
             }
 
             if (keyJSON == null) {
@@ -271,9 +276,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             try {
                 RunStatements(sql);
+            } catch(CouchbaseLiteException) {
+                Log.To.Query.E(Tag, "Couldn't create view SQL index `{0}`, rethrowing...", Name);
             } catch(Exception e) {
-                Log.W(Tag, String.Format("Couldn't create view SQL index `{0}`", Name), e);
-                throw;
+                Log.To.Query.E(Tag, String.Format("Couldn't create view SQL index `{0}`, " +
+                    "throwing CouchbaseLiteException", Name), e);
+                throw new CouchbaseLiteException(String.Format("Couldn't create view SQL index `{0}`", Name), e);
             }
         }
             
@@ -284,7 +292,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }
 
             if (raw.sqlite3_compileoption_used("SQLITE_ENABLE_RTREE") == 0) {
-                Log.W(Tag, "Can't geo-query: SQLite isn't built with the Rtree module");
+                Log.To.Query.W(Tag, "Can't geo-query: SQLite isn't built with the Rtree module");
                 return false;
             }
 
@@ -296,12 +304,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 RunStatements(sql);
             } catch(CouchbaseLiteException) {
-                Log.W(Tag, "Error initializing rtree schema");
+                Log.To.Query.E(Tag, "Error initializing rtree schema for `{0}`, rethrowing...", Name);
                 throw;
             } catch(Exception e) {
-                throw new CouchbaseLiteException("Error initializing rtree schema", e) {
-                    Code = StatusCode.Exception
-                };
+                Log.To.Query.E(Tag, String.Format("Exception initializing rtree schema for `{0}`", Name), e);
+                throw new CouchbaseLiteException("Error initializing rtree schema", e);
             }
 
             _initializedRTreeSchema = true;
@@ -347,7 +354,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     return result;
                 }
             } catch(Exception e) {
-                Log.E(Tag, "Exception in reduce block", e);
+                Log.To.Query.E(Tag, String.Format("Failed to reduce query (keys={0} vals={1}), returning null...", 
+                    new SecureLogJsonString(keysToReduce, LogMessageSensitivity.PotentiallyInsecure),
+                    new SecureLogJsonString(valuesToReduce, LogMessageSensitivity.PotentiallyInsecure)), e);
             }
 
             return null;

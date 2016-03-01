@@ -131,16 +131,19 @@ namespace Couchbase.Lite.Support
                 if(_jsonCompressed) {
                     json = json.Decompress().ToList();
                     if(json == null) {
-                        Log.W(TAG, "Received corrupt gzip encoded JSON part");
-                        throw new CouchbaseLiteException("Received corrupt gzip encoded JSON part", StatusCode.UpStreamError);
+                        var exception = new CouchbaseLiteException("Received corrupt gzip encoded JSON part", StatusCode.UpStreamError);
+                        Log.To.Sync.E(TAG, "Decompression failed, throwing exception", exception);
+                        throw exception;
                     }
                 }
                 document = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(json.ToArray());
-            } catch (IOException e) {
-                throw new InvalidOperationException("Failed to parse json buffer", e);
             } catch(CouchbaseLiteException e) {
-                throw new InvalidOperationException("Failed to parse json buffer", e);
-            }
+                Log.To.Sync.W(TAG, "Failed to parse multipart JSON");
+                throw;
+            } catch (Exception e) {
+                Log.To.Sync.E(TAG, "Exception during to multipart JSON parsing, rethrowing...", e);
+                throw new CouchbaseLiteException("Failed to parse json buffer", e) { Code = StatusCode.BadJson };
+            } 
         }
 
         public void SetContentType(String contentType)
@@ -275,7 +278,7 @@ namespace Couchbase.Lite.Support
                     {
                         var msg = String.Format("Attachment '{0}' sent inline (len={1}).  Large attachments "
                             + "should be sent in MIME parts for reduced memory overhead.", attachmentName, length);
-                        Log.W(Database.TAG, msg);
+                        Log.To.Sync.W(TAG, msg);
                     }
                 }
             }
@@ -322,15 +325,16 @@ namespace Couchbase.Lite.Support
                             var attachEncoding = document.GetCast<IDictionary<string, object>>("_attachments").
                             GetCast <IDictionary<string, object>>(name).GetCast<string>("encoding");
                             if (attachEncoding != "gzip") {
-                                Log.W(TAG, "Attachment '{0}' MIME body is gzipped but attachment isn't", name);
-                                throw new CouchbaseLiteException(StatusCode.UnsupportedType);
+                                Log.To.Sync.E(TAG, "Attachment '{0}' MIME body is gzipped but attachment isn't, " +
+                                    "throwing CouchbaseLiteException", name);
+                                throw new CouchbaseLiteException("Received improperly encoded attachment", StatusCode.UnsupportedType);
                             }
                         } catch (NullReferenceException) {
                             throw new CouchbaseLiteException(StatusCode.UnsupportedType);
                         }
                     }
                 } else if (contentEncoding != null) {
-                    Log.To.Sync.W(TAG, "Received unsupported Content-Encoding '{0}'", contentEncoding);
+                    Log.To.Sync.E(TAG, "Received unsupported Content-Encoding '{0}', throwing CouchbaseLiteException", contentEncoding);
                     throw new CouchbaseLiteException(StatusCode.UnsupportedType);
                 }
             }

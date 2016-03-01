@@ -94,8 +94,6 @@ namespace Couchbase.Lite.Support
         /// <param name="tokenSource">The token source to use to create the token to cancel this Batcher object</param>
         public Batcher(TaskFactory workExecutor, int capacity, int delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
         {
-            Log.D(TAG, "New batcher created with capacity: {0}, delay: {1}", capacity, delay);
-
             _workExecutor = workExecutor;
             _cancellationSource = tokenSource;
             _capacity = capacity;
@@ -109,8 +107,6 @@ namespace Couchbase.Lite.Support
 
         public void ProcessNow()
         {
-            Log.V(TAG, "ProcessNow() called");
-
             _scheduled = false;
 
             var amountToTake = Math.Min(_capacity, _inbox.Count);
@@ -122,15 +118,11 @@ namespace Couchbase.Lite.Support
             }
 
             if (toProcess != null && toProcess.Count > 0) {
-                Log.D(TAG, "invoking processor with " + toProcess.Count + " items ");
+                Log.To.NoDomain.D(TAG, "Invoking processor with {0} items ", toProcess.Count);
                 _processor(toProcess);
-            } else {
-                Log.D(TAG, "nothing to process");
             }
 
             _lastProcessedTime = DateTime.UtcNow;
-            Log.D(TAG, "Set lastProcessedTime to {0}", _lastProcessedTime.ToString());
-
             if (_inbox.Count > 0) {
                 ScheduleWithDelay(DelayToUse());
             }
@@ -142,7 +134,7 @@ namespace Couchbase.Lite.Support
                 return;
             }
 
-            Log.V(TAG, "QueueObjects called with {0} objects", objects.Count);
+            Log.To.NoDomain.V(TAG, "QueueObjects called with {0} objects", objects.Count);
             foreach (var obj in objects) {
                 _inbox.Enqueue(obj);
             }
@@ -187,13 +179,13 @@ namespace Couchbase.Lite.Support
         // Only used for testing
         internal void Clear()
         {
-            Log.V(TAG, "clear() called, setting _jobQueue to null");
+            Log.To.NoDomain.D(TAG, "clear() called, setting _jobQueue to null");
             Unschedule();
 
             var itemCount = _inbox.Count;
             _inbox = new ConcurrentQueue<T>();
 
-            Log.D(TAG, "Discarded {0} items", itemCount);
+            Log.To.NoDomain.D(TAG, "Discarded {0} items", itemCount);
         }
 
         /// <summary>
@@ -216,7 +208,7 @@ namespace Couchbase.Lite.Support
                 ? 0
                 : _delay;
 
-            Log.V(TAG, "DelayToUse() delta: {0}, delayToUse: {1}, delay: {2} [last: {3}]", delta, delayToUse, _delay, _lastProcessedTime.ToString());
+            Log.To.NoDomain.D(TAG, "DelayToUse() delta: {0}, delayToUse: {1}, delay: {2} [last: {3}]", delta, delayToUse, _delay, _lastProcessedTime.ToString());
 
             return delayToUse;
         }
@@ -229,11 +221,11 @@ namespace Couchbase.Lite.Support
         {
             lock(_scheduleLocker) {
                 if (_scheduled) {
-                    Log.V(TAG, "ScheduleWithDelay called with delay: {0} ms but already scheduled", suggestedDelay);
+                    Log.To.NoDomain.D(TAG, "ScheduleWithDelay called with delay: {0} ms but already scheduled", suggestedDelay);
                 }
     
                 if (_scheduled && (suggestedDelay < _scheduledDelay)) {
-                    Log.V(TAG, "Unscheduling");
+                    Log.To.NoDomain.D(TAG, "Unscheduling");
                     Unschedule();
                 }
     
@@ -241,7 +233,7 @@ namespace Couchbase.Lite.Support
                     _scheduled = true;
                     _scheduledDelay = suggestedDelay;
     
-                    Log.D(TAG, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, _workExecutor.Scheduler.GetType().Name, ((SingleTaskThreadpoolScheduler)_workExecutor.Scheduler).ScheduledTasks.Count());
+                    Log.To.NoDomain.D(TAG, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, _workExecutor.Scheduler.GetType().Name, ((SingleTaskThreadpoolScheduler)_workExecutor.Scheduler).ScheduledTasks.Count());
     
                     _cancellationSource = new CancellationTokenSource();
                     _flushFuture = Task.Delay(suggestedDelay).ContinueWith((t) =>

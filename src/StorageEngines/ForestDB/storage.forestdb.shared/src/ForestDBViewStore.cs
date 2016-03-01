@@ -87,7 +87,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 try {
                     return (int)Native.c4view_getTotalRows(IndexDB);
                 } catch(Exception e) {
-                    Log.W(Tag, "Exception opening index while getting total rows", e);
+                    Log.To.Database.W(Tag, "Exception opening index while getting total rows, returning 0", e);
                     return 0;
                 }
             }
@@ -99,7 +99,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 try {
                     return (long)Native.c4view_getLastSequenceChangedAt(IndexDB);
                 } catch(Exception e) {
-                    Log.W(Tag, "Exception opening index while getting last sequence changed at", e);
+                    Log.To.Database.W(Tag, "Exception opening index while getting last sequence changed at, returning 0", e);
                     return 0;
                 }
             }
@@ -111,7 +111,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 try {
                     return (long)Native.c4view_getLastSequenceIndexed(IndexDB);
                 } catch(Exception e) {
-                    Log.W(Tag, "Exception opening index while getting last sequence indexed", e);
+                    Log.To.Database.W(Tag, "Exception opening index while getting last sequence indexed, returning 0", e);
                     return 0;
                 }
             }
@@ -389,7 +389,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                     return result;
                 }
             } catch(Exception e) {
-                Log.W(Tag, "Exception in reduce block", e);
+                Log.To.Query.W(Tag, "Exception in reduce block, returning null", e);
             }
 
             return null;
@@ -407,9 +407,11 @@ namespace Couchbase.Lite.Storage.ForestDB
 
                 return row;
             } catch(CouchbaseLiteException) {
-                Log.W(Tag, "Failed to run reduce query for {0}", Name);
+                Log.To.Query.E(Tag, "Failed to run reduce query for {0}, rethrowing...", Name);
                 throw;
             } catch(Exception e) {
+                Log.To.Query.E(Tag, 
+                    String.Format("Exception while running reduce query for {0}, throwing CouchbaseLiteException...", Name), e);
                 throw new CouchbaseLiteException(String.Format("Error running reduce query for {0}",
                     Name), e) { Code = StatusCode.Exception };
             }
@@ -439,7 +441,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public bool UpdateIndexes(IEnumerable<IViewStore> views)
         {
-            Log.D(Tag, "Checking indexes of ({0}) for {1}", ViewNames(views), Name);
+            Log.To.Query.V(Tag, "Checking indexes of ({0}) for {1}", ViewNames(views), Name);
 
             // Creates an array of tuples -> [[view1, view1 last sequence, view1 native handle], 
             // [view2, view2 last sequence, view2 native handle], ...]
@@ -468,7 +470,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
                         var viewDelegate = info.Item1.Delegate;
                         if (viewDelegate == null || viewDelegate.Map == null) {
-                            Log.V(Tag, "    {0} has no map block; skipping it", info.Item1.Name);
+                            Log.To.Query.V(Tag, "    {0} has no map block; skipping it", info.Item1.Name);
                             continue;
                         }
 
@@ -502,7 +504,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                             viewDelegate.Map(props, (key, value) =>
                             {
                                 if(key == null) {
-                                    Log.W(Tag, "Emit function called with a null key; ignoring");
+                                    Log.To.Query.W(Tag, "Emit function called with a null key; ignoring");
                                     return;
                                 }
 
@@ -514,7 +516,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                                 }
                             });
                         } catch (Exception e) {
-                            Log.W(Tag, String.Format("Exception thrown in map function of {0}", info.Item1.Name), e);
+                            Log.To.Query.W(Tag, String.Format("Exception thrown in map function of {0}, continuing", info.Item1.Name), e);
                             continue;
                         }
 
@@ -525,8 +527,9 @@ namespace Couchbase.Lite.Storage.ForestDB
                 }
 
                 commit = true;
-            } catch(Exception e) {
-                Log.W(Tag, "Error updates indexes", e);
+            }  catch(Exception e) {
+                Log.To.Query.W(Tag, "Error updates indexes, returning false", e);
+                return false;
             } finally {
                 ForestDBBridge.Check(err => Native.c4indexer_end(indexer, commit, err));
             }
@@ -619,9 +622,9 @@ namespace Couchbase.Lite.Storage.ForestDB
                             var rev = _dbStorage.GetDocument(next.DocID, next.DocSequence);
                             value = rev.GetProperties();
                         } catch(CouchbaseLiteException e) {
-                            Log.W(Tag, "Couldn't load doc for row value: status {0}", e.CBLStatus.Code);
+                            Log.To.Query.W(Tag, "Couldn't load doc for row value: status {0}", e.CBLStatus.Code);
                         } catch(Exception e) {
-                            Log.W(Tag, "Couldn't load doc for row value", e);
+                            Log.To.Query.W(Tag, "Couldn't load doc for row value", e);
                         }
                     } else {
                         value = Manager.GetObjectMapper().ReadValue<object>(next.Value);

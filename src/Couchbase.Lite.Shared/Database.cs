@@ -1540,9 +1540,15 @@ namespace Couchbase.Lite
                 if(attachment.EncodedContent != null) {
                     // If there's inline attachment data, decode and store it:
                     BlobKey blobKey = new BlobKey();
-                    if(!Attachments.StoreBlob(attachment.EncodedContent.ToArray(), blobKey)) {
-                        throw new CouchbaseLiteException(
-                            String.Format("Failed to write attachment ' {0}'to disk", name), StatusCode.AttachmentError);
+                    try {
+                        Attachments.StoreBlob(attachment.EncodedContent.ToArray(), blobKey);
+                    } catch(CouchbaseLiteException) {
+                        Log.To.Database.E(TAG, "Failed to write attachment '{0}' to disk, rethrowing...", name);
+                        throw;
+                    } catch(Exception e) {
+                        Log.To.Database.E(TAG, String.Format("Exception during attachment writing '{0}', " +
+                            "throwing CouchbaseLiteException", name), e);
+                        throw new CouchbaseLiteException("Exception during attachment writing", e);
                     }
 
                     attachment.BlobKey = blobKey;

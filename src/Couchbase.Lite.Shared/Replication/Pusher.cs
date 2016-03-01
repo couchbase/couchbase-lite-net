@@ -211,9 +211,8 @@ namespace Couchbase.Lite.Replicator
             {
                 var seq = revisionInternal.Sequence;
                 var wasFirst = (_pendingSequences.Count > 0 && seq == _pendingSequences.ElementAt(0).Key);
-                if (!_pendingSequences.ContainsKey(seq))
-                {
-                    Log.W(TAG, "Remove Pending: Sequence " + seq + " not in set, for rev " + revisionInternal);
+                if (!_pendingSequences.ContainsKey(seq)) {
+                    Log.To.Sync.W(TAG, "Sequence {0} not in set, for rev {1}", seq, revisionInternal);
                 }
 
                 _pendingSequences.Remove(seq);
@@ -331,7 +330,7 @@ namespace Couchbase.Lite.Replicator
                     var inputStream = blobStore.BlobStreamForKey(blobKey);
 
                     if (inputStream == null) {
-                        Log.W(TAG, "Unable to find blob file for blobKey: " + blobKey + " - Skipping upload of multipart revision.");
+                        Log.To.Sync.W(TAG, "Unable to find blob file for blobKey: {0} - Skipping upload of multipart revision.", blobKey);
                         multiPart = null;
                         length = 0;
                     } else {
@@ -343,7 +342,7 @@ namespace Couchbase.Lite.Replicator
                                 var message = string.Format("Found attachment that uses content-type"
                                               + " field name instead of content_type (see couchbase-lite-android"
                                               + " issue #80): " + attachment);
-                                Log.W(TAG, message);
+                                Log.To.Sync.W(TAG, message);
                             }
                         }
 
@@ -461,20 +460,16 @@ namespace Couchbase.Lite.Replicator
 
         internal override void BeginReplicating()
         {
-            Log.D(TAG, "beginReplicating() called");
-
             // If we're still waiting to create the remote db, do nothing now. (This method will be
             // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
             if (_creatingTarget) {
-                Log.D(TAG, "creatingTarget == true, doing nothing");
+                Log.To.Sync.D(TAG, "creatingTarget == true, doing nothing");
                 return;
             }
 
             _pendingSequences = new SortedDictionary<long, int>();
-            try {
-                _maxPendingSequence = Int64.Parse(LastSequence);
-            } catch (Exception e) {
-                Log.W(TAG, "Error converting lastSequence: " + LastSequence + " to long. Using 0", e);
+            if (!Int64.TryParse(LastSequence, out _maxPendingSequence)) {
+                Log.To.Sync.W(TAG, "{0} is not a valid last sequence, using 0", LastSequence);
                 _maxPendingSequence = 0;
             }
 
@@ -493,7 +488,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             if (Filter != null && _filter == null) {
-                Log.W(TAG, string.Format("{0}: No ReplicationFilter registered for filter '{1}'; ignoring", this, Filter));
+                Log.To.Sync.W(TAG, "{0}: No ReplicationFilter registered for filter '{1}'; ignoring", this, Filter);
             }
 
             // Process existing changes since the last push:
@@ -567,7 +562,7 @@ namespace Couchbase.Lite.Replicator
         internal override void ProcessInbox(RevisionList inbox)
         {
             if (Status == ReplicationStatus.Offline) {
-                Log.V(TAG, "Offline, so skipping inbox process");
+                Log.To.Sync.I(TAG, "Offline, so skipping inbox process");
                 return;
             }
 
@@ -592,7 +587,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             // Call _revs_diff on the target db:
-            Log.D(TAG, "posting to /_revs_diff: {0}", String.Join(Environment.NewLine, new[] { Manager.GetObjectMapper().WriteValueAsString(diffs) }));
+            Log.To.Sync.D(TAG, "posting to /_revs_diff: {0}", String.Join(Environment.NewLine, new[] { Manager.GetObjectMapper().WriteValueAsString(diffs) }));
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
             {
                 try {
@@ -602,7 +597,7 @@ namespace Couchbase.Lite.Replicator
 
                     var results = response.AsDictionary<string, object>();
 
-                    Log.D(TAG, "/_revs_diff response: {0}\r\n{1}", response, results);
+                    Log.To.Sync.D(TAG, "/_revs_diff response: {0}\r\n{1}", response, results);
 
                     if (e != null) {
                         LastError = e;
@@ -653,7 +648,8 @@ namespace Couchbase.Lite.Replicator
 
                                     properties = new Dictionary<string, object>(rev.GetProperties());
                                 } catch (Exception e1) {
-                                    Log.W(TAG, String.Format("{0} Couldn't get local contents of", rev), e1);
+                                    Log.To.Sync.E(TAG, String.Format("Couldn't get local contents of {0}, marking revision failed",
+                                        rev), e1);
                                     RevisionFailed();
                                     continue;
                                 }
@@ -674,7 +670,7 @@ namespace Couchbase.Lite.Replicator
 
                                     properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
                                 } catch(Exception e1) {
-                                    Log.W(TAG, "Error getting revision history", e1);
+                                    Log.To.Sync.E(TAG, "Error getting revision history, marking revision failed", e1);
                                     RevisionFailed();
                                     continue;
                                 }
@@ -692,7 +688,7 @@ namespace Couchbase.Lite.Replicator
                                     try {
                                         LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
                                     } catch(Exception ex) {
-                                        Log.W(TAG, "Error expanding attachments!", ex);
+                                        Log.To.Sync.E(TAG, "Error expanding attachments, marking revision failed", ex);
                                         RevisionFailed();
                                         continue;
                                     }
@@ -724,7 +720,7 @@ namespace Couchbase.Lite.Replicator
                         }
                     }
                 } catch (Exception ex) {
-                    Log.E(TAG, "Unhandled exception in Pusher.ProcessInbox", ex);
+                    Log.To.Sync.E(TAG, "Unhandled exception in Pusher.ProcessInbox, continuing...", ex);
                 }
             });
         }

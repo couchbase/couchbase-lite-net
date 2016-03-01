@@ -271,7 +271,7 @@ namespace Couchbase.Lite
                     Log.To.Query.D(TAG, "Got operation cancel exception waiting for rows", e);
                     continue;
                 } catch (Exception e) {
-                    Log.E(TAG, "Got interrupted exception waiting for rows", e);
+                    Log.To.Query.E(TAG, "Got exception waiting for rows", e);
                     LastError = e;
                 }
             }
@@ -335,7 +335,7 @@ namespace Couchbase.Lite
 				
 
             if (!_runningState) {
-                Log.W(TAG, "update() called, but running state == false.  Ignoring.");
+                Log.To.Query.D(TAG, "Update called, but running state == false.  Ignoring.");
                 return;
             }
 
@@ -366,7 +366,7 @@ namespace Couchbase.Lite
             }
 
             _rows = runTask.Result; // NOTE: Should this be 'append' instead of 'replace' semantics? If append, use a concurrent collection.
-            Log.D(TAG, "UpdateQueryTask results obtained.");
+            Log.To.Query.I(TAG, "{0} async operation finished", this);
             LastError = runTask.Exception;
 
             var evt = _changed;

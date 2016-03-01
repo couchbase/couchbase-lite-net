@@ -133,13 +133,13 @@ namespace Couchbase.Lite.Util
             if(configSection != null) {
                 Log.Disabled = !configSection.Logging.Enabled;
                 foreach(var logSetting in configSection.Logging.VerbositySettings.Values) {
-                    var logger = (IDomainLogging)Log.Domains.GetType().GetProperty(logSetting.Key).GetValue(Log.Domains);
-                    if(logger == null) {
+                    var gotLogger = (IDomainLogging)Log.Domains.GetType().GetProperty(logSetting.Key).GetValue(Log.Domains);
+                    if(gotLogger == null) {
                         Log.To.NoDomain.W("Log", "Invalid domain {0} in configuration file", logSetting.Key);
                         continue;
                     }
 
-                    logger.Level = logSetting.Value;
+                    gotLogger.Level = logSetting.Value;
                 }
             }
             #endif

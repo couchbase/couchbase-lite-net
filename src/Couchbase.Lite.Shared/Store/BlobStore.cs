@@ -100,7 +100,7 @@ namespace Couchbase.Lite
             try {
                 md = MessageDigest.GetInstance("SHA-1");
             } catch (NotSupportedException) {
-                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
+                Log.To.Database.E(TAG, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
 
@@ -117,7 +117,7 @@ namespace Couchbase.Lite
             try {
                 md = MessageDigest.GetInstance("SHA-1");
             } catch (NotSupportedException) {
-                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
+                Log.To.Database.E(TAG, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
 
@@ -132,8 +132,9 @@ namespace Couchbase.Lite
                         lenRead = fis.Read(buffer, 0, buffer.Length);
                     }
                 }
-            } catch (IOException) {
-                Log.E(Database.TAG, "Error readin tmp file to compute key");
+            } catch (IOException e) {
+                Log.To.Database.E(TAG, "Error reading tmp file to compute key (returning null)", e);
+                return null;
             }
 
             sha1hash = md.Digest();
@@ -195,19 +196,21 @@ namespace Couchbase.Lite
                     fileStream = EncryptionKey.DecryptStream(fileStream);
                 }
             } catch (IOException e) {
-                Log.E(Database.TAG, "Error reading file", e);
+                Log.To.Database.E(TAG, "Error reading file (returning null)", e);
+                return null;
             }
 
             return fileStream;
         }
 
-        public bool StoreBlob(byte[] data, BlobKey outKey)
+        public void StoreBlob(byte[] data, BlobKey outKey)
         {
             BlobKey newKey = KeyForBlob(data);
             outKey.Bytes = newKey.Bytes;
             string keyPath = PathForKey(outKey);
             if (File.Exists(keyPath) && ((File.GetAttributes (keyPath) & FileAttributes.Offline) == 0)) {
-                return true;
+                Log.To.Database.V(TAG, "Blob {0} already exists in store, no action needed", newKey.Base64Digest());
+                return;
             }
 
             var fos = default(FileStream);
@@ -215,11 +218,11 @@ namespace Couchbase.Lite
                 fos = File.Open(keyPath, FileMode.Create);
                 fos.Write(data, 0, data.Length);
             } catch (FileNotFoundException e) {
-                Log.E(Database.TAG, "Error opening file for output", e);
-                return false;
+                Log.To.Database.E(TAG, "Error opening file for output, rethrowing...", e);
+                throw new CouchbaseLiteException("Couldn't open file for writing attachment", e) { Code = StatusCode.AttachmentError };
             }  catch (IOException ioe) {
-                Log.E(Database.TAG, "Error writing to file", ioe);
-                return false;
+                Log.To.Database.E(TAG, "Error writing to file, rethrowing...", ioe);
+                throw new CouchbaseLiteException("Error writing attachment to file", ioe) { Code = StatusCode.AttachmentError };
             } finally {
                 if (fos != null) {
                     try {
@@ -229,8 +232,6 @@ namespace Couchbase.Lite
                     }
                 }
             }
-
-            return true;
         }
 
         public ICollection<BlobKey> AllKeys()
@@ -264,7 +265,7 @@ namespace Couchbase.Lite
                         File.Delete(attachment);
                         ++numDeleted;
                     } catch(Exception e) {
-                        Log.E(Database.TAG, "Error deleting attachment", e);
+                        Log.To.Database.W(TAG, "Error deleting attachment, but continuing...", e);
                     }
                 }
             }
@@ -278,11 +279,15 @@ namespace Couchbase.Lite
             try {
                 Directory.CreateDirectory(path);
             } catch(Exception e) {
-                throw new CouchbaseLiteException(String.Format("Unable to create directory for: {0}", path), e);
+                var msg = String.Format("Unable to create directory for: {0}", path);
+                Log.To.Database.E(TAG, String.Format("{0}, throwing CouchbaseLiteException...", msg), e);
+                throw new CouchbaseLiteException(msg, e);
             }
 
             if (!Directory.Exists(path)) {
-                throw new CouchbaseLiteException("Unable to create directory for: {0}", path);
+                var msg = String.Format("Unable to create directory for: {0}", path);
+                Log.To.Database.E(TAG, "{0}, throwing CouchbaseLiteException...", msg);
+                throw new CouchbaseLiteException(msg, StatusCode.Exception);
             }
 
             Log.To.Database.I(TAG, "{0} created temporary directory {1}", this, path);
@@ -301,8 +306,8 @@ namespace Couchbase.Lite
                 // No blobs, so nothing to encrypt. Just add/remove the encryption marker file:
                 action.AddLogic(() =>
                 {
-                    Log.D(TAG, "{0} {1}", (newKey != null) ? "encrypting" : "decrypting", _path);
-                    Log.D(TAG, "    No blobs to copy; done.");
+                    Log.To.NoDomain.D(TAG, "{0} {1}", (newKey != null) ? "encrypting" : "decrypting", _path);
+                    Log.To.NoDomain.D(TAG, "    No blobs to copy; done.");
                     EncryptionKey = newKey;
                     MarkEncrypted(newKey != null);
                 }, () =>
@@ -318,7 +323,7 @@ namespace Couchbase.Lite
             var tempPath = Path.Combine(Path.GetTempPath(), String.Format("CouchbaseLite-Temp-{0}", Misc.CreateGUID()));
             action.AddLogic(() => 
             {
-                Log.D(TAG, "{0} {1}", (newKey != null) ? "encrypting" : "decrypting", _path);
+                Log.To.NoDomain.D(TAG, "{0} {1}", (newKey != null) ? "encrypting" : "decrypting", _path);
                 Directory.CreateDirectory(tempPath);
             }, () => Directory.Delete(tempPath, true), null);
 
@@ -334,7 +339,7 @@ namespace Couchbase.Lite
             {
                 foreach(var blobName in blobs) {
                     // Copy file by reading with old key and writing with new one:
-                    Log.D(TAG, "    Copying {0}", blobName);
+                    Log.To.NoDomain.D(TAG, "    Copying {0}", blobName);
                     Stream readStream = File.Open(blobName, FileMode.Open, FileAccess.Read, FileShare.Read);
                     if(EncryptionKey != null) {
                         readStream = EncryptionKey.DecryptStream(readStream);
@@ -418,7 +423,7 @@ namespace Couchbase.Lite
                 if (encryptionKey != null) {
                     // This store was created before the db encryption fix, so its files are not
                     // encrypted, even though they should be. Remedy that:
-                    Log.I(TAG, "**** BlobStore should be encrypted; fixing it now...");
+                    Log.To.NoDomain.I(TAG, "**** BlobStore should be encrypted; fixing it now...");
                     EncryptionKey = null;
                     ChangeEncryptionKey(encryptionKey);
                 }

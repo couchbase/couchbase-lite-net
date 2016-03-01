@@ -157,7 +157,7 @@ namespace Couchbase.Lite.Replicator
                 if(ServerType != null && ServerType.Name == "CouchDB") {
                     _changeTracker.SetDocIDs(DocIds.ToList());
                 } else {
-                    Log.W(TAG, "DocIds parameter only supported on CouchDB");
+                    Log.To.Sync.W(TAG, "DocIds parameter only supported on CouchDB");
                 }
             }       
 
@@ -262,7 +262,8 @@ namespace Couchbase.Lite.Replicator
             try {
                 json = Manager.GetObjectMapper().WriteValueAsString(strings);
             } catch (Exception e) {
-                Log.W(TAG, "Unable to serialize json", e);
+                Log.To.Sync.E(TAG, "Unable to serialize json, returning null", e);
+                return null;
             }
 
             return Uri.EscapeUriString(json);
@@ -383,7 +384,7 @@ namespace Couchbase.Lite.Replicator
                         rev.Sequence = remainingRevs[pos].Sequence;
                         remainingRevs.RemoveAt(pos);
                     } else {
-                        Log.W(TAG, "Received unexpected rev {0}; ignoring", rev);
+                        Log.To.Sync.W(TAG, "Received unexpected rev {0}; ignoring", rev);
                         return;
                     }
 
@@ -392,7 +393,7 @@ namespace Couchbase.Lite.Replicator
                         QueueDownloadedRevision(rev);
                     } else {
                         var status = StatusFromBulkDocsResponseItem(props);
-                        Log.W(TAG, "Error downloading {0}", rev);
+                        Log.To.Sync.W(TAG, "Error downloading {0}", rev);
                         var error = new CouchbaseLiteException(status.Code);
                         LastError = error;
                         RevisionFailed();
@@ -412,7 +413,7 @@ namespace Couchbase.Lite.Replicator
                         }
 
                     } else if(remainingRevs.Count > 0) {
-                        Log.W(TAG, "{0} revs not returned from _bulk_get: {1}",
+                        Log.To.Sync.W(TAG, "{0} revs not returned from _bulk_get: {1}",
                             remainingRevs.Count, remainingRevs);
                         for(int i = 0; i < remainingRevs.Count; i++) {
                             var rev = remainingRevs[i];
@@ -572,7 +573,7 @@ namespace Couchbase.Lite.Replicator
                 _downloadsToInsert.QueueObject(rev);
             }
             else {
-                Log.I(TAG, "downloadsToInsert is null");
+                Log.To.Sync.W(TAG, "{0} is finished and cannot accept download requests", this);
             }
         }
 
@@ -708,6 +709,7 @@ namespace Couchbase.Lite.Replicator
                                 Log.To.Sync.W(TAG, "{0} revision {1} has invalid attachment metadata: {2}",
                                     this, rev, new SecureLogJsonString(rev.GetAttachments(), LogMessageSensitivity.PotentiallyInsecure));
                             } else if(e.Code == StatusCode.DbBusy) {
+                                Log.To.Sync.I(TAG, "Database is busy, will retry soon...");
                                 // abort transaction; RunInTransaction will retry
                                 return false;
                             } else {
@@ -717,8 +719,8 @@ namespace Couchbase.Lite.Replicator
                                 continue;
                             }
                         } catch (Exception e) {
-                            Log.E(TAG, "Exception inserting downloads.", e);
-                            throw;
+                            Log.To.Sync.E(TAG, "Exception inserting downloads, throwing CouchbaseLiteException", e);
+                            throw new CouchbaseLiteException("Error inserting downloads", e);
                         }
 
                         _pendingSequences.RemoveSequence(fakeSequence);
@@ -729,9 +731,9 @@ namespace Couchbase.Lite.Replicator
                     return true;
                 });
 
-                Log.V(TAG, "Finished inserting {0} revisions. Success == {1}", downloads.Count, success);
+                Log.To.Sync.V(TAG, "Finished inserting {0} revisions. Success == {1}", downloads.Count, success);
             } catch (Exception e) {
-                Log.E(TAG, "Exception inserting revisions", e);
+                Log.To.Sync.E(TAG, "Exception inserting revisions, continuing...", e);
             }
 
             // Checkpoint:
@@ -765,7 +767,7 @@ namespace Couchbase.Lite.Replicator
         {
             var changeTrackerCopy = _changeTracker;
             if (changeTrackerCopy != null) {
-                Log.D(TAG, "stopping changetracker " + _changeTracker);
+                Log.To.Sync.D(TAG, "stopping changetracker " + _changeTracker);
 
                 changeTrackerCopy.SetClient(null);
                 // stop it from calling my changeTrackerStopped()
@@ -823,7 +825,7 @@ namespace Couchbase.Lite.Replicator
                 // afterwards are the revisions that need to be downloaded.
                 numRevisionsRemoved = LocalDatabase.Storage.FindMissingRevisions(inbox);
             } catch (Exception e) {
-                Log.W(TAG, String.Format("{0} failed to look up local revs", this), e);
+                Log.To.Sync.E(TAG, String.Format("{0} failed to look up local revs, aborting...", this), e);
                 inbox = null;
             }
 
@@ -941,7 +943,8 @@ namespace Couchbase.Lite.Replicator
 
             if (!Document.IsValidDocumentId(docID)) {
                 if (!docID.StartsWith("_user/", StringComparison.InvariantCultureIgnoreCase)) {
-                    Log.W(TAG, string.Format("{0}: Received invalid doc ID from _changes: {1} ({2})", this, docID, Manager.GetObjectMapper().WriteValueAsString(change)));
+                    Log.To.Sync.W(TAG, "{0}: Received invalid doc ID from _changes: {1} ({2})", 
+                        this, new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), new LogJsonString(change));
                 }
 
                 return;
@@ -964,7 +967,7 @@ namespace Couchbase.Lite.Replicator
                     rev.IsConflicted = true;
                 }
 
-                Log.D(TAG, "Adding rev to inbox " + rev);
+                Log.To.Sync.D(TAG, "Adding rev to inbox " + rev);
                 AddToInbox(rev);
             }
 
@@ -976,7 +979,7 @@ namespace Couchbase.Lite.Replicator
                     Thread.Sleep(500);
                 }
                 catch (Exception e) {
-                    Log.W(TAG, "Swalling exception while sleeping after receiving changetracker changes.", e);
+                    Log.To.Sync.W(TAG, "Swallowing exception while sleeping after receiving changetracker changes.", e);
                     // swallow
                 }
             }

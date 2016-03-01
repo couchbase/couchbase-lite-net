@@ -185,7 +185,7 @@ namespace Couchbase.Lite
             try {
                 outStream.Dispose();
             } catch (IOException e) {
-                Log.W(Database.TAG, "Exception closing output stream", e);
+                Log.To.Database.W(Tag, "Exception closing output stream", e);
             }
 
             File.Delete(tempFile);
