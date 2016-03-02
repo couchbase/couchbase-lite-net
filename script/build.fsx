@@ -43,18 +43,27 @@ Target "Bootstrap"(fun _ ->
 )
 
 Target "Build" (fun _ ->
+    let mutable restoreFailureHandled = false;
+    
     // iterate through the solutions and restore their packages
     [
         net45Solution
         androidSolution
     ]
     |> List.iter(fun solution -> 
-        // restore packages for the current solution
-        RestoreMSSolutionPackages(fun p ->
-            {p with
-                OutputPath = "src/packages"
-            })
-            solution
+        try
+            // restore packages for the current solution
+            RestoreMSSolutionPackages(fun p ->
+                {p with
+                    OutputPath = "src/packages"
+                })
+                solution
+        with
+            | Failure msg -> 
+                // there is a failure restoring packages for one of the samples
+                // Handling it here allows us to proceed with the build
+                log msg
+                restoreFailureHandled <- true
         )
     
   
@@ -65,7 +74,9 @@ Target "Build" (fun _ ->
         androidProject 
     ] 
     |> List.iter(fun proj ->  build setParams proj |> DoNothing) 
-
+    
+    //// Workaround for https://github.com/fsharp/FAKE/issues/1079
+    if restoreFailureHandled then traceEndTask "Build" "Error restoring packages was handled"
 )
 
 Target "Package" (fun _ ->
