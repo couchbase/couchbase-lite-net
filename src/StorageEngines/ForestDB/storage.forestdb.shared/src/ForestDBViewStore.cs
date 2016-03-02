@@ -129,6 +129,8 @@ namespace Couchbase.Lite.Storage.ForestDB
             var files = System.IO.Directory.GetFiles(_dbStorage.Directory, filename + "*");
             if (files.Length == 0) {
                 if (!create) {
+                    // This is normal operation, so make an exception for logging at error level
+                    Log.To.View.V(Tag, "create is false but no db file exists at {0}", _path);
                     throw new InvalidOperationException(String.Format(
                         "Create is false but no db file exists at {0}", _path));
                 }
@@ -410,10 +412,8 @@ namespace Couchbase.Lite.Storage.ForestDB
                 Log.To.Query.E(Tag, "Failed to run reduce query for {0}, rethrowing...", Name);
                 throw;
             } catch(Exception e) {
-                Log.To.Query.E(Tag, 
-                    String.Format("Exception while running reduce query for {0}, throwing CouchbaseLiteException...", Name), e);
-                throw new CouchbaseLiteException(String.Format("Error running reduce query for {0}",
-                    Name), e) { Code = StatusCode.Exception };
+                throw Misc.CreateExceptionAndLog(Log.To.Query, e, Tag,
+                    "Exception while running reduce query for {0}", Name);
             }
         }
 
@@ -576,9 +576,8 @@ namespace Couchbase.Lite.Storage.ForestDB
                 if (!options.Reduce) {
                     reduce = null;
                 } else if (reduce == null) {
-                    throw new CouchbaseLiteException(String.Format(
-                        "Cannot use reduce option in view {0} which has no reduce block defined", Name), 
-                        StatusCode.BadParam);
+                    throw Misc.CreateExceptionAndLog(Log.To.Query, StatusCode.BadParam, Tag,
+                        "Cannot use reduce option in view {0} which has no reduce block defined", Name);
 
                 }
             }

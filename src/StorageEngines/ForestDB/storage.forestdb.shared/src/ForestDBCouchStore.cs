@@ -370,9 +370,11 @@ namespace Couchbase.Lite.Storage.ForestDB
                 });
             } catch(CBForestException e) {
                 if (e.Domain == C4ErrorDomain.ForestDB && e.Code == (int)ForestDBStatus.NoDbHeaders) {
-                    throw new CouchbaseLiteException(StatusCode.Unauthorized);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Unauthorized, TAG,
+                        "Failed to decrypt database, or it is corrupt");
                 }
 
+                Log.To.Database.E(TAG, "Got exception while opening database, rethrowing...");
                 throw;
             }
         }
@@ -380,17 +382,20 @@ namespace Couchbase.Lite.Storage.ForestDB
         private void DeleteLocalRevision(string docId, string revId, bool obeyMVCC)
         {
             if (!docId.StartsWith("_local/")) {
-                throw new CouchbaseLiteException("Local revision IDs must start with _local/", StatusCode.BadId);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
+                    "Local revision IDs must start with _local/");
             }
 
             if (obeyMVCC && revId == null) {
                 // Didn't specify a revision to delete: NotFound or a Conflict, depending
                 var gotLocalDoc = GetLocalDocument(docId, null);
                 if(gotLocalDoc == null) {
-                    throw new CouchbaseLiteException(StatusCode.NotFound);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotFound, TAG,
+                        "No revision ID specified in local delete operation");
                 }
 
-                throw new CouchbaseLiteException(StatusCode.Conflict);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
+                    "No revision ID specified in local delete operation");
             }
 
             RunInTransaction(() =>
@@ -398,11 +403,14 @@ namespace Couchbase.Lite.Storage.ForestDB
                 WithC4Raw(docId, "_local", doc =>
                 {
                     if(doc == null) {
-                        throw new CouchbaseLiteException(StatusCode.NotFound);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotFound, TAG,
+                            "Specified revision ({0}) in delete operation not found", revId);
                     }
 
-                    if(obeyMVCC && (revId != (string)doc->meta)) {
-                        throw new CouchbaseLiteException(StatusCode.Conflict);
+                    var currentRevID = (string)doc->meta;
+                    if(obeyMVCC && (revId != currentRevID)) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
+                            "Specified revision ({0}) in delete operation != current revision ({1})", revId, currentRevID);
                     }
 
                     ForestDBBridge.Check(err => Native.c4raw_put(Forest, "_local", docId, null, null, err));
@@ -566,7 +574,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 throw;
             } catch(Exception e) {
                 success = false;
-                throw new CouchbaseLiteException("Error running transaction", e) { Code = StatusCode.Exception };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error running transaction");
             } finally {
                 Log.To.Database.I(TAG, "END transaction (success={0})", success);
                 ForestDBBridge.Check(err => Native.c4db_endTransaction(Forest, success, err));
@@ -610,7 +618,8 @@ namespace Couchbase.Lite.Storage.ForestDB
             WithC4Document(rev.DocID, rev.RevID, true, false, doc => 
             {
                 if(doc == null) {
-                    throw new CouchbaseLiteException(StatusCode.NotFound);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotFound, TAG, 
+                        "Cannot load revision body for non-existent revision {0}", rev);
                 }
 
                 rev.SetBody(new Body(doc->selectedRev.body));
@@ -730,7 +739,9 @@ namespace Couchbase.Lite.Storage.ForestDB
             // Translate options to ForestDB:
             if (options.Descending) {
                 // https://github.com/couchbase/couchbase-lite-ios/issues/641
-                throw new CouchbaseLiteException(StatusCode.NotImplemented);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotImplemented, TAG,
+                    "Descending ChangesSince is not currently implemented " +
+                    "(see https://github.com/couchbase/couchbase-lite-ios/issues/641)");
             }
 
             var forestOps = C4EnumeratorOptions.DEFAULT;
@@ -925,7 +936,9 @@ namespace Couchbase.Lite.Storage.ForestDB
                     var docID = docRevPair.Key;
                     WithC4Document(docID, null, false, false, doc => {;
                         if(!doc->Exists) {
-                            throw new CouchbaseLiteException(StatusCode.NotFound);
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotFound, TAG,
+                                "Invalid attempt to purge revisions of a nonexistent document (ID={0})",
+                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                         }
                         var revsPurged = default(IList<string>);
                         var revIDs = docRevPair.Value;
@@ -1005,7 +1018,9 @@ namespace Couchbase.Lite.Storage.ForestDB
         {
             var docId = revision.DocID;
             if (!docId.StartsWith("_local/")) {
-                throw new CouchbaseLiteException("Local revision IDs must start with _local/", StatusCode.BadId);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
+                    "Invalid document ID ({0}) in write operation, it must start with _local/", 
+                    new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
             }
 
             if (revision.Deleted) {
@@ -1021,16 +1036,24 @@ namespace Couchbase.Lite.Storage.ForestDB
                 {
                     var generation = RevisionID.GetGeneration(prevRevId);
                     if(obeyMVCC) {
+                        var currentRevId = (doc != null ? (string)doc->meta : null);
                         if(prevRevId != null) {
-                            if(prevRevId != (doc != null ? (string)doc->meta : null)) {
-                                throw new CouchbaseLiteException(StatusCode.Conflict);
+                            if(prevRevId != currentRevId) {
+                                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
+                                    "Attempt to write new revision on {0} of {1} when a newer revision ({2}) exists",
+                                    prevRevId, new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
+                                    currentRevId);
                             }
 
                             if(generation == 0) {
-                                throw new CouchbaseLiteException(StatusCode.BadId);
+                                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
+                                    "Attempt to write new revision on invalid revision ID ({0}) for document {1}",
+                                    prevRevId, new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                             }
                         } else if(doc != null) {
-                            throw new CouchbaseLiteException(StatusCode.Conflict);
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
+                                "Revision ID not specified, but document {0} already exists (current rev: {1})",
+                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), currentRevId);
                         }
                     }
 
@@ -1069,7 +1092,8 @@ namespace Couchbase.Lite.Storage.ForestDB
             bool deleting, bool allowConflict, Uri source, StoreValidation validationBlock)
         {
             if(_config.HasFlag(C4DatabaseFlags.ReadOnly)) {
-                throw new CouchbaseLiteException("Attempting to write to a readonly database", StatusCode.Forbidden);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Forbidden, TAG,
+                    "Attempting to write to a readonly database (PutRevision)");
             }
 
             var json = default(string);
@@ -1096,13 +1120,20 @@ namespace Couchbase.Lite.Storage.ForestDB
                         // Updating an existing revision; make sure it exists and is a leaf:
                         ForestDBBridge.Check(err => Native.c4doc_selectRevision(doc, prevRevId, false, err));
                         if(!allowConflict && !doc->selectedRev.IsLeaf) {
-                            throw new CouchbaseLiteException(StatusCode.Conflict);
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
+                                "Invalid attempt to create a conflict (allowConflict == false) on document " +
+                                "{0} revision {1} (current revision {2})", 
+                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
+                                prevRevId, (string)doc->revID);
                         }
                     } else {
                         // No parent revision given:
                         if(deleting) {
                             // Didn't specify a revision to delete: NotFound or a Conflict, depending
-                            throw new CouchbaseLiteException(doc->Exists ? StatusCode.Conflict : StatusCode.NotFound);
+                            var status = doc->Exists ? StatusCode.Conflict : StatusCode.NotFound;
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, status, TAG,
+                                "No revision ID specified for delete operation on {0}",
+                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                         }
 
                         // If doc exists, current rev must be in a deleted state or there will be a conflict:
@@ -1111,7 +1142,10 @@ namespace Couchbase.Lite.Storage.ForestDB
                                 // New rev will be child of the tombstone:
                                 prevRevId = (string)doc->revID;
                             } else {
-                                throw new CouchbaseLiteException(StatusCode.Conflict);
+                                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
+                                    "No revision ID specified, and {0} already has a non-deleted current revision ({1})",
+                                    new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
+                                    (string)doc->revID);
                             }
                         }
                     }
@@ -1119,7 +1153,8 @@ namespace Couchbase.Lite.Storage.ForestDB
                     // Compute the new revID. (Can't be done earlier because prevRevID may have changed.)
                     var newRevID = Delegate != null ? Delegate.GenerateRevID(Encoding.UTF8.GetBytes(json), deleting, prevRevId) : null;
                     if(newRevID == null) {
-                        throw new CouchbaseLiteException(StatusCode.BadId);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
+                            "Unable to generate new revision ID (previous one ({0}) is invalid?)", prevRevId);
                     }
 
                     putRev = new RevisionInternal(docId, newRevID, deleting);
@@ -1138,8 +1173,10 @@ namespace Couchbase.Lite.Storage.ForestDB
                             
                         var status = validationBlock(putRev, prevRev, prevRevId);
                         if(status.IsError) {
-                            throw new CouchbaseLiteException(String.Format("{0} failed validation", putRev), 
-                                status.Code);
+                            throw Misc.CreateExceptionAndLog(Log.To.Validation, status.Code, TAG,
+                                "{0} ({1}) failed validation",
+                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
+                                newRevID);
                         }
                     }
 
@@ -1169,8 +1206,9 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public void ForceInsert(RevisionInternal inRev, IList<string> revHistory, StoreValidation validationBlock, Uri source)
         {
-            if (_config.HasFlag(C4DatabaseFlags.ReadOnly)) {
-                throw new CouchbaseLiteException("Attempting to write to a readonly database", StatusCode.Forbidden);
+            if(_config.HasFlag(C4DatabaseFlags.ReadOnly)) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Forbidden, TAG,
+                    "Attempting to write to a readonly database (ForceInsert)");
             }
 
             var json = Manager.GetObjectMapper().WriteValueAsString(inRev.GetProperties(), true);
@@ -1208,7 +1246,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 } catch(InvalidOperationException) {
                     return null;
                 } catch(Exception e) {
-                    Log.To.View.E(TAG, String.Format("Error creating view storage for {0}", name), e);
+                    Log.To.View.W(TAG, String.Format("Error creating view storage for {0}, returning null...", name), e);
                     return null;
                 }
             }

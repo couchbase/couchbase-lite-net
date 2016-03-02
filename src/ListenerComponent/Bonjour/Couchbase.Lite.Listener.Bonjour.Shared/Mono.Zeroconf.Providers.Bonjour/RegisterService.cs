@@ -148,6 +148,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         public void Register(bool @async)
         {
             if(thread != null) {
+                Log.To.Discovery.E(Tag, "Attempt to call Register on an already registered object, throwing...");
                 throw new InvalidOperationException("RegisterService registration already in process");
             }
             

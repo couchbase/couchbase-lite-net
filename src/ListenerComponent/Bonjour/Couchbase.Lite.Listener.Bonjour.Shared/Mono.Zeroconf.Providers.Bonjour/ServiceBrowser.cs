@@ -50,6 +50,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Runtime.InteropServices;
 
+using Couchbase.Lite.Util;
+
 #if __IOS__
 using AOT = ObjCRuntime;
 #endif
@@ -160,6 +162,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             this.domain = domain;
             
             if(regtype == null) {
+                Log.To.Discovery.E(TAG, "regtype cannot be null in Configure, throwing...");
                 throw new ArgumentNullException("regtype");
             }
         }
@@ -167,6 +170,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         private void Start(bool @async)
         {
             if(thread != null) {
+                Log.To.Discovery.E(TAG, "Attempt to call start on an already started object, throwing...");
                 throw new InvalidOperationException("ServiceBrowser is already started");
             }
             
