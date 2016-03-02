@@ -88,6 +88,7 @@ namespace Couchbase.Lite.Listener
         public CouchbaseLiteServiceBrowser(IServiceBrowser browser)
         {
             if (browser == null) {
+                Log.To.Discovery.E(Tag, "browser null in ctor, throwing...");
                 throw new ArgumentNullException("browser");
             }
 

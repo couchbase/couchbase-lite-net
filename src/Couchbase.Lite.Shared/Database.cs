@@ -405,9 +405,8 @@ namespace Couchbase.Lite
                 Log.To.Database.E(TAG, "{0} Error during compaction, rethrowing...", this);
                 throw;
             } catch(Exception e) {
-                Log.To.Database.E(TAG, String.Format("{0} got exception during compaction, " +
-                    "throwing CouchbaseLiteException", this), e);
-                throw new CouchbaseLiteException("Error during compaction", e);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                    "{0} got exception during compaction", this);
             }
 
             return GarbageCollectAttachments();
@@ -905,7 +904,8 @@ namespace Couchbase.Lite
         internal void ForceInsert(RevisionInternal inRev, IList<string> revHistory, Uri source)
         {
             if (!IsOpen) {
-                throw new CouchbaseLiteException("DB is closed", StatusCode.DbError);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
+                    "Cannot perform ForceInsert on a closed database");
             }
 
             if (revHistory == null) {
@@ -916,13 +916,21 @@ namespace Couchbase.Lite
             rev.Sequence = 0;
             string revID = rev.RevID;
             if (!Document.IsValidDocumentId(rev.DocID) || revID == null) {
-                throw new CouchbaseLiteException(StatusCode.BadId);
+                if (rev == null) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
+                        "Cannot force insert a revision with a null revision ID");
+                }
+
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
+                    "{0} is not a valid document ID", 
+                    new SecureLogString(rev.DocID, LogMessageSensitivity.PotentiallyInsecure));
             }
 
             if (revHistory.Count == 0) {
                 revHistory.Add(revID);
             } else if (revID != revHistory[0]) {
-                throw new CouchbaseLiteException(StatusCode.BadId);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
+                    "Invalid revision history in ForceInsert, (root entry {0} != {1})", revHistory[0], revID);
             }
 
             if (inRev.GetAttachments() != null) {
@@ -1022,18 +1030,16 @@ namespace Couchbase.Lite
             if(viewName != null) {
                 var view = GetView(viewName);
                 if(view == null) {
-                    Log.To.Query.E(TAG, "Unable to query view named `{0}` (not found), " +
-                        "throwing CouchbaseLiteException", viewName);
-                    throw new CouchbaseLiteException(StatusCode.NotFound);
+                    throw Misc.CreateExceptionAndLog(Log.To.Query, StatusCode.NotFound, TAG, 
+                        "Unable to query view named `{0}` (not found)", viewName);
                 }
 
                 lastIndexedSequence = view.LastSequenceIndexed;
                 if(options.Stale == IndexUpdateMode.Before || lastIndexedSequence <= 0) {
                     var status = view.UpdateIndex();
                     if(status.IsError) {
-                        Log.To.Query.E(TAG, "Failed to update index for `{0}`: {1}, " +
-                            "throwing CouchbaseLiteException", viewName, status.Code);
-                        throw new CouchbaseLiteException("Failed to update index for `{0}`", viewName) { Code = status.Code };
+                        throw Misc.CreateExceptionAndLog(Log.To.Query, status.Code, TAG,
+                            "Failed to update index for `{0}`: {1}, ", viewName, status.Code);
                     }
 
                     lastIndexedSequence = view.LastSequenceIndexed;
@@ -1081,7 +1087,8 @@ namespace Couchbase.Lite
             }
 
             if (options.Descending) {
-                throw new CouchbaseLiteException("Descending all docs not implemented", StatusCode.NotImplemented);
+                throw Misc.CreateExceptionAndLog(Log.To.Query, StatusCode.NotImplemented, TAG, 
+                    "Descending all docs not implemented");
             }
 
             ChangesOptions changesOpts = new ChangesOptions();
@@ -1305,8 +1312,14 @@ namespace Couchbase.Lite
             bool deleting = properties == null || properties.GetCast<bool>("_deleted");
             Log.To.Database.I(TAG, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}", 
                 new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), prevRevId, deleting, allowConflict);
-            if ((prevRevId != null && docId == null) || (deleting && docId == null)) {
-                throw new CouchbaseLiteException(StatusCode.BadId);
+            if (prevRevId != null && docId == null) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
+                    "prevRevId {0} specified in PutDocument, but docId not specified", prevRevId);
+            }
+
+            if (deleting && docId == null) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
+                    "No document ID specified on a delete request");
             }
 
             if (properties != null && properties.Get("_attachments").AsDictionary<string, object>() != null) {
@@ -1406,7 +1419,8 @@ namespace Couchbase.Lite
         {
             var digest = attachment.Digest;
             if (digest == null) {
-                throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                    "InstallAttachment received an attachment without a digest");
             }
 
             if (PendingAttachmentsByDigest != null && PendingAttachmentsByDigest.ContainsKey(digest)) {
@@ -1416,9 +1430,13 @@ namespace Couchbase.Lite
                     blobStoreWriter.Install();
                     attachment.BlobKey = (blobStoreWriter.GetBlobKey());
                     attachment.Length = blobStoreWriter.GetLength();
-                }
-                catch (Exception e) {
-                    throw new CouchbaseLiteException(e, StatusCode.AttachmentError);
+                } catch(CouchbaseLiteException) {
+                    Log.To.Database.E(TAG, "Error installing attachment '{0}', rethrowing...", 
+                        new SecureLogString(attachment.Name, LogMessageSensitivity.PotentiallyInsecure));
+                } catch (Exception e) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, 
+                        "Error installing attachment '{0}'", 
+                        new SecureLogString(attachment.Name, LogMessageSensitivity.PotentiallyInsecure));
                 }
             }
         }
@@ -1468,9 +1486,8 @@ namespace Couchbase.Lite
             bool decodeAttachments)
         {
             if (!IsOpen) {
-                Log.To.Database.E(TAG, "{0} ExpandAttachments called on a closed database, " +
-                "throwing CouchbaseLiteException", this);
-                throw new CouchbaseLiteException("ExpandAttachments called on a closed database", StatusCode.DbError);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
+                    "{0} ExpandAttachments called on a closed database", this);
             }
 
             rev.MutateAttachments((name, attachment) =>
@@ -1560,10 +1577,9 @@ namespace Couchbase.Lite
                         Log.To.Database.E(TAG, "Failed to write attachment '{0}' to disk, rethrowing...", name);
                         throw;
                     } catch(Exception e) {
-                        Log.To.Database.E(TAG, String.Format("Exception during attachment writing '{0}', " +
-                            "throwing CouchbaseLiteException", 
-                            new SecureLogString(name, LogMessageSensitivity.PotentiallyInsecure)), e);
-                        throw new CouchbaseLiteException("Exception during attachment writing", e);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                            "Exception during attachment writing '{0}'",
+                            new SecureLogString(name, LogMessageSensitivity.PotentiallyInsecure));
                     }
 
                     attachment.BlobKey = blobKey;
@@ -1588,19 +1604,17 @@ namespace Couchbase.Lite
                                 return ancestorAttachment;
                             }
 
-                            Log.To.Database.E(TAG, "Unable to find 'stub' attachment {0} in history (1), " +
-                                "throwing CouchbaseLiteException", name);
-                            throw new CouchbaseLiteException(
-                                String.Format("Unable to find 'stub' attachment {0} in history", name), StatusCode.BadAttachment);
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                                "Unable to find 'stub' attachment {0} in history (1)",
+                                new SecureLogString(name, LogMessageSensitivity.PotentiallyInsecure));
                         }
                     }
 
                     var parentAttachment = parentAttachments == null ? null : parentAttachments.Get(name).AsDictionary<string, object>();
                     if(parentAttachment == null) {
-                        Log.To.Database.E(TAG, "Unable to find 'stub' attachment {0} in history (2), " +
-                            "throwing CouchbaseLiteException", name);
-                        throw new CouchbaseLiteException(
-                            String.Format("Unable to find 'stub' attachment {0} in history", name), StatusCode.BadAttachment);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                            "Unable to find 'stub' attachment {0} in history (2)",
+                            new SecureLogString(name, LogMessageSensitivity.PotentiallyInsecure));
                     }
 
                     return parentAttachment;
@@ -1611,11 +1625,9 @@ namespace Couchbase.Lite
                 if(attachment.RevPos == 0) {
                     attachment.RevPos = generation;
                 } else if(attachment.RevPos > generation) {
-                    Log.To.Database.E(TAG, "Attachment specifies revision generation {0} but document is only at revision generation {1}, " +
-                        "throwing CouchbaseLiteException");
-                    throw new CouchbaseLiteException(
-                        String.Format("Attachment specifies revision generation {0} but document is only at revision generation {1}",
-                        attachment.RevPos, generation), StatusCode.BadAttachment);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                        "Attachment specifies revision generation {0} but document is only at revision generation {1}",
+                        attachment.RevPos, generation);
                 }
 
                 Debug.Assert(attachment.IsValid);
@@ -1729,9 +1741,24 @@ namespace Couchbase.Lite
         /// </remarks>
         internal RevisionInternal UpdateAttachment(string filename, BlobStoreWriter body, string contentType, AttachmentEncoding encoding, string docID, string oldRevID, Uri source)
         {
-            if(StringEx.IsNullOrWhiteSpace(filename) || (body != null && contentType == null) || 
-                (oldRevID != null && docID == null) || (body != null && docID == null)) {
-                throw new CouchbaseLiteException(StatusCode.BadAttachment);
+            if (StringEx.IsNullOrWhiteSpace(filename)) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                    "Invalid filename (null or whitespace) in UpdateAttachment");
+            }
+
+            if (body != null && contentType == null) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                    "Body provided, but content type is null in UpdateAttachment");
+            }
+
+            if (oldRevID != null && docID == null) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                    "oldRevID provided ({0}) but docID is null in UpdateAttachment", oldRevID);
+            }
+
+            if (body != null && docID == null) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                    "body provided but docID is null in UpdateAttachment");
             }
 
             var oldRev = new RevisionInternal(docID, oldRevID, false);
@@ -1741,9 +1768,11 @@ namespace Couchbase.Lite
                     oldRev = LoadRevisionBody(oldRev);
                 } catch (CouchbaseLiteException e) {
                     if (e.Code == StatusCode.NotFound && GetDocument(docID, null, false) != null) {
-                        throw new CouchbaseLiteException(StatusCode.Conflict);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
+                            "Conflict detected in UpdateAttachment");
                     }
 
+                    Log.To.Database.E(TAG, "Error loading revision body in UpdateAttachment, rethrowing...");
                     throw;
                 }
             } else {
@@ -1771,7 +1800,8 @@ namespace Couchbase.Lite
                 };
             } else {
                 if (oldRevID != null && attachments.Get(filename) == null) {
-                    throw new CouchbaseLiteException(StatusCode.AttachmentNotFound);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.AttachmentNotFound, TAG,
+                        "Attachment {0} not found", new SecureLogString(filename, LogMessageSensitivity.PotentiallyInsecure));
                 }
 
                 attachments.Remove(filename);
@@ -1932,7 +1962,8 @@ namespace Couchbase.Lite
                     !primaryStorageInstance.DatabaseExistsIn(DbDirectory);
 
                 if (upgrade && primarySQLite) {
-                    throw new CouchbaseLiteException("Cannot upgrade to SQLite", StatusCode.InvalidStorageType);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, StatusCode.InvalidStorageType, TAG,
+                        "Upgrades from ForestDB to SQLite are not supported");
                 }
             } else {
                 // If options don't specify, use primary unless secondary db already exists in dir:

@@ -171,8 +171,7 @@ namespace Couchbase.Lite.Replicator
 
         public string GetChangesFeedPath()
         {
-            if (UsePost)
-            {
+            if (UsePost) {
                 return "_changes";
             }
 
@@ -193,29 +192,23 @@ namespace Couchbase.Lite.Replicator
                 path.Append("&active_only=true");
             }
 
-            if (docIDs != null && docIDs.Count > 0)
-            {
+            if (docIDs != null && docIDs.Count > 0) {
                 filterName = "_doc_ids";
                 filterParams = new Dictionary<string, object>();
                 filterParams["doc_ids"] = docIDs;
             }
-            if (filterName != null)
-            {
+
+            if (filterName != null) {
                 path.Append("&filter=");
                 path.Append(Uri.EscapeUriString(filterName));
-                if (filterParams != null)
-                {
-                    foreach (string filterParamKey in filterParams.Keys)
-                    {
+                if (filterParams != null) {
+                    foreach (string filterParamKey in filterParams.Keys) {
                         var value = filterParams.Get(filterParamKey);
-                        if (!(value is string))
-                        {
-                            try
-                            {
+                        if (!(value is string)) {
+                            try {
                                 value = Manager.GetObjectMapper().WriteValueAsString(value);
-                            }
-                            catch (IOException e)
-                            {
+                            } catch (Exception e) {
+                                Log.To.ChangeTracker.E(TAG, "Unable to JSON-serialize a filter parameter value.", e);
                                 throw new InvalidOperationException("Unable to JSON-serialize a filter parameter value.", e);
                             }
                         }
@@ -226,6 +219,7 @@ namespace Couchbase.Lite.Replicator
                     }
                 }
             }
+
             return path.ToString();
         }
 
@@ -377,7 +371,8 @@ namespace Couchbase.Lite.Replicator
             switch (mode)  {
                 case ChangeTrackerMode.LongPoll:
                     if (response.Content == null) {
-                        throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
+                        throw Misc.CreateExceptionAndLog(Log.To.ChangeTracker, status.GetStatusCode(), TAG,
+                            "Got empty change tracker response");
                     }
                             
                     Log.To.ChangeTracker.D(TAG, "Getting stream from change tracker response");

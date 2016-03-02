@@ -7,7 +7,7 @@ namespace Couchbase.Lite.Util
 {
     internal sealed class TransientErrorRetryHandler : DelegatingHandler
     {
-        internal HttpMessageHandler InnerHandler { get; private set; }
+        private static readonly string Tag = typeof(TransientErrorRetryHandler).Name;
 
         public TransientErrorRetryHandler(HttpMessageHandler handler) : base(handler) 
         { 
@@ -40,6 +40,8 @@ namespace Couchbase.Lite.Util
                 }
 
                 if (!response.IsSuccessStatusCode) {
+                    Log.To.Sync.V(Tag, "Non transient error received ({0}), throwing HttpResponseException", 
+                        response.StatusCode);
                     throw new HttpResponseException(response.StatusCode);
                 }
 
@@ -51,6 +53,12 @@ namespace Couchbase.Lite.Util
 
             if (!Misc.IsTransientNetworkError(error) || strategy.RetriesRemaining == 0)
             {
+                if (strategy.RetriesRemaining == 0) {
+                    Log.To.Sync.V(Tag, "Out of retries for error, throwing", error);
+                } else {
+                    Log.To.Sync.V(Tag, "Non transient error received, throwing", error);
+                }
+
                 // If it's not transient, pass the exception along
                 // for any other handlers to respond to.
                 throw error;

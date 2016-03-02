@@ -171,10 +171,12 @@ namespace Couchbase.Lite
                     WaitForRows();
                     break;
                 } catch (OperationCanceledException) { //TODO: Review
+                    Log.To.Query.V(TAG, "Run() caught OperationCanceledException, retrying...");
                     continue;
                 } catch (Exception e) {
                     LastError = e;
-                    throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+                    _rows = null;
+                    Log.To.Query.W(TAG, "Exception caught during Run(), returning null...", e);
                 }
             }
 

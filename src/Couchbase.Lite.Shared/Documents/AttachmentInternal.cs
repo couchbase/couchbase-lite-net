@@ -198,7 +198,8 @@ namespace Couchbase.Lite.Internal
                 if (encodingString.Equals("gzip")) {
                     Encoding = AttachmentEncoding.GZIP;
                 } else {
-                    throw new CouchbaseLiteException(StatusCode.BadEncoding);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadEncoding, TAG,
+                        "Invalid encoding type ({0}) in ctor", encodingString);
                 }
             }
 
@@ -212,7 +213,8 @@ namespace Couchbase.Lite.Internal
                 }
 
                 if (_data == null) {
-                    throw new CouchbaseLiteException(StatusCode.BadEncoding);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadEncoding, TAG,
+                        "Invalid data type ({0}) in ctor", data.GetType().Name);
                 }
 
                 SetPossiblyEncodedLength(_data.LongCount());
@@ -221,7 +223,8 @@ namespace Couchbase.Lite.Internal
                 if(info.ContainsKey("revpos")) {
                     var revPos = info.GetCast<int>("revpos");
                     if (revPos <= 0) {
-                        throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                            "Invalid revpos ({0}) in ctor", revPos);
                     }
 
                     RevPos = revPos;
@@ -229,19 +232,22 @@ namespace Couchbase.Lite.Internal
             } else if (info.GetCast<bool>("follows", false)) {
                 // I can't handle this myself; my caller will look it up from the digest
                 if (Digest == null) {
-                    throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                        "follows is true, but the attachment digest is null in ctor");
                 }
 
                 if(info.ContainsKey("revpos")) {
                     var revPos = info.GetCast<int>("revpos");
                     if (revPos <= 0) {
-                        throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                            "Invalid revpos ({0}) in ctor", revPos);
                     }
 
                     RevPos = revPos;
                 }
             } else {
-                throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                    "Neither data nor stub nor follows was specified on the attachment data");
             }
         }
             

@@ -24,6 +24,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Collections.Generic;
+using Couchbase.Lite.Util;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -66,14 +67,14 @@ namespace Couchbase.Lite.Store
 
         public static readonly string EncryptedContentType = "application/x-beanbag-aes-256";
 
+        private static readonly string Tag = typeof(SymmetricKey).Name;
+
         private const int KEY_SIZE = 32;
         private const int BLOCK_SIZE = 16;
         private const int IV_SIZE = BLOCK_SIZE;
         private const int CHECKSUM_SIZE = sizeof(uint);
         private const string DEFAULT_SALT = "Salty McNaCl";
         private const int DEFAULT_PBKDF_ROUNDS = 64000;
-
-
 
         #endregion
 
@@ -133,17 +134,21 @@ namespace Couchbase.Lite.Store
         public SymmetricKey(string password, byte[] salt, int rounds) 
         {
             if(password == null) {
+                Log.To.Database.E(Tag, "password cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("password");
             }
 
             if (salt == null) {
+                Log.To.Database.E(Tag, "salt cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("salt");
             }
 
             if(salt.Length <= 4) {
+                Log.To.Database.E(Tag, "salt cannot be less than 4 bytes in ctor, throwing...");
                 throw new ArgumentOutOfRangeException("salt", "Value is too short");
             }
             if(rounds <= 200) {
+                Log.To.Database.E(Tag, "rounds cannot be <= 200 in ctor, throwing...");
                 throw new ArgumentOutOfRangeException("rounds", "Insufficient rounds");
             }
 
@@ -194,6 +199,8 @@ namespace Couchbase.Lite.Store
 
             var data = keyOrPassword as IEnumerable<byte>;
             if (data == null) {
+                Log.To.Database.E(Tag, "Invalid keyOrPassword type ({0}) received, must be string " +
+                "or IEnumerable<byte>, throwing...", keyOrPassword.GetType().FullName);
                 throw new InvalidDataException("keyOrPassword must be either string or IEnumerable<byte>");
             }
 
@@ -247,6 +254,7 @@ namespace Couchbase.Lite.Store
         public Stream DecryptStream(Stream stream)
         {
             if(stream == null || !stream.CanRead) {
+                Log.To.Database.E(Tag, "Unable to read from stream, throwing...");
                 throw new ArgumentException("Unable to read from stream", "stream");
             }
 

@@ -97,13 +97,15 @@ namespace Couchbase.Lite
                 md5Digest = MessageDigest.GetInstance("MD5");
                 md5Digest.Reset();
             } catch (NotSupportedException e) {
-                throw new CouchbaseLiteException("Could not get an instance of SHA-1 or MD5 for BlobStoreWriter.", e);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag,
+                    "Could not get an instance of SHA-1 or MD5 for BlobStoreWriter.");
             }
 
             try {
                 OpenTempFile();
             } catch (FileNotFoundException e) {
-                throw new CouchbaseLiteException("Unable to open temporary file for BlobStoreWriter.", e);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag,
+                    "Unable to open temporary file for BlobStoreWriter.");
             }
         }
 
@@ -134,7 +136,8 @@ namespace Couchbase.Lite
             try {
                 outStream.Write(dataVector, 0, dataVector.Length);
             } catch (IOException e) {
-                throw new CouchbaseLiteException("Unable to write to stream.", e) { Code = StatusCode.Exception };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag,
+                    "Unable to write to stream");
             }
         }
 
@@ -154,13 +157,13 @@ namespace Couchbase.Lite
                     length += len;
                 }
             } catch (IOException e) {
-                Log.To.Database.E(Tag, "Got IOException in Read(), rethrowing...", e);
-                throw new CouchbaseLiteException("Unable to read from stream.", e);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag,
+                    "Unable to read from stream");
             } finally {
                 try {
                     inputStream.Close();
                 } catch (IOException e) {
-                    Log.To.Database.W(Tag, "Exception closing input stream", e);
+                    Log.To.Database.W(Tag, "Exception closing input stream, continuing...", e);
                 }
             }
         }
@@ -172,7 +175,7 @@ namespace Couchbase.Lite
                 outStream.Flush();
                 outStream.Dispose();
             } catch (IOException e) {
-                Log.To.Database.W(Tag, "Exception closing output stream", e);
+                Log.To.Database.W(Tag, "Exception closing output stream, continuing...", e);
             }
 
             blobKey = new BlobKey(sha1Digest.Digest());
@@ -185,7 +188,7 @@ namespace Couchbase.Lite
             try {
                 outStream.Dispose();
             } catch (IOException e) {
-                Log.To.Database.W(Tag, "Exception closing output stream", e);
+                Log.To.Database.W(Tag, "Exception closing output stream, continuing...", e);
             }
 
             File.Delete(tempFile);

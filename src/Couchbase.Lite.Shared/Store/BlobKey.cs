@@ -113,7 +113,8 @@ namespace Couchbase.Lite
             try {
                 bytes = StringUtils.ConvertFromUnpaddedBase64String(base64Digest);
             } catch (IOException e) {
-                throw new ArgumentException(String.Format("{0} is not a valid Base64 digest.", base64Digest), e.Message);
+                Log.To.Database.E(TAG, "{0} is not a valid Base64 digest, throwing...", base64Digest);
+                throw new ArgumentException(String.Format("{0} is not a valid Base64 digest.", base64Digest), e);
             }
 
             return bytes;

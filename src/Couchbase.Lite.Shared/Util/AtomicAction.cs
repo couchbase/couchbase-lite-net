@@ -232,12 +232,13 @@ namespace Couchbase.Lite.Util
                 try {
                     _performs[_nextStep]();
                 } catch(Exception e) {
-                    Log.To.NoDomain.W(TAG, String.Format("Error backing out step #{0}", _nextStep), e);
+                    Log.To.NoDomain.E(TAG, String.Format("Error backing out step #{0}, throwing CouchbaseLiteException...",
+                        _nextStep), e);
                     FailedStep = _nextStep;
                     if (_nextStep > 0) {
                         BackOut(); // back out the steps that already completed
                     }
-
+                        
                     throw new CouchbaseLiteException(e, StatusCode.Exception);
                 }
             }
@@ -250,8 +251,8 @@ namespace Couchbase.Lite.Util
                 try {
                     _backOuts[_nextStep]();
                 } catch(Exception e) {
-                    Log.To.NoDomain.W(TAG, String.Format("Error backing out step #{0}", _nextStep), e);
-                    throw new CouchbaseLiteException(e, StatusCode.Exception);
+                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG,
+                        "Error backing out step #{0}", _nextStep);
                 }
             }
         }
@@ -263,8 +264,8 @@ namespace Couchbase.Lite.Util
                 try {
                     _cleanUps[_nextStep]();
                 } catch(Exception e) {
-                    Log.To.NoDomain.W(TAG, String.Format("Error backing out step #{0}", _nextStep), e);
-                    throw new CouchbaseLiteException(e, StatusCode.Exception);
+                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG,
+                        "Error cleaning up step #{0}", _nextStep);
                 }
             }
         }

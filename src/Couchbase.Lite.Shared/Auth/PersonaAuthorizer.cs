@@ -170,8 +170,9 @@ namespace Couchbase.Lite.Auth
                 // Normalize the origin URL string:
                 Uri originURL;
                 if(origin == null || !Uri.TryCreate(origin, UriKind.Absolute, out originURL)) {
-                    Log.To.Sync.E(Tag, "Error registering assertion: Invalid origin {0}", origin);
-                    throw new ArgumentException("Invalid persona origin received");
+                    Log.To.Sync.E(Tag, "Couldn't parse origin from assertion '{0}', throwing...",
+                        new SecureLogString(assertion, LogMessageSensitivity.Insecure));
+                    throw new ArgumentException("Couldn't parse origin", "assertion");
                 }
 
                 origin = originURL.AbsoluteUri.ToLower();
@@ -209,6 +210,7 @@ namespace Couchbase.Lite.Auth
             // https://github.com/mozilla/id-specs/blob/prod/browserid/index.md
             // http://self-issued.info/docs/draft-jones-json-web-token-04.html
             if (assertion == null) {
+                Log.To.Sync.E(Tag, "Assertion cannot be null in ParseAssertion, throwing...");
                 throw new ArgumentNullException("assertion");
             }
 
@@ -216,8 +218,8 @@ namespace Couchbase.Lite.Auth
             var components = assertion.Split('.');
             // split on "."
             if (components.Length < 4) {
-                throw new ArgumentException(String.Format("Invalid assertion given, only {0} found.  Expected 4+",
-                    components.Length));
+                Log.To.Sync.E(Tag, "Invalid assertion in ParseAssertion (number of '.' < 4): {0}, throwing...",
+                    new SecureLogString(assertion, LogMessageSensitivity.Insecure));
             }
 
             var component1Decoded = Encoding.UTF8.GetString(StringUtils.ConvertFromUnpaddedBase64String(components[1]));
@@ -238,9 +240,9 @@ namespace Couchbase.Lite.Auth
                 var expDate = Misc.CreateDate(expObject);
                 result[AssertionFieldExpiration] = expDate;
             } catch (Exception e) {
-                Log.To.Sync.E(Tag, String.Format("Got exception while parsing assertion ({0}), rethrowing...",
-                    new SecureLogString(assertion, LogMessageSensitivity.Insecure)), e);
-                throw new ArgumentException("Error parsing asserting", e);
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag,
+                "Got exception while parsing assertion ({0})",
+                    new SecureLogString(assertion, LogMessageSensitivity.Insecure));
             }
 
             return result;

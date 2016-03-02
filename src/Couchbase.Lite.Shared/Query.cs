@@ -402,7 +402,8 @@ namespace Couchbase.Lite {
             });
 
             if (!success) {
-                throw new CouchbaseLiteException("Failed to query view named " + viewName, StatusCode.DbError);
+                throw Misc.CreateExceptionAndLog(Log.To.Query, StatusCode.DbError, TAG,
+                    "Failed to query view named {0}", viewName);
             }
 
             return new QueryEnumerator(Database, rows, outSequence);

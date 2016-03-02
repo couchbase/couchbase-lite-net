@@ -260,7 +260,8 @@ namespace Couchbase.Lite.Replicator
         public void StartedPart(IDictionary<string, string> headers)
         {
             if (_docReader != null) {
-                throw new InvalidOperationException("_docReader is already defined");
+                Log.To.Sync.E(Tag, "StartedPart called on an already started object");
+                throw new InvalidOperationException("StartedPart called on an already started object");
             }
 
             Log.To.Sync.V(Tag, "{0}: Starting new document; ID={1}", this, headers.Get("X-Doc-ID"));
@@ -273,10 +274,11 @@ namespace Couchbase.Lite.Replicator
         /// <remarks>This method is called to append data to a part's body.</remarks>
         public void AppendToPart (IEnumerable<byte> data)
         {
-            if (_docReader == null)
-            {
-                throw new InvalidOperationException("_docReader is not defined");
+            if (_docReader == null) {
+                Log.To.Sync.E(Tag, "AppendPart called on a non-started object");
+                throw new InvalidOperationException("AppendPart called on a non-started object");
             }
+
             _docReader.AppendData(data);
         }
 
@@ -284,11 +286,12 @@ namespace Couchbase.Lite.Replicator
         /// <remarks>This method is called when a part is complete.</remarks>
         public virtual void FinishedPart()
         {
-            Log.To.Sync.V(Tag, "{0} Finished document", this);
             if (_docReader == null) {
-                throw new InvalidOperationException("_docReader is not defined");
+                Log.To.Sync.E(Tag, "FinishedPart called on a non-started object");
+                throw new InvalidOperationException("FinishedPart called on a non-started object");
             }
 
+            Log.To.Sync.V(Tag, "{0} Finished document", this);
             _docReader.Finish();
             ++_docCount;
             OnDocumentDownloaded(_docReader.GetDocumentProperties());

@@ -215,11 +215,8 @@ namespace Couchbase.Lite
         public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
             if (directoryFile == null) {
+                Log.To.Database.E(TAG, "directoryFile cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("directoryFile");
-            }
-
-            if (options == null) {
-                throw new ArgumentNullException("options");
             }
 
             this.directoryFile = directoryFile;
@@ -233,7 +230,8 @@ namespace Couchbase.Lite
                 directoryFile.Create();
                 directoryFile.Refresh();
                 if (!directoryFile.Exists) {
-                    throw new  DirectoryNotFoundException("Unable to create directory " + directoryFile);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InternalServerError, TAG,
+                        "Unable to create directory {0}", directoryFile);
                 }
             }
 
@@ -327,7 +325,8 @@ namespace Couchbase.Lite
         public void Close() 
         {
             if (this == SharedInstance) {
-                throw new InvalidOperationException("Please don't call Close() on the SharedInstance");
+                Log.To.Database.E(TAG, "Calling close on Manager.SharedInstance is not allowed, throwing InvalidOperationException"); 
+                throw new InvalidOperationException("Calling close on Manager.SharedInstance is not allowed");
             }
 
             Log.To.Database.I(TAG, "CLOSING {0}", this);
@@ -362,6 +361,7 @@ namespace Couchbase.Lite
         public Database OpenDatabase(string name, DatabaseOptions options)
         {
             if (name == null) {
+                Log.To.Database.E(TAG, "name cannot be null in OpenDatabase, throwing...");
                 throw new ArgumentNullException("name");
             }
 
@@ -423,7 +423,13 @@ namespace Couchbase.Lite
         [Obsolete("This will only work for v1 (.cblite) databases")]
         public void ReplaceDatabase(string name, Stream databaseStream, IDictionary<string, Stream> attachmentStreams)
         {
+            if (name == null) {
+                Log.To.Database.E(TAG, "name cannot be null in ReplaceDatabase, throwing...");
+                throw new ArgumentNullException("name");
+            }
+
             if (databaseStream == null) {
+                Log.To.Database.E(TAG, "databaseStream cannot be null in ReplaceDatabase, throwing...");
                 throw new ArgumentNullException("databaseStream");
             }
 
@@ -452,8 +458,7 @@ namespace Couchbase.Lite
                     StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsPath);
                 }
             } catch (Exception e) {
-                Log.To.Upgrade.E(TAG, "Got exception in ReplaceDatabase, rethrowing...", e);
-                throw new CouchbaseLiteException("Error upgrading database", e) { Code = StatusCode.Exception };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error replacing database");
             }
         }
 
@@ -471,10 +476,12 @@ namespace Couchbase.Lite
         public void ReplaceDatabase(string name, Stream compressedStream, bool autoRename)
         {
             if (name == null) {
+                Log.To.Database.E(TAG, "name cannot be null in ReplaceDatabase, throwing...");
                 throw new ArgumentNullException("name");
             }
 
             if (compressedStream == null) {
+                Log.To.Database.E(TAG, "compressedStream cannot be null in ReplaceDatabase, throwing...");
                 throw new ArgumentNullException("compressedStream");
             }
 
@@ -483,7 +490,9 @@ namespace Couchbase.Lite
             var extension = zipInfo.Item2;
             bool namesMatch = name.Equals(zipDbName);
             if (!namesMatch && !autoRename) {
-                throw new ArgumentException("Names of db file in zip and name passed to function differ", "compressedStream");
+                Log.To.Database.E(TAG, "Given name ({0}) does not match name given in zip file ({1}) " +
+                    "and autoRename is false, throwing...", name, zipDbName);
+                throw new ArgumentException("Does not match name in zip file", "name");
             }
 
             var tempPath = Path.Combine(Path.GetTempPath(), name + "-upgrade");
@@ -538,7 +547,7 @@ namespace Couchbase.Lite
             if (!success) {
                 db.Delete();
                 System.IO.Directory.Move(db.DbDirectory + "-old", db.DbDirectory);
-                Log.To.Upgrade.W(TAG, "Unable to replace database (upgrade failed)");
+                Log.To.Upgrade.W(TAG, "Unable to replace database (upgrade failed), returning early...");
                 System.IO.Directory.Delete(tempPath, true);
                 return;
             }
@@ -592,7 +601,8 @@ namespace Couchbase.Lite
             var db = databases.Get(name);
             if (db == null) {
                 if (!IsValidDatabaseName(name)) {
-                    throw new ArgumentException("Invalid database name: " + name);
+                    Log.To.Database.E(TAG, "Invalid database name '{0}' passed to GetDatabase", name);
+                    throw new ArgumentException("Invalid name", "name");
                 }
 
                 if (_options.ReadOnly) {
@@ -667,7 +677,8 @@ namespace Couchbase.Lite
             }
 
             if (dbName == null) {
-                throw new ArgumentException("No database found in zip file", "compressedStream");
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadParam, TAG,
+                    "No database found in zip file");
             }
 
             compressedStream.Seek(0, SeekOrigin.Begin);
@@ -692,7 +703,8 @@ namespace Couchbase.Lite
                 var newFile = new DirectoryInfo(newFilename);
 
                 if (!oldFilename.Equals(newFilename) && newFile.Exists) {
-                    var msg = String.Format("Cannot move {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
+                    var msg = String.Format("Cannot move {0} to {1}, {2} already exists, returning false...",
+                        oldFilename, newFilename, newFilename);
                     Log.To.Upgrade.W(TAG, msg);
                     return false;
                 }
@@ -700,7 +712,7 @@ namespace Couchbase.Lite
                 var name = Path.GetFileNameWithoutExtension(Path.Combine(path.DirectoryName, newFilename));
                 var db = GetDatabase(name, false);
                 if (db == null) {
-                    Log.To.Upgrade.W(TAG, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
+                    Log.To.Upgrade.W(TAG, "Upgrade failed for {0} (Creating new DB failed), returning false...", path.Name);
                     return false;
                 }
                 db.Dispose();
@@ -709,7 +721,7 @@ namespace Couchbase.Lite
                 try {
                     upgrader.Import();
                 } catch(CouchbaseLiteException e) {
-                    Log.To.Upgrade.W(TAG, "Upgrade failed for {0} (Status {1})", path.Name, e.CBLStatus);
+                    Log.To.Upgrade.W(TAG, "Upgrade failed for {0} (Status {1}), aborting...", path.Name, e.CBLStatus);
                     upgrader.Backout();
                     return false;
                 }
@@ -738,7 +750,7 @@ namespace Couchbase.Lite
 
             Status result = ParseReplicationProperties(properties, out push, out createTarget, results);
             if (result.IsError) {
-                throw new CouchbaseLiteException(result.Code);
+                throw Misc.CreateExceptionAndLog(Log.To.Listener, result.Code, TAG, "Failed to create replication");
             }
 
             object continuousObj = properties.Get("continuous");
@@ -911,7 +923,8 @@ namespace Couchbase.Lite
         private string PathForName(string name)
         {
             if (String.IsNullOrEmpty(name) || illegalCharactersPattern.IsMatch(name)) {
-                throw new ArgumentException(String.Format("\"{0}\" is empty or contains illegal characters", name), "name");
+                Log.To.Database.E(TAG, "\"{0}\" in PathForName is empty or contains illegal characters", name);
+                throw new ArgumentException("Invalid name", "name");
             }
 
             //Backwards compatibility

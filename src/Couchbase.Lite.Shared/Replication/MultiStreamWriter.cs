@@ -176,6 +176,7 @@ namespace Couchbase.Lite.Support
         public Task<bool> WriteAsync(Stream output)
         {
             if (_isDisposed) {
+                Log.To.Sync.E(TAG, "Attempt to call WriteAsync on a disposed object, throwing...");
                 throw new ObjectDisposedException("MultiStreamWriter");
             }
 

@@ -73,6 +73,7 @@ namespace Couchbase.Lite
         public BlobStore(string path, SymmetricKey encryptionKey)
         {
             if (path == null) {
+                Log.To.Database.E(TAG, "path cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("path");
             }
 
@@ -85,6 +86,7 @@ namespace Couchbase.Lite
                 // New blob store; create directory:
                 Directory.CreateDirectory(path);
                 if (!Directory.Exists(path)) {
+                    Log.To.Database.E(TAG, "Unable to create directory for: {0}", path);
                     throw new InvalidOperationException(string.Format("Unable to create directory for: {0}", path));
                 }
 
@@ -218,11 +220,11 @@ namespace Couchbase.Lite
                 fos = File.Open(keyPath, FileMode.Create);
                 fos.Write(data, 0, data.Length);
             } catch (FileNotFoundException e) {
-                Log.To.Database.E(TAG, "Error opening file for output, rethrowing...", e);
-                throw new CouchbaseLiteException("Couldn't open file for writing attachment", e) { Code = StatusCode.AttachmentError };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.AttachmentError, TAG,
+                    "Unable to get file for output");
             }  catch (IOException ioe) {
-                Log.To.Database.E(TAG, "Error writing to file, rethrowing...", ioe);
-                throw new CouchbaseLiteException("Error writing attachment to file", ioe) { Code = StatusCode.AttachmentError };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, ioe, StatusCode.AttachmentError, TAG,
+                    "Unable to write to output file");
             } finally {
                 if (fos != null) {
                     try {
@@ -265,7 +267,7 @@ namespace Couchbase.Lite
                         File.Delete(attachment);
                         ++numDeleted;
                     } catch(Exception e) {
-                        Log.To.Database.W(TAG, "Error deleting attachment, but continuing...", e);
+                        Log.To.Database.W(TAG, "Error deleting attachment, continuing...", e);
                     }
                 }
             }
@@ -279,15 +281,13 @@ namespace Couchbase.Lite
             try {
                 Directory.CreateDirectory(path);
             } catch(Exception e) {
-                var msg = String.Format("Unable to create directory for: {0}", path);
-                Log.To.Database.E(TAG, String.Format("{0}, throwing CouchbaseLiteException...", msg), e);
-                throw new CouchbaseLiteException(msg, e);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, 
+                    "Unable to create directory for: {0}", path);
             }
 
             if (!Directory.Exists(path)) {
-                var msg = String.Format("Unable to create directory for: {0}", path);
-                Log.To.Database.E(TAG, "{0}, throwing CouchbaseLiteException...", msg);
-                throw new CouchbaseLiteException(msg, StatusCode.Exception);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG, 
+                    "Unable to create directory for: {0}", path);
             }
 
             Log.To.Database.I(TAG, "{0} created temporary directory {1}", this, path);
@@ -386,13 +386,13 @@ namespace Couchbase.Lite
                 try {
                     File.WriteAllText(encMarkerPath, ENCRYPTION_ALGORITHM);
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException("Error enabling attachment encryption", e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error enabling attachment encryption");
                 }
             } else {
                 try {
                     File.Delete(encMarkerPath);
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException("Error disabling attachment encryption", e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error disabling attachment encryption");
                 }
             }
         }
@@ -405,17 +405,17 @@ namespace Couchbase.Lite
             try {
                 encryptionAlg = fileExists ? File.ReadAllText(markerPath) : null;
             } catch(Exception e) {
-                throw new CouchbaseLiteException("Error verifying BlobStore", e) { Code = StatusCode.Exception };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error verifying blob store");
             }
 
             if (encryptionAlg != null) {
                 // "_encryption" file is present, so make sure we support its format & have a key:
                 if (EncryptionKey == null) {
-                    throw new CouchbaseLiteException("Opening encrypted blob-store without providing a key", StatusCode.Unauthorized);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Unauthorized, TAG,
+                        "Opening encrypted blob-store without providing a key");
                 } else if (ENCRYPTION_ALGORITHM != encryptionAlg) {
-                    throw new CouchbaseLiteException("Blob-store uses unrecognized encryption '{0}'", encryptionAlg) {
-                        Code = StatusCode.Unauthorized
-                    };
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Unauthorized, TAG,
+                        "Blob-store uses unrecognized encryption '{0}'", encryptionAlg);
                 }
             } else if (!fileExists) {
                 // No "_encryption" file was found, so on-disk store isn't encrypted:

@@ -245,8 +245,11 @@ namespace Couchbase.Lite.Support
                         return true;
                     }, _cancellationSource.Token, TaskContinuationOptions.None, _workExecutor.Scheduler);
                 } else {
-                    if (_flushFuture == null || _flushFuture.IsCompleted)
+                    if (_flushFuture == null || _flushFuture.IsCompleted) {
+                        Log.To.NoDomain.E(TAG, "Batcher got into an inconsistent state, flush future is scheduled " +
+                        "but missing.  Throwing...");
                         throw new InvalidOperationException("Flushfuture missing despite scheduled.");
+                    }
                 }
             }
         }

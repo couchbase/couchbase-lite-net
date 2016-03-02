@@ -321,8 +321,8 @@ namespace Couchbase.Lite
 
                 SetAttachment(name, contentType, inputBytes);
             } catch (IOException e) {
-                Log.To.Database.E(Tag, "Error opening stream for url: {0}", contentUrl);
-                throw new Exception(String.Format("Error opening stream for url: {0}", contentUrl), e);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag,
+                    "Error opening stream for url: {0}", contentUrl);
             }
         }
 

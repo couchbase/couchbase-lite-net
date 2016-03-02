@@ -89,6 +89,7 @@ namespace Couchbase.Lite.Listener
         public CouchbaseLiteServiceBroadcaster(IRegisterService registerService, ushort port)
         {
             if (registerService == null) {
+                Log.To.Discovery.E(TAG, "registerService null in ctor, throwing...");
                 throw new ArgumentNullException("registerService");
             }
 

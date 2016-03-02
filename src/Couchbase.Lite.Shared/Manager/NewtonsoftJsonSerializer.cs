@@ -97,7 +97,8 @@ namespace Couchbase.Lite
             try {
                 item = JsonConvert.DeserializeObject<T>(json, settings);
             } catch(JsonException e) {
-                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error deserializing json ({0})",
+                    new SecureLogString(json, LogMessageSensitivity.PotentiallyInsecure));
             }
 
             return item;
@@ -112,7 +113,7 @@ namespace Couchbase.Lite
                 try {
                     item = serializer.Deserialize<T>(jsonReader);
                 } catch (JsonException e) {
-                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error deserializing json from stream");
                 }
 
                 return item;
@@ -133,21 +134,22 @@ namespace Couchbase.Lite
             try {
                 return _textReader != null && _textReader.Read();
             } catch (Exception e) {
-                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error reading from streaming parser");
             }
         }
 
         public IDictionary<string, object> DeserializeNextObject()
         {
             if (_textReader == null) {
-                Log.To.Sync.W(TAG, "DeserializeNextObject is only valid after a call to StartIncrementalParse");
+                Log.To.Sync.W(TAG, "DeserializeNextObject is only valid after a call to StartIncrementalParse, " +
+                    "returning null");
                 return null;
             }
 
             try {
                 return JToken.ReadFrom(_textReader).ToObject<IDictionary<string, object>>();
             } catch(Exception e) {
-                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error deserializing from streaming parser");
             }
         }
 

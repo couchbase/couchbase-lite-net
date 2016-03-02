@@ -12,6 +12,7 @@ namespace Couchbase.Lite.Util
 
         #region Variables
 
+        private static readonly string Tag = typeof(ExponentialBackoffStrategy).Name;
         private readonly int _maxTries;
 
         private int _tries;
@@ -39,10 +40,12 @@ namespace Couchbase.Lite.Util
         public ExponentialBackoffStrategy(HttpRequestMessage request, int maxTries, CancellationToken token)
         {
             if (request == null) {
+                Log.To.Database.E(Tag, "request is null in ctor, throwing...");
                 throw new ArgumentNullException("request");
             }
 
             if (maxTries <= 0) {
+                Log.To.Database.E(Tag, "maxTries <= 0 in ctor, throwing...");
                 throw new ArgumentOutOfRangeException("maxTries", maxTries, "Max tries must be at least 1");
             }
 

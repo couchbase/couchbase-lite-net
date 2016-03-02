@@ -719,8 +719,8 @@ namespace Couchbase.Lite.Replicator
                                 continue;
                             }
                         } catch (Exception e) {
-                            Log.To.Sync.E(TAG, "Exception inserting downloads, throwing CouchbaseLiteException", e);
-                            throw new CouchbaseLiteException("Error inserting downloads", e);
+                            throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG,
+                                "Error inserting downloads");
                         }
 
                         _pendingSequences.RemoveSequence(fakeSequence);
@@ -742,7 +742,6 @@ namespace Couchbase.Lite.Replicator
             var delta = (DateTime.UtcNow - time).TotalMilliseconds;
             Log.To.Sync.I(TAG, "Inserted {0} revs in {1} milliseconds", downloads.Count, delta);
             Log.To.SyncPerf.I(TAG, "Inserted {0} revs in {1} milliseconds", downloads.Count, delta);
-            var newCompletedChangesCount = CompletedChangesCount + downloads.Count;
             SafeAddToCompletedChangesCount(downloads.Count);
             PauseOrResume();
         }

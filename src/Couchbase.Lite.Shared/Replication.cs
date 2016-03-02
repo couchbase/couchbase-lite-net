@@ -649,13 +649,11 @@ namespace Couchbase.Lite
             _requests = new ConcurrentDictionary<HttpRequestMessage, Task>();
 
             // FIXME: Refactor to visitor pattern.
-            if (RemoteUrl.Query != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.Query))
-            {
+            if (RemoteUrl.Query != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.Query)) {
                 var uri = new Uri(remote.ToString());
                 var personaAssertion = URIUtils.GetQueryParameter(uri, PersonaAuthorizer.QueryParameter);
 
-                if (personaAssertion != null && !StringEx.IsNullOrWhiteSpace(personaAssertion))
-                {
+                if (personaAssertion != null && !StringEx.IsNullOrWhiteSpace(personaAssertion)) {
                     var email = PersonaAuthorizer.RegisterAssertion(personaAssertion);
                     var authorizer = new PersonaAuthorizer(email);
                     Authenticator = authorizer;
@@ -663,34 +661,29 @@ namespace Couchbase.Lite
 
                 var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter);
 
-                if (facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken))
-                {
+                if (facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken)) {
                     var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameterEmail);
                     var authorizer = new FacebookAuthorizer(email);
                     Uri remoteWithQueryRemoved = null;
 
-                    try
-                    {
+                    try {
                         remoteWithQueryRemoved = new UriBuilder(remote.Scheme, remote.Host, remote.Port, remote.AbsolutePath).Uri;
-                    }
-                    catch (UriFormatException e)
-                    {
-                        throw new ArgumentException("Invalid URI format.", "remote", e);
+                    } catch (UriFormatException e) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG,
+                            "Invalid URI format for remote endpoint");
                     }
 
                     FacebookAuthorizer.RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved);
-
                     Authenticator = authorizer;
                 }
+
                 // we need to remove the query from the URL, since it will cause problems when
                 // communicating with sync gw / couchdb
-                try
-                {
+                try {
                     RemoteUrl = new UriBuilder(remote.Scheme, remote.Host, remote.Port, remote.AbsolutePath).Uri;
-                }
-                catch (UriFormatException e)
-                {
-                    throw new ArgumentException("Invalid URI format.", "remote", e);
+                } catch (UriFormatException e) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG,
+                        "Invalid URI format for remote endpoint");
                 }
             }
 
@@ -706,7 +699,8 @@ namespace Couchbase.Lite
 
                     Log.To.Sync.V(TAG, "*** {0} END ProcessInbox (lastSequence={1})", this, LastSequence);
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException(String.Format("{0} ProcessInbox failed", this), e);
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG, 
+                        "{0} ProcessInbox failed", this);
                 }
             });
 
@@ -1436,8 +1430,9 @@ namespace Couchbase.Lite
                 var urlStr = BuildRelativeURLString(relativePath);
                 url = new Uri(urlStr);
             } catch (UriFormatException e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, StatusCode.BadParam, TAG, 
-                    "Invalid URI format for multipart request");
+                Log.To.Sync.E(TAG, "Invalid path received for request: {0}, throwing...",
+                    new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
+                throw new ArgumentException("Invalid path", "relativePath");
             }
 
             var message = new HttpRequestMessage(method, url);
@@ -1586,7 +1581,8 @@ namespace Couchbase.Lite
                                 }
 
                                 if (info.Get("data") == null) {
-                                    throw new InvalidOperationException("Transformer added attachment without adding data");
+                                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.InternalServerError, TAG,
+                                        "Transformer added attachment without adding data");
                                 }
 
                                 var newInfo = new Dictionary<string, object>(info);
@@ -2128,6 +2124,7 @@ namespace Couchbase.Lite
     ///
     public class ReplicationChangeEventArgs : EventArgs
     {
+        private static readonly string Tag = typeof(ReplicationChangeEventArgs).Name;
         private readonly Replication _source;
         private readonly ReplicationStateTransition _transition;
         private readonly int _changesCount;
@@ -2198,6 +2195,7 @@ namespace Couchbase.Lite
         public ReplicationChangeEventArgs (Replication sender, ReplicationStateTransition transition)
         {
             if (sender == null) {
+                Log.To.Sync.E(Tag, "sender null in ctor, throwing...");
                 throw new ArgumentNullException("sender");
             }
 

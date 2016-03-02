@@ -318,8 +318,9 @@ namespace Couchbase.Lite.Replicator
                             //jsonContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment");
                             multiPart.Add(jsonContent);
                             length += json.Length;
-                        } catch (IOException e) {
-                            throw new ArgumentException("Not able to serialize revision properties into a multipart request content.", e);
+                        } catch (Exception e) {
+                            throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG,
+                                "Not able to serialize revision properties into a multipart request content.");
                         }
                     }
 
@@ -643,7 +644,8 @@ namespace Couchbase.Lite.Replicator
                                 try {
                                     loadedRev = LocalDatabase.LoadRevisionBody (rev);
                                     if(loadedRev == null) {
-                                        throw new CouchbaseLiteException("DB is closed", StatusCode.DbError);
+                                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.DbError, TAG,
+                                            "Unable to load revision body");
                                     }
 
                                     properties = new Dictionary<string, object>(rev.GetProperties());
@@ -665,7 +667,8 @@ namespace Couchbase.Lite.Replicator
                                 try {
                                     var history = LocalDatabase.GetRevisionHistory(populatedRev, possibleAncestors);
                                     if(history == null) {
-                                        throw new CouchbaseLiteException("DB closed", StatusCode.DbError);
+                                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.DbError, TAG,
+                                            "Unable to load revision history");
                                     }
 
                                     properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
@@ -700,7 +703,8 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 if (properties == null || !properties.ContainsKey("_id")) {
-                                    throw new InvalidOperationException("properties must contain a document _id");
+                                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.BadParam, TAG,
+                                        "properties must contain a document _id");
                                 }
 
                                 // Add the _revisions list:

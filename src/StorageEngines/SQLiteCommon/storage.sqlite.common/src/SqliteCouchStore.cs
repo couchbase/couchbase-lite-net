@@ -537,7 +537,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 _transactionCount = StorageEngine.BeginTransaction();
                 Log.To.Database.I(TAG, "Begin transaction (level {0})", _transactionCount);
             } catch (Exception e) {
-                Log.To.Database.W(TAG, "Failed to created SQLite transaction" , e);
+                Log.To.Database.W(TAG, "Failed to created SQLite transaction, returning false" , e);
                 return false;
             }
 
