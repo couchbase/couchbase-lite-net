@@ -56,6 +56,8 @@ namespace Couchbase.Lite
 
     internal class JsonCollator
     {
+        private static readonly string Tag = typeof(JsonCollator).Name;
+
         // Types of values, ordered according to CouchDB collation order (see view_collation.js tests)
         enum ValueType
         {
@@ -190,16 +192,23 @@ namespace Couchbase.Lite
         ///     The double-precision floating-point representation of the characters in string.
         /// </returns>
         /// 
-        public static double Strtod(String str, int start, out int endPosition)
+        public static double Strtod(string str, int start, out int endPosition)
         {
-            if (str == null)
+            if (str == null) {
+                Log.To.Database.E(Tag, "str cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("str");
+            }
 
-            if (start < 0)
+            if (start < 0) {
+                Log.To.Database.E(Tag, "start cannot be negative in ctor, throwing...");
                 throw new ArgumentOutOfRangeException("start", "Value cannot be negative.");
+            }
 
-            if (start > str.Length)
+            if (start > str.Length) {
+                Log.To.Database.E(Tag, "start cannot be greater than str.Length ({0}) in ctor, throwing...",
+                    str.Length);
                 throw new ArgumentOutOfRangeException("start", "Value must be less then str.Length");
+            }
 
             int sign = 0;
             int expSign = 0;

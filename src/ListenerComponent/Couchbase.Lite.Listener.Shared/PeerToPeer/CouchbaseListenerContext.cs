@@ -25,6 +25,7 @@ using System.IO;
 using System.Linq;
 
 using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
@@ -35,6 +36,12 @@ namespace Couchbase.Lite.Listener
     /// </summary>
     public abstract class CouchbaseListenerContext : ICouchbaseListenerContext2
     {
+
+        #region Constants
+
+        private static readonly string Tag = typeof(CouchbaseListenerContext).Name;
+
+        #endregion
 
         #region Variables
 
@@ -61,7 +68,8 @@ namespace Couchbase.Lite.Listener
                 //Must do this twice because Unity3D requires double escaping of encoded slashes in URL
                 var name = Uri.UnescapeDataString(Uri.UnescapeDataString(UrlComponentAt(0)));
                 if (!Manager.IsValidDatabaseName(name)) {
-                    throw new CouchbaseLiteException(StatusCode.BadId);
+                    throw Misc.CreateExceptionAndLog(Log.To.Listener, StatusCode.BadId, Tag,
+                        "Invalid database name ({0}) requested", name);
                 }
 
                 return name;

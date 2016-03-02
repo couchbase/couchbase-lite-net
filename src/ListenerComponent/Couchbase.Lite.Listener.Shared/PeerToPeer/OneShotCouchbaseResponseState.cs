@@ -32,6 +32,12 @@ namespace Couchbase.Lite.Listener
     internal sealed class OneShotCouchbaseResponseState : ICouchbaseResponseState
     {
 
+        #region Constants
+
+        private static readonly string Tag = typeof(OneShotCouchbaseResponseState).Name;
+
+        #endregion
+
         #region Variables
 
         private readonly Replication _replication;
@@ -62,6 +68,7 @@ namespace Couchbase.Lite.Listener
         public OneShotCouchbaseResponseState(Replication replication)
         {
             if (replication == null) {
+                Log.To.Listener.E(Tag, "replication cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("replication");
             }
 

@@ -82,6 +82,8 @@ namespace Couchbase.Lite.Security
                 var retVal = new X509Certificate2(filePath, password);
                 var cn = "CN=" + certificateName;
                 if (retVal.Subject != cn) {
+                    Log.To.Listener.E(Tag, "Certificate name doesn't match for {0}, " +
+                        "expecting {1} but found {2}, throwing...", filePath, certificateName, retVal.Subject.Substring(3));
                     throw new InvalidDataException(String.Format("Certificate name doesn't match for {0}, " +
                         "expecting {1} but found {2}", filePath, certificateName, retVal.Subject.Substring(3)));
                 }
@@ -126,10 +128,12 @@ namespace Couchbase.Lite.Security
         private static byte[] CreateRawCert(string certName, string password)
         {
             if (String.IsNullOrEmpty(certName)) {
+                Log.To.Listener.E(Tag, "An empty certName was received in CreateRawCert, throwing...");
                 throw new ArgumentException("Must contain a non-empty name", "certName");
             }
 
             if (String.IsNullOrEmpty(password)) {
+                Log.To.Listener.E(Tag, "An empty password was received in CreateRawCert, throwing...");
                 throw new ArgumentException("Must contain a non-empty password", "password");
             }
 

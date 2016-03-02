@@ -164,10 +164,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         new SecureLogString(sqlStatements, LogMessageSensitivity.PotentiallyInsecure));
                     throw;
                 } catch(Exception e) {
-                    Log.To.Database.E(Tag, String.Format("Exception running sql statements ({0}), " +
-                        "throwing CouchbaseLiteException",
-                        new SecureLogString(sqlStatements, LogMessageSensitivity.PotentiallyInsecure)), e);
-                    throw new CouchbaseLiteException("Error running SQL statements", e);
+                    throw Misc.CreateExceptionAndLog(Log.To.View, e, Tag, 
+                        "Exception running sql statements ({0}), ",
+                        new SecureLogString(sqlStatements, LogMessageSensitivity.PotentiallyInsecure));
                 }
 
                 return true;
@@ -196,9 +195,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 Log.To.Database.E(Tag, "Couldn't create view index `{0}`, rethrowing...", Name);
                 throw;
             } catch(Exception e) {
-                Log.To.Database.E(Tag, String.Format("Couldn't create view index `{0}`, throwing CouchbaseLiteException",
-                    Name), e);
-                throw new CouchbaseLiteException(String.Format("Couldn't create view index `{0}`", Name), e);
+                throw Misc.CreateExceptionAndLog(Log.To.View, e, Tag,
+                    "Couldn't create view index `{0}`", Name);
             }
         }
 
@@ -277,11 +275,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 RunStatements(sql);
             } catch(CouchbaseLiteException) {
-                Log.To.Query.E(Tag, "Couldn't create view SQL index `{0}`, rethrowing...", Name);
+                Log.To.View.E(Tag, "Couldn't create view SQL index `{0}`, rethrowing...", Name);
+                throw;
             } catch(Exception e) {
-                Log.To.Query.E(Tag, String.Format("Couldn't create view SQL index `{0}`, " +
-                    "throwing CouchbaseLiteException", Name), e);
-                throw new CouchbaseLiteException(String.Format("Couldn't create view SQL index `{0}`", Name), e);
+                throw Misc.CreateExceptionAndLog(Log.To.View, e, Tag,
+                    "Couldn't create view SQL index `{0}`", Name);
             }
         }
             
@@ -304,11 +302,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 RunStatements(sql);
             } catch(CouchbaseLiteException) {
-                Log.To.Query.E(Tag, "Error initializing rtree schema for `{0}`, rethrowing...", Name);
+                Log.To.View.E(Tag, "Error initializing rtree schema for `{0}`, rethrowing...", Name);
                 throw;
             } catch(Exception e) {
-                Log.To.Query.E(Tag, String.Format("Exception initializing rtree schema for `{0}`", Name), e);
-                throw new CouchbaseLiteException("Error initializing rtree schema", e);
+                throw Misc.CreateExceptionAndLog(Log.To.View, e, Tag, "Error initializing rtree schema");
             }
 
             _initializedRTreeSchema = true;
@@ -661,7 +658,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         long last = view == this ? forViewLastSequence : view.LastSequenceIndexed;
                         viewLastSequence[i++] = last;
                         if (last < 0) {
-                            throw new CouchbaseLiteException(StatusCode.DbError);
+                            throw Misc.CreateExceptionAndLog(Log.To.View, StatusCode.DbError, Tag,
+                                "Invalid last sequence indexed ({0}) received from {1}", last, view);
                         }
 
                         if (last < dbMaxSequence) {
@@ -707,7 +705,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             }
 
                             if (!ok) {
-                                throw new CouchbaseLiteException(StatusCode.DbError);
+                                throw Misc.CreateExceptionAndLog(Log.To.View, StatusCode.DbError, Tag,
+                                    "Error deleting obsolete map results before index update");
                             }
 
                             // Update #deleted rows

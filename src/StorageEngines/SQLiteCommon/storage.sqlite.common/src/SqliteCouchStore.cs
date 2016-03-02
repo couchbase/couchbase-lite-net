@@ -415,7 +415,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             var path = Path.Combine(_directory, DB_FILENAME);
             if (StorageEngine == null || !StorageEngine.Open(path, _readOnly, SCHEMA, _encryptionKey)) {
-                throw new CouchbaseLiteException("Unable to create a storage engine", StatusCode.DbError);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
+                    "Unable to create a SQLite storage engine");
             }
 
             // Stuff we need to initialize every time the sqliteDb opens:
@@ -431,12 +432,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 // Incompatible version changes increment the hundreds' place:
                 if (dbVersion >= 200) {
-                    throw new CouchbaseLiteException("Database version (" + dbVersion + ") is newer than I know how to work with", StatusCode.DbError);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
+                        "Database version ({0}) is newer (>= 200) than I know how to work with", dbVersion);
                 }
 
                 if (dbVersion < 17) {
-                    throw new CouchbaseLiteException("Database version ({0}) is older " +
-                        "than I know how to work with", dbVersion) { Code = StatusCode.DbError };
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
+                        "Database version ({0}) is older than I know how to work with", dbVersion);
                 }
 
                 if (dbVersion < 18) {
@@ -770,7 +772,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }, true, sql, docNumericId);
                 
             if (innerStatus.IsError && innerStatus.Code != StatusCode.NotFound) {
-                throw new CouchbaseLiteException("Error getting document revisions ({0})", innerStatus) { Code = StatusCode.DbError };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, innerStatus.Code, TAG,
+                    "Error getting document revisions");
             }
 
             return revs;
@@ -971,7 +974,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public void SetEncryptionKey(SymmetricKey key)
         {
             #if !ENCRYPTION
-            Log.To.Database.E(TAG, "This store does not support encryption");
+            Log.To.Database.E(TAG, "This store does not support encryption, throwing...");
             throw new InvalidOperationException("This store does not support encryption");
             #else
             _encryptionKey = key;
@@ -981,7 +984,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
         {
             #if !ENCRYPTION
-            Log.To.Database.E(TAG, "This store does not support encryption");
+            Log.To.Database.E(TAG, "This store does not support encryption, throwing...");
             throw new InvalidOperationException("This store does not support encryption");
             #else
             // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export
@@ -1083,7 +1086,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     outStatus.Code = revId == null ? StatusCode.Deleted : StatusCode.NotFound;
                     return null;
                 } else {
-                    throw new CouchbaseLiteException(transactionStatus.Code);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, outStatus.Code, TAG,
+                        "Error during transaction in GetDocument()");
                 }
             }
 
@@ -1101,7 +1105,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             Debug.Assert(rev.DocID != null && rev.RevID != null);
             var docNumericId = GetDocNumericID(rev.DocID);
             if (docNumericId <= 0L) {
-                throw new CouchbaseLiteException(StatusCode.NotFound);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotFound, TAG,
+                    "Cannot load body of {0} because it doesn't exist", rev);
             }
 
             var status = TryQuery(c =>
@@ -1116,7 +1121,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }, false, "SELECT sequence, json FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID);
 
             if (status.IsError) {
-                throw new CouchbaseLiteException(status.Code);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, status.Code, TAG,
+                    "Error during SQLite query");
             }
         }
 
@@ -1624,7 +1630,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     json = Manager.GetObjectMapper().WriteValueAsBytes(Database.StripDocumentJSON(properties), true);
                 } catch (Exception e) {
-                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                        "Unable to serialize document properties in PutRevision");
                 }
             } else {
                 json = Encoding.UTF8.GetBytes("{}");
@@ -1651,7 +1658,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 if(docId != null) {
                     docNumericId = GetOrInsertDocNumericID(docId, ref isNewDoc);
                     if(docNumericId <= 0L) {
-                        throw new CouchbaseLiteException(StatusCode.DbError);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
+                            "Unable to create sequence number for document");
                     }
                 } else {
                     docNumericId = 0L;
@@ -1670,23 +1678,30 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 if(prevRevId != null) {
                     // Replacing: make sure given prevRevID is current & find its sequence number:
                     if(isNewDoc) {
-                        throw new CouchbaseLiteException("Previous revision not found", StatusCode.NotFound);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotFound, TAG,
+                            "Previous revision specified for a new document");
                     }
 
                     parentSequence = GetSequenceOfDocument(docNumericId, prevRevId, !allowConflict);
                     if(parentSequence == 0L) {
                         // Not found: NotFound or a Conflict, depending on whether there is any current revision
                         if(!allowConflict && DocumentExists(docId, null)) {
-                            throw new CouchbaseLiteException(StatusCode.Conflict);
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
+                                "Conflict attempted in PutRevision without allowConflict == true");
                         }
 
-                        throw new CouchbaseLiteException("Previous revision not found", StatusCode.NotFound);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotFound, TAG,
+                            "Unable to find previous revision (ID={0} REV={1})",
+                            new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), prevRevId);
                     }
                 } else {
                     // Inserting first revision.
                     if(deleting && docId != null) {
                         // Didn't specify a revision to delete: NotFound or a Conflict, depending
-                        throw new CouchbaseLiteException(DocumentExists(docId, null) ? StatusCode.Conflict : StatusCode.NotFound);
+                        var status = DocumentExists(docId, null) ? StatusCode.Conflict : StatusCode.NotFound;
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, status, TAG,
+                            "Delete operation attempted without specifying revision ID for {0}",
+                            new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                     }
 
                     if(docId != null) {
@@ -1697,15 +1712,17 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             parentSequence = GetSequenceOfDocument(docNumericId, prevRevId, false);
                         } else if(oldWinningRevId != null) {
                             // The current winning revision is not deleted, so this is a conflict
-                            throw new CouchbaseLiteException(StatusCode.Conflict);
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
+                                "Conflict attempted in PutRevision");
                         }
                     } else {
                         // Inserting first revision, with no docID given (POST): generate a unique docID:
                         docId = Misc.CreateGUID();
                         docNumericId = GetOrInsertDocNumericID(docId, ref isNewDoc);
                         if(docNumericId <= 0L) {
-                            throw new CouchbaseLiteException(String.Format(
-                                "Couldn't write new document {0} to database", docId), StatusCode.DbError);
+                            // This docId is log safe because it was generated by us
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
+                                "Couldn't write new document {0} to database", docId);
                         }
                     }
                 }
@@ -1720,8 +1737,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 string newRevId = Delegate.GenerateRevID(json, deleting, prevRevId);
                 if(newRevId == null) {
                     // invalid previous revID (no numeric prefix)
-                    throw new CouchbaseLiteException(String.Format(
-                        "Invalid rev ID {0} for document {1}", prevRevId, docId), StatusCode.BadId);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
+                        "Invalid rev ID {0} for document {1}", prevRevId, 
+                        new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                 }
 
                 Debug.Assert(docId != null);
@@ -1740,8 +1758,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                     var validationStatus = validationBlock(newRev, prevRev, prevRevId);
                     if(validationStatus.IsError) {
-                        throw new CouchbaseLiteException(String.Format("{0} failed validation", newRev), 
-                            validationStatus.Code);
+                        throw Misc.CreateExceptionAndLog(Log.To.Validation, validationStatus.Code, TAG,
+                            "{0} failed validation", newRev);
                     }
                 }
 
@@ -1765,9 +1783,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     sequence = InsertRevision(newRev, docNumericId, parentSequence, true, hasAttachments, json, docType);
                 } catch(Exception) {
-                    if(StorageEngine.LastErrorCode != raw.SQLITE_CONSTRAINT) {
-                        throw new CouchbaseLiteException(String.Format("Failed to insert revision {0}", newRev),
-                            LastDbError.Code);
+                    var lastCode = StorageEngine.LastErrorCode;
+                    if(lastCode != raw.SQLITE_CONSTRAINT) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, LastDbError.Code, TAG,
+                            "Failed to insert revision {0} ({1})", newRev, lastCode);
                     }
 
                     Log.To.Database.I(TAG, "Duplicate rev insertion {0} / {1}", 
@@ -1829,8 +1848,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 bool isNewDoc = revHistory.Count == 1;
                 var docNumericId = GetOrInsertDocNumericID(docId, ref isNewDoc);
                 if(docNumericId <= 0) {
-                    throw new CouchbaseLiteException(String.Format("Error inserting document {0}", docId),
-                        StatusCode.DbError);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
+                        "Error inserting document {0}", new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                 }
 
                 if(!isNewDoc) {
@@ -1846,7 +1865,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         try {
                             oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, inConflict);
                         } catch(CouchbaseLiteException) {
-                            Log.To.Database.E(TAG, "Failed to look up winner for {0}", 
+                            Log.To.Database.E(TAG, "Failed to look up winner for {0}, rethrowing...", 
                                 new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                             throw;
                         } catch(Exception e) {
@@ -2002,8 +2021,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     IEnumerable<string> revsPurged = null;
                     var revIDs = docsToRev[docId];
                     if(revIDs == null) {
-                        throw new CouchbaseLiteException(String.Format("Illegal null revIds for {0}", docId),
-                            StatusCode.BadParam);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadParam, TAG,
+                            "Illegal null revIds for {0}", new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                     } else if(revIDs.Count == 0) {
                         revsPurged = new List<string>();
                     } else if(revIDs.Contains("*")) {

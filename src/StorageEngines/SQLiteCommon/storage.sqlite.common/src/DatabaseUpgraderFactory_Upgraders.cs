@@ -119,9 +119,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 var status = SqliteErrToStatus(err);
                 if (status.IsError) {
-                    throw new CouchbaseLiteException(String.Format("Couldn't compile SQL `{0}` : ({1} / {2} / {3})", sql, 
-                        raw.sqlite3_errcode(_sqlite), raw.sqlite3_extended_errcode(_sqlite), raw.sqlite3_errmsg(_sqlite)),
-                        status.Code);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, status.Code, TAG,
+                        "Couldn't compile SQL `{0}` : ({1} / {2} / {3})", sql, 
+                        raw.sqlite3_errcode(_sqlite), raw.sqlite3_extended_errcode(_sqlite), raw.sqlite3_errmsg(_sqlite));
                 }
             }
 
@@ -208,7 +208,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 if (err != raw.SQLITE_OK) {
                     var s = SqliteErrToStatus(err);
                     if (s.IsError) {
-                        throw new CouchbaseLiteException(s.Code);
+                        throw Misc.CreateExceptionAndLog(Log.To.Upgrade, s.Code, TAG,
+                            "SQLite error while importing documents ({0})", err);
                     }
                 }
             }
@@ -253,8 +254,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                     if (key.Length != SHA1.Create().HashSize / 8) {
                         raw.sqlite3_finalize(attQuery);
-                        throw new CouchbaseLiteException(String.Format(
-                            "Digest key length incorrect ({0})", Convert.ToBase64String(key)), StatusCode.CorruptError);
+                        throw Misc.CreateExceptionAndLog(Log.To.Upgrade, StatusCode.CorruptError, TAG,
+                            "Digest key length incorrect ({0})", Convert.ToBase64String(key));
                     }
 
                     var blobKey = new BlobKey(key);
@@ -327,7 +328,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 if (err != raw.SQLITE_OK) {
                     var s = SqliteErrToStatus(err);
                     if (s.IsError) {
-                        throw new CouchbaseLiteException(s.Code);
+                        throw Misc.CreateExceptionAndLog(Log.To.Upgrade, s.Code, TAG,
+                            "SQLite error during local document import ({0})", err);
                     }
                 }
             }
@@ -495,7 +497,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 var err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
                 if (err > 0) {
                     throw Misc.CreateExceptionAndLog(Log.To.Upgrade, SqliteErrToStatus(err).Code, TAG,
-                        "SQLite error while opening source database");
+                        "SQLite error while opening source database ({0})", err);
                 }
 
                 raw.sqlite3_create_collation(_sqlite, "JSON", raw.SQLITE_UTF8, CollateRevIDs);
@@ -546,7 +548,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 raw.sqlite3_close(_sqlite);
                 if (err != raw.SQLITE_DONE) {
                     throw Misc.CreateExceptionAndLog(Log.To.Upgrade, SqliteErrToStatus(err).Code, TAG,
-                        "SQLite error during upgrade process");
+                        "SQLite error during upgrade process ({0})", err);
                 }
 
                 if (version >= 101) {
@@ -562,7 +564,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
                 if (err > 0) {
-                    throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, SqliteErrToStatus(err).Code, TAG,
+                        "Error opening destination SQLite file ({0})", err);
                 }
 
                 raw.sqlite3_create_collation(_sqlite, "REVID", raw.SQLITE_UTF8, CollateRevIDs);
@@ -867,7 +870,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 if (err != raw.SQLITE_OK) {
                     var s = SqliteErrToStatus(err);
                     if (s.IsError) {
-                        throw Misc.CreateExceptionAndLog(Log.To.Upgrade, s.Code, TAG, "SQLite error during upgrade");
+                        throw Misc.CreateExceptionAndLog(Log.To.Upgrade, s.Code, TAG, "SQLite error during upgrade ({0})", 
+                        err);
                     }
                 }
             }
@@ -880,7 +884,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 var err = raw.sqlite3_open_v2(_path, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
                 _inner = new v1_upgrader(_db, _sqlite);
                 if (err > 0) {
-                    throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, SqliteErrToStatus(err).Code, TAG,
+                        "SQLite error opening source database ({0})", err);
                 }
 
                 raw.sqlite3_create_collation(_sqlite, "JSON", raw.SQLITE_UTF8, CollateRevIDs);
