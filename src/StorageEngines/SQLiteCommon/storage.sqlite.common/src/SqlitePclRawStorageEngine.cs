@@ -141,8 +141,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | readFlag | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(writer_flags, encryptionKey, out _writeConnection);
 
-                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Unauthorized, TAG,
-                    "Decryption of database failed");
                 #if ENCRYPTION
                 if (!Decrypt(encryptionKey, _writeConnection)) {
                     throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Unauthorized, TAG,
