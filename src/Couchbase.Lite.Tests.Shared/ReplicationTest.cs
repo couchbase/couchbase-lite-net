@@ -294,8 +294,15 @@ namespace Couchbase.Lite
                 CreateDocuments(database, 10);
                 var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
                 pusher.Start();
+                Sleep(500);
                 pusher.Restart();
+                Sleep(500);
                 RunReplication(pusher);
+
+                Assert.AreEqual(10, pusher.CompletedChangesCount);
+                Assert.AreEqual(10, pusher.ChangesCount);
+                Assert.IsNull(pusher.LastError);
+
                 CreateDocuments(database, 10);
                 RunReplication(pusher);
 
