@@ -347,7 +347,7 @@ namespace Couchbase.Lite
                 {
                     if (!IsPull)
                     {
-                        Log.W(TAG, "filterChannels can only be set in pull replications");
+                        Log.To.Sync.W(TAG, "filterChannels can only be set in pull replications, not setting...");
                         return;
                     }
 
@@ -704,7 +704,7 @@ namespace Couchbase.Lite
 
                     ProcessInbox (new RevisionList(inbox));
 
-                    Log.V(TAG, "*** {0} END ProcessInbox (lastSequence={1})", this, LastSequence);
+                    Log.To.Sync.V(TAG, "*** {0} END ProcessInbox (lastSequence={1})", this, LastSequence);
                 } catch(Exception e) {
                     throw new CouchbaseLiteException(String.Format("{0} ProcessInbox failed", this), e);
                 }
@@ -762,7 +762,7 @@ namespace Couchbase.Lite
             }
 
             if (!LocalDatabase.IsOpen) {
-                Log.D(TAG, "LocalDatabase is not open, so ruling Replication as stopped.  Returning empty pending ID set");
+                Log.To.Sync.W(TAG, "LocalDatabase is not open, so ruling Replication as stopped.  Returning empty pending ID set");
                 return new HashSet<string>();
             }
 
@@ -772,7 +772,7 @@ namespace Couchbase.Lite
                 return _pendingDocumentIDs;
             }
 
-            Log.W(TAG, "Error getting unpushed revisions");
+            Log.To.Sync.W(TAG, "Error getting unpushed revisions, returning empty set...");
             return new HashSet<string>();
         }
 
@@ -902,7 +902,7 @@ namespace Couchbase.Lite
                     }
                 }
             } catch (Exception e) {
-                Log.E(Database.TAG, "Exception getting status from " + item, e);
+                Log.To.Sync.E(TAG, String.Format("Exception getting status from {0}, continuing...", item), e);
             }
 
             return new Status(StatusCode.Ok);
@@ -992,14 +992,15 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void StartInternal()
         {
-            Log.I(TAG, "Attempting to start {0} ({1})", IsPull ? "puller" : "pusher", _replicatorID);
+            Log.To.Sync.I(TAG, "Attempting to start {0} ({1})", IsPull ? "puller" : "pusher", _replicatorID);
             if (!LocalDatabase.IsOpen) {
-                Log.W(TAG, "Not starting because db.isOpen() returned false.");
+                Log.To.Sync.W(TAG, "Not starting because local database is not open.");
                 FireTrigger(ReplicationTrigger.StopImmediate);
                 return;
             }
 
             if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri)) {
+                Log.To.Sync.I(TAG, "Remote endpoint is not reachable, going offline...");
                 LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
                 FireTrigger(ReplicationTrigger.GoOffline);
             }
@@ -1008,12 +1009,12 @@ namespace Couchbase.Lite
 #if DEBUG
                 var existing = LocalDatabase.AllReplicators.FirstOrDefault(x => x.RemoteCheckpointDocID() == RemoteCheckpointDocID());
                 if(existing != null) {
-                    Log.W(TAG, "Not starting because identical {0} already exists ({1})", IsPull ? "puller" : "pusher", existing._replicatorID);
+                    Log.To.Sync.W(TAG, "Not starting because identical {0} already exists ({1})", IsPull ? "puller" : "pusher", existing._replicatorID);
                 } else {
-                    Log.E(TAG, "Not starting {0} for unknown reasons", IsPull ? "puller" : "pusher");
+                    Log.To.Sync.E(TAG, "Not starting {0} for unknown reasons", IsPull ? "puller" : "pusher");
                 }
 #else
-                Log.W(TAG, "Not starting becuse identical {0} already exists", IsPull ? "puller" : "pusher");
+                Log.To.Sync.W(TAG, "Not starting becuse identical {0} already exists", IsPull ? "puller" : "pusher");
 #endif
                 FireTrigger(ReplicationTrigger.StopImmediate);
                 return;
@@ -1023,7 +1024,7 @@ namespace Couchbase.Lite
             SetupRevisionBodyTransformationFunction();
 
             sessionID = string.Format("repl{0:000}", Interlocked.Increment(ref _lastSessionID));
-            Log.I(TAG, "Beginning replication process...");
+            Log.To.Sync.I(TAG, "Beginning replication process...");
             LastSequence = null;
             Misc.SafeDispose(ref _client);
             _client = _clientFactory.GetHttpClient(_cookieStore, true);
@@ -1053,8 +1054,7 @@ namespace Couchbase.Lite
             SendAsyncRequest(HttpMethod.Post, loginPath, loginParameters, (result, e) => {
                 if (e != null)
                 {
-                    Log.To.Sync.I(TAG, "{0} login failed", this);
-                    Log.W(TAG, "Remote endpoint login failed!");
+                    Log.To.Sync.W(TAG, "{0} login failed, stopping replication process...", this);
                     LastError = e;
 
                     // TODO: double check this behavior against iOS implementation, especially
@@ -1153,7 +1153,7 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void StopGraceful()
         {
-            Log.D(TAG, "{0}: Stop Graceful...", _replicatorID);
+            Log.To.Sync.I(TAG, "{0}: Stop Graceful...", _replicatorID);
 
             _continuous = false;
             if (Batcher != null)  {
@@ -1208,11 +1208,10 @@ namespace Couchbase.Lite
                 var url = new Uri(urlStr);
                 return SendAsyncRequest(method, url, body, completionHandler, requestTokenSource);
             } catch (UriFormatException e) {
-                Log.E(TAG, "Malformed URL for async request", e);
-                throw;
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG, "Malformed URL for async request");
             } catch (Exception e) {
-                Log.E(TAG, "Unhandled exception", e);
-                throw;
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG, "Error sending async request {0}",
+                    new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
             }
         }
 
@@ -1248,7 +1247,7 @@ namespace Couchbase.Lite
                 ? requestTokenSource.Token
                 : CancellationTokenSource.Token;
 
-            Log.D(TAG, "{0} - Sending async {1} request to: {2}", _replicatorID, method, url);
+            Log.To.Sync.V(TAG, "{0} - Sending async {1} request to: {2}", _replicatorID, method, url);
             _client.Authenticator = Authenticator;
             var t = _client.SendAsync(message, token).ContinueWith(response =>
             {
@@ -1260,11 +1259,10 @@ namespace Couchbase.Lite
                         UpdateServerType(result);
                     } else if(response.IsFaulted) {
                         error = response.Exception.InnerException;
-                        Log.E(TAG, "Http Message failed to send: {0}", message);
-                        Log.E(TAG, "Http exception", response.Exception.InnerException);
+                        Log.To.Sync.E(TAG, String.Format("Http Message failed to send: {0}", message), Misc.Flatten(response.Exception));
                         if(bytes != null) {
                             try {
-                                Log.E(TAG, "\tFailed content: {0}", Encoding.UTF8.GetString(bytes));
+                                Log.To.Sync.E(TAG, "\tFailed content: {0}", new SecureLogString(bytes, LogMessageSensitivity.PotentiallyInsecure));
                             } catch(ObjectDisposedException) {}
                         }
                     }
@@ -1274,7 +1272,7 @@ namespace Couchbase.Lite
 
                         try {
                             if(response.Status != TaskStatus.RanToCompletion) {
-                                Log.D(TAG, "SendAsyncRequest did not run to completion.");
+                                Log.To.Sync.V(TAG, "SendAsyncRequest did not run to completion.");
                             }
 
                             if(response.IsCanceled) {
@@ -1300,7 +1298,8 @@ namespace Couchbase.Lite
                             }
                         } catch(Exception e) {
                             error = e;
-                            Log.E(TAG, "SendAsyncRequest has an error occurred.", e);
+                            Log.To.Sync.W(TAG, "SendAsyncRequest got an exception while processing response, " +
+                                "passing it on to the callback.", e);
                         }
 
                         completionHandler(fullBody, error);
@@ -1347,13 +1346,14 @@ namespace Couchbase.Lite
 
                         var response = responseMessage.Result;
                         // add in cookies to global store
-                        //CouchbaseLiteHttpClientFactory.Instance.AddCookies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
+                        //CouchbaseLiteHttpClientFactory.Instance.AddCoIokies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
 
                         var status = response.StatusCode;
                         if ((Int32)status.GetStatusCode() >= 300) {
-                            Log.E(TAG, "Got error {0}", status.GetStatusCode());
-                            Log.E(TAG, "Request was for: " + message);
-                            Log.E(TAG, "Status reason: " + response.ReasonPhrase);
+                            Log.To.Sync.W(TAG, "Got error {0}", status.GetStatusCode());
+                            Log.To.Sync.W(TAG, "Request was for: " + message);
+                            Log.To.Sync.W(TAG, "Status reason: " + response.ReasonPhrase);
+                            Log.To.Sync.W(TAG, "Passing error onto callback...");
                             error = new HttpResponseException(status);
                             if(onCompletion != null) {
                                 onCompletion(null, error);
@@ -1392,7 +1392,7 @@ namespace Couchbase.Lite
                                         onCompletion(fullBody, error);
                                     }
                                 } catch (Exception ex) {
-                                    Log.E(TAG, "SendAsyncMultipartDownloaderRequest has an error occurred.", ex);
+                                    Log.To.Sync.W(TAG, "SendAsyncMultipartDownloaderRequest got an exception, aborting...", ex);
                                 } finally {
                                     try {
                                         inputStream.Close();
@@ -1408,7 +1408,7 @@ namespace Couchbase.Lite
                                         if (onCompletion != null)
                                             onCompletion(fullBody, error);
                                     } catch (Exception ex) {
-                                        Log.E(TAG, "SendAsyncMultipartDownloaderRequest has an error occurred.", ex);
+                                        Log.To.Sync.W(TAG, "SendAsyncMultipartDownloaderRequest got an exception, aborting...", ex);
                                     } finally {
                                         try {
                                             inputStream.Close();
@@ -1417,18 +1417,15 @@ namespace Couchbase.Lite
                                 }
                             }
                         }
-                    } catch (System.Net.ProtocolViolationException e) {
-                        Log.E(TAG, "client protocol exception", e);
-                        error = e;
-                    } catch (IOException e) {
-                        Log.E(TAG, "IO Exception", e);
+                    } catch (Exception e) {
+                        Log.To.Sync.W(TAG, "Got exception during SendAsyncMultipartDownload, aborting...");
                         error = e;
                     } finally {
                         responseMessage.Result.Dispose();
                     }
                 }), WorkExecutor.Scheduler);
             } catch (UriFormatException e) {
-                Log.E(TAG, "Malformed URL for async request", e);
+                Log.To.Sync.W(TAG, "Malformed URL for async request, aborting...", e);
             }
         }
 
@@ -1439,7 +1436,8 @@ namespace Couchbase.Lite
                 var urlStr = BuildRelativeURLString(relativePath);
                 url = new Uri(urlStr);
             } catch (UriFormatException e) {
-                throw new ArgumentException("Invalid URI format.", e);
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, StatusCode.BadParam, TAG, 
+                    "Invalid URI format for multipart request");
             }
 
             var message = new HttpRequestMessage(method, url);
@@ -1453,12 +1451,12 @@ namespace Couchbase.Lite
                 if (response.Status != TaskStatus.RanToCompletion)
                 {
                     LastError = response.Exception;
-                    Log.E(TAG, "SendAsyncRequest did not run to completion.");
+                    Log.To.Sync.W(TAG, "SendAsyncRequest did not run to completion, returning null...");
                     return Task.FromResult((Stream)null);
                 }
                 if ((Int32)response.Result.StatusCode > 300) {
                     LastError = new HttpResponseException(response.Result.StatusCode);
-                    Log.E(TAG, "Server returned HTTP Error", LastError);
+                    Log.To.Sync.W(TAG, "Server returned HTTP Error, returning null...", LastError);
                     return Task.FromResult((Stream)null);
                 }
                 return response.Result.Content.ReadAsStreamAsync();
@@ -1467,9 +1465,9 @@ namespace Couchbase.Lite
                 try {
                     var hasEmptyResult = response.Result == null || response.Result.Result == null || response.Result.Result.Length == 0;
                     if (response.Status != TaskStatus.RanToCompletion) {
-                        Log.E (TAG, "SendAsyncRequest did not run to completion.");
+                        Log.To.Sync.W(TAG, "SendAsyncRequest phase two did not run to completion, continuing...");
                     } else if (hasEmptyResult) {
-                        Log.E (TAG, "Server returned an empty response.");
+                        Log.To.Sync.W(TAG, "Server returned an empty response, continuing...");
                     }
 
                     if (completionHandler != null) {
@@ -1544,10 +1542,10 @@ namespace Couchbase.Lite
             try {
                 inputBytes = Manager.GetObjectMapper().WriteValueAsBytes(spec);
             } catch(CouchbaseLiteException) {
-                Log.E(TAG, "Failed to serialize remote checkpoint doc ID");
+                Log.To.Sync.E(TAG, "Failed to serialize remote checkpoint doc ID, rethrowing...");
                 throw;
             } catch (Exception e) {
-                throw new CouchbaseLiteException("Error serializing remote checkpoint doc ID", e);
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG, "Error serializing remote checkpoint doc ID");
             }
 
             return Misc.HexSHA1Digest(inputBytes);
@@ -1598,7 +1596,8 @@ namespace Couchbase.Lite
                         }
                     }
                 } catch (Exception e) {
-                    Log.W(TAG, String.Format("Exception transforming a revision of doc '{0}'", rev.DocID), e);
+                    Log.To.Sync.W(TAG, String.Format("Exception transforming a revision of doc '{0}', aborting...", 
+                        new SecureLogString(rev.DocID, LogMessageSensitivity.PotentiallyInsecure)), e);
                 }
             }
 
@@ -2018,17 +2017,17 @@ namespace Couchbase.Lite
             // actions
             _stateMachine.Configure(ReplicationState.Running).OnEntry(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 StartInternal();
                 NotifyChangeListenersStateTransition(transition);
             });
 
             _stateMachine.Configure(ReplicationState.Running).OnExit(transition =>
-               Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID));
+               Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID));
 
             _stateMachine.Configure(ReplicationState.Idle).OnEntry(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 if(transition.Source == transition.Destination) {
                     return;
                 }
@@ -2042,23 +2041,23 @@ namespace Couchbase.Lite
 
             _stateMachine.Configure(ReplicationState.Offline).OnEntry(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 PerformGoOffline();
                 NotifyChangeListenersStateTransition(transition);
             });
 
             _stateMachine.Configure(ReplicationState.Offline).OnExit(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 PerformGoOnline();
                 NotifyChangeListenersStateTransition(transition);
             });
 
             _stateMachine.Configure(ReplicationState.Stopping).OnEntry(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 if(transition.Source == transition.Destination) {
-                    Log.I(TAG, "Concurrency issue with ReplicationState.Stopping");
+                    Log.To.Sync.W(TAG, "Concurrency issue with ReplicationState.Stopping, ignoring state change...");
                     return;
                 }
 
@@ -2068,11 +2067,11 @@ namespace Couchbase.Lite
 
             _stateMachine.Configure(ReplicationState.Stopped).OnEntry(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 Stopping();
 
                 if(transition.Source == transition.Destination) {
-                    Log.I(TAG, "Concurrency issue with ReplicationState.Stopped");
+                    Log.To.Sync.W(TAG, "Concurrency issue with ReplicationState.Stopped, ignoring state change...");
                     return;
                 }
 

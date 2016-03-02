@@ -68,6 +68,51 @@ namespace Couchbase.Lite
             return Epoch.AddMilliseconds(milliSecondsSinceEpoch);
         }
 
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, string tag, string message)
+        {
+            return CreateExceptionAndLog(domain, StatusCode.Exception, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, StatusCode code, string tag, string message)
+        {
+            domain.E(tag, "{0}, throwing CouchbaseLiteException", message);
+            return new CouchbaseLiteException(message, code);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, StatusCode code, string tag, 
+            string format, params object[] args)
+        {
+            var message = String.Format(format, args);
+            return CreateExceptionAndLog(domain, code, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, string tag, string message)
+        {
+            return CreateExceptionAndLog(domain, inner, StatusCode.Exception, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, 
+            StatusCode code, string tag, string message)
+        {
+            domain.E(tag, String.Format("{0}, throwing CouchbaseLiteException)", 
+                message), inner);
+            return new CouchbaseLiteException(message, inner) { Code = code };
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, 
+            string tag, string format, params object[] args)
+        {
+            var message = String.Format(format, args);
+            return CreateExceptionAndLog(domain, inner, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, 
+            StatusCode code, string tag, string format, params object[] args)
+        {
+            var message = String.Format(format, args);
+            return CreateExceptionAndLog(domain, inner, code, tag, message);
+        }
+
         public static Exception Flatten(Exception inE)
         {
             var ae = inE as AggregateException;
@@ -162,7 +207,7 @@ namespace Couchbase.Lite
 
         public static bool IsTransientNetworkError(Exception e)
         {
-            var error = e.Flatten();
+            var error = Misc.Flatten(e);
 
             if (error is IOException
                 || error is TimeoutException

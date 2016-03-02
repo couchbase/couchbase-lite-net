@@ -131,7 +131,7 @@ namespace Couchbase.Lite
         {
             get {
                 if (!IsOpen) {
-                    Log.W(TAG, "PersistentCookeStore called on closed database");
+                    Log.To.Database.W(TAG, "{0} PersistentCookeStore called on closed database, returning null...", this);
                     return null;
                 }
 
@@ -206,7 +206,7 @@ namespace Couchbase.Lite
         { 
             get { 
                 if (!IsOpen) {
-                    Log.W(TAG, "AllReplications called on closed database");
+                    Log.To.Database.W(TAG, "{0} AllReplications called on closed database, returning null...", this);
                     return null;
                 }
 
@@ -297,7 +297,7 @@ namespace Couchbase.Lite
         public int GetDocumentCount()
         {
             if (!IsOpen) {
-                Log.W(TAG, "GetDocumentCount called on closed database");
+                Log.To.Database.W(TAG, "{0} GetDocumentCount called on closed database, returning 0...", this);
                 return 0;
             }
 
@@ -313,7 +313,7 @@ namespace Couchbase.Lite
         public long GetLastSequenceNumber()
         {
             if (!IsOpen) {
-                Log.W(TAG, "GetLastSequenceNumber called on closed database");
+                Log.To.Database.W(TAG, "{0} GetLastSequenceNumber called on closed database, returning 0...", this);
                 return 0;
             }
 
@@ -327,7 +327,7 @@ namespace Couchbase.Lite
         public long GetTotalDataSize()
         {
             if (!IsOpen) {
-                Log.W(TAG, "TotalDataSize called on closed database");
+                Log.To.Database.W(TAG, "{0} TotalDataSize called on closed database, returning 0...", this);
                 return 0L;
             }
 
@@ -394,17 +394,20 @@ namespace Couchbase.Lite
         public bool Compact()
         {
             if (!IsOpen) {
-                Log.W(TAG, "CreatePushReplication called on closed database");
+                // The signature is bool, but in practice this will be switched to void
+                Log.To.Database.W(TAG, "{0} Compact called on closed database, returning early...", this);
                 return false;
             }
 
             try {
                 Storage.Compact();
             } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Error during compaction");
+                Log.To.Database.E(TAG, "{0} Error during compaction, rethrowing...", this);
                 throw;
             } catch(Exception e) {
-                throw new CouchbaseLiteException("Error during compaction", e) { Code = StatusCode.Exception };
+                Log.To.Database.E(TAG, String.Format("{0} got exception during compaction, " +
+                    "throwing CouchbaseLiteException", this), e);
+                throw new CouchbaseLiteException("Error during compaction", e);
             }
 
             return GarbageCollectAttachments();
@@ -463,7 +466,7 @@ namespace Couchbase.Lite
         public IDictionary<String, Object> GetExistingLocalDocument(String id) 
         {
             if (!IsOpen) {
-                Log.W(TAG, "GetExistingLocalDocument called on closed database");
+                Log.To.Database.W(TAG, "{0} GetExistingLocalDocument called on closed database, returning null...", this);
                 return null;
             }
 
@@ -482,7 +485,7 @@ namespace Couchbase.Lite
         public bool PutLocalDocument(string id, IDictionary<string, object> properties) 
         { 
             if (!IsOpen) {
-                Log.W(TAG, "PutLocalDocument called on closed database");
+                Log.To.Database.W(TAG, "{0} PutLocalDocument called on closed database, returning false...", this);
                 return false;
             }
 
@@ -514,7 +517,7 @@ namespace Couchbase.Lite
         public Query CreateAllDocumentsQuery() 
         {
             if (!IsOpen) {
-                Log.W(TAG, "CreateAllDocumentsQuery called on closed database");
+                Log.To.Database.W(TAG, "{0} CreateAllDocumentsQuery called on closed database, returning null...", this);
                 return null;
             }
 
@@ -531,7 +534,7 @@ namespace Couchbase.Lite
         public View GetView(String name) 
         {
             if (!IsOpen) {
-                Log.W(TAG, "GetView called on closed database");
+                Log.To.Database.W(TAG, "{0} GetView called on closed database, returning null...", this);
                 return null;
             }
 
@@ -555,7 +558,7 @@ namespace Couchbase.Lite
         public View GetExistingView(String name) 
         {
             if (!IsOpen) {
-                Log.W(TAG, "GetExistingView called on closed database");
+                Log.To.Database.W(TAG, "{0} GetExistingView called on closed database, returning null...", this);
                 return null;
             }
 
@@ -581,7 +584,7 @@ namespace Couchbase.Lite
         public ValidateDelegate GetValidation(String name) 
         {
             if (!IsOpen) {
-                Log.W(TAG, "GetValidation called on closed database");
+                Log.To.Database.W(TAG, "{0} GetValidation called on closed database, returning null...", this);
                 return null;
             }
 
@@ -605,7 +608,7 @@ namespace Couchbase.Lite
         public void SetValidation(string name, ValidateDelegate validationDelegate)
         {
             if (!IsOpen) {
-                Log.W(TAG, "SetValidation called on closed database");
+                Log.To.Database.W(TAG, "{0} SetValidation called on closed database, returning null...", this);
                 return;
             }
 
@@ -622,7 +625,7 @@ namespace Couchbase.Lite
         { 
             if (!IsOpen || name == null) {
                 if (!IsOpen) {
-                    Log.W(TAG, "GetFilter called on closed database");
+                    Log.To.Database.W(TAG, "{0} GetFilter called on closed database, returning null...", this);
                 }
 
                 return null;
@@ -654,7 +657,8 @@ namespace Couchbase.Lite
                     if (status != null) {
                         status.Code = StatusCode.CallbackError;
                     }
-                    Log.W(TAG, string.Format("Filter {0} failed to compile", name));
+
+                    Log.To.Database.W(TAG, "Filter {0} failed to compile, returning null...", name);
                     return null;
                 }
 
@@ -676,7 +680,7 @@ namespace Couchbase.Lite
         public void SetFilter(String name, FilterDelegate filterDelegate) 
         { 
             if (!IsOpen) {
-                Log.W(TAG, "SetFilter called on closed database");
+                Log.To.Database.W(TAG, "{0} SetFilter called on closed database, returning early...", this);
                 return;
             }
 
@@ -702,7 +706,7 @@ namespace Couchbase.Lite
         public bool RunInTransaction(RunInTransactionDelegate transactionDelegate)
         {
             if (!IsOpen) {
-                Log.W(TAG, "RunInTransaction called on closed database");
+                Log.To.Database.W(TAG, "{0} RunInTransaction called on closed database, returning false...", this);
                 return false;
             }
 
@@ -718,7 +722,7 @@ namespace Couchbase.Lite
         public Replication CreatePushReplication(Uri url)
         {
             if (!IsOpen) {
-                Log.W(TAG, "CreatePushReplication called on closed database");
+                Log.To.Database.W(TAG, "{0} CreatePushReplication called on closed database, returning null...", this);
                 return null;
             }
 
@@ -734,7 +738,7 @@ namespace Couchbase.Lite
         public Replication CreatePullReplication(Uri url)
         {
             if (!IsOpen) {
-                Log.W(TAG, "CreatePullReplication called on closed database");
+                Log.To.Database.W(TAG, "{0} CreatePullReplication called on closed database, returning null...", this);
                 return null;
             }
 
@@ -767,7 +771,7 @@ namespace Couchbase.Lite
         public void ChangeEncryptionKey(SymmetricKey newKey)
         {
             if (!IsOpen) {
-                Log.W(TAG, "ChangeEncryptionKey called on closed database");
+                Log.To.Database.W(TAG, "{0} ChangeEncryptionKey called on closed database, returning early...", this);
                 return;
             }
 
@@ -849,7 +853,8 @@ namespace Couchbase.Lite
                 if (!pair.Key.StartsWith("_") || SPECIAL_KEYS_TO_LEAVE.Contains(pair.Key)) {
                     properties[pair.Key] = pair.Value;
                 } else if (!SPECIAL_KEYS_TO_REMOVE.Contains(pair.Key)) {
-                    Log.W(TAG, "Invalid top-level key '{0}' in document to be inserted", pair.Key);
+                    Log.To.Database.W(TAG, "Invalid top-level key '{0}' in document to be inserted, " +
+                        "returning null from StripDocumentJSON...", pair.Key);
                     return null;
                 }
             }
@@ -957,7 +962,7 @@ namespace Couchbase.Lite
         internal bool AddActiveReplication(Replication replication)
         {
             if (ActiveReplicators == null) {
-                Log.W(TAG, "ActiveReplicators is null, so replication will not be added");
+                Log.To.Database.W(TAG, "{0} ActiveReplicators is null, so replication will not be added");
                 return false;
             }
 
@@ -983,18 +988,18 @@ namespace Couchbase.Lite
 
         internal static string MakeLocalDocumentId(string documentId)
         {
-            return string.Format("_local/{0}", documentId);
+            return String.Format("_local/{0}", documentId);
         }
 
         internal void SetLastSequence(string lastSequence, string checkpointId)
         {
             if (lastSequence == "0") {
-                Log.I(TAG, "SetLastSequence called with 0 for {0}, ignoring", checkpointId);
+                Log.To.Database.I(TAG, "SetLastSequence called with 0 for {0}, ignoring...", checkpointId);
                 return;
             }
 
             if (!IsOpen || Storage == null || !Storage.IsOpen) {
-                Log.I(TAG, "Storage is null or closed, so not attempting to set last sequence");
+                Log.To.Database.I(TAG, "Storage is null or closed, so not attempting to set last sequence");
                 return;
             }
 
@@ -1010,13 +1015,15 @@ namespace Couchbase.Lite
             return Storage.GetInfo(CheckpointInfoKey(checkpointId));
         }
  
-        internal IEnumerable<QueryRow> QueryViewNamed(String viewName, QueryOptions options, long ifChangedSince, ValueTypePtr<long> outLastSequence)
+        internal IEnumerable<QueryRow> QueryViewNamed(string viewName, QueryOptions options, long ifChangedSince, ValueTypePtr<long> outLastSequence)
         {
             IEnumerable<QueryRow> iterator = null;
             long lastIndexedSequence = 0, lastChangedSequence = 0;
             if(viewName != null) {
                 var view = GetView(viewName);
                 if(view == null) {
+                    Log.To.Query.E(TAG, "Unable to query view named `{0}` (not found), " +
+                        "throwing CouchbaseLiteException", viewName);
                     throw new CouchbaseLiteException(StatusCode.NotFound);
                 }
 
@@ -1024,8 +1031,9 @@ namespace Couchbase.Lite
                 if(options.Stale == IndexUpdateMode.Before || lastIndexedSequence <= 0) {
                     var status = view.UpdateIndex();
                     if(status.IsError) {
-                        Log.W(TAG, "Failed to update index: {0}", status.Code);
-                        throw new CouchbaseLiteException(status.Code);
+                        Log.To.Query.E(TAG, "Failed to update index for `{0}`: {1}, " +
+                            "throwing CouchbaseLiteException", viewName, status.Code);
+                        throw new CouchbaseLiteException("Failed to update index for `{0}`", viewName) { Code = status.Code };
                     }
 
                     lastIndexedSequence = view.LastSequenceIndexed;
@@ -1418,7 +1426,7 @@ namespace Couchbase.Lite
         internal Uri FileForAttachmentDict(IDictionary<String, Object> attachmentDict)
         {
             if (!IsOpen) {
-                Log.W(TAG, "FileForAttachmentDict called on closed database");
+                Log.To.Database.W(TAG, "{0} FileForAttachmentDict called on closed database, returning null...", this);
                 return null;
             }
 
@@ -1448,7 +1456,7 @@ namespace Couchbase.Lite
         internal IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds)
         {
             if (!IsOpen) {
-                Log.W(TAG, "GetRevisionHistory called on closed database");
+                Log.To.Database.W(TAG, "{0} GetRevisionHistory called on closed database, returning null...", this);
                 return null;
             }
 
@@ -1460,7 +1468,9 @@ namespace Couchbase.Lite
             bool decodeAttachments)
         {
             if (!IsOpen) {
-                throw new CouchbaseLiteException("DB is closed", StatusCode.DbError);
+                Log.To.Database.E(TAG, "{0} ExpandAttachments called on a closed database, " +
+                "throwing CouchbaseLiteException", this);
+                throw new CouchbaseLiteException("ExpandAttachments called on a closed database", StatusCode.DbError);
             }
 
             rev.MutateAttachments((name, attachment) =>
@@ -1488,7 +1498,8 @@ namespace Couchbase.Lite
                     var attachObj = AttachmentForDict(attachment, name);
                     var data = decodeAttachments ? attachObj.Content : attachObj.EncodedContent;
                     if(data == null) {
-                        Log.W(TAG, "Can't get binary data of attachment '{0}' of {1}", name, rev);
+                        Log.To.Database.W(TAG, "Can't get binary data of attachment '{0}' of {1}, " +
+                            "returning attachment without data", name, rev);
                         return attachment;
                     }
 
@@ -1534,6 +1545,9 @@ namespace Couchbase.Lite
                 try {
                     attachment = new AttachmentInternal(name, attachInfo);
                 } catch(CouchbaseLiteException) {
+                    Log.To.Database.W(TAG, "Error creating attachment object for '{0}' ('{1}'), " +
+                        "returning null", new SecureLogString(name, LogMessageSensitivity.PotentiallyInsecure), 
+                        new SecureLogJsonString(attachInfo, LogMessageSensitivity.PotentiallyInsecure));
                     return null;
                 }
 
@@ -1547,7 +1561,8 @@ namespace Couchbase.Lite
                         throw;
                     } catch(Exception e) {
                         Log.To.Database.E(TAG, String.Format("Exception during attachment writing '{0}', " +
-                            "throwing CouchbaseLiteException", name), e);
+                            "throwing CouchbaseLiteException", 
+                            new SecureLogString(name, LogMessageSensitivity.PotentiallyInsecure)), e);
                         throw new CouchbaseLiteException("Exception during attachment writing", e);
                     }
 
@@ -1573,6 +1588,8 @@ namespace Couchbase.Lite
                                 return ancestorAttachment;
                             }
 
+                            Log.To.Database.E(TAG, "Unable to find 'stub' attachment {0} in history (1), " +
+                                "throwing CouchbaseLiteException", name);
                             throw new CouchbaseLiteException(
                                 String.Format("Unable to find 'stub' attachment {0} in history", name), StatusCode.BadAttachment);
                         }
@@ -1580,6 +1597,8 @@ namespace Couchbase.Lite
 
                     var parentAttachment = parentAttachments == null ? null : parentAttachments.Get(name).AsDictionary<string, object>();
                     if(parentAttachment == null) {
+                        Log.To.Database.E(TAG, "Unable to find 'stub' attachment {0} in history (2), " +
+                            "throwing CouchbaseLiteException", name);
                         throw new CouchbaseLiteException(
                             String.Format("Unable to find 'stub' attachment {0} in history", name), StatusCode.BadAttachment);
                     }
@@ -1592,6 +1611,8 @@ namespace Couchbase.Lite
                 if(attachment.RevPos == 0) {
                     attachment.RevPos = generation;
                 } else if(attachment.RevPos > generation) {
+                    Log.To.Database.E(TAG, "Attachment specifies revision generation {0} but document is only at revision generation {1}, " +
+                        "throwing CouchbaseLiteException");
                     throw new CouchbaseLiteException(
                         String.Format("Attachment specifies revision generation {0} but document is only at revision generation {1}",
                         attachment.RevPos, generation), StatusCode.BadAttachment);
@@ -1682,7 +1703,7 @@ namespace Couchbase.Lite
         internal RevisionInternal LoadRevisionBody(RevisionInternal rev)
         {
             if (!IsOpen) {
-                Log.W(TAG, "LoadRevisionBody called on closed database");
+                Log.To.Database.W(TAG, "{0} LoadRevisionBody called on closed database, returning null...", this);
                 return null;
             }
 
@@ -1782,13 +1803,14 @@ namespace Couchbase.Lite
                 try {
                     validation(publicRev, context);
                 } catch(Exception e) {
-                    Log.E(TAG, String.Format("Validation block '{0}'", validationName), e);
+                    Log.To.Database.E(TAG, String.Format("Validation block '{0}' got exception, " +
+                        "aborting validation process...", validationName), e);
                     status.Code = StatusCode.Exception;
                     break;
                 }
                     
                 if (context.RejectMessage != null) {
-                    Log.D(TAG, "Failed update of {0}: {1}:{2} Old doc = {3}{2} New doc = {4}", oldRev, context.RejectMessage,
+                    Log.To.Validation.I(TAG, "Failed update of {0}: {1}:{2} Old doc = {3}{2} New doc = {4}", oldRev, context.RejectMessage,
                             Environment.NewLine, oldRev == null ? null : oldRev.GetProperties(), newRev.GetProperties());
                     status.Code = StatusCode.Forbidden;
                     break;
@@ -1853,10 +1875,10 @@ namespace Couchbase.Lite
             try {
                 Storage.Close();
             } catch (CouchbaseLiteException) {
-                Log.E(TAG, "Failed to close database");
+                Log.To.Database.E(TAG, "Failed to close database, rethrowing...");
                 throw;
             } catch (Exception e) {
-                throw new CouchbaseLiteException("Error closing database", e) { Code = StatusCode.Exception };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Exception while closing database");
             } finally {
                 Storage = null;
 
@@ -1884,14 +1906,15 @@ namespace Couchbase.Lite
             } else if (storageType == "ForestDB") {
                 primaryStorage = GetForestDBStorageClass();
             } else {
-                throw new CouchbaseLiteException(String.Format("Unknown store type {0}", StatusCode.InvalidStorageType));
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InvalidStorageType, "Unknown store type {0}", storageType);
             }
 
             if (primaryStorage == null) {
-                throw new CouchbaseLiteException("Implementation for {0} storage engine not found.  Be sure " +
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InvalidStorageType, TAG, 
+                    "Implementation for {0} storage engine not found.  Be sure " +
                     "that the appropriate Nuget package is installed or if building from source that the appropriate " +
                     "project is referenced"
-                    , storageType) { Code = StatusCode.InvalidStorageType };
+                    , storageType);
             }
 
 
@@ -1934,13 +1957,13 @@ namespace Couchbase.Lite
                 Storage.Open(DbDirectory, Manager, _readonly);
             } catch(CouchbaseLiteException) {
                 Storage.Close();
-                Log.E(TAG, "Failed to open storage for database");
+                Log.To.Database.E(TAG, "Failed to open storage for database, rethrowing...");
                 throw;
             } catch(DllNotFoundException) {
-                throw new CouchbaseLiteException("CBForest native components not found, make sure to install the proper Nuget packages");
+                throw Misc.CreateExceptionAndLog(Log.To.Database, TAG, "Native components not found, make sure to install the proper Nuget packages");
             } catch(Exception e) {
                 Storage.Close();
-                throw new CouchbaseLiteException("Error opening storage for database", e);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Got exception while opening storage for database");
             }
 
             // First-time setup:
@@ -1963,15 +1986,14 @@ namespace Couchbase.Lite
             try {
                 Attachments = new BlobStore(attachmentsPath, encryptionKey);
             } catch(CouchbaseLiteException) {
-                Log.E(TAG, "Error creating blob store at {0}", attachmentsPath);
+                Log.To.Database.E(TAG, "Error creating blob store at {0}, rethrowing...", attachmentsPath);
                 Storage.Close();
                 Storage = null;
                 throw;
             } catch(Exception e) {
                 Storage.Close();
                 Storage = null;
-                throw new CouchbaseLiteException(String.Format("Unknown error creating blob store at {0}", attachmentsPath),
-                    e) { Code = StatusCode.Exception };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Got exception creating blob store at {0}", attachmentsPath);
             }
 
             IsOpen = true;
@@ -1982,7 +2004,7 @@ namespace Couchbase.Lite
                 try {
                     upgrader.Import();
                 } catch(CouchbaseLiteException e) {
-                    Log.W(TAG, "Upgrade failed for {0} (Status {1})", DbDirectory, e.CBLStatus);
+                    Log.To.Database.E(TAG, "Upgrade failed for {0} (Status {1}), rethrowing...", DbDirectory, e.CBLStatus);
                     upgrader.Backout();
                     Close();
                     throw;
@@ -2006,18 +2028,18 @@ namespace Couchbase.Lite
                 if (_SqliteStorageType == null) {
                     Type attemptOne = Type.GetType("Couchbase.Lite.Storage.SQLCipher.SqliteCouchStore, Couchbase.Lite.Storage.SQLCipher");
                     if (attemptOne != null) {
-                        Log.I(TAG, "Loaded Couchbase.Lite.Storage.SQLCipher plugin");
+                        Log.To.Database.I(TAG, "Loaded Couchbase.Lite.Storage.SQLCipher plugin");
                         _SqliteStorageType = attemptOne;
                         break;
                     }
 
                     _SqliteStorageType = Type.GetType("Couchbase.Lite.Storage.SystemSQLite.SqliteCouchStore, Couchbase.Lite.Storage.SystemSQLite");
                     if (_SqliteStorageType != null) {
-                        Log.I(TAG, "Loaded Couchbase.Lite.Storage.SystemSQLite plugin.  SQLite encryption functionality will not be available");
+                        Log.To.Database.I(TAG, "Loaded Couchbase.Lite.Storage.SystemSQLite plugin.  SQLite encryption functionality will not be available");
                         break;
                     }
 
-                    Log.E(TAG, "No SQLite implementation found!  If you are building from source your project" +
+                    Log.To.Database.E(TAG, "No SQLite implementation found!  If you are building from source your project" +
                         " needs to reference either storage.systemsqlite or storage.sqlcipher");
                 }
             } while (false);
@@ -2031,11 +2053,11 @@ namespace Couchbase.Lite
                 if (_ForestDBStorageType == null) {
                     _ForestDBStorageType = Type.GetType("Couchbase.Lite.Storage.ForestDB.ForestDBCouchStore, Couchbase.Lite.Storage.ForestDB");
                     if (_ForestDBStorageType != null) {
-                        Log.I(TAG, "Loaded Couchbase.Lite.Storage.ForestDB plugin");
+                        Log.To.Database.I(TAG, "Loaded Couchbase.Lite.Storage.ForestDB plugin");
                         break;
                     }
 
-                    Log.I(TAG, "Couchbase.Lite.Storage.ForestDB plugin not found.  ForestDB functionality will not be available");
+                    Log.To.Database.I(TAG, "Couchbase.Lite.Storage.ForestDB plugin not found.  ForestDB functionality will not be available");
                 }
             } while (false);
 
@@ -2141,8 +2163,8 @@ namespace Couchbase.Lite
             if (IsOpen) {
                 try {
                     Close();
-                } catch(Exception) {
-                    Log.E(TAG, "Error disposing database (possibly already disposed?)");
+                } catch(Exception e) {
+                    Log.To.Database.W(TAG, "Error disposing database (possibly already disposed?), continuing...", e);
                 }
             }
         }
@@ -2223,7 +2245,7 @@ namespace Couchbase.Lite
             try {
                 md5Digest = MessageDigest.GetInstance("MD5");
             } catch (NotSupportedException e) {
-                throw new CouchbaseLiteException("Failed to acquire a class to create MD5", e);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, TAG, "Failed to acquire a class to create MD5");
             }
 
             var length = 0;
@@ -2265,7 +2287,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A delegate that can validate a key/value change.
     /// </summary>
-    public delegate Boolean ValidateChangeDelegate(String key, Object oldValue, Object newValue);
+    public delegate bool ValidateChangeDelegate(string key, object oldValue, object newValue);
 
     /// <summary>
     /// A delegate that can be run asynchronously on a <see cref="Couchbase.Lite.Database"/>.

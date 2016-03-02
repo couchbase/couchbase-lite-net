@@ -331,9 +331,9 @@ namespace Couchbase.Lite.Replicator
 
             if (responseTask.IsCanceled || responseTask.IsFaulted) {
                 if (!responseTask.IsCanceled) {
-                    var err = responseTask.Exception.Flatten();
+                    var err = Misc.Flatten(responseTask.Exception);
                     Log.To.ChangeTracker.I(TAG, String.Format("{0} ChangeFeedResponseHandler faulted", this),
-                        err.Flatten());
+                        err);
                     if (mode != ChangeTrackerMode.LongPoll || !Misc.IsTransientNetworkError(err)) {
                         Stop();
                     } else if(IsRunning) {

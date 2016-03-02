@@ -371,7 +371,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 result = Manager.GetObjectMapper().WriteValueAsString(obj);
             } catch (Exception e)  {
-                Log.W(Database.TAG, "Exception serializing object to json: " + obj, e);
+                Log.To.View.W(Tag, String.Format("Exception serializing object to json: {0}, returning null...", 
+                    new SecureLogJsonString(obj, LogMessageSensitivity.PotentiallyInsecure)), e);
             }
 
             return result;
@@ -387,8 +388,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try  {
                 result = Manager.GetObjectMapper().ReadValue<object>(json);
             } catch (Exception e) {
-                Log.W(Database.TAG, "Exception parsing json", e);
+                Log.To.View.W(Tag, String.Format("Exception parsing json ({0}), returning null...",
+                    new SecureLogString(json.ToArray(), LogMessageSensitivity.PotentiallyInsecure)), e);
             }
+
             return result;
         }
 
@@ -547,12 +550,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 RunStatements(sql);
             } catch(CouchbaseLiteException) {
-                Log.W(Tag, "Couldn't delete view index `{0}`", Name);
+                Log.To.Database.E(Tag, "Couldn't delete view index `{0}`, rethrowing...", Name);
                 throw;
             } catch(Exception e) {
-                throw new CouchbaseLiteException(String.Format("Couldn't delete view index `{0}`", Name), e) {
-                    Code = StatusCode.Exception
-                };
+                throw Misc.CreateExceptionAndLog(Log.To.View, e, Tag, "Couldn't delete view index `{0}`", Name);
             }
         }
 
@@ -565,11 +566,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     db.StorageEngine.Delete("views", "name=?", Name);
                 } catch(CouchbaseLiteException) {
-                    Log.W(Tag, "Failed to delete view {0}", Name);
+                    Log.To.Database.E(Tag, "Failed to delete view `{0}`, rethrowing...", Name);
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException(String.Format("Error deleting view {0}", Name),
-                        e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.View, e, Tag, "Error deleting view {0}", Name);
                 }
 
                 return true;
@@ -615,7 +615,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         public bool UpdateIndexes(IEnumerable<IViewStore> inputViews)
         {
-            Log.D(Tag, "Checking indexes of ({0}) for {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), Name);
+            Log.To.View.I(Tag, "Checking indexes of ({0}) for {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), Name);
             var db = _dbStorage;
 
             var status = false;
@@ -645,7 +645,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         var mapBlock = viewDelegate == null ? null : viewDelegate.Map;
                         if (mapBlock == null) {
                             Debug.Assert(view != this, String.Format("Cannot index view {0}: no map block registered", view.Name));
-                            Log.V(Tag, "    {0} has no map block; skipping it", view.Name);
+                            Log.To.View.V(Tag, "    {0} has no map block; skipping it", view.Name);
                             continue;
                         }
 
@@ -670,7 +670,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             }
 
                             minLastSequence = Math.Min(minLastSequence, last);
-                            Log.V(Tag, "    {0} last indexed at #{1}", view.Name, last);
+                            Log.To.View.V(Tag, "    {0} last indexed at #{1}", view.Name, last);
 
                             string docType = viewDelegate.DocumentType;
                             if (docType != null) {
@@ -724,7 +724,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         return true;
                     }
 
-                    Log.D(Tag, "Updating indexes of ({0}) from #{1} to #{2} ...",
+                    Log.To.View.I(Tag, "Updating indexes of ({0}) from #{1} to #{2} ...",
                         ViewNames(views), minLastSequence, dbMaxSequence);
 
                     // This is the emit() block, which gets called from within the user-defined map() block
@@ -737,7 +737,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     EmitDelegate emit = (key, value) =>
                     {
                         if(key == null) {
-                            Log.W(Tag, "Emit function called with a null key; ignoring");
+                            Log.To.View.W(Tag, "Emit function called with a null key; ignoring");
                             return;
                         }
 
@@ -848,7 +848,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             // Get the document properties, to pass to the map function:
                             currentDoc = db.GetDocumentProperties(json, docId, revId, deleted, sequence);
                             if (currentDoc == null) {
-                                Log.W(Tag, "Failed to parse JSON of doc {0} rev {1}", docId, revId);
+                                Log.To.View.W(Tag, "Failed to parse JSON of doc {0} rev {1}, skipping...",
+                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), revId);
                                 continue;
                             }
 
@@ -872,12 +873,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                         }
                                     }
 
-                                    Log.V(Tag, "    #{0}: map \"{1}\" for view {2}...",
+                                        Log.To.View.V(Tag, "    #{0}: map \"{1}\" for view {2}...",
                                         sequence, docId, e.Current.Name);
                                     try {
                                         mapBlocks[viewIndex](currentDoc, emit);
                                     } catch (Exception x) {
-                                        Log.E(Tag, String.Format("Exception in map() block for view {0}", currentView.Name), x);
+                                        Log.To.View.E(Tag, String.Format("Exception in map() block for view {0}, cancelling update...", currentView.Name), x);
                                         emitStatus.Code = StatusCode.Exception;
                                     }
 
@@ -891,11 +892,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             currentView = null;
                         }
                     } catch(CouchbaseLiteException) {
-                        Log.W(Tag, "Failed to update index for {0}", currentView.Name);
+                        Log.To.View.E(Tag, "Failed to update index for {0}, rethrowing...", currentView.Name);
                         throw;
                     } catch (Exception e) {
-                        throw new CouchbaseLiteException(String.Format("Error updating index for {0}", currentView.Name),
-                            e) { Code = StatusCode.Exception };
+                        throw Misc.CreateExceptionAndLog(Log.To.View, e, Tag, "Error updating index for {0}", currentView.Name);
                     } finally {
                         if (c != null) {
                             c.Dispose();
@@ -914,21 +914,20 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         try {
                             db.StorageEngine.Update("views", args, "view_id=?", view.ViewID.ToString());
                         } catch (CouchbaseLiteException) {
-                            Log.W(Tag, "Failed to update view {0}", view.Name);
+                            Log.To.View.E(Tag, "Failed to update view {0}, rethrowing...", view.Name);
                             throw;
                         } catch(Exception e) {
-                            throw new CouchbaseLiteException(String.Format("Error updating view {0}", view.Name),
-                                e) { Code = StatusCode.Exception };
+                            throw Misc.CreateExceptionAndLog(Log.To.View, e, Tag, "Error updating view {0}", view.Name);
                         }
                     }
 
-                    Log.D(Tag, "...Finished re-indexing ({0}) to #{1} (deleted {2}, added {3})",
+                    Log.To.View.I(Tag, "...Finished re-indexing ({0}) to #{1} (deleted {2}, added {3})",
                         ViewNames(views), dbMaxSequence, deletedCount, insertedCount);
                     return true;
                 });
 
             if(!status) {
-                Log.W(Tag, "CouchbaseLite: Failed to rebuild views ({0}): {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), status);
+                Log.To.View.W(Tag, "Failed to rebuild views ({0}): {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), status);
             }
 
             return status;
@@ -1050,7 +1049,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             var reduce = Delegate.Reduce;
             if (options.ReduceSpecified) {
                 if (options.Reduce && reduce == null) {
-                    Log.W(Tag, "Cannot use reduce option in view {0} which has no reduce block defined", Name);
+                    Log.To.Query.W(Tag, "Cannot use reduce option in view {0} which has no reduce block defined, " +
+                        "returning null", Name);
                     return null;
                 }
             }
@@ -1093,7 +1093,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         var rev = db.GetDocument(docID, c.GetLong(1));
                         valueOrData = rev.GetProperties();
                     } catch(CouchbaseLiteException) {
-                        Log.To.Query.W(Tag, "Couldn't load doc for row value");
+                        Log.To.Query.E(Tag, "Couldn't load doc for row value, rethrowing...");
                         throw;
                     }   
                 }

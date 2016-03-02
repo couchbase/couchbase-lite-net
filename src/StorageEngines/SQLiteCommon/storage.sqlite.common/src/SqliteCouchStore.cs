@@ -198,7 +198,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // the app might be linked with a custom version of SQLite (like SQLCipher) instead of the
             // system library, so the actual version/features may differ from what was declared in
             // sqlite3.h at compile time.
-            Log.I(TAG, "Initialized SQLite store (version {0} ({1}))", raw.sqlite3_libversion(), raw.sqlite3_sourceid());
+            Log.To.Database.I(TAG, "Initialized SQLite store (version {0} ({1}))", raw.sqlite3_libversion(), raw.sqlite3_sourceid());
             _SqliteVersion = raw.sqlite3_libversion_number();
 
             Debug.Assert(_SqliteVersion >= 3007000, String.Format("SQLite library is too old ({0}); needs to be at least 3.7", raw.sqlite3_libversion()));
@@ -245,10 +245,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     try {
                         StorageEngine.ExecSQL(statement);
                     } catch(CouchbaseLiteException) {
-                        Log.E(TAG, "Error running statement '{0}'", statement);
+                        Log.To.Database.E(TAG, "Error running statement '{0}', rethrowing", 
+                            new SecureLogString(statement, LogMessageSensitivity.PotentiallyInsecure));
                         throw;
                     } catch(Exception e) {
-                        throw new CouchbaseLiteException(String.Format("Error running statement '{0}'", statement), e) { Code = StatusCode.DbError };
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                            "Error running statement '{0}'", 
+                            new SecureLogString(statement, LogMessageSensitivity.PotentiallyInsecure));
                     }
 
                 }
@@ -264,8 +267,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             } else {
                 try {
                     docProperties = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(realizedJson);
-                } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Unparseable JSON for doc={0}, rev={1}: {2}", docId, revId, Encoding.UTF8.GetString(realizedJson));
+                } catch(CouchbaseLiteException e) {
+                    Log.To.Database.W(TAG, "Unparseable JSON for doc={0}, rev={1}: {2}, returning skeleton set", 
+                        new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
+                        revId, 
+                        new SecureLogString(realizedJson, LogMessageSensitivity.PotentiallyInsecure));
                     docProperties = new Dictionary<string, object>();
                 }
             }
@@ -327,7 +333,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 return retVal;
             } catch(Exception e) {
-                Log.E(TAG, "Error executing SQL query", e);
+                Log.To.Database.E(TAG, "Error executing SQL query, returning DbError status", e);
             } finally {
                 if (c != null) {
                     c.Dispose();
@@ -455,12 +461,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     OptimizeSQLIndexes();
                 }
             } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Error initializing the SQLite storage engine");
+                Log.To.Database.E(TAG, "Error initializing the SQLite storage engine, rethrowing...");
                 StorageEngine.Close();
                 throw;
             } catch(Exception e) {
                 StorageEngine.Close();
-                throw new CouchbaseLiteException("Unknown error initializing SQLite storage engine", e) { Code = StatusCode.Exception };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                    "Error initializing SQLite storage engine");
             }
         }
 
@@ -514,7 +521,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     return true;
                 });
             } catch (Exception e) {
-                throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error pruning database");
             } finally {
                 if (cursor != null) {
                     cursor.Close();
@@ -549,7 +556,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try  {
                 _transactionCount = StorageEngine.EndTransaction();
             } catch (Exception e)  {
-                Log.To.Database.W(TAG, "Failed to end transaction", e);
+                Log.To.Database.W(TAG, "Failed to end transaction, returning false", e);
                 return false;
             }
 
@@ -648,7 +655,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 status = action();
             } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Failed in RunInOuterTransaction");
+                Log.To.Database.E(TAG, "Failed in RunInOuterTransaction, rethrowing...");
                 status = false;
                 throw;
             }
@@ -856,11 +863,15 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 StorageEngine.InsertWithOnConflict("info", null, vals, ConflictResolutionStrategy.Replace);
             } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Failed to set info ({0} -> {1})", key, info);
+                Log.To.Database.E(TAG, "Failed to set info ({0} -> {1}), rethrowing...", 
+                    new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure), 
+                    new SecureLogString(info, LogMessageSensitivity.PotentiallyInsecure));
                 throw;
             } catch(Exception e) {
-                throw new CouchbaseLiteException(String.Format(
-                    "Error setting info ({0} -> {1})", key, info), e) { Code = StatusCode.Exception }; 
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                    "Error setting info ({0} -> {1})", 
+                    new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure), 
+                    new SecureLogString(info, LogMessageSensitivity.PotentiallyInsecure));
             }
         }
 
@@ -880,7 +891,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // Can't delete any rows because that would lose revision tree history.
             // But we can remove the JSON of non-current revisions, which is most of the space.
             try {
-                Log.V(TAG, "Deleting JSON of old revisions...");
+                Log.To.Database.I(TAG, "Deleting JSON of old revisions...");
                 PruneRevsToMaxDepth(0);
 
                 var args = new ContentValues();
@@ -889,24 +900,26 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 args["no_attachments"] = 1;
                 StorageEngine.Update("revs", args, "current=0", null);
             } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Error compacting old JSON");
+                Log.To.Database.E(TAG, "Error compacting old JSON, rethrowing...");
                 throw;
             } catch (Exception e) {
-                throw new CouchbaseLiteException(e, StatusCode.DbError);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, 
+                    "Error compacting old JSON");
             }
 
-            Log.V(TAG, "Deleting old attachments...");
+            Log.To.Database.I(TAG, "Deleting old attachments...");
 
             try {
-                Log.V(TAG, "Flushing SQLite WAL...");
+                Log.To.Database.V(TAG, "Flushing SQLite WAL...");
                 StorageEngine.ExecSQL("PRAGMA wal_checkpoint(RESTART)");
-                Log.V(TAG, "Vacuuming SQLite sqliteDb...");
+                Log.To.Database.V(TAG, "Vacuuming SQLite sqliteDb...");
                 StorageEngine.ExecSQL("VACUUM");
             } catch(CouchbaseLiteException) {
-                Log.W(TAG, "Error vacuuming Sqlite DB");
+                Log.To.Database.E(TAG, "Error vacuuming Sqlite DB, rethrowing...");
                 throw;
             } catch (Exception e) {
-                throw new CouchbaseLiteException("Error vacuuming Sqlite DB", e) { Code = StatusCode.DbError };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, 
+                    "Error vacuuming Sqlite DB");
             }
         }
 
@@ -918,7 +931,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             do {
                 keepGoing = false;
                 if(!BeginTransaction()) {
-                    throw new CouchbaseLiteException("Error beginning begin transaction", StatusCode.DbError);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
+                        "Error beginning begin transaction");
                 }
 
                 try {
@@ -931,21 +945,21 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         }
 
                         if(++retries > TRANSACTION_MAX_RETRIES) {
-                            Log.W(TAG, "Db busy, too many retries, giving up");
+                            Log.To.Database.E(TAG, "Db busy, too many retries, giving up");
                             break;
                         }
 
-                        Log.D(TAG, "Db busy, retrying transaction ({0})", retries);
+                        Log.To.Database.I(TAG, "Db busy, retrying transaction ({0})", retries);
                         Thread.Sleep(TRANSACTION_MAX_RETRY_DELAY);
                         keepGoing = true;
                     } else {
-                        Log.W(TAG, "Failed to run transaction");
+                        Log.To.Database.E(TAG, "Failed to run transaction, rethrowing...");
                         status = false;
                         throw;
                     }
                 } catch(Exception e) {
                     status = false;
-                    throw new CouchbaseLiteException("Error running transaction", e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error running transaction");
                 } finally {
                     EndTransaction(status);
                 }
@@ -957,6 +971,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public void SetEncryptionKey(SymmetricKey key)
         {
             #if !ENCRYPTION
+            Log.To.Database.E(TAG, "This store does not support encryption");
             throw new InvalidOperationException("This store does not support encryption");
             #else
             _encryptionKey = key;
@@ -966,6 +981,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
         {
             #if !ENCRYPTION
+            Log.To.Database.E(TAG, "This store does not support encryption");
             throw new InvalidOperationException("This store does not support encryption");
             #else
             // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export
@@ -1375,13 +1391,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 foreach(var pair in rev["_attachments"].AsDictionary<string, object>()) {
                     var attachmentDict = pair.Value.AsDictionary<string, object>();
                     if(attachmentDict == null) {
-                        Log.W(TAG, "Invalid attachment found, not a dictionary!");
+                        Log.To.Database.W(TAG, "Invalid attachment found, not a dictionary, skipping...");
                         continue;
                     }
 
                     var digest = attachmentDict.GetCast<string>("digest");
                     if(digest == null) {
-                        Log.W(TAG, "Invalid attachment found, no digest!");
+                        Log.To.Database.W(TAG, "Invalid attachment found, no digest, skipping...");
                         continue;
                     }
 
@@ -1512,7 +1528,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     }
                 }
             } catch(Exception e) {
-                Log.E(TAG, "Error in all docs query", e);
+                Log.To.Database.W(TAG, "Error in all docs query, returning null...", e);
                 return null;
             } finally {
                 if(c != null) {
@@ -1767,12 +1783,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     try {
                         StorageEngine.Update("revs", args, "sequence=?", parentSequence.ToString());
                     } catch(CouchbaseLiteException) {
-                        Log.W(TAG, "Failed to update document {0}", docId);
+                        Log.To.Database.E(TAG, "Failed to update document {0}, rethrowing...", 
+                            new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                         throw;
                     } catch(Exception e) {
                         StorageEngine.Delete("revs", "sequence=?", sequence.ToString());
-                        throw new CouchbaseLiteException(String.Format(
-                            "Error updating document {0}", docId), e) { Code = StatusCode.DbError };
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                            "Error updating document {0}", 
+                            new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                     }
                 }
 
@@ -1828,11 +1846,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         try {
                             oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, inConflict);
                         } catch(CouchbaseLiteException) {
-                            Log.W(TAG, "Failed to look up winner for {0}", docId);
+                            Log.To.Database.E(TAG, "Failed to look up winner for {0}", 
+                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                             throw;
                         } catch(Exception e) {
-                            throw new CouchbaseLiteException(String.Format(
-                                "Error looking up winner for {0}", docId), e) { Code = StatusCode.Exception };
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, 
+                                "Error looking up winner for {0}", 
+                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                         }
                     } catch(CouchbaseLiteException e) {
                         // Don't stop on a not found, because it is not critical.  This can happen
@@ -1842,7 +1862,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         // In that case, we'd like to continue and insert the missing revisions instead of
                         // erroring out.  Note that this needs to be changed to a better way.
                         if(e.Code != StatusCode.NotFound) {
-                            Log.W(TAG, "Error getting document revisions for {0}", docId);
+                            Log.To.Database.E(TAG, "Error getting document revisions for {0}, rethrowing...", 
+                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                             throw;
                         }
                     }
@@ -1860,6 +1881,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     string parentRevId = (revHistory.Count > 1) ? revHistory[1] : null;
                     var validationStatus = validationBlock(rev, oldRev, parentRevId);
                     if(validationStatus.IsError) {
+                        Log.To.Validation.I(TAG, "{0} failed validation, throwing CouchbaseLiteException", rev);
                         throw new CouchbaseLiteException(String.Format("{0} failed validation", rev),
                             StatusCode.DbError);
                     }
@@ -1909,7 +1931,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                                 if(sqliteException.errcode != raw.SQLITE_CONSTRAINT) {
                                     // This is a genuine error inserting the revision
-                                    Log.E(TAG, "Error inserting revision {0} ({1})", newRev, sqliteException.errcode);
+                                    Log.To.Database.E(TAG, "Error inserting revision {0} ({1}), rethrowing...", newRev, sqliteException.errcode);
                                     throw;
                                 } else {
                                     // This situation means that the revision already exists, so go get the existing
@@ -1917,6 +1939,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                     sequence = GetSequenceOfDocument(docNumericId, newRev.RevID, false);
                                 }
                             } else {
+                                Log.To.Database.E(TAG, "Error inserting revision {0}, rethrowing...", newRev);
                                 throw;
                             }
                         }
@@ -1937,11 +1960,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     try {
                         changes = StorageEngine.Update("revs", args, "sequence=? AND current != 0", localParentSequence.ToString());
                     } catch(CouchbaseLiteException) {
-                        Log.W(TAG, "Failed to update {0}", docId);
+                        Log.To.Database.E(TAG, "Failed to update {0}, rethrowing...", 
+                            new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                         throw;
                     } catch(Exception e) {
-                        throw new CouchbaseLiteException(String.Format("Error updating {0}", docId),
-                            e) { Code = StatusCode.Exception };
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                            "Error updating {0}", new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                     }
 
                     if(changes == 0) {
@@ -1987,11 +2011,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         try {
                             StorageEngine.Delete("revs", "doc_id=?", docNumericId.ToString());
                         } catch(CouchbaseLiteException) {
-                            Log.W(TAG, "Failed to delete revisions of {0}", docId);
+                            Log.To.Database.E(TAG, "Failed to delete revisions of {0}, rethrowing...", 
+                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                             throw;
                         } catch(Exception e) {
-                            throw new CouchbaseLiteException(String.Format("Error deleting revisions of {0}", docId),
-                                e) { Code = StatusCode.Exception };
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                                "Error deleting revisions of {0}", new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                         }
 
                         revsPurged = new List<string> { "*" };
@@ -2037,15 +2062,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             try {
                                 count = StorageEngine.Delete("revs", deleteSql);
                             } catch(CouchbaseLiteException) {
-                                Log.W(TAG, "Failed to delete revisions of {0}", docId);
+                                Log.To.Database.E(TAG, "Failed to delete revisions of {0}, rethrowing...", 
+                                    new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                                 throw;
                             } catch(Exception e) {
-                                throw new CouchbaseLiteException(String.Format("Error deleting revisions of {0}", docId),
-                                    e) { Code = StatusCode.Exception };
+                                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                                    "Error deleting revisions of {0}", new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                             }
 
                             if(count != seqsToPurge.Count) {
-                                Log.W(TAG, "Only {0} revisions deleted of {1}", count, String.Join(", ", seqsToPurge.ToStringArray()));
+                                Log.To.Database.W(TAG, "Only {0} revisions deleted of {1}", count, String.Join(", ", seqsToPurge.ToStringArray()));
                             }
                         }
 
@@ -2115,8 +2141,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         {
             string docId = revision.DocID;
             if (!docId.StartsWith("_local/")) {
-                Log.E(TAG, "Local revision doesn't start with '_local/'");
-                throw new CouchbaseLiteException(StatusCode.BadId);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG, "Local revision doesn't start with '_local/'");
             }
 
             if (!obeyMVCC) {
@@ -2127,8 +2152,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 // PUT:
                 var json = EncodeDocumentJSON(revision);
                 if (json == null) {
-                    Log.E(TAG, "Invalid JSON in local revision");
-                    throw new CouchbaseLiteException(StatusCode.BadJson);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadJson, TAG, "Invalid JSON in local revision");
                 }
 
                 string newRevId;
@@ -2136,8 +2160,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 if (prevRevId != null) {
                     int generation = RevisionID.GetGeneration(prevRevId);
                     if (generation == 0) {
-                        Log.E(TAG, "Invalid prevRevId in PutLocalRevision");
-                        throw new CouchbaseLiteException(StatusCode.BadId);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG, "Invalid prevRevId in PutLocalRevision");
                     }
 
                     newRevId = String.Format("{0}-local", ++generation);
@@ -2147,7 +2170,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         args["json"] = json;
                         changes = StorageEngine.Update("localdocs", args, "docid=? AND revid=?", docId, prevRevId);
                     } catch (Exception e) {
-                        throw new CouchbaseLiteException(e, StatusCode.DbError);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "SQLite error writing local document");
                     }
                 } else {
                     newRevId = "1-local";
@@ -2160,13 +2183,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     try {
                         changes = StorageEngine.InsertWithOnConflict("localdocs", null, args, ConflictResolutionStrategy.Ignore);
                     } catch (Exception e) {
-                        throw new CouchbaseLiteException(e, StatusCode.DbError);
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "SQLite error creating local document");
                     }
                 }
 
                 if (changes == 0) {
-                    Log.I(TAG, "Local revision conflict detected");
-                    throw new CouchbaseLiteException(StatusCode.Conflict);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG, "Local revision conflict detected");
                 }
 
                 return revision.Copy(docId, newRevId);
@@ -2174,7 +2196,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 // DELETE:
                 var status = DeleteLocalRevision(docId, prevRevId);
                 if (status.IsError) {
-                    throw new CouchbaseLiteException(status.Code);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, status.Code, TAG, "Error deleting local document");
                 }
 
                 return revision;

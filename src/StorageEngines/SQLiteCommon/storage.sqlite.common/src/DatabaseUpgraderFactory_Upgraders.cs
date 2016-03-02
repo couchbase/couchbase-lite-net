@@ -164,13 +164,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         try {
                             AddAttachmentsToSequence(sequence, nuJson);
                         } catch(CouchbaseLiteException) {
-                            Log.W(TAG, "Failed to add attachments to sequence {0}", sequence);
+                            Log.To.Upgrade.E(TAG, "Failed to add attachments to sequence {0}, rethrowing...", sequence);
                             raw.sqlite3_finalize(revQuery);
                             throw;
                         } catch(Exception e) {
                             raw.sqlite3_finalize(revQuery);
-                            throw new CouchbaseLiteException(String.Format(
-                                "Error adding attachments to sequence {0}", sequence), e) { Code = StatusCode.DbError };
+                            throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, "Error adding attachments to sequence {0}", sequence);
                         }
 
                         json = nuJson;
@@ -186,17 +185,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             parentSeq = (long)ancestor[1];
                         }
 
-                        Log.D(TAG, "Upgrading doc {0} history {1}", rev, Manager.GetObjectMapper().WriteValueAsString(history));
+                        Log.To.Upgrade.V(TAG, "Upgrading doc {0} history {1}", rev, Manager.GetObjectMapper().WriteValueAsString(history));
                         try {
                             _db.ForceInsert(rev, history, null);
                         } catch (CouchbaseLiteException) {
-                            Log.W(TAG, "Failed to insert revision {0} into target database", rev);
+                            Log.To.Upgrade.E(TAG, "Failed to insert revision {0} into target database, rethrowing...", rev);
                             raw.sqlite3_finalize(revQuery);
                             throw;
                         } catch(Exception e) {
                             raw.sqlite3_finalize(revQuery);
-                            throw new CouchbaseLiteException(String.Format(
-                                "Error inserting revision {0} into target database", rev), e) { Code = StatusCode.Exception };
+                            throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, "Error inserting revision {0} into target database", rev);
                         }
 
                         NumRevs++;
@@ -231,12 +229,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     PrepareSQL(ref attQuery, "SELECT filename, key, type, length,"
                                 + " revpos, encoding, encoded_length FROM attachments WHERE sequence=?");
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Failed to create SQLite query for attachments table in source database '{0}'", _path);
+                    Log.To.Upgrade.E(TAG, "Failed to create SQLite query for attachments table in " +
+                        "source database '{0}', rethrowing...", _path);
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException(String.Format(
-                        "Error creating SQLite query for attachments table in source database '{0}'", _path),
-                        e) { Code = StatusCode.DbError };
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, 
+                        "Error creating SQLite query for attachments table in source database '{0}'", _path);
                 }
 
                 raw.sqlite3_bind_int64(attQuery, 1, sequence);
@@ -275,9 +273,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 raw.sqlite3_finalize(attQuery);
                 if (err != raw.SQLITE_DONE) {
-                    throw new CouchbaseLiteException(String.Format(
-                        "Failed to finalize attachment query ({0}: {1})", err, raw.sqlite3_errmsg(_sqlite)),
-                        SqliteErrToStatus(err).Code);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, SqliteErrToStatus(err).Code, TAG, 
+                        "Failed to finalize attachment query ({0}: {1})", err, raw.sqlite3_errmsg(_sqlite));
                 }
 
                 if (attachments.Count > 0) {
@@ -312,7 +309,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     } catch (CouchbaseLiteException) {
                     }
 
-                    Log.D(TAG, "Upgrading local doc '{0}'", docID);
+                    Log.To.Upgrade.V(TAG, "Upgrading local doc '{0}'", docID);
                     if (props != null) {
                         try {
                             if(docID.StartsWith("_local/")) {
@@ -321,7 +318,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                             _db.PutLocalDocument(docID, props);
                         } catch(CouchbaseLiteException e) {
-                            Log.W(TAG, "Couldn't import local doc '{0}': {1}", docID, e.CBLStatus);
+                            Log.To.Database.W(TAG, "Couldn't import local doc '{0}': {1}, skipping...", docID, e.CBLStatus);
                         }
                     }
                 }
@@ -345,8 +342,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 int err = raw.sqlite3_step(infoQuery);
                 if (err != raw.SQLITE_ROW) {
                     raw.sqlite3_finalize(infoQuery);
-                    throw new CouchbaseLiteException(String.Format("SQLite error {0} ({1}) reading info table from source database '{2}'",
-                        err, raw.sqlite3_errmsg(_sqlite), _path), SqliteErrToStatus(err).Code);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, SqliteErrToStatus(err).Code, TAG,
+                        "SQLite error {0} ({1}) reading info table from source database '{2}'",
+                        err, raw.sqlite3_errmsg(_sqlite), _path);
                 }
 
                 string privateUUID = null, publicUUID = null;
@@ -361,8 +359,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 err = raw.sqlite3_step(infoQuery);
                 if (err != raw.SQLITE_ROW) {
                     raw.sqlite3_finalize(infoQuery);
-                    throw new CouchbaseLiteException(String.Format("SQLite error {0} ({1}) reading info table from source database '{2}'",
-                        err, raw.sqlite3_errmsg(_sqlite), _path), SqliteErrToStatus(err).Code);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, SqliteErrToStatus(err).Code, TAG,
+                        "SQLite error {0} ({1}) reading info table from source database '{2}'",
+                        err, raw.sqlite3_errmsg(_sqlite), _path);
                 }
 
                 key = raw.sqlite3_column_text(infoQuery, 0);
@@ -375,16 +374,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 raw.sqlite3_finalize(infoQuery);
                 if (publicUUID == null || privateUUID == null) {
-                    throw new CouchbaseLiteException("UUIDs missing from source database", StatusCode.CorruptError);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, StatusCode.CorruptError, TAG, "UUIDs missing from source database");
                 }
 
                 try {
                     _db.ReplaceUUIDs(privateUUID, publicUUID);
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Failed to replace UUIDs in database");
+                    Log.To.Upgrade.E(TAG, "Failed to replace UUIDs in database, rethrowing...");
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException("Error replacing UUIDs in database", e) { Code = StatusCode.DbError };
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, "Error replacing UUIDs in database");
                 }
             }
 
@@ -393,7 +392,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 _oldAttachmentsPath = Path.Combine(Path.ChangeExtension(_path, null), "attachments");
                 var newAttachmentsPath = _db.AttachmentStorePath;
                 if (_oldAttachmentsPath.Equals(newAttachmentsPath)) {
-                    Log.D(TAG, "Skip moving the attachments folder as no path change ('{0}' vs '{1}').", _oldAttachmentsPath, newAttachmentsPath);
+                    Log.To.Upgrade.I(TAG, "Skip moving the attachments folder as no path change ('{0}' vs '{1}').", _oldAttachmentsPath, newAttachmentsPath);
                     return;
                 }
 
@@ -404,7 +403,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     }
                 }
                     
-                Log.D(TAG, "Moving {0} to {1}", _oldAttachmentsPath, newAttachmentsPath);
+                Log.To.Upgrade.I(TAG, "Moving {0} to {1}", _oldAttachmentsPath, newAttachmentsPath);
                 Directory.Delete(newAttachmentsPath, true);
                 Directory.CreateDirectory(newAttachmentsPath);
 
@@ -424,7 +423,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     }
                 } catch(IOException e) {
                     if (!(e is DirectoryNotFoundException)) {
-                        throw new CouchbaseLiteException("Upgrade failed:  Couldn't move attachments", StatusCode.Exception);
+                        throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, "Upgrade failed:  Couldn't move attachments");
                     }
                 }
             }
@@ -481,20 +480,22 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 // Rename the old database file for migration:
                 var destPath = Path.ChangeExtension(_path, Manager.DatabaseSuffixv1 + "-mgr");
                 if (!MoveSqliteFiles(_path, destPath)) {
-                    Log.W(TAG, "Upgrade failed: Cannot rename the old sqlite files");
                     MoveSqliteFiles(destPath, _path);
-                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, StatusCode.InternalServerError, TAG,
+                        "Upgrade failed: Cannot rename the old sqlite files");
                 }
 
                 int version = DatabaseUpgraderFactory.SchemaVersion(destPath);
                 if (version < 0) {
-                    throw new CouchbaseLiteException("Cannot determine database schema version", StatusCode.CorruptError);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, StatusCode.CorruptError, TAG,
+                        "Cannot determine database schema version");
                 }
 
                 // Open source (SQLite) database:
                 var err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
                 if (err > 0) {
-                    throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, SqliteErrToStatus(err).Code, TAG,
+                        "SQLite error while opening source database");
                 }
 
                 raw.sqlite3_create_collation(_sqlite, "JSON", raw.SQLITE_UTF8, CollateRevIDs);
@@ -544,7 +545,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 raw.sqlite3_finalize(stmt);
                 raw.sqlite3_close(_sqlite);
                 if (err != raw.SQLITE_DONE) {
-                    throw new CouchbaseLiteException(SqliteErrToStatus(err).Code);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, SqliteErrToStatus(err).Code, TAG,
+                        "SQLite error during upgrade process");
                 }
 
                 if (version >= 101) {
@@ -556,7 +558,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     return;
                 }
 
-                Log.D(TAG, "Upgrading database v1.0 ({0}) to v1.1 at {1} ...", version, _path);
+                Log.To.Upgrade.I(TAG, "Upgrading database v1.0 ({0}) to v1.1 at {1} ...", version, _path);
 
                 err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
                 if (err > 0) {
@@ -569,20 +571,21 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     _db.Open();
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Upgrade failed: Couldn't open new db");
+                    Log.To.Upgrade.E(TAG, "Upgrade failed: Couldn't open new db, rethrowing...");
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException("Error during upgrade; couldn't open new db", e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG,
+                        "Error during upgrade; couldn't open new db");
                 }
 
                 try {
                     MoveAttachmentsDir();
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Failed to move attachments directory for database at '{0}'", _path);
+                    Log.To.Upgrade.E(TAG, "Failed to move attachments directory for database at '{0}', rethrowing...", _path);
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException(String.Format(
-                        "Error moving attachments directory for database at '{0}'", _path), e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG,
+                        "Error moving attachments directory for database at '{0}'", _path);
                 }
 
                 // Upgrade documents:
@@ -600,15 +603,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         try {
                             ImportDoc(docID, docNumericID);
                         } catch(CouchbaseLiteException) {
-                            Log.W(TAG, "Failed to import document #{0} ({1})", docNumericID, docID);
+                            Log.To.Upgrade.E(TAG, "Failed to import document #{0} ({1}), rethrowing", docNumericID, 
+                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                             throw;
                         } catch(Exception e) {
-                            throw new CouchbaseLiteException(String.Format("Error importing document #{0} ({1}",
-                                docNumericID, docID), e) { Code = StatusCode.Exception };
+                            throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, 
+                                "Error importing documents");
                         }
                         
                         if((++count % 1000) == 0) {
-                            Log.I(TAG, "Migrated {0} documents", count);
+                            Log.To.Upgrade.I(TAG, "Migrated {0} documents", count);
                         }
                     }
                         
@@ -620,21 +624,21 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     ImportLocalDocs();
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Failed to import local docs for database '{0}'", _path);
+                    Log.To.Upgrade.E(TAG, "Failed to import local docs for database '{0}', rethrowing...", _path);
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException(String.Format(
-                        "Error importing local docs for database '{0}'", _path), e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, 
+                        "Error importing local docs for database '{0}'", _path);
                 }
 
                 try {
                     ImportInfo();
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Failed to import info for database '{0}'", _path);
+                    Log.To.Upgrade.E(TAG, "Failed to import info for database '{0}', rethrowing...", _path);
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException(String.Format(
-                        "Error importing info for database '{0}'", _path), e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, 
+                        "Error importing info for database '{0}'", _path);
                 }
 
                 raw.sqlite3_close(_sqlite);
@@ -697,8 +701,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             {
                 var newPath = Path.Combine(Path.GetDirectoryName(_path), _db.Name + SUFFIX);
                 if (Directory.Exists(newPath)) {
-                    Log.W(TAG, "Upgrade to v1.2 failed ({0} already exists)", newPath);
-                    throw new CouchbaseLiteException(StatusCode.PreconditionFailed);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, StatusCode.PreconditionFailed, TAG,
+                        "Upgrade to v1.2 failed ({0} already exists)", newPath);
                 }
 
                 Directory.CreateDirectory(newPath);
@@ -713,8 +717,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         File.Copy(_path + "-shm", sqliteFilePath + "-shm");
                     }
                 } catch(IOException e) {
-                    Log.W(TAG, "Upgrade to v1.2 failed (Couldn't copy sqlite files: {0})", e.ToString());
-                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, 
+                        "Upgrade to v1.2 failed (Couldn't copy sqlite files)");
                 }
 
                 var oldAttachmentsPath = Path.Combine(Path.GetDirectoryName(_path), _db.Name + " attachments");
@@ -728,8 +732,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         }
                     }
                 } catch(IOException e) {
-                    Log.W(TAG, "Upgrade to v1.2 failed (Couldn't copy attachment files: {0})", e.ToString());
-                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, 
+                        "Upgrade to v1.2 failed (Couldn't copy attachment files)");
                 }
 
                 File.Delete(_path);
@@ -819,10 +823,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             try {
                                 UpdateAttachmentFollows(nuJson);
                             } catch(CouchbaseLiteException) {
-                                Log.E(TAG, "Failed to process attachments");
+                                Log.To.Upgrade.E(TAG, "Failed to process attachments, rethrowing...");
                                 throw;
                             } catch(Exception e) {
-                                throw new CouchbaseLiteException("Error processing attachments", e);
+                                throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG, "Error processing attachments");
                             }
                         }
 
@@ -839,17 +843,17 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             parentSeq = (long)ancestor[1];
                         }
 
-                        Log.D(TAG, "Upgrading doc {0} history {1}", rev, Manager.GetObjectMapper().WriteValueAsString(history));
+                        Log.To.Upgrade.V(TAG, "Upgrading doc {0} history {1}", rev, Manager.GetObjectMapper().WriteValueAsString(history));
                         try {
                             _db.ForceInsert(rev, history, null);
                         } catch (CouchbaseLiteException) {
-                            Log.W(TAG, "Failed to insert revision {0} into target database", rev);
+                            Log.To.Upgrade.E(TAG, "Failed to insert revision {0} into target database, rethrowing...", rev);
                             raw.sqlite3_finalize(revQuery);
                             throw;
                         } catch(Exception e) {
                             raw.sqlite3_finalize(revQuery);
-                            throw new CouchbaseLiteException(String.Format(
-                                "Error inserting revision {0} into target database", rev), e) { Code = StatusCode.Exception };
+                            throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG,
+                                "Error inserting revision {0} into target database", rev);
                         }
 
                         NumRevs++;
@@ -863,7 +867,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 if (err != raw.SQLITE_OK) {
                     var s = SqliteErrToStatus(err);
                     if (s.IsError) {
-                        throw new CouchbaseLiteException(s.Code);
+                        throw Misc.CreateExceptionAndLog(Log.To.Upgrade, s.Code, TAG, "SQLite error during upgrade");
                     }
                 }
             }
@@ -886,10 +890,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     _db.Open();
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Upgrade failed: Couldn't open new db");
+                    Log.To.Upgrade.E(TAG, "Upgrade failed: Couldn't open new db, rethrowing");
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException("Error during upgrade; couldn't open new db", e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, 
+                        "Error during upgrade; couldn't open new db");
                 }
 
                 // Upgrade documents:
@@ -907,15 +912,17 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         try {
                             ImportDoc(docID, docNumericID);
                         } catch(CouchbaseLiteException) {
-                            Log.W(TAG, "Failed to import document #{0} ({1})", docNumericID, docID);
+                            Log.To.Database.E(TAG, "Failed to import document #{0} ({1}), rethrowing", docNumericID, 
+                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                             throw;
                         } catch(Exception e) {
-                            throw new CouchbaseLiteException(String.Format("Error importing document #{0} ({1}",
-                                docNumericID, docID), e) { Code = StatusCode.Exception };
+                            throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG,
+                                "Error importing document #{0} ({1})", docNumericID, 
+                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                         }
 
                         if((++count % 1000) == 0) {
-                            Log.I(TAG, "Migrated {0} documents", count);
+                            Log.To.Upgrade.I(TAG, "Migrated {0} documents", count);
                         }
                     }
 
@@ -927,21 +934,21 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 try {
                     _inner.ImportLocalDocs();
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Failed to import local docs for database '{0}'", _path);
+                    Log.To.Upgrade.E(TAG, "Failed to import local docs for database '{0}', rethrowing...", _path);
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException(String.Format(
-                        "Error importing local docs for database '{0}'", _path), e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG,
+                        "Error importing local docs for database '{0}'", _path);
                 }
 
                 try {
                     _inner.ImportInfo();
                 } catch(CouchbaseLiteException) {
-                    Log.W(TAG, "Failed to import info for database '{0}'", _path);
+                    Log.To.Upgrade.E(TAG, "Failed to import info for database '{0}', rethrowing...", _path);
                     throw;
                 } catch(Exception e) {
-                    throw new CouchbaseLiteException(String.Format(
-                        "Error importing info for database '{0}'", _path), e) { Code = StatusCode.Exception };
+                    throw Misc.CreateExceptionAndLog(Log.To.Upgrade, e, TAG,
+                        "Error importing info for database '{0}'", _path);
                 }
 
                 raw.sqlite3_close(_sqlite);
