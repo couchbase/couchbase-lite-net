@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Util
                 return request;
             }
 
-            var error = request.Exception.Flatten().InnerException;
+            var error = Misc.Flatten(request.Exception);
 
             if (!Misc.IsTransientNetworkError(error) || strategy.RetriesRemaining == 0)
             {

@@ -107,16 +107,6 @@ namespace Couchbase.Lite
 
             return rgx.Replace (str, replacement);
         }
-
-        public static Exception Flatten(this Exception e)
-        {
-            var ae = e as AggregateException;
-            if (ae == null) {
-                return e;
-            }
-
-            return ae.Flatten().InnerException;
-        }
             
         public static long MillisecondsSinceEpoch(this DateTime dt)
         {

@@ -71,20 +71,6 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
-        #region Private Methods
-
-        private static Exception Flatten(Exception tr)
-        {
-            if (!(tr is AggregateException)) {
-                return tr;
-            }
-
-            var err = ((AggregateException)tr).Flatten().InnerException;
-            return err;
-        }
-
-        #endregion
-
         #region ILogger
 
         public void V(string tag, string msg)
@@ -101,7 +87,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) {
-                _ts.WriteLine(SourceLevels.Verbose, String.Format("{0}:\r\n{1}", msg, Flatten(tr)), tag); 
+                _ts.WriteLine(SourceLevels.Verbose, String.Format("{0}:\r\n{1}", msg, Misc.Flatten(tr)), tag); 
             }
         }
 
@@ -129,7 +115,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-                _ts.WriteLine(SourceLevels.ActivityTracing, String.Format("{0}:\r\n{1}", msg, Flatten(tr)), tag); 
+                _ts.WriteLine(SourceLevels.ActivityTracing, String.Format("{0}:\r\n{1}", msg, Misc.Flatten(tr)), tag); 
             }
         }
 
@@ -147,7 +133,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) {
-                _ts.WriteLine(SourceLevels.Information, String.Format("{0}:\r\n{1}", msg, Flatten(tr)), tag); 
+                _ts.WriteLine(SourceLevels.Information, String.Format("{0}:\r\n{1}", msg, Misc.Flatten(tr)), tag); 
             }
         }
 
@@ -166,7 +152,7 @@ namespace Couchbase.Lite.Util
         public void W(string tag, Exception tr)
         {
             lock (_locker) {
-                _ts.WriteLine(Flatten(tr).Message, tag); 
+                _ts.WriteLine(Misc.Flatten(tr).Message, tag); 
             }
         }
 
@@ -177,7 +163,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-                _ts.WriteLine(SourceLevels.Warning, String.Format("{0}:\r\n{1}", msg, Flatten(tr)), tag); 
+                _ts.WriteLine(SourceLevels.Warning, String.Format("{0}:\r\n{1}", msg, Misc.Flatten(tr)), tag); 
             }
         }
 
@@ -200,7 +186,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-                _ts.Fail(String.Format("{0}: {1}", tag, msg), Flatten(tr).ToString()); 
+                _ts.Fail(String.Format("{0}: {1}", tag, msg), Misc.Flatten(tr).ToString()); 
             }
         }
 

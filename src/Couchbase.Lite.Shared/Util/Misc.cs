@@ -68,6 +68,16 @@ namespace Couchbase.Lite
             return Epoch.AddMilliseconds(milliSecondsSinceEpoch);
         }
 
+        public static Exception Flatten(Exception inE)
+        {
+            var ae = inE as AggregateException;
+            if (ae == null) {
+                return inE;
+            }
+
+            return ae.Flatten().InnerException;
+        }
+
         public static void SafeDispose<T>(ref T obj) where T : class, IDisposable
         {
             var tmp = obj;
