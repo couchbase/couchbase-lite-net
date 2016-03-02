@@ -223,7 +223,9 @@ namespace Mono.Zeroconf.Providers.Bonjour
 
             if(error != ServiceError.NoError) {
                 if ((int)error == -65563) {
-                    Log.To.Discovery.E(TAG, "mDNS daemon not started");
+                    Log.To.Discovery.E(TAG, "mDNS daemon not started, throwing...");
+                } else {
+                    Log.To.Discovery.E(TAG, "Got error in DNSServiceBrowse ({0}), throwing...", error);
                 }
 
                 throw new ServiceErrorException(error);
