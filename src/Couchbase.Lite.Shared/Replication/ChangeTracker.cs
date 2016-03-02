@@ -74,7 +74,6 @@ namespace Couchbase.Lite.Replicator
         private const string TAG = "ChangeTracker";
 
         private int _heartbeatMilliseconds = 300000;
-        private double _pollInterval = 0;
 
         private Uri databaseURL;
 
@@ -326,6 +325,16 @@ namespace Couchbase.Lite.Replicator
             if (responseTask.IsCanceled || responseTask.IsFaulted) {
                 if (!responseTask.IsCanceled) {
                     var err = Misc.Flatten(responseTask.Exception);
+                    var statusCode = Misc.GetStatusCode(err as WebException);
+                    if (UsePost && statusCode.HasValue && statusCode.Value == HttpStatusCode.MethodNotAllowed) {
+                        // Remote doesn't allow POST _changes, retry as GET
+                        UsePost = false;
+                        Log.To.ChangeTracker.I(TAG, "Remote server doesn't support POST _changes, " +
+                            "retrying as GET");
+                        WorkExecutor.StartNew(Run);
+                        return Task.FromResult(false);
+                    }
+
                     Log.To.ChangeTracker.I(TAG, String.Format("{0} ChangeFeedResponseHandler faulted", this),
                         err);
                     if (mode != ChangeTrackerMode.LongPoll || !Misc.IsTransientNetworkError(err)) {
@@ -349,6 +358,15 @@ namespace Couchbase.Lite.Replicator
 
             if ((Int32)status >= 300)
             {
+                if (UsePost && status == HttpStatusCode.MethodNotAllowed) {
+                    // Remote doesn't allow POST _changes, retry as GET
+                    UsePost = false;
+                    Log.To.ChangeTracker.I(TAG, "Remote server ({0}) doesn't support POST _changes, " +
+                    "retrying as GET", ServerType);
+                    WorkExecutor.StartNew(Run);
+                    return Task.FromResult(false);
+                }
+
                 if (Misc.IsTransientError(status) && mode == ChangeTrackerMode.LongPoll) {
                     Log.To.ChangeTracker.I(TAG, "{0} transient error ({1}) detected, sleeping...", this,
                         status);

@@ -205,6 +205,20 @@ namespace Couchbase.Lite
             return param.Replace("\"", string.Empty);
         }
 
+        public static HttpStatusCode? GetStatusCode(WebException we)
+        {
+            if (we == null || we.Response == null) {
+                return null;
+            }
+
+            var response = we.Response as HttpWebResponse;
+            if (response == null) {
+                return null;
+            }
+
+            return response.StatusCode;
+        }
+
         public static bool IsTransientNetworkError(Exception e)
         {
             var error = Misc.Flatten(e);
@@ -215,21 +229,22 @@ namespace Couchbase.Lite
                 return true;
             }
 
-            var we = error as WebException;
+            var we = e as WebException;
             if (we == null) {
                 return false;
             }
 
             if (we.Status == WebExceptionStatus.ConnectFailure || we.Status == WebExceptionStatus.Timeout ||
-               we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled) {
+                we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled) {
                 return true;
             }
 
-            if (we.Response == null) {
+            var statusCode = GetStatusCode(we);
+            if (!statusCode.HasValue) {
                 return false;
             }
 
-            return IsTransientError(((HttpWebResponse)we.Response).StatusCode);
+            return IsTransientError(statusCode.Value);
         }
 
         public static bool IsTransientError(HttpResponseMessage response)

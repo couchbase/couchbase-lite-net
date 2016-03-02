@@ -168,21 +168,8 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
-            if (ServerType == null) {
-                var initialRequest = WebRequest.CreateHttp(RemoteUrl.GetLeftPart(UriPartial.Authority));
-                initialRequest.Method = "HEAD";
-                initialRequest.GetResponseAsync().ContinueWith(t =>
-                {
-                    var result = t.Result;
-                    ServerType = new RemoteServerVersion(result.Headers["Server"]);
-                    _changeTracker.UsePost = CheckServerCompatVersion("0.93");
-                    _changeTracker.Start();
-                });
-
-            } else {
-                _changeTracker.UsePost = CheckServerCompatVersion("0.93");
-                _changeTracker.Start();
-            }
+            _changeTracker.UsePost = true;
+            _changeTracker.Start();
         }
 
 

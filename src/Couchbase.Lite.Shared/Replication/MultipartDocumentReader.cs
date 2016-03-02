@@ -177,7 +177,8 @@ namespace Couchbase.Lite.Support
 
         public void Finish()
         {
-            Log.To.Sync.V(TAG, "{0} finished loading ({1} attachments)", this, attachmentsBySHA1Digest.Count);
+            Log.To.Sync.V(TAG, "{0} finished loading ({1} attachments)", 
+                this, attachmentsBySHA1Digest == null ? 0 : attachmentsBySHA1Digest.Count);
             if (multipartReader != null) {
                 if (!multipartReader.Finished) {
                     throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.UpStreamError, TAG,

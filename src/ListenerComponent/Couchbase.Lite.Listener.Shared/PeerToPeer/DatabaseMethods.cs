@@ -383,6 +383,93 @@ namespace Couchbase.Lite.Listener
             responseState.Response = responseObject;
             return responseState;
         }
+
+        public static ICouchbaseResponseState GetChangesPost(ICouchbaseListenerContext context)
+        {
+            DBMonitorCouchbaseResponseState responseState = new DBMonitorCouchbaseResponseState();
+
+            var responseObject = PerformLogicWithDatabase(context, true, db =>
+            {
+                var response = context.CreateResponse();
+                responseState.Response = response;
+                var body = context.BodyAs<Dictionary<string, object>>();
+                ProcessBody(body);
+                if (body.GetCast<ChangesFeedMode>("feed") < ChangesFeedMode.Continuous) {
+                    if(context.CacheWithEtag(db.GetLastSequenceNumber().ToString())) {
+                        response.InternalStatus = StatusCode.NotModified;
+                        return response;
+                    }
+                }
+
+                var options = ChangesOptions.Default;
+                responseState.Db = db;
+                responseState.ContentOptions = body.GetCast<DocumentContentOptions>("content_options");
+                responseState.ChangesFeedMode = body.GetCast<ChangesFeedMode>("feed");
+                responseState.ChangesIncludeDocs = body.GetCast<bool>("include_docs");
+                options.IncludeDocs = responseState.ChangesIncludeDocs;
+                responseState.ChangesIncludeConflicts = body.GetCast<string>("style") == "all_docs";
+                options.IncludeConflicts = responseState.ChangesIncludeConflicts;
+                options.ContentOptions = responseState.ContentOptions;
+                options.SortBySequence = !options.IncludeConflicts;
+                options.Limit = body.GetCast<int>("limit", options.Limit);
+                int since = body.GetCast<int>("since");
+
+                string filterName = body.GetCast<string>("filter");
+                if(filterName != null) {
+                    Status status = new Status();
+                    responseState.ChangesFilter = db.GetFilter(filterName, status);
+                    if(responseState.ChangesFilter == null) {
+                        return context.CreateResponse(status.Code);
+                    }
+
+                    responseState.FilterParams = context.GetQueryParams();
+                }
+
+
+                RevisionList changes = db.ChangesSince(since, options, responseState.ChangesFilter, responseState.FilterParams);
+                if((responseState.ChangesFeedMode >= ChangesFeedMode.Continuous) || 
+                    (responseState.ChangesFeedMode == ChangesFeedMode.LongPoll && changes.Count == 0)) {
+                    // Response is going to stay open (continuous, or hanging GET):
+                    response.Chunked = true;
+                    if(responseState.ChangesFeedMode == ChangesFeedMode.EventSource) {
+                        response["Content-Type"] = "text/event-stream; charset=utf-8";
+                    }
+
+                    if(responseState.ChangesFeedMode >= ChangesFeedMode.Continuous) {
+                        response.WriteHeaders();
+                        foreach(var rev in changes) {
+                            response.SendContinuousLine(ChangesDictForRev(rev, responseState), context.ChangesFeedMode);
+                        }
+                    }
+
+                    responseState.SubscribeToDatabase(db);
+                    int heartbeat = body.GetCast<int>("heartbeat", Int32.MinValue);
+                    if(heartbeat != Int32.MinValue) {
+                        if(heartbeat <= 0) {
+                            responseState.IsAsync = false;
+                            return context.CreateResponse(StatusCode.BadParam);
+                        }
+
+                        heartbeat = Math.Min(heartbeat, MIN_HEARTBEAT);
+                        string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
+                        responseState.StartHeartbeat(heartbeatResponse, heartbeat);
+                    }
+
+                    return context.CreateResponse();
+                } else {
+                    if(responseState.ChangesIncludeConflicts) {
+                        response.JsonBody = new Body(ResponseBodyForChanges(changes, since, options.Limit, responseState));
+                    } else {
+                        response.JsonBody = new Body(ResponseBodyForChanges(changes, since, responseState));
+                    }
+
+                    return response;
+                }
+            });
+
+            responseState.Response = responseObject;
+            return responseState;
+        }
          
         /// <summary>
         /// Request compaction of the specified database. Compaction compresses the disk database file.
@@ -697,6 +784,45 @@ namespace Couchbase.Lite.Listener
         #endregion
 
         #region Private Methods
+
+        private static void ProcessBody(IDictionary<string, object> body)
+        {
+            var feed = body.GetCast<string>("feed");
+            if (feed != null) {
+                if (feed.Equals("longpoll")) {
+                    body["feed"] = ChangesFeedMode.LongPoll;
+                } else if (feed.Equals("continuous")) {
+                    body["feed"] = ChangesFeedMode.Continuous;
+                } else if (feed.Equals("eventsource")) {
+                    body["feed"] = ChangesFeedMode.EventSource;
+                }
+            } else {
+                body["feed"] = ChangesFeedMode.Normal;
+            }
+
+            var contentOptions = DocumentContentOptions.None;
+            if (body.GetCast<bool>("attachments")) {
+                contentOptions |= DocumentContentOptions.IncludeAttachments;
+            }
+
+            if (body.GetCast<bool>("local_seq")) {
+                contentOptions |= DocumentContentOptions.IncludeLocalSeq;
+            }
+
+            if (body.GetCast<bool>("conflicts")) {
+                contentOptions |= DocumentContentOptions.IncludeConflicts;
+            }
+
+            if (body.GetCast<bool>("revs")) {
+                contentOptions |= DocumentContentOptions.IncludeRevs;
+            }
+
+            if (body.GetCast<bool>("revs_info")) {
+                contentOptions |= DocumentContentOptions.IncludeRevsInfo;
+            }
+
+            body["content_options"] = contentOptions;
+        }
             
         //Do an all document request on the database (i.e. fetch all docs given some options)
         private static CouchbaseLiteResponse DoAllDocs(ICouchbaseListenerContext context, Database db, QueryOptions options)

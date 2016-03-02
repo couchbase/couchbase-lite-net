@@ -61,6 +61,7 @@ namespace Couchbase.Lite.Listener
                 { "/_replicate", ServerMethods.ManageReplicationSession },
                 { "/{[^_].*}/_revs_diff", DatabaseMethods.RevsDiff },
                 { "/{[^_].*}/_all_docs", DatabaseMethods.GetAllSpecifiedDocuments },
+                { "/{[^_].*}/_changes", DatabaseMethods.GetChangesPost },
                 { "/{[^_].*}/_bulk_docs", DatabaseMethods.ProcessDocumentChangeOperations },
                 { "/{[^_].*}/_compact", DatabaseMethods.Compact },
                 { "/{[^_].*}/_purge", DatabaseMethods.Purge },
