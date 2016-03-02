@@ -293,12 +293,12 @@ namespace Couchbase.Lite
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 CreateDocuments(database, 10);
                 var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
+                pusher.Start();
+                pusher.Restart();
                 RunReplication(pusher);
-
-                Sleep(1000);
-
                 CreateDocuments(database, 10);
                 RunReplication(pusher);
+
                 Assert.AreEqual(20, pusher.CompletedChangesCount);
                 Assert.AreEqual(20, pusher.ChangesCount);
                 Assert.IsNull(pusher.LastError);

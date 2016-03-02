@@ -786,6 +786,14 @@ namespace Couchbase.Lite
         public void Restart()
         {
             Changed += WaitForStopped;
+            if (Status == ReplicationStatus.Stopped) {
+                Log.To.Sync.W(TAG, "Restart() called on already stopped replication, " +
+                "simply calling Start()");
+                Changed -= WaitForStopped;
+                Start();
+                return;
+            }
+
             Stop();
         }
 
@@ -1180,6 +1188,7 @@ namespace Couchbase.Lite
                 return; // This logic has already been handled by DatabaseClosing()
             }
 
+            LocalDatabase.ForgetReplication(this);
             lastSequenceChanged = true; // force save the sequence
             SaveLastSequence (() => 
             {
@@ -1188,7 +1197,6 @@ namespace Couchbase.Lite
                     reachabilityManager.StatusChanged -= NetworkStatusChanged;
                 }
 
-                LocalDatabase.ForgetReplication(this);
                 Misc.SafeDispose(ref _client);
                 Log.To.Sync.I(TAG, "{0} stopped.  Elapsed time {1} sec", this, (DateTime.UtcNow - _startTime).TotalSeconds.ToString("F3"));
             });
