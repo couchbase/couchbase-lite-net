@@ -55,6 +55,7 @@ using Couchbase.Lite.Tests;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using System.Diagnostics;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -126,7 +127,7 @@ namespace Couchbase.Lite
             }*/
             #endif
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
-
+            Log.ScrubSensitivity = LogScrubSensitivity.AllOK;
             LoadCustomProperties();
             StartCBLite();
             StartDatabase();
@@ -325,13 +326,46 @@ namespace Couchbase.Lite
             if (firstDic != null && secondDic != null) {
                 AssertDictionariesAreEqual(firstDic, secondDic);
             } else {
-                var firstEnum = first as IEnumerable;
-                var secondEnum = second as IEnumerable;
-                if (firstEnum != null && secondEnum != null) {
+                var castFirst = FromJToken(first);
+                var castSecond = FromJToken(second);
+                var firstEnum = castFirst as IEnumerable;
+                var secondEnum = castSecond as IEnumerable;
+                if (firstEnum != null && castSecond != null) {
                     AssertEnumerablesAreEquivalent(firstEnum, secondEnum);
                 } else {
-                    Assert.AreEqual(first, second);
+                    Assert.AreEqual(castFirst, castSecond);
                 }
+            }
+        }
+
+        private static object FromJToken(object raw)
+        {
+            var inputArray = raw as JArray;
+            if (inputArray != null) {
+                return inputArray.ToObject<IList<object>>();
+            }
+
+            var inputObject = raw as JObject;
+            if (inputObject != null) {
+                return inputObject.ToObject<IDictionary<string, object>>();
+            }
+
+            var input = raw as JToken;
+            if (input == null) {
+                return raw;
+            }
+
+            switch (input.Type) {
+                case JTokenType.String:
+                    return input.Value<string>();
+                case JTokenType.Boolean:
+                    return input.Value<bool>();
+                case JTokenType.Float:
+                    return input.Value<float>();
+                case JTokenType.Integer:
+                    return input.Value<int>();
+                default:
+                    return null;
             }
         }
 

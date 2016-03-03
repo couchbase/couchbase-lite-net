@@ -169,6 +169,7 @@ namespace Couchbase.Lite
             options.EndKey = "f";
             options.PrefixMatchLevel = 1;
             var rows = RowsToDicts(view.QueryWithOptions(options));
+            Assert.AreEqual(2, rows.Count);
             AssertDictionariesAreEqual(new Dictionary<string, object> {
                 { "id", "55555" },
                 { "key", "five" }
@@ -181,6 +182,7 @@ namespace Couchbase.Lite
             // ...descending:
             options.Descending = true;
             rows = RowsToDicts(view.QueryWithOptions(options));
+            Assert.AreEqual(2, rows.Count);
             AssertDictionariesAreEqual(new Dictionary<string, object> {
                 { "id", "55555" },
                 { "key", "five" }
@@ -188,6 +190,48 @@ namespace Couchbase.Lite
             AssertDictionariesAreEqual(new Dictionary<string, object> {
                 { "id", "44444" },
                 { "key", "four" }
+            }, rows[0]);
+        }
+
+        [Test]
+        public void TestPrefixMatchingArray()
+        {
+            PutDocs(database);
+            var view = database.GetView("view");
+            view.SetMap((doc, emit) =>
+            {
+                int i = doc.GetCast<int>("_id");
+                emit(new List<object> { doc.Get("key"), i }, null);
+                emit(new List<object> { doc.Get("key"), i/100 }, null);
+            }, "1");
+
+            Assert.AreEqual(StatusCode.Ok, view.UpdateIndex().Code);
+
+            // Keys starting with "one":
+            var options = new QueryOptions();
+            options.StartKey = options.EndKey = new List<object> { "one" };
+            options.PrefixMatchLevel = 1;
+            var rows = RowsToDicts(view.QueryWithOptions(options));
+            Assert.AreEqual(2, rows.Count);
+            AssertDictionariesAreEqual(new Dictionary<string, object> {
+                { "id", "11111" },
+                { "key", new List<object> { "one", 111 } }
+            }, rows[0]);
+            AssertDictionariesAreEqual(new Dictionary<string, object> {
+                { "id", "11111" },
+                { "key", new List<object> { "one", 11111 } }
+            }, rows[1]);
+
+            options.Descending = true;
+            rows = RowsToDicts(view.QueryWithOptions(options));
+            Assert.AreEqual(2, rows.Count);
+            AssertDictionariesAreEqual(new Dictionary<string, object> {
+                { "id", "11111" },
+                { "key", new List<object> { "one", 111 } }
+            }, rows[1]);
+            AssertDictionariesAreEqual(new Dictionary<string, object> {
+                { "id", "11111" },
+                { "key", new List<object> { "one", 11111 } }
             }, rows[0]);
         }
 

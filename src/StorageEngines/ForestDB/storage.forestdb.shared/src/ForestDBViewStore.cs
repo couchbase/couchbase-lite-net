@@ -303,10 +303,17 @@ namespace Couchbase.Lite.Storage.ForestDB
         private CBForestQueryEnumerator QueryEnumeratorWithOptions(QueryOptions options)
         {
             var enumerator = default(C4QueryEnumerator*);
-            var endKey = Misc.KeyForPrefixMatch(options.EndKey, options.PrefixMatchLevel);
+
+            var startKey = options.StartKey;
+            var endKey = options.EndKey;
+            if (options.Descending) {
+                startKey = Misc.KeyForPrefixMatch(startKey, options.PrefixMatchLevel);
+            } else {
+                endKey = Misc.KeyForPrefixMatch(options.EndKey, options.PrefixMatchLevel);
+            }
             using(var startkeydocid_ = new C4String(options.StartKeyDocId))
             using(var endkeydocid_ = new C4String(options.EndKeyDocId)) {
-                WithC4Keys(new object[] { options.StartKey, endKey }, false, startEndKey =>
+                WithC4Keys(new object[] { startKey, endKey }, false, startEndKey =>
                     WithC4Keys(options.Keys == null ? null : options.Keys.ToArray(), true, c4keys =>
                     {
                         var opts = C4QueryOptions.DEFAULT;

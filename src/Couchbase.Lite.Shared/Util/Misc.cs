@@ -133,7 +133,7 @@ namespace Couchbase.Lite
             var keyStr = key as string;
             if (keyStr != null) {
                 // Kludge: prefix match a string by appending max possible character value to it
-                return keyStr + "\uffffffff";
+                return keyStr + "\U0010FFFD";
             }
 
             var keyList = key as IList;
