@@ -27,7 +27,7 @@ using System.Collections.Generic;
 using System.Linq;
 using WebSocketSharp;
 
-namespace Couchbase.Lite.Replicator
+namespace Couchbase.Lite.Internal
 {
     internal class WebSocketChangeTracker : ChangeTracker
     {
@@ -35,11 +35,11 @@ namespace Couchbase.Lite.Replicator
         private WebSocket _client;
         private CancellationTokenSource _cts;
 
-        public WebSocketChangeTracker(Uri databaseURL, ChangeTrackerMode mode, object lastSequenceID, 
+        public WebSocketChangeTracker(Uri databaseURL, object lastSequenceID, 
             bool includeConflicts, bool initialSync, IChangeTrackerClient client, TaskFactory workExecutor = null)
-            : base(databaseURL, mode, lastSequenceID, includeConflicts, initialSync, client, workExecutor)
+            : base(databaseURL, ChangeTrackerMode.WebSocket, lastSequenceID, includeConflicts, initialSync, client, workExecutor)
         {
-
+            backoff = new ChangeTrackerBackoff();
         }
 
         private void OnError(object sender, ErrorEventArgs args)
@@ -52,11 +52,12 @@ namespace Couchbase.Lite.Replicator
             if (_client != null) {
                 Log.To.ChangeTracker.I(Tag, "{0} remote {1} closed connection ({2} {3})",
                     this, args.WasClean ? "cleanly" : "forcibly", args.Code, args.Reason);
+                backoff.SleepAppropriateAmountOfTime();
+                _client.ConnectAsync();
             } else {
                 Log.To.ChangeTracker.I(Tag, "{0} is closed", this);
+                Stopped();
             }
-
-            Stopped();
         }
 
         private void OnConnect(object sender, EventArgs args)
@@ -66,6 +67,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
+            backoff.ResetBackoff();
             Log.To.ChangeTracker.V(Tag, "{0} websocket opened", this);
 
             // Now that the WebSocket is open, send the changes-feed options (the ones that would have
@@ -90,9 +92,6 @@ namespace Couchbase.Lite.Replicator
             try {
                 if(args.RawData.Length == 2) {
                     Log.To.ChangeTracker.I(Tag, "{0} caught up to the end of the changes feed", this);
-                    if(_mode == ChangeTrackerMode.OneShot) {
-                        Stop();
-                    }
                     return;
                 }
 
