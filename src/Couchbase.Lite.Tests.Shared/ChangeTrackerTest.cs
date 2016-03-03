@@ -51,6 +51,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Tests;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
+using Couchbase.Lite.Internal;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -93,6 +94,16 @@ namespace Couchbase.Lite
                 this.stoppedSignal = stoppedSignal;
                 this.changedSignal = changedSignal;
                 HttpClientFactory = new MockHttpClientFactory();
+            }
+
+            public void ChangeTrackerCaughtUp(ChangeTracker tracker)
+            {
+
+            }
+
+            public void ChangeTrackerFinished(ChangeTracker tracker)
+            {
+
             }
 
             public void ChangeTrackerStopped(ChangeTracker tracker)
@@ -189,8 +200,8 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, true, client, new TaskFactory(scheduler));
-
+            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, false, 0, client, new TaskFactory(scheduler));
+            changeTracker.ActiveOnly = true;
             changeTracker.Start();
 
             var success = changeReceivedSignal.Wait(TimeSpan.FromSeconds(30));
@@ -210,7 +221,7 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, true, false, client, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(testUrl, ChangeTrackerMode.LongPoll, true, 0, client, new TaskFactory(scheduler));
 
             changeTracker.Start();
 
@@ -290,7 +301,7 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, true, client, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, false, 0, client, new TaskFactory(scheduler));
 
             changeTracker.Start();
 
@@ -301,6 +312,14 @@ namespace Couchbase.Lite
 
             success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
+        }
+
+        [Test]
+        public void TestWebSocketChangeTracker()
+        {
+            var tracker = new WebSocketChangeTracker(GetReplicationURL(), false, null, new ChangeTrackerTestClient(null, null));
+            tracker.Start();
+            Thread.Sleep(20000);
         }
 
         [Test]
@@ -364,21 +383,17 @@ namespace Couchbase.Lite
         public void TestChangeTrackerWithDocsIds()
         {
             var testURL = GetReplicationURL();
-            var changeTracker = new ChangeTracker(testURL, ChangeTrackerMode
-                .LongPoll, 0, false, true, null);
+            var changeTracker = ChangeTrackerFactory.Create(testURL, ChangeTrackerMode
+                .LongPoll, false, 0, null);
 
             var docIds = new List<string>();
             docIds.Add("doc1");
             docIds.Add("doc2");
-            changeTracker.SetDocIDs(docIds);
+            changeTracker.DocIDs = docIds;
 
-            var docIdsJson = "[\"doc1\",\"doc2\"]";
             var parameters = changeTracker.GetChangesFeedParams();
             Assert.AreEqual("_doc_ids", parameters["filter"]);
             AssertEnumerablesAreEqual(docIds, (IEnumerable)parameters["doc_ids"]);
-
-            var body = changeTracker.GetChangesFeedPostBody();
-            Assert.IsTrue(body.Contains(docIdsJson));
         }
             
     }

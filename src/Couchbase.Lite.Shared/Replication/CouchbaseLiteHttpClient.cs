@@ -30,8 +30,8 @@ namespace Couchbase.Lite
 {
     internal sealed class CouchbaseLiteHttpClient : IDisposable
     {
-        private readonly HttpClient _httpClient;
-        private readonly DefaultAuthHandler _authHandler;
+        private HttpClient _httpClient;
+        private DefaultAuthHandler _authHandler;
 
         public IAuthenticator Authenticator { get; set; }
 
@@ -67,8 +67,8 @@ namespace Couchbase.Lite
 
         public void Dispose()
         {
-            _httpClient.Dispose();
-            _authHandler.Dispose();
+            Misc.SafeDispose(ref _httpClient);
+            Misc.SafeDispose(ref _authHandler);
         }
     }
 }

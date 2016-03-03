@@ -103,6 +103,23 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
+        private bool? _canUseWebSockets;
+        private bool CanUseWebSockets
+        {
+            get {
+                if (!_canUseWebSockets.HasValue) {
+                    var scratch = false;
+                    if (Options.TryGetValue<bool>(ReplicationOptionsDictionaryKeys.UseWebSocket, out scratch)) {
+                        _canUseWebSockets = scratch;
+                    } else {
+                        _canUseWebSockets = CheckServerCompatVersion("0.91");
+                    } 
+                }
+
+                return _canUseWebSockets.Value;
+            }
+        }
+
         #endregion
 
         #region Constructors
@@ -139,36 +156,42 @@ namespace Couchbase.Lite.Replicator
 
         private void StartChangeTracker()
         {
-            var mode = Continuous 
-                ? ChangeTrackerMode.LongPoll 
-                : ChangeTrackerMode.OneShot;
-            Log.To.Sync.V(TAG, "{0} starting ChangeTracker: mode={0}, since={1}", this, mode, LastSequence);
-            var initialSync = LocalDatabase.IsOpen && LocalDatabase.GetDocumentCount() == 0;
-            _changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, initialSync, this, WorkExecutor);
-            _changeTracker.Authenticator = Authenticator;
+            var mode = ChangeTrackerMode.OneShot;
             var pollInterval = 0.0;
-            if (Options.TryGetValue<double>(ReplicationOptionsDictionaryKeys.PollInterval, out pollInterval)) {
-                _changeTracker.PollInterval = TimeSpan.FromSeconds(pollInterval);
-            } else {
-                _changeTracker.PollInterval = TimeSpan.Zero;
+            if (!Options.TryGetValue<double>(ReplicationOptionsDictionaryKeys.PollInterval, out pollInterval)) {
+                pollInterval = 0.0;
             }
 
+            if (Continuous && pollInterval.CompareTo(0.0) == 0 && CanUseWebSockets) {
+                mode = ChangeTrackerMode.WebSocket;
+            }
+
+            Log.To.Sync.V(TAG, "{0} starting ChangeTracker: since={1}", this, LastSequence);
+            var initialSync = LocalDatabase.IsOpen && LocalDatabase.GetDocumentCount() == 0;
+            _changeTracker = ChangeTrackerFactory.Create(RemoteUrl, mode, true, LastSequence, this, WorkExecutor);
+            _changeTracker.ActiveOnly = initialSync;
+            _changeTracker.Authenticator = Authenticator;
+            _changeTracker.Continuous = Continuous;
+            _changeTracker.PollInterval = TimeSpan.FromSeconds(pollInterval);
             if(DocIds != null) {
                 if(ServerType != null && ServerType.Name == "CouchDB") {
-                    _changeTracker.SetDocIDs(DocIds.ToList());
+                    _changeTracker.DocIDs = DocIds.ToList();
                 } else {
                     Log.To.Sync.W(TAG, "DocIds parameter only supported on CouchDB");
                 }
             }       
 
             if (Filter != null) {
-                _changeTracker.SetFilterName(Filter);
+                _changeTracker.FilterName = Filter;
                 if (FilterParams != null) {
-                    _changeTracker.SetFilterParams(FilterParams.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+                    _changeTracker.FilterParameters = FilterParams.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                 }
             }
 
-            _changeTracker.UsePost = true;
+            if (ServerType != null) {
+                _changeTracker.ServerType = ServerType;
+            }
+
             _changeTracker.Start();
         }
 
@@ -755,7 +778,7 @@ namespace Couchbase.Lite.Replicator
             if (changeTrackerCopy != null) {
                 Log.To.Sync.D(TAG, "stopping changetracker " + _changeTracker);
 
-                changeTrackerCopy.SetClient(null);
+                changeTrackerCopy.Client = null;
                 // stop it from calling my changeTrackerStopped()
                 changeTrackerCopy.Stop();
                 _changeTracker = null;
@@ -909,6 +932,16 @@ namespace Couchbase.Lite.Replicator
         #endregion
 
         #region IChangeTrackerClient
+
+        public void ChangeTrackerCaughtUp(ChangeTracker tracker)
+        {
+
+        }
+
+        public void ChangeTrackerFinished(ChangeTracker tracker)
+        {
+
+        }
 
         public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
         {

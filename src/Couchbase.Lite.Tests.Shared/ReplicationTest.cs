@@ -555,7 +555,7 @@ namespace Couchbase.Lite
                 };
 
                 pull.Start();
-                Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(60)));
+                Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(10)));
                 Assert.IsNull(pull.LastError);
 
                 for (int i = 0; i < statusHistory.Count; i++) {
@@ -570,7 +570,7 @@ namespace Couchbase.Lite
                 doc1Id = string.Format("doc5-{0}", docIdTimestamp);         
                 remoteDb.AddDocument(doc1Id, "attachment.png");
 
-                Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(60)));
+                Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(10)));
                 Assert.IsNull(pull.LastError);
                 statusHistory.Clear();
                 StopReplication(pull);

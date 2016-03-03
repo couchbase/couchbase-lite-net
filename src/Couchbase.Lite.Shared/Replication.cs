@@ -139,10 +139,16 @@ namespace Couchbase.Lite
         public static readonly string RemoteUUID = ReplicationOptionsDictionary.RemoteUUIDKey;
 
         /// <summary>
-        /// Defines the interval (in seconds) between polls in continuous ("long poll") replication mode.  
+        /// Defines the interval (in seconds) between polls in continuous replication mode.  
         /// Default is 0, which means try again immediately.
         /// </summary>
-        public static readonly string PollInterval = ReplicationOptionsDictionary.PollInterval;
+        public static readonly string PollInterval = ReplicationOptionsDictionary.PollIntervalKey;
+
+        /// <summary>
+        /// Specifies whether or not to force use of web sockets when replicating (only applicable
+        /// to pull replications)
+        /// </summary>
+        public static readonly string UseWebSocket = ReplicationOptionsDictionary.UseWebSocketKey;
     }
 
     /// <summary>
@@ -150,7 +156,8 @@ namespace Couchbase.Lite
     /// </summary>
     [DictionaryContract(OptionalKeys=new object[] { 
         ReplicationOptionsDictionary.RemoteUUIDKey, typeof(string),
-        ReplicationOptionsDictionary.PollInterval, typeof(double)
+        ReplicationOptionsDictionary.PollIntervalKey, typeof(double),
+        ReplicationOptionsDictionary.UseWebSocketKey, typeof(bool)
     })]
     public sealed class ReplicationOptionsDictionary : ContractedDictionary
     {
@@ -162,7 +169,8 @@ namespace Couchbase.Lite
         public const string REMOTE_UUID_KEY = "remoteUUID";
 
         internal const string RemoteUUIDKey = "remoteUUID";
-        internal const string PollInterval = "poll";
+        internal const string PollIntervalKey = "poll";
+        internal const string UseWebSocketKey = "websocket";
     }
 
     /// <summary>

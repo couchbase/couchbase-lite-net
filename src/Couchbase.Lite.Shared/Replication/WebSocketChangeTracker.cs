@@ -35,11 +35,24 @@ namespace Couchbase.Lite.Internal
         private WebSocket _client;
         private CancellationTokenSource _cts;
 
-        public WebSocketChangeTracker(Uri databaseURL, object lastSequenceID, 
-            bool includeConflicts, bool initialSync, IChangeTrackerClient client, TaskFactory workExecutor = null)
-            : base(databaseURL, ChangeTrackerMode.WebSocket, lastSequenceID, includeConflicts, initialSync, client, workExecutor)
+        public override Uri ChangesFeedUrl
         {
-            backoff = new ChangeTrackerBackoff();
+            get {
+                var dbURLString = DatabaseUrl.ToString().Replace("http", "ws");
+                if (!dbURLString.EndsWith("/", StringComparison.Ordinal)) {
+                    dbURLString += "/";
+                }
+
+                dbURLString += "_changes?feed=websocket";
+                return new Uri(dbURLString);
+            }
+        }
+
+        public WebSocketChangeTracker(Uri databaseURL, bool includeConflicts, object lastSequenceID, 
+           IChangeTrackerClient client, TaskFactory workExecutor = null)
+            : base(databaseURL, ChangeTrackerMode.WebSocket, includeConflicts, lastSequenceID, client, workExecutor)
+        {
+            
         }
 
         private void OnError(object sender, ErrorEventArgs args)
@@ -72,8 +85,7 @@ namespace Couchbase.Lite.Internal
 
             // Now that the WebSocket is open, send the changes-feed options (the ones that would have
             // gone in the POST body if this were HTTP-based.)
-            var body = GetChangesFeedPostBody();
-            var bytes = Encoding.UTF8.GetBytes(body);
+            var bytes = GetChangesFeedPostBody().ToArray();
             _client.SendAsync(bytes, null);
         }
 
@@ -103,18 +115,7 @@ namespace Couchbase.Lite.Internal
                 Log.To.ChangeTracker.E(Tag, String.Format("{0} is not parseable", new LogString(message)), e);
             }
         }
-
-        public override Uri GetChangesFeedURL()
-        {
-            var dbURLString = databaseURL.ToString().Replace("http", "ws");
-            if(!dbURLString.EndsWith("/", StringComparison.Ordinal)) {
-                dbURLString += "/";
-            }
-
-            dbURLString += "_changes?feed=websocket";
-            return new Uri(dbURLString);
-        }
-
+            
         public override bool Start()
         {
             if (_client != null) {
@@ -127,8 +128,8 @@ namespace Couchbase.Lite.Internal
             // A WebSocket has to be opened with a GET request, not a POST (as defined in the RFC.)
             // Instead of putting the options in the POST body as with HTTP, we will send them in an
             // initial WebSocket message
-            UsePost = false;
-            _client = new WebSocket(GetChangesFeedURL().AbsoluteUri);
+            _usePost = false;
+            _client = new WebSocket(ChangesFeedUrl.AbsoluteUri);
             _client.OnOpen += OnConnect;
             _client.OnMessage += OnReceive;
             _client.OnError += OnError;
@@ -148,9 +149,9 @@ namespace Couchbase.Lite.Internal
             }
         }
 
-        public override string ToString()
+        protected override void Stopped()
         {
-            return string.Format("WebSocketChangeTracker[URL={0}]", new SecureLogUri(databaseURL));
+            // NO-op
         }
     }
 }

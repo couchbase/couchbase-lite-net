@@ -43,7 +43,7 @@
 using System;
 using System.Threading;
 
-namespace Couchbase.Lite.Replicator
+namespace Couchbase.Lite.Internal
 {
     internal class ChangeTrackerBackoff
     {
