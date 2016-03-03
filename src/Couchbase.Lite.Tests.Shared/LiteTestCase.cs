@@ -321,52 +321,9 @@ namespace Couchbase.Lite
                 WriteDebug("Starting equality comparison");
             }
 
-            var firstDic = first.AsDictionary<string, object>();
-            var secondDic = second.AsDictionary<string, object>();
-            if (firstDic != null && secondDic != null) {
-                AssertDictionariesAreEqual(firstDic, secondDic);
-            } else {
-                var castFirst = FromJToken(first);
-                var castSecond = FromJToken(second);
-                var firstEnum = castFirst as IEnumerable;
-                var secondEnum = castSecond as IEnumerable;
-                if (firstEnum != null && castSecond != null) {
-                    AssertEnumerablesAreEquivalent(firstEnum, secondEnum);
-                } else {
-                    Assert.AreEqual(castFirst, castSecond);
-                }
-            }
-        }
-
-        private static object FromJToken(object raw)
-        {
-            var inputArray = raw as JArray;
-            if (inputArray != null) {
-                return inputArray.ToObject<IList<object>>();
-            }
-
-            var inputObject = raw as JObject;
-            if (inputObject != null) {
-                return inputObject.ToObject<IDictionary<string, object>>();
-            }
-
-            var input = raw as JToken;
-            if (input == null) {
-                return raw;
-            }
-
-            switch (input.Type) {
-                case JTokenType.String:
-                    return input.Value<string>();
-                case JTokenType.Boolean:
-                    return input.Value<bool>();
-                case JTokenType.Float:
-                    return input.Value<float>();
-                case JTokenType.Integer:
-                    return input.Value<int>();
-                default:
-                    return null;
-            }
+            var firstNet = JsonUtility.ConvertToNetObject(first);
+            var secondNet = JsonUtility.ConvertToNetObject(second);
+            Assert.AreEqual(firstNet, secondNet);
         }
 
         protected void AssertAreEqual(object first, object second)

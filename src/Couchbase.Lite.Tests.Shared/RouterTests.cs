@@ -241,7 +241,7 @@ namespace Couchbase.Lite
             var revId3 = result.GetCast<string>("rev");
 
             endpoint = String.Format("/{0}/_all_docs?include_docs=true", database.Name);
-            result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);
+            result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);;
             Assert.AreEqual(3, result.GetCast<long>("total_rows", 0));
             Assert.AreEqual(0, result.GetCast<long>("offset", -1));
             var expectedResult = new List<object>();
@@ -351,7 +351,7 @@ namespace Couchbase.Lite
             }, null, false, r =>
             {
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
-                var parsedResponse = ParseJsonResponse<IDictionary<string, object>>(r);
+                var parsedResponse = ParseJsonResponse(r).AsDictionary<string, object>();
                 Assert.AreEqual(parsedResponse.GetCast<long>("total_rows"), 4L);
             });
 
@@ -808,7 +808,7 @@ namespace Couchbase.Lite
                         }
                     }
                 }
-            }, ConvertResponse(body.GetProperties()));
+            }, JsonUtility.ConvertToNetObject(body.GetProperties()));
 
             mre.Dispose();
         }
@@ -1012,7 +1012,7 @@ namespace Couchbase.Lite
             {
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 var body = new Body(r.GetResponseStream().ReadAllBytes());
-                var attachments = ConvertResponse(body.GetPropertyForKey("_attachments"));
+                var attachments = JsonUtility.ConvertToNetObject(body.GetPropertyForKey("_attachments"));
                 Assert.AreEqual(new Dictionary<string, object> { 
                     { "attach", new Dictionary<string, object> {
                             { "data", Convert.ToBase64String(attach1) },
@@ -1497,34 +1497,11 @@ namespace Couchbase.Lite
             }
         }
 
-        private T ParseJsonResponse<T>(HttpWebResponse response)
+        private object ParseJsonResponse(HttpWebResponse response)
         {
             var foo = Encoding.UTF8.GetString(response.GetResponseStream().ReadAllBytes());
-            var responseObj = Manager.GetObjectMapper().ReadValue<T>(foo);
-            return (T)ConvertResponse(responseObj);
-        }
-
-        private object ConvertResponse(object obj) {
-            var list = obj.AsList<object>();
-            if (list != null) {
-                for (int i = 0; i < list.Count; i++) {
-                    list[i] = ConvertResponse(list[i]);
-                }
-
-                return list;
-            } 
-
-            var dictionary = obj.AsDictionary<string, object>();
-            if (dictionary != null) {
-                var retVal = new Dictionary<string, object>(dictionary.Count);
-                foreach (var key in dictionary.Keys) {
-                    retVal[(string)key] = ConvertResponse(dictionary[key]);
-                }
-
-                return retVal;
-            }
-
-            return obj;
+            var responseObj = Manager.GetObjectMapper().ReadValue<object>(foo);
+            return JsonUtility.ConvertToNetObject(responseObj);
         }
 
         private T SendBody<T>(string method, string path, Body bodyObj, HttpStatusCode expectedStatus, T expectedResult)
@@ -1549,7 +1526,7 @@ namespace Couchbase.Lite
                 false, true, r =>
             {
                 _lastResponse = r;
-                result = ParseJsonResponse<object>(_lastResponse);
+                result = ParseJsonResponse(_lastResponse);
 
                 Assert.IsNotNull(result);
                 Assert.AreEqual(expectedStatus, _lastResponse.StatusCode);
@@ -1614,7 +1591,7 @@ namespace Couchbase.Lite
             result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);
             Assert.AreEqual(3, result.GetCast<long>("total_rows", 0));
             Assert.AreEqual(0, result.GetCast<long>("offset", -1));
-            var rows = ConvertResponse(result["rows"]);
+            var rows = JsonUtility.ConvertToNetObject(result["rows"]);
             var expectedResult = new List<object>();
             expectedResult.Add(new Dictionary<string, object> {
                 { "id", "doc1" },
