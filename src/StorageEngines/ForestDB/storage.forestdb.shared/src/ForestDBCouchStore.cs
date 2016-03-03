@@ -256,7 +256,15 @@ namespace Couchbase.Lite.Storage.ForestDB
                     throw;
                 }
             } else {
-                enumerator = new CBForestDocEnumerator(Forest, options.StartKey as string, options.EndKey as string, forestOps);
+                string startKey, endKey;
+                if (options.Descending) {
+                    startKey = Misc.KeyForPrefixMatch(options.StartKey, options.PrefixMatchLevel) as string;
+                    endKey = options.EndKey as string;
+                } else {
+                    startKey = options.StartKey as string;
+                    endKey = Misc.KeyForPrefixMatch(options.EndKey, options.PrefixMatchLevel) as string;
+                }
+                enumerator = new CBForestDocEnumerator(Forest, startKey, endKey, forestOps);
             }
 
             return enumerator;

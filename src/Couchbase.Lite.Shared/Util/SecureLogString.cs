@@ -65,7 +65,7 @@ namespace Couchbase.Lite.Util
         {
             get {
                 if (_string == null) {
-                    _string = Encoding.UTF8.GetString(_bytes);
+                    _string = _bytes != null ? Encoding.UTF8.GetString(_bytes) : "(null)";
                 }
 
                 return _string;

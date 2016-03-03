@@ -200,33 +200,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }
         }
 
-        private object KeyForPrefixMatch(object key, int depth)
-        {
-            if(depth < 1) {
-                return key;
-            }
-
-            var keyStr = key as string;
-            if (keyStr != null) {
-                // Kludge: prefix match a string by appending max possible character value to it
-                return keyStr + "\uffffffff";
-            }
-
-            var keyList = key as IList;
-            if (keyList != null) {
-                if (depth == 1) {
-                    keyList.Add(new Dictionary<string, object>());
-                } else {
-                    var lastObject = KeyForPrefixMatch(keyList[keyList.Count - 1], depth - 1);
-                    keyList[keyList.Count - 1] = lastObject;
-                }
-
-                return keyList;
-            }
-
-            return key;
-        }
-
         private StatusCode Emit(object key, object value, bool valueIsDoc, long sequence)
         {
             var db = _dbStorage;
@@ -466,7 +439,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }
 
             if (maxKey != null) {
-                maxKey = KeyForPrefixMatch(maxKey, options.PrefixMatchLevel);
+                maxKey = Misc.KeyForPrefixMatch(maxKey, options.PrefixMatchLevel);
                 var maxKeyData = ToJSONString(maxKey);
                 sql.Append(inclusiveMax ? " AND key <= ?" : " AND key < ?");
                 sql.Append(collationStr);

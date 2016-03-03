@@ -42,6 +42,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 
 namespace Couchbase.Lite {
     
@@ -85,10 +86,12 @@ namespace Couchbase.Lite {
         /// Gets whether the <see cref="Couchbase.Lite.Database"/> has changed since 
         /// the <see cref="Couchbase.Lite.View"/> results were generated.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Obsolete("This property is heavy and will be replaced by IsStale()")]
         public bool Stale
         { 
             get { 
-                return SequenceNumber < _database.GetLastSequenceNumber(); 
+                return IsStale();
             } 
         }
 
@@ -117,6 +120,11 @@ namespace Couchbase.Lite {
         #endregion
 
         #region Public Methods
+
+        public bool IsStale()
+        {
+            return SequenceNumber < _database.GetLastSequenceNumber(); 
+        }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.QueryRow"/> at the specified index in the results.

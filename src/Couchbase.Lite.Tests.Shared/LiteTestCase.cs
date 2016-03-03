@@ -55,6 +55,7 @@ using Couchbase.Lite.Tests;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using System.Diagnostics;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -126,7 +127,7 @@ namespace Couchbase.Lite
             }*/
             #endif
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
-
+            Log.ScrubSensitivity = LogScrubSensitivity.AllOK;
             LoadCustomProperties();
             StartCBLite();
             StartDatabase();
@@ -320,19 +321,9 @@ namespace Couchbase.Lite
                 WriteDebug("Starting equality comparison");
             }
 
-            var firstDic = first.AsDictionary<string, object>();
-            var secondDic = second.AsDictionary<string, object>();
-            if (firstDic != null && secondDic != null) {
-                AssertDictionariesAreEqual(firstDic, secondDic);
-            } else {
-                var firstEnum = first as IEnumerable;
-                var secondEnum = second as IEnumerable;
-                if (firstEnum != null && secondEnum != null) {
-                    AssertEnumerablesAreEquivalent(firstEnum, secondEnum);
-                } else {
-                    Assert.AreEqual(first, second);
-                }
-            }
+            var firstNet = JsonUtility.ConvertToNetObject(first);
+            var secondNet = JsonUtility.ConvertToNetObject(second);
+            Assert.AreEqual(firstNet, secondNet);
         }
 
         protected void AssertAreEqual(object first, object second)
@@ -513,7 +504,8 @@ namespace Couchbase.Lite
 
         internal static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties) 
         {
-            var doc = db.CreateDocument();
+            var id = properties.GetCast<string>("_id");
+            var doc = id != null ? db.GetDocument(id) : db.CreateDocument();
 
             Assert.IsNotNull(doc);
             Assert.IsNull(doc.CurrentRevisionId);

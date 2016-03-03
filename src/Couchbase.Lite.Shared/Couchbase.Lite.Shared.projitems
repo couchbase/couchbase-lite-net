@@ -137,6 +137,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\LogDomains.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\LogGroup.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Configuration\CouchbaseConfigSection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\JsonUtility.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
