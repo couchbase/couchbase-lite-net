@@ -3132,7 +3132,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestWebSocketReplication()
         {
-            Log.Domains.Sync.Level = Log.LogLevel.Debug;
+            Log.Domains.ChangeTracker.Level = Log.LogLevel.Debug;
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 remoteDb.AddDocuments(50, true);
                 var puller = database.CreatePullReplication(remoteDb.RemoteUri);
@@ -3144,7 +3144,7 @@ namespace Couchbase.Lite
                 Assert.IsNull(puller.LastError);
                 Assert.AreEqual(50, database.GetDocumentCount());
             }
-            Log.Domains.Sync.Level = Log.LogLevel.Base;
+            Log.Domains.ChangeTracker.Level = Log.LogLevel.Base;
         }
     }
 }

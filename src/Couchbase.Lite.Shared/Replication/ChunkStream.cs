@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Internal
                 throw new ObjectDisposedException("ChunkStream");
             }
 
-            for (int i = offset; i < offset + count; i++) {
+            for (int i = 0; i < count; i++) {
                 _chunkQueue.Add(buffer[i + offset]);
             }
         }

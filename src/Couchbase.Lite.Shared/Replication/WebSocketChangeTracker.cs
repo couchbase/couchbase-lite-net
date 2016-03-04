@@ -101,6 +101,7 @@ namespace Couchbase.Lite.Internal
             }
 
             if (args.IsPing) {
+                _client.Ping();
                 return;
             }
                 
@@ -117,6 +118,17 @@ namespace Couchbase.Lite.Internal
 
                         _changesProcessor.Finished += (s, e) => 
                         {
+                            if(e != null) {
+                                Log.To.ChangeTracker.I(Tag, "Got exception during feed, retrying again soon...");
+                                if(_client.ReadyState == WebSocketState.Open) {
+                                    _client.Close(CloseStatusCode.UnsupportedData);
+                                }
+                                backoff.SleepAppropriateAmountOfTime();
+                                _client.ConnectAsync();
+                                Log.To.ChangeTracker.I(Tag, "Retrying...");
+                                return;
+                            }
+
                             if(!_caughtUp) {
                                 _caughtUp = true;
                                 Log.To.ChangeTracker.I(Tag, "{0} caught up to the end of the changes feed", this);

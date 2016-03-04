@@ -23,6 +23,7 @@ using ICSharpCode.SharpZipLib.GZip;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal
 {
@@ -34,7 +35,7 @@ namespace Couchbase.Lite.Internal
 
     internal sealed class ChunkedGZipChanges : IDisposable
     {
-        private const int BufferSize = 1024;
+        private static readonly string Tag = typeof(ChunkedGZipChanges).Name;
 
         private readonly ChunkStream _innerStream;
         private readonly GZipInputStream _readStream;
@@ -42,7 +43,7 @@ namespace Couchbase.Lite.Internal
 
         public event TypedEventHandler<ChunkedGZipChanges, IDictionary<string, object>> ChunkFound;
 
-        public event EventHandler Finished;
+        public event TypedEventHandler<ChunkedGZipChanges, Exception> Finished;
 
         public ChunkedGZipChanges(ChunkStyle style)
         {
@@ -66,39 +67,37 @@ namespace Couchbase.Lite.Internal
         private void Process()
         {
             List<byte> parseBuffer = new List<byte>();
-            byte[] rawBuffer = new byte[BufferSize];
-            var numRead = _readStream.Read(rawBuffer, 0, BufferSize);
+            var nextChar = _readStream.ReadByte();
             var nestedCount = 0;
-            while (numRead != 0) {
-                for(int i = 0; i < numRead; i++) {
-                    var nextChar = rawBuffer[i];
-                    parseBuffer.Add(nextChar);
-                    if(IsEnd(nextChar)) {
-                        if(--nestedCount != 0) {
-                            continue;
-                        }
-
-                        if(parseBuffer.Count > 0) {
-                            var changes = Manager.GetObjectMapper().ReadValue<IList<object>>(parseBuffer);
-                            foreach(var change in changes) {
-                                if (ChunkFound != null) {
-                                    ChunkFound(this, change.AsDictionary<string, object>());
-                                }
+            var exception = default(Exception);
+            while (nextChar != -1) {
+                parseBuffer.Add((byte)nextChar);
+                if(IsEnd((byte)nextChar)) {
+                    if(--nestedCount == 0 && parseBuffer.Count > 0) {
+                        var changes = Manager.GetObjectMapper().ReadValue<IList<object>>(parseBuffer);
+                        foreach(var change in changes) {
+                            if (ChunkFound != null) {
+                                ChunkFound(this, change.AsDictionary<string, object>());
                             }
                         }
 
                         parseBuffer.Clear();
-                    } else if(nextChar == '[') {
-                        nestedCount++;
                     }
+                } else if(IsStart((byte)nextChar)) {
+                    nestedCount++;
                 }
 
-                _readStream.Flush();
-                numRead = _readStream.Read(rawBuffer, 0, BufferSize);
+                try {
+                    nextChar = _readStream.ReadByte();
+                } catch(Exception e) {
+                    exception = e;
+                    Log.To.ChangeTracker.E(Tag, "Failed to read from changes feed, sending to callback...", e);
+                    nextChar = -1;
+                }
             }
 
             if (Finished != null) {
-                Finished(this, null);
+                Finished(this, exception);
             }
         }
 
