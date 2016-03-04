@@ -162,7 +162,7 @@ namespace Couchbase.Lite.Util
             
         private bool ShouldLog(Log.LogLevel level)
         {
-            if (Log.Logger == null) {
+            if (Log.Logger == null || Log.Disabled) {
                 return false;
             }
 

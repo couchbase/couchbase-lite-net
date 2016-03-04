@@ -47,7 +47,19 @@ namespace Couchbase.Lite
         public void OneTimeTearDown()
         {
             Log.Level = Log.LogLevel.Base;
+            Log.Disabled = false;
             Log.SetDefaultLogger();
+        }
+
+        [Test]
+        public void TestLogDisabled()
+        {
+            var count = TestLogLevel(Log.LogLevel.Debug);
+            Assert.AreNotEqual(0, count);
+
+            Log.Disabled = true;
+            count = TestLogLevel(Log.LogLevel.Debug);
+            Assert.AreEqual(0, count);
         }
 
         [TestCase(Log.LogLevel.None, Result=0)]
