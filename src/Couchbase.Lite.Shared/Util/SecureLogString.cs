@@ -23,10 +23,27 @@ using System.Text;
 
 namespace Couchbase.Lite.Util
 {
-    internal enum LogScrubSensitivity
+	/// <summary>
+	/// The sensitivity at which the logger should redact
+	/// sensitive information
+	/// </summary>
+    public enum LogScrubSensitivity
     {
+		/// <summary>
+		/// No potentially insecure information shall be logged
+		/// </summary>
         NoInsecure = 0,
+
+		/// <summary>
+		/// Information that might be insecure (i.e. user generated)
+		/// may be logger, but access tokens, passwords, etc should still
+		/// be redacted
+		/// </summary>
         PotentiallyInsecureOK,
+
+		/// <summary>
+		/// All information should be logged
+		/// </summary>
         AllOK
     }
 

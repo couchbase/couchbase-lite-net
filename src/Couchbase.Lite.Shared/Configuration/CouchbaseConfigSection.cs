@@ -84,7 +84,7 @@ namespace Couchbase.Lite.Configuration
                 }
 
                 Log.LogLevel level;
-                if(!Enum.TryParse<Log.LogLevel>(verbosityStr, out level)) {
+                if(!Enum.TryParse<Log.LogLevel>(verbosityStr, true, out level)) {
                     Log.To.NoDomain.W(Tag, "Invalid verbosity {0} ({1}) in configuration file.  " +
                         "Valid values are normal, verbose, debug", verbosityStr, domain);
                     continue;
@@ -115,11 +115,23 @@ namespace Couchbase.Lite.Configuration
 
         private readonly bool _enabled;
         private readonly LogDomainVerbosityCollection _verbositySettings;
+		private readonly Log.LogLevel _logLevel = Log.LogLevel.Base;
+		private readonly LogScrubSensitivity _scrubSensitivity;
 
         public bool Enabled
         {
             get { return _enabled; }
         }
+
+		public Log.LogLevel GlobalLevel
+		{
+			get { return _logLevel; }
+		}
+
+		public LogScrubSensitivity ScrubSensitivity
+		{
+			get { return _scrubSensitivity; }
+		}
 
         public LogDomainVerbosityCollection VerbositySettings
         {
@@ -129,7 +141,19 @@ namespace Couchbase.Lite.Configuration
         public LogConfigSection(XmlNode data)
         {
             var enabledStr = CouchbaseConfigSection.GetNamedAttribute(data, "enabled");
-            _enabled = enabledStr == null || Boolean.TryParse(enabledStr, out _enabled);
+			if (enabledStr == null || !Boolean.TryParse (enabledStr, out _enabled)) {
+				_enabled = true;
+			}
+
+			var verbosityStr = CouchbaseConfigSection.GetNamedAttribute (data, "verbosity");
+			if (enabledStr == null || !Enum.TryParse<Log.LogLevel> (verbosityStr, true, out _logLevel)) {
+				_logLevel = Log.LogLevel.Base;
+			}
+
+			var scrubSensitivityStr = CouchbaseConfigSection.GetNamedAttribute (data, "scrubSensitivity");
+			if (scrubSensitivityStr == null || !Enum.TryParse<LogScrubSensitivity> (scrubSensitivityStr, true, out _scrubSensitivity)) {
+				_scrubSensitivity = LogScrubSensitivity.NoInsecure;
+			}
 
             _verbositySettings = new LogDomainVerbosityCollection();
             foreach (XmlNode childNode in data.ChildNodes) {

@@ -99,11 +99,15 @@ namespace Couchbase.Lite.Util
         /// </summary>
         public static bool Disabled { get; set; }
 
-        internal static LogScrubSensitivity ScrubSensitivity { get; set; }
-
         #endregion
 
         #region Properties
+
+		/// <summary>
+		/// Gets or sets the level at which the logger will redacted sensivity
+		/// information from the logs.
+		/// </summary>
+		public static LogScrubSensitivity ScrubSensitivity { get; set; }
 
         /// <summary>
         /// Gets or sets the logging level for Log.* calls (domains
@@ -130,15 +134,17 @@ namespace Couchbase.Lite.Util
             #if !__IOS__ && !__ANDROID__
             var configSection = System.Configuration.ConfigurationManager.GetSection("couchbaselite")
                 as Couchbase.Lite.Configuration.CouchbaseConfigSection;
-            if(configSection != null) {
+            if(configSection != null && configSection.Logging != null) {
                 Log.Disabled = !configSection.Logging.Enabled;
+				Log.ScrubSensitivity = configSection.Logging.ScrubSensitivity;
+				Log.Level = configSection.Logging.GlobalLevel;
                 foreach(var logSetting in configSection.Logging.VerbositySettings.Values) {
-                    var gotLogger = (IDomainLogging)Log.Domains.GetType().GetProperty(logSetting.Key).GetValue(Log.Domains);
-                    if(gotLogger == null) {
-                        Log.To.NoDomain.W("Log", "Invalid domain {0} in configuration file", logSetting.Key);
-                        continue;
-                    }
-
+					var property = Log.Domains.GetType().GetProperty(logSetting.Key);
+					if(property == null) {
+						Log.To.NoDomain.W("Log", "Invalid domain {0} in configuration file", logSetting.Key);
+						continue;
+					}
+                    var gotLogger = (IDomainLogging)property.GetValue(Log.Domains);
                     gotLogger.Level = logSetting.Value;
                 }
             }

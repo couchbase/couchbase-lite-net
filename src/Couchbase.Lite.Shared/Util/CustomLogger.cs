@@ -175,7 +175,7 @@ namespace Couchbase.Lite.Util
         public void E(string tag, string msg)
         {
             lock (_locker) { 
-                _ts.Fail(tag, msg); 
+				_ts.WriteLine(SourceLevels.Error, msg, tag);
             }
         }
 
@@ -186,7 +186,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-                _ts.Fail(String.Format("{0}: {1}", tag, msg), Misc.Flatten(tr).ToString()); 
+				_ts.WriteLine(SourceLevels.Error, String.Format("{0}:\r\n{1}", msg, Misc.Flatten(tr)), tag);
             }
         }
 
