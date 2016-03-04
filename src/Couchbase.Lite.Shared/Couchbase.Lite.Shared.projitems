@@ -140,6 +140,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\WebSocketChangeTracker.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\SocketChangeTracker.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTracker.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChunkStream.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChunkedGZipJson.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

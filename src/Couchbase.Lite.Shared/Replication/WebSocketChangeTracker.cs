@@ -26,6 +26,9 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
 using WebSocketSharp;
+using System.IO;
+using ICSharpCode.SharpZipLib;
+using ICSharpCode.SharpZipLib.GZip;
 
 namespace Couchbase.Lite.Internal
 {
@@ -34,6 +37,7 @@ namespace Couchbase.Lite.Internal
         private static readonly string Tag = typeof(WebSocketChangeTracker).Name;
         private WebSocket _client;
         private CancellationTokenSource _cts;
+        private ChunkedGZipChanges _changesProcessor;
 
         public override Uri ChangesFeedUrl
         {
@@ -55,7 +59,7 @@ namespace Couchbase.Lite.Internal
             
         }
 
-        private void OnError(object sender, ErrorEventArgs args)
+        private void OnError(object sender, WebSocketSharp.ErrorEventArgs args)
         {
             Log.To.ChangeTracker.I(Tag, String.Format("{0} remote error {1}", this, args.Message), args.Exception);
         }
@@ -99,21 +103,59 @@ namespace Couchbase.Lite.Internal
             if (args.IsPing) {
                 return;
             }
-
-            var message = args.RawData.Skip(1).Take(args.RawData.Length - 2);
+                
             try {
-                if(args.RawData.Length == 2) {
-                    Log.To.ChangeTracker.I(Tag, "{0} caught up to the end of the changes feed", this);
-                    return;
-                }
+                if(args.IsBinary) {
+                    if(_changesProcessor == null) {
+                        _changesProcessor = new ChunkedGZipChanges(ChunkStyle.ByArray);
+                        _changesProcessor.ChunkFound += (s, change) => 
+                        {
+                            if (!ReceivedChange(change)) {
+                                Log.To.ChangeTracker.W(Tag,  String.Format("{0} is not parseable", GetLogString(args)));
+                            }
+                        };
 
-                var change = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(message);
-                if (!ReceivedChange(change)) {
-                    Log.To.ChangeTracker.W(Tag,  String.Format("{0} is not parseable", new LogString(message)));
-                }
+                        _changesProcessor.Finished += (s, e) => 
+                        {
+                            if(!_caughtUp) {
+                                _caughtUp = true;
+                                Log.To.ChangeTracker.I(Tag, "{0} caught up to the end of the changes feed", this);
+                                var client = Client;
+                                if(client != null) {
+                                    client.ChangeTrackerCaughtUp(this);
+                                }
+                            }
+
+                            _changesProcessor.Dispose();
+                        };
+                    }
+
+                    _changesProcessor.AddData(args.RawData);
+                } else if(args.IsText) {
+                    if(args.RawData.Length == 2) {
+                        _changesProcessor.Complete();
+                        return;
+                    }
+
+                    var change = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(args.RawData.Skip(1).Take(args.RawData.Length - 2));
+                    if (!ReceivedChange(change)) {
+                        Log.To.ChangeTracker.W(Tag,  String.Format("{0} is not parseable", GetLogString(args)));
+                    }
+                } 
             } catch(Exception e) {
-                Log.To.ChangeTracker.E(Tag, String.Format("{0} is not parseable", new LogString(message)), e);
+                Log.To.ChangeTracker.E(Tag, String.Format("{0} is not parseable", GetLogString(args)), e);
             }
+        }
+
+        private string GetLogString(MessageEventArgs args)
+        {
+            if(args.IsBinary) {
+                return "<gzip stream>";
+            } else if(args.IsText) {
+                return args.Data;
+            }
+
+            return null;
         }
             
         public override bool Start()
@@ -129,6 +171,7 @@ namespace Couchbase.Lite.Internal
             // Instead of putting the options in the POST body as with HTTP, we will send them in an
             // initial WebSocket message
             _usePost = false;
+            _caughtUp = false;
             _client = new WebSocket(ChangesFeedUrl.AbsoluteUri);
             _client.OnOpen += OnConnect;
             _client.OnMessage += OnReceive;
@@ -151,7 +194,10 @@ namespace Couchbase.Lite.Internal
 
         protected override void Stopped()
         {
-            // NO-op
+            var client = Client;
+            if (client != null) {
+                client.ChangeTrackerStopped(this);
+            }
         }
     }
 }

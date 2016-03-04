@@ -161,7 +161,7 @@ namespace Couchbase.Lite
         /// a .NET object
         /// </summary>
         /// <returns>The deserialized object, or null if unable to deserialize</returns>
-        IDictionary<string, object> DeserializeNextObject();
+        T DeserializeNextObject<T>();
 
         /// <summary>
         /// Converts the object from its intermediary JSON dictionary class to a .NET dictionary,

@@ -510,6 +510,7 @@ namespace Couchbase.Lite
                 return;
             }
 
+            Log.Domains.Sync.Level = Log.LogLevel.Debug;
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
                 var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
@@ -3126,6 +3127,24 @@ namespace Couchbase.Lite
                 Assert.AreEqual("0", pusher.LastSequence);
                 pusher.Stop();
             }
+        }
+
+        [Test]
+        public void TestWebSocketReplication()
+        {
+            Log.Domains.Sync.Level = Log.LogLevel.Debug;
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.AddDocuments(50, true);
+                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
+                puller.Continuous = true;
+                puller.Options = new ReplicationOptionsDictionary {
+                    { ReplicationOptionsDictionaryKeys.UseWebSocket, true }
+                };
+                RunReplication(puller);
+                Assert.IsNull(puller.LastError);
+                Assert.AreEqual(50, database.GetDocumentCount());
+            }
+            Log.Domains.Sync.Level = Log.LogLevel.Base;
         }
     }
 }

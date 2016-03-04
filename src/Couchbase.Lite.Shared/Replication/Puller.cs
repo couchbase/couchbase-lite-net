@@ -78,9 +78,7 @@ namespace Couchbase.Lite.Replicator
 
         #region Variables
 
-        //TODO: Socket change tracker
-        //private bool caughtUp;
-
+        private bool _caughtUp;
         private bool _canBulkGet;
         private Batcher<RevisionInternal> _downloadsToInsert;
         private IList<RevisionInternal> _revsToPull;
@@ -364,7 +362,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             Log.To.Sync.I(TAG, "{0} bulk-fetching {1} remote revisions...", ReplicatorID, nRevs);
-            Log.To.Sync.V(TAG, "{0} bulk-fetching remote revisions: {1}", this, bulkRevs);
+            Log.To.Sync.V(TAG, "{0} bulk-fetching remote revisions: {1}", this, new SecureLogJsonString(bulkRevs, LogMessageSensitivity.PotentiallyInsecure));
 
             if(!_canBulkGet) {
                 PullBulkWithAllDocs(bulkRevs);
@@ -915,6 +913,7 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
+            _caughtUp = false;
             StartChangeTracker();
         }
 
@@ -935,12 +934,15 @@ namespace Couchbase.Lite.Replicator
 
         public void ChangeTrackerCaughtUp(ChangeTracker tracker)
         {
-
+            if (!_caughtUp) {
+                Log.To.Sync.I(TAG, "{0} caught up with changes", this);
+                _caughtUp = true;
+            }
         }
 
         public void ChangeTrackerFinished(ChangeTracker tracker)
         {
-
+            ChangeTrackerCaughtUp(tracker);
         }
 
         public void ChangeTrackerReceivedChange(IDictionary<string, object> change)

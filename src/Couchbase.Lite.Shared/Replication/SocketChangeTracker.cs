@@ -254,54 +254,6 @@ namespace Couchbase.Lite.Internal
             });
         }
 
-        public bool ReceivedPollResponse(IJsonSerializer jsonReader, ref bool timedOut)
-        {
-            bool started = false;
-            var start = DateTime.Now;
-            try {
-                while (jsonReader.Read()) {
-                    _pauseWait.Wait();
-                    if (jsonReader.CurrentToken == JsonToken.StartArray) {
-                            timedOut = true;
-                        started = true;
-                    } else if (jsonReader.CurrentToken == JsonToken.EndArray) {
-                        started = false;
-                    } else if (started) {
-                        IDictionary<string, object> change;
-                        try {
-                            change = jsonReader.DeserializeNextObject();
-                        } catch(Exception e) {
-                            var ex = e as CouchbaseLiteException;
-                            if (ex == null || ex.Code != StatusCode.BadJson) {
-                                Log.To.ChangeTracker.W(Tag, "Failure during change tracker JSON parsing", e);
-                                throw;
-                            }
-                                
-                            return false;
-                        }
-
-                        if (!ReceivedChange(change)) {
-                                Log.To.ChangeTracker.W(Tag, "{0} received unparseable change line from server: {1}", 
-                                    this, new SecureLogJsonString(change, LogMessageSensitivity.PotentiallyInsecure));
-                            return false;
-                        }
-
-                        timedOut = false;
-                    }
-                }
-            } catch (CouchbaseLiteException e) {
-                var elapsed = DateTime.Now - start;
-                timedOut = timedOut && elapsed.TotalSeconds >= 30;
-                if (e.CBLStatus.Code == StatusCode.BadJson && timedOut) {
-                    return false;
-                }
-
-                throw;
-            }
-
-            return true;
-        }
-
         public override bool Start()
         {
             if (IsRunning) {
@@ -373,7 +325,7 @@ namespace Couchbase.Lite.Internal
                 responseOK = ReceivedPollResponse(jsonReader, ref beforeFirstItem);
             }
 
-            Log.To.ChangeTracker.V(Tag, "{0} Finished polling", this);
+            Log.To.ChangeTracker.V(Tag, "{0} Finished reading stream", this);
 
             if (responseOK) {
                 backoff.ResetBackoff();
@@ -398,6 +350,8 @@ namespace Couchbase.Lite.Internal
                         if (client != null) {
                             client.ChangeTrackerFinished(this);
                         }
+
+                        Stopped();
                     }
                 }
             } else {
@@ -427,16 +381,6 @@ namespace Couchbase.Lite.Internal
                     }
                 }
             }
-        }
-
-        private void ProcessOneShotStream(Task<Stream> t)
-        {
-            using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(t.Result)) {
-                bool timedOut = false;
-                ReceivedPollResponse(jsonReader, ref timedOut);
-            }
-
-            Stopped();
         }
 
         private void AddRequestHeaders(HttpRequestMessage request)
