@@ -180,6 +180,10 @@
       <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
       <Name>websocket-sharp</Name>
     </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\SQLCipher\storage.sqlcipher.net45\storage.sqlcipher.net45.csproj">
+      <Project>{3EEE8883-B6A9-4B71-B70E-67973F7687D5}</Project>
+      <Name>storage.sqlcipher.net45</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
