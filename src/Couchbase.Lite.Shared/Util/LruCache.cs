@@ -54,7 +54,8 @@ namespace Couchbase.Lite.Util
 
         #region Variables
 
-        private readonly Dictionary<TKey, TValue> _hashmap = new Dictionary<TKey, TValue>();
+        private readonly Dictionary<TKey, TValue> _recents = new Dictionary<TKey, TValue>();
+        private readonly Dictionary<TKey, WeakReference<TValue>> _allValues = new Dictionary<TKey, WeakReference<TValue>>();
         private readonly LinkedList<TKey> _nodes = new LinkedList<TKey>();
         private readonly Object _locker = new Object ();
 
@@ -108,7 +109,7 @@ namespace Couchbase.Lite.Util
 
             TValue mapValue;
             lock (_locker) {
-                mapValue = _hashmap.Get(key);
+                mapValue = _recents.Get(key);
                 if (mapValue != null) {
                     HitCount++;
                     _nodes.Remove(key);
@@ -116,6 +117,12 @@ namespace Couchbase.Lite.Util
                     return mapValue;
                 }
                 MissCount++;
+
+                var mapValueRef = _allValues.Get(key);
+                if (mapValueRef != null && mapValueRef.TryGetTarget(out mapValue)) {
+                    Put(key, mapValue);
+                    return mapValue;
+                }
             }
 
             TValue createdValue = Create(key);
@@ -125,12 +132,12 @@ namespace Couchbase.Lite.Util
 
             lock (_locker) {
                 CreateCount++;
-                mapValue = _hashmap.Put(key, createdValue);
+                mapValue = _recents.Put(key, createdValue);
                 _nodes.Remove(key);
                 _nodes.AddFirst(key);
                 if (mapValue != null) {
                     // There was a conflict so undo that last put
-                    _hashmap[key] = mapValue;
+                    _recents[key] = mapValue;
                 }
                 else {
                     Size += SafeSizeOf(key, createdValue);
@@ -161,12 +168,15 @@ namespace Couchbase.Lite.Util
             lock (_locker) {
                 PutCount++;
                 Size += SafeSizeOf(key, value);
-                previous = _hashmap.Put(key, value);
+                previous = _recents.Put(key, value);
                 if (previous != null) {
                     Size -= SafeSizeOf(key, previous);
                 }
                 else {
                     _nodes.AddFirst(key);
+                    if (!_allValues.ContainsKey(key)) {
+                        _allValues.Add(key, new WeakReference<TValue>(value));
+                    }
                 }
             }
 
@@ -184,7 +194,7 @@ namespace Couchbase.Lite.Util
                 TKey key;
                 TValue value;
                 lock (_locker) {
-                    if (Size < 0 || _hashmap.Count != Size || _nodes.Count != Size) {
+                    if (Size < 0 || _recents.Count != Size || _nodes.Count != Size) {
                         throw new InvalidOperationException(GetType().FullName + ".sizeOf() is reporting inconsistent results!");
                     }
 
@@ -193,8 +203,8 @@ namespace Couchbase.Lite.Util
                     }
                         
                     key = _nodes.Last.Value;
-                    value = _hashmap[key];
-                    _hashmap.Remove(key);
+                    value = _recents[key];
+                    _recents.Remove(key);
                     _nodes.RemoveLast();
                     Size -= SafeSizeOf(key, value);
                     EvictionCount++;
@@ -212,7 +222,8 @@ namespace Couchbase.Lite.Util
 
             TValue previous;
             lock (_locker) {
-                previous = Collections.Remove(_hashmap, key);
+                previous = Collections.Remove(_recents, key);
+                _allValues.Remove(key);
                 if (previous != null) {
                     Size -= SafeSizeOf(key, previous);
                     _nodes.Remove(key);
@@ -268,7 +279,7 @@ namespace Couchbase.Lite.Util
         public IDictionary<TKey, TValue> Snapshot()
         {
             lock (_locker) {
-                return new Dictionary<TKey, TValue>(_hashmap);
+                return new Dictionary<TKey, TValue>(_recents);
             }
         }
 
