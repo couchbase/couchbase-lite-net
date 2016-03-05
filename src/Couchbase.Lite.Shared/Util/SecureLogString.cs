@@ -77,12 +77,19 @@ namespace Couchbase.Lite.Util
     {
         private string _string;
         private readonly byte[] _bytes;
+        private readonly object _obj;
 
         private string String
         {
             get {
                 if (_string == null) {
-                    _string = _bytes != null ? Encoding.UTF8.GetString(_bytes) : "(null)";
+                    if (_bytes != null) {
+                        _string = Encoding.UTF8.GetString(_bytes);
+                    } else if (_obj != null) {
+                        _string = _obj.ToString();
+                    } else {
+                        _string = "(null)";
+                    }
                 }
 
                 return _string;
@@ -97,6 +104,11 @@ namespace Couchbase.Lite.Util
         public SecureLogString(byte[] utf8Bytes, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
         {
             _bytes = utf8Bytes;
+        }
+
+        public SecureLogString(object obj, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
+        {
+            _obj = obj;
         }
 
         public override string ToString()

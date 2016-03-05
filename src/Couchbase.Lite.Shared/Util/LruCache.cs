@@ -51,9 +51,16 @@ namespace Couchbase.Lite.Util
     where TValue: class
     {
 
+        #region Constants
+
+        private const string Tag = "LruCache";
+
+        #endregion
+
         #region Variables
 
-        private readonly Dictionary<TKey, TValue> _hashmap = new Dictionary<TKey, TValue>();
+        private readonly Dictionary<TKey, TValue> _recents = new Dictionary<TKey, TValue>();
+        private readonly Dictionary<TKey, WeakReference<TValue>> _allValues = new Dictionary<TKey, WeakReference<TValue>>();
         private readonly LinkedList<TKey> _nodes = new LinkedList<TKey>();
         private readonly Object _locker = new Object ();
 
@@ -76,6 +83,7 @@ namespace Couchbase.Lite.Util
         public LruCache(int maxSize)
         {
             if (maxSize <= 0) {
+                Log.To.NoDomain.E(Tag, "maxSize is <= 0 ({0}) in ctor, throwing...", maxSize);
                 throw new ArgumentException("maxSize <= 0");
             }
 
@@ -88,21 +96,27 @@ namespace Couchbase.Lite.Util
 
         public void Clear()
         {
+            Log.To.NoDomain.D(Tag, "Entering lock in Clear");
             lock (_locker) {
-                _hashmap.Clear();
+                _recents.Clear();
+				_allValues.Clear();
                 _nodes.Clear();
             }
+            Log.To.NoDomain.D(Tag, "Exited lock in Clear");
         }
 
         public virtual void Resize(int maxSize)
         {
             if (maxSize <= 0) {
+                Log.To.NoDomain.E(Tag, "maxSize is <= 0 ({0}) in Resize, throwing...", maxSize);
                 throw new ArgumentException("maxSize <= 0");
             }
 
+            Log.To.NoDomain.D(Tag, "Entering lock in Resize");
             lock (_locker) {
                 MaxSize = maxSize;
             }
+            Log.To.NoDomain.D(Tag, "Exited lock in Resize");
 
             Trim();
         }
@@ -110,39 +124,65 @@ namespace Couchbase.Lite.Util
         public TValue Get(TKey key)
         {
             if (key == null) {
+                Log.To.NoDomain.E(Tag, "key cannot be null in Get, throwing...");
                 throw new ArgumentNullException("key");
             }
 
+            Log.To.NoDomain.D(Tag, "Entering first lock in Get");
             TValue mapValue;
             lock (_locker) {
-                mapValue = _hashmap.Get(key);
+                mapValue = _recents.Get(key);
                 if (mapValue != null) {
+                    Log.To.NoDomain.V(Tag, "LruCache hit for {0}, returning {1}...",
+                        new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure),
+                        new SecureLogString(mapValue, LogMessageSensitivity.PotentiallyInsecure));
                     HitCount++;
                     _nodes.Remove(key);
                     _nodes.AddFirst(key);
                     return mapValue;
                 }
                 MissCount++;
+
+                Log.To.NoDomain.V(Tag, "LruCache miss for {0}, searching alive objects...",
+                    new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure));
+                var mapValueRef = _allValues.Get(key);
+                if (mapValueRef != null && mapValueRef.TryGetTarget(out mapValue)) {
+                    Log.To.NoDomain.V(Tag, "...Alive object {0} found!",
+                        new SecureLogString(mapValue, LogMessageSensitivity.PotentiallyInsecure));
+                    Put(key, mapValue);
+                    return mapValue;
+                }
+
+                Log.To.NoDomain.V(Tag, "...No alive object found!");
+                _allValues.Remove(key);
             }
+            Log.To.NoDomain.D(Tag, "Exited first lock in Get");
 
             TValue createdValue = Create(key);
             if (createdValue == null) {
                 return default(TValue);
             }
 
+            Log.To.NoDomain.V(Tag, "Autocreated default object {0}, inserting into cache",
+                new SecureLogString(createdValue, LogMessageSensitivity.PotentiallyInsecure));
+            Log.To.NoDomain.D(Tag, "Entering second lock in Get");
             lock (_locker) {
                 CreateCount++;
-                mapValue = _hashmap[key] = createdValue;
+                mapValue = _recents.Get(key);
+				_recents[key] = createdValue;
                 _nodes.Remove(key);
                 _nodes.AddFirst(key);
                 if (mapValue != null) {
+                    Log.To.NoDomain.W(Tag, "Cache already has a value for {0}, aborting insert", 
+                        new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure));
                     // There was a conflict so undo that last put
-                    _hashmap[key] = mapValue;
+                    _recents[key] = mapValue;
                 }
                 else {
                     Size += SafeSizeOf(key, createdValue);
                 }
             }
+            Log.To.NoDomain.D(Tag, "Exited second lock in Get");
 
             if (mapValue != null) {
                 EntryRemoved(false, key, createdValue, mapValue);
@@ -168,19 +208,28 @@ namespace Couchbase.Lite.Util
                 throw new ArgumentNullException("value");
             }
 
+            Log.To.NoDomain.D(Tag, "Entering lock in Put");
             TValue previous;
             lock (_locker) {
                 PutCount++;
                 Size += SafeSizeOf(key, value);
-                previous = _hashmap.Get(key);
-                _hashmap[key] = value;
+                previous = _recents.Get(key);
+                _recents[key] = value;
                 if (previous != null) {
+                    Log.To.NoDomain.W(Tag, "Cache already has a value for {0} ({1}), aborting insert",
+                        new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure),
+                        new SecureLogString(previous, LogMessageSensitivity.PotentiallyInsecure));
                     Size -= SafeSizeOf(key, previous);
                 }
                 else {
+                    Log.To.NoDomain.V(Tag, "Adding {0} for key {1} into cache",
+                        new SecureLogString(value, LogMessageSensitivity.PotentiallyInsecure),
+                        new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure));
                     _nodes.AddFirst(key);
+                    _allValues[key] = new WeakReference<TValue>(value);
                 }
             }
+            Log.To.NoDomain.D(Tag, "Exited lock in Put");
 
             if (previous != null) {
                 EntryRemoved(false, key, previous, value);
@@ -195,9 +244,12 @@ namespace Couchbase.Lite.Util
             while (true) {
                 TKey key;
                 TValue value;
+                Log.To.NoDomain.D(Tag, "Entering lock in Trim");
                 lock (_locker) {
-                    if (Size < 0 || _hashmap.Count != Size || _nodes.Count != Size) {
-                        throw new InvalidOperationException(GetType().FullName + ".sizeOf() is reporting inconsistent results!");
+                    if (Size < 0 || _recents.Count != Size || _nodes.Count != Size) {
+                        Log.To.NoDomain.E(Tag, "Size is reporting inconsistent results (Size={0} CacheCount={1} NodeCount={2}), throwing...",
+                            Size, _recents.Count, _nodes.Count);
+                        throw new InvalidOperationException(GetType().FullName + "Size is reporting inconsistent results!");
                     }
 
                     if (Size <= MaxSize || Size == 0) {
@@ -205,12 +257,13 @@ namespace Couchbase.Lite.Util
                     }
                         
                     key = _nodes.Last.Value;
-                    value = _hashmap[key];
-                    _hashmap.Remove(key);
+                    value = _recents[key];
+                    _recents.Remove(key);
                     _nodes.RemoveLast();
                     Size -= SafeSizeOf(key, value);
                     EvictionCount++;
                 }
+                Log.To.NoDomain.D(Tag, "Exited lock in Trim");
 
                 EntryRemoved(true, key, value, default(TValue));
             }
@@ -219,20 +272,27 @@ namespace Couchbase.Lite.Util
         public TValue Remove(TKey key)
         {
             if (key == null) {
-                throw new ArgumentNullException("key == null");
+                Log.To.NoDomain.E(Tag, "key cannot be null in Remove, throwing...");
+                throw new ArgumentNullException("key");
             }
 
+            Log.To.NoDomain.D(Tag, "Entering lock in Remove");
             TValue previous;
             lock (_locker) {
-                if (_hashmap.TryGetValue(key, out previous)) {
-                    _hashmap.Remove(key);
-                }
-
-                if (previous != null) {
+                Log.To.NoDomain.V(Tag, "Attempting to remove {0}...",
+                    new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure));
+                if (_recents.TryGetValue(key, out previous)) {
+                    _recents.Remove(key);
                     Size -= SafeSizeOf(key, previous);
                     _nodes.Remove(key);
+                    _allValues.Remove(key);
+                    Log.To.NoDomain.V(Tag, "...Success!");
+                } else {
+                    Log.To.NoDomain.V(Tag, "...Key not found!");
                 }
             }
+
+            Log.D(Tag, "Exited lock in Remove");
 
             if (previous != null) {
                 EntryRemoved(false, key, previous, default(TValue));
@@ -256,10 +316,14 @@ namespace Couchbase.Lite.Util
         private int SafeSizeOf(TKey key, TValue value)
         {
             int result = SizeOf(key, value);
-            if (result < 0)
-            {
-                throw new InvalidOperationException("Negative size: " + key + "=" + value);
+            if (result < 0) {
+                Log.To.NoDomain.E(Tag, "SizeOf reported an invalid size for <{0} / {1}> ({2}), throwing...",
+                    new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure),
+                    new SecureLogString(value, LogMessageSensitivity.PotentiallyInsecure),
+                    result);
+                throw new InvalidOperationException("Invalid size returned by SizeOf in LruCache");
             }
+
             return result;
         }
             
@@ -273,12 +337,15 @@ namespace Couchbase.Lite.Util
         // Used by tests
         public void EvictAll()
         {
+            Log.To.NoDomain.D(Tag, "Entering lock in EvictAll");
             lock(_locker) {
                 int oldMax = MaxSize;
                 MaxSize = 0;
                 Trim();
                 MaxSize = oldMax;
             }
+
+            Log.To.NoDomain.D(Tag, "Exited lock in EvictAll");
         }
 
         #endregion
@@ -287,9 +354,13 @@ namespace Couchbase.Lite.Util
 
         public sealed override string ToString()
         {
+            Log.To.NoDomain.D(Tag, "Entering lock in ToString");
             lock (_locker) {
+                
                 int accesses = HitCount + MissCount;
                 int hitPercent = accesses != 0 ? (100 * HitCount / accesses) : 0;
+
+                Log.To.NoDomain.D(Tag, "Exiting lock via return");
                 return string.Format ("LruCache[maxSize={0},hits={1},misses={2},hitRate={3:P}%]", MaxSize, HitCount, MissCount, hitPercent);
             }
         }
