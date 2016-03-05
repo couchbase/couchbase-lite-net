@@ -404,7 +404,7 @@ namespace Couchbase.Lite.Store
             // Update the documentType:
             if (isWinner) {
                 var type = properties == null ? null : properties.GetCast<string>("type");
-                Native.c4doc_setType(doc, type);
+                ForestDBBridge.Check(err => Native.c4doc_setType(doc, type, err));
             }
 
             // Save:

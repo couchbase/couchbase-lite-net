@@ -206,6 +206,11 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        public QueryOptions Copy()
+        {
+            return (QueryOptions)MemberwiseClone();
+        }
+
         /// <summary>
         /// Gets the start key for the query
         /// </summary>

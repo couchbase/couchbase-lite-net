@@ -536,7 +536,8 @@ namespace Couchbase.Lite.Store
 
         public IEnumerable<QueryRow> RegularQuery(QueryOptions options)
         {
-            var enumerator = QueryEnumeratorWithOptions(options); 
+            var optionsCopy = options.Copy(); // Needed because Count() and ElementAt() will share this
+            var enumerator = QueryEnumeratorWithOptions(optionsCopy); 
             foreach (var next in enumerator) {
                 
                 var key = CouchbaseBridge.DeserializeKey<object>(next.Key);
@@ -545,7 +546,7 @@ namespace Couchbase.Lite.Store
                 if (value.Length == 1 && value[0] == 42) {
                     docRevision = _dbStorage.GetDocument(next.DocID, null, true);
                 } else {
-                    docRevision = _dbStorage.GetDocument(next.DocID, null, options.IncludeDocs);
+                    docRevision = _dbStorage.GetDocument(next.DocID, null, optionsCopy.IncludeDocs);
                 }
 
                 yield return new QueryRow(next.DocID, next.DocSequence, key, value, docRevision, this);
