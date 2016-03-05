@@ -172,10 +172,6 @@
       <Project>{666B3F9B-DC39-421E-9E4E-C5B666023FB0}</Project>
       <Name>storage.forestdb.net45</Name>
     </ProjectReference>
-    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.net45\storage.systemsqlite.net45.csproj">
-      <Project>{88BB6717-85C9-46F0-923B-C263C08A189B}</Project>
-      <Name>storage.systemsqlite.net45</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
       <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
       <Name>websocket-sharp</Name>

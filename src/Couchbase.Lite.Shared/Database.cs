@@ -2149,7 +2149,7 @@ namespace Couchbase.Lite
             IsOpen = true;
 
             if (upgrade) {
-                var upgrader = Storage.CreateUpgrader(this, DbDirectory);
+                var upgrader = CreateUpgrader(this, DbDirectory);
                 try {
                     upgrader.Import();
                 } catch(CouchbaseLiteException e) {
@@ -2166,6 +2166,13 @@ namespace Couchbase.Lite
             OpenWithOptions(Manager.DefaultOptionsFor(Name));
         }
 
+        internal static IDatabaseUpgrader CreateUpgrader(Database upgradeFrom, string upgradeTo)
+        {
+            // Right now only SQLite has upgrade logic
+            var sqliteType = GetSQLiteStorageClass();
+            var sqliteStorage = (ICouchStore)Activator.CreateInstance(sqliteType);
+            return sqliteStorage.CreateUpgrader(upgradeFrom, upgradeTo);
+        }
 
         #endregion
 

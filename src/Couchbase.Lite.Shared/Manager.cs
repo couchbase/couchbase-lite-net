@@ -669,7 +669,7 @@ namespace Couchbase.Lite
                 }
                 db.Dispose();
 
-                var upgrader = db.Storage.CreateUpgrader(db, oldFilename);
+                var upgrader = Database.CreateUpgrader(db, oldFilename);
                 try {
                     upgrader.Import();
                 } catch(CouchbaseLiteException e) {
