@@ -29,6 +29,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Externalconsole>true</Externalconsole>
+    <Commandlineparameters>--push http://192.168.3.2:4984/logging-demo --continuous</Commandlineparameters>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -38,6 +39,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="Options.cs" />
+    <Compile Include="ColorConsoleLogger.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
