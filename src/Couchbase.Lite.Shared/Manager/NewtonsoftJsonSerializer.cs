@@ -64,12 +64,14 @@ namespace Couchbase.Lite
 
                 Log.To.Database.I(Tag, "Changing global JSON serialization settings from {0} to {1}", _settings, value);
                 _settings = value;
-                if (_settings.DateTimeHandling == DateTimeHandling.UseDateTime) {
-                    settings.DateParseHandling = DateParseHandling.DateTime;
-                    settings.DateTimeZoneHandling = DateTimeZoneHandling.Local;
-                } else {
+                if (_settings.DateTimeHandling == DateTimeHandling.UseDateTimeOffset) {
                     settings.DateParseHandling = DateParseHandling.DateTimeOffset;
                     settings.DateTimeZoneHandling = DateTimeZoneHandling.RoundtripKind;
+                } else if(_settings.DateTimeHandling == DateTimeHandling.Ignore) {
+                    settings.DateParseHandling = DateParseHandling.None;
+                } else {
+                    settings.DateParseHandling = DateParseHandling.DateTime;
+                    settings.DateTimeZoneHandling = DateTimeZoneHandling.Local;
                 }
             }
         }

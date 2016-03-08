@@ -36,7 +36,16 @@ namespace Couchbase.Lite
         /// <summary>
         /// Deserialize to System.DateTimeOffset (embedded time zone)
         /// </summary>
-        UseDateTimeOffset
+        UseDateTimeOffset,
+
+        /// <summary>
+        /// Don't deserialize (keep as a date-time string).
+        /// </summary>
+        /// <remarks>
+        /// WARNING: This will cause any DateTime or DateTimeOffset values to be
+        /// returned as strings.  Make sure you know what you are doing
+        /// </remarks>
+        Ignore
     }
 
     /// <summary>
@@ -79,6 +88,11 @@ namespace Couchbase.Lite
         public override int GetHashCode()
         {
             return DateTimeHandling.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return String.Format("JsonSerializationSettings[DateTimeHandling={0}]", DateTimeHandling);
         }
 
         #pragma warning restore 1591
