@@ -41,8 +41,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{DA4D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Todo.WPF_Source", "..\samples\Todo.WPF\Todo.WPF_Source.csproj", "{04A267E1-6CB5-4BD5-9987-1A09BA1349CA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj", "{B357BAC7-529E-4D81-A0D2-71041B19C8DE}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SQLiteCommon", "SQLiteCommon", "{FE3BA287-7CCB-482D-95CC-5C46F5AF0A80}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "storage.sqlite.common", "StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.shproj", "{79FC4A01-1E39-468F-8E55-195BC918232E}"
@@ -57,18 +55,22 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "cbforest-sharp.Shared", "St
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.systemsqlite.net45", "StorageEngines\SystemSQLite\storage.systemsqlite.net45\storage.systemsqlite.net45.csproj", "{88BB6717-85C9-46F0-923B-C263C08A189B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp", "..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj", "{B357BAC7-529E-4D81-A0D2-71041B19C8DE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-net_4_5", "..\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj", "{D68D4FED-CA32-4800-A628-58BAE485562C}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8bfa15b7-957d-4ad1-9019-9df98f1ee9eb}*SharedItemsImports = 4
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8555f0b6-3f1a-4c80-8ccb-3eed653d6242}*SharedItemsImports = 13
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{5aa87149-7173-42a0-8bbc-ac618b404d46}*SharedItemsImports = 13
-		Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{b357bac7-529e-4d81-a0d2-71041b19c8de}*SharedItemsImports = 4
+		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{b357bac7-529e-4d81-a0d2-71041b19c8de}*SharedItemsImports = 4
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{c87e0c01-aad6-46da-9935-c772c112bb18}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{88bb6717-85c9-46f0-923b-c263c08a189b}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{f376966c-ccab-4c5c-a81a-e2a754aa7a4c}*SharedItemsImports = 4
 		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{ea36a133-649c-42b3-91de-6e14dc9980a0}*SharedItemsImports = 13
-		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
+		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{9ad3badd-4f48-4208-b601-e63987c12049}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d06edb2a-0ae0-4606-a8ae-aa3f6248630f}*SharedItemsImports = 13
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{0bfc8b40-0659-4d45-b111-7cb4ccd22991}*SharedItemsImports = 13
@@ -132,14 +134,6 @@ Global
 		{04A267E1-6CB5-4BD5-9987-1A09BA1349CA}.Release_Ubuntu|Any CPU.Build.0 = Release|Any CPU
 		{04A267E1-6CB5-4BD5-9987-1A09BA1349CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{04A267E1-6CB5-4BD5-9987-1A09BA1349CA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug_Ubuntu|Any CPU
-		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug_Ubuntu|Any CPU.Build.0 = Debug_Ubuntu|Any CPU
-		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release_Ubuntu|Any CPU.ActiveCfg = Release_Ubuntu|Any CPU
-		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release_Ubuntu|Any CPU.Build.0 = Release_Ubuntu|Any CPU
-		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3EEE8883-B6A9-4B71-B70E-67973F7687D5}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug|Any CPU
 		{3EEE8883-B6A9-4B71-B70E-67973F7687D5}.Debug_Ubuntu|Any CPU.Build.0 = Debug|Any CPU
 		{3EEE8883-B6A9-4B71-B70E-67973F7687D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -164,6 +158,22 @@ Global
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Release_Ubuntu|Any CPU.Build.0 = Release|Any CPU
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug_Ubuntu|Any CPU
+		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug_Ubuntu|Any CPU.Build.0 = Debug_Ubuntu|Any CPU
+		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release_Ubuntu|Any CPU.ActiveCfg = Release_Ubuntu|Any CPU
+		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release_Ubuntu|Any CPU.Build.0 = Release_Ubuntu|Any CPU
+		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug|Any CPU
+		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_Ubuntu|Any CPU.Build.0 = Debug|Any CPU
+		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_Ubuntu|Any CPU.ActiveCfg = Release|Any CPU
+		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_Ubuntu|Any CPU.Build.0 = Release|Any CPU
+		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -181,7 +191,6 @@ Global
 		{42C19F0D-8DE6-4929-ACBE-134D09BBFDCC} = {440D39B3-3B9F-4549-ADCE-C147E60E13BC}
 		{6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C} = {440D39B3-3B9F-4549-ADCE-C147E60E13BC}
 		{04A267E1-6CB5-4BD5-9987-1A09BA1349CA} = {DA4D089F-1412-4D7E-9CAE-6E8AC159AB2A}
-		{B357BAC7-529E-4D81-A0D2-71041B19C8DE} = {D7B73C47-09CD-4D4A-90B6-602D2AB3D04C}
 		{FE3BA287-7CCB-482D-95CC-5C46F5AF0A80} = {440D39B3-3B9F-4549-ADCE-C147E60E13BC}
 		{79FC4A01-1E39-468F-8E55-195BC918232E} = {FE3BA287-7CCB-482D-95CC-5C46F5AF0A80}
 		{EA36A133-649C-42B3-91DE-6E14DC9980A0} = {42C19F0D-8DE6-4929-ACBE-134D09BBFDCC}
@@ -189,6 +198,8 @@ Global
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0} = {6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C}
 		{0BFC8B40-0659-4D45-B111-7CB4CCD22991} = {6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C}
 		{88BB6717-85C9-46F0-923B-C263C08A189B} = {96438728-7016-4855-A95C-81E02B815F00}
+		{B357BAC7-529E-4D81-A0D2-71041B19C8DE} = {D7B73C47-09CD-4D4A-90B6-602D2AB3D04C}
+		{D68D4FED-CA32-4800-A628-58BAE485562C} = {D7B73C47-09CD-4D4A-90B6-602D2AB3D04C}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
