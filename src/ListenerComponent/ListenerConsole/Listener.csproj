@@ -29,7 +29,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Externalconsole>true</Externalconsole>
-    <Commandlineparameters>--push http://192.168.3.2:4984/logging-demo --continuous</Commandlineparameters>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
