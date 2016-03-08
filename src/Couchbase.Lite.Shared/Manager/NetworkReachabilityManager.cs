@@ -224,7 +224,7 @@ namespace Couchbase.Lite
                     Log.To.Sync.I(TAG, "No acceptable IP addresses found, signaling network unreachable");
                     status = NetworkReachabilityStatus.Unreachable;
                 } else {
-                    Log.To.Sync.I(TAG, "At least one acceptable IP address found ({0}), signaling network reachable", firstValidIP);
+                    Log.To.Sync.I(TAG, "At least one acceptable IP address found ({0}), signaling network reachable", new SecureLogString(firstValidIP, LogMessageSensitivity.PotentiallyInsecure));
                     status = NetworkReachabilityStatus.Reachable;
                 }
             }
@@ -269,12 +269,12 @@ namespace Couchbase.Lite
         private static bool IsIPAddressValid(UnicastIPAddressInformation addr)
         {
             var address = addr.Address;
-            Log.To.Sync.V(TAG, "    Checking IP Address {0}", address);
+            Log.To.Sync.V(TAG, "    Checking IP Address {0}", new SecureLogString(address, LogMessageSensitivity.PotentiallyInsecure));
             if(address.AddressFamily == AddressFamily.InterNetwork) {
                 var bytes = address.GetAddressBytes();
                 var correct = bytes[0] != 169 && bytes[1] != 254;
                 if(correct) {
-                    Log.To.Sync.I(TAG, "Found acceptable IPv4 address {0}", address);
+                    Log.To.Sync.I(TAG, "Found acceptable IPv4 address {0}", new SecureLogString(address, LogMessageSensitivity.PotentiallyInsecure));
                 } else {
                     Log.To.Sync.V(TAG, "    Rejecting link-local IPv4 address");
                 }
@@ -285,7 +285,7 @@ namespace Couchbase.Lite
                 if(correct) {
                     Log.To.Sync.I(TAG, "Found acceptable IPv6 address {0}", address);
                 } else {
-                    Log.To.Sync.V(TAG, "    Rejecting link-local IPv6 address");
+                    Log.To.Sync.V(TAG, "    Rejecting link-local IPv6 address", new SecureLogString(address, LogMessageSensitivity.PotentiallyInsecure));
                 }
 
                 return correct;

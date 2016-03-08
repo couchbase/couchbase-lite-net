@@ -398,12 +398,25 @@ namespace Couchbase.Lite.Replicator
                         try {
                             ProcessLongPollStream(t);
                             backoff.ResetBackoff();
+                        } catch(CouchbaseLiteException e) {
+                            if(IsRunning) {
+                                Log.To.ChangeTracker.I(TAG, 
+                                    String.Format("{0} exception during changes feed processing, sleeping...", this), e);
+                                backoff.SleepAppropriateAmountOfTime();
+                                Log.To.ChangeTracker.I(TAG, "{0} retrying...", this);
+                                WorkExecutor.StartNew(Run);
+                            } else {
+                                Log.To.ChangeTracker.I(TAG, "Ignoring last exception since it likely occured from closing " +
+                                    "an open connection");
+                            }
                         } catch(Exception e) {
-                            Log.To.ChangeTracker.I(TAG, 
-                                String.Format("{0} exception during changes feed processing, sleeping...", this), e);
-                            backoff.SleepAppropriateAmountOfTime();
-                            Log.To.ChangeTracker.I(TAG, "{0} retrying...", this);
-                            WorkExecutor.StartNew(Run);
+                            if(IsRunning) {
+                                Log.To.ChangeTracker.I(TAG, 
+                                    String.Format("{0} exception during changes feed processing, sleeping...", this), e);
+                                backoff.SleepAppropriateAmountOfTime();
+                                Log.To.ChangeTracker.I(TAG, "{0} retrying...", this);
+                                WorkExecutor.StartNew(Run);
+                            }
                         } finally {
                             response.Dispose();
                         }

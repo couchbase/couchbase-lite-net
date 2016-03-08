@@ -1205,7 +1205,6 @@ namespace Couchbase.Lite
         internal HttpRequestMessage SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
         {
             try {
-                Log.To.Sync.V(TAG, "{0}: {1} {2}", this, method, new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
                 var urlStr = BuildRelativeURLString(relativePath);
                 var url = new Uri(urlStr);
                 return SendAsyncRequest(method, url, body, completionHandler, requestTokenSource);
@@ -1249,7 +1248,7 @@ namespace Couchbase.Lite
                 ? requestTokenSource.Token
                 : CancellationTokenSource.Token;
 
-            Log.To.Sync.V(TAG, "{0} - Sending async {1} request to: {2}", _replicatorID, method, url);
+            Log.To.Sync.V(TAG, "{0} - Sending {1} request to: {2}", _replicatorID, method, new SecureLogUri(url));
             _client.Authenticator = Authenticator;
             var t = _client.SendAsync(message, token).ContinueWith(response =>
             {
@@ -1261,10 +1260,12 @@ namespace Couchbase.Lite
                         UpdateServerType(result);
                     } else if(response.IsFaulted) {
                         error = response.Exception.InnerException;
-                        Log.To.Sync.E(TAG, String.Format("Http Message failed to send: {0}", message), Misc.Flatten(response.Exception));
+                        Log.To.Sync.W(TAG, String.Format("Http Message failed to send, or got error response, " +
+                            "passing to callback... {0}, ",
+                            message), Misc.Flatten(response.Exception));
                         if(bytes != null) {
                             try {
-                                Log.To.Sync.E(TAG, "\tFailed content: {0}", new SecureLogString(bytes, LogMessageSensitivity.PotentiallyInsecure));
+                                Log.To.Sync.W(TAG, "\tFailed content: {0}", new SecureLogString(bytes, LogMessageSensitivity.PotentiallyInsecure));
                             } catch(ObjectDisposedException) {}
                         }
                     }
@@ -1437,7 +1438,7 @@ namespace Couchbase.Lite
             try {
                 var urlStr = BuildRelativeURLString(relativePath);
                 url = new Uri(urlStr);
-            } catch (UriFormatException e) {
+            } catch (UriFormatException) {
                 Log.To.Sync.E(TAG, "Invalid path received for request: {0}, throwing...",
                     new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
                 throw new ArgumentException("Invalid path", "relativePath");
@@ -1806,15 +1807,17 @@ namespace Couchbase.Lite
             {
                 _savingCheckpoint = false;
                 if (e != null) {
-                    Log.To.Sync.W(TAG, String.Format("Unable to save remote checkpoint for {0}", _replicatorID), e);
                     switch (GetStatusFromError(e)) {
                         case StatusCode.NotFound:
+                            Log.To.Sync.I(TAG, "Got 404 from _local, ignoring...");
                             _remoteCheckpoint = null;
                             break;
                         case StatusCode.Conflict:
+                            Log.To.Sync.I(TAG, "Got 409 from _local, retrying...");
                             RefreshRemoteCheckpointDoc();
                             break;
                         default:
+                            Log.To.Sync.W(TAG, String.Format("Unable to save remote checkpoint for {0}", _replicatorID), e);
                             // TODO: On 401 or 403, and this is a pull, remember that remote
                             // TODO: is read-only & don't attempt to read its checkpoint next time.
                             break;
@@ -2039,6 +2042,8 @@ namespace Couchbase.Lite
                 if(_revisionsFailed > 0) {
                     ScheduleRetryIfReady();
                 }
+
+                SaveLastSequence(null);
 
                 NotifyChangeListenersStateTransition(transition);
             });
