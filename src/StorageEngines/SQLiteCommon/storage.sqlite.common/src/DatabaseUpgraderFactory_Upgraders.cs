@@ -548,7 +548,10 @@ namespace Couchbase.Lite.Db
                     MoveSqliteFiles(destPath, _path);
                     var secondaryUpgrade = new v11_upgrader(_db, _path);
                     secondaryUpgrade.Import();
-                    Directory.Move(Path.Combine(Path.GetDirectoryName(_path), _db.Name + Manager.DatabaseSuffix), _db.DbDirectory);
+                    var newPath = Path.Combine(Path.GetDirectoryName(_path), _db.Name + Manager.DatabaseSuffix);
+                    if (newPath != _db.DbDirectory) {
+                        Directory.Move(Path.Combine(Path.GetDirectoryName(_path), _db.Name + Manager.DatabaseSuffix), _db.DbDirectory);
+                    }
                     return;
                 }
 
@@ -731,7 +734,9 @@ namespace Couchbase.Lite.Db
                 File.Delete(_path);
                 File.Delete(_path + "-wal");
                 File.Delete(_path + "-shm");
-                Directory.Delete(oldAttachmentsPath, true);
+                if(Directory.Exists(oldAttachmentsPath)) {
+                    Directory.Delete(oldAttachmentsPath, true);
+                }
             }
 
             public void Backout()
