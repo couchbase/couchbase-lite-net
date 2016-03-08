@@ -49,120 +49,108 @@ namespace Couchbase.Lite.Util
             
         internal void V(string tag, string msg)
         {
-            if (ShouldLog(Log.LogLevel.Verbose)) {
-                Log.Logger.V(MakeTag(tag), msg);
-            }
+            PerformLog(logger => logger.V(MakeTag(tag), msg), Log.LogLevel.Verbose);
         }
             
         internal void V(string tag, string msg, Exception tr)
         {
-            if (ShouldLog(Log.LogLevel.Verbose)) {
-                Log.Logger.V(MakeTag(tag), msg, tr);
-            }
+            PerformLog(logger => logger.V(MakeTag(tag), msg, tr), Log.LogLevel.Verbose);
         }
 
         internal void V(string tag, string format, params object[] args)
         {
-            if (ShouldLog(Log.LogLevel.Verbose)) {
-                Log.Logger.V(MakeTag(tag), format, args);
-            }
+            PerformLog(logger => logger.V(MakeTag(tag), format, args), Log.LogLevel.Verbose);
         }
 
         [System.Diagnostics.Conditional("DEBUG")]
         internal void D(string tag, string msg)
         {
-            if (ShouldLog(Log.LogLevel.Debug)) {
-                Log.Logger.D(MakeTag(tag), msg);
-            }
+            PerformLog(logger => logger.D(MakeTag(tag), msg), Log.LogLevel.Debug);
         }
 
         [System.Diagnostics.Conditional("DEBUG")]
         internal void D(string tag, string msg, Exception tr)
         {
-            if (ShouldLog(Log.LogLevel.Debug)) {
-                Log.Logger.D(MakeTag(tag), msg, tr);
-            }
+            PerformLog(logger => logger.D(MakeTag(tag), msg, tr), Log.LogLevel.Debug);
         }
             
         [System.Diagnostics.Conditional("DEBUG")]
         internal void D(string tag, string format, params object[] args)
         {
-            if (ShouldLog(Log.LogLevel.Debug)) {
-                Log.Logger.D(MakeTag(tag), format, args);
-            }
+            PerformLog(logger => logger.D(MakeTag(tag), format, args), Log.LogLevel.Debug);
         }
 
         internal void I(string tag, string msg)
         {
-            if (ShouldLog(Log.LogLevel.Base)) {
-                Log.Logger.I(MakeTag(tag), msg);
-            }
+            PerformLog(logger => logger.I(MakeTag(tag), msg), Log.LogLevel.Base);
         }
 
         internal void I(string tag, string msg, Exception tr)
         {
-            if (ShouldLog(Log.LogLevel.Base)) {
-                Log.Logger.I(MakeTag(tag), msg, tr);
-            }
+            PerformLog(logger => logger.I(MakeTag(tag), msg, tr), Log.LogLevel.Base);
         }
             
         internal void I(string tag, string format, params object[] args)
         {
-            if (ShouldLog(Log.LogLevel.Base)) {
-                Log.Logger.I(MakeTag(tag), format, args);
-            }
+            PerformLog(logger => logger.I(MakeTag(tag), format, args), Log.LogLevel.Base);
         }
 
         internal void W(string tag, string msg)
         {
-            if (ShouldLog(Log.LogLevel.Base)) {
-                Log.Logger.W(MakeTag(tag), msg);
-            }
+            PerformLog(logger => logger.W(MakeTag(tag), msg), Log.LogLevel.Base);
         }
 
         internal void W(string tag, string msg, Exception tr)
         {
-            if (ShouldLog(Log.LogLevel.Base)) {
-                Log.Logger.W(MakeTag(tag), msg, tr);
-            }
+            PerformLog(logger => logger.W(MakeTag(tag), msg, tr), Log.LogLevel.Base);
         }
 
         internal void W(string tag, string format, params object[] args)
         {
-            if (ShouldLog(Log.LogLevel.Base)) {
-                Log.Logger.W(MakeTag(tag), format, args);
-            }
+            PerformLog(logger => logger.W(MakeTag(tag), format, args), Log.LogLevel.Base);
         }
 
         internal void E(string tag, string msg)
         {
-            if (ShouldLog(Log.LogLevel.Base)) {
-                Log.Logger.E(MakeTag(tag), msg);
-            }
+            PerformLog(logger => logger.E(MakeTag(tag), msg), Log.LogLevel.Base);
         }
 
         internal void E(string tag, string msg, Exception tr)
         {
-            if (ShouldLog(Log.LogLevel.Base)) {
-                Log.Logger.E(MakeTag(tag), msg, tr);
-            }
+            PerformLog(logger => logger.E(MakeTag(tag), msg, tr), Log.LogLevel.Base);
         }
 
         internal void E(string tag, string format, params object[] args)
         {
-            if (ShouldLog(Log.LogLevel.Base)) {
-                Log.Logger.E(MakeTag(tag), format, args);
-            }
+            PerformLog(logger => logger.E(MakeTag(tag), format, args), Log.LogLevel.Base);
         }
 
         private string MakeTag(string tag)
         {
             return _makeTag ? String.Format("{0} ({1})", _domain, tag) : tag;
         }
+
+        private void PerformLog(Action<ILogger> callback, Log.LogLevel level)
+        {
+            if (callback == null) {
+                return;
+            }
+
+            var loggers = Log.Loggers;
+            if (loggers == null) {
+                return;
+            }
+
+            if (ShouldLog(level)) {
+                foreach (var logger in loggers) {
+                    callback(logger);
+                }
+            }
+        }
             
         private bool ShouldLog(Log.LogLevel level)
         {
-            if (Log.Logger == null || Log.Disabled) {
+            if (Log.Disabled) {
                 return false;
             }
 

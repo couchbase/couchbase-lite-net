@@ -20,6 +20,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Collections;
 
 namespace Couchbase.Lite.Util
 {
@@ -53,6 +54,51 @@ namespace Couchbase.Lite.Util
         public static T ConvertToNetObject<T>(object jsonObject)
         {
             return (T)ConvertToNetObject(jsonObject);
+        }
+
+        public static void PopulateNetObject(object jsonObject, object template)
+        {
+            PopulateNetObject_Internal(jsonObject, template);
+        }
+
+        private static object PopulateNetObject_Internal(object jsonObject, object template)
+        {
+            var dictionaryAttempt = template as IDictionary;
+            if (dictionaryAttempt != null) {
+                var jsonDictionary = jsonObject.AsDictionary<string, object>();
+                if (jsonDictionary == null) {
+                    Log.To.NoDomain.E("JsonUtility", "JsonTypeHints specified an object, " +
+                        "but json portion is not an object ({0})", jsonObject.GetType().Name);
+                    throw new InvalidOperationException("Invalid JsonTypeHints");
+                }
+
+                foreach (var pair in jsonDictionary) {
+                    var innerObject = Activator.CreateInstance(dictionaryAttempt.GetType().GetGenericArguments()[1]);
+                    dictionaryAttempt[pair.Key] = PopulateNetObject_Internal(pair.Value, innerObject);
+                }
+
+                return dictionaryAttempt;
+            }
+
+            var arrayAttempt = template as IList;
+            if (arrayAttempt != null) {
+                var jsonArray = jsonObject.AsList<object>();
+                if (jsonArray == null) {
+                    Log.To.NoDomain.E("JsonUtility", "JsonTypeHints specified an array, " +
+                        "but json portion is not an array ({0})", jsonObject.GetType().Name);
+                    throw new InvalidOperationException("Invalid JsonTypeHints");
+                }
+
+
+                foreach (var item in jsonArray) {
+                    var innerObject = Activator.CreateInstance(arrayAttempt.GetType().GetGenericArguments()[0]);
+                    arrayAttempt.Add(PopulateNetObject_Internal(item, innerObject));
+                }
+
+                return arrayAttempt;
+            }
+
+            return jsonObject;
         }
     }
 }

@@ -129,11 +129,21 @@ namespace Couchbase.Lite
 
     #endregion
 
+    public struct ReplicationOptionsDictionaryKeys
+    {
+        /// <summary>
+        /// If specified, this will be used in place of the remote URL for calculating
+        /// the remote checkpoint in the replication process.  Useful if the remote URL
+        /// changes frequently (e.g. P2P discovery scenario)
+        /// </summary>
+        public static readonly string RemoteUUID = ReplicationOptionsDictionary.RemoteUUIDKey;
+    }
+
     /// <summary>
     /// A class for holding replication options
     /// </summary>
     [DictionaryContract(OptionalKeys=new object[] { 
-        ReplicationOptionsDictionary.REMOTE_UUID_KEY, typeof(string)
+        ReplicationOptionsDictionary.RemoteUUIDKey, typeof(string)
     })]
     [Obsolete("This class is deprecated in favor of ReplicationOptions")]
     public sealed class ReplicationOptionsDictionary : ContractedDictionary
@@ -143,6 +153,11 @@ namespace Couchbase.Lite
         /// is likely to change (i.e. found via Bonjour)
         /// </summary>
         public const string REMOTE_UUID_KEY = "remoteUUID";
+
+        internal const string RemoteUUIDKey = "remoteUUID";
+        internal const string PollIntervalKey = "poll";
+        internal const string PurgePushedKey = "purgePushed";
+        internal const string AllNewKey = "allNew";
     }
 
     /// <summary>

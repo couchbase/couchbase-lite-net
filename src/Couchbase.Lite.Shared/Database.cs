@@ -245,7 +245,7 @@ namespace Couchbase.Lite
         internal IList<Replication>                     AllReplicators { get; set; }
         internal LruCache<String, Document>             DocumentCache { get; set; }
         internal ConcurrentDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
-        internal long StartTime { get; private set; }
+        internal ulong StartTime { get; private set; }
         internal BlobStoreWriter AttachmentWriter { get { return new BlobStoreWriter(Attachments); } }
 
         internal BlobStore Attachments { get; set; }

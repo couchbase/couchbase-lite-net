@@ -113,7 +113,10 @@ namespace Couchbase.Lite.Util
             set { 
                 if (value != _scrubSensitivity) {
                     if (value == LogScrubSensitivity.AllOK) {
-                        Logger.I("Log", "SCRUBBING DISABLED, THIS LOG MAY CONTAIN SENSITIVE INFORMATION");
+                        foreach (var logger in Loggers) {
+                            logger.I("Log", "SCRUBBING DISABLED, THIS LOG MAY CONTAIN SENSITIVE INFORMATION");
+                        }
+
                         _scrubSensitivity = value;
                     }
                 }
@@ -131,9 +134,9 @@ namespace Couchbase.Lite.Util
             set { To.NoDomain.Level = value; }
         }
 
-        private static object logger = LoggerFactory.CreateLogger();
-        internal static ILogger Logger { 
-            get { return (ILogger)logger; }
+        private static List<ILogger> _Loggers = new List<ILogger> { LoggerFactory.CreateLogger() };
+        internal static IEnumerable<ILogger> Loggers { 
+            get { return _Loggers; }
         }
 
         #endregion
@@ -174,9 +177,23 @@ namespace Couchbase.Lite.Util
         /// <param name="customLogger">Custom logger.</param>
         public static bool SetLogger(ILogger customLogger)
         {
-            var currentLogger = Logger;
-            Interlocked.CompareExchange(ref logger, customLogger, currentLogger);
-            return Logger == customLogger;
+            var loggers = _Loggers;
+            if (loggers != null) {
+                foreach (var logger in loggers) {
+                    var disposable = logger as IDisposable;
+                    if (disposable != null) {
+                        disposable.Dispose();
+                    }
+                }
+            }
+
+            _Loggers = new List<ILogger> { customLogger };
+            return true;
+        }
+
+        public static void AddLogger(ILogger logger)
+        {
+            _Loggers.Add(logger);
         }
 
         /// <summary>
