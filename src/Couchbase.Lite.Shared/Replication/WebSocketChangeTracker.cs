@@ -39,6 +39,8 @@ namespace Couchbase.Lite.Internal
         private CancellationTokenSource _cts;
         private ChunkedGZipChanges _changesProcessor;
 
+        public bool CanConnect { get; set; }
+
         public override Uri ChangesFeedUrl
         {
             get {
@@ -56,7 +58,7 @@ namespace Couchbase.Lite.Internal
            IChangeTrackerClient client, TaskFactory workExecutor = null)
             : base(databaseURL, ChangeTrackerMode.WebSocket, includeConflicts, lastSequenceID, client, workExecutor)
         {
-            
+            CanConnect = true;
         }
 
         private void OnError(object sender, WebSocketSharp.ErrorEventArgs args)
@@ -67,10 +69,16 @@ namespace Couchbase.Lite.Internal
         private void OnClose(object sender, CloseEventArgs args)
         {
             if (_client != null) {
-                Log.To.ChangeTracker.I(Tag, "{0} remote {1} closed connection ({2} {3})",
-                    this, args.WasClean ? "cleanly" : "forcibly", args.Code, args.Reason);
-                backoff.SleepAppropriateAmountOfTime();
-                _client.ConnectAsync();
+                if (args.Code == (ushort)CloseStatusCode.ProtocolError) {
+                    // This is not a valid web socket connection, need to fall back to regular HTTP
+                    CanConnect = false;
+                    Stopped();
+                } else {
+                    Log.To.ChangeTracker.I(Tag, "{0} remote {1} closed connection ({2} {3})",
+                        this, args.WasClean ? "cleanly" : "forcibly", args.Code, args.Reason);
+                    backoff.SleepAppropriateAmountOfTime();
+                    _client.ConnectAsync();
+                }
             } else {
                 Log.To.ChangeTracker.I(Tag, "{0} is closed", this);
                 Stopped();

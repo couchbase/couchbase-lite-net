@@ -110,7 +110,7 @@ namespace Couchbase.Lite.Replicator
                     if (Options.TryGetValue<bool>(ReplicationOptionsDictionaryKeys.UseWebSocket, out scratch)) {
                         _canUseWebSockets = scratch;
                     } else {
-                        _canUseWebSockets = CheckServerCompatVersion("0.91");
+                        _canUseWebSockets = true;
                     } 
                 }
 
@@ -196,6 +196,12 @@ namespace Couchbase.Lite.Replicator
 
         private void ProcessChangeTrackerStopped(ChangeTracker tracker)
         {
+            var webSocketTracker = tracker as WebSocketChangeTracker;
+            if (webSocketTracker != null && !webSocketTracker.CanConnect) {
+                _canUseWebSockets = false;
+                StartChangeTracker();
+            }
+
             Log.To.Sync.I(TAG, "Change tracker for {0} stopped; error={1}", ReplicatorID, tracker.Error);
             if (Continuous) {
                 if (_stateMachine.State == ReplicationState.Offline) {
