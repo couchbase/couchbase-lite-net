@@ -192,10 +192,20 @@ namespace Couchbase.Lite
             }
 
             #if !OFFICIAL
-            VersionString = String.Format(".NET {0}/{1} Unofficial ({2})/{3}", PLATFORM, Platform.Architecture, branchName.Replace('/', '\\'), 
+            #if DEBUG
+            const string versionNumber = "Unofficial Debug";
+            #else
+            const string versionNumber = "Unofficial";
+            #endif
+            VersionString = String.Format(".NET {0}/{1} {2} ({3})/{4}", PLATFORM, Platform.Architecture, versionNumber, branchName.Replace('/', '\\'), 
                 gitVersion.TrimEnd());
             #else
-            VersionString = String.Format(".NET {0}/{1} 1.2/{2}", PLATFORM, Platform.Architecture, gitVersion.TrimEnd());
+            #if DEBUG
+            const string versionNumber = "1.3-pre1 Debug";
+            #else
+            const string versionNumber = "1.3-pre1";
+            #endif
+            VersionString = String.Format(".NET {0}/{1} {2}/{3}", PLATFORM, Platform.Architecture, versionNumber, gitVersion.TrimEnd());
             #endif
 
             Log.To.NoDomain.I(TAG, "Starting Manager version: {0}", VersionString);
