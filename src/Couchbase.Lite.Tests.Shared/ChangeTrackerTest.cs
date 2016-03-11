@@ -64,6 +64,7 @@ namespace Couchbase.Lite
     public class ChangeTrackerTest : LiteTestCase
     {
         public const string TAG = "ChangeTracker";
+        private SyncGateway _sg;
 
         public ChangeTrackerTest(string storageType) : base(storageType) {}
 
@@ -88,22 +89,27 @@ namespace Couchbase.Lite
 
             private CountdownEvent stoppedSignal;
             private CountdownEvent changedSignal;
+            private AutoResetEvent caughtUpSignal;
 
-            public ChangeTrackerTestClient(CountdownEvent stoppedSignal, CountdownEvent changedSignal)
+            public ChangeTrackerTestClient(CountdownEvent stoppedSignal, CountdownEvent changedSignal, 
+                AutoResetEvent caughtUpSignal = null)
             {
                 this.stoppedSignal = stoppedSignal;
                 this.changedSignal = changedSignal;
+                this.caughtUpSignal = caughtUpSignal;
                 HttpClientFactory = new MockHttpClientFactory();
             }
 
             public void ChangeTrackerCaughtUp(ChangeTracker tracker)
             {
-
+                if (caughtUpSignal != null) {
+                    caughtUpSignal.Set();
+                }
             }
 
             public void ChangeTrackerFinished(ChangeTracker tracker)
             {
-
+                
             }
 
             public void ChangeTrackerStopped(ChangeTracker tracker)
@@ -213,32 +219,34 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
         }
 
-        private void TestChangeTrackerBackoff(MockHttpClientFactory httpClientFactory)
+        private void TestChangeTrackerBackoff(MockHttpClientFactory httpClientFactory, int rawMode)
         {
+            var mode = (ChangeTrackerMode)rawMode;
             var changeTrackerFinishedSignal = new CountdownEvent(1);
             var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, null);
             client.HttpClientFactory = httpClientFactory;
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = ChangeTrackerFactory.Create(testUrl, ChangeTrackerMode.LongPoll, true, 0, client, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, true, 0, client, new TaskFactory(scheduler));
+            changeTracker.Continuous = true;
 
             changeTracker.Start();
 
             // sleep for a few seconds
-            Sleep(10 * 1000);
+            Sleep(8 * 1000);
 
-            // make sure we got less than 10 requests in those 10 seconds (if it was hammering, we'd get a lot more)
+            // make sure we got less than 10 requests in those 8 seconds (if it was hammering, we'd get a lot more)
             var handler = client.HttpRequestHandler;
-            Assert.IsTrue(handler.CapturedRequests.Count < 25);
-            Assert.IsTrue(changeTracker.backoff.NumAttempts > 0, String.Format("Observed attempts: {0}", changeTracker.backoff.NumAttempts));
+            Assert.Less(handler.CapturedRequests.Count, 10);
+            Assert.Greater(changeTracker.backoff.NumAttempts, 0, String.Format("Observed attempts: {0}", changeTracker.backoff.NumAttempts));
 
             handler.ClearResponders();
             handler.AddResponderReturnEmptyChangesFeed();
 
             // at this point, the change tracker backoff should cause it to sleep for about 3 seconds
             // and so lets wait 3 seconds until it wakes up and starts getting valid responses
-            Sleep(3 * 1000);
+            Sleep(10 * 1000);
 
             // now find the delta in requests received in a 2s period
             int before = handler.CapturedRequests.Count;
@@ -247,7 +255,7 @@ namespace Couchbase.Lite
 
             // assert that the delta is high, because at this point the change tracker should
             // be hammering away
-            Assert.IsTrue((after - before) > 25, "{0} <= 25", (after - before));
+            Assert.Greater((after - before), 25);
 
             // the backoff numAttempts should have been reset to 0
             Assert.IsTrue(changeTracker.backoff.NumAttempts == 0);
@@ -314,12 +322,102 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
         }
 
-        [Test]
-        public void TestWebSocketChangeTracker()
+        private void TestLiveChangeTracker(Func<Uri, IChangeTrackerClient, ChangeTracker> generator, bool continuous)
         {
-            var tracker = new WebSocketChangeTracker(GetReplicationURL(), false, null, new ChangeTrackerTestClient(null, null));
-            tracker.Start();
-            Thread.Sleep(20000);
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled"))) {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            var changedEvent = new CountdownEvent(4);
+            var caughtUpEvent = new AutoResetEvent(false);
+            var stoppedEvent = new CountdownEvent(1);
+            var client = new ChangeTrackerTestClient(stoppedEvent, changedEvent, caughtUpEvent);
+            client.HttpRequestHandler.DefaultFail = false;
+            using (var remoteDb = _sg.CreateDatabase("web_socket_scratch")) {
+                var tracker = generator(remoteDb.RemoteUri, client);
+                tracker.Start();
+                Assert.IsTrue(caughtUpEvent.WaitOne(200000));
+
+                if (continuous) {
+                    remoteDb.AddDocument("newdoc", new Dictionary<string, object> { { "foo", "bar" } });
+                    Assert.IsTrue(changedEvent.Wait(20000));
+
+                    tracker.Stop();
+                    Assert.IsTrue(stoppedEvent.Wait(20000));
+                }
+            }
+        }
+
+        [Test]
+        public void TestWebSocketChangeTrackerFallback()
+        {
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled"))) {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            var signal = new CountdownEvent(1);
+            var client = new ChangeTrackerTestClient(signal, null);
+            using (var remoteDb = _sg.CreateDatabase("web_socket_scratch")) {
+                var tracker = new BadWebSocketChangeTracker(remoteDb.RemoteUri, false, null, client);
+                tracker.Start();
+                Assert.IsTrue(signal.Wait(TimeSpan.FromSeconds(20)));
+                Assert.IsFalse(tracker.CanConnect);
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TestLiveChangeTrackerWebSocket(bool continuous)
+        {
+            TestLiveChangeTracker((uri, client) => 
+            {
+                var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.WebSocket, 
+                    false, null, client);
+                tracker.Continuous = continuous;
+                return tracker;
+            }, true);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TestLiveChangeTrackerContinuous(bool continuous)
+        {
+            TestLiveChangeTracker((uri, client) => 
+            {
+                var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.Continuous, 
+                    false, null, client);
+                tracker.Continuous = continuous;
+                return tracker;
+            }, true);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TestLiveChangeTrackerOneShot(bool continuous)
+        {
+            TestLiveChangeTracker((uri, client) => 
+            {
+                var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.OneShot, 
+                    false, null, client);
+                tracker.Continuous = continuous;
+                tracker.PollInterval = TimeSpan.FromSeconds(5);
+                return tracker;
+            }, continuous);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TestLiveChangeTrackerLongPoll(bool continuous)
+        {
+            TestLiveChangeTracker((uri, client) => 
+            {
+                var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.OneShot, 
+                    false, null, client);
+                tracker.Continuous = continuous;
+                return tracker;
+            }, continuous);
         }
 
         [Test]
@@ -335,21 +433,29 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        public void TestChangeTrackerBackoffExceptions()
+        public void TestChangeTrackerContinuous()
+        {
+            ChangeTrackerTestWithMode(ChangeTrackerMode.Continuous);
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        public void TestChangeTrackerBackoffExceptions(int mode)
         {
             var factory = new MockHttpClientFactory();
             var httpHandler = (MockHttpRequestHandler)factory.HttpHandler;
             httpHandler.AddResponderThrowExceptionAllRequests();
-            TestChangeTrackerBackoff(factory);
+            TestChangeTrackerBackoff(factory, mode);
         }
 
-        [Test]
-        public void TestChangeTrackerBackoffInvalidJson() 
+        [TestCase(0)]
+        [TestCase(1)]
+        public void TestChangeTrackerBackoffInvalidJson(int mode) 
         {
             var factory = new MockHttpClientFactory();
             var httpHandler = (MockHttpRequestHandler)factory.HttpHandler;
             httpHandler.AddResponderReturnInvalidChangesFeedJson();
-            TestChangeTrackerBackoff(factory);
+            TestChangeTrackerBackoff(factory, mode);
         }
 
         [Test]
@@ -395,6 +501,11 @@ namespace Couchbase.Lite
             Assert.AreEqual("_doc_ids", parameters["filter"]);
             AssertEnumerablesAreEqual(docIds, (IEnumerable)parameters["doc_ids"]);
         }
-            
+          
+        protected override void SetUp()
+        {
+            base.SetUp();
+            _sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+        }
     }
 }

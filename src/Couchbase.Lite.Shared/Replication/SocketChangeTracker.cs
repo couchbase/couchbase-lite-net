@@ -66,13 +66,12 @@ namespace Couchbase.Lite.Internal
     {
         private static readonly string Tag = typeof(SocketChangeTracker).Name;
 
-        private DateTime _startTime;
         private readonly object stopMutex = new object();
         private HttpRequestMessage Request;
         private CancellationTokenSource tokenSource;
         CancellationTokenSource changesFeedRequestTokenSource;
         private CouchbaseLiteHttpClient _httpClient;
-
+        private IChangeTrackerResponseLogic _responseLogic;
 
 
         public SocketChangeTracker(Uri databaseURL, ChangeTrackerMode mode, bool includeConflicts, 
@@ -80,6 +79,17 @@ namespace Couchbase.Lite.Internal
             : base(databaseURL, mode, includeConflicts, lastSequenceID, client, workExecutor)
         {
             tokenSource = new CancellationTokenSource();
+            _responseLogic = ChangeTrackerResponseLogicFactory.CreateLogic(this);
+            _responseLogic.Heartbeat = Heartbeat;
+            _responseLogic.OnCaughtUp = () => Misc.IfNotNull(Client, c => c.ChangeTrackerCaughtUp(this));
+            _responseLogic.OnChangeFound = (change) =>
+            {
+                if (!ReceivedChange(change)) {
+                    Log.To.ChangeTracker.W(Tag, "Received unparseable change from server {0}", new LogJsonString(change));
+                }
+            };
+
+            _responseLogic.OnFinished = e => RetryOrStopIfNecessary(e);
         }
 
         public void Run()
@@ -101,7 +111,6 @@ namespace Couchbase.Lite.Internal
                 tokenSource = new CancellationTokenSource();
             }
 
-            _startTime = DateTime.Now;
             if (Request != null)
             {
                 Request.Dispose();
@@ -139,24 +148,129 @@ namespace Couchbase.Lite.Internal
             }
             catch (Exception e)
             {
-                if (Misc.IsTransientNetworkError(e)) {
-                    Log.To.ChangeTracker.I(Tag, "Connection error #{0}, retrying in {1}ms: {2}", backoff.NumAttempts,
-                        backoff.GetSleepTime(), e);
-                    backoff.SleepAppropriateAmountOfTime();
-                    if (IsRunning) {
-                        Run();
-                    }
+                RetryOrStopIfNecessary(e);
+            }
+        }
+
+        private void PerformRetry(bool log)
+        {
+            if(Mode == ChangeTrackerMode.OneShot && PollInterval == TimeSpan.Zero) {
+                Mode = ChangeTrackerMode.LongPoll;
+            }
+
+            if(PollInterval > TimeSpan.Zero) {
+                if (log) {
+                    Log.To.ChangeTracker.I(Tag, "{0} retrying in {1} seconds (PollInterval)...", 
+                        this, PollInterval.TotalSeconds);
+                }
+                Task.Delay(PollInterval).ContinueWith(t1 => Run(), WorkExecutor.Scheduler);
+            } else {
+                if (log) {
+                    Log.To.ChangeTracker.I(Tag, "{0} retrying NOW...", this);
+                }
+                WorkExecutor.StartNew(Run);
+            }
+        }
+
+        private ContinuationAction RetryOrStopIfNecessary(Exception e)
+        {
+            var err = Misc.Flatten(e);
+            if (err == null) {
+                // No error occurred, keep going if continuous
+                if (Continuous) {
+                    PerformRetry(false);
+                    return ContinuationAction.Retry;
                 } else {
-                    Log.To.ChangeTracker.I(Tag, "Can't connect; giving up: {0}", e);
-                    Error = e;
-                    Stop();
+                    WorkExecutor.StartNew(Stop);
+                    return ContinuationAction.Stop;
                 }
             }
+
+            if (!Continuous) {
+                // Error occured in a non-continuous replication -> STOP
+                Log.To.ChangeTracker.I(Tag, String.Format(
+                    "{0} non-continuous and got error, stopping NOW...", this), e);
+                WorkExecutor.StartNew(Stop);
+                Error = e;
+                return ContinuationAction.Stop;
+            }
+
+            string statusCode;
+            if (Misc.IsTransientNetworkError(e, out statusCode)) {
+                // Transient error occurred in a continuous replication -> RETRY
+                Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, sleeping for {2}ms...", this,
+                    statusCode, backoff.GetSleepTime().TotalMilliseconds);
+                
+                backoff.DelayAppropriateAmountOfTime().ContinueWith(t => PerformRetry(true));
+                return ContinuationAction.Retry;
+            } 
+
+            if (String.IsNullOrEmpty(statusCode)) {
+                Log.To.ChangeTracker.I(Tag, String.Format
+                    ("{0} got an exception, stopping NOW...", this), err);
+            } else {
+                
+                Log.To.ChangeTracker.I(Tag, String.Format
+                    ("{0} got a non-transient error ({1}), stopping NOW...", this, statusCode));
+            }
+
+            // Non-transient error occurred in a continuous replication -> STOP
+            WorkExecutor.StartNew(Stop);
+            return ContinuationAction.Stop;
+        }
+
+        private ContinuationAction RetryOrStopIfNecessary(HttpStatusCode statusCode)
+        {
+            if ((int)statusCode >= 200 && (int)statusCode <= 299) {
+                return ContinuationAction.NoAction;
+            }
+
+            if (!Continuous) {
+                WorkExecutor.StartNew(Stop);
+                return ContinuationAction.Stop;
+            }
+
+            if (!Misc.IsTransientError(statusCode)) {
+                //
+                Log.To.ChangeTracker.I(Tag, String.Format
+                    ("{0} got a non-transient error ({1}), stopping NOW...", this, statusCode));
+                WorkExecutor.StartNew(Stop);
+                return ContinuationAction.Stop;
+            }
+
+            Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, sleeping for {2}ms...", this,
+                statusCode, backoff.GetSleepTime().TotalMilliseconds);
+            backoff.DelayAppropriateAmountOfTime().ContinueWith(t => PerformRetry(true));
+
+            return ContinuationAction.Retry;
+        }
+
+        private bool RetryIfFailedPost(Exception e)
+        {
+            if (!_usePost) {
+                return false;
+            }
+
+            var statusCode = Misc.GetStatusCode(e as WebException);
+            return RetryIfFailedPost(statusCode);
+        }
+
+        private bool RetryIfFailedPost(HttpStatusCode? statusCode)
+        {
+            if (!statusCode.HasValue || statusCode.Value != HttpStatusCode.MethodNotAllowed) {
+                return false;
+            }
+
+            _usePost = false;
+            Log.To.ChangeTracker.I(Tag, "Remote server doesn't support POST _changes, " +
+                "retrying as GET");
+            WorkExecutor.StartNew(Run);
+            return true;
         }
 
         private bool ResponseFailed(Task<HttpResponseMessage> responseTask)
         {
-            if (responseTask.IsCompleted) {
+            if (responseTask.Status == TaskStatus.RanToCompletion) {
                 var response = responseTask.Result;
                 if (response == null)
                     return true;
@@ -165,47 +279,32 @@ namespace Couchbase.Lite.Internal
             }
 
             var err = Misc.Flatten(responseTask.Exception);
-            var statusCode = Misc.GetStatusCode(err as WebException);
-            if (_usePost && statusCode.HasValue && statusCode.Value == HttpStatusCode.MethodNotAllowed) {
-                // Remote doesn't allow POST _changes, retry as GET
-                _usePost = false;
-                Log.To.ChangeTracker.I(Tag, "Remote server doesn't support POST _changes, " +
-                    "retrying as GET");
-                WorkExecutor.StartNew(Run);
+            if(RetryIfFailedPost(err)) {
                 return true;
+            } else {
+                RetryOrStopIfNecessary(err);
             }
 
-            return false;
+            return true;
         }
 
         private bool ResponseFailed(HttpResponseMessage response)
         {
             var status = response.StatusCode;
             if ((Int32)status >= 300) {
-                if (_usePost && status == HttpStatusCode.MethodNotAllowed) {
-                    // Remote doesn't allow POST _changes, retry as GET
-                    _usePost = false;
-                    Log.To.ChangeTracker.I(Tag, "Remote server ({0}) doesn't support POST _changes, " +
-                        "retrying as GET", ServerType);
-                    WorkExecutor.StartNew(Run);
+                if (RetryIfFailedPost(status)) {
                     return true;
                 }
-
-                if (Misc.IsTransientError(status) && Continuous) {
-                    Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, sleeping...", this,
-                        status);
-                    backoff.SleepAppropriateAmountOfTime();
-                    Log.To.ChangeTracker.I(Tag, "{0} retrying...", this);
-                    WorkExecutor.StartNew(Run);
-                    return true;
+   
+                if (RetryOrStopIfNecessary(status) == ContinuationAction.NoAction) {
+                    var msg = response.Content != null 
+                        ? String.Format("Change tracker got error with status code: {0}", status)
+                        : String.Format("Change tracker got error with status code: {0} and null response content", status);
+                    Log.To.ChangeTracker.E(Tag, msg);
+                    Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
+                    Stop();
                 }
 
-                var msg = response.Content != null 
-                    ? String.Format("Change tracker got error with status code: {0}", status)
-                    : String.Format("Change tracker got error with status code: {0} and null response content", status);
-                Log.To.ChangeTracker.E(Tag, msg);
-                Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
-                Stop();
                 response.Dispose();
                 return true;
             }
@@ -229,25 +328,17 @@ namespace Couchbase.Lite.Internal
             }
                         
             Log.To.ChangeTracker.D(Tag, "Getting stream from change tracker response");
-            return response.Content.ReadAsStreamAsync().ContinueWith(t =>
+            return response.Content.ReadAsStreamAsync().ContinueWith((Task<Stream> t) =>
             {
                 try {
-                    ProcessResponseStream(t);
+                    var result = _responseLogic.ProcessResponseStream(t.Result);
                     backoff.ResetBackoff();
-                } catch (Exception e) {
-                    if(!Continuous) {
-                        Log.To.ChangeTracker.I(Tag, "Non continuous change tracker caught an exception, " +
-                            "stopping...", e);
-                        Error = e;
-                        WorkExecutor.StartNew(Stop);
-                        return;
+                    if(result == ChangeTrackerResponseCode.ChangeHeartbeat) {
+                        Heartbeat = _responseLogic.Heartbeat;
+                        WorkExecutor.StartNew(Run);
                     }
-
-                    Log.To.ChangeTracker.I(Tag, 
-                        String.Format("{0} exception during changes feed processing, sleeping...", this), e);
-                    backoff.SleepAppropriateAmountOfTime();
-                    Log.To.ChangeTracker.I(Tag, "{0} retrying...", this);
-                    WorkExecutor.StartNew(Run);
+                } catch (Exception e) {
+                    RetryOrStopIfNecessary(e);
                 } finally {
                     response.Dispose();
                 }
@@ -314,73 +405,6 @@ namespace Couchbase.Lite.Internal
             }
 
             Log.To.ChangeTracker.D(Tag, "change tracker client should be null now");
-        }
-
-        private void ProcessResponseStream(Task<Stream> t)
-        {
-            Log.To.ChangeTracker.D(Tag, "Got stream from change tracker response");
-            bool beforeFirstItem = true;
-            bool responseOK = false;
-            using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(t.Result)) {
-                responseOK = ReceivedPollResponse(jsonReader, ref beforeFirstItem);
-            }
-
-            Log.To.ChangeTracker.V(Tag, "{0} Finished reading stream", this);
-
-            if (responseOK) {
-                backoff.ResetBackoff();
-                if (Mode == ChangeTrackerMode.Continuous) {
-                    Stop();
-                } else {
-                    var client = Client;
-                    if (!_caughtUp && client != null) {
-                        client.ChangeTrackerCaughtUp(this);
-                        _caughtUp = true;
-                    }
-
-                    if (Continuous) {
-                        if (PollInterval.TotalMilliseconds > 30) {
-                            Log.To.ChangeTracker.I(Tag, "{0} next poll of _changes feed in {1} sec", this, PollInterval.TotalSeconds);
-                            Task.Delay(PollInterval).ContinueWith(_ => WorkExecutor.StartNew(Run));
-                        } else if (Mode == ChangeTrackerMode.OneShot) {
-                            Mode = ChangeTrackerMode.LongPoll;
-                            WorkExecutor.StartNew(Run);
-                        }
-                    } else {
-                        if (client != null) {
-                            client.ChangeTrackerFinished(this);
-                        }
-
-                        Stopped();
-                    }
-                }
-            } else {
-                backoff.SleepAppropriateAmountOfTime();
-                if (beforeFirstItem) {
-                    var elapsed = DateTime.Now - _startTime;
-                    Log.To.ChangeTracker.W(Tag, "{0} longpoll connection closed (by proxy?) after {0} sec", 
-                        this, elapsed.TotalSeconds);
-
-                    // Looks like the connection got closed by a proxy (like AWS' load balancer) while the
-                    // server was waiting for a change to send, due to lack of activity.
-                    // Lower the heartbeat time to work around this, and reconnect:
-                    long newTicks = (long)(elapsed.Ticks * 0.75);
-                    Heartbeat = new TimeSpan(newTicks);
-                    backoff.ResetBackoff();
-                    WorkExecutor.StartNew(Run);
-                } else {
-                    Log.To.ChangeTracker.W(Tag, "{0} Received improper _changes feed response", this);
-                    if (Continuous) {
-                        Log.To.ChangeTracker.I(Tag, "{0} sleeping...", this);
-                        backoff.SleepAppropriateAmountOfTime();
-                        Log.To.ChangeTracker.I(Tag, "{0} retrying...", this);
-                        WorkExecutor.StartNew(Run);
-                    } else {
-                        Log.To.ChangeTracker.I(Tag, "{0} stopping...", this);
-                        WorkExecutor.StartNew(Stop);
-                    }
-                }
-            }
         }
 
         private void AddRequestHeaders(HttpRequestMessage request)

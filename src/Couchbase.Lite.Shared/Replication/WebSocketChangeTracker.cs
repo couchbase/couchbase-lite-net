@@ -37,7 +37,8 @@ namespace Couchbase.Lite.Internal
         private static readonly string Tag = typeof(WebSocketChangeTracker).Name;
         private WebSocket _client;
         private CancellationTokenSource _cts;
-        private ChunkedGZipChanges _changesProcessor;
+        private ChunkedChanges _changesProcessor;
+        private IChangeTrackerResponseLogic _responseLogic = new WebSocketLogic();
 
         public bool CanConnect { get; set; }
 
@@ -73,11 +74,13 @@ namespace Couchbase.Lite.Internal
                     // This is not a valid web socket connection, need to fall back to regular HTTP
                     CanConnect = false;
                     Stopped();
-                } else {
+                } else if (Continuous) {
                     Log.To.ChangeTracker.I(Tag, "{0} remote {1} closed connection ({2} {3})",
                         this, args.WasClean ? "cleanly" : "forcibly", args.Code, args.Reason);
-                    backoff.SleepAppropriateAmountOfTime();
-                    _client.ConnectAsync();
+                    _responseLogic = new WebSocketLogic();
+                    backoff.DelayAppropriateAmountOfTime().ContinueWith(t => _client.ConnectAsync());
+                } else {
+                    Stopped();
                 }
             } else {
                 Log.To.ChangeTracker.I(Tag, "{0} is closed", this);
@@ -91,6 +94,14 @@ namespace Couchbase.Lite.Internal
                 Log.To.ChangeTracker.I(Tag, "{0} Cancellation requested, aborting in OnConnect", this);
                 return;
             }
+
+            _responseLogic.OnCaughtUp = () => Misc.IfNotNull(Client, c => c.ChangeTrackerCaughtUp(this));
+            _responseLogic.OnChangeFound = (change) =>
+            {
+                if (!ReceivedChange(change)) {
+                    Log.To.ChangeTracker.W(Tag,  String.Format("change is not parseable"));
+                }
+            };
 
             backoff.ResetBackoff();
             Log.To.ChangeTracker.V(Tag, "{0} websocket opened", this);
@@ -114,54 +125,15 @@ namespace Couchbase.Lite.Internal
             }
                 
             try {
-                if(args.IsBinary) {
-                    if(_changesProcessor == null) {
-                        _changesProcessor = new ChunkedGZipChanges(ChunkStyle.ByArray);
-                        _changesProcessor.ChunkFound += (s, change) => 
-                        {
-                            if (!ReceivedChange(change)) {
-                                Log.To.ChangeTracker.W(Tag,  String.Format("{0} is not parseable", GetLogString(args)));
-                            }
-                        };
+                if(args.RawData.Length == 0) {
+                    return;
+                }
 
-                        _changesProcessor.Finished += (s, e) => 
-                        {
-                            if(e != null) {
-                                Log.To.ChangeTracker.I(Tag, "Got exception during feed, retrying again soon...");
-                                if(_client.ReadyState == WebSocketState.Open) {
-                                    _client.Close(CloseStatusCode.UnsupportedData);
-                                }
-                                backoff.SleepAppropriateAmountOfTime();
-                                _client.ConnectAsync();
-                                Log.To.ChangeTracker.I(Tag, "Retrying...");
-                                return;
-                            }
-
-                            if(!_caughtUp) {
-                                _caughtUp = true;
-                                Log.To.ChangeTracker.I(Tag, "{0} caught up to the end of the changes feed", this);
-                                var client = Client;
-                                if(client != null) {
-                                    client.ChangeTrackerCaughtUp(this);
-                                }
-                            }
-
-                            _changesProcessor.Dispose();
-                        };
-                    }
-
-                    _changesProcessor.AddData(args.RawData);
-                } else if(args.IsText) {
-                    if(args.RawData.Length == 2) {
-                        _changesProcessor.Complete();
-                        return;
-                    }
-
-                    var change = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(args.RawData.Skip(1).Take(args.RawData.Length - 2));
-                    if (!ReceivedChange(change)) {
-                        Log.To.ChangeTracker.W(Tag,  String.Format("{0} is not parseable", GetLogString(args)));
-                    }
-                } 
+                var responseStream = new MemoryStream();
+                responseStream.WriteByte(args.IsText ? (byte)1 : (byte)2);
+                responseStream.Write(args.RawData, 0, args.RawData.Length);
+                responseStream.Seek(0, SeekOrigin.Begin);
+                _responseLogic.ProcessResponseStream(responseStream);
             } catch(Exception e) {
                 Log.To.ChangeTracker.E(Tag, String.Format("{0} is not parseable", GetLogString(args)), e);
             }
@@ -193,6 +165,7 @@ namespace Couchbase.Lite.Internal
             _usePost = false;
             _caughtUp = false;
             _client = new WebSocket(ChangesFeedUrl.AbsoluteUri);
+            _client.WaitTime = TimeSpan.FromSeconds(2);
             _client.OnOpen += OnConnect;
             _client.OnMessage += OnReceive;
             _client.OnError += OnError;
@@ -204,20 +177,17 @@ namespace Couchbase.Lite.Internal
 
         public override void Stop()
         {
-            var client = _client;
-            _client = null;
-            if (client != null) {
+            Misc.SafeNull(ref _client, c =>
+            {
                 Log.To.ChangeTracker.I(Tag, "{0} requested to stop", this);
-                client.CloseAsync(CloseStatusCode.Normal);
-            }
+                c.CloseAsync(CloseStatusCode.Normal);
+            });
         }
 
         protected override void Stopped()
         {
-            var client = Client;
-            if (client != null) {
-                client.ChangeTrackerStopped(this);
-            }
+            Misc.IfNotNull(Client, c => c.ChangeTrackerStopped(this));
+            Misc.SafeDispose(ref _changesProcessor);
         }
     }
 }

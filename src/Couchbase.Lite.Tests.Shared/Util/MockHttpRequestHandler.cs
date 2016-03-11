@@ -61,6 +61,12 @@ namespace Couchbase.Lite.Tests
 
         #endregion
 
+        #region Properties
+
+        public bool DefaultFail { get; set; }
+
+        #endregion
+
         #region Constructors
 
         public MockHttpRequestHandler(bool defaultFail = true)
@@ -70,14 +76,12 @@ namespace Couchbase.Lite.Tests
             if(defaultFail)
                 AddDefaultResponders();
 
-            _defaultFail = defaultFail;
+            DefaultFail = defaultFail;
         }
 
         #endregion
 
         #region Instance Members
-
-        private bool _defaultFail;
 
         public Int32 ResponseDelayMilliseconds { get; set; }
 
@@ -113,7 +117,7 @@ namespace Couchbase.Lite.Tests
                     return base.SendAsync(request, cancellationToken);
                 
                 return retVal;
-            } else if(_defaultFail) {
+            } else if(DefaultFail) {
                 throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
             }
 

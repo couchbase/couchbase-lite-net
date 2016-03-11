@@ -51,12 +51,13 @@ namespace Couchbase.Lite.Util
 
             var error = Misc.Flatten(request.Exception);
 
-            if (!Misc.IsTransientNetworkError(error) || strategy.RetriesRemaining == 0)
+            string statusCode;
+            if (!Misc.IsTransientNetworkError(error, out statusCode) || strategy.RetriesRemaining == 0)
             {
                 if (strategy.RetriesRemaining == 0) {
                     Log.To.Sync.V(Tag, "Out of retries for error, throwing", error);
                 } else {
-                    Log.To.Sync.V(Tag, "Non transient error received, throwing", error);
+                    Log.To.Sync.V(Tag, "Non transient error received (status), throwing", error);
                 }
 
                 // If it's not transient, pass the exception along

@@ -22,12 +22,15 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Threading;
+using System.Linq;
 
 namespace Couchbase.Lite.Internal
 {
     internal sealed class ChunkStream : Stream
     {
-        private BlockingCollection<byte> _chunkQueue = new BlockingCollection<byte>();
+        private BlockingCollection<Queue<byte>> _chunkQueue = new BlockingCollection<Queue<byte>>();
+        private Queue<byte> _current;
 
         #region Overrides
 
@@ -50,12 +53,14 @@ namespace Couchbase.Lite.Internal
         {
             var readCount = 0;
             for (int i = 0; i < count; i++) {
-                byte next;
-                if(!_chunkQueue.TryTake(out next, -1)) {
-                    break;
+                if (_current == null || _current.Count == 0) {
+                    var success = i == 0 ? _chunkQueue.TryTake(out _current, -1) : _chunkQueue.TryTake(out _current);
+                    if (!success) {
+                        break;
+                    }
                 }
 
-                buffer[offset + i] = next;
+                buffer[offset + i] = _current.Dequeue();
                 readCount++;
             }
 
@@ -68,9 +73,7 @@ namespace Couchbase.Lite.Internal
                 throw new ObjectDisposedException("ChunkStream");
             }
 
-            for (int i = 0; i < count; i++) {
-                _chunkQueue.Add(buffer[i + offset]);
-            }
+            _chunkQueue.Add(new Queue<byte>(buffer.Skip(offset).Take(count)));
         }
 
         public override bool CanRead

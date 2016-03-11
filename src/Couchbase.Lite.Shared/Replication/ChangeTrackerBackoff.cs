@@ -42,6 +42,7 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Internal
 {
@@ -63,13 +64,9 @@ namespace Couchbase.Lite.Internal
             return GetSleepTime(false);
         }
 
-        public void SleepAppropriateAmountOfTime()
+        public Task DelayAppropriateAmountOfTime()
         {
-            try
-            {
-                Thread.Sleep(GetSleepTime(true));
-            }
-            catch (Exception) { }
+            return Task.Delay(GetSleepTime(true));
         }
 
         private TimeSpan GetSleepTime(bool increment)
