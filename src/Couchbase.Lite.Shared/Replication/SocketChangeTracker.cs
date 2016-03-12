@@ -78,6 +78,10 @@ namespace Couchbase.Lite.Internal
             object lastSequenceID, IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
             : base(databaseURL, mode, includeConflicts, lastSequenceID, client, retryCount, workExecutor)
         {
+            if (mode == ChangeTrackerMode.LongPoll) {
+                Continuous = true;
+            }
+
             tokenSource = new CancellationTokenSource();
             _responseLogic = ChangeTrackerResponseLogicFactory.CreateLogic(this);
             _responseLogic.Heartbeat = Heartbeat;
@@ -152,20 +156,18 @@ namespace Couchbase.Lite.Internal
             }
         }
 
-        private void PerformRetry(bool log)
+        private void PerformRetry(bool isError)
         {
             if(Mode == ChangeTrackerMode.OneShot && PollInterval == TimeSpan.Zero) {
                 Mode = ChangeTrackerMode.LongPoll;
             }
 
-            if(PollInterval > TimeSpan.Zero) {
-                if (log) {
-                    Log.To.ChangeTracker.I(Tag, "{0} retrying in {1} seconds (PollInterval)...", 
-                        this, PollInterval.TotalSeconds);
-                }
+            if(isError && PollInterval > TimeSpan.Zero) {
+                Log.To.ChangeTracker.I(Tag, "{0} retrying in {1} seconds (PollInterval)...", 
+                    this, PollInterval.TotalSeconds);
                 Task.Delay(PollInterval).ContinueWith(t1 => Run(), WorkExecutor.Scheduler);
             } else {
-                if (log) {
+                if (isError) {
                     Log.To.ChangeTracker.I(Tag, "{0} retrying NOW...", this);
                 }
                 WorkExecutor.StartNew(Run);
@@ -193,6 +195,7 @@ namespace Couchbase.Lite.Internal
                     // Give up for non-continuous
                     Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, giving up NOW...", this,
                         statusCode);
+                    WorkExecutor.StartNew(Stop);
                     return ContinuationAction.Stop;
                 } 
 
@@ -335,6 +338,16 @@ namespace Couchbase.Lite.Internal
                     if(result == ChangeTrackerResponseCode.ChangeHeartbeat) {
                         Heartbeat = _responseLogic.Heartbeat;
                         WorkExecutor.StartNew(Run);
+                    }
+                } catch(CouchbaseLiteException e) {
+                    if(e.Code == StatusCode.BadJson) {
+                        Log.To.ChangeTracker.W(Tag, "{0} Couldn't parse JSON from remote, " +
+                            "retrying in {1}ms", this, backoff.GetSleepTime().TotalMilliseconds);
+                        backoff.DelayAppropriateAmountOfTime().ContinueWith(t1 =>
+                        {
+                            Log.To.ChangeTracker.I(Tag, "{0} retrying NOW...", this);
+                            WorkExecutor.StartNew(Run);
+                        });
                     }
                 } catch (Exception e) {
                     RetryOrStopIfNecessary(e);

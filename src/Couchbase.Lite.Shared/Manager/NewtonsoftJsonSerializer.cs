@@ -137,6 +137,11 @@ namespace Couchbase.Lite
             try {
                 return _textReader != null && _textReader.Read();
             } catch (Exception e) {
+                if (e is JsonReaderException) {
+                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, StatusCode.BadJson, TAG, 
+                        "Error reading from streaming parser");
+                }
+
                 throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error reading from streaming parser");
             }
         }

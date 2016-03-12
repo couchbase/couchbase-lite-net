@@ -251,7 +251,7 @@ namespace Couchbase.Lite.Internal
             var filterName = FilterName;
             var filterParameters = FilterParameters;
             if (DocIDs != null) {
-                filterName = "doc_ids";
+                filterName = "_doc_ids";
                 filterParameters = new Dictionary<string, object> {
                     { "doc_ids", DocIDs }
                 };
@@ -294,7 +294,7 @@ namespace Couchbase.Lite.Internal
             var filterName = FilterName;
             var filterParams = FilterParameters;
             if (DocIDs != null) {
-                filterName = "doc_ids";
+                filterName = "_doc_ids";
                 filterParams = new Dictionary<string, object> {
                     { "doc_ids", DocIDs }
                 };

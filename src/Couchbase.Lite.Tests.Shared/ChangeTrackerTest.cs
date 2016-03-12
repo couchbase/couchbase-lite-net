@@ -219,16 +219,15 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
         }
 
-        private void TestChangeTrackerBackoff(MockHttpClientFactory httpClientFactory, int rawMode)
+        private void TestChangeTrackerBackoff(MockHttpClientFactory httpClientFactory)
         {
-            var mode = (ChangeTrackerMode)rawMode;
             var changeTrackerFinishedSignal = new CountdownEvent(1);
             var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, null);
             client.HttpClientFactory = httpClientFactory;
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, true, 0, client, 2, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(testUrl, ChangeTrackerMode.LongPoll, true, 0, client, 2, new TaskFactory(scheduler));
             changeTracker.Continuous = true;
 
             changeTracker.Start();
@@ -393,7 +392,7 @@ namespace Couchbase.Lite
             }, continuous);
         }
             
-        [TestCase(true)]
+        [Test]
         public void TestLiveChangeTrackerLongPoll()
         {
             TestLiveChangeTracker((uri, client) => 
@@ -403,6 +402,27 @@ namespace Couchbase.Lite
                 tracker.Continuous = true;
                 return tracker;
             }, true);
+        }
+
+        [Test]
+        public void TestChangeTrackerGiveUp()
+        {
+            var factory = new MockHttpClientFactory();
+            var httpHandler = (MockHttpRequestHandler)factory.HttpHandler;
+            httpHandler.AddResponderThrowExceptionAllRequests();
+            var changeTrackerFinishedSignal = new CountdownEvent(1);
+            var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, null);
+            client.HttpClientFactory = factory;
+
+            var testUrl = GetReplicationURL();
+            var scheduler = new SingleTaskThreadpoolScheduler();
+            var changeTracker = ChangeTrackerFactory.Create(testUrl, ChangeTrackerMode.OneShot, true, 0, client, 
+                2, new TaskFactory(scheduler));
+
+
+            changeTracker.Start();
+            Assert.IsTrue(changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(20)));
+            Assert.IsNull(changeTracker.Error);
         }
 
         [Test]
@@ -417,24 +437,22 @@ namespace Couchbase.Lite
             ChangeTrackerTestWithMode(ChangeTrackerMode.LongPoll);
         }
 
-        [TestCase(0)]
-        [TestCase(1)]
-        public void TestChangeTrackerBackoffExceptions(int mode)
+        [Test]
+        public void TestChangeTrackerBackoffExceptions()
         {
             var factory = new MockHttpClientFactory();
             var httpHandler = (MockHttpRequestHandler)factory.HttpHandler;
             httpHandler.AddResponderThrowExceptionAllRequests();
-            TestChangeTrackerBackoff(factory, mode);
+            TestChangeTrackerBackoff(factory);
         }
 
-        [TestCase(0)]
-        [TestCase(1)]
-        public void TestChangeTrackerBackoffInvalidJson(int mode) 
+        [Test]
+        public void TestChangeTrackerBackoffInvalidJson() 
         {
             var factory = new MockHttpClientFactory();
             var httpHandler = (MockHttpRequestHandler)factory.HttpHandler;
             httpHandler.AddResponderReturnInvalidChangesFeedJson();
-            TestChangeTrackerBackoff(factory, mode);
+            TestChangeTrackerBackoff(factory);
         }
 
         [Test]
@@ -469,7 +487,7 @@ namespace Couchbase.Lite
         {
             var testURL = GetReplicationURL();
             var changeTracker = ChangeTrackerFactory.Create(testURL, ChangeTrackerMode
-                .LongPoll, false, 0, null, 2);
+                .LongPoll, false, 0, new ChangeTrackerTestClient(null, null), 2);
 
             var docIds = new List<string>();
             docIds.Add("doc1");

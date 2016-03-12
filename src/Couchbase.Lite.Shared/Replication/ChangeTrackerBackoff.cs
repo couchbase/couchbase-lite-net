@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Internal
 
         public bool ReachedLimit
         {
-            get { return NumAttempts > RetryLimit; }
+            get { return NumAttempts >= RetryLimit; }
         }
 
         public ChangeTrackerBackoff(int retryLimit)

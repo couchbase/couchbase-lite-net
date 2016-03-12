@@ -96,7 +96,7 @@ namespace Couchbase.Lite
         public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, 
             StatusCode code, string tag, string message)
         {
-            domain.E(tag, String.Format("{0}, throwing CouchbaseLiteException)", 
+            domain.E(tag, String.Format("{0}, throwing CouchbaseLiteException", 
                 message), inner);
             return new CouchbaseLiteException(message, inner) { Code = code };
         }
