@@ -238,7 +238,7 @@ namespace Couchbase.Lite
             // make sure we got less than 10 requests in those 8 seconds (if it was hammering, we'd get a lot more)
             var handler = client.HttpRequestHandler;
             Assert.Less(handler.CapturedRequests.Count, 10);
-            Assert.Greater(changeTracker.backoff.NumAttempts, 0, String.Format("Observed attempts: {0}", changeTracker.backoff.NumAttempts));
+            Assert.Greater(changeTracker.Backoff.NumAttempts, 0, String.Format("Observed attempts: {0}", changeTracker.Backoff.NumAttempts));
 
             handler.ClearResponders();
             handler.AddResponderReturnEmptyChangesFeed();
@@ -257,7 +257,7 @@ namespace Couchbase.Lite
             Assert.Greater((after - before), 25);
 
             // the backoff numAttempts should have been reset to 0
-            Assert.IsTrue(changeTracker.backoff.NumAttempts == 0);
+            Assert.IsTrue(changeTracker.Backoff.NumAttempts == 0);
 
             changeTracker.Stop();
 

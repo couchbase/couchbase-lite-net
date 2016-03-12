@@ -41,30 +41,30 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Auth;
-using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal
 {
-    /// <summary>
-    /// Reads the continuous-mode _changes feed of a database, and sends the
-    /// individual change entries to its client's changeTrackerReceivedChange()
-    /// </summary>
+    // Concrete class for receiving changes over raw TCP sockets (via HTTP)
     internal class SocketChangeTracker : ChangeTracker
     {
+
+        #region Constants
+
         private static readonly string Tag = typeof(SocketChangeTracker).Name;
+
+        #endregion
+
+        #region Variables
 
         private readonly object stopMutex = new object();
         private HttpRequestMessage Request;
@@ -73,6 +73,9 @@ namespace Couchbase.Lite.Internal
         private CouchbaseLiteHttpClient _httpClient;
         private IChangeTrackerResponseLogic _responseLogic;
 
+        #endregion
+
+        #region Constructors
 
         public SocketChangeTracker(Uri databaseURL, ChangeTrackerMode mode, bool includeConflicts, 
             object lastSequenceID, IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
@@ -96,7 +99,11 @@ namespace Couchbase.Lite.Internal
             _responseLogic.OnFinished = e => RetryOrStopIfNecessary(e);
         }
 
-        public void Run()
+        #endregion
+
+        #region Private Methods
+
+        private void Run()
         {
             IsRunning = true;
 
@@ -165,46 +172,50 @@ namespace Couchbase.Lite.Internal
             if(isError && PollInterval > TimeSpan.Zero) {
                 Log.To.ChangeTracker.I(Tag, "{0} retrying in {1} seconds (PollInterval)...", 
                     this, PollInterval.TotalSeconds);
-                Task.Delay(PollInterval).ContinueWith(t1 => Run(), WorkExecutor.Scheduler);
+                Task.Delay(PollInterval).ContinueWith(t1 => Run(), _workExecutor.Scheduler);
             } else {
                 if (isError) {
                     Log.To.ChangeTracker.I(Tag, "{0} retrying NOW...", this);
                 }
-                WorkExecutor.StartNew(Run);
+                _workExecutor.StartNew(Run);
             }
         }
 
-        private ContinuationAction RetryOrStopIfNecessary(Exception e)
+        private void RetryOrStopIfNecessary(Exception e)
         {
+            if (!IsRunning) {
+                return;
+            }
+
             var err = Misc.Flatten(e);
             if (err == null) {
                 // No error occurred, keep going if continuous
                 if (Continuous) {
                     PerformRetry(false);
-                    return ContinuationAction.Retry;
                 } else {
-                    WorkExecutor.StartNew(Stop);
-                    return ContinuationAction.Stop;
+                    _workExecutor.StartNew(Stop);
                 }
+
+                return;
             }
 
             string statusCode;
             if (Misc.IsTransientNetworkError(e, out statusCode)) {
                 // Transient error occurred in a replication -> RETRY or STOP
-                if (!Continuous && backoff.ReachedLimit) {
+                if (!Continuous && Backoff.ReachedLimit) {
                     // Give up for non-continuous
                     Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, giving up NOW...", this,
                         statusCode);
-                    WorkExecutor.StartNew(Stop);
-                    return ContinuationAction.Stop;
+                    _workExecutor.StartNew(Stop);
+                    return;
                 } 
 
                 // Keep retrying for continuous
                 Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, sleeping for {2}ms...", this,
-                    statusCode, backoff.GetSleepTime().TotalMilliseconds);
+                    statusCode, Backoff.GetSleepTime().TotalMilliseconds);
 
-                backoff.DelayAppropriateAmountOfTime().ContinueWith(t => PerformRetry(true));
-                return ContinuationAction.Retry;
+                Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => PerformRetry(true));
+                return;
             } 
 
             if (String.IsNullOrEmpty(statusCode)) {
@@ -217,34 +228,31 @@ namespace Couchbase.Lite.Internal
             }
 
             // Non-transient error occurred in a continuous replication -> STOP
-            WorkExecutor.StartNew(Stop);
-            return ContinuationAction.Stop;
+            _workExecutor.StartNew(Stop);
         }
 
-        private ContinuationAction RetryOrStopIfNecessary(HttpStatusCode statusCode)
+        private void RetryOrStopIfNecessary(HttpStatusCode statusCode)
         {
-            if ((int)statusCode >= 200 && (int)statusCode <= 299) {
-                return ContinuationAction.NoAction;
+            if (!IsRunning || ((int)statusCode >= 200 && (int)statusCode <= 299)) {
+                return;
             }
 
             if (!Continuous) {
-                WorkExecutor.StartNew(Stop);
-                return ContinuationAction.Stop;
+                _workExecutor.StartNew(Stop);
+                return;
             }
 
             if (!Misc.IsTransientError(statusCode)) {
                 //
                 Log.To.ChangeTracker.I(Tag, String.Format
                     ("{0} got a non-transient error ({1}), stopping NOW...", this, statusCode));
-                WorkExecutor.StartNew(Stop);
-                return ContinuationAction.Stop;
+                _workExecutor.StartNew(Stop);
+                return;
             }
 
             Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, sleeping for {2}ms...", this,
-                statusCode, backoff.GetSleepTime().TotalMilliseconds);
-            backoff.DelayAppropriateAmountOfTime().ContinueWith(t => PerformRetry(true));
-
-            return ContinuationAction.Retry;
+                statusCode, Backoff.GetSleepTime().TotalMilliseconds);
+            Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => PerformRetry(true));
         }
 
         private bool RetryIfFailedPost(Exception e)
@@ -266,7 +274,7 @@ namespace Couchbase.Lite.Internal
             _usePost = false;
             Log.To.ChangeTracker.I(Tag, "Remote server doesn't support POST _changes, " +
                 "retrying as GET");
-            WorkExecutor.StartNew(Run);
+            _workExecutor.StartNew(Run);
             return true;
         }
 
@@ -298,15 +306,7 @@ namespace Couchbase.Lite.Internal
                     return true;
                 }
    
-                if (RetryOrStopIfNecessary(status) == ContinuationAction.NoAction) {
-                    var msg = response.Content != null 
-                        ? String.Format("Change tracker got error with status code: {0}", status)
-                        : String.Format("Change tracker got error with status code: {0} and null response content", status);
-                    Log.To.ChangeTracker.E(Tag, msg);
-                    Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
-                    Stop();
-                }
-
+                RetryOrStopIfNecessary(status);
                 response.Dispose();
                 return true;
             }
@@ -334,19 +334,19 @@ namespace Couchbase.Lite.Internal
             {
                 try {
                     var result = _responseLogic.ProcessResponseStream(t.Result);
-                    backoff.ResetBackoff();
+                    Backoff.ResetBackoff();
                     if(result == ChangeTrackerResponseCode.ChangeHeartbeat) {
                         Heartbeat = _responseLogic.Heartbeat;
-                        WorkExecutor.StartNew(Run);
+                        _workExecutor.StartNew(Run);
                     }
                 } catch(CouchbaseLiteException e) {
                     if(e.Code == StatusCode.BadJson) {
                         Log.To.ChangeTracker.W(Tag, "{0} Couldn't parse JSON from remote, " +
-                            "retrying in {1}ms", this, backoff.GetSleepTime().TotalMilliseconds);
-                        backoff.DelayAppropriateAmountOfTime().ContinueWith(t1 =>
+                            "retrying in {1}ms", this, Backoff.GetSleepTime().TotalMilliseconds);
+                        Backoff.DelayAppropriateAmountOfTime().ContinueWith(t1 =>
                         {
                             Log.To.ChangeTracker.I(Tag, "{0} retrying NOW...", this);
-                            WorkExecutor.StartNew(Run);
+                            _workExecutor.StartNew(Run);
                         });
                     }
                 } catch (Exception e) {
@@ -357,6 +357,17 @@ namespace Couchbase.Lite.Internal
             });
         }
 
+        private void AddRequestHeaders(HttpRequestMessage request)
+        {
+            foreach (string requestHeaderKey in RequestHeaders.Keys)  {
+                request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey));
+            }
+        }
+
+        #endregion
+
+        #region Overrides
+
         public override bool Start()
         {
             if (IsRunning) {
@@ -366,7 +377,7 @@ namespace Couchbase.Lite.Internal
             Log.To.ChangeTracker.I(Tag, "Starting {0}...", this);
             _httpClient = Client.GetHttpClient();
             Error = null;
-            WorkExecutor.StartNew(Run);
+            _workExecutor.StartNew(Run);
             Log.To.ChangeTracker.I(Tag, "Started {0}", this);
 
             return true;
@@ -419,11 +430,7 @@ namespace Couchbase.Lite.Internal
             Log.To.ChangeTracker.D(Tag, "change tracker client should be null now");
         }
 
-        private void AddRequestHeaders(HttpRequestMessage request)
-        {
-            foreach (string requestHeaderKey in RequestHeaders.Keys)  {
-                request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey));
-            }
-        }
+        #endregion
+
     }
 }

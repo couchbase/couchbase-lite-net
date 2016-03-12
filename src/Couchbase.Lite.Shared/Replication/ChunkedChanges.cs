@@ -19,31 +19,44 @@
 // limitations under the License.
 //
 using System;
-using ICSharpCode.SharpZipLib.GZip;
-using System.Threading.Tasks;
 using System.Collections.Generic;
-using System.Linq;
-using Couchbase.Lite.Util;
-using ICSharpCode.SharpZipLib.Zip.Compression;
-using ICSharpCode.SharpZipLib.Checksums;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Util;
+using ICSharpCode.SharpZipLib.Checksums;
+using ICSharpCode.SharpZipLib.GZip;
+using ICSharpCode.SharpZipLib.Zip.Compression;
 
 namespace Couchbase.Lite.Internal
 {
-    internal enum ChunkStyle
-    {
-        ByArray,
-        ByObject
-    }
 
+    // A class for parsing the changes received from the web socket changes
+    // feed.  The changes are received in bursts one after another and are 
+    // possibly compressed which makes for an interesting challenge.  The
+    // client needs to continuously decompress different streams while treating
+    // them as one big stream.  That is what this class and the ChunkStream
+    // class exist for
     internal sealed class ChunkedChanges : IDisposable
     {
+
+        #region Constants
+
         private static readonly string Tag = typeof(ChunkedChanges).Name;
-        private const int BufferSize = 64;
+
+        // This buffer size is fairly arbitrary because we can't wait for a buffer to be
+        // filled since we need to be informed of the newest data immediately and we don't
+        // know when the next piece is going to come.  However, I don't want to read byte
+        // after byte one at a time because it feels wrong.  
+        private const int BufferSize = 64; 
+
+        #endregion
+
+        #region Variables
 
         private readonly ChunkStream _innerStream;
-        private readonly Inflater _inflater;
-        private readonly ChunkStyle _style;
+        private readonly Inflater _inflater; // Due to internal buffering, GZipStream cannot be used
         private bool _disposed;
         private bool _readHeader;
 
@@ -51,15 +64,23 @@ namespace Couchbase.Lite.Internal
 
         public event TypedEventHandler<ChunkedChanges, Exception> Finished;
 
-        public ChunkedChanges(ChunkStyle style, bool compressed)
+        #endregion
+
+        #region Constructors
+
+        public ChunkedChanges(bool compressed)
         {
             _innerStream = new ChunkStream();
             if (compressed) {
                 _inflater = new Inflater(true);
             }
-            _style = style;
-            Task.Factory.StartNew(Process);
+
+            Task.Factory.StartNew(Process, TaskCreationOptions.LongRunning);
         }
+
+        #endregion
+
+        #region Public Methods
 
         public void AddData(IEnumerable<byte> data)
         {
@@ -75,21 +96,28 @@ namespace Couchbase.Lite.Internal
             }
         }
 
+        #endregion
+
+        #region Private methods
+
         private void Process()
         {
             List<byte> parseBuffer = new List<byte>();
             var nestedCount = 0;
             var exception = default(Exception);
-            var unzipBuffer = new byte[BufferSize * 3];
+            var unzipBuffer = new byte[BufferSize * 3]; 
             var zipBuffer = new byte[BufferSize];
             var readBytes = _innerStream.Read(zipBuffer, 0, zipBuffer.Length);
             while (readBytes > 0) {
+                // We got some more bytes from the stream!
                 var decodedBytes = Decode(zipBuffer, readBytes, unzipBuffer, out exception);
                 while (decodedBytes > 0) {
+                    // We decoded some more bytes from the stream!
                     for (int i = 0; i < decodedBytes; i++) {
                         parseBuffer.Add(unzipBuffer[i]);
                         if (IsEnd(parseBuffer.Last())) {
                             if (--nestedCount == 0 && parseBuffer.Count > 0) {
+                                // We have a complete JSON object or array ready for processing
                                 var changes = Manager.GetObjectMapper().ReadValue<IList<object>>(parseBuffer);
                                 foreach (var change in changes) {
                                     if (ChunkFound != null) {
@@ -100,6 +128,7 @@ namespace Couchbase.Lite.Internal
                                 parseBuffer.Clear();
                             }
                         } else if (IsStart(parseBuffer.Last())) {
+                            // Begin an embedded array
                             nestedCount++;
                         }
                     }
@@ -108,6 +137,7 @@ namespace Couchbase.Lite.Internal
                 } 
 
                 if (decodedBytes == -1) {
+                    // The decode process failed, unable to continue
                     break;
                 }
 
@@ -123,11 +153,15 @@ namespace Couchbase.Lite.Internal
         {
             exception = null;
             if (_inflater == null) {
+                // This is a non compressed stream, so simply copy over the bytes to the output
                 Array.Copy(input, output, input.Length);
                 return input.Length;
             }
 
             try {
+                // If the input is null, it means keep processing the current input
+                // (it could have filled the last output and still not be done)
+                // Otherwise, set the new input
                 if(input != null) {
                     _inflater.SetInput(input, 0, inputLength);
                 }
@@ -140,16 +174,13 @@ namespace Couchbase.Lite.Internal
             }
         }
 
-        private bool IsEnd(byte nextChar) {
-            return (_style == ChunkStyle.ByArray && nextChar == ']') ||
-            (_style == ChunkStyle.ByObject && nextChar == '}');
+        private static bool IsEnd(byte nextChar) {
+            return nextChar == ']';
         }
 
-        private bool IsStart(byte nextChar) {
-            return (_style == ChunkStyle.ByArray && nextChar == '[') ||
-                (_style == ChunkStyle.ByObject && nextChar == '{');
+        private static bool IsStart(byte nextChar) {
+            return nextChar == '[';
         }
-
 
         // From SharpZipLib GZipInputStream, slightly modified
         private void ReadHeader(MemoryStream stream) 
@@ -297,6 +328,10 @@ namespace Couchbase.Lite.Internal
             _readHeader = true;
         }
 
+        #endregion
+
+        #region IDisposable
+
         public void Dispose()
         {
             if (!_disposed) {
@@ -305,6 +340,8 @@ namespace Couchbase.Lite.Internal
                 _innerStream.Dispose();
             }
         }
+
+        #endregion
     }
 }
 

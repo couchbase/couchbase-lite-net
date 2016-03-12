@@ -19,26 +19,37 @@
 // limitations under the License.
 //
 using System;
-using System.Threading.Tasks;
-using Couchbase.Lite.Util;
-using System.Text;
-using System.Threading;
-using System.Collections.Generic;
-using System.Linq;
-using WebSocketSharp;
 using System.IO;
-using ICSharpCode.SharpZipLib;
-using ICSharpCode.SharpZipLib.GZip;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Util;
+using WebSocketSharp;
 
 namespace Couchbase.Lite.Internal
 {
+
+    // Concrete class for receiving changes over web sockets
     internal class WebSocketChangeTracker : ChangeTracker
     {
+
+        #region Constants
+
         private static readonly string Tag = typeof(WebSocketChangeTracker).Name;
+
+        #endregion
+
+        #region Variables
+
         private WebSocket _client;
         private CancellationTokenSource _cts;
         private ChunkedChanges _changesProcessor;
         private IChangeTrackerResponseLogic _responseLogic = new WebSocketLogic();
+
+        #endregion
+
+        #region Properties
 
         public bool CanConnect { get; set; }
 
@@ -55,6 +66,10 @@ namespace Couchbase.Lite.Internal
             }
         }
 
+        #endregion
+
+        #region Constructors
+
         public WebSocketChangeTracker(Uri databaseURL, bool includeConflicts, object lastSequenceID, 
            IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
             : base(databaseURL, ChangeTrackerMode.WebSocket, includeConflicts, lastSequenceID, client, retryCount, workExecutor)
@@ -62,11 +77,17 @@ namespace Couchbase.Lite.Internal
             CanConnect = true;
         }
 
+        #endregion
+
+        #region Private Methods
+
+        // Possibly unused, never seen it called
         private void OnError(object sender, WebSocketSharp.ErrorEventArgs args)
         {
             Log.To.ChangeTracker.I(Tag, String.Format("{0} remote error {1}", this, args.Message), args.Exception);
         }
 
+        // Called when the web socket connection is closed
         private void OnClose(object sender, CloseEventArgs args)
         {
             if (_client != null) {
@@ -74,13 +95,11 @@ namespace Couchbase.Lite.Internal
                     // This is not a valid web socket connection, need to fall back to regular HTTP
                     CanConnect = false;
                     Stopped();
-                } else if (Continuous) {
+                } else {
                     Log.To.ChangeTracker.I(Tag, "{0} remote {1} closed connection ({2} {3})",
                         this, args.WasClean ? "cleanly" : "forcibly", args.Code, args.Reason);
                     _responseLogic = new WebSocketLogic();
-                    backoff.DelayAppropriateAmountOfTime().ContinueWith(t => _client.ConnectAsync());
-                } else {
-                    Stopped();
+                    Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => _client.ConnectAsync());
                 }
             } else {
                 Log.To.ChangeTracker.I(Tag, "{0} is closed", this);
@@ -88,6 +107,7 @@ namespace Couchbase.Lite.Internal
             }
         }
 
+        // Called when the web socket establishes a connection
         private void OnConnect(object sender, EventArgs args)
         {
             if (_cts.IsCancellationRequested) {
@@ -103,7 +123,7 @@ namespace Couchbase.Lite.Internal
                 }
             };
 
-            backoff.ResetBackoff();
+            Backoff.ResetBackoff();
             Log.To.ChangeTracker.V(Tag, "{0} websocket opened", this);
 
             // Now that the WebSocket is open, send the changes-feed options (the ones that would have
@@ -112,6 +132,7 @@ namespace Couchbase.Lite.Internal
             _client.SendAsync(bytes, null);
         }
 
+        // Called when a message is received
         private void OnReceive(object sender, MessageEventArgs args)
         {
             if (_cts.IsCancellationRequested) {
@@ -149,10 +170,14 @@ namespace Couchbase.Lite.Internal
 
             return null;
         }
+
+        #endregion
+
+        #region Overrides
             
         public override bool Start()
         {
-            if (_client != null) {
+            if (IsRunning) {
                 return false;
             }
 
@@ -177,6 +202,11 @@ namespace Couchbase.Lite.Internal
 
         public override void Stop()
         {
+            if (!IsRunning) {
+                return;
+            }
+
+            IsRunning = false;
             Misc.SafeNull(ref _client, c =>
             {
                 Log.To.ChangeTracker.I(Tag, "{0} requested to stop", this);
@@ -189,6 +219,8 @@ namespace Couchbase.Lite.Internal
             Misc.IfNotNull(Client, c => c.ChangeTrackerStopped(this));
             Misc.SafeDispose(ref _changesProcessor);
         }
+
+        #endregion
     }
 }
 

@@ -22,15 +22,66 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Threading;
 using System.Linq;
 
 namespace Couchbase.Lite.Internal
 {
+
+    // This is a utility class that facilitates the parsing of continuous 
+    // changes received over a web socket.  The change is broken up into
+    // pieces but is actually one long message, so this stream will act as
+    // one stream while accepting message inputs
     internal sealed class ChunkStream : Stream
     {
+
+        #region Variables
+
         private BlockingCollection<Queue<byte>> _chunkQueue = new BlockingCollection<Queue<byte>>();
         private Queue<byte> _current;
+
+        #endregion
+
+        #region Properties
+
+        public override bool CanRead
+        {
+            get {
+                return true;
+            }
+        }
+
+        public override bool CanSeek
+        {
+            get {
+                return false;
+            }
+        }
+
+        public override bool CanWrite
+        {
+            get {
+                return true;
+            }
+        }
+
+        public override long Length
+        {
+            get {
+                throw new NotSupportedException();
+            }
+        }
+
+        public override long Position
+        {
+            get {
+                throw new NotSupportedException();
+            }
+            set {
+                throw new NotSupportedException();
+            }
+        }
+
+        #endregion
 
         #region Overrides
 
@@ -54,12 +105,15 @@ namespace Couchbase.Lite.Internal
             var readCount = 0;
             for (int i = 0; i < count; i++) {
                 if (_current == null || _current.Count == 0) {
+                    // We only want to block if we have no data available, otherwise we might wait
+                    // too long before allowing another change to be processed
                     var success = i == 0 ? _chunkQueue.TryTake(out _current, -1) : _chunkQueue.TryTake(out _current);
                     if (!success) {
                         break;
                     }
                 }
 
+                // We have a new batch of data, so continue to copy it into the buffer
                 buffer[offset + i] = _current.Dequeue();
                 readCount++;
             }
@@ -76,45 +130,6 @@ namespace Couchbase.Lite.Internal
             _chunkQueue.Add(new Queue<byte>(buffer.Skip(offset).Take(count)));
         }
 
-        public override bool CanRead
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool CanSeek
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool CanWrite
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override long Length
-        {
-            get
-            {
-                throw new NotSupportedException();
-            }
-        }
-        public override long Position
-        {
-            get
-            {
-                throw new NotSupportedException();
-            }
-            set
-            {
-                throw new NotSupportedException();
-            }
-        }
         #endregion
     }
 }

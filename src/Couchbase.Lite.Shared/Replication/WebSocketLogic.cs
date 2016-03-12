@@ -39,7 +39,7 @@ namespace Couchbase.Lite.Internal
         private ChangeTrackerResponseCode ProcessGzippedStream(Stream stream)
         {
             if (_changeProcessor == null) {
-                _changeProcessor = new ChunkedChanges(ChunkStyle.ByArray, true);
+                _changeProcessor = new ChunkedChanges(true);
                 SetupChangeProcessorCallback();
             }
 
@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Internal
         private ChangeTrackerResponseCode ProcessRegularStream(Stream stream)
         {
             if (_changeProcessor == null) {
-                _changeProcessor = new ChunkedChanges(ChunkStyle.ByArray, false);
+                _changeProcessor = new ChunkedChanges(false);
                 SetupChangeProcessorCallback();
             }
 

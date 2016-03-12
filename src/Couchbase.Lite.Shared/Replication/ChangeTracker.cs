@@ -19,33 +19,36 @@
 // limitations under the License.
 //
 using System;
-using Couchbase.Lite.Util;
-using System.Collections.Generic;
-using System.Text;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
-using Couchbase.Lite.Auth;
-using System.Threading.Tasks;
-using System.Threading;
 using System.Net.Http;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Auth;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal
 {
     internal enum ChangeTrackerMode
     {
+        // Sends a request to the server, and immediately gets back a response
+        // containing all the changes from the requested starting point, if any
         OneShot,
+
+        // Sends a request to the server, which will remain open until there is
+        // at least one change since the requested starting point
         LongPoll,
         Continuous, /* not used, here for reference */
+
+        // Uses web socket messages to continuously deliver changes over one
+        // long-lived stream
         WebSocket
     }
 
-    internal enum ContinuationAction
-    {
-        NoAction,
-        Retry,
-        Stop
-    }
-
+    // Create change trackers based on mode
     internal static class ChangeTrackerFactory
     {
         public static ChangeTracker Create(Uri databaseUri, ChangeTrackerMode mode, bool includeConflicts,
@@ -61,21 +64,34 @@ namespace Couchbase.Lite.Internal
         }
     }
 
+    // The base class for change tracker logic
     internal abstract class ChangeTracker
     {
+
+        #region Constants
+
         private static readonly string Tag = typeof(ChangeTracker).Name;
         internal static readonly TimeSpan DefaultHeartbeat = TimeSpan.FromMinutes(5);
         private static readonly List<string> ChangeFeedModes = new List<string> {
             "normal", "longpoll", "continuous", "websocket"
         };
 
-        internal readonly Uri DatabaseUrl;
+        #endregion
+
+        #region Variables
+
         protected readonly bool _includeConflicts;
         protected readonly ManualResetEventSlim _pauseWait = new ManualResetEventSlim(true);
         protected bool _usePost;
         protected bool _caughtUp;
-        internal readonly ChangeTrackerBackoff backoff;
-        protected TaskFactory WorkExecutor;
+        protected TaskFactory _workExecutor;
+
+        internal readonly Uri DatabaseUrl;
+        internal readonly ChangeTrackerBackoff Backoff;
+
+        #endregion
+
+        #region Properties
 
         public string Feed
         {
@@ -156,6 +172,10 @@ namespace Couchbase.Lite.Internal
 
         public bool IsRunning { get; protected set; }
 
+        #endregion
+
+        #region Constructors
+
         protected ChangeTracker(Uri databaseUri, ChangeTrackerMode mode, bool includeConflicts,
             object lastSequenceId, IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
         {
@@ -169,17 +189,31 @@ namespace Couchbase.Lite.Internal
                 throw new ArgumentNullException("client");
             }
 
-            backoff = new ChangeTrackerBackoff(retryCount);
+            Backoff = new ChangeTrackerBackoff(retryCount);
             DatabaseUrl = databaseUri;
             Client = client;
             Mode = mode;
             Heartbeat = DefaultHeartbeat;
             _includeConflicts = includeConflicts;
             LastSequenceId = lastSequenceId;
-            WorkExecutor = workExecutor ?? new TaskFactory(new SingleTaskThreadpoolScheduler());
+            _workExecutor = workExecutor ?? new TaskFactory(new SingleTaskThreadpoolScheduler());
             _usePost = true;
             RequestHeaders = new Dictionary<string, string>();
         }
+
+        #endregion
+
+        #region Public Methods
+
+        public abstract bool Start();
+
+        public abstract void Stop();
+
+        #endregion
+
+        #region Protected Methods
+
+        protected abstract void Stopped();
 
  		protected void UpdateServerType(HttpResponseMessage response)
         {
@@ -196,7 +230,7 @@ namespace Couchbase.Lite.Internal
             Log.To.ChangeTracker.I(Tag, "{0} Server Version: {1}", this, ServerType);
         }
 
-        protected internal bool ReceivedChange(IDictionary<string, object> change)
+        protected bool ReceivedChange(IDictionary<string, object> change)
         {
             if (change == null) {
                 return false;
@@ -216,6 +250,10 @@ namespace Couchbase.Lite.Internal
             LastSequenceId = seq;
             return true;
         }
+
+        #endregion
+
+        #region Internal Methods
 
         internal string GetChangesFeedPath()
         {
@@ -326,16 +364,16 @@ namespace Couchbase.Lite.Internal
             return Manager.GetObjectMapper().WriteValueAsBytes(post);
         }
 
-        public abstract bool Start();
+        #endregion
 
-        public abstract void Stop();
-
-        protected abstract void Stopped();
+        #region Overrides
 
         public override string ToString()
         {
             return string.Format("{0}[{1}]", GetType().Name, DatabaseUrl.Segments.Last());
         }
+
+        #endregion
     }
 }
 
