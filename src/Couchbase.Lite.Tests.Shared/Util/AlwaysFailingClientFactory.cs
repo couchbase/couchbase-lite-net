@@ -68,6 +68,8 @@ namespace Couchbase.Lite.Tests
             }
         }
 
+        public TimeSpan SocketTimeout { get; set; }
+
         public AlwaysFailingClientFactory()
         {
             Headers = new Dictionary<string,string>();

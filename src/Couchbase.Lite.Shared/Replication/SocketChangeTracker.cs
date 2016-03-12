@@ -75,8 +75,8 @@ namespace Couchbase.Lite.Internal
 
 
         public SocketChangeTracker(Uri databaseURL, ChangeTrackerMode mode, bool includeConflicts, 
-            object lastSequenceID, IChangeTrackerClient client, TaskFactory workExecutor = null)
-            : base(databaseURL, mode, includeConflicts, lastSequenceID, client, workExecutor)
+            object lastSequenceID, IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
+            : base(databaseURL, mode, includeConflicts, lastSequenceID, client, retryCount, workExecutor)
         {
             tokenSource = new CancellationTokenSource();
             _responseLogic = ChangeTrackerResponseLogicFactory.CreateLogic(this);
@@ -186,21 +186,20 @@ namespace Couchbase.Lite.Internal
                 }
             }
 
-            if (!Continuous) {
-                // Error occured in a non-continuous replication -> STOP
-                Log.To.ChangeTracker.I(Tag, String.Format(
-                    "{0} non-continuous and got error, stopping NOW...", this), e);
-                WorkExecutor.StartNew(Stop);
-                Error = e;
-                return ContinuationAction.Stop;
-            }
-
             string statusCode;
             if (Misc.IsTransientNetworkError(e, out statusCode)) {
-                // Transient error occurred in a continuous replication -> RETRY
+                // Transient error occurred in a replication -> RETRY or STOP
+                if (!Continuous && backoff.ReachedLimit) {
+                    // Give up for non-continuous
+                    Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, giving up NOW...", this,
+                        statusCode);
+                    return ContinuationAction.Stop;
+                } 
+
+                // Keep retrying for continuous
                 Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, sleeping for {2}ms...", this,
                     statusCode, backoff.GetSleepTime().TotalMilliseconds);
-                
+
                 backoff.DelayAppropriateAmountOfTime().ContinueWith(t => PerformRetry(true));
                 return ContinuationAction.Retry;
             } 

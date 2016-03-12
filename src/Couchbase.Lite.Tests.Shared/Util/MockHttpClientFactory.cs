@@ -70,6 +70,8 @@ namespace Couchbase.Lite.Tests
             }
         }
 
+        public TimeSpan SocketTimeout { get; set; }
+
         public IDictionary<string, string> Headers { get; set; }
 
         public MockHttpClientFactory(bool defaultFail = true) : this(null, defaultFail){}
@@ -86,7 +88,7 @@ namespace Couchbase.Lite.Tests
 
         public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
         {
-            var handler = useRetryHandler ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler) : (HttpMessageHandler)HttpHandler;
+            var handler = useRetryHandler ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler, 2) : (HttpMessageHandler)HttpHandler;
             var client = new HttpClient(handler, false);
             foreach (var header in Headers) {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);

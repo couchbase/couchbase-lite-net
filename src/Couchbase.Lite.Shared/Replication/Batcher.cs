@@ -69,8 +69,8 @@ namespace Couchbase.Lite.Support
         private readonly TaskFactory _workExecutor;
         private Task _flushFuture;
         private readonly int _capacity;
-        private readonly int _delay;
-        private int _scheduledDelay;
+        private readonly TimeSpan _delay;
+        private TimeSpan _scheduledDelay;
         private readonly Action<IList<T>> _processor;
         private bool _scheduled;
         private DateTime _lastProcessedTime;
@@ -92,7 +92,7 @@ namespace Couchbase.Lite.Support
         /// <param name="processor">The callback/block that will be called to process the objects.
         ///     </param>
         /// <param name="tokenSource">The token source to use to create the token to cancel this Batcher object</param>
-        public Batcher(TaskFactory workExecutor, int capacity, int delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
+        public Batcher(TaskFactory workExecutor, int capacity, TimeSpan delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
         {
             _workExecutor = workExecutor;
             _cancellationSource = tokenSource;
@@ -197,15 +197,15 @@ namespace Couchbase.Lite.Support
         /// by processing too many batches concurrently.
         /// </remarks>
         /// <returns>The delay o use.</returns>
-        internal int DelayToUse()
+        internal TimeSpan DelayToUse()
         {
             if(_inbox.Count > _capacity) {
-                return 0;
+                return TimeSpan.Zero;
             }
 
-            var delta = (int)(DateTime.UtcNow - _lastProcessedTime).TotalMilliseconds;
+            var delta = (DateTime.UtcNow - _lastProcessedTime);
             var delayToUse = delta >= _delay
-                ? 0
+                ? TimeSpan.Zero
                 : _delay;
 
             Log.To.NoDomain.D(TAG, "DelayToUse() delta: {0}, delayToUse: {1}, delay: {2} [last: {3}]", delta, delayToUse, _delay, _lastProcessedTime.ToString());
@@ -217,7 +217,7 @@ namespace Couchbase.Lite.Support
 
         #region Private Methods
 
-        private void ScheduleWithDelay(int suggestedDelay)
+        private void ScheduleWithDelay(TimeSpan suggestedDelay)
         {
             lock(_scheduleLocker) {
                 if (_scheduled) {

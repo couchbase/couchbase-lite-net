@@ -567,7 +567,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            if(_requests.Count > ManagerOptions.Default.MaxOpenHttpConnections) {
+            if(_requests.Count > ReplicationOptions.MaxOpenHttpConnections) {
                 Task.Delay(1000).ContinueWith(t => ProcessInbox(inbox), CancellationToken.None, TaskContinuationOptions.None, WorkExecutor.Scheduler);
                 return;
             }

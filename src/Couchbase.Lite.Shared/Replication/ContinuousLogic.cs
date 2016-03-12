@@ -18,6 +18,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
+#if false
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -91,4 +93,4 @@ namespace Couchbase.Lite.Internal
         }
     }
 }
-
+#endif

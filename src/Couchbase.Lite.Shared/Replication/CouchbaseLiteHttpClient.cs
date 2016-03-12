@@ -35,6 +35,12 @@ namespace Couchbase.Lite
 
         public IAuthenticator Authenticator { get; set; }
 
+        public TimeSpan Timeout
+        {
+            get { return _httpClient.Timeout; }
+            set { _httpClient.Timeout = value; }
+        }
+
         public CouchbaseLiteHttpClient(HttpClient client, DefaultAuthHandler authHandler)
         {
             _httpClient = client;

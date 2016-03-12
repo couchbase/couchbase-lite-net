@@ -52,6 +52,19 @@ namespace Couchbase.Lite.Internal
         private const int INITIAL_DELAY = 2;
         private const string Tag = "ChangeTrackerBackoff";
 
+        public int RetryLimit { get; set; }
+
+        public bool ReachedLimit
+        {
+            get { return NumAttempts > RetryLimit; }
+        }
+
+        public ChangeTrackerBackoff(int retryLimit)
+        {
+            // For non-continuous replication only
+            RetryLimit = retryLimit;
+        }
+
         public int NumAttempts { get; private set; }
 
         public void ResetBackoff()

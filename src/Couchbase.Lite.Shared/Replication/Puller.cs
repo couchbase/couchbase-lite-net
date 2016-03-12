@@ -108,9 +108,10 @@ namespace Couchbase.Lite.Replicator
                 if (!_canUseWebSockets.HasValue) {
                     var scratch = false;
                     if (Options.TryGetValue<bool>(ReplicationOptionsDictionaryKeys.UseWebSocket, out scratch)) {
+                        Log.To.Sync.W(TAG, "ReplicationOptionsDictionary support is deprecated, use ReplicationOptions");
                         _canUseWebSockets = scratch;
                     } else {
-                        _canUseWebSockets = true;
+                        _canUseWebSockets = ReplicationOptions.UseWebSocket;
                     } 
                 }
 
@@ -157,20 +158,25 @@ namespace Couchbase.Lite.Replicator
             var mode = ChangeTrackerMode.OneShot;
             var pollInterval = 0.0;
             if (!Options.TryGetValue<double>(ReplicationOptionsDictionaryKeys.PollInterval, out pollInterval)) {
+                Log.To.Sync.W(TAG, "ReplicationOptionsDictionary support is deprecated, use ReplicationOptions");
                 pollInterval = 0.0;
+            } else {
+                pollInterval = ReplicationOptions.PollInterval.TotalSeconds;
             }
 
             if (Continuous && pollInterval.CompareTo(0.0) == 0 && CanUseWebSockets) {
                 mode = ChangeTrackerMode.WebSocket;
             }
 
-            Log.To.Sync.V(TAG, "{0} starting ChangeTracker: since={1}", this, LastSequence);
+            Log.To.Sync.V(TAG, "{0} starting ChangeTracker: mode={0} since={1}", this, mode, LastSequence);
             var initialSync = LocalDatabase.IsOpen && LocalDatabase.GetDocumentCount() == 0;
-            _changeTracker = ChangeTrackerFactory.Create(RemoteUrl, mode, true, LastSequence, this, WorkExecutor);
+            _changeTracker = ChangeTrackerFactory.Create(RemoteUrl, mode, true, LastSequence, this,
+                ReplicationOptions.MaxRetries, WorkExecutor);
             _changeTracker.ActiveOnly = initialSync;
             _changeTracker.Authenticator = Authenticator;
             _changeTracker.Continuous = Continuous;
             _changeTracker.PollInterval = TimeSpan.FromSeconds(pollInterval);
+            _changeTracker.Heartbeat = ReplicationOptions.Heartbeat;
             if(DocIds != null) {
                 if(ServerType != null && ServerType.Name == "CouchDB") {
                     _changeTracker.DocIDs = DocIds.ToList();
@@ -200,43 +206,16 @@ namespace Couchbase.Lite.Replicator
             if (webSocketTracker != null && !webSocketTracker.CanConnect) {
                 _canUseWebSockets = false;
                 StartChangeTracker();
+                return;
             }
 
             Log.To.Sync.I(TAG, "Change tracker for {0} stopped; error={1}", ReplicatorID, tracker.Error);
-            if (Continuous) {
-                if (_stateMachine.State == ReplicationState.Offline) {
-                    // in this case, we don't want to do anything here, since
-                    // we told the change tracker to go offline ..
-                    Log.To.Sync.V(TAG, "Change tracker stopped because we are going offline");
-                } else if (_stateMachine.State == ReplicationState.Stopping || _stateMachine.State == ReplicationState.Stopped) {
-                    Log.To.Sync.V(TAG, "Change tracker stopped because replicator is stopping or stopped.");
-                } else {
-                    // otherwise, try to restart the change tracker, since it should
-                    // always be running in continuous replications
-                    const string msg = "Change tracker stopped during continuous replication";
-                    LastError = new Exception(msg);
-                    FireTrigger(ReplicationTrigger.WaitingForChanges);
-                    Log.To.Sync.I(TAG, "Scheduling change tracker restart in {1} ms", ReplicatorID,
-                        CHANGE_TRACKER_RESTART_DELAY_MS);
-                    Task.Delay(CHANGE_TRACKER_RESTART_DELAY_MS).ContinueWith(t =>
-                    {
-                        // the replication may have been stopped by the time this scheduled fires
-                        // so we need to check the state here.
-                        if(_stateMachine.IsInState(ReplicationState.Running)) {
-                            Log.To.Sync.I(TAG, "{0} is still running, restarting change tracker", ReplicatorID);
-                            StartChangeTracker();
-                        } else {
-                            Log.To.Sync.I(TAG, "{0} is no longer running, not restarting change tracker", ReplicatorID);
-                        }
-                    });
-                }
-            } else {
-                if (LastError == null && tracker.Error != null) {
-                    LastError = tracker.Error;
-                }
-
-                FireTrigger(ReplicationTrigger.StopGraceful);
+            if (LastError == null && tracker.Error != null) {
+                LastError = tracker.Error;
             }
+
+            Batcher.FlushAll();
+            FireTrigger(ReplicationTrigger.StopGraceful);
         }
 
         private void FinishStopping()
@@ -312,11 +291,11 @@ namespace Couchbase.Lite.Replicator
             var bulkWorkToStartNow = new List<RevisionInternal>();
             lock (_locker)
             {
-                while (LocalDatabase.IsOpen && _httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections)
+                while (LocalDatabase.IsOpen && _httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ReplicationOptions.MaxOpenHttpConnections)
                 {
                     int nBulk = 0;
                     if (_bulkRevsToPull != null) {
-                        nBulk = Math.Min(_bulkRevsToPull.Count, ManagerOptions.Default.MaxRevsToGetInBulk);
+                        nBulk = Math.Min(_bulkRevsToPull.Count, ReplicationOptions.MaxRevsToGetInBulk);
                     }
 
                     if (nBulk == 1) {
@@ -530,7 +509,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             var retryCount = (long)localDoc["retryCount"];
-            if (retryCount >= ManagerOptions.Default.MaxRetries)
+            if (retryCount >= ReplicationOptions.MaxRetries)
             {
                 PruneFailedDownload(docId);
                 return false;
@@ -899,13 +878,13 @@ namespace Couchbase.Lite.Replicator
         internal override void BeginReplicating()
         {
             Log.To.Sync.I(TAG, "{2} will use MaxOpenHttpConnections({0}), MaxRevsToGetInBulk({1})", 
-                LocalDatabase.Manager._options.MaxOpenHttpConnections, 
-                LocalDatabase.Manager._options.MaxRevsToGetInBulk,
+                ReplicationOptions.MaxOpenHttpConnections, 
+                ReplicationOptions.MaxRevsToGetInBulk,
                 this);
 
             if (_downloadsToInsert == null) {
                 const int capacity = INBOX_CAPACITY * 2;
-                const int delay = 1000;
+                TimeSpan delay = TimeSpan.FromSeconds(1);
                 _downloadsToInsert = new Batcher<RevisionInternal>(WorkExecutor, capacity, delay, InsertDownloads);
             }
 

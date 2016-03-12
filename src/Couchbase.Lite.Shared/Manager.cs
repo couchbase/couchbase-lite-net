@@ -39,8 +39,6 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-#define CONTRACTS_FULL
-
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -230,7 +228,7 @@ namespace Couchbase.Lite
             }
 
             this.directoryFile = directoryFile;
-            _options = options ?? DefaultOptions;
+            Options = options ?? DefaultOptions;
             this.databases = new Dictionary<string, Database>();
             this.replications = new List<Replication>();
             Shared = new SharedState();
@@ -592,7 +590,7 @@ namespace Couchbase.Lite
         }
 
         // Instance Fields
-        internal readonly ManagerOptions _options;
+        internal readonly ManagerOptions Options;
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;
         private readonly List<Replication> replications;
@@ -615,12 +613,12 @@ namespace Couchbase.Lite
                     throw new ArgumentException("Invalid name", "name");
                 }
 
-                if (_options.ReadOnly) {
+                if (Options.ReadOnly) {
                     mustExist = true;
                 }
 
                 var path = PathForName(name);
-                db = new Database(path, name, this, _options.ReadOnly);
+                db = new Database(path, name, this, Options.ReadOnly);
                 if (mustExist && !db.Exists()) {
                     Log.To.Database.I(TAG, "{0} does not exist, returning null", name);
                     return null;
@@ -986,7 +984,7 @@ namespace Couchbase.Lite
 
         public override string ToString()
         {
-            return String.Format("Manager[Dir={0} Options={1}]", Directory, _options);
+            return String.Format("Manager[Dir={0} Options={1}]", Directory, Options);
         }
 
         #pragma warning restore 1591

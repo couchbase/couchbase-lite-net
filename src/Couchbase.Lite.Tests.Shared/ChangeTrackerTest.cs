@@ -206,7 +206,7 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, false, 0, client, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, false, 0, client, 2, new TaskFactory(scheduler));
             changeTracker.ActiveOnly = true;
             changeTracker.Start();
 
@@ -228,7 +228,7 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, true, 0, client, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, true, 0, client, 2, new TaskFactory(scheduler));
             changeTracker.Continuous = true;
 
             changeTracker.Start();
@@ -309,7 +309,7 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, false, 0, client, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, false, 0, client, 2, new TaskFactory(scheduler));
 
             changeTracker.Start();
 
@@ -367,28 +367,14 @@ namespace Couchbase.Lite
             }
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public void TestLiveChangeTrackerWebSocket(bool continuous)
+        [Test]
+        public void TestLiveChangeTrackerWebSocket()
         {
             TestLiveChangeTracker((uri, client) => 
             {
                 var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.WebSocket, 
-                    false, null, client);
-                tracker.Continuous = continuous;
-                return tracker;
-            }, true);
-        }
-
-        [TestCase(false)]
-        [TestCase(true)]
-        public void TestLiveChangeTrackerContinuous(bool continuous)
-        {
-            TestLiveChangeTracker((uri, client) => 
-            {
-                var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.Continuous, 
-                    false, null, client);
-                tracker.Continuous = continuous;
+                    false, null, client, 2);
+                tracker.Continuous = true;
                 return tracker;
             }, true);
         }
@@ -400,24 +386,23 @@ namespace Couchbase.Lite
             TestLiveChangeTracker((uri, client) => 
             {
                 var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.OneShot, 
-                    false, null, client);
+                    false, null, client, 2);
                 tracker.Continuous = continuous;
                 tracker.PollInterval = TimeSpan.FromSeconds(5);
                 return tracker;
             }, continuous);
         }
-
-        [TestCase(false)]
+            
         [TestCase(true)]
-        public void TestLiveChangeTrackerLongPoll(bool continuous)
+        public void TestLiveChangeTrackerLongPoll()
         {
             TestLiveChangeTracker((uri, client) => 
             {
                 var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.OneShot, 
-                    false, null, client);
-                tracker.Continuous = continuous;
+                    false, null, client, 2);
+                tracker.Continuous = true;
                 return tracker;
-            }, continuous);
+            }, true);
         }
 
         [Test]
@@ -430,12 +415,6 @@ namespace Couchbase.Lite
         public void TestChangeTrackerLongPoll() 
         {
             ChangeTrackerTestWithMode(ChangeTrackerMode.LongPoll);
-        }
-
-        [Test]
-        public void TestChangeTrackerContinuous()
-        {
-            ChangeTrackerTestWithMode(ChangeTrackerMode.Continuous);
         }
 
         [TestCase(0)]
@@ -490,7 +469,7 @@ namespace Couchbase.Lite
         {
             var testURL = GetReplicationURL();
             var changeTracker = ChangeTrackerFactory.Create(testURL, ChangeTrackerMode
-                .LongPoll, false, 0, null);
+                .LongPoll, false, 0, null, 2);
 
             var docIds = new List<string>();
             docIds.Add("doc1");

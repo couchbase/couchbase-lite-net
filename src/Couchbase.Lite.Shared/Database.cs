@@ -726,7 +726,13 @@ namespace Couchbase.Lite
             }
 
             var scheduler = new SingleTaskThreadpoolScheduler();
-            return new Pusher(this, url, false, new TaskFactory(scheduler));
+            var replicationOptions = Manager.Options.DefaultReplicationOptions ?? new ReplicationOptions {
+                MaxRetries = Manager.Options.MaxRetries,
+                MaxOpenHttpConnections = Manager.Options.MaxOpenHttpConnections,
+                MaxRevsToGetInBulk = Manager.Options.MaxRevsToGetInBulk,
+                RequestTimeout = Manager.Options.RequestTimeout
+            };
+            return new Pusher(this, url, false, new TaskFactory(scheduler)) { ReplicationOptions = replicationOptions };
         }
 
         /// <summary>
@@ -741,8 +747,14 @@ namespace Couchbase.Lite
                 return null;
             }
 
+            var replicationOptions = Manager.Options.DefaultReplicationOptions ?? new ReplicationOptions {
+                MaxRetries = Manager.Options.MaxRetries,
+                MaxOpenHttpConnections = Manager.Options.MaxOpenHttpConnections,
+                MaxRevsToGetInBulk = Manager.Options.MaxRevsToGetInBulk,
+                RequestTimeout = Manager.Options.RequestTimeout
+            };
             var scheduler = new SingleTaskThreadpoolScheduler();
-            return new Puller(this, url, false, new TaskFactory(scheduler));
+            return new Puller(this, url, false, new TaskFactory(scheduler)) { ReplicationOptions = replicationOptions };
         }
 
         /// <summary>

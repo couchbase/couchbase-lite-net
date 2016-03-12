@@ -108,7 +108,8 @@ namespace Couchbase.Lite
 
         public T Deserialize<T>(Stream json) 
         {
-            using (var jsonReader = new JsonTextReader(new StreamReader(json))) 
+            using (var sr = new StreamReader(json))
+            using (var jsonReader = new JsonTextReader(sr)) 
             {
                 var serializer = JsonSerializer.Create(settings);
                 T item;

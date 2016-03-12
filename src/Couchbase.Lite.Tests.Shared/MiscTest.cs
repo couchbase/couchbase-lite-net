@@ -176,7 +176,7 @@ namespace Couchbase.Lite
             Assert.Inconclusive("Need to implement a scriptable http service, like Square's MockWebServer.");
 
             // Arrange
-            var handler = new TransientErrorRetryHandler(new HttpClientHandler());
+            var handler = new TransientErrorRetryHandler(new HttpClientHandler(), 2);
             var client = new HttpClient(handler);
             var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost/foo");
 

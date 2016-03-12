@@ -8,15 +8,17 @@ namespace Couchbase.Lite.Util
     internal sealed class TransientErrorRetryHandler : DelegatingHandler
     {
         private static readonly string Tag = typeof(TransientErrorRetryHandler).Name;
+        private readonly int _maxRetries;
 
-        public TransientErrorRetryHandler(HttpMessageHandler handler) : base(handler) 
+        public TransientErrorRetryHandler(HttpMessageHandler handler, int maxRetries) : base(handler) 
         { 
             InnerHandler = handler;
+            _maxRetries = maxRetries;
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var strategy = new ExponentialBackoffStrategy(request, ManagerOptions.Default.MaxRetries, cancellationToken);
+            var strategy = new ExponentialBackoffStrategy(request, _maxRetries, cancellationToken);
             strategy.Send = ResendHandler;
             return ResendHandler(request, strategy);
         }

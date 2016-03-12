@@ -56,8 +56,8 @@ namespace Couchbase.Lite.Internal
         }
 
         public WebSocketChangeTracker(Uri databaseURL, bool includeConflicts, object lastSequenceID, 
-           IChangeTrackerClient client, TaskFactory workExecutor = null)
-            : base(databaseURL, ChangeTrackerMode.WebSocket, includeConflicts, lastSequenceID, client, workExecutor)
+           IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
+            : base(databaseURL, ChangeTrackerMode.WebSocket, includeConflicts, lastSequenceID, client, retryCount, workExecutor)
         {
             CanConnect = true;
         }

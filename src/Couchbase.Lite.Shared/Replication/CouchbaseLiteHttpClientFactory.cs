@@ -66,8 +66,14 @@ namespace Couchbase.Lite.Support
     {
         const string Tag = "CouchbaseLiteHttpClientFactory";
 
+        public TimeSpan SocketTimeout { get; set; }
+
+        public int MaxRetries { get; set; }
+
         public CouchbaseLiteHttpClientFactory()
         {
+            SocketTimeout = ReplicationOptions.DefaultSocketTimeout;
+            MaxRetries = ReplicationOptions.DefaultMaxRetries;
             Headers = new ConcurrentDictionary<string, string>();
 
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
@@ -131,9 +137,10 @@ namespace Couchbase.Lite.Support
         /// </summary>
         internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, bool useRetryHandler)
         {
-            var handler = new HttpClientHandler {
+            var handler = new WebRequestHandler {
                 CookieContainer = store,
-                UseCookies = true
+                UseCookies = true,
+                ReadWriteTimeout = (int)SocketTimeout.TotalMilliseconds
             };
 
             // For now, we are not using the client cert for identity verification, just to
@@ -144,12 +151,12 @@ namespace Couchbase.Lite.Support
                 handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
             }
 
-            var authHandler = new DefaultAuthHandler (handler, store);
+            var authHandler = new DefaultAuthHandler (handler, store, SocketTimeout);
             if (!useRetryHandler) {
                 return authHandler;
             }
 
-            var retryHandler = new TransientErrorRetryHandler(authHandler);
+            var retryHandler = new TransientErrorRetryHandler(authHandler, MaxRetries);
             return retryHandler;
         }
 
@@ -162,7 +169,7 @@ namespace Couchbase.Lite.Support
             // and disposes of the managed resources.
             var client =  new HttpClient(authHandler, true) 
             {
-                Timeout = ManagerOptions.Default.RequestTimeout
+                Timeout = ReplicationOptions.DefaultRequestTimeout
             };
 
             client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SyncProtocolVersion, Manager.VersionString));

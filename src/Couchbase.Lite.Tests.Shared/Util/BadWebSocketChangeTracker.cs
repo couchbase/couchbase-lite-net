@@ -42,7 +42,7 @@ namespace Couchbase.Lite.Tests
 
         public BadWebSocketChangeTracker(Uri databaseURL, bool includeConflicts, object lastSequenceID, 
             IChangeTrackerClient client, TaskFactory workExecutor = null)
-            : base(databaseURL, includeConflicts, lastSequenceID, client, workExecutor)
+            : base(databaseURL, includeConflicts, lastSequenceID, client, 2, workExecutor)
         {
 
         }

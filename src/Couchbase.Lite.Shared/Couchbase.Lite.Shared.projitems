@@ -147,6 +147,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ContinuousLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\WebSocketLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChunkedChanges.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ReplicationOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

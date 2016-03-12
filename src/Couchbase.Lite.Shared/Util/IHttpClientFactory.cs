@@ -68,6 +68,8 @@ namespace Couchbase.Lite.Support
         /// </summary>
         /// <value>The headers.</value>
         IDictionary<string,string> Headers { get; set; }
+
+        TimeSpan SocketTimeout { get; set; }
     }
 }
 

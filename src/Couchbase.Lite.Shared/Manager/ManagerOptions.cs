@@ -56,12 +56,22 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class ManagerOptions
     {
+
+        /// <summary>
+        /// Sets the default replication options that are set on replications
+        /// created from databases owned by this manager.  If not set, a new
+        /// object will be created with default values (For the 1.x lifecycle
+        /// this includes the relevant settings on ManagerOptions)
+        /// </summary>
+        /// <value>The default replication options.</value>
+        public ReplicationOptions DefaultReplicationOptions { get; set; }
+
         /// <summary>
         /// The maximum number of times to retry
         /// network requests that failed due to
         /// transient network errors.
         /// </summary>
-        /// <value>The max retries.</value>
+        [Obsolete("Moving to the ReplicationOptions class")]
         public int MaxRetries { get; set; }
 
         /// <summary>
@@ -110,13 +120,15 @@ namespace Couchbase.Lite
 
         internal void RestoreDefaults()
         {
+            DefaultReplicationOptions = null; // To maintain backwards compatibility until 2.0
+
             MaxRetries = 2;
 
             MaxOpenHttpConnections = 8;
 
             MaxRevsToGetInBulk = 50;
 
-            RequestTimeout = TimeSpan.FromSeconds(90);
+            RequestTimeout = TimeSpan.FromSeconds(60);
 
             #if __UNITY__
             CallbackScheduler = Couchbase.Lite.Unity.UnityMainThreadScheduler.TaskScheduler;
@@ -132,7 +144,7 @@ namespace Couchbase.Lite
             }
             #endif
 
-            ServicePointManager.DefaultConnectionLimit = MaxOpenHttpConnections * 3;
+            ServicePointManager.DefaultConnectionLimit = Environment.ProcessorCount * 12;
         }
             
         /// <summary>Gets or sets, whether changes to databases are disallowed by default.</summary>
@@ -147,24 +159,26 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the default network request timeout.
         /// </summary>
-        /// <value>The request timeout. Defaults to 30 seconds.</value>
+        [Obsolete("Moving to the ReplicationOptions class")]
         public TimeSpan RequestTimeout { get; set; }
 
         /// <summary>
         /// Gets or sets max number of open Http Connections
         /// </summary>
         /// <value>Max number of connections</value>
+        [Obsolete("Moving to the ReplicationOptions class")]
         public int MaxOpenHttpConnections { get; set; }
 
         /// <summary>
         /// Get or sets the max revs to get in a bulk download
         /// </summary>
         /// <value>Max revs to get in bulk download</value>
+        [Obsolete("Moving to the ReplicationOptions class")]
         public int MaxRevsToGetInBulk { get; set; }
 
         public override string ToString()
         {
-            return String.Format("ManagerOptions[MaxRetries={0}, ReadOnly={1}, CallbackScheduler={2}, RequestTimeout={3}, MaxOpenHttpConnections={4}, MaxRevsToGetInBulk={5}]", MaxRetries, ReadOnly, CallbackScheduler.GetType().Name, RequestTimeout, MaxOpenHttpConnections, MaxRevsToGetInBulk);
+            return String.Format("ManagerOptions[ReadOnly={0}, CallbackScheduler={1}, DefaultReplicationOptions={2}]", ReadOnly, CallbackScheduler.GetType().Name, DefaultReplicationOptions);
         }
     }
 }

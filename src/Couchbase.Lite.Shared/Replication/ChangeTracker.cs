@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Internal
     {
         OneShot,
         LongPoll,
-        Continuous,
+        Continuous, /* not used, here for reference */
         WebSocket
     }
 
@@ -49,14 +49,14 @@ namespace Couchbase.Lite.Internal
     internal static class ChangeTrackerFactory
     {
         public static ChangeTracker Create(Uri databaseUri, ChangeTrackerMode mode, bool includeConflicts,
-            object lastSequenceId, IChangeTrackerClient client, TaskFactory workExecutor = null)
+            object lastSequenceId, IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
         {
             if (mode == ChangeTrackerMode.WebSocket) {
                 return new WebSocketChangeTracker(databaseUri, includeConflicts, lastSequenceId,
-                    client, workExecutor);
+                    client, retryCount, workExecutor);
             } else {
                 return new SocketChangeTracker(databaseUri, mode, includeConflicts, lastSequenceId,
-                    client, workExecutor);
+                    client, retryCount, workExecutor);
             }
         }
     }
@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Internal
     internal abstract class ChangeTracker
     {
         private static readonly string Tag = typeof(ChangeTracker).Name;
-        private static readonly TimeSpan DefaultHeartbeat = TimeSpan.FromMinutes(5);
+        internal static readonly TimeSpan DefaultHeartbeat = TimeSpan.FromMinutes(5);
         private static readonly List<string> ChangeFeedModes = new List<string> {
             "normal", "longpoll", "continuous", "websocket"
         };
@@ -74,7 +74,7 @@ namespace Couchbase.Lite.Internal
         protected readonly ManualResetEventSlim _pauseWait = new ManualResetEventSlim(true);
         protected bool _usePost;
         protected bool _caughtUp;
-        internal readonly ChangeTrackerBackoff backoff = new ChangeTrackerBackoff();
+        internal readonly ChangeTrackerBackoff backoff;
         protected TaskFactory WorkExecutor;
 
         public string Feed
@@ -157,7 +157,7 @@ namespace Couchbase.Lite.Internal
         public bool IsRunning { get; protected set; }
 
         protected ChangeTracker(Uri databaseUri, ChangeTrackerMode mode, bool includeConflicts,
-            object lastSequenceId, IChangeTrackerClient client, TaskFactory workExecutor = null)
+            object lastSequenceId, IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
         {
             if (databaseUri == null) {
                 Log.To.ChangeTracker.E(Tag, "databaseUri cannot be null in ctor, throwing...");
@@ -169,6 +169,7 @@ namespace Couchbase.Lite.Internal
                 throw new ArgumentNullException("client");
             }
 
+            backoff = new ChangeTrackerBackoff(retryCount);
             DatabaseUrl = databaseUri;
             Client = client;
             Mode = mode;

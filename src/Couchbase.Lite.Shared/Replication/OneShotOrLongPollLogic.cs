@@ -31,16 +31,12 @@ namespace Couchbase.Lite.Internal
     {
         private static readonly string Tag = typeof(OneShotOrLongPollLogic).Name;
         private bool _caughtUp = false;
-        private TimeSpan _pollInterval;
-        private bool _isLongPoll;
         private DateTime _startTime;
         private ManualResetEventSlim _pauseWait = new ManualResetEventSlim(true);
 
-        public OneShotOrLongPollLogic(TimeSpan pollInterval, bool isLongPoll, DateTime startTime)
+        public OneShotOrLongPollLogic()
         {
-            _pollInterval = pollInterval;
-            _isLongPoll = isLongPoll;
-            _startTime = startTime;
+            _startTime = DateTime.Now;
         }
 
         public TimeSpan Heartbeat { get; set; }

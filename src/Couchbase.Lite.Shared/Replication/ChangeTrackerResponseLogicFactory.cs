@@ -29,14 +29,15 @@ namespace Couchbase.Lite.Internal
             switch (tracker.Mode) {
                 case ChangeTrackerMode.OneShot:
                 case ChangeTrackerMode.LongPoll:
-                    return new OneShotOrLongPollLogic(tracker.PollInterval, tracker.Mode == ChangeTrackerMode.LongPoll,
-                    DateTime.Now);
+                    return new OneShotOrLongPollLogic();
+                    #if false
                 case ChangeTrackerMode.Continuous:
                     return new ContinuousLogic();
+                    #endif
                 case ChangeTrackerMode.WebSocket:
                     return new WebSocketLogic();
                 default:
-                    throw new InvalidOperationException();
+                    throw new NotSupportedException();
             }
         }
     }

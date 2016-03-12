@@ -63,7 +63,7 @@ namespace Couchbase.Lite
 
             request.AllowWriteStreamBuffering = true;
             request.Timeout = 10000;
-            request.Method = "GET";
+            request.Method = "HEAD";
 
             try {
                 using(var response = (HttpWebResponse)request.GetResponse()) {
