@@ -158,7 +158,7 @@ namespace Couchbase.Lite {
 
         public override int GetHashCode ()
         {
-            var idString = String.Format("{0}{1}{2}{3}", _database.DbDirectory, Count, SequenceNumber, Stale);
+            var idString = String.Format("{0}{1}{2}{3}", _database.DbDirectory, Count, SequenceNumber, IsStale());
             return idString.GetHashCode ();
         }
 

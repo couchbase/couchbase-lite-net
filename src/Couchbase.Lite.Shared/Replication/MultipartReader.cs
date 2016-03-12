@@ -79,7 +79,6 @@ namespace Couchbase.Lite.Support
 
         private MultipartReader.MultipartReaderState state;
         private List<byte> _buffer;
-        private readonly string _contentType;
         private byte[] _boundary;
         private IMultipartReaderDelegate _readerDelegate;
         private IDictionary<string, string> _headers;
@@ -120,7 +119,6 @@ namespace Couchbase.Lite.Support
             _buffer = new List<Byte>(1024);
             state = MultipartReader.MultipartReaderState.AtStart;
             ParseContentType(contentType);
-            _contentType = contentType;
         }
 
         #endregion
