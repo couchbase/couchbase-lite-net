@@ -47,6 +47,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using System.Collections.Specialized;
+using Couchbase.Lite.Util;
 
 namespace Sharpen
 {
@@ -70,14 +71,9 @@ namespace Sharpen
             EPOCH_TICKS = time.Ticks;
         }
 
-        public static Exception Flatten(this Exception e)
+        public static IEnumerable<Exception> Flatten(this Exception e)
         {
-            var ae = e as AggregateException;
-            if (ae == null) {
-                return e;
-            }
-
-            return ae.Flatten().InnerException;
+            return new ExceptionEnumerable(e);
         }
 
         public static StringBuilder AppendRange (this StringBuilder sb, string str, int start, int end)

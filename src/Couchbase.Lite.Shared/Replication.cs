@@ -402,7 +402,7 @@ namespace Couchbase.Lite
             set
             {
                 if (value != _lastError) {
-                    var newException = value == null ? null : value.Flatten();
+                    var newException = value == null ? null : value.Flatten().FirstOrDefault();
                     Log.E(TAG, " Progress: set error = {0}", (object)newException);
                     _lastError = newException;
                     NotifyChangeListeners();
@@ -1127,10 +1127,11 @@ namespace Couchbase.Lite
 
             _continuous = false;
             if (Batcher != null)  {
-                Batcher.FlushAll();
+                Batcher.Clear();
             }
 
             CancelPendingRetryIfReady();
+            FireTrigger(ReplicationTrigger.StopImmediate);
         }
 
         #endregion
@@ -1330,7 +1331,7 @@ namespace Couchbase.Lite
                     client.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
+                var request = client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -1368,7 +1369,6 @@ namespace Couchbase.Lite
                                     reader.SetContentType(contentType);
 
                                     var inputStreamTask = entity.ReadAsStreamAsync();
-                                    //inputStreamTask.Wait(90000, CancellationTokenSource.Token);
                                     inputStream = inputStreamTask.Result;
 
                                     const int bufLen = 1024;
@@ -1423,10 +1423,13 @@ namespace Couchbase.Lite
                         Log.E(TAG, "IO Exception", e);
                         error = e;
                     } finally {
+                        Task dummy;
                         client.Dispose();
+                        _requests.TryRemove(message, out dummy);
                         responseMessage.Result.Dispose();
                     }
                 }), WorkExecutor.Scheduler);
+                _requests.TryAdd(message, request);
             } catch (UriFormatException e) {
                 Log.E(TAG, "Malformed URL for async request", e);
             }

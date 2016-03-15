@@ -217,34 +217,10 @@ namespace Couchbase.Lite.Replicator
                     LastError = tracker.Error;
                 }
 
-                FireTrigger(ReplicationTrigger.StopGraceful);
+                if (ChangesCount == CompletedChangesCount && IsSafeToStop) {
+                    FireTrigger(ReplicationTrigger.StopGraceful);
+                }
             }
-        }
-
-        private void FinishStopping()
-        {
-            StopRemoteRequests();
-            lock (_locker) {
-                _revsToPull = null;
-                _deletedRevsToPull = null;
-                _bulkRevsToPull = null;
-            }
-
-            if (_downloadsToInsert != null) {
-                _downloadsToInsert.FlushAll();
-            }
-
-            FireTrigger(ReplicationTrigger.StopImmediate);
-        }
-
-        private void ReplicationChanged(object sender, ReplicationChangeEventArgs args)
-        {
-            if (args.Source.CompletedChangesCount < args.Source.ChangesCount) {
-                return;
-            }
-
-            Changed -= ReplicationChanged;
-            FinishStopping();
         }
 
         private string JoinQuotedEscaped(IList<string> strings)
@@ -760,13 +736,18 @@ namespace Couchbase.Lite.Replicator
                 _changeTracker = null;
             }
 
-            base.StopGraceful();
-
-            if (CompletedChangesCount == ChangesCount) {
-                FinishStopping();
-            } else {
-                Changed += ReplicationChanged;
+            StopRemoteRequests();
+            lock (_locker) {
+                _revsToPull = null;
+                _deletedRevsToPull = null;
+                _bulkRevsToPull = null;
             }
+
+            if (_downloadsToInsert != null) {
+                _downloadsToInsert.FlushAll();
+            }
+
+            base.StopGraceful();
         }
 
         protected override void PerformGoOffline()

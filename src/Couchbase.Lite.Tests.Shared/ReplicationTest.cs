@@ -265,7 +265,13 @@ namespace Couchbase.Lite
                 });
 
                 RunReplication(push);
+                Assert.AreEqual(2, push.CompletedChangesCount);
+                Assert.AreEqual(2, push.ChangesCount);
+                Assert.IsNull(push.LastError);
                 RunReplication(pull);
+                Assert.AreEqual(2, pull.CompletedChangesCount);
+                Assert.AreEqual(2, pull.ChangesCount);
+                Assert.IsNull(pull.LastError);
 
                 CollectionAssert.AreEqual(new bool[] { false, false, true }, conflictVals);
             }
@@ -3122,6 +3128,38 @@ namespace Couchbase.Lite
                 Assert.AreEqual(ReplicationStatus.Idle, pusher.Status);
                 Assert.AreEqual("0", pusher.LastSequence);
                 pusher.Stop();
+            }
+        }
+
+        [Test]
+        public void TestStopDoesntWait()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"])) {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.AddDocuments(1000, false);
+                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
+                var mre = new ManualResetEventSlim();
+                puller.Changed += (sender, e) => 
+                {
+                    if(e.CompletedChangesCount > 0 && !mre.IsSet) {
+                        mre.Set();
+                    }
+                };
+
+                puller.Start();
+                mre.Wait();
+                puller.Stop();
+                while (puller.Status != ReplicationStatus.Stopped) {
+                    Sleep(200);
+                }
+
+                Assert.AreNotEqual(1000, puller.CompletedChangesCount);
+                Assert.Greater(Int64.Parse(puller.LastSequence), 0);
+                Assert.IsNull(puller.LastError);
             }
         }
     }

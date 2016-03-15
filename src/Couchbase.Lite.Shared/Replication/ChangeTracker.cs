@@ -369,8 +369,6 @@ namespace Couchbase.Lite.Replicator
 
         private Task ChangeFeedResponseHandler(Task<HttpResponseMessage> responseTask)
         {
-            Misc.SafeDispose(ref changesFeedRequestTokenSource);
-
             if (responseTask.IsCanceled || responseTask.IsFaulted) {
                 if (!responseTask.IsCanceled) {
                     var err = responseTask.Exception.Flatten();
@@ -427,6 +425,7 @@ namespace Couchbase.Lite.Replicator
                             backoff.SleepAppropriateAmountOfTime();
                             WorkExecutor.StartNew(Run);
                         } finally {
+                            Misc.SafeDispose(ref changesFeedRequestTokenSource);
                             response.Dispose();
                         }
                     });
@@ -437,6 +436,7 @@ namespace Couchbase.Lite.Replicator
                             ProcessOneShotStream(t);
                             backoff.ResetBackoff();
                         } finally {
+                            Misc.SafeDispose(ref changesFeedRequestTokenSource);
                             response.Dispose();
                         }
                     });
@@ -460,12 +460,12 @@ namespace Couchbase.Lite.Replicator
             return true;
         }
 
-        public bool ReceivedPollResponse(IJsonSerializer jsonReader, ref bool timedOut)
+        public bool ReceivedPollResponse(IJsonSerializer jsonReader, CancellationToken token, ref bool timedOut)
         {
             bool started = false;
             var start = DateTime.Now;
             try {
-            while (jsonReader.Read()) {
+                while (jsonReader.Read() && !token.IsCancellationRequested) {
                 _pauseWait.Wait();
                 if (jsonReader.CurrentToken == JsonToken.StartArray) {
                         timedOut = true;
@@ -600,7 +600,7 @@ namespace Couchbase.Lite.Replicator
             bool beforeFirstItem = true;
             bool responseOK = false;
             using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(t.Result)) {
-                responseOK = ReceivedPollResponse(jsonReader, ref beforeFirstItem);
+                responseOK = ReceivedPollResponse(jsonReader, changesFeedRequestTokenSource.Token, ref beforeFirstItem);
             }
 
             Log.D(TAG, "Finished polling change tracker");
@@ -633,9 +633,10 @@ namespace Couchbase.Lite.Replicator
         {
             using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(t.Result)) {
                 bool timedOut = false;
-                ReceivedPollResponse(jsonReader, ref timedOut);
+                ReceivedPollResponse(jsonReader, changesFeedRequestTokenSource.Token, ref timedOut);
             }
 
+            IsRunning = false;
             Stopped();
         }
 
