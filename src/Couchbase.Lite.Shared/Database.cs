@@ -727,7 +727,7 @@ namespace Couchbase.Lite
 
             var scheduler = new SingleTaskThreadpoolScheduler();
             var replicationOptions = Manager.Options.DefaultReplicationOptions ?? new ReplicationOptions {
-                MaxRetries = Manager.Options.MaxRetries,
+                RetryStrategy = new ExponentialBackoffStrategy(Manager.Options.MaxRetries),
                 MaxOpenHttpConnections = Manager.Options.MaxOpenHttpConnections,
                 MaxRevsToGetInBulk = Manager.Options.MaxRevsToGetInBulk,
                 RequestTimeout = Manager.Options.RequestTimeout
@@ -748,7 +748,7 @@ namespace Couchbase.Lite
             }
 
             var replicationOptions = Manager.Options.DefaultReplicationOptions ?? new ReplicationOptions {
-                MaxRetries = Manager.Options.MaxRetries,
+                RetryStrategy = new ExponentialBackoffStrategy(Manager.Options.MaxRetries),
                 MaxOpenHttpConnections = Manager.Options.MaxOpenHttpConnections,
                 MaxRevsToGetInBulk = Manager.Options.MaxRevsToGetInBulk,
                 RequestTimeout = Manager.Options.RequestTimeout

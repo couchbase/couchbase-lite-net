@@ -68,12 +68,9 @@ namespace Couchbase.Lite.Support
 
         public TimeSpan SocketTimeout { get; set; }
 
-        public int MaxRetries { get; set; }
-
         public CouchbaseLiteHttpClientFactory()
         {
             SocketTimeout = ReplicationOptions.DefaultSocketTimeout;
-            MaxRetries = ReplicationOptions.DefaultMaxRetries;
             Headers = new ConcurrentDictionary<string, string>();
 
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
@@ -135,7 +132,7 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, bool useRetryHandler)
+        internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, IRetryStrategy retryStrategy)
         {
             var handler = new WebRequestHandler {
                 CookieContainer = store,
@@ -152,17 +149,17 @@ namespace Couchbase.Lite.Support
             }
 
             var authHandler = new DefaultAuthHandler (handler, store, SocketTimeout);
-            if (!useRetryHandler) {
+            if (retryStrategy == null) {
                 return authHandler;
             }
 
-            var retryHandler = new TransientErrorRetryHandler(authHandler, MaxRetries);
+            var retryHandler = new TransientErrorRetryHandler(authHandler, retryStrategy);
             return retryHandler;
         }
 
-        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy)
         {
-            var authHandler = BuildHandlerPipeline(cookieStore, useRetryHandler);
+            var authHandler = BuildHandlerPipeline(cookieStore, retryStrategy);
 
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 

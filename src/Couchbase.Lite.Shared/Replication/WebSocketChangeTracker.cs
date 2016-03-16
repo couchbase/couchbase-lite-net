@@ -70,9 +70,7 @@ namespace Couchbase.Lite.Internal
 
         #region Constructors
 
-        public WebSocketChangeTracker(Uri databaseURL, bool includeConflicts, object lastSequenceID, 
-           IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
-            : base(databaseURL, ChangeTrackerMode.WebSocket, includeConflicts, lastSequenceID, client, retryCount, workExecutor)
+        public WebSocketChangeTracker(ChangeTrackerOptions options) : base(options)
         {
             CanConnect = true;
         }
@@ -181,6 +179,7 @@ namespace Couchbase.Lite.Internal
                 return false;
             }
 
+            IsRunning = true;
             Log.To.ChangeTracker.I(Tag, "Starting {0}...", this);
             _cts = new CancellationTokenSource();
 

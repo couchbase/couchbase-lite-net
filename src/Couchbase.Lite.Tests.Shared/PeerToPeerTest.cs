@@ -266,6 +266,7 @@ namespace Couchbase.Lite
             try {
                 CreateDocs(_listenerDB, false);
                 var repl = CreateReplication(database, false);
+                repl.Continuous = true;
                 var allChangesExternal = true;
                 database.Changed += (sender, e) => 
                 {

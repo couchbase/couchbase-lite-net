@@ -44,11 +44,6 @@ namespace Couchbase.Lite
         public static readonly TimeSpan DefaultSocketTimeout = TimeSpan.FromMinutes(5);
 
         /// <summary>
-        /// The default value for MaxRetries (2)
-        /// </summary>
-        public static readonly int DefaultMaxRetries = 2;
-
-        /// <summary>
         /// The default value for MaxOpenHttpConnections (8)
         /// </summary>
         public static readonly int DefaultMaxOpenHttpConnections = 8;
@@ -57,6 +52,11 @@ namespace Couchbase.Lite
         /// The default value for MaxRevsToGetInBulk (50)
         /// </summary>
         public static readonly int DefaultMaxRevsToGetInBulk = 50;
+
+        /// <summary>
+        /// The default RetryStrategy for replications (exponential backoff)
+        /// </summary>
+        public static readonly IRetryStrategy DefaultRetryStrategy = new ExponentialBackoffStrategy(2);
 
         /// <summary>
         /// Gets or sets whether or not the replication should forcibly start over
@@ -126,13 +126,6 @@ namespace Couchbase.Lite
         public string RemoteUUID { get; set; }
 
         /// <summary>
-        /// Gets or sets the maximum number of times to retry a request that received
-        /// a non-fatal (i.e. transient) error before giving up.  Only applicable to
-        /// non-continuous requests (continuous requests will never give up)
-        /// </summary>
-        public int MaxRetries { get; set; }
-
-        /// <summary>
         /// Gets or sets the maximum number of parallel HTTP requests to make during
         /// replication
         /// </summary>
@@ -146,6 +139,12 @@ namespace Couchbase.Lite
         public int MaxRevsToGetInBulk { get; set; }
 
         /// <summary>
+        /// Gets or set the strategy to use when retrying requests that fail with
+        /// a transient error (default is exponential backoff)
+        /// </summary>
+        public IRetryStrategy RetryStrategy { get; set; }
+
+        /// <summary>
         /// Default constructor
         /// </summary>
         public ReplicationOptions()
@@ -155,14 +154,14 @@ namespace Couchbase.Lite
             SocketTimeout = DefaultSocketTimeout;
             PollInterval = TimeSpan.Zero;
             UseWebSocket = true;
-            MaxRetries = DefaultMaxRetries;
             MaxOpenHttpConnections = DefaultMaxOpenHttpConnections;
             MaxRevsToGetInBulk = DefaultMaxRevsToGetInBulk;
+            RetryStrategy = DefaultRetryStrategy.Copy();
         }
 
         public override string ToString()
         {
-            return string.Format("ReplicationOptions[Reset={0}, RequestTimeout={1}, SocketTimeout={2}, Heartbeat={3}, PollInterval={4}, UseWebSocket={5}, RemoteUUID={6}, MaxRetries={7}, MaxOpenHttpConnections={8}, MaxRevsToGetInBulk={9}]", Reset, RequestTimeout, SocketTimeout, Heartbeat, PollInterval, UseWebSocket, RemoteUUID, MaxRetries, MaxOpenHttpConnections, MaxRevsToGetInBulk);
+            return string.Format("ReplicationOptions[Reset={0}, RequestTimeout={1}, SocketTimeout={2}, Heartbeat={3}, PollInterval={4}, UseWebSocket={5}, RemoteUUID={6}, MaxOpenHttpConnections={7}, MaxRevsToGetInBulk={8}, RetryStrategy={9}]", Reset, RequestTimeout, SocketTimeout, Heartbeat, PollInterval, UseWebSocket, RemoteUUID, MaxOpenHttpConnections, MaxRevsToGetInBulk, RetryStrategy);
         }
     }
 }

@@ -457,18 +457,18 @@ namespace Couchbase.Lite
         public void TestRemoteUUID()
         {
             var r1 = database.CreatePullReplication(new Uri("http://alice.local:55555/db"));
-            r1.Options[ReplicationOptionsDictionaryKeys.RemoteUUID] = "cafebabe";
+            r1.ReplicationOptions = new ReplicationOptions { RemoteUUID = "cafebabe" };
             var check1 = r1.RemoteCheckpointDocID();
 
             var r2 = database.CreatePullReplication(new Uri("http://alice.local:44444/db"));
-            r2.Options = r1.Options;
+            r2.ReplicationOptions = r1.ReplicationOptions;
             var check2 = r2.RemoteCheckpointDocID();
 
             Assert.AreEqual(check1, check2);
             Assert.IsTrue(r1.HasSameSettingsAs(r2));
 
             var r3 = database.CreatePullReplication(r2.RemoteUrl);
-            r3.Options = r1.Options;
+            r3.ReplicationOptions = r1.ReplicationOptions;
             r3.Filter = "Melitta";
             var check3 = r3.RemoteCheckpointDocID();
 
@@ -3127,24 +3127,6 @@ namespace Couchbase.Lite
                 Assert.AreEqual("0", pusher.LastSequence);
                 pusher.Stop();
             }
-        }
-
-        [Test]
-        public void TestWebSocketReplication()
-        {
-            Log.Domains.ChangeTracker.Level = Log.LogLevel.Debug;
-            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
-                remoteDb.AddDocuments(50, true);
-                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
-                puller.Continuous = true;
-                puller.Options = new ReplicationOptionsDictionary {
-                    { ReplicationOptionsDictionaryKeys.UseWebSocket, true }
-                };
-                RunReplication(puller);
-                Assert.IsNull(puller.LastError);
-                Assert.AreEqual(50, database.GetDocumentCount());
-            }
-            Log.Domains.ChangeTracker.Level = Log.LogLevel.Base;
         }
     }
 }

@@ -101,24 +101,6 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        private bool? _canUseWebSockets;
-        private bool CanUseWebSockets
-        {
-            get {
-                if (!_canUseWebSockets.HasValue) {
-                    var scratch = false;
-                    if (Options.TryGetValue<bool>(ReplicationOptionsDictionaryKeys.UseWebSocket, out scratch)) {
-                        Log.To.Sync.W(TAG, "ReplicationOptionsDictionary support is deprecated, use ReplicationOptions");
-                        _canUseWebSockets = scratch;
-                    } else {
-                        _canUseWebSockets = ReplicationOptions.UseWebSocket;
-                    } 
-                }
-
-                return _canUseWebSockets.Value;
-            }
-        }
-
         #endregion
 
         #region Constructors
@@ -156,26 +138,27 @@ namespace Couchbase.Lite.Replicator
         private void StartChangeTracker()
         {
             var mode = ChangeTrackerMode.OneShot;
-            var pollInterval = 0.0;
-            if (!Options.TryGetValue<double>(ReplicationOptionsDictionaryKeys.PollInterval, out pollInterval)) {
-                Log.To.Sync.W(TAG, "ReplicationOptionsDictionary support is deprecated, use ReplicationOptions");
-                pollInterval = 0.0;
-            } else {
-                pollInterval = ReplicationOptions.PollInterval.TotalSeconds;
-            }
-
-            if (Continuous && pollInterval.CompareTo(0.0) == 0 && CanUseWebSockets) {
+            var pollInterval = ReplicationOptions.PollInterval;
+            if (Continuous && pollInterval == TimeSpan.Zero && ReplicationOptions.UseWebSocket) {
                 mode = ChangeTrackerMode.WebSocket;
             }
 
             Log.To.Sync.V(TAG, "{0} starting ChangeTracker: mode={0} since={1}", this, mode, LastSequence);
             var initialSync = LocalDatabase.IsOpen && LocalDatabase.GetDocumentCount() == 0;
-            _changeTracker = ChangeTrackerFactory.Create(RemoteUrl, mode, true, LastSequence, this,
-                ReplicationOptions.MaxRetries, WorkExecutor);
+            var changeTrackerOptions = new ChangeTrackerOptions {
+                DatabaseUri = RemoteUrl,
+                Mode = mode,
+                IncludeConflicts = true,
+                LastSequenceID = LastSequence,
+                Client = this,
+                RetryStrategy = ReplicationOptions.RetryStrategy,
+                WorkExecutor = WorkExecutor,
+            };
+            _changeTracker = ChangeTrackerFactory.Create(changeTrackerOptions);
             _changeTracker.ActiveOnly = initialSync;
             _changeTracker.Authenticator = Authenticator;
             _changeTracker.Continuous = Continuous;
-            _changeTracker.PollInterval = TimeSpan.FromSeconds(pollInterval);
+            _changeTracker.PollInterval = pollInterval;
             _changeTracker.Heartbeat = ReplicationOptions.Heartbeat;
             if(DocIds != null) {
                 if(ServerType != null && ServerType.Name == "CouchDB") {
@@ -204,7 +187,9 @@ namespace Couchbase.Lite.Replicator
         {
             var webSocketTracker = tracker as WebSocketChangeTracker;
             if (webSocketTracker != null && !webSocketTracker.CanConnect) {
-                _canUseWebSockets = false;
+                ReplicationOptions.UseWebSocket = false;
+                Log.To.Sync.I(TAG, "Server doesn't support web socket changes feed, switching " +
+                "to regular HTTP");
                 StartChangeTracker();
                 return;
             }
@@ -361,7 +346,15 @@ namespace Couchbase.Lite.Replicator
             BulkDownloader dl;
             try
             {
-                dl = new BulkDownloader(ClientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
+                dl = new BulkDownloader(new BulkDownloaderOptions {
+                    ClientFactory = ClientFactory,
+                    DatabaseUri = RemoteUrl,
+                    Revisions = bulkRevs,
+                    Database = LocalDatabase,
+                    RequestHeaders = RequestHeaders,
+                    RetryStrategy = ReplicationOptions.RetryStrategy
+                });
+
                 dl.CookieStore = CookieContainer;
                 dl.DocumentDownloaded += (sender, args) =>
                 {
@@ -509,7 +502,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             var retryCount = (long)localDoc["retryCount"];
-            if (retryCount >= ReplicationOptions.MaxRetries)
+            if (retryCount >= ReplicationOptions.RetryStrategy.MaxRetries)
             {
                 PruneFailedDownload(docId);
                 return false;
@@ -998,7 +991,7 @@ namespace Couchbase.Lite.Replicator
 
         public CouchbaseLiteHttpClient GetHttpClient()
         {
-            return ClientFactory.GetHttpClient(CookieContainer, false);
+            return ClientFactory.GetHttpClient(CookieContainer, ReplicationOptions.RetryStrategy);
         }
 
         #endregion

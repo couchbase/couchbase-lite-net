@@ -29,6 +29,7 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.Internal
 {
@@ -51,17 +52,34 @@ namespace Couchbase.Lite.Internal
     // Create change trackers based on mode
     internal static class ChangeTrackerFactory
     {
-        public static ChangeTracker Create(Uri databaseUri, ChangeTrackerMode mode, bool includeConflicts,
-            object lastSequenceId, IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
+        public static ChangeTracker Create(ChangeTrackerOptions options)
         {
-            if (mode == ChangeTrackerMode.WebSocket) {
-                return new WebSocketChangeTracker(databaseUri, includeConflicts, lastSequenceId,
-                    client, retryCount, workExecutor);
+            if (options.Mode == ChangeTrackerMode.WebSocket) {
+                return new WebSocketChangeTracker(options);
             } else {
-                return new SocketChangeTracker(databaseUri, mode, includeConflicts, lastSequenceId,
-                    client, retryCount, workExecutor);
+                return new SocketChangeTracker(options);
             }
         }
+    }
+
+    internal sealed class ChangeTrackerOptions : ConstructorOptions
+    {
+        [RequiredProperty]
+        public Uri DatabaseUri { get; set; }
+
+        public ChangeTrackerMode Mode { get; set; }
+
+        public bool IncludeConflicts { get; set; }
+
+        public object LastSequenceID { get; set; }
+
+        [RequiredProperty]
+        public IChangeTrackerClient Client { get; set; }
+
+        [RequiredProperty]
+        public IRetryStrategy RetryStrategy { get; set; }
+
+        public TaskFactory WorkExecutor { get; set; }
     }
 
     // The base class for change tracker logic
@@ -176,27 +194,17 @@ namespace Couchbase.Lite.Internal
 
         #region Constructors
 
-        protected ChangeTracker(Uri databaseUri, ChangeTrackerMode mode, bool includeConflicts,
-            object lastSequenceId, IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
+        protected ChangeTracker(ChangeTrackerOptions options)
         {
-            if (databaseUri == null) {
-                Log.To.ChangeTracker.E(Tag, "databaseUri cannot be null in ctor, throwing...");
-                throw new ArgumentNullException("databaseUri");
-            }
-
-            if (client == null) {
-                Log.To.ChangeTracker.E(Tag, "client cannot be null in ctor, throwing...");
-                throw new ArgumentNullException("client");
-            }
-
-            Backoff = new ChangeTrackerBackoff(retryCount);
-            DatabaseUrl = databaseUri;
-            Client = client;
-            Mode = mode;
+            options.Validate();
+            Backoff = new ChangeTrackerBackoff(options.RetryStrategy);
+            DatabaseUrl = options.DatabaseUri;
+            Client = options.Client;
+            Mode = options.Mode;
             Heartbeat = DefaultHeartbeat;
-            _includeConflicts = includeConflicts;
-            LastSequenceId = lastSequenceId;
-            _workExecutor = workExecutor ?? new TaskFactory(new SingleTaskThreadpoolScheduler());
+            _includeConflicts = options.IncludeConflicts;
+            LastSequenceId = options.LastSequenceID;
+            _workExecutor = options.WorkExecutor ?? new TaskFactory(new SingleTaskThreadpoolScheduler());
             _usePost = true;
             RequestHeaders = new Dictionary<string, string>();
         }

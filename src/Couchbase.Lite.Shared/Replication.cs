@@ -129,35 +129,11 @@ namespace Couchbase.Lite
 
     #endregion
 
-    public struct ReplicationOptionsDictionaryKeys
-    {
-        /// <summary>
-        /// If specified, this will be used in place of the remote URL for calculating
-        /// the remote checkpoint in the replication process.  Useful if the remote URL
-        /// changes frequently (e.g. P2P discovery scenario)
-        /// </summary>
-        public static readonly string RemoteUUID = ReplicationOptionsDictionary.RemoteUUIDKey;
-
-        /// <summary>
-        /// Defines the interval (in seconds) between polls in continuous replication mode.  
-        /// Default is 0, which means try again immediately.
-        /// </summary>
-        public static readonly string PollInterval = ReplicationOptionsDictionary.PollIntervalKey;
-
-        /// <summary>
-        /// Specifies whether or not to force use of web sockets when replicating (only applicable
-        /// to pull replications)
-        /// </summary>
-        public static readonly string UseWebSocket = ReplicationOptionsDictionary.UseWebSocketKey;
-    }
-
     /// <summary>
     /// A class for holding replication options
     /// </summary>
     [DictionaryContract(OptionalKeys=new object[] { 
-        ReplicationOptionsDictionary.RemoteUUIDKey, typeof(string),
-        ReplicationOptionsDictionary.PollIntervalKey, typeof(double),
-        ReplicationOptionsDictionary.UseWebSocketKey, typeof(bool)
+        ReplicationOptionsDictionary.REMOTE_UUID_KEY, typeof(string)
     })]
     [Obsolete("This class is deprecated in favor of ReplicationOptions")]
     public sealed class ReplicationOptionsDictionary : ContractedDictionary
@@ -166,12 +142,7 @@ namespace Couchbase.Lite
         /// This key stores an ID for a remote endpoint whose identifier
         /// is likely to change (i.e. found via Bonjour)
         /// </summary>
-        [Obsolete("This type will be moved to ReplicationOptionsDictionaryKeys.RemoteUUID")]
         public const string REMOTE_UUID_KEY = "remoteUUID";
-
-        internal const string RemoteUUIDKey = "remoteUUID";
-        internal const string PollIntervalKey = "poll";
-        internal const string UseWebSocketKey = "websocket";
     }
 
     /// <summary>
@@ -1056,7 +1027,7 @@ namespace Couchbase.Lite
             LastSequence = null;
             Misc.SafeDispose(ref _client);
             _clientFactory.SocketTimeout = ReplicationOptions.SocketTimeout;
-            _client = _clientFactory.GetHttpClient(_cookieStore, true);
+            _client = _clientFactory.GetHttpClient(_cookieStore, ReplicationOptions.RetryStrategy);
             _client.Timeout = ReplicationOptions.RequestTimeout;
 
             CheckSession();
@@ -1567,12 +1538,12 @@ namespace Couchbase.Lite
             if (ReplicationOptions.RemoteUUID != null) {
                 spec["remoteURL"] = ReplicationOptions.RemoteUUID;
             } else {
-                var hasValue = Options.TryGetValue<string>(ReplicationOptionsDictionaryKeys.RemoteUUID, out remoteUUID);
+                var hasValue = Options.TryGetValue<string>(ReplicationOptionsDictionary.REMOTE_UUID_KEY, out remoteUUID);
                 if (hasValue) {
                     Log.To.Sync.W(TAG, "ReplicationOptionsDictionary support is deprecated, switch to ReplicationOptions");
-                    spec["remoteURL"] = ReplicationOptions.RemoteUUID ?? RemoteUrl.AbsoluteUri;
+                    spec["remoteURL"] = remoteUUID;
                 } else {
-                    spec["remoteURL"] = RemoteUrl.AbsoluteUri;
+                    spec["remoteURL"] = ReplicationOptions.RemoteUUID ?? RemoteUrl.AbsoluteUri;
                 }
             }
 

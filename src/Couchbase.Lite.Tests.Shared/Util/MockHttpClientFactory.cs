@@ -86,9 +86,9 @@ namespace Couchbase.Lite.Tests
             Headers = new Dictionary<string,string>();
         }
 
-        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy strategy)
         {
-            var handler = useRetryHandler ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler, 2) : (HttpMessageHandler)HttpHandler;
+            var handler = strategy != null ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler, strategy) : HttpHandler;
             var client = new HttpClient(handler, false);
             foreach (var header in Headers) {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);

@@ -371,7 +371,7 @@ namespace Couchbase.Lite.Replicator
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
             {
                 if (e != null) {
-                    var httpError = e as HttpResponseException;
+                    var httpError = Misc.Flatten(e) as HttpResponseException;
                     if (httpError != null) {
                         if (httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType) {
                             _dontSendMultipart = true;

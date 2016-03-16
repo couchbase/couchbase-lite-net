@@ -159,7 +159,7 @@ namespace Couchbase.Lite
 
             public CouchbaseLiteHttpClient GetHttpClient()
             {
-                return HttpClientFactory.GetHttpClient(null, false);
+                return HttpClientFactory.GetHttpClient(null, null);
             }
 
             public IDictionary<string, string> Headers
@@ -206,7 +206,15 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, false, 0, client, 2, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                DatabaseUri = testUrl,
+                Mode = mode,
+                IncludeConflicts = false,
+                Client = client,
+                RetryStrategy = new ExponentialBackoffStrategy(2),
+                WorkExecutor = new TaskFactory(scheduler)
+            });
+
             changeTracker.ActiveOnly = true;
             changeTracker.Start();
 
@@ -227,7 +235,14 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = ChangeTrackerFactory.Create(testUrl, ChangeTrackerMode.LongPoll, true, 0, client, 2, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                DatabaseUri = testUrl,
+                Mode = ChangeTrackerMode.LongPoll,
+                IncludeConflicts = true,
+                Client = client,
+                RetryStrategy = new ExponentialBackoffStrategy(2),
+                WorkExecutor = new TaskFactory(scheduler)
+            });
             changeTracker.Continuous = true;
 
             changeTracker.Start();
@@ -308,7 +323,14 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = ChangeTrackerFactory.Create(testUrl, mode, false, 0, client, 2, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                DatabaseUri = testUrl,
+                Mode = mode,
+                IncludeConflicts = false,
+                Client = client,
+                RetryStrategy = new ExponentialBackoffStrategy(2),
+                WorkExecutor = new TaskFactory(scheduler)
+            });
 
             changeTracker.Start();
 
@@ -359,7 +381,12 @@ namespace Couchbase.Lite
             var signal = new CountdownEvent(1);
             var client = new ChangeTrackerTestClient(signal, null);
             using (var remoteDb = _sg.CreateDatabase("web_socket_scratch")) {
-                var tracker = new BadWebSocketChangeTracker(remoteDb.RemoteUri, false, null, client);
+                var tracker = new BadWebSocketChangeTracker(new ChangeTrackerOptions {
+                    DatabaseUri = remoteDb.RemoteUri,
+                    IncludeConflicts = false,
+                    Client = client
+                });
+
                 tracker.Start();
                 Assert.IsTrue(signal.Wait(TimeSpan.FromSeconds(20)));
                 Assert.IsFalse(tracker.CanConnect);
@@ -371,8 +398,13 @@ namespace Couchbase.Lite
         {
             TestLiveChangeTracker((uri, client) => 
             {
-                var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.WebSocket, 
-                    false, null, client, 2);
+                var tracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                    DatabaseUri = uri,
+                    Mode = ChangeTrackerMode.WebSocket,
+                    IncludeConflicts = false,
+                    Client = client,
+                    RetryStrategy = new ExponentialBackoffStrategy(2)
+                });
                 tracker.Continuous = true;
                 return tracker;
             }, true);
@@ -384,8 +416,13 @@ namespace Couchbase.Lite
         {
             TestLiveChangeTracker((uri, client) => 
             {
-                var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.OneShot, 
-                    false, null, client, 2);
+                var tracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                    DatabaseUri = uri,
+                    Mode = ChangeTrackerMode.OneShot,
+                    IncludeConflicts = false,
+                    Client = client,
+                    RetryStrategy = new ExponentialBackoffStrategy(2)
+                });
                 tracker.Continuous = continuous;
                 tracker.PollInterval = TimeSpan.FromSeconds(5);
                 return tracker;
@@ -397,8 +434,13 @@ namespace Couchbase.Lite
         {
             TestLiveChangeTracker((uri, client) => 
             {
-                var tracker = ChangeTrackerFactory.Create(uri, ChangeTrackerMode.OneShot, 
-                    false, null, client, 2);
+                var tracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                    DatabaseUri = uri,
+                    Mode = ChangeTrackerMode.OneShot,
+                    IncludeConflicts = false,
+                    Client = client,
+                    RetryStrategy = new ExponentialBackoffStrategy(2)
+                });
                 tracker.Continuous = true;
                 return tracker;
             }, true);
@@ -416,8 +458,14 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = ChangeTrackerFactory.Create(testUrl, ChangeTrackerMode.OneShot, true, 0, client, 
-                2, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                DatabaseUri = testUrl,
+                Mode = ChangeTrackerMode.OneShot,
+                IncludeConflicts = true,
+                Client = client,
+                RetryStrategy = new ExponentialBackoffStrategy(2),
+                WorkExecutor = new TaskFactory(scheduler)
+            });
 
 
             changeTracker.Start();
@@ -486,8 +534,13 @@ namespace Couchbase.Lite
         public void TestChangeTrackerWithDocsIds()
         {
             var testURL = GetReplicationURL();
-            var changeTracker = ChangeTrackerFactory.Create(testURL, ChangeTrackerMode
-                .LongPoll, false, 0, new ChangeTrackerTestClient(null, null), 2);
+            var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                DatabaseUri = testURL,
+                Mode = ChangeTrackerMode.LongPoll,
+                IncludeConflicts = false,
+                Client = new ChangeTrackerTestClient(null, null),
+                RetryStrategy = new ExponentialBackoffStrategy(2)
+            });
 
             var docIds = new List<string>();
             docIds.Add("doc1");

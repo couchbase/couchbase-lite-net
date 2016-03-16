@@ -69,7 +69,7 @@ namespace Couchbase.Lite.Internal
         private readonly object stopMutex = new object();
         private HttpRequestMessage Request;
         private CancellationTokenSource tokenSource;
-        CancellationTokenSource changesFeedRequestTokenSource;
+        private CancellationTokenSource changesFeedRequestTokenSource;
         private CouchbaseLiteHttpClient _httpClient;
         private IChangeTrackerResponseLogic _responseLogic;
 
@@ -77,17 +77,14 @@ namespace Couchbase.Lite.Internal
 
         #region Constructors
 
-        public SocketChangeTracker(Uri databaseURL, ChangeTrackerMode mode, bool includeConflicts, 
-            object lastSequenceID, IChangeTrackerClient client, int retryCount, TaskFactory workExecutor = null)
-            : base(databaseURL, mode, includeConflicts, lastSequenceID, client, retryCount, workExecutor)
+        public SocketChangeTracker(ChangeTrackerOptions options) : base(options)
         {
-            if (mode == ChangeTrackerMode.LongPoll) {
+            if (options.Mode == ChangeTrackerMode.LongPoll) {
                 Continuous = true;
             }
 
             tokenSource = new CancellationTokenSource();
             _responseLogic = ChangeTrackerResponseLogicFactory.CreateLogic(this);
-            _responseLogic.Heartbeat = Heartbeat;
             _responseLogic.OnCaughtUp = () => Misc.IfNotNull(Client, c => c.ChangeTrackerCaughtUp(this));
             _responseLogic.OnChangeFound = (change) =>
             {
@@ -96,7 +93,7 @@ namespace Couchbase.Lite.Internal
                 }
             };
 
-            _responseLogic.OnFinished = e => RetryOrStopIfNecessary(e);
+            _responseLogic.OnFinished = RetryOrStopIfNecessary;
         }
 
         #endregion
@@ -202,7 +199,7 @@ namespace Couchbase.Lite.Internal
             string statusCode;
             if (Misc.IsTransientNetworkError(e, out statusCode)) {
                 // Transient error occurred in a replication -> RETRY or STOP
-                if (!Continuous && Backoff.ReachedLimit) {
+                if (!Continuous && !Backoff.CanContinue) {
                     // Give up for non-continuous
                     Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, giving up NOW...", this,
                         statusCode);
@@ -373,7 +370,8 @@ namespace Couchbase.Lite.Internal
             if (IsRunning) {
                 return false;
             }
-
+                
+            _responseLogic.Heartbeat = Heartbeat;
             Log.To.ChangeTracker.I(Tag, "Starting {0}...", this);
             _httpClient = Client.GetHttpClient();
             Error = null;

@@ -71,7 +71,7 @@ namespace Couchbase.Lite
         /// network requests that failed due to
         /// transient network errors.
         /// </summary>
-        [Obsolete("Moving to the ReplicationOptions class")]
+        [Obsolete("Moving to the ReplicationOptions class as RetryStrategy")]
         public int MaxRetries { get; set; }
 
         /// <summary>

@@ -148,6 +148,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\WebSocketLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChunkedChanges.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ReplicationOptions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\RetryStrategyExecutor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ConstructorOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

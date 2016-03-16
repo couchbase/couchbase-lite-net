@@ -76,7 +76,7 @@ namespace Couchbase.Lite.Tests
             HttpHandler = new FailEveryRequestHandler();
         }
 
-        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy strategy)
         {
             var mockHttpClient = new HttpClient(HttpHandler);
             return new CouchbaseLiteHttpClient(mockHttpClient, null);
