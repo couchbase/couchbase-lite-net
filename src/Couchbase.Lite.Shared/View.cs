@@ -307,18 +307,21 @@ namespace Couchbase.Lite {
             UpdateJob proposedJob = Storage.CreateUpdateJob(viewsToUpdate);
             UpdateJob nextJob = null;
             _updateQueueMutex.WaitOne();
-            if (_updateQueue.Count > 0) {
-                nextJob = _updateQueue.Peek();
-                if (!nextJob.Equals(proposedJob)) {
+            try {
+                if (_updateQueue.Count > 0) {
+                    nextJob = _updateQueue.Peek();
+                    if (!nextJob.Equals(proposedJob)) {
+                        QueueUpdate(proposedJob);
+                        nextJob = proposedJob;
+                    } 
+                } else {
                     QueueUpdate(proposedJob);
                     nextJob = proposedJob;
-                } 
-            } else {
-                QueueUpdate(proposedJob);
-                nextJob = proposedJob;
-                nextJob.Run();
+                    nextJob.Run();
+                }
+            } finally {
+                _updateQueueMutex.ReleaseMutex();
             }
-            _updateQueueMutex.ReleaseMutex();
 
             nextJob.Wait();
             return nextJob.Result;
