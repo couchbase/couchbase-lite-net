@@ -983,6 +983,8 @@ namespace Couchbase.Lite
                 return;
             }
 
+            var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+            reachabilityManager.StatusChanged += NetworkStatusChanged;
             if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri)) {
                 LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
                 FireTrigger(ReplicationTrigger.GoOffline);
@@ -997,9 +999,6 @@ namespace Couchbase.Lite
             LastSequence = null;
 
             CheckSession();
-
-            var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
-            reachabilityManager.StatusChanged += NetworkStatusChanged;
         }
 
         /// <summary>
@@ -2044,20 +2043,21 @@ namespace Couchbase.Lite
             // actions
             _stateMachine.Configure(ReplicationState.Running).OnEntry(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.V(TAG, "[Running OnEntry] {0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 StartInternal();
                 NotifyChangeListenersStateTransition(transition);
             });
 
             _stateMachine.Configure(ReplicationState.Running).OnExit(transition =>
-               Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID));
+               Log.V(TAG, "[Running OnExit] {0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID));
 
             _stateMachine.Configure(ReplicationState.Idle).OnEntry(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 if(transition.Source == transition.Destination) {
                     return;
                 }
+
+                Log.V(TAG, "[Idle OnEntry] {0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
 
                 if(_revisionsFailed > 0) {
                     ScheduleRetryIfReady();
@@ -2068,21 +2068,21 @@ namespace Couchbase.Lite
 
             _stateMachine.Configure(ReplicationState.Offline).OnEntry(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.V(TAG, "[Offline OnEntry] {0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 PerformGoOffline();
                 NotifyChangeListenersStateTransition(transition);
             });
 
             _stateMachine.Configure(ReplicationState.Offline).OnExit(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.V(TAG, "[Offline OnExit] {0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 PerformGoOnline();
                 NotifyChangeListenersStateTransition(transition);
             });
 
             _stateMachine.Configure(ReplicationState.Stopping).OnEntry(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.V(TAG, "[Stopping OnEntry] {0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 if(transition.Source == transition.Destination) {
                     Log.I(TAG, "Concurrency issue with ReplicationState.Stopping");
                     return;
@@ -2094,7 +2094,7 @@ namespace Couchbase.Lite
 
             _stateMachine.Configure(ReplicationState.Stopped).OnEntry(transition =>
             {
-                Log.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.V(TAG, "[Stopped OnEntry] {0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 Stopping();
 
                 if(transition.Source == transition.Destination) {
@@ -2229,6 +2229,10 @@ namespace Couchbase.Lite
             _changesCount = sender.ChangesCount;
             _completedChangesCount = sender.CompletedChangesCount;
             _status = sender.Status;
+            if (_status == ReplicationStatus.Offline && transition != null && transition.Destination == ReplicationState.Running) {
+                _status = ReplicationStatus.Active;
+            }
+
             _lastError = sender.LastError;
         }
     }
