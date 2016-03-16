@@ -96,7 +96,8 @@ namespace Couchbase.Lite {
             remove { _changed = (TypedEventHandler<View, EventArgs>)Delegate.Remove(_changed, value); }
         }
 
-        private ConcurrentQueue<UpdateJob> _updateQueue = new ConcurrentQueue<UpdateJob>();
+        private Queue<UpdateJob> _updateQueue = new Queue<UpdateJob>();
+        private Mutex _updateQueueMutex = new Mutex();
 
         #endregion
 
@@ -305,15 +306,19 @@ namespace Couchbase.Lite {
 
             UpdateJob proposedJob = Storage.CreateUpdateJob(viewsToUpdate);
             UpdateJob nextJob = null;
-            if (_updateQueue.TryPeek(out nextJob)) {
-                if (!nextJob.LastSequences.SequenceEqual(proposedJob.LastSequences)) {
+            _updateQueueMutex.WaitOne();
+            if (_updateQueue.Count > 0) {
+                nextJob = _updateQueue.Peek();
+                if (!nextJob.Equals(proposedJob)) {
                     QueueUpdate(proposedJob);
                     nextJob = proposedJob;
                 } 
             } else {
                 QueueUpdate(proposedJob);
                 nextJob = proposedJob;
+                nextJob.Run();
             }
+            _updateQueueMutex.ReleaseMutex();
 
             nextJob.Wait();
             return nextJob.Result;
@@ -463,18 +468,13 @@ namespace Couchbase.Lite {
         private UpdateJob QueueUpdate(UpdateJob job)
         {
             job.Finished += (sender, e) => {
-                UpdateJob nextJob;
-                _updateQueue.TryDequeue(out nextJob);
-                if(_updateQueue.TryPeek(out nextJob)) {
-                    nextJob.Run();
+                _updateQueue.Dequeue();
+                if(_updateQueue.Count > 0) {
+                    _updateQueue.Peek().Run();
                 }
             };
 
             _updateQueue.Enqueue(job);
-            if (_updateQueue.Count == 1) {
-                job.Run();
-            }
-
             return job;
         }
 

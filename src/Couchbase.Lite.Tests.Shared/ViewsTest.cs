@@ -74,6 +74,34 @@ namespace Couchbase.Lite
 
         public ViewsTest(string storageType) : base(storageType) {}
 
+        [Test]
+        public void TestParallelViewQueries()
+        {
+            CreateDocuments(database, 1000);
+            var vu = database.GetView("vu");
+            vu.SetMap((doc, emit) =>
+            {
+                emit(new object[] { "sequence", doc["sequence"] }, null);
+            }, "1");
+
+            CreateDocumentsAsync(database, 1000);
+            var countdown = new CountdownEvent(4);
+            Action<int> queryAction = x =>
+            {
+                var db = manager.GetDatabase(database.Name);
+                var gotVu = db.GetView("vu");
+                var queryObj = gotVu.CreateQuery();
+                queryObj.Keys = new object[] { new object[] { "sequence", x } };
+                var rows = queryObj.Run();
+                Assert.AreEqual(1, rows.Count);
+                countdown.Signal();
+            };
+
+            Parallel.Invoke(() => queryAction(42), () => queryAction(184), 
+                () => queryAction(256), () => queryAction(512));
+            countdown.Wait();
+        }
+
         [Test] 
         public void TestIssue490()
         {
