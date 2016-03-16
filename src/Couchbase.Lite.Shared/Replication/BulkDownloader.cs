@@ -94,7 +94,7 @@ namespace Couchbase.Lite.Replicator
             _revs = revs;
             _db = database;
             _httpClient = clientFactory.GetHttpClient(CookieStore, true);
-            _requestHeaders = requestHeaders;
+            _requestHeaders = requestHeaders ?? new Dictionary<string, object>();
             _tokenSource = tokenSource ?? new CancellationTokenSource();
             _body = CreatePostBody(revs, _db);
         }

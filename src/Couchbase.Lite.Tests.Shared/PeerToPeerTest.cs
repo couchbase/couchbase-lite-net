@@ -36,6 +36,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
 using Couchbase.Lite.Security;
 using Couchbase.Lite.Tests;
+using System.Text;
 
 namespace Couchbase.Lite
 {
@@ -63,6 +64,59 @@ namespace Couchbase.Lite
 
             _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
         }
+
+        [Test]
+        public void TestExternalReplicationStart()
+        {
+            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+            using (var remoteDb = sg.CreateDatabase("external_replication_test")) {
+                SetupListener(false);
+                CreateDocuments(database, 10);
+                var request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
+                request.ContentType = "application/json";
+                request.Method = "POST";
+                var body = String.Format(@"{{""source"":""cblitetest"",""target"":""{0}""}}", remoteDb.RemoteUri.AbsoluteUri);
+                var bytes = Encoding.UTF8.GetBytes(body);
+                request.ContentLength = bytes.Length;
+                request.GetRequestStream().Write(bytes, 0, bytes.Length);
+
+                var response = (HttpWebResponse)request.GetResponse();
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+                request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
+                request.ContentType = "application/json";
+                request.Method = "POST";
+                body = String.Format(@"{{""source"":""{0}"",""target"":""test_db"",""create_target"":true}}",
+                    remoteDb.RemoteUri.AbsoluteUri);
+                bytes = Encoding.UTF8.GetBytes(body);
+                request.ContentLength = bytes.Length;
+                request.GetRequestStream().Write(bytes, 0, bytes.Length);
+
+                response = (HttpWebResponse)request.GetResponse();
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+                var createdDb = manager.GetExistingDatabase("test_db");
+                Assert.IsNotNull(createdDb);
+                Assert.AreEqual(10, createdDb.GetDocumentCount());
+            }
+        }
+
+
+        [Test]
+        public void TestRecreatedEndpoint()
+        {
+            SetupListener(false);
+            CreateDocs(database, false);
+            var repl = CreateReplication(database, true);
+            RunReplication(repl);
+
+            Thread.Sleep(1000);
+            _listenerDB.Delete();
+            _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
+            RunReplication(repl);
+            VerifyDocs(_listenerDB, false);
+        }
+
 
         [Test]
         public void TestSsl()
