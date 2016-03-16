@@ -50,7 +50,6 @@ using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite {
-
     // TODO: Either remove or update the API defs to indicate the enum value changes, and global scope.
     /// <summary>
     /// Indicates the collation to use for sorted items in the view
@@ -94,7 +93,8 @@ namespace Couchbase.Lite {
             remove { _changed = (TypedEventHandler<View, EventArgs>)Delegate.Remove(_changed, value); }
         }
 
-        private ConcurrentQueue<UpdateJob> _updateQueue = new ConcurrentQueue<UpdateJob>();
+        private static LockableLinkedListFactory<UpdateJob> _UpdateQueueFactory = 
+            new LockableLinkedListFactory<UpdateJob>();
 
         #endregion
 
@@ -273,6 +273,7 @@ namespace Couchbase.Lite {
         { 
             Storage.DeleteView();
             Database.ForgetView(Name);
+            //_updateQueueLock.Release();
             Close();
         }
 
@@ -299,18 +300,24 @@ namespace Couchbase.Lite {
 
         internal Status UpdateIndex()
         {
-            var viewsToUpdate = ViewsInGroup();
-
-            UpdateJob proposedJob = Storage.CreateUpdateJob(viewsToUpdate);
+            UpdateJob proposedJob = Storage.CreateUpdateJob(ViewsInGroup().Select(x => x.Storage));
             UpdateJob nextJob = null;
-            if (_updateQueue.TryPeek(out nextJob)) {
-                if (!nextJob.LastSequences.SequenceEqual(proposedJob.LastSequences)) {
+            var updateQueue = _UpdateQueueFactory.ListForGroup(GroupName());
+            updateQueue.Lock();
+            try {
+                if (updateQueue.Count > 0) {
+                    nextJob = updateQueue.FirstOrDefault(x => x.Equals(proposedJob));
+                    if(nextJob == null) {
+                        QueueUpdate(proposedJob);
+                        nextJob = proposedJob;
+                    } 
+                } else {
                     QueueUpdate(proposedJob);
                     nextJob = proposedJob;
-                } 
-            } else {
-                QueueUpdate(proposedJob);
-                nextJob = proposedJob;
+                    nextJob.Run();
+                }
+            } finally {
+                updateQueue.Unlock();
             }
 
             nextJob.Wait();
@@ -413,31 +420,42 @@ namespace Couchbase.Lite {
 
         #region Private Methods
 
-        private IEnumerable<IViewStore> ViewsInGroup()
+        private IEnumerable<View> ViewsInGroup()
+        {
+            var groupName = GroupName();
+            if(groupName != null) {
+                return Database.GetAllViews().Where(v => v.Name.StartsWith(groupName));
+            } else {
+                return new List<View> { this };
+            }
+        }
+
+        private string GroupName()
         {
             var slash = Name.IndexOf('/');
             if (slash != -1) {
-                var prefix = Name.Substring(0, slash);
-                return Database.GetAllViews().Where(v => v.Name.StartsWith(prefix)).Select(v => v.Storage);
-            } else {
-                return new List<IViewStore> { Storage };
+                return Name.Substring(0, slash);
             }
+
+            return null;
         }
 
         private UpdateJob QueueUpdate(UpdateJob job)
         {
+            var updateQueue = _UpdateQueueFactory.ListForGroup(GroupName());
             job.Finished += (sender, e) => {
-                UpdateJob nextJob;
-                _updateQueue.TryDequeue(out nextJob);
-                if(_updateQueue.TryPeek(out nextJob)) {
-                    nextJob.Run();
+                updateQueue.Lock();
+                try {
+                    updateQueue.RemoveFirst();
+                    if(updateQueue.Count > 0) {
+                        updateQueue.First.Value.Run();
+                    }
+                } finally {
+                    updateQueue.Unlock();
                 }
             };
 
-            _updateQueue.Enqueue(job);
-            if (_updateQueue.Count == 1) {
-                job.Run();
-            }
+            updateQueue.AddLast(job);
 
             return job;
         }

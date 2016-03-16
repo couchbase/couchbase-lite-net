@@ -292,7 +292,7 @@ namespace Couchbase.Lite.Util
                 }
             }
 
-            Log.D(Tag, "Exited lock in Remove");
+            Log.To.NoDomain.D(Tag, "Exited lock in Remove");
 
             if (previous != null) {
                 EntryRemoved(false, key, previous, default(TValue));

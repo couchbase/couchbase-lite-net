@@ -1190,6 +1190,9 @@ namespace Couchbase.Lite
 
         internal void ForgetView(string viewName) {
             _views.Remove(viewName);
+            Shared.SetValue("map", viewName, Name, (object)null);
+            Shared.SetValue("mapVersion", viewName, Name, (object)null);
+            Shared.SetValue("reduce", viewName, Name, (object)null);
         }
 
         // This is only used for testing.  It is a one shot view from scratch

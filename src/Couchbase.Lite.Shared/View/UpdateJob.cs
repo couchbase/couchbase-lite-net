@@ -33,6 +33,7 @@ namespace Couchbase.Lite
         private readonly IEnumerable<IViewStore> _args;
         private Task<bool> _task;
         public readonly long[] LastSequences;
+        public readonly string[] Names;
 
         public Status Result 
         {
@@ -60,6 +61,7 @@ namespace Couchbase.Lite
         {
             _logic = logic;
             _args = args;
+            Names = args.Select(x => x.Name).ToArray();
             LastSequences = lastSequences.ToArray();
             _task = new Task<bool>(() => _logic(_args.ToList()));
         }
@@ -80,6 +82,34 @@ namespace Couchbase.Lite
         public void Wait()
         {
             _task.Wait();
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+
+                foreach (var name in Names) {
+                    hash = hash * 23 + name.GetHashCode();
+                }
+
+                foreach (var sequence in LastSequences) {
+                    hash = hash * 23 + sequence.GetHashCode();
+                }
+    
+                return hash;
+            }
+        }
+
+        public override bool Equals(object obj)
+        {
+            var other = obj as UpdateJob;
+            if (other == null) {
+                return false;
+            }
+
+            return other.LastSequences.SequenceEqual(LastSequences) && other.Names.SequenceEqual(Names);
         }
     }
 }

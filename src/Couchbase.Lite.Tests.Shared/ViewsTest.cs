@@ -102,6 +102,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(0, e.Count);
         }
 
+		[Test]
         public void TestCustomFilter()
         {
             var view = database.GetView("vu");
@@ -233,6 +234,77 @@ namespace Couchbase.Lite
                 { "id", "11111" },
                 { "key", new List<object> { "one", 11111 } }
             }, rows[0]);
+        }
+
+		[Test]
+        public void TestParallelViewQueries()
+        {
+            var vu = database.GetView("prefix/vu");
+            vu.SetMap((doc, emit) =>
+            {
+                emit(new object[] { "sequence", doc["sequence"] }, null);
+            }, "1");
+
+            var vu2 = database.GetView("prefix/vu2");
+            vu2.SetMap((doc, emit) =>
+            {
+                emit(new object[] { "sequence", "FAKE" }, null);
+            }, "1");
+
+            CreateDocuments(database, 500);
+
+            var expectCount = 1;
+            Action<int> queryAction = x =>
+            {
+                var db = manager.GetDatabase(database.Name);
+                var gotVu = db.GetView("prefix/vu");
+                var queryObj = gotVu.CreateQuery();
+                queryObj.Keys = new object[] { new object[] { "sequence", x } };
+                var rows = queryObj.Run();
+                Assert.AreEqual(expectCount * 500, gotVu.LastSequenceIndexed);
+                Assert.AreEqual(expectCount, rows.Count);
+            };
+
+            Action queryAction2 = () =>
+            {
+                var db = manager.GetDatabase(database.Name);
+                var gotVu = db.GetView("prefix/vu2");
+                var queryObj = gotVu.CreateQuery();
+                queryObj.Keys = new object[] { new object[] { "sequence", "FAKE" } };
+                var rows = queryObj.Run();
+                Assert.AreEqual(expectCount * 500, gotVu.LastSequenceIndexed);
+                Assert.AreEqual(expectCount * 500, rows.Count);
+            };
+
+            Parallel.Invoke(() => queryAction(42), () => queryAction(184), 
+                () => queryAction(256), queryAction2, () => queryAction(412));
+
+            CreateDocuments(database, 500);
+            expectCount = 2;
+
+            Parallel.Invoke(() => queryAction(42), () => queryAction(184), 
+                () => queryAction(256), queryAction2, () => queryAction(412));
+
+            vu.Delete();
+
+            vu = database.GetView("prefix/vu");
+            vu.SetMap((doc, emit) =>
+            {
+                emit(new object[] { "sequence", doc["sequence"] }, null);
+            }, "1");
+
+            Parallel.Invoke(() => queryAction(42), () => queryAction(184), 
+                () => queryAction(256), queryAction2, () => queryAction(412));
+
+            vu2.Delete();
+            vu2 = database.GetView("prefix/vu2");
+            vu2.SetMap((doc, emit) =>
+            {
+                emit(new object[] { "sequence", "FAKE" }, null);
+            }, "1");
+
+            Parallel.Invoke(() => queryAction(42), () => queryAction(184), 
+                () => queryAction(256), queryAction2, () => queryAction(412));
         }
 
         [Test] 
