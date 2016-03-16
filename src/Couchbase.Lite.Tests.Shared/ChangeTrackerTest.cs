@@ -51,6 +51,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Tests;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
+using Couchbase.Lite.Internal;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -63,6 +64,7 @@ namespace Couchbase.Lite
     public class ChangeTrackerTest : LiteTestCase
     {
         public const string TAG = "ChangeTracker";
+        private SyncGateway _sg;
 
         public ChangeTrackerTest(string storageType) : base(storageType) {}
 
@@ -87,12 +89,27 @@ namespace Couchbase.Lite
 
             private CountdownEvent stoppedSignal;
             private CountdownEvent changedSignal;
+            private AutoResetEvent caughtUpSignal;
 
-            public ChangeTrackerTestClient(CountdownEvent stoppedSignal, CountdownEvent changedSignal)
+            public ChangeTrackerTestClient(CountdownEvent stoppedSignal, CountdownEvent changedSignal, 
+                AutoResetEvent caughtUpSignal = null)
             {
                 this.stoppedSignal = stoppedSignal;
                 this.changedSignal = changedSignal;
+                this.caughtUpSignal = caughtUpSignal;
                 HttpClientFactory = new MockHttpClientFactory();
+            }
+
+            public void ChangeTrackerCaughtUp(ChangeTracker tracker)
+            {
+                if (caughtUpSignal != null) {
+                    caughtUpSignal.Set();
+                }
+            }
+
+            public void ChangeTrackerFinished(ChangeTracker tracker)
+            {
+                
             }
 
             public void ChangeTrackerStopped(ChangeTracker tracker)
@@ -142,7 +159,7 @@ namespace Couchbase.Lite
 
             public CouchbaseLiteHttpClient GetHttpClient()
             {
-                return HttpClientFactory.GetHttpClient(null, false);
+                return HttpClientFactory.GetHttpClient(null, null);
             }
 
             public IDictionary<string, string> Headers
@@ -189,8 +206,16 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, true, client, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                DatabaseUri = testUrl,
+                Mode = mode,
+                IncludeConflicts = false,
+                Client = client,
+                RetryStrategy = new ExponentialBackoffStrategy(2),
+                WorkExecutor = new TaskFactory(scheduler)
+            });
 
+            changeTracker.ActiveOnly = true;
             changeTracker.Start();
 
             var success = changeReceivedSignal.Wait(TimeSpan.FromSeconds(30));
@@ -210,24 +235,32 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, true, false, client, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                DatabaseUri = testUrl,
+                Mode = ChangeTrackerMode.LongPoll,
+                IncludeConflicts = true,
+                Client = client,
+                RetryStrategy = new ExponentialBackoffStrategy(2),
+                WorkExecutor = new TaskFactory(scheduler)
+            });
+            changeTracker.Continuous = true;
 
             changeTracker.Start();
 
             // sleep for a few seconds
-            Sleep(10 * 1000);
+            Sleep(8 * 1000);
 
-            // make sure we got less than 10 requests in those 10 seconds (if it was hammering, we'd get a lot more)
+            // make sure we got less than 10 requests in those 8 seconds (if it was hammering, we'd get a lot more)
             var handler = client.HttpRequestHandler;
-            Assert.IsTrue(handler.CapturedRequests.Count < 25);
-            Assert.IsTrue(changeTracker.backoff.NumAttempts > 0, String.Format("Observed attempts: {0}", changeTracker.backoff.NumAttempts));
+            Assert.Less(handler.CapturedRequests.Count, 10);
+            Assert.Greater(changeTracker.Backoff.NumAttempts, 0, String.Format("Observed attempts: {0}", changeTracker.Backoff.NumAttempts));
 
             handler.ClearResponders();
             handler.AddResponderReturnEmptyChangesFeed();
 
             // at this point, the change tracker backoff should cause it to sleep for about 3 seconds
             // and so lets wait 3 seconds until it wakes up and starts getting valid responses
-            Sleep(3 * 1000);
+            Sleep(10 * 1000);
 
             // now find the delta in requests received in a 2s period
             int before = handler.CapturedRequests.Count;
@@ -236,10 +269,10 @@ namespace Couchbase.Lite
 
             // assert that the delta is high, because at this point the change tracker should
             // be hammering away
-            Assert.IsTrue((after - before) > 25, "{0} <= 25", (after - before));
+            Assert.Greater((after - before), 25);
 
             // the backoff numAttempts should have been reset to 0
-            Assert.IsTrue(changeTracker.backoff.NumAttempts == 0);
+            Assert.IsTrue(changeTracker.Backoff.NumAttempts == 0);
 
             changeTracker.Stop();
 
@@ -290,7 +323,14 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var changeTracker = new ChangeTracker(testUrl, mode, 0, false, true, client, new TaskFactory(scheduler));
+            var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                DatabaseUri = testUrl,
+                Mode = mode,
+                IncludeConflicts = false,
+                Client = client,
+                RetryStrategy = new ExponentialBackoffStrategy(2),
+                WorkExecutor = new TaskFactory(scheduler)
+            });
 
             changeTracker.Start();
 
@@ -301,6 +341,136 @@ namespace Couchbase.Lite
 
             success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
+        }
+
+        private void TestLiveChangeTracker(Func<Uri, IChangeTrackerClient, ChangeTracker> generator, bool continuous)
+        {
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled"))) {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            var changedEvent = new CountdownEvent(4);
+            var caughtUpEvent = new AutoResetEvent(false);
+            var stoppedEvent = new CountdownEvent(1);
+            var client = new ChangeTrackerTestClient(stoppedEvent, changedEvent, caughtUpEvent);
+            client.HttpRequestHandler.DefaultFail = false;
+            using (var remoteDb = _sg.CreateDatabase("web_socket_scratch")) {
+                var tracker = generator(remoteDb.RemoteUri, client);
+                tracker.Start();
+                Assert.IsTrue(caughtUpEvent.WaitOne(200000));
+
+                if (continuous) {
+                    remoteDb.AddDocument("newdoc", new Dictionary<string, object> { { "foo", "bar" } });
+                    Assert.IsTrue(changedEvent.Wait(20000));
+
+                    tracker.Stop();
+                    Assert.IsTrue(stoppedEvent.Wait(20000));
+                }
+            }
+        }
+
+        [Test]
+        public void TestWebSocketChangeTrackerFallback()
+        {
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled"))) {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            var signal = new CountdownEvent(1);
+            var client = new ChangeTrackerTestClient(signal, null);
+            using (var remoteDb = _sg.CreateDatabase("web_socket_scratch")) {
+                var tracker = new BadWebSocketChangeTracker(new ChangeTrackerOptions {
+                    DatabaseUri = remoteDb.RemoteUri,
+                    IncludeConflicts = false,
+                    Client = client
+                });
+
+                tracker.Start();
+                Assert.IsTrue(signal.Wait(TimeSpan.FromSeconds(20)));
+                Assert.IsFalse(tracker.CanConnect);
+            }
+        }
+
+        [Test]
+        public void TestLiveChangeTrackerWebSocket()
+        {
+            TestLiveChangeTracker((uri, client) => 
+            {
+                var tracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                    DatabaseUri = uri,
+                    Mode = ChangeTrackerMode.WebSocket,
+                    IncludeConflicts = false,
+                    Client = client,
+                    RetryStrategy = new ExponentialBackoffStrategy(2)
+                });
+                tracker.Continuous = true;
+                return tracker;
+            }, true);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TestLiveChangeTrackerOneShot(bool continuous)
+        {
+            TestLiveChangeTracker((uri, client) => 
+            {
+                var tracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                    DatabaseUri = uri,
+                    Mode = ChangeTrackerMode.OneShot,
+                    IncludeConflicts = false,
+                    Client = client,
+                    RetryStrategy = new ExponentialBackoffStrategy(2)
+                });
+                tracker.Continuous = continuous;
+                tracker.PollInterval = TimeSpan.FromSeconds(5);
+                return tracker;
+            }, continuous);
+        }
+            
+        [Test]
+        public void TestLiveChangeTrackerLongPoll()
+        {
+            TestLiveChangeTracker((uri, client) => 
+            {
+                var tracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                    DatabaseUri = uri,
+                    Mode = ChangeTrackerMode.OneShot,
+                    IncludeConflicts = false,
+                    Client = client,
+                    RetryStrategy = new ExponentialBackoffStrategy(2)
+                });
+                tracker.Continuous = true;
+                return tracker;
+            }, true);
+        }
+
+        [Test]
+        public void TestChangeTrackerGiveUp()
+        {
+            var factory = new MockHttpClientFactory();
+            var httpHandler = (MockHttpRequestHandler)factory.HttpHandler;
+            httpHandler.AddResponderThrowExceptionAllRequests();
+            var changeTrackerFinishedSignal = new CountdownEvent(1);
+            var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, null);
+            client.HttpClientFactory = factory;
+
+            var testUrl = GetReplicationURL();
+            var scheduler = new SingleTaskThreadpoolScheduler();
+            var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                DatabaseUri = testUrl,
+                Mode = ChangeTrackerMode.OneShot,
+                IncludeConflicts = true,
+                Client = client,
+                RetryStrategy = new ExponentialBackoffStrategy(2),
+                WorkExecutor = new TaskFactory(scheduler)
+            });
+
+
+            changeTracker.Start();
+            Assert.IsTrue(changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(20)));
+            Assert.IsNull(changeTracker.Error);
         }
 
         [Test]
@@ -364,22 +534,28 @@ namespace Couchbase.Lite
         public void TestChangeTrackerWithDocsIds()
         {
             var testURL = GetReplicationURL();
-            var changeTracker = new ChangeTracker(testURL, ChangeTrackerMode
-                .LongPoll, 0, false, true, null);
+            var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
+                DatabaseUri = testURL,
+                Mode = ChangeTrackerMode.LongPoll,
+                IncludeConflicts = false,
+                Client = new ChangeTrackerTestClient(null, null),
+                RetryStrategy = new ExponentialBackoffStrategy(2)
+            });
 
             var docIds = new List<string>();
             docIds.Add("doc1");
             docIds.Add("doc2");
-            changeTracker.SetDocIDs(docIds);
+            changeTracker.DocIDs = docIds;
 
-            var docIdsJson = "[\"doc1\",\"doc2\"]";
             var parameters = changeTracker.GetChangesFeedParams();
             Assert.AreEqual("_doc_ids", parameters["filter"]);
             AssertEnumerablesAreEqual(docIds, (IEnumerable)parameters["doc_ids"]);
-
-            var body = changeTracker.GetChangesFeedPostBody();
-            Assert.IsTrue(body.Contains(docIdsJson));
         }
-            
+          
+        protected override void SetUp()
+        {
+            base.SetUp();
+            _sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+        }
     }
 }

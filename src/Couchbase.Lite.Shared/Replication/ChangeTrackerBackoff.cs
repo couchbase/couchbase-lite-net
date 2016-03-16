@@ -42,46 +42,45 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
+using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Replicator
+namespace Couchbase.Lite.Internal
 {
     internal class ChangeTrackerBackoff
     {
-        private const int MAX_RETRY_DELAY = 10 * 60;
-        private const int INITIAL_DELAY = 2;
         private const string Tag = "ChangeTrackerBackoff";
 
+        private readonly IRetryStrategy _retryStrategy;
+
+        public bool CanContinue
+        {
+            get { return _retryStrategy.RetriesRemaining > 0; }
+        }
+
         public int NumAttempts { get; private set; }
+
+        public ChangeTrackerBackoff(IRetryStrategy strategy)
+        {
+            _retryStrategy = strategy;
+        }
 
         public void ResetBackoff()
         {
             NumAttempts = 0;
+            _retryStrategy.Reset();
         }
 
         public TimeSpan GetSleepTime()
         {
-            return GetSleepTime(false);
+            return _retryStrategy.NextDelay(false);
         }
 
-        public void SleepAppropriateAmountOfTime()
+        public Task DelayAppropriateAmountOfTime()
         {
-            try
-            {
-                Thread.Sleep(GetSleepTime(true));
-            }
-            catch (Exception) { }
+            NumAttempts++;
+            return Task.Delay(_retryStrategy.NextDelay(true));
         }
-
-        private TimeSpan GetSleepTime(bool increment)
-        {
-            var result = INITIAL_DELAY * (1 << Math.Min(NumAttempts, 16));
-            result = Math.Min(MAX_RETRY_DELAY, result);
-
-            if (increment) {
-                NumAttempts += 1;
-            }
-
-            return TimeSpan.FromSeconds(result);
-        }
+            
     }
 }

@@ -19,9 +19,32 @@
 // limitations under the License.
 //
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace Couchbase.Lite.Util
 {
+    internal sealed class LogString
+    {
+        private string _serialized;
+        private readonly byte[] _unserialized;
+
+        public LogString(IEnumerable<byte> utf8Bytes)
+        {
+            _unserialized = utf8Bytes.ToArray();
+        }
+
+        public override string ToString()
+        {
+            if (_serialized == null) {
+                _serialized = Encoding.UTF8.GetString(_unserialized);
+            }
+
+            return _serialized;
+        }
+    }
+
     internal sealed class LogJsonString
     {
         private string _serialized;

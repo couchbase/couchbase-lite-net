@@ -52,6 +52,7 @@ using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
 using System.Collections;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -95,7 +96,7 @@ namespace Couchbase.Lite
         public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, 
             StatusCode code, string tag, string message)
         {
-            domain.E(tag, String.Format("{0}, throwing CouchbaseLiteException)", 
+            domain.E(tag, String.Format("{0}, throwing CouchbaseLiteException", 
                 message), inner);
             return new CouchbaseLiteException(message, inner) { Code = code };
         }
@@ -156,10 +157,44 @@ namespace Couchbase.Lite
             return key;
         }
 
-        public static void SafeDispose<T>(ref T obj) where T : class, IDisposable
+        public static void IfNotNull<T>(T obj, Action<T> action, Action elseAction = null) where T : class
         {
+            // This may seem silly but it's pretty boilerplate. Having it in a function
+            // assures that "obj" is a copy of the original reference and so we don't
+            // need to add an additional `var tmp = obj`
+            if (obj != null && action != null) {
+                action(obj);
+            } else if (obj == null && elseAction != null) {
+                elseAction();
+            }
+        }
+
+        public static void SafeNull<T>(ref T obj, Action<T> action) where T : class
+        {
+            #if !__UNITY__
+            var copy = Interlocked.Exchange<T>(ref obj, null);
+            #else
+            var copy = obj;
+            obj = null;
+            #endif
+
+            if (copy != null && action != null) {
+                action(copy);
+            }
+        }
+
+        public static void SafeDispose<T>(ref T obj, Action<T> action = null) where T : class, IDisposable
+        {
+            #if !__UNITY__
+            var tmp = Interlocked.Exchange<T>(ref obj, null);
+            #else
             var tmp = obj;
             obj = null;
+            #endif
+
+            if (action != null) {
+                action(tmp);
+            }
 
             if (tmp != null) {
                 tmp.Dispose();
@@ -252,31 +287,37 @@ namespace Couchbase.Lite
             return response.StatusCode;
         }
 
-        public static bool IsTransientNetworkError(Exception e)
+        public static bool IsTransientNetworkError(Exception e, out string code)
         {
+            code = String.Empty;
             var error = Misc.Flatten(e);
 
             if (error is IOException
                 || error is TimeoutException
                 || error is SocketException) {
+                code = error.GetType().Name;
                 return true;
             }
 
-            var we = e as WebException;
+            var we = error as WebException;
             if (we == null) {
+                code = error.GetType().Name;
                 return false;
             }
 
             if (we.Status == WebExceptionStatus.ConnectFailure || we.Status == WebExceptionStatus.Timeout ||
                 we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled) {
+                code = we.Status.ToString();
                 return true;
             }
 
             var statusCode = GetStatusCode(we);
             if (!statusCode.HasValue) {
+                code = we.Status.ToString();
                 return false;
             }
 
+            code = statusCode.Value.ToString();
             return IsTransientError(statusCode.Value);
         }
 

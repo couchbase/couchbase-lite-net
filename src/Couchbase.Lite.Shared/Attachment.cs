@@ -72,27 +72,6 @@ namespace Couchbase.Lite {
     })]
     internal sealed class AttachmentMetadataDictionary : ContractedDictionary
     {
-        [Obsolete("Use AttachmentMetadataDictionaryKeys.ContentType")]
-        public const string CONTENT_TYPE = "content_type";
-
-        [Obsolete("Use AttachmentMetadataDictionaryKeys.Length")]
-        public const string LENGTH = "length";
-
-        [Obsolete("Use AttachmentMetadataDictionaryKeys.Follows")]
-        public const string FOLLOWS = "follows";
-
-        [Obsolete("Use AttachmentMetadataDictionaryKeys.Digest")]
-        public const string DIGEST = "digest";
-
-        [Obsolete("Use AttachmentMetadataDictionaryKeys.Stub")]
-        public const string STUB = "stub";
-
-        [Obsolete("Use AttachmentMetadataDictionaryKeys.EncodedLength")]
-        public const string ENCODED_LENGTH = "encoded_length";
-
-        [Obsolete("Use AttachmentMetadataDictionaryKeys.Encoding")]
-        public const string ENCODING = "encoding";
-
         internal const string ContentType = "content_type";
         internal const string Length = "length";
         internal const string Follows = "follows";
@@ -123,8 +102,8 @@ namespace Couchbase.Lite {
         internal Attachment(Stream contentStream, string contentType)
         {
             Metadata = new Dictionary<String, Object> {
-                { AttachmentMetadataDictionary.CONTENT_TYPE, contentType },
-                { AttachmentMetadataDictionary.FOLLOWS, true }
+                { AttachmentMetadataDictionaryKeys.ContentType, contentType },
+                { AttachmentMetadataDictionaryKeys.Follows, true }
             };
 
             Body = contentStream;

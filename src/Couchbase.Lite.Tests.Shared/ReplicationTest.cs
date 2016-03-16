@@ -457,18 +457,18 @@ namespace Couchbase.Lite
         public void TestRemoteUUID()
         {
             var r1 = database.CreatePullReplication(new Uri("http://alice.local:55555/db"));
-            r1.Options[ReplicationOptionsDictionaryKeys.RemoteUUID] = "cafebabe";
+            r1.ReplicationOptions = new ReplicationOptions { RemoteUUID = "cafebabe" };
             var check1 = r1.RemoteCheckpointDocID();
 
             var r2 = database.CreatePullReplication(new Uri("http://alice.local:44444/db"));
-            r2.Options = r1.Options;
+            r2.ReplicationOptions = r1.ReplicationOptions;
             var check2 = r2.RemoteCheckpointDocID();
 
             Assert.AreEqual(check1, check2);
             Assert.IsTrue(r1.HasSameSettingsAs(r2));
 
             var r3 = database.CreatePullReplication(r2.RemoteUrl);
-            r3.Options = r1.Options;
+            r3.ReplicationOptions = r1.ReplicationOptions;
             r3.Filter = "Melitta";
             var check3 = r3.RemoteCheckpointDocID();
 
@@ -510,6 +510,7 @@ namespace Couchbase.Lite
                 return;
             }
 
+            Log.Domains.Sync.Level = Log.LogLevel.Debug;
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
                 var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
@@ -555,7 +556,7 @@ namespace Couchbase.Lite
                 };
 
                 pull.Start();
-                Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(60)));
+                Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(10)));
                 Assert.IsNull(pull.LastError);
 
                 for (int i = 0; i < statusHistory.Count; i++) {
@@ -570,7 +571,7 @@ namespace Couchbase.Lite
                 doc1Id = string.Format("doc5-{0}", docIdTimestamp);         
                 remoteDb.AddDocument(doc1Id, "attachment.png");
 
-                Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(60)));
+                Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(10)));
                 Assert.IsNull(pull.LastError);
                 statusHistory.Clear();
                 StopReplication(pull);

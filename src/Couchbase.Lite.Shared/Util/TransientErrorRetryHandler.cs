@@ -8,35 +8,37 @@ namespace Couchbase.Lite.Util
     internal sealed class TransientErrorRetryHandler : DelegatingHandler
     {
         private static readonly string Tag = typeof(TransientErrorRetryHandler).Name;
+        private readonly IRetryStrategy _retryStrategy;
 
-        public TransientErrorRetryHandler(HttpMessageHandler handler) : base(handler) 
+        public TransientErrorRetryHandler(HttpMessageHandler handler, IRetryStrategy strategy) : base(handler) 
         { 
             InnerHandler = handler;
+            _retryStrategy = strategy.Copy();
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var strategy = new ExponentialBackoffStrategy(request, ManagerOptions.Default.MaxRetries, cancellationToken);
-            strategy.Send = ResendHandler;
-            return ResendHandler(request, strategy);
+            var executor = new RetryStrategyExecutor(request, _retryStrategy, cancellationToken);
+            executor.Send = ResendHandler;
+            return ResendHandler(request, executor);
         }
 
-        private Task<HttpResponseMessage> ResendHandler(HttpRequestMessage request, IRetryStrategy strategy)
+        private Task<HttpResponseMessage> ResendHandler(HttpRequestMessage request, RetryStrategyExecutor executor)
         {
-            return base.SendAsync(request, strategy.Token)
-                .ContinueWith(t => HandleTransientErrors(t, strategy), strategy.Token)
+            return base.SendAsync(request, executor.Token)
+                .ContinueWith(t => HandleTransientErrors(t, executor), executor.Token)
                 .Unwrap();
         }
 
        
         static Task<HttpResponseMessage> HandleTransientErrors(Task<HttpResponseMessage> request, object state)
         {
-            var strategy = (IRetryStrategy)state;
+            var executor = (RetryStrategyExecutor)state;
             if (!request.IsFaulted) 
             {
                 var response = request.Result;
-                if (strategy.RetriesRemaining > 0 && Misc.IsTransientError(response)) {
-                    return strategy.Retry();
+                if (executor.CanContinue && Misc.IsTransientError(response)) {
+                    return executor.Retry();
                 }
 
                 if (!response.IsSuccessStatusCode) {
@@ -51,12 +53,13 @@ namespace Couchbase.Lite.Util
 
             var error = Misc.Flatten(request.Exception);
 
-            if (!Misc.IsTransientNetworkError(error) || strategy.RetriesRemaining == 0)
+            string statusCode;
+            if (!Misc.IsTransientNetworkError(error, out statusCode) || !executor.CanContinue)
             {
-                if (strategy.RetriesRemaining == 0) {
+                if (!executor.CanContinue) {
                     Log.To.Sync.V(Tag, "Out of retries for error, throwing", error);
                 } else {
-                    Log.To.Sync.V(Tag, "Non transient error received, throwing", error);
+                    Log.To.Sync.V(Tag, "Non transient error received (status), throwing", error);
                 }
 
                 // If it's not transient, pass the exception along
@@ -65,7 +68,7 @@ namespace Couchbase.Lite.Util
             }
 
             // Retry again.
-            return strategy.Retry();
+            return executor.Retry();
         }
     }
 }

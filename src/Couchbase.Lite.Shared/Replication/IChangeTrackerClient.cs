@@ -43,15 +43,14 @@
 using System.Collections.Generic;
 using System.Net.Http;
 
-namespace Couchbase.Lite.Replicator
+namespace Couchbase.Lite.Internal
 {
     internal interface IChangeTrackerClient
     {
         CouchbaseLiteHttpClient GetHttpClient();
         void ChangeTrackerReceivedChange(IDictionary<string, object> change);
         void ChangeTrackerStopped(ChangeTracker tracker);
-
-        //TODO: Socket and web socket
-        //void ChangeTrackerFinished(ChangeTracker tracker);
+        void ChangeTrackerCaughtUp(ChangeTracker tracker);
+        void ChangeTrackerFinished(ChangeTracker tracker);
     }
 }

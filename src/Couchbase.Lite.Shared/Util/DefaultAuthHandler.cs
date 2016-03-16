@@ -63,10 +63,11 @@ namespace Couchbase.Lite.Replicator
         #region Variables
 
         private object _locker = new object();
+        private TimeSpan _timeout;
         private readonly CookieStore _cookieStore;
         private readonly ConcurrentDictionary<HttpResponseMessage, int> _retryMessages = new ConcurrentDictionary<HttpResponseMessage,int>();
 
-                          #endregion
+        #endregion
 
         #region Properties
 
@@ -76,9 +77,10 @@ namespace Couchbase.Lite.Replicator
 
         #region Constructors
 
-        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore)
+        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore, TimeSpan timeout)
         {
             _cookieStore = cookieStore;
+            _timeout = timeout;
             InnerHandler = context;
         }
 
@@ -139,7 +141,7 @@ namespace Couchbase.Lite.Replicator
                 // is already at the end)
                 var mre = new ManualResetEvent(false);
                 request.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
-                mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
+                mre.WaitOne(_timeout, true);
             }
 
             return request;

@@ -118,7 +118,7 @@ namespace Couchbase.Lite.Views
                 try {
                     double number = Convert.ToDouble(o);
                     total += number;
-                } catch (Exception e) {
+                } catch (Exception) {
                     Log.To.View.W(Tag, "Non-numeric value found in totalValues: {0}", 
                         new SecureLogJsonString(o, LogMessageSensitivity.PotentiallyInsecure));
                 }

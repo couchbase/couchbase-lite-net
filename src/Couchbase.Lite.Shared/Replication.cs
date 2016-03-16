@@ -129,40 +129,20 @@ namespace Couchbase.Lite
 
     #endregion
 
-    public struct ReplicationOptionsDictionaryKeys
-    {
-        /// <summary>
-        /// If specified, this will be used in place of the remote URL for calculating
-        /// the remote checkpoint in the replication process.  Useful if the remote URL
-        /// changes frequently (e.g. P2P discovery scenario)
-        /// </summary>
-        public static readonly string RemoteUUID = ReplicationOptionsDictionary.RemoteUUIDKey;
-
-        /// <summary>
-        /// Defines the interval (in seconds) between polls in continuous ("long poll") replication mode.  
-        /// Default is 0, which means try again immediately.
-        /// </summary>
-        public static readonly string PollInterval = ReplicationOptionsDictionary.PollInterval;
-    }
-
     /// <summary>
     /// A class for holding replication options
     /// </summary>
     [DictionaryContract(OptionalKeys=new object[] { 
-        ReplicationOptionsDictionary.RemoteUUIDKey, typeof(string),
-        ReplicationOptionsDictionary.PollInterval, typeof(double)
+        ReplicationOptionsDictionary.REMOTE_UUID_KEY, typeof(string)
     })]
+    [Obsolete("This class is deprecated in favor of ReplicationOptions")]
     public sealed class ReplicationOptionsDictionary : ContractedDictionary
     {
         /// <summary>
         /// This key stores an ID for a remote endpoint whose identifier
         /// is likely to change (i.e. found via Bonjour)
         /// </summary>
-        [Obsolete("This type will be moved to ReplicationOptionsDictionaryKeys.RemoteUUID")]
         public const string REMOTE_UUID_KEY = "remoteUUID";
-
-        internal const string RemoteUUIDKey = "remoteUUID";
-        internal const string PollInterval = "poll";
     }
 
     /// <summary>
@@ -188,9 +168,9 @@ namespace Couchbase.Lite
         internal const string BY_CHANNEL_FILTER_NAME = "sync_gateway/bychannel";
         internal const string REPLICATOR_DATABASE_NAME = "_replicator";
         internal const int INBOX_CAPACITY = 100;
-        private const int PROCESSOR_DELAY = 500; //Milliseconds
-        private const int RETRY_DELAY = 60; // Seconds
-        private const int SAVE_LAST_SEQUENCE_DELAY = 2; //Seconds
+        private static readonly TimeSpan ProcessorDelay = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan SaveLastSequenceDelay = TimeSpan.FromSeconds(5);
         private const string TAG = "Replication";
         private const string LOCAL_CHECKPOINT_LOCAL_UUID_KEY = "localUUID";
 
@@ -520,7 +500,13 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets custom options on this replication
         /// </summary>
+        [Obsolete("Replaced by ReplicationOptions")]
         public ReplicationOptionsDictionary Options { get; set; }
+
+        /// <summary>
+        /// Gets or sets the replication options.
+        /// </summary>
+        public ReplicationOptions ReplicationOptions { get; set; }
        
         /// <summary>
         /// Returns whether or not the replication may be stopped at 
@@ -538,12 +524,17 @@ namespace Couchbase.Lite
         {
             get { return _lastSequence; }
             set {
-                if (value != null && !value.Equals(_lastSequence)) {
+                if (value == null) {
+                    value = "0";
+                }
+
+                if (!value.Equals(_lastSequence)) {
                     Log.To.Sync.V(TAG, "{0} setting LastSequence to {1} (from {2})", this, value, _lastSequence);
                     _lastSequence = value;
 
                     if (!lastSequenceChanged) {
                         lastSequenceChanged = true;
+                        Task.Delay(SaveLastSequenceDelay).ContinueWith(t => SaveLastSequence(null));
                     }
                 }
             }
@@ -645,6 +636,7 @@ namespace Couchbase.Lite
             CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
             Options = new ReplicationOptionsDictionary();
+            ReplicationOptions = new ReplicationOptions();
             RequestHeaders = new Dictionary<String, Object>();
             _requests = new ConcurrentDictionary<HttpRequestMessage, Task>();
 
@@ -687,7 +679,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            Batcher = new Batcher<RevisionInternal>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, inbox =>
+            Batcher = new Batcher<RevisionInternal>(workExecutor, INBOX_CAPACITY, ProcessorDelay, inbox =>
             {
                 try {
                     Log.To.Sync.V(TAG, "*** {0} BEGIN ProcessInbox ({1} sequences)", this, inbox.Count);
@@ -981,7 +973,7 @@ namespace Couchbase.Lite
         {
             _retryIfReadyTokenSource = new CancellationTokenSource();
             var token = _retryIfReadyTokenSource.Token;
-            Task.Delay(TimeSpan.FromSeconds(RETRY_DELAY)).ContinueWith(task =>
+            Task.Delay(RetryDelay).ContinueWith(task =>
             {
                 if (!token.IsCancellationRequested) {
                     RetryIfReady();
@@ -1005,6 +997,7 @@ namespace Couchbase.Lite
                 Log.To.Sync.I(TAG, "Remote endpoint is not reachable, going offline...");
                 LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
                 FireTrigger(ReplicationTrigger.GoOffline);
+                CheckOnlineLoop();
             }
 
             if(!LocalDatabase.AddReplication(this) || !LocalDatabase.AddActiveReplication(this)) {
@@ -1022,6 +1015,10 @@ namespace Couchbase.Lite
                 return;
             }
 
+            if (ReplicationOptions.Reset) {
+                LocalDatabase.SetLastSequence(null, RemoteCheckpointDocID());
+            }
+
             _startTime = DateTime.UtcNow;
             SetupRevisionBodyTransformationFunction();
 
@@ -1029,7 +1026,9 @@ namespace Couchbase.Lite
             Log.To.Sync.I(TAG, "Beginning replication process...");
             LastSequence = null;
             Misc.SafeDispose(ref _client);
-            _client = _clientFactory.GetHttpClient(_cookieStore, true);
+            _clientFactory.SocketTimeout = ReplicationOptions.SocketTimeout;
+            _client = _clientFactory.GetHttpClient(_cookieStore, ReplicationOptions.RetryStrategy);
+            _client.Timeout = ReplicationOptions.RequestTimeout;
 
             CheckSession();
 
@@ -1089,6 +1088,7 @@ namespace Couchbase.Lite
         protected virtual void PerformGoOffline()
         {
             Log.To.Sync.I(TAG, "{0} going offline", this);
+            CheckOnlineLoop();
         }
 
         /// <summary>
@@ -1535,11 +1535,16 @@ namespace Couchbase.Lite
             }
 
             string remoteUUID;
-            var hasValue = Options.TryGetValue<string>(ReplicationOptionsDictionaryKeys.RemoteUUID, out remoteUUID);
-            if (hasValue) {
-                spec["remoteURL"] = remoteUUID;
+            if (ReplicationOptions.RemoteUUID != null) {
+                spec["remoteURL"] = ReplicationOptions.RemoteUUID;
             } else {
-                spec["remoteURL"] = RemoteUrl.AbsoluteUri;
+                var hasValue = Options.TryGetValue<string>(ReplicationOptionsDictionary.REMOTE_UUID_KEY, out remoteUUID);
+                if (hasValue) {
+                    Log.To.Sync.W(TAG, "ReplicationOptionsDictionary support is deprecated, switch to ReplicationOptions");
+                    spec["remoteURL"] = remoteUUID;
+                } else {
+                    spec["remoteURL"] = ReplicationOptions.RemoteUUID ?? RemoteUrl.AbsoluteUri;
+                }
             }
 
             IEnumerable<byte> inputBytes = null;
@@ -1738,6 +1743,21 @@ namespace Couchbase.Lite
                 } catch (Exception ex) {
                     Log.To.Sync.E(TAG, String.Format("{0} error analyzing _local response", this), ex);
                 }
+            });
+        }
+
+        private void CheckOnlineLoop()
+        {
+            // Check at intervals to see if connection has been restored (in case
+            // the offline status is the result of the *server* being offline)
+            Task.Delay(RetryDelay).ContinueWith(t =>
+            {
+                if(_stateMachine.State != ReplicationState.Offline) {
+                    return;
+                }
+
+                FireTrigger(ReplicationTrigger.GoOnline);
+                CheckOnlineLoop();
             });
         }
 

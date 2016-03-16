@@ -371,7 +371,7 @@ namespace Couchbase.Lite.Replicator
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
             {
                 if (e != null) {
-                    var httpError = e as HttpResponseException;
+                    var httpError = Misc.Flatten(e) as HttpResponseException;
                     if (httpError != null) {
                         if (httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType) {
                             _dontSendMultipart = true;
@@ -567,7 +567,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            if(_requests.Count > ManagerOptions.Default.MaxOpenHttpConnections) {
+            if(_requests.Count > ReplicationOptions.MaxOpenHttpConnections) {
                 Task.Delay(1000).ContinueWith(t => ProcessInbox(inbox), CancellationToken.None, TaskContinuationOptions.None, WorkExecutor.Scheduler);
                 return;
             }

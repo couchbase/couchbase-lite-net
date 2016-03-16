@@ -51,9 +51,33 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Replicator
 {
+    internal sealed class BulkDownloaderOptions : ConstructorOptions
+    {
+        [RequiredProperty]
+        public IHttpClientFactory ClientFactory { get; set; }
+
+        [RequiredProperty]
+        public Uri DatabaseUri { get; set; }
+
+        [RequiredProperty]
+        public IList<RevisionInternal> Revisions { get; set; }
+
+        [RequiredProperty]
+        public Database Database { get; set; }
+
+        [RequiredProperty(CreateDefault=true)]
+        public IDictionary<string, object> RequestHeaders { get; set; }
+
+        [RequiredProperty]
+        public IRetryStrategy RetryStrategy { get; set; }
+
+        [RequiredProperty(CreateDefault=true)]
+        public CancellationTokenSource TokenSource { get; set; }
+    }
+
     internal class BulkDownloader : IMultipartReaderDelegate, IDisposable
     {
-        private static readonly string Tag = typeof(BulkDownloader).Name;
+        internal static readonly string Tag = typeof(BulkDownloader).Name;
 
         private Uri _bulkGetUri;
         private IDictionary<string, object> _requestHeaders;
@@ -85,14 +109,15 @@ namespace Couchbase.Lite.Replicator
         internal IAuthenticator Authenticator { get; set; }
 
         /// <exception cref="System.Exception"></exception>
-        public BulkDownloader(IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
+        public BulkDownloader(BulkDownloaderOptions options)
         {
-            _bulkGetUri = new Uri(AppendRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true"));
-            _db = database;
-            _httpClient = clientFactory.GetHttpClient(CookieStore, true);
-            _requestHeaders = requestHeaders ?? new Dictionary<string, object>();
-            _tokenSource = tokenSource ?? new CancellationTokenSource();
-            _body = CreatePostBody(revs, _db);
+            options.Validate();
+            _bulkGetUri = new Uri(AppendRelativeURLString(options.DatabaseUri, "/_bulk_get?revs=true&attachments=true"));
+            _db = options.Database;
+            _httpClient = options.ClientFactory.GetHttpClient(CookieStore, options.RetryStrategy);
+            _requestHeaders = options.RequestHeaders;
+            _tokenSource = options.TokenSource;
+            _body = CreatePostBody(options.Revisions, _db);
         }
 
         public void Start()

@@ -108,7 +108,8 @@ namespace Couchbase.Lite
 
         public T Deserialize<T>(Stream json) 
         {
-            using (var jsonReader = new JsonTextReader(new StreamReader(json))) 
+            using (var sr = new StreamReader(json))
+            using (var jsonReader = new JsonTextReader(sr)) 
             {
                 var serializer = JsonSerializer.Create(settings);
                 T item;
@@ -136,20 +137,25 @@ namespace Couchbase.Lite
             try {
                 return _textReader != null && _textReader.Read();
             } catch (Exception e) {
+                if (e is JsonReaderException) {
+                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, StatusCode.BadJson, TAG, 
+                        "Error reading from streaming parser");
+                }
+
                 throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error reading from streaming parser");
             }
         }
 
-        public IDictionary<string, object> DeserializeNextObject()
+        public T DeserializeNextObject<T>()
         {
             if (_textReader == null) {
                 Log.To.Sync.W(TAG, "DeserializeNextObject is only valid after a call to StartIncrementalParse, " +
                     "returning null");
-                return null;
+                return default(T);
             }
 
             try {
-                return JToken.ReadFrom(_textReader).ToObject<IDictionary<string, object>>();
+                return JToken.ReadFrom(_textReader).ToObject<T>();
             } catch(Exception e) {
                 throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error deserializing from streaming parser");
             }

@@ -36,7 +36,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Query\QueryRow.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\BatchProcessor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\Batcher.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTracker.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTrackerBackoff.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClientFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\HttpResponseException.cs" />
@@ -138,6 +137,19 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\LogGroup.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Configuration\CouchbaseConfigSection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\JsonUtility.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\WebSocketChangeTracker.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\SocketChangeTracker.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTracker.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChunkStream.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\IChangeTrackerResponseLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTrackerResponseLogicFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\OneShotOrLongPollLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ContinuousLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\WebSocketLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChunkedChanges.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ReplicationOptions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\RetryStrategyExecutor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ConstructorOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
