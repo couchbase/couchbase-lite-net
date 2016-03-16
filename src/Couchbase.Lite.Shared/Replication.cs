@@ -968,11 +968,6 @@ namespace Couchbase.Lite
                 return;
             }
 
-            if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri)) {
-                LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
-                FireTrigger(ReplicationTrigger.GoOffline);
-            }
-
             if(!LocalDatabase.AddReplication(this) || !LocalDatabase.AddActiveReplication(this)) {
 #if DEBUG
                 var existing = LocalDatabase.AllReplicators.FirstOrDefault(x => x.RemoteCheckpointDocID() == RemoteCheckpointDocID());
@@ -985,6 +980,13 @@ namespace Couchbase.Lite
                 Log.W(TAG, "Not starting becuse identical {0} already exists", IsPull ? "puller" : "pusher");
 #endif
                 FireTrigger(ReplicationTrigger.StopImmediate);
+                return;
+            }
+
+            if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri)) {
+                LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
+                FireTrigger(ReplicationTrigger.GoOffline);
+                CheckOnlineLoop();
                 return;
             }
 
@@ -1677,6 +1679,21 @@ namespace Couchbase.Lite
         #endregion
 
         #region Private Methods
+
+        private void CheckOnlineLoop()
+        {
+            // Check at intervals to see if connection has been restored (in case
+            // the offline status is the result of the *server* being offline)
+            Task.Delay(TimeSpan.FromSeconds(RETRY_DELAY)).ContinueWith(t =>
+            {
+                if(_stateMachine.State != ReplicationState.Offline) {
+                    return;
+                }
+
+                FireTrigger(ReplicationTrigger.GoOnline);
+                CheckOnlineLoop();
+            });
+        }
 
         private void WaitForStopped (object sender, ReplicationChangeEventArgs e)
         {
