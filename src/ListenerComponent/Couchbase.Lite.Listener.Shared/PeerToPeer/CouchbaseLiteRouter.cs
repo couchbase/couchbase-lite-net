@@ -47,6 +47,7 @@ namespace Couchbase.Lite.Listener
                 { "/_all_dbs", ServerMethods.GetAllDbs },
                 { "/_session", ServerMethods.GetSession },
                 { "/_uuids", ServerMethods.GetUUIDs },
+                { "/_active_tasks", ServerMethods.GetActiveTasks },
                 { "/{[^_].*}", DatabaseMethods.GetConfiguration },
                 { "/{[^_].*}/_all_docs", DatabaseMethods.GetAllDocuments },
                 { "/{[^_].*}/_changes", DatabaseMethods.GetChanges },
