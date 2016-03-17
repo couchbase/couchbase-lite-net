@@ -1271,9 +1271,13 @@ namespace Couchbase.Lite
             var continuous = false;
             var r1 = new Pusher(database, remote, continuous, mockHttpClientFactory, new TaskFactory(new SingleTaskThreadpoolScheduler()));
             Assert.IsFalse(r1.Continuous);
-            RunReplication(r1);
+            r1.Start();
+            Sleep(500);
+            while (r1.Status == ReplicationStatus.Active) {
+                Sleep(500);
+            }
 
-            Assert.AreEqual(ReplicationStatus.Stopped, r1.Status);
+            Assert.AreEqual(ReplicationStatus.Offline, r1.Status);
             Assert.AreEqual(0, r1.CompletedChangesCount);
             Assert.AreEqual(0, r1.ChangesCount);
             Assert.IsNotNull(r1.LastError);

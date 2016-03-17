@@ -1520,10 +1520,6 @@ namespace Couchbase.Lite
         /// </remarks>
         internal string RemoteCheckpointDocID(string localUUID)
         {
-            if (!LocalDatabase.IsOpen) {
-                return null;
-            }
-
             // canonicalization: make sure it produces the same checkpoint id regardless of
             // ordering of filterparams / docids
             IDictionary<String, Object> filterParamsCanonical = null;
@@ -1823,6 +1819,7 @@ namespace Couchbase.Lite
             var remoteCheckpointDocID = RemoteCheckpointDocID();
             if (String.IsNullOrEmpty(remoteCheckpointDocID)) {
                 Log.W(TAG, "remoteCheckpointDocID is null for {0}, aborting SaveLastSequence()", _replicatorID);
+                if (completionHandler != null) { completionHandler(); }
                 return;
             }
 
