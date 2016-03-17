@@ -2331,9 +2331,8 @@ namespace Couchbase.Lite
             var rev2 = unsavedRev2.Save();
 
             // Kick off a one time push replication to a mock
-            var httpClientFactory = new MockHttpClientFactory();
+            var httpClientFactory = new MockHttpClientFactory(false);
             var httpHandler = httpClientFactory.HttpHandler; 
-            httpHandler.AddResponderFakeLocalDocumentUpdate404();
             httpHandler.SetResponder(doc.Id, (request) => 
             {
                 var content = new Dictionary<string, object>()
@@ -2411,9 +2410,8 @@ namespace Couchbase.Lite
             Assert.IsNotNull(rev2);
             unsavedRev2.Dispose();
 
-            var httpClientFactory = new MockHttpClientFactory();
-            var httpHandler = httpClientFactory.HttpHandler; 
-            httpHandler.AddResponderFakeLocalDocumentUpdate404();
+            var httpClientFactory = new MockHttpClientFactory(false);
+            var httpHandler = httpClientFactory.HttpHandler;
 
             var responders = new List<MockHttpRequestHandler.HttpResponseDelegate>();
             responders.Add((request) => 

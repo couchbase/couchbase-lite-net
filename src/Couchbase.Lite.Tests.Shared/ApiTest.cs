@@ -91,7 +91,7 @@ namespace Couchbase.Lite
 
             var dbNames = manager.AllDatabaseNames;
             Assert.IsFalse(dbNames.Contains<String>("foo"));
-            Assert.IsTrue(dbNames.Contains(DefaultTestDb));
+            Assert.IsTrue(dbNames.Contains(database.Name));
         }
 
         [Test]
@@ -101,7 +101,7 @@ namespace Couchbase.Lite
             properties["testName"] = "testCreateDocument";
             properties["tag"] = 1337L;
 
-            var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = manager.GetExistingDatabase(database.Name);
             var doc = CreateDocumentWithProperties(db, properties);
             var docID = doc.Id;
             Assert.IsTrue(docID.Length > 10, "Invalid doc ID: " + docID);
@@ -150,7 +150,7 @@ namespace Couchbase.Lite
             properties["testName"] = "testDatabaseCompaction";
             properties["tag"] = 1337;
 
-            var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = manager.GetExistingDatabase(database.Name);
             var doc = CreateDocumentWithProperties(db, properties);
             var rev1 = doc.CurrentRevision;
             var properties2 = new Dictionary<String, Object>(properties);
@@ -337,7 +337,7 @@ namespace Couchbase.Lite
             var properties = new Dictionary<String, Object>();
             properties["testName"] = "testDeleteDocument";
 
-            var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = manager.GetExistingDatabase(database.Name);
             var doc = CreateDocumentWithProperties(db, properties);
             
             Assert.IsTrue(!doc.Deleted);
@@ -356,7 +356,7 @@ namespace Couchbase.Lite
             var properties = new Dictionary<String, Object>();
             properties["testName"] = "testPurgeDocument";
 
-            var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = manager.GetExistingDatabase(database.Name);
             var doc = CreateDocumentWithProperties(db, properties);
             Assert.IsNotNull(doc);
 
@@ -388,7 +388,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestAllDocuments()
         {
-            var db = manager.GetExistingDatabase(DefaultTestDb); 
+            var db = manager.GetExistingDatabase(database.Name); 
 
             const int docsCount = 5;
             CreateDocuments(db, n: docsCount);
@@ -432,7 +432,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestLocalDocs()
         {
-            var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = manager.GetExistingDatabase(database.Name);
 
             var properties = new Dictionary<String, Object>();
             properties["foo"] = "bar";

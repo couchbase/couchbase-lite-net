@@ -1313,18 +1313,19 @@ namespace Couchbase.Lite
             var basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:borden"));
             _listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
 
-            SendRequest("GET", "/cblitetest", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
+            var endpoint = String.Format("/{0}", database.Name);
+            SendRequest("GET", endpoint, new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
             {
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
             });
 
             basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:bogus"));
-            SendRequest("GET", "/cblitetest", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
+            SendRequest("GET", endpoint, new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
             {
                 Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
             });
 
-            SendRequest("GET", "/cblitetest", null, null, false, (r) =>
+            SendRequest("GET", endpoint, null, null, false, (r) =>
             {
                 Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
             });

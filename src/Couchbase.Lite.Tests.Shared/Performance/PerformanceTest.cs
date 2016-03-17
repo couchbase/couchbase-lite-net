@@ -457,12 +457,13 @@ namespace Couchbase.Lite
             });
 
             Assert.IsTrue(success);
+            var name = database.Name;
             TimeBlock(String.Format("{0}, {1}, {2}", GetNumberOfDocuments(TEST_NAME), GetSizeOfDocument(TEST_NAME), 
                 GetNumberOfRounds(TEST_NAME)), () =>
             {
                 for(int i = 0; i < GetNumberOfRounds(TEST_NAME); i++) {
                     Assert.DoesNotThrow(() => database.Close().Wait(15000));
-                    database = manager.GetDatabase(DefaultTestDb);
+                    database = manager.GetDatabase(name);
                     Assert.IsNotNull(database);
                 }
             });

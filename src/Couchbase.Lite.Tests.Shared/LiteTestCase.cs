@@ -76,7 +76,8 @@ namespace Couchbase.Lite
 
         protected readonly string _storageType;
 
-        protected string DefaultTestDb = "cblitetest";
+        private string DefaultTestDb = "cblitetest";
+        private long DefaultTestDbCounter = 1;
 
         private static DirectoryInfo _rootDir;
         public static DirectoryInfo RootDirectory { 
@@ -156,10 +157,9 @@ namespace Couchbase.Lite
             string serverPath = GetServerPath();
             var path = new DirectoryInfo(serverPath);
 
-            if (path.Exists)
-                path.Delete(true);
-
-            path.Create();
+            if (!path.Exists) {
+                path.Create();
+            }
 
             var testPath = path.CreateSubdirectory("tests");
             manager = new Manager(testPath, Manager.DefaultOptions);
@@ -176,13 +176,7 @@ namespace Couchbase.Lite
 
         protected Database StartDatabase()
         {
-            if (database != null)
-            {
-                database.Close();
-                database.Delete();
-                database = null;
-            }
-            database = EnsureEmptyDatabase(DefaultTestDb);
+            database = EnsureEmptyDatabase(DefaultTestDb + DefaultTestDbCounter++);
             return database;
         }
 
@@ -190,7 +184,7 @@ namespace Couchbase.Lite
         {
             if (database != null)
             {
-                database.Close().Wait();
+                database.Close().ContinueWith(t => database.Delete());
             }
         }
 

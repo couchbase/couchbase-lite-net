@@ -128,13 +128,9 @@
       <Project>{04911EDB-B868-4DD7-9121-2E8A99C9833D}</Project>
       <Name>storage.forestdb.ios</Name>
     </ProjectReference>
-    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.ios\storage.systemsqlite.ios.csproj">
-      <Project>{374A309A-BEC8-4750-BCBF-97895BDFDC13}</Project>
-      <Name>storage.systemsqlite.ios</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj">
-      <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
-      <Name>websocket-sharp.ios</Name>
+    <ProjectReference Include="..\StorageEngines\SQLCipher\storage.sqlcipher.ios\storage.sqlcipher.ios.csproj">
+      <Project>{80F83EB6-132C-4062-BDB6-2CBCC32C77EC}</Project>
+      <Name>storage.sqlcipher.ios</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -199,6 +195,14 @@
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartStars.mime">
       <Link>Resources\MultipartStars.mime</Link>
       <LogicalName>MultipartStars.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120-forestdb.zip">
+      <Link>Resources\android120-forestdb.zip</Link>
+      <LogicalName>ouchbaseLiteiOSTests.Assets.android120-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120-forestdb.zip">
+      <Link>Resources\ios120-forestdb.zip</Link>
+      <LogicalName>ouchbaseLiteiOSTests.Assets.ios120-forestdb.zip</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

@@ -166,6 +166,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Platform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\IDeferredDisposable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\DeferredDisposeTracker.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

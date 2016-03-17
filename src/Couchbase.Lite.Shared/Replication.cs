@@ -995,8 +995,10 @@ namespace Couchbase.Lite
             sessionID = string.Format("repl{0:000}", Interlocked.Increment(ref _lastSessionID));
             Log.I(TAG, "Beginning replication process...");
             LastSequence = null;
-            Misc.SafeDispose(ref _client);
-            _client = _clientFactory.GetHttpClient(_cookieStore, true);
+            if (_client == null) {
+                _client = _clientFactory.GetHttpClient(_cookieStore, true);
+                _client.DisposeTracker.Disposed += (sender, e) => _client = null;
+            }
 
             CheckSession();
 
@@ -1155,7 +1157,7 @@ namespace Couchbase.Lite
         internal virtual void Stopping()
         {
             Log.V(TAG, "    {0} Stopping", _replicatorID);
-            if(!LocalDatabase.IsOpen) {
+            if(_client == null) {
                 return; // This logic has already been handled by DatabaseClosing()
             }
 
@@ -1220,8 +1222,15 @@ namespace Couchbase.Lite
                 : CancellationTokenSource.Token;
 
             Log.D(TAG, "{0} - Sending async {1} request to: {2}", _replicatorID, method, url);
-            _client.Authenticator = Authenticator;
-            var t = _client.SendAsync(message, token).ContinueWith(response =>
+
+            var client = _client;
+            if (client == null || !client.DisposeTracker.Acquire()) {
+                Log.W(TAG, "Attempt to send a message after replicator was stopped, aborting...");
+                return null;
+            }
+
+            client.Authenticator = Authenticator;
+            var t = client.SendAsync(message, token).ContinueWith(response =>
             {
                 try {
                     HttpResponseMessage result = null;
@@ -1283,6 +1292,7 @@ namespace Couchbase.Lite
                 } finally {
                     Task dummy;
                     _requests.TryRemove(message, out dummy);
+                    client.DisposeTracker.Release();
                 }
             }, token);
 
@@ -1603,8 +1613,9 @@ namespace Couchbase.Lite
                     reachabilityManager.StatusChanged -= NetworkStatusChanged;
                 }
 
-                Stop();
+                Misc.SafeDispose(ref _client);
                 evt.Signal();
+                Stop();
             });
         }
 
@@ -1800,10 +1811,6 @@ namespace Couchbase.Lite
                     completionHandler ();
                 }
             });
-
-            // This request should not be canceled when the replication is told to stop:
-            Task dummy;
-            _requests.TryRemove(message, out dummy);
         }
 
         private void AddRequestHeaders(HttpRequestMessage request)

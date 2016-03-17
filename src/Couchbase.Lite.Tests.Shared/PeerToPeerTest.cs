@@ -106,15 +106,19 @@ namespace Couchbase.Lite
         public void TestRecreatedEndpoint()
         {
             SetupListener(false);
-            CreateDocs(database, false);
-            var repl = CreateReplication(database, true);
-            RunReplication(repl);
+            try {
+                CreateDocs(database, false);
+                var repl = CreateReplication(database, true);
+                RunReplication(repl);
 
-            Thread.Sleep(1000);
-            _listenerDB.Delete();
-            _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
-            RunReplication(repl);
-            VerifyDocs(_listenerDB, false);
+                Thread.Sleep(1000);
+                _listenerDB.Delete();
+                _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
+                RunReplication(repl);
+                VerifyDocs(_listenerDB, false);
+            } finally {
+                _listener.Stop();
+            }
         }
 
 

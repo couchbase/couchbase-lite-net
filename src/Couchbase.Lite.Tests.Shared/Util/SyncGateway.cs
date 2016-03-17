@@ -338,7 +338,7 @@ namespace Couchbase.Lite.Tests
 
         public void Dispose()
         {
-            Delete().ContinueWith(t => _httpClient.Dispose());
+            Task.Delay(5000).ContinueWith(_ => Delete().ContinueWith(t => _httpClient.Dispose()));
         }
     }
 

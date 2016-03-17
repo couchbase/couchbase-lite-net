@@ -28,10 +28,16 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
-    internal sealed class CouchbaseLiteHttpClient : IDisposable
+    internal sealed class CouchbaseLiteHttpClient : IDeferredDisposable
     {
         private readonly HttpClient _httpClient;
         private readonly DefaultAuthHandler _authHandler;
+
+        public DeferredDisposeTracker DisposeTracker
+        {
+            get { return _disposeTracker; }
+        }
+        private readonly DeferredDisposeTracker _disposeTracker;
 
         public IAuthenticator Authenticator { get; set; }
 
@@ -39,6 +45,8 @@ namespace Couchbase.Lite
         {
             _httpClient = client;
             _authHandler = authHandler;
+            _disposeTracker = new DeferredDisposeTracker("CouchbaseLiteHttpClient");
+            _disposeTracker.ReadyToDispose += OnReadyToDispose;
         }
 
         public Task<HttpResponseMessage> SendAsync(HttpRequestMessage message, CancellationToken token)
@@ -67,7 +75,16 @@ namespace Couchbase.Lite
 
         public void Dispose()
         {
+            _disposeTracker.Release();
+        }
+
+        private void OnReadyToDispose (object sender, EventArgs e)
+        {
             _httpClient.Dispose();
+            if (_authHandler != null) {
+                _authHandler.Dispose();
+            }
+            _disposeTracker.FireDisposed();
         }
     }
 }

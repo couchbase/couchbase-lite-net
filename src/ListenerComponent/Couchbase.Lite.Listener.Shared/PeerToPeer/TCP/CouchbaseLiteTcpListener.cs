@@ -179,13 +179,7 @@ namespace Couchbase.Lite.Listener.Tcp
                 return;
             }
                 
-            try {
-                _listener.Start();
-            } catch (HttpListenerException) {
-                throw new InvalidOperationException("The process cannot bind to the port.  Please use netsh to authorize the route as an administrator.  For " +
-                "more details see https://github.com/couchbase/couchbase-lite-net/wiki/Gotchas");
-            }
-
+            _listener.Start();
             var getContext = Task.Factory.FromAsync<HttpListenerContext>(_listener.BeginGetContext, _listener.EndGetContext, null);
             getContext.ContinueWith(t => ProcessRequest(t.Result));
         }
