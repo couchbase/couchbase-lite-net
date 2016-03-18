@@ -55,6 +55,15 @@ namespace Couchbase.Lite
             Log.I(TAG, "Created three keys in {0}ms", sw.ElapsedMilliseconds);
         }
 
+        protected override void SetUp()
+        {
+            base.SetUp();
+            var directory = Path.Combine(manager.Directory, "seekrit.cblite2");
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, true);
+            }
+        }
+
         [Test]
         public void TestUnencryptedDB()
         {
@@ -260,6 +269,10 @@ namespace Couchbase.Lite
             // Check that the view survived:
             Assert.AreEqual(100, query.Run().Count);
             seekrit.Dispose();
-        }  }
+        }
+    }
+
+
+
 }
 

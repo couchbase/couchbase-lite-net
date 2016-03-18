@@ -85,15 +85,13 @@ namespace Couchbase.Lite
 
             var keys = new List<object> { "master", "schlage", "medeco" };
             var values = new List<object> { 19, -75, 3.1416 };
-            var result = reduceBlock(keys, values, false);
-            var expected = new Dictionary<string, object> {
-                { "count", 3 },
-                { "sum", -52.8584 },
-                { "sumsqr", 5995.86965056 },
-                { "max", 19 },
-                { "min", -75 }
-            };
-            CollectionAssert.AreEquivalent(expected, (IEnumerable)result);
+            var result = reduceBlock(keys, values, false) as IDictionary<string, object>;
+
+            Assert.AreEqual(3, result.GetCast<int>("count"));
+            Assert.AreEqual(-52.8584, result.GetCast<double>("sum"));
+            Assert.AreEqual(5995.86965056, result.GetCast<double>("sumsqr"));
+            Assert.AreEqual(19, result.GetCast<int>("max"));
+            Assert.AreEqual(-75, result.GetCast<int>("min"));
 
             reduceBlock = c.CompileReduce("_frob", "javascript");
             Assert.IsNull(reduceBlock);

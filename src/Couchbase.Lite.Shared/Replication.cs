@@ -1260,7 +1260,7 @@ namespace Couchbase.Lite
                             if(response.IsCanceled) {
                                 error = new Exception("SendAsyncRequest Task has been canceled.");
                             } else {
-                                error = Extensions.Flatten(response.Exception);
+                                error = Sharpen.Extensions.Flatten(response.Exception);
                             }
 
                             if(error == null) {

@@ -12,6 +12,7 @@ using System.Text;
 #if __ANDROID__
 using Android.App;
 using Android.Net;
+using Android.Net.Wifi;
 using Android.Content;
 using Android.Webkit;
 using Uri = System.Uri;
@@ -83,25 +84,15 @@ namespace Couchbase.Lite
         }
 
         #if __ANDROID__
+        [BroadcastReceiver(Enabled = true, Exported = true)]
+        [IntentFilter(new string[] { ConnectivityManager.ConnectivityAction })]
         private class AndroidNetworkChangeReceiver : BroadcastReceiver
         {
             const string Tag = "AndroidNetworkChangeReceiver";
 
-            readonly private Action<NetworkReachabilityStatus> _callback;
-
-            object lockObject;
+            public Action<NetworkReachabilityStatus> Callback;
 
             private volatile Boolean _ignoreNotifications;
-
-            private NetworkReachabilityStatus _lastStatus;
-
-            public AndroidNetworkChangeReceiver(Action<NetworkReachabilityStatus> callback)
-            {
-                _callback = callback;
-                _ignoreNotifications = true;
-
-                lockObject = new object();
-            }
 
             public override void OnReceive(Context context, Intent intent)
             {
@@ -115,21 +106,13 @@ namespace Couchbase.Lite
 
                 Log.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
 
-                var manager = (ConnectivityManager)context.GetSystemService(Context.ConnectivityService);
+                var manager = ConnectivityManager.FromContext(context);
                 var networkInfo = manager.ActiveNetworkInfo;
                 var status = networkInfo == null || !networkInfo.IsConnected
                     ? NetworkReachabilityStatus.Unreachable
                     : NetworkReachabilityStatus.Reachable;
 
-                if (!status.Equals(_lastStatus))
-                {
-                    _callback(status);
-                }
-
-                lock(lockObject) 
-                {
-                    _lastStatus = status;
-                }
+                Callback(status);
             }
 
             public void EnableListening()
@@ -161,12 +144,18 @@ namespace Couchbase.Lite
         public void StartListening()
         {
             #if __ANDROID__
-            if (_receiver != null) {
+            /*var receiver = Interlocked.CompareExchange(ref _receiver, new AndroidNetworkChangeReceiver(),
+                null);
+            if (receiver != null) {
                 return; // We only need one handler.
             }
-            var intent = new IntentFilter(ConnectivityManager.ConnectivityAction);
-            _receiver = new AndroidNetworkChangeReceiver(InvokeNetworkChangeEvent);
+
+            _receiver.Callback = InvokeNetworkChangeEvent;
+            var intent = new IntentFilter();
+            intent.AddAction(ConnectivityManager.ConnectivityAction);
+            intent.AddAction(WifiManager.WifiStateChangedAction);
             Application.Context.RegisterReceiver(_receiver, intent);
+            _receiver.EnableListening();*/
             #else
             if (_isListening) {
                 return;
@@ -181,12 +170,13 @@ namespace Couchbase.Lite
         public void StopListening()
         {
             #if __ANDROID__
-            if (_receiver == null) {
+            /*var receiver = Interlocked.Exchange(ref _receiver, null);
+            if (receiver == null) {
                 return;
             }
-            _receiver.DisableListening();
-            Application.Context.UnregisterReceiver(_receiver);
-            _receiver = null;
+
+            receiver.DisableListening();
+            Application.Context.UnregisterReceiver(receiver);*/
             #else
             if (!_isListening) {
                 return;
