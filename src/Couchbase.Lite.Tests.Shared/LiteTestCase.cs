@@ -77,7 +77,7 @@ namespace Couchbase.Lite
         protected readonly string _storageType;
 
         private string DefaultTestDb = "cblitetest";
-        private long DefaultTestDbCounter = 1;
+        private static long DefaultTestDbCounter = 1;
 
         private static DirectoryInfo _rootDir;
         public static DirectoryInfo RootDirectory { 

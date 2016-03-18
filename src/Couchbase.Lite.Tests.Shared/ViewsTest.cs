@@ -867,7 +867,7 @@ namespace Couchbase.Lite
                 expectedRowBase[4]
             };
                 
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+            CollectionAssert.AreEqual(expectedRows, RowsToDicts(allDocs));
 
             // Get _only_ conflicts:
             options.AllDocsMode = AllDocsMode.OnlyConflicts;

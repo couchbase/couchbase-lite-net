@@ -73,7 +73,8 @@ namespace Couchbase.Lite
                 }
             });
 
-            Send("GET", "/_all_dbs", HttpStatusCode.OK, new List<object> { database.Name });
+            var result = Send("GET", "/_all_dbs", HttpStatusCode.OK, null);
+            CollectionAssert.Contains(result as IEnumerable, database.Name);
             Send("GET", "/non-existent", HttpStatusCode.NotFound, null);
             Send("GET", "/BadId", HttpStatusCode.BadRequest, null);
             var response = Send<IDictionary<string, object>>("PUT", "/", HttpStatusCode.MethodNotAllowed, null);
@@ -123,12 +124,14 @@ namespace Couchbase.Lite
 
             Send("PUT", "/database", HttpStatusCode.PreconditionFailed, null);
             Send("PUT", "/database2", HttpStatusCode.Created, null);
-            Send("GET", "/_all_dbs", HttpStatusCode.OK, new List<object> { database.Name, "database", "database2" });
+            var result = Send("GET", "/_all_dbs", HttpStatusCode.OK, null);
+            CollectionAssert.Contains(result as IEnumerable, "database");
+            CollectionAssert.Contains(result as IEnumerable, "database2");
             dbInfo = Send<IDictionary<string, object>>("GET", "/database2", HttpStatusCode.OK, null);
             Assert.AreEqual("database2", dbInfo.GetCast<string>("db_name"));
             Send("DELETE", "/database2", HttpStatusCode.OK, null);
-            Send("GET", "/_all_dbs", HttpStatusCode.OK, new List<object> { database.Name, "database" });
-
+            result = Send("GET", "/_all_dbs", HttpStatusCode.OK, null);
+            CollectionAssert.Contains(result as IEnumerable, "database");
             Send("PUT", "/database%2Fwith%2Fslashes", HttpStatusCode.Created, null);
             dbInfo = Send<IDictionary<string, object>>("GET", "/database%2Fwith%2Fslashes", HttpStatusCode.OK, null);
             Assert.AreEqual("database/with/slashes", dbInfo.GetCast<string>("db_name"));
@@ -697,7 +700,7 @@ namespace Couchbase.Lite
                 }
             });
 
-            endpoint = endpoint.Replace('4', '5');
+            endpoint = endpoint.Replace("=4", "=5");
             Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
                 { "last_seq", 5L }, 
                 { "results", new List<object>() }
@@ -1357,8 +1360,13 @@ namespace Couchbase.Lite
             ServicePointManager.DefaultConnectionLimit = 10;
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
+
+
             LoadCustomProperties();
             StartCBLite();
+            foreach (var dbName in manager.AllDatabaseNames) {
+                manager.GetDatabase(dbName).Delete();
+            }
 
             _listener = new CouchbaseLiteTcpListener(manager, 59840);
             _listener.Start();
@@ -1374,11 +1382,6 @@ namespace Couchbase.Lite
         [SetUp]
         protected override void SetUp()
         {
-            foreach (var name in manager.AllDatabaseNames) {
-                var db = manager.GetDatabase(name, true);
-                db.Delete();
-            }
-
             StartDatabase();
             _savedMinHeartbeat = _minHeartbeat;
             _minHeartbeat = 0;

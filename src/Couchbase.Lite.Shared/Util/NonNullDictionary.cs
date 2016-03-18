@@ -51,7 +51,7 @@ namespace Couchbase.Lite.Util
     /// </summary>
     [DebuggerDisplay ("Count={Count}")]
     [DebuggerTypeProxy (typeof (CollectionDebuggerView<,>))]
-    public sealed class NonNullDictionary<K, V> : IEnumerable<KeyValuePair<K, V>>, IDictionary<K, V>
+    public sealed class NonNullDictionary<K, V> : IEnumerable<KeyValuePair<K, V>>, IDictionary, IDictionary<K, V>
     {
 
         #region Variables
@@ -181,6 +181,81 @@ namespace Couchbase.Lite.Util
         {
             get {
                 return _data.IsReadOnly;
+            }
+        }
+
+        ICollection IDictionary.Keys
+        {
+            get {
+                return ((IDictionary)_data).Keys;
+            }
+        }
+
+        ICollection IDictionary.Values
+        {
+            get {
+                return ((IDictionary)_data).Values;
+            }
+        }
+
+        IDictionaryEnumerator IDictionary.GetEnumerator()
+        {
+            return ((IDictionary)_data).GetEnumerator();
+        }
+
+        public bool Contains(object key)
+        {
+            return ((IDictionary)_data).Contains(key);
+        }
+
+        public void Add(object key, object value)
+        {
+            ((IDictionary)_data).Add(key, value);
+        }
+
+        public void Remove(object key)
+        {
+            ((IDictionary)_data).Remove(key);
+        }
+
+        object IDictionary.this[object index]
+        {
+            get
+            {
+                return ((IDictionary)_data)[index];
+            }
+            set
+            { 
+                ((IDictionary)_data)[index] = value;
+            }
+        }
+
+        public bool IsFixedSize
+        {
+            get
+            {
+                return ((IDictionary)_data).IsFixedSize;
+            }
+        }
+
+        public void CopyTo(Array array, int index)
+        {
+            ((ICollection)_data).CopyTo(array, index);
+        }
+
+        public object SyncRoot
+        {
+            get
+            {
+                return ((ICollection)_data).SyncRoot;
+            }
+        }
+
+        public bool IsSynchronized
+        {
+            get
+            {
+                return ((ICollection)_data).IsSynchronized;
             }
         }
 
