@@ -112,10 +112,11 @@ namespace Couchbase.Lite
         public bool MoveToNext ()
         {
             if (_currentRow >= 0) {
-                _currentStep = _statement.step();
-
-                if (_currentStep != raw.SQLITE_OK && _currentStep != raw.SQLITE_ROW && _currentStep != raw.SQLITE_DONE) {
-                    Log.E("Cursor", "currentStep: " + _currentStep);
+                try {
+                    _currentStep = _statement.step();
+                } catch(ugly.sqlite3_exception e) {
+                    Log.E("Cursor", "Couldn't move to next row: {0} ({1})", e.errcode, e.errmsg);
+                    throw;
                 }
             }
 

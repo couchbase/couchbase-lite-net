@@ -145,38 +145,6 @@ namespace Couchbase.Lite.Store
             }
         }
 
-        internal Status LastDbStatus
-        {
-            get
-            {
-                switch (StorageEngine.LastErrorCode) {
-                    case raw.SQLITE_OK:
-                    case raw.SQLITE_ROW:
-                    case raw.SQLITE_DONE:
-                        return new Status(StatusCode.Ok);
-                    case raw.SQLITE_BUSY:
-                    case raw.SQLITE_LOCKED:
-                        return new Status(StatusCode.DbBusy);
-                    case raw.SQLITE_CORRUPT:
-                        return new Status(StatusCode.CorruptError);
-                    case raw.SQLITE_NOTADB:
-                        return new Status(StatusCode.Unauthorized);
-                    default:
-                        Log.I(TAG, "Other LastErrorCode {0}", StorageEngine.LastErrorCode);
-                        return new Status(StatusCode.DbError);
-                }
-            }
-        }
-
-        internal Status LastDbError
-        {
-            get
-            {
-                var status = LastDbStatus;
-                return (status.Code == StatusCode.Ok) ? new Status(StatusCode.DbError) : status;
-            }
-        }
-
 
         #endregion
 
@@ -548,15 +516,15 @@ namespace Couchbase.Lite.Store
 
         private bool BeginTransaction()
         {
-            try {
-                _transactionCount = StorageEngine.BeginTransaction();
-                Log.D(TAG, "Begin transaction (level " + _transactionCount + ")");
-            } catch (SQLException e) {
-                Log.E(TAG," Error calling beginTransaction()" , e);
+            var before = _transactionCount;
+            var after = _transactionCount = StorageEngine.BeginTransaction();
+            if (before == after) {
+                Log.E(TAG, "Failed to begin SQLite transaction!");
                 return false;
+            } else {
+                Log.I(TAG, "BEGIN SQLite transaction (level {0})", after);
+                return true;
             }
-
-            return true;
         }
 
         private bool EndTransaction(bool commit)
@@ -564,20 +532,14 @@ namespace Couchbase.Lite.Store
             Debug.Assert((_transactionCount > 0));
 
             if (commit) {
-                Log.V(TAG, "    Committing transaction (level " + _transactionCount + ")");
+                Log.I(TAG, "Committing transaction (level " + _transactionCount + ")");
                 StorageEngine.SetTransactionSuccessful();
             }
             else {
-                Log.V(TAG, "    CANCEL transaction (level " + _transactionCount + ")");
+                Log.I(TAG, "CANCEL transaction (level " + _transactionCount + ")");
             }
-
-            try  {
-                _transactionCount = StorageEngine.EndTransaction();
-            } catch (SQLException e)  {
-                Log.E(TAG, " Error calling EndTransaction()", e);
-                return false;
-            }
-
+                
+            _transactionCount = StorageEngine.EndTransaction();
             if (Delegate != null) {
                 Delegate.StorageExitedTransaction(commit);
             }
@@ -1773,14 +1735,18 @@ namespace Couchbase.Lite.Store
                 var sequence = 0L;
                 try {
                     sequence = InsertRevision(newRev, docNumericId, parentSequence, true, hasAttachments, json, docType);
-                } catch(Exception) {
-                    if(StorageEngine.LastErrorCode != raw.SQLITE_CONSTRAINT) {
-                        throw new CouchbaseLiteException(String.Format("Failed to insert revision {0}", newRev),
-                            LastDbError.Code);
+                } catch(CouchbaseLiteException e) {
+                    if(e.Code == StatusCode.DbError) {
+                        if(StorageEngine.LastErrorCode != raw.SQLITE_CONSTRAINT) {
+                            throw;
+                        }
                     }
 
                     Log.I(TAG, "Duplicate rev insertion {0} / {1}", docId, newRevId);
                     newRev.SetBody(null);
+                } catch(Exception e) {
+                    Log.E(TAG, "Exception caught in PutRevision", e);
+                    throw;
                 }
 
                 // Make replaced rev non-current:
