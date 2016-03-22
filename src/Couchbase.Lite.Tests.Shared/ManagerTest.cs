@@ -122,6 +122,11 @@ namespace Couchbase.Lite
 
         [Test]
         public void TestReplaceDatabaseNamedNoAttachments() {
+            var existing = manager.GetExistingDatabase("replaced");
+            if (existing != null) {
+                existing.Delete();
+            }
+
             //Copy database from assets to local storage
             var dbStream = GetAsset("noattachments.cblite");
 
@@ -136,6 +141,11 @@ namespace Couchbase.Lite
 
         [Test]
         public void TestReplaceDatabaseNamedWithAttachments() {
+            var existing = manager.GetExistingDatabase("replaced");
+            if (existing != null) {
+                existing.Delete();
+            }
+
             var dbStream = GetAsset("withattachments.cblite");
             var attachments = new Dictionary<string, Stream>();
             attachments["356a192b7913b04c54574d18c28d46e6395428ab.blob"] = GetAsset("attachment.blob");

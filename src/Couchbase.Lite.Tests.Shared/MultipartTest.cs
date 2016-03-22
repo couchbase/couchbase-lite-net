@@ -277,11 +277,9 @@ namespace Couchbase.Lite
             reader.AppendData(mime);
             Assert.IsTrue(reader.Finished);
 
-            CollectionAssert.AreEquivalent(new Dictionary<string, object> {
-                { "Content-Encoding", "gzip" },
-                { "Content-Length", "24" },
-                { "Content-Type", "star-bellies" }
-            }, _headerList[0]);
+            Assert.AreEqual("gzip", _headerList[0]["Content-Encoding"]);
+            Assert.AreEqual("24", _headerList[0]["Content-Length"]);
+            Assert.AreEqual("star-bellies", _headerList[0]["Content-Type"]);
 
             var stars = _partList[0].Decompress();
             Assert.AreEqual(Enumerable.Repeat((byte)'*', 100), stars);

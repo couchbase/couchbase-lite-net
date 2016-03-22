@@ -723,7 +723,7 @@ namespace Couchbase.Lite
             rep.Filter = properties.Get("filter") as string;
             rep.FilterParams = properties.Get("query_params") as IDictionary<string, object>;
             rep.DocIds = properties.Get("doc_ids") as IEnumerable<string>;
-            rep.RequestHeaders = results.Get("headers") as IDictionary<string, object>;
+            rep.RequestHeaders = results.Get("headers") as IDictionary<string, object> ?? new Dictionary<string, object>();
             rep.Authenticator = results.Get("authorizer") as IAuthenticator;
             if (push) {
                 ((Pusher)rep).CreateTarget = createTarget;

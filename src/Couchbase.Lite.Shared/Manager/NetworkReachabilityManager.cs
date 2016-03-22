@@ -84,13 +84,16 @@ namespace Couchbase.Lite
         }
 
         #if __ANDROID__
-        [BroadcastReceiver(Enabled = true, Exported = true)]
-        [IntentFilter(new string[] { ConnectivityManager.ConnectivityAction })]
         private class AndroidNetworkChangeReceiver : BroadcastReceiver
         {
             const string Tag = "AndroidNetworkChangeReceiver";
 
             public Action<NetworkReachabilityStatus> Callback;
+
+            public AndroidNetworkChangeReceiver(Action<NetworkReachabilityStatus> callback)
+            {
+                Callback = callback;
+            }
 
             private volatile Boolean _ignoreNotifications;
 
@@ -144,18 +147,16 @@ namespace Couchbase.Lite
         public void StartListening()
         {
             #if __ANDROID__
-            /*var receiver = Interlocked.CompareExchange(ref _receiver, new AndroidNetworkChangeReceiver(),
+            var receiver = Interlocked.CompareExchange(ref _receiver, new AndroidNetworkChangeReceiver(InvokeNetworkChangeEvent),
                 null);
             if (receiver != null) {
                 return; // We only need one handler.
             }
-
-            _receiver.Callback = InvokeNetworkChangeEvent;
+                
             var intent = new IntentFilter();
             intent.AddAction(ConnectivityManager.ConnectivityAction);
             intent.AddAction(WifiManager.WifiStateChangedAction);
             Application.Context.RegisterReceiver(_receiver, intent);
-            _receiver.EnableListening();*/
             #else
             if (_isListening) {
                 return;
@@ -170,13 +171,13 @@ namespace Couchbase.Lite
         public void StopListening()
         {
             #if __ANDROID__
-            /*var receiver = Interlocked.Exchange(ref _receiver, null);
+            var receiver = Interlocked.Exchange(ref _receiver, null);
             if (receiver == null) {
                 return;
             }
 
             receiver.DisableListening();
-            Application.Context.UnregisterReceiver(receiver);*/
+            Application.Context.UnregisterReceiver(receiver);
             #else
             if (!_isListening) {
                 return;

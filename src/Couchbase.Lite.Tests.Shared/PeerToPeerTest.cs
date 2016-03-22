@@ -68,36 +68,45 @@ namespace Couchbase.Lite
         [Test]
         public void TestExternalReplicationStart()
         {
+            var existing = manager.GetExistingDatabase("test_db");
+            if (existing != null) {
+                existing.Delete();
+            }
+
             var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
             using (var remoteDb = sg.CreateDatabase("external_replication_test")) {
                 SetupListener(false);
-                CreateDocuments(database, 10);
-                var request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
-                request.ContentType = "application/json";
-                request.Method = "POST";
-                var body = String.Format(@"{{""source"":""cblitetest"",""target"":""{0}""}}", remoteDb.RemoteUri.AbsoluteUri);
-                var bytes = Encoding.UTF8.GetBytes(body);
-                request.ContentLength = bytes.Length;
-                request.GetRequestStream().Write(bytes, 0, bytes.Length);
+                try {
+                    CreateDocuments(database, 10);
+                    var request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
+                    request.ContentType = "application/json";
+                    request.Method = "POST";
+                    var body = String.Format(@"{{""source"":""{0}"",""target"":""{1}""}}", database.Name, remoteDb.RemoteUri.AbsoluteUri);
+                    var bytes = Encoding.UTF8.GetBytes(body);
+                    request.ContentLength = bytes.Length;
+                    request.GetRequestStream().Write(bytes, 0, bytes.Length);
 
-                var response = (HttpWebResponse)request.GetResponse();
-                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                    var response = (HttpWebResponse)request.GetResponse();
+                    Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
-                request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
-                request.ContentType = "application/json";
-                request.Method = "POST";
-                body = String.Format(@"{{""source"":""{0}"",""target"":""test_db"",""create_target"":true}}",
-                    remoteDb.RemoteUri.AbsoluteUri);
-                bytes = Encoding.UTF8.GetBytes(body);
-                request.ContentLength = bytes.Length;
-                request.GetRequestStream().Write(bytes, 0, bytes.Length);
+                    request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
+                    request.ContentType = "application/json";
+                    request.Method = "POST";
+                    body = String.Format(@"{{""source"":""{0}"",""target"":""test_db"",""create_target"":true}}",
+                        remoteDb.RemoteUri.AbsoluteUri);
+                    bytes = Encoding.UTF8.GetBytes(body);
+                    request.ContentLength = bytes.Length;
+                    request.GetRequestStream().Write(bytes, 0, bytes.Length);
 
-                response = (HttpWebResponse)request.GetResponse();
-                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                    response = (HttpWebResponse)request.GetResponse();
+                    Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
-                var createdDb = manager.GetExistingDatabase("test_db");
-                Assert.IsNotNull(createdDb);
-                Assert.AreEqual(10, createdDb.GetDocumentCount());
+                    var createdDb = manager.GetExistingDatabase("test_db");
+                    Assert.IsNotNull(createdDb);
+                    Assert.AreEqual(10, createdDb.GetDocumentCount());
+                } finally {
+                    _listener.Stop();
+                }
             }
         }
 

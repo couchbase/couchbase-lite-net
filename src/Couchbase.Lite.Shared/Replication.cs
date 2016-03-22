@@ -1815,6 +1815,10 @@ namespace Couchbase.Lite
 
         private void AddRequestHeaders(HttpRequestMessage request)
         {
+            if (RequestHeaders == null || request.Headers == null) {
+                return;
+            }
+
             foreach (string requestHeaderKey in RequestHeaders.Keys) {
                 request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey).ToString());
             }

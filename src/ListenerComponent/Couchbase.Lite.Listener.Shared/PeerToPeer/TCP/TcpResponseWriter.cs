@@ -107,6 +107,7 @@ namespace Couchbase.Lite.Listener.Tcp
         public void Close()
         {
             _responseObject.Close();
+            ((System.IDisposable)_responseObject).Dispose();
         }
 
         #endregion
