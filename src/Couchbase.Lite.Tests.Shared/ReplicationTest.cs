@@ -2942,7 +2942,7 @@ namespace Couchbase.Lite
         }
 
         //Note: requires manual intervention (unplugging network cable, etc)
-        [Test]
+        //[Test]
         public void TestReactToNetworkChange()
         {
             CreateDocuments(database, 10);
