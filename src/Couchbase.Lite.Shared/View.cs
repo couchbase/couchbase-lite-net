@@ -210,8 +210,9 @@ namespace Couchbase.Lite {
                 view._updateQueue = new LinkedList<UpdateJob>();
                 view._updateQueueLock = new RefCountReaderWriterLock();
             } else {
-                view._updateQueue = groupleader._updateQueue;
-                view._updateQueueLock = groupleader._updateQueueLock.Acquire();
+                view._updateQueue = groupleader._updateQueue ?? new LinkedList<UpdateJob>();
+                view._updateQueueLock = groupleader._updateQueueLock != null ?
+                    groupleader._updateQueueLock.Acquire() : new RefCountReaderWriterLock();
             }
 
             // means 'unknown'
