@@ -83,17 +83,15 @@ namespace Couchbase.Lite.Replicator
         }
         private EventHandler<RemoteRequestEventArgs> _complete;
 
-        internal CookieStore CookieStore { get; set; }
-
         internal IAuthenticator Authenticator { get; set; }
 
         /// <exception cref="System.Exception"></exception>
-        public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
+        public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CookieStore cookieStore, CancellationTokenSource tokenSource = null)
         {
             _bulkGetUri = new Uri(AppendRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true"));
             _revs = revs;
             _db = database;
-            _httpClient = clientFactory.GetHttpClient(CookieStore, true);
+            _httpClient = clientFactory.GetHttpClient(cookieStore, true);
             _requestHeaders = requestHeaders ?? new Dictionary<string, object>();
             _tokenSource = tokenSource ?? new CancellationTokenSource();
             _body = CreatePostBody(revs, _db);

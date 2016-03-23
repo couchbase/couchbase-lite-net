@@ -50,6 +50,10 @@
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
+      <Project>{b357bac7-529e-4d81-a0d2-71041b19c8de}</Project>
+      <Name>websocket-sharp</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj">
       <Project>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</Project>
       <Name>Couchbase.Lite.Net45</Name>
@@ -57,10 +61,6 @@
     <ProjectReference Include="..\..\..\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj">
       <Project>{D68D4FED-CA32-4800-A628-58BAE485562C}</Project>
       <Name>Mono.Security-net_4_5</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
-      <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
-      <Name>websocket-sharp</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>
