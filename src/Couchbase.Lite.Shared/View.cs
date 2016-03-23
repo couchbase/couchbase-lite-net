@@ -53,6 +53,37 @@ using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite {
 
+    internal sealed class RefCountReaderWriterLock
+    {
+        public readonly ReaderWriterLockSlim Lock;
+        private int _refCount;
+        private bool _disposed;
+
+        public RefCountReaderWriterLock()
+        {
+            Lock = new ReaderWriterLockSlim();
+            _refCount = 1;
+        }
+
+        public RefCountReaderWriterLock Acquire()
+        {
+            if (_disposed) {
+                throw new ObjectDisposedException("RefCountReaderWriterLock");
+            }
+
+            Interlocked.Increment(ref _refCount);
+            return this;
+        }
+
+        public void Release()
+        {
+            if (Interlocked.Decrement(ref _refCount) == 0) {
+                _disposed = true;
+                Lock.Dispose();
+            }
+        }
+    }
+
     // TODO: Either remove or update the API defs to indicate the enum value changes, and global scope.
     /// <summary>
     /// Indicates the collation to use for sorted items in the view
@@ -96,8 +127,8 @@ namespace Couchbase.Lite {
             remove { _changed = (TypedEventHandler<View, EventArgs>)Delegate.Remove(_changed, value); }
         }
 
-        private Queue<UpdateJob> _updateQueue = new Queue<UpdateJob>();
-        private Mutex _updateQueueMutex = new Mutex();
+        private LinkedList<UpdateJob> _updateQueue;
+        private RefCountReaderWriterLock _updateQueueLock;
 
         #endregion
 
@@ -173,6 +204,15 @@ namespace Couchbase.Lite {
             view.Database = database;
             storage.Delegate = view;
             view.Name = name;
+
+            var groupleader = view.ViewsInGroup().FirstOrDefault();
+            if (groupleader == null) {
+                view._updateQueue = new LinkedList<UpdateJob>();
+                view._updateQueueLock = new RefCountReaderWriterLock();
+            } else {
+                view._updateQueue = groupleader._updateQueue;
+                view._updateQueueLock = groupleader._updateQueueLock.Acquire();
+            }
 
             // means 'unknown'
             view.Collation = ViewCollation.Unicode;
@@ -276,6 +316,7 @@ namespace Couchbase.Lite {
         { 
             Storage.DeleteView();
             Database.ForgetView(Name);
+            _updateQueueLock.Release();
             Close();
         }
 
@@ -302,15 +343,14 @@ namespace Couchbase.Lite {
 
         internal Status UpdateIndex()
         {
-            var viewsToUpdate = ViewsInGroup();
-
-            UpdateJob proposedJob = Storage.CreateUpdateJob(viewsToUpdate);
+            UpdateJob proposedJob = Storage.CreateUpdateJob(ViewsInGroup().Select(x => x.Storage));
             UpdateJob nextJob = null;
-            _updateQueueMutex.WaitOne();
+            _updateQueueLock.Lock.EnterUpgradeableReadLock();
             try {
                 if (_updateQueue.Count > 0) {
-                    nextJob = _updateQueue.Peek();
-                    if (!nextJob.Equals(proposedJob)) {
+                    nextJob = _updateQueue.FirstOrDefault(x => x.Equals(proposedJob));
+                    if(nextJob == null) {
+                        _updateQueueLock.Lock.EnterWriteLock();
                         QueueUpdate(proposedJob);
                         nextJob = proposedJob;
                     } 
@@ -320,7 +360,7 @@ namespace Couchbase.Lite {
                     nextJob.Run();
                 }
             } finally {
-                _updateQueueMutex.ReleaseMutex();
+                _updateQueueLock.Lock.ExitUpgradeableReadLock();
             }
 
             nextJob.Wait();
@@ -457,27 +497,38 @@ namespace Couchbase.Lite {
 
         #region Private Methods
 
-        private IEnumerable<IViewStore> ViewsInGroup()
+        private IEnumerable<View> ViewsInGroup()
         {
             var slash = Name.IndexOf('/');
             if (slash != -1) {
                 var prefix = Name.Substring(0, slash);
-                return Database.GetAllViews().Where(v => v.Name.StartsWith(prefix)).Select(v => v.Storage);
+                return Database.GetAllViews().Where(v => v.Name.StartsWith(prefix));
             } else {
-                return new List<IViewStore> { Storage };
+                return new List<View> { this };
             }
         }
 
         private UpdateJob QueueUpdate(UpdateJob job)
         {
             job.Finished += (sender, e) => {
-                _updateQueue.Dequeue();
-                if(_updateQueue.Count > 0) {
-                    _updateQueue.Peek().Run();
+                _updateQueueLock.Lock.EnterWriteLock();
+                try {
+                    _updateQueue.RemoveFirst();
+                    if(_updateQueue.Count > 0) {
+                        _updateQueue.First.Value.Run();
+                    }
+                } finally {
+                    _updateQueueLock.Lock.ExitWriteLock();
                 }
             };
 
-            _updateQueue.Enqueue(job);
+            _updateQueueLock.Lock.EnterWriteLock();
+            try {
+                _updateQueue.AddLast(job);
+            } finally {
+                _updateQueueLock.Lock.ExitWriteLock();
+            }
+
             return job;
         }
 

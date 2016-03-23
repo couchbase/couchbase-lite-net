@@ -606,12 +606,8 @@ namespace Couchbase.Lite.Store
             var status = false;
                 status = db.RunInTransaction(() =>
                 {
-                    // If the view the update is for doesn't need any update, don't do anything:
                     long dbMaxSequence = db.LastSequence;
                     long forViewLastSequence = LastSequenceIndexed;
-                    if (forViewLastSequence >= dbMaxSequence) {
-                        return true;
-                    }
 
                     // Check whether we need to update at all,
                     // and remove obsolete emitted results from the 'maps' table:
@@ -634,6 +630,12 @@ namespace Couchbase.Lite.Store
                             continue;
                         }
 
+                        long last = view == this ? forViewLastSequence : view.LastSequenceIndexed;
+                        if(last >= dbMaxSequence) {
+                            Log.V(TAG, "{0} is already up to date, skipping...", view.Name);
+                            continue;
+                        }
+
                         views.Add(view);
                         mapBlocks.Add(mapBlock);
 
@@ -643,7 +645,7 @@ namespace Couchbase.Lite.Store
                         int totalRows = view.TotalRows;
                         viewTotalRows[viewId] = totalRows;
 
-                        long last = view == this ? forViewLastSequence : view.LastSequenceIndexed;
+
                         viewLastSequence[i++] = last;
                         if (last < 0) {
                             throw new CouchbaseLiteException(StatusCode.DbError);
