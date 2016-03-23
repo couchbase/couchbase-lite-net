@@ -1313,6 +1313,7 @@ namespace Couchbase.Lite
             _listener.Stop();
             _listener = new CouchbaseLiteTcpListener(manager, 59840, CouchbaseLiteTcpOptions.AllowBasicAuth);
             _listener.Start();
+
             var basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:borden"));
             _listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
 

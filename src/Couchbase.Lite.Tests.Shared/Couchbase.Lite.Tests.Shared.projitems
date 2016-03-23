@@ -30,7 +30,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)ValidationsTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewsTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\AlwaysFailingClientFactory.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\CollationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ExtensionMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\FailEveryRequestHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\MockHttpClientFactory.cs" />
