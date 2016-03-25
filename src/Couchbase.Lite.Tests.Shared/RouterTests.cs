@@ -1379,8 +1379,7 @@ namespace Couchbase.Lite
             StopCBLite();
             _listener.Stop();
         }
-
-        [SetUp]
+            
         protected override void SetUp()
         {
             StartDatabase();

@@ -198,11 +198,15 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120-forestdb.zip">
       <Link>Resources\android120-forestdb.zip</Link>
-      <LogicalName>ouchbaseLiteiOSTests.Assets.android120-forestdb.zip</LogicalName>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android120-forestdb.zip</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120-forestdb.zip">
       <Link>Resources\ios120-forestdb.zip</Link>
-      <LogicalName>ouchbaseLiteiOSTests.Assets.ios120-forestdb.zip</LogicalName>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios120-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120.zip">
+      <Link>Resources\android120.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android120.zip</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

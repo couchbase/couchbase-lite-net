@@ -19,7 +19,7 @@
 // limitations under the License.
 //
 #define PARSED_KEYS
-//#define CONNECTION_PER_THREAD
+#define CONNECTION_PER_THREAD
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -77,7 +77,6 @@ namespace Couchbase.Lite.Store
 #if !CONNECTION_PER_THREAD
         private C4View *_indexDB;
 #endif
-
 
         public int TotalRows 
         {

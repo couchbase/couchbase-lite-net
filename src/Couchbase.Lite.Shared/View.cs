@@ -175,6 +175,7 @@ namespace Couchbase.Lite {
 
             // means 'unknown'
             view.Collation = ViewCollation.Unicode;
+            view.CompileFromDesignDoc();
             return view;
         }
 
