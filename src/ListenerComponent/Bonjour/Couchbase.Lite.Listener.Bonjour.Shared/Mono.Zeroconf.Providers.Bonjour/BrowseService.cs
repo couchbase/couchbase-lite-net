@@ -278,7 +278,9 @@ namespace Mono.Zeroconf.Providers.Bonjour
         }
 
         public void Dispose() {
-            _self.Free();
+            if (_self.IsAllocated) {
+                _self.Free();
+            }
         }
     }
 }

@@ -75,7 +75,10 @@ Global
 		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{b357bac7-529e-4d81-a0d2-71041b19c8de}*SharedItemsImports = 4
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{c87e0c01-aad6-46da-9935-c772c112bb18}*SharedItemsImports = 4
 		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{891a08fc-f143-4325-bc16-b9864d036b99}*SharedItemsImports = 13
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{88bb6717-85c9-46f0-923b-c263c08a189b}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{f376966c-ccab-4c5c-a81a-e2a754aa7a4c}*SharedItemsImports = 4
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
+		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{9ad3badd-4f48-4208-b601-e63987c12049}*SharedItemsImports = 4
 		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{8e6f8876-64f8-4483-adb2-d3aad5672f7c}*SharedItemsImports = 13
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d06edb2a-0ae0-4606-a8ae-aa3f6248630f}*SharedItemsImports = 13
