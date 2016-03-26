@@ -31,12 +31,17 @@ using Couchbase.Lite.Util;
 using Mono.Zeroconf.Providers.Bonjour;
 using NUnit.Framework;
 using System.Security.Cryptography;
-using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
 using Couchbase.Lite.Security;
 using Couchbase.Lite.Tests;
 using System.Text;
+
+#if NET_3_5
+using System.Net.Couchbase;
+#else
+using System.Net;
+#endif
 
 namespace Couchbase.Lite
 {
@@ -53,7 +58,7 @@ namespace Couchbase.Lite
         private CouchbaseLiteTcpListener _listener;
         private Uri _listenerDBUri;
         private ushort _port = 59840;
-        private AuthenticationSchemes _authScheme;
+        private System.Net.AuthenticationSchemes _authScheme;
         private Random _rng = new Random(DateTime.Now.Millisecond);
 
         public PeerToPeerTest(string storageType) : base(storageType) {}
@@ -87,7 +92,7 @@ namespace Couchbase.Lite
                     request.GetRequestStream().Write(bytes, 0, bytes.Length);
 
                     var response = (HttpWebResponse)request.GetResponse();
-                    Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                    Assert.AreEqual(System.Net.HttpStatusCode.OK, response.StatusCode);
 
                     request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
                     request.ContentType = "application/json";
@@ -99,7 +104,7 @@ namespace Couchbase.Lite
                     request.GetRequestStream().Write(bytes, 0, bytes.Length);
 
                     response = (HttpWebResponse)request.GetResponse();
-                    Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                    Assert.AreEqual(System.Net.HttpStatusCode.OK, response.StatusCode);
 
                     var createdDb = manager.GetExistingDatabase("test_db");
                     Assert.IsNotNull(createdDb);
@@ -185,9 +190,9 @@ namespace Couchbase.Lite
             };
 
             try {
-                var request = (HttpWebRequest)WebRequest.Create("https://127.0.0.1:59841/");
+                var request = (HttpWebRequest)WebRequest.Create("https://www.google.com/");
                 var response = (HttpWebResponse)request.GetResponse();
-                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                Assert.AreEqual(System.Net.HttpStatusCode.OK, response.StatusCode);
             } finally {
                 sslListener.Stop();
             }
@@ -346,9 +351,9 @@ namespace Couchbase.Lite
                 repl = db.CreatePullReplication(_listenerDBUri);
             }
 
-            if (_authScheme == AuthenticationSchemes.Basic) {
+            if (_authScheme == System.Net.AuthenticationSchemes.Basic) {
                 repl.Authenticator = new BasicAuthenticator("bob", "slack");
-            } else if (_authScheme == AuthenticationSchemes.Digest) {
+            } else if (_authScheme == System.Net.AuthenticationSchemes.Digest) {
                 repl.Authenticator = new DigestAuthenticator("bob", "slack");
             }
 
