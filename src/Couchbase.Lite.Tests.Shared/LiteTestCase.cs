@@ -182,9 +182,10 @@ namespace Couchbase.Lite
 
         protected void StopDatabase()
         {
-            if (database != null)
+            var d = database;
+            if (d != null)
             {
-                database.Close().ContinueWith(t => database.Delete());
+                d.Close().ContinueWith(t => d.Delete());
             }
         }
 
