@@ -105,11 +105,11 @@ namespace Couchbase.Lite
         {
             Log.V(TAG, "SetUp");
             #if !NET_3_5
-            /*if (_storageType == "ForestDB") {
+            if (_storageType == "ForestDB") {
                 CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, (level, message) =>
                     Console.WriteLine(String.Format("[CBForest {0}]: {1}", level, (string)message))
                 );
-            }*/
+            }
             #endif
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
@@ -198,7 +198,6 @@ namespace Couchbase.Lite
 
                 try {
                     db.Delete();
-                    db.Close();
                     status = true;
                 } catch (Exception e) { 
                     Log.E(TAG, "Cannot delete database " + e.Message);

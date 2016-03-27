@@ -47,6 +47,7 @@ namespace Couchbase.Lite.Store
         internal const string VIEW_INDEX_PATH_EXTENSION = "viewindex";
 
         private ForestDBCouchStore _dbStorage;
+        private CancellationTokenSource _cts = new CancellationTokenSource(); // For queries
         private string _path;
 #if CONNECTION_PER_THREAD
         private ConcurrentDictionary<int, IntPtr> _fdbConnections =
@@ -328,7 +329,7 @@ namespace Couchbase.Lite.Store
                 );
             }
 
-            return new CBForestQueryEnumerator(enumerator);
+            return new CBForestQueryEnumerator(enumerator, _cts.Token);
         }
 
         #if PARSED_KEYS
@@ -414,6 +415,7 @@ namespace Couchbase.Lite.Store
 
         public void Close()
         {
+            _cts.Cancel();
             CloseIndex();
             _dbStorage.ForgetViewStorage(Name);
         }
