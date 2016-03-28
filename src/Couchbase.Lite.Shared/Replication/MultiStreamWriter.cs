@@ -177,10 +177,14 @@ namespace Couchbase.Lite.Support
 
             Debug.Assert(output != null);
             _output = output;
-            var mre = new ManualResetEventSlim();
+            var mre = new ManualResetEvent(false);
             var tcs = new TaskCompletionSource<bool>();
-            ThreadPool.RegisterWaitForSingleObject(mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
-                null, TimeSpan.FromSeconds(30), true);
+            var handle = default(RegisteredWaitHandle);
+            handle = ThreadPool.RegisterWaitForSingleObject(mre, (o, timeout) => 
+            {
+                handle.Unregister(null);
+                tcs.SetResult(!timeout);
+            }, null, TimeSpan.FromSeconds(30), true);
             Opened(mre);
 
             return tcs.Task;
@@ -261,21 +265,20 @@ namespace Couchbase.Lite.Support
 
         #region Private Methods
 
-        private void Opened(ManualResetEventSlim doneSignal)
+        private void Opened(ManualResetEvent doneSignal)
         {
             Opened();
             _totalBytesWritten = 0;
             StartWriting(doneSignal);
         }
 
-        private void StartWriting(ManualResetEventSlim doneSignal)
+        private void StartWriting(ManualResetEvent doneSignal)
         {
             var gotInput = OpenNextInput();
             if (gotInput) {
                 _currentInput.CopyToAsync(_output, _bufferSize).ContinueWith(t => StartWriting(doneSignal));
             } else {
                 doneSignal.Set();
-                doneSignal.Dispose();
             }
         }
 

@@ -43,22 +43,20 @@ namespace Couchbase.Lite
         {
             const string expectedOutput = "\r\n--BOUNDARY\r\nContent-Length: 16\r\n\r\n<part the first>\r\n--BOUNDARY\r\nContent-Length: " +
                 "10\r\nContent-Type: something\r\n\r\n<2nd part>\r\n--BOUNDARY--";
-            for (var bufSize = 1; bufSize < expectedOutput.Length - 1; ++bufSize) {
-                var mp = new MultipartWriter("foo/bar", "BOUNDARY");
-                Assert.AreEqual("foo/bar; boundary=\"BOUNDARY\"", mp.ContentType);
-                Assert.AreEqual("BOUNDARY", mp.Boundary);
-                mp.AddData(Encoding.UTF8.GetBytes("<part the first>"));
-                mp.SetNextPartHeaders(new Dictionary<string, string> {
-                    { "Content-Type", "something" }
-                });
-                mp.AddData(Encoding.UTF8.GetBytes("<2nd part>"));
-                Assert.AreEqual(expectedOutput.Length, mp.Length);
+            var mp = new MultipartWriter("foo/bar", "BOUNDARY");
+            Assert.AreEqual("foo/bar; boundary=\"BOUNDARY\"", mp.ContentType);
+            Assert.AreEqual("BOUNDARY", mp.Boundary);
+            mp.AddData(Encoding.UTF8.GetBytes("<part the first>"));
+            mp.SetNextPartHeaders(new Dictionary<string, string> {
+                { "Content-Type", "something" }
+            });
+            mp.AddData(Encoding.UTF8.GetBytes("<2nd part>"));
+            Assert.AreEqual(expectedOutput.Length, mp.Length);
 
-                var output = mp.AllOutput();
-                Assert.IsNotNull(output);
-                Assert.AreEqual(expectedOutput, Encoding.UTF8.GetString(output.ToArray()));
-                mp.Close();
-            }
+            var output = mp.AllOutput();
+            Assert.IsNotNull(output);
+            Assert.AreEqual(expectedOutput, Encoding.UTF8.GetString(output.ToArray()));
+            mp.Close();
         }
 
         [Test]
