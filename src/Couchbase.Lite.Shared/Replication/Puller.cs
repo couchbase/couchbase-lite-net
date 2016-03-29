@@ -732,6 +732,16 @@ namespace Couchbase.Lite.Replicator
 
         protected override void StopGraceful()
         {
+            var changeTrackerCopy = _changeTracker;
+            if (changeTrackerCopy != null) {
+                Log.D(TAG, "stopping changetracker " + _changeTracker);
+
+                changeTrackerCopy.Client = null;
+                // stop it from calling my changeTrackerStopped()
+                changeTrackerCopy.Stop();
+                _changeTracker = null;
+            }
+
             StopRemoteRequests();
             lock (_locker) {
                 _revsToPull = null;

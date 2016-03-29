@@ -1219,12 +1219,12 @@ namespace Couchbase.Lite
             });
         }
 
-        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler)
+        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler, bool ignoreCancel = false)
         {
             try {
                 var urlStr = BuildRelativeURLString(relativePath);
                 var url = new Uri(urlStr);
-                return SendAsyncRequest(method, url, body, completionHandler);
+                return SendAsyncRequest(method, url, body, completionHandler, ignoreCancel);
             } catch (UriFormatException e) {
                 throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG, "Malformed URL for async request");
             } catch (Exception e) {
@@ -1247,7 +1247,7 @@ namespace Couchbase.Lite
             return remoteUrlString + relativePath;
         }
 
-        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler)
+        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler, bool ignoreCancel)
         {
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
@@ -1261,7 +1261,7 @@ namespace Couchbase.Lite
                 message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             }
 
-            var token = _remoteRequestCancellationSource.Token;
+            var token = ignoreCancel ? CancellationToken.None : _remoteRequestCancellationSource.Token;
             Log.To.Sync.V(TAG, "{0} - Sending {1} request to: {2}", _replicatorID, method, new SecureLogUri(url));
             _client.Authenticator = Authenticator;
             var t = _client.SendAsync(message, token).ContinueWith(response =>
@@ -1879,7 +1879,7 @@ namespace Couchbase.Lite
                 if (completionHandler != null) {
                     completionHandler ();
                 }
-            });
+            }, true);
 
             // This request should not be canceled when the replication is told to stop:
             Task dummy;
