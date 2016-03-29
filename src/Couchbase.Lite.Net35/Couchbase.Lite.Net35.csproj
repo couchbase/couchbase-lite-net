@@ -85,21 +85,21 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
-      <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
-      <Name>Rackspace.Threading.net35-client</Name>
-    </ProjectReference>
-    <ProjectReference Include="vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
-      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
-      <Name>System.Net.Http-net_4_5</Name>
-    </ProjectReference>
-    <ProjectReference Include="vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
-      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
-      <Name>System.Threading.Tasks.Net35</Name>
-    </ProjectReference>
     <ProjectReference Include="vendor\Stateless\Stateless\Stateless.csproj">
       <Project>{A15EEC02-60EC-4705-A58B-A6ECD55A9628}</Project>
       <Name>Stateless</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
+      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
+      <Name>System.Net.Http-net_4_5</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
+      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
+      <Name>System.Threading.Tasks.Net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
+      <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
+      <Name>Rackspace.Threading.net35-client</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

@@ -109,10 +109,10 @@ namespace Couchbase.Lite.Listener.Tcp
             _listener.UserCredentialsFinder = GetCredential;
             if (options.HasFlag(CouchbaseLiteTcpOptions.UseTLS)) {
                 #if NET_3_5
-                _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls;
+                throw new NotSupportedException("TLS listener is not supported on .NET 3.5");
                 #else
                 _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
-                #endif
+
                 _listener.SslConfiguration.ClientCertificateRequired = false;
                 if (sslCert == null) {
                     Log.I(TAG, "Generating X509 certificate for listener...");
@@ -120,6 +120,7 @@ namespace Couchbase.Lite.Listener.Tcp
                 }
 
                 _listener.SslConfiguration.ServerCertificate = sslCert;
+                #endif
             }
         }
 
