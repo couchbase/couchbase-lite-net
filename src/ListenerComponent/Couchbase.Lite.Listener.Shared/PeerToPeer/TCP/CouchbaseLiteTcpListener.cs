@@ -104,7 +104,7 @@ namespace Couchbase.Lite.Listener.Tcp
 
             _listener.UserCredentialsFinder = GetCredential;
             if (options.HasFlag(CouchbaseLiteTcpOptions.UseTLS)) {
-                _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls;
+                _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
                 _listener.SslConfiguration.ClientCertificateRequired = false;
                 if (sslCert == null) {
                     Log.To.Listener.I(TAG, "Generating X509 certificate for listener...");
