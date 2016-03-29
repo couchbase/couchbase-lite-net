@@ -36,18 +36,14 @@
     <Reference Include="Xamarin.iOS" />
     <Reference Include="System.Net.Http" />
     <Reference Include="Jint">
-      <HintPath>..\..\packages\Jint.2.4.0\lib\portable-net40+sl50+win+wpa81+wp80\Jint.dll</HintPath>
+      <HintPath>..\..\packages\Jint.2.8\lib\portable-net40+sl50+win+WindowsPhoneApp81+wp80\Jint.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Security" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
       <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
@@ -59,5 +55,12 @@
       <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
       <Name>websocket-sharp.ios</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\vendor\Mono\Mono.Security\Mono.Security-ios.csproj">
+      <Project>{83F75E53-48BE-4F3C-8D79-62CBD5050792}</Project>
+      <Name>Mono.Security-ios</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
