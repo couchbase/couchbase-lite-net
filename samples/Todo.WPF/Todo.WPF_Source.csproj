@@ -103,6 +103,14 @@
       <Project>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</Project>
       <Name>Couchbase.Lite.Net45</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\src\StorageEngines\ForestDB\storage.forestdb.net45\storage.forestdb.net45.csproj">
+      <Project>{666b3f9b-dc39-421e-9e4e-c5b666023fb0}</Project>
+      <Name>storage.forestdb.net45</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\StorageEngines\SystemSQLite\storage.systemsqlite.net45\storage.systemsqlite.net45.csproj">
+      <Project>{88bb6717-85c9-46f0-923b-c263c08a189b}</Project>
+      <Name>storage.systemsqlite.net45</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\..\src\StorageEngines\SystemSQLite\storage.systemsqlite.net35\bin\$(Configuration)\net35.targets" />

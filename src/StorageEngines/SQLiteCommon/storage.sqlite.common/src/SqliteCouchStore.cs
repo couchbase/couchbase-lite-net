@@ -944,6 +944,8 @@ namespace Couchbase.Lite.Store
         public void SetEncryptionKey(SymmetricKey key)
         {
             #if !ENCRYPTION
+            Log.E(TAG, "This store does not support encryption.  Be sure you have included " +
+                "the proper projects or nuget packages, throwing...");
             throw new InvalidOperationException("This store does not support encryption");
             #else
             _encryptionKey = key;
@@ -953,6 +955,8 @@ namespace Couchbase.Lite.Store
         public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
         {
             #if !ENCRYPTION
+            Log.E(TAG, "This store does not support encryption.  Be sure you have included " +
+                "the proper projects or nuget packages, throwing...");
             throw new InvalidOperationException("This store does not support encryption");
             #else
             // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export

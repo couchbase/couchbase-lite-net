@@ -2060,6 +2060,10 @@ namespace Couchbase.Lite
             }
 
             if (primaryStorage == null) {
+                Log.E(TAG, "Implementation for {0} storage engine not found.  Be sure " +
+                    "that the appropriate Nuget package is installed or if building from source that the appropriate " +
+                    "project is referenced, throwing..."
+                    , storageType);
                 throw new CouchbaseLiteException("Implementation for {0} storage engine not found.  Be sure " +
                     "that the appropriate Nuget package is installed or if building from source that the appropriate " +
                     "project is referenced"
@@ -2070,7 +2074,6 @@ namespace Couchbase.Lite
             var upgrade = false;
             var primarySQLite = storageType == StorageEngineTypes.SQLite;
             var otherStorage = primarySQLite ? GetForestDBStorageClass() : GetSQLiteStorageClass();
-
 
             var primaryStorageInstance = (ICouchStore)Activator.CreateInstance(primaryStorage);
             var otherStorageInstance = otherStorage != null ? (ICouchStore)Activator.CreateInstance(otherStorage) : null;

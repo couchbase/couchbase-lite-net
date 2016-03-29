@@ -13,7 +13,8 @@
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
-    <NuGetPackageImportStamp>93ffcff9</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">.\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkProfile />
@@ -91,9 +92,13 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Couchbase.Lite, Version=1.1.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>packages\Couchbase.Lite.1.1.2.0\lib\net45\Couchbase.Lite.dll</HintPath>
+    <Reference Include="Couchbase.Lite, Version=1.2.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Couchbase.Lite.1.2.1\lib\net45\Couchbase.Lite.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Couchbase.Lite.Storage.SystemSQLite, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Couchbase.Lite.Storage.SystemSQLite.1.2.1\lib\net45\Couchbase.Lite.Storage.SystemSQLite.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib.Portable, Version=0.86.0.51803, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -105,17 +110,17 @@
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="SQLitePCL.raw, Version=0.8.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>packages\SQLitePCL.raw.0.8.1\lib\net45\SQLitePCL.raw.dll</HintPath>
+    <Reference Include="SQLitePCL.raw, Version=0.8.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\SQLitePCL.raw.0.8.6\lib\net45\SQLitePCL.raw.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>packages\SQLitePCL.ugly.0.8.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <HintPath>packages\SQLitePCL.ugly.0.8.6\lib\net35\SQLitePCL.ugly.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="Stateless, Version=2.5.21.0, Culture=neutral, PublicKeyToken=93038f0927583c9a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>packages\Stateless.2.5.21.0\lib\portable-net40+sl50+win+wp80\Stateless.dll</HintPath>
+    <Reference Include="Stateless, Version=2.5.61.0, Culture=neutral, PublicKeyToken=93038f0927583c9a, processorArchitecture=MSIL">
+      <HintPath>packages\Stateless.2.5.61.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -128,10 +133,10 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
-    <Error Condition="!Exists('packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets'))" />
+    <Error Condition="!Exists('packages\SQLitePCL.raw.0.8.6\build\net45\SQLitePCL.raw.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\SQLitePCL.raw.0.8.6\build\net45\SQLitePCL.raw.targets'))" />
   </Target>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets" Condition="Exists('packages\SQLitePCL.raw.0.8.1\build\net45\SQLitePCL.raw.targets')" />
+  <Import Project="packages\SQLitePCL.raw.0.8.6\build\net45\SQLitePCL.raw.targets" Condition="Exists('packages\SQLitePCL.raw.0.8.6\build\net45\SQLitePCL.raw.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

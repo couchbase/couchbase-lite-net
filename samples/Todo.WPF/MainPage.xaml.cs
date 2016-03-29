@@ -1,4 +1,5 @@
 ﻿using Couchbase.Lite;
+using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using System;
 using System.Collections.Generic;
@@ -88,7 +89,23 @@ namespace Todo.WPF
 
         private void InitializeCouchbase()
         {
-            _db = Manager.SharedInstance.GetDatabase("wpf-lite");
+            var opts = new DatabaseOptions() {
+                Create = true
+            };
+
+            // Uncomment this line to get encryption functionality
+            // On the source project the storage.sqlcipher.net45 project
+            // must be referenced.  On the package project the 
+            // Couchbase.Lite.Storage.SQLCipher package must be included
+            //opts.EncryptionKey = new SymmetricKey("foo");
+
+            // Uncomment this line to get ForestDB functionality
+            // Make sure to either reference the storage.forestdb.net45
+            // project or include the Couchbase.Lite.Storage.ForestDB
+            // nuget package as necessary
+            //opts.StorageType = StorageEngineTypes.ForestDB;
+
+            _db = Manager.SharedInstance.OpenDatabase("wpf-lite", opts);
             _viewModel = new SimpleViewModel(new SimpleModel(Manager.SharedInstance, "wpf-lite"));
             if (_viewModel.SyncURL != null)
             {
