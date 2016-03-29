@@ -183,9 +183,8 @@ namespace Couchbase.Lite.Internal
             if (!IsRunning) {
                 return;
             }
-
-            var err = Misc.Flatten(e);
-            if (err == null) {
+                
+            if (e == null) {
                 // No error occurred, keep going if continuous
                 if (Continuous) {
                     PerformRetry(false);
@@ -217,9 +216,8 @@ namespace Couchbase.Lite.Internal
 
             if (String.IsNullOrEmpty(statusCode)) {
                 Log.To.ChangeTracker.I(Tag, String.Format
-                    ("{0} got an exception, stopping NOW...", this), err);
+                    ("{0} got an exception, stopping NOW...", this), e);
             } else {
-                
                 Log.To.ChangeTracker.I(Tag, String.Format
                     ("{0} got a non-transient error ({1}), stopping NOW...", this, statusCode));
             }
@@ -284,12 +282,11 @@ namespace Couchbase.Lite.Internal
 
                 return ResponseFailed(response);
             }
-
-            var err = Misc.Flatten(responseTask.Exception);
-            if(RetryIfFailedPost(err)) {
+                ;
+            if(RetryIfFailedPost(responseTask.Exception)) {
                 return true;
             } else {
-                RetryOrStopIfNecessary(err);
+                RetryOrStopIfNecessary(responseTask.Exception);
             }
 
             return true;

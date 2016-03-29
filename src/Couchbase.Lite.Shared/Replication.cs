@@ -407,7 +407,7 @@ namespace Couchbase.Lite
             set
             {
                 if (value != _lastError) {
-                    Log.To.Sync.I(TAG, "Error set during replication (application may continue)", value);
+                    Log.To.Sync.I(TAG, "Error set during replication (application may continue)", Misc.Flatten(value).FirstOrDefault());
                     _lastError = value;
                     NotifyChangeListeners();
                 }
@@ -1281,7 +1281,7 @@ namespace Couchbase.Lite
                             if(response.IsCanceled) {
                                 error = new Exception("SendAsyncRequest Task has been canceled.");
                             } else {
-                                error = Misc.Flatten(response.Exception);
+                                error = Misc.Flatten(response.Exception).FirstOrDefault();
                             }
 
                             if(error == null) {

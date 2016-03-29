@@ -152,7 +152,7 @@ namespace Couchbase.Lite.Util
         public void W(string tag, Exception tr)
         {
             lock (_locker) {
-                _ts.WriteLine(Misc.Flatten(tr).Message, tag); 
+                _ts.WriteLine(Misc.Flatten(tr), tag); 
             }
         }
 

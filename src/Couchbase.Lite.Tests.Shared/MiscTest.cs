@@ -54,6 +54,9 @@ using Couchbase.Lite.Storage.ForestDB;
 using Couchbase.Lite.Configuration;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Net.Sockets;
+using System.Linq;
 
 namespace Couchbase.Lite
 {
@@ -87,6 +90,21 @@ namespace Couchbase.Lite
             Assert.AreEqual(expectedTime, resultObj);
             Assert.AreEqual(expectedTime.Offset, ((DateTimeOffset)resultObj).Offset);
         }
+
+        [Test]
+        public void TestExceptionEnumerable()
+        {
+            var innerException = new SocketException();
+            var nextException = new HttpRequestException("Socket exception", innerException);
+            var otherNextException = new CouchbaseLiteException();
+            var aggregate = new AggregateException("OMG", nextException, otherNextException);
+
+            string statusCode;
+            Assert.IsTrue(Misc.IsTransientNetworkError(aggregate, out statusCode));
+            CollectionAssert.AreEqual(new Exception[] { innerException, nextException, otherNextException  }, 
+                new ExceptionEnumerable(aggregate).ToArray());
+        }
+
 
         [Test]
         public void TestNetworkAvailabilityChanged()
@@ -162,9 +180,9 @@ namespace Couchbase.Lite
         [Test]
         public void TestForestDBViewNameEscaping()
         {
-            var invalidName = "#@vuName!!/crazy:Ãû";
+            var invalidName = "#@vuName!!/crazy:ï¿½ï¿½";
             var escapedName = ForestDBViewStore.ViewNameToFilename(invalidName);
-            Assert.AreEqual("@23@40vuName@21@21@2fcrazy@3aÃû.viewindex", escapedName);
+            Assert.AreEqual("@23@40vuName@21@21@2fcrazy@3aï¿½ï¿½.viewindex", escapedName);
 
             var unescapedName = ForestDBViewStore.FileNameToViewName(escapedName);
             Assert.AreEqual(invalidName, unescapedName);
