@@ -999,6 +999,9 @@ namespace Couchbase.Lite
                 return;
             }
 
+            var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+            reachabilityManager.StatusChanged += NetworkStatusChanged;
+
             if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri)) {
                 Log.To.Sync.I(TAG, "Remote endpoint is not reachable, going offline...");
                 LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
@@ -1040,9 +1043,6 @@ namespace Couchbase.Lite
             _client.Timeout = ReplicationOptions.RequestTimeout;
 
             CheckSession();
-
-            var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
-            reachabilityManager.StatusChanged += NetworkStatusChanged;
         }
 
         /// <summary>
@@ -1168,12 +1168,13 @@ namespace Couchbase.Lite
 
             _continuous = false;
             if (Batcher != null)  {
-                Batcher.FlushAll();
+                Batcher.Clear();
             }
 
             var master = CancellationTokenSource;
             CancellationTokenSource = new CancellationTokenSource();
             master.Cancel();
+            FireTrigger(ReplicationTrigger.StopImmediate);
         }
 
         #endregion
@@ -1345,7 +1346,7 @@ namespace Couchbase.Lite
                 AddRequestHeaders(message);
 
                 _client.Authenticator = Authenticator;
-                _client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
+                var request = _client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -1436,9 +1437,12 @@ namespace Couchbase.Lite
                         Log.To.Sync.W(TAG, "Got exception during SendAsyncMultipartDownload, aborting...");
                         error = e;
                     } finally {
+                        Task dummy;
+                        _requests.TryRemove(message, out dummy);
                         responseMessage.Result.Dispose();
                     }
                 }), WorkExecutor.Scheduler);
+                _requests.TryAdd(message, request);
             } catch (UriFormatException e) {
                 Log.To.Sync.W(TAG, "Malformed URL for async request, aborting...", e);
             }
@@ -1513,10 +1517,6 @@ namespace Couchbase.Lite
         /// </remarks>
         internal string RemoteCheckpointDocID(string localUUID)
         {
-            if (!LocalDatabase.IsOpen) {
-                return null;
-            }
-
             // canonicalization: make sure it produces the same checkpoint id regardless of
             // ordering of filterparams / docids
             IDictionary<String, Object> filterParamsCanonical = null;
@@ -1831,6 +1831,7 @@ namespace Couchbase.Lite
             var remoteCheckpointDocID = RemoteCheckpointDocID();
             if (String.IsNullOrEmpty(remoteCheckpointDocID)) {
                 Log.To.Sync.W(TAG, "remoteCheckpointDocID is null for {0}, aborting SaveLastSequence", this);
+                if (completionHandler != null) { completionHandler(); }
                 return;
             }
 
@@ -2250,6 +2251,11 @@ namespace Couchbase.Lite
             _completedChangesCount = sender.CompletedChangesCount;
             _status = sender.Status;
             _lastError = sender.LastError;
+
+            if (_status == ReplicationStatus.Offline && transition != null && transition.Destination == ReplicationState.Running) {
+                _status = ReplicationStatus.Active;
+            }
+
         }
     }
 

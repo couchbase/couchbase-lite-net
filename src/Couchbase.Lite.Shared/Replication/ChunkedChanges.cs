@@ -28,6 +28,7 @@ using Couchbase.Lite.Util;
 using ICSharpCode.SharpZipLib.Checksums;
 using ICSharpCode.SharpZipLib.GZip;
 using ICSharpCode.SharpZipLib.Zip.Compression;
+using System.Threading;
 
 namespace Couchbase.Lite.Internal
 {
@@ -68,13 +69,14 @@ namespace Couchbase.Lite.Internal
 
         #region Constructors
 
-        public ChunkedChanges(bool compressed)
+        public ChunkedChanges(bool compressed, CancellationToken token)
         {
             _innerStream = new ChunkStream();
             if (compressed) {
                 _inflater = new Inflater(true);
             }
 
+            token.Register(Dispose);
             Task.Factory.StartNew(Process, TaskCreationOptions.LongRunning);
         }
 

@@ -311,7 +311,6 @@ namespace Couchbase.Lite.Internal
 
         private Task ChangeFeedResponseHandler(Task<HttpResponseMessage> responseTask)
         {
-            Misc.SafeDispose(ref changesFeedRequestTokenSource);
             if (ResponseFailed(responseTask)) {
                 return Task.FromResult(false);
             }
@@ -328,7 +327,7 @@ namespace Couchbase.Lite.Internal
             return response.Content.ReadAsStreamAsync().ContinueWith((Task<Stream> t) =>
             {
                 try {
-                    var result = _responseLogic.ProcessResponseStream(t.Result);
+                    var result = _responseLogic.ProcessResponseStream(t.Result, changesFeedRequestTokenSource.Token);
                     Backoff.ResetBackoff();
                     if(result == ChangeTrackerResponseCode.ChangeHeartbeat) {
                         Heartbeat = _responseLogic.Heartbeat;
@@ -347,6 +346,7 @@ namespace Couchbase.Lite.Internal
                 } catch (Exception e) {
                     RetryOrStopIfNecessary(e);
                 } finally {
+                    Misc.SafeDispose(ref changesFeedRequestTokenSource);
                     response.Dispose();
                 }
             });

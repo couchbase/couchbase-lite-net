@@ -36,10 +36,10 @@ namespace Couchbase.Lite.Internal
         public Action<IDictionary<string, object>> OnChangeFound { get; set; }
         public Action<Exception> OnFinished { get; set; }
 
-        private ChangeTrackerResponseCode ProcessGzippedStream(Stream stream)
+        private ChangeTrackerResponseCode ProcessGzippedStream(Stream stream, CancellationToken token)
         {
             if (_changeProcessor == null) {
-                _changeProcessor = new ChunkedChanges(true);
+                _changeProcessor = new ChunkedChanges(true, token);
                 SetupChangeProcessorCallback();
             }
 
@@ -47,10 +47,10 @@ namespace Couchbase.Lite.Internal
             return ChangeTrackerResponseCode.Normal;
         }
 
-        private ChangeTrackerResponseCode ProcessRegularStream(Stream stream)
+        private ChangeTrackerResponseCode ProcessRegularStream(Stream stream, CancellationToken token)
         {
             if (_changeProcessor == null) {
-                _changeProcessor = new ChunkedChanges(false);
+                _changeProcessor = new ChunkedChanges(false, token);
                 SetupChangeProcessorCallback();
             }
 
@@ -89,13 +89,13 @@ namespace Couchbase.Lite.Internal
 
         #region IChangeTrackerResponseLogic
 
-        public ChangeTrackerResponseCode ProcessResponseStream(Stream stream)
+        public ChangeTrackerResponseCode ProcessResponseStream(Stream stream, CancellationToken token)
         {
             var type = stream.ReadByte();
             if(type == 1) {
-                return ProcessRegularStream(stream);
+                return ProcessRegularStream(stream, token);
             } else {
-                return ProcessGzippedStream(stream);
+                return ProcessGzippedStream(stream, token);
             }
         }
 

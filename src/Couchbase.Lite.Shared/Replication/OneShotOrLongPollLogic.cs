@@ -47,12 +47,12 @@ namespace Couchbase.Lite.Internal
 
         public Action<Exception> OnFinished { get; set; }
 
-        private bool ReceivedPollResponse(IJsonSerializer jsonReader, ref bool timedOut)
+        private bool ReceivedPollResponse(IJsonSerializer jsonReader, CancellationToken token, ref bool timedOut)
         {
             bool started = false;
             var start = DateTime.Now;
             try {
-                while (jsonReader.Read()) {
+                while (jsonReader.Read() && !token.IsCancellationRequested) {
                     _pauseWait.Wait();
                     if (jsonReader.CurrentToken == JsonToken.StartArray) {
                         timedOut = true;
@@ -95,13 +95,13 @@ namespace Couchbase.Lite.Internal
 
         #region IChangeTrackerResponseLogic
 
-        public ChangeTrackerResponseCode ProcessResponseStream(Stream stream)
+        public ChangeTrackerResponseCode ProcessResponseStream(Stream stream, CancellationToken token)
         {
             Log.To.ChangeTracker.D(Tag, "Got stream from change tracker response");
             bool beforeFirstItem = true;
             bool responseOK = false;
             using (var jsonReader = Manager.GetObjectMapper().StartIncrementalParse(stream)) {
-                responseOK = ReceivedPollResponse(jsonReader, ref beforeFirstItem);
+                responseOK = ReceivedPollResponse(jsonReader, token, ref beforeFirstItem);
             }
 
             Log.To.ChangeTracker.V(Tag, "{0} Finished reading stream", this);

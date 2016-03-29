@@ -1456,7 +1456,6 @@ namespace Couchbase.Lite
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
             var mockHttpHandler = mockHttpClientFactory.HttpHandler;
-            mockHttpHandler.AddResponderThrowExceptionAllRequests();
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var remote = remoteDb.RemoteUri;
@@ -1464,8 +1463,9 @@ namespace Couchbase.Lite
                 var headers = new Dictionary<string, string>();
                 headers["foo"] = "bar";
                 puller.Headers = headers;
-                RunReplication(puller);
-                Assert.IsNull(puller.LastError);
+                puller.Start();
+                Sleep(5000);
+                puller.Stop();
 
                 var foundFooHeader = false;
                 var requests = mockHttpHandler.CapturedRequests;
@@ -3129,5 +3129,38 @@ namespace Couchbase.Lite
                 pusher.Stop();
             }
         }
+
+        [Test]
+        public void TestStopDoesntWait()
+        {
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled"))) {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.AddDocuments(1000, false);
+                var puller = database.CreatePullReplication(remoteDb.RemoteUri);
+                var mre = new ManualResetEventSlim();
+                puller.Changed += (sender, e) => 
+                {
+                    if(e.CompletedChangesCount > 0 && !mre.IsSet) {
+                        mre.Set();
+                    }
+                };
+
+                puller.Start();
+                mre.Wait();
+                puller.Stop();
+                while (puller.Status != ReplicationStatus.Stopped) {
+                    Sleep(200);
+                }
+
+                Assert.AreNotEqual(1000, puller.CompletedChangesCount);
+                Assert.Greater(Int64.Parse(puller.LastSequence), 0);
+                Assert.IsNull(puller.LastError);
+            }
+        }
+
     }
 }

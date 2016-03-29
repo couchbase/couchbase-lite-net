@@ -152,7 +152,7 @@ namespace Couchbase.Lite.Internal
                 responseStream.WriteByte(args.IsText ? (byte)1 : (byte)2);
                 responseStream.Write(args.RawData, 0, args.RawData.Length);
                 responseStream.Seek(0, SeekOrigin.Begin);
-                _responseLogic.ProcessResponseStream(responseStream);
+                _responseLogic.ProcessResponseStream(responseStream, _cts.Token);
             } catch(Exception e) {
                 Log.To.ChangeTracker.E(Tag, String.Format("{0} is not parseable", GetLogString(args)), e);
             }

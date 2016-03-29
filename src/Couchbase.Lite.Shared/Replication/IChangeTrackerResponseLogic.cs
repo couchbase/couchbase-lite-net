@@ -21,6 +21,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Couchbase.Lite.Internal
 {
@@ -41,7 +42,7 @@ namespace Couchbase.Lite.Internal
 
         Action<Exception> OnFinished { get; set; }
 
-        ChangeTrackerResponseCode ProcessResponseStream(Stream stream);
+        ChangeTrackerResponseCode ProcessResponseStream(Stream stream, CancellationToken token);
 
         void Pause();
 

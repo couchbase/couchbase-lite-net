@@ -232,7 +232,7 @@ namespace Couchbase.Lite.Replicator
                     LastSequence = maxCompleted.ToString();
                 }
 
-                if (_pendingSequences.Count == 0) {
+                if (IsSafeToStop && _pendingSequences.Count == 0) {
                     FireTrigger(Continuous ? ReplicationTrigger.WaitingForChanges : ReplicationTrigger.StopGraceful);
                 }
             }
@@ -532,19 +532,6 @@ namespace Couchbase.Lite.Replicator
         {
             StopObserving();
             base.StopGraceful();
-
-            Action<Task> cont = null;
-            cont = t =>
-            {
-                if(_requests.Count > 0) {
-                    Task.WhenAll(_requests.Values).ContinueWith(cont);
-                    return;
-                }
-
-                FireTrigger(ReplicationTrigger.StopImmediate);
-            };
-
-            Task.WhenAll(_requests.Values).ContinueWith(cont);
         }
 
         protected override void PerformGoOnline()
