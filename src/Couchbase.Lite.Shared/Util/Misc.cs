@@ -161,32 +161,33 @@ namespace Couchbase.Lite
 
         public static bool IsTransientNetworkError(Exception error)
         {
-            var ae = error as AggregateException;
-            if (ae != null) {
-                error = Sharpen.Extensions.Flatten(ae);
+            foreach (var exception in error.Flatten()) {
+                if (exception is IOException
+                    || exception is TimeoutException
+                    || exception is SocketException) {
+                    return true;
+                }
+
+                var we = exception as WebException;
+                if (we == null) {
+                    continue;
+                }
+
+                if (we.Status == WebExceptionStatus.ConnectFailure || we.Status == WebExceptionStatus.Timeout ||
+                    we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled) {
+                    return true;
+                }
+
+                if (we.Response == null) {
+                    continue;
+                }
+
+                if (IsTransientError(((HttpWebResponse)we.Response).StatusCode)) {
+                    return true;
+                }
             }
 
-            if (error is IOException
-                || error is TimeoutException
-                || error is SocketException) {
-                return true;
-            }
-
-            var we = error as WebException;
-            if (we == null) {
-                return false;
-            }
-
-            if (we.Status == WebExceptionStatus.ConnectFailure || we.Status == WebExceptionStatus.Timeout ||
-               we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled) {
-                return true;
-            }
-
-            if (we.Response == null) {
-                return false;
-            }
-
-            return IsTransientError(((HttpWebResponse)we.Response).StatusCode);
+            return false;
         }
 
         public static bool IsTransientError(HttpResponseMessage response)

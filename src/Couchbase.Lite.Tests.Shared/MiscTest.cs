@@ -52,6 +52,8 @@ using System;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Store;
 using System.Threading;
+using System.Net.Sockets;
+using System.Linq;
 
 namespace Couchbase.Lite
 {
@@ -60,6 +62,20 @@ namespace Couchbase.Lite
         const string Tag = "MiscTest";
 
         public MiscTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestExceptionEnumerable()
+        {
+            var innerException = new SocketException();
+            var nextException = new HttpRequestException("Socket exception", innerException);
+            var otherNextException = new CouchbaseLiteException();
+            var aggregate = new AggregateException("OMG", nextException, otherNextException);
+
+            Assert.IsTrue(Misc.IsTransientNetworkError(aggregate));
+            CollectionAssert.AreEqual(new Exception[] { innerException, nextException, otherNextException  }, 
+                new ExceptionEnumerable(aggregate).ToArray());
+        }
+
 
         [Test]
         public void TestNetworkAvailabilityChanged()

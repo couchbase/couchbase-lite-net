@@ -402,7 +402,7 @@ namespace Couchbase.Lite
             set
             {
                 if (value != _lastError) {
-                    var newException = value == null ? null : value.Flatten();
+                    var newException = value == null ? null : value.Flatten().FirstOrDefault();
                     Log.E(TAG, " Progress: set error = {0}", (object)newException);
                     _lastError = newException;
                     NotifyChangeListeners();
