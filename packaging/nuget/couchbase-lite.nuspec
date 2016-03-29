@@ -31,26 +31,26 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
       <group targetFramework="net35">
         <dependency id="Newtonsoft.Json" version="7.0.1" />
         <dependency id="SharpZipLib" version="0.86.0" />
-        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.3-pre1" />
+        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2.1" />
       </group>
       <group targetFramework="net45">
         <dependency id="Newtonsoft.Json" version="7.0.1" />
         <dependency id="SharpZipLib.Portable" version="0.86.0.0003" />
         <dependency id="Stateless" version="2.5.61.0" />
-        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.3-pre1" />
+        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2.1" />
       </group>
       <group>
         <dependency id="Newtonsoft.Json" version="7.0.1" />
         <dependency id="SharpZipLib.Portable" version="0.86.0.0003" />
         <dependency id="Stateless" version="2.5.61.0" />
-        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.3-pre1" />
+        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2.1" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />
-    <file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.*" />
-    <file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />
+    <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.dll*" />
+    <file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll*" />
+    <file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll*" />
     <file target="lib/net35" src="src/Couchbase.Lite.Net35/bin/Nuget/*" />
   </files>
 </package>
