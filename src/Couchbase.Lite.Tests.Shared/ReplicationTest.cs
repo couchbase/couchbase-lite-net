@@ -61,6 +61,7 @@ using Couchbase.Lite.Util;
 using ICSharpCode.SharpZipLib.Zip;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using System.Net.Sockets;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -2832,16 +2833,16 @@ namespace Couchbase.Lite
                 return;
             }
 
+            Log.Domains.Sync.Level = Log.LogLevel.Debug;
             var fakeFactory = new MockHttpClientFactory(false);
             FlowControl flow = new FlowControl(new FlowItem[]
             {
-                new ExceptionThrower(new TaskCanceledException()) { ExecutionCount = -1 },
+                new ExceptionThrower(new SocketException()) { ExecutionCount = -1 },
             });
 
             fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) => 
                 flow.ExecuteNext<HttpResponseMessage>());
             manager.DefaultHttpClientFactory = fakeFactory;
-            ManagerOptions.Default.RequestTimeout = TimeSpan.FromSeconds(5);
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 CreatePullAndTest(20, remoteDb, repl => Assert.IsTrue(database.GetDocumentCount() < 20, "Somehow got all the docs"));

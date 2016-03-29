@@ -408,7 +408,7 @@ namespace Couchbase.Lite
             set
             {
                 if (value != _lastError) {
-                    Log.To.Sync.I(TAG, "Error set during replication (application may continue)", Misc.Flatten(value).FirstOrDefault());
+                    Log.To.Sync.I(TAG, "Error set during replication (application may continue)", value);
                     _lastError = value;
                     NotifyChangeListeners();
                 }
@@ -1272,10 +1272,9 @@ namespace Couchbase.Lite
                         result = response.Result;
                         UpdateServerType(result);
                     } else if(response.IsFaulted) {
-                        error = response.Exception.InnerException;
                         Log.To.Sync.W(TAG, String.Format("Http Message failed to send, or got error response, " +
                             "passing to callback... {0}, ",
-                            message), Misc.Flatten(response.Exception));
+                            message), response.Exception);
                         if(bytes != null) {
                             try {
                                 Log.To.Sync.W(TAG, "\tFailed content: {0}", new SecureLogString(bytes, LogMessageSensitivity.PotentiallyInsecure));

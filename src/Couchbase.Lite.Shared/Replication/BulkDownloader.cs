@@ -116,13 +116,12 @@ namespace Couchbase.Lite.Replicator
             _db = options.Database;
             _httpClient = options.ClientFactory.GetHttpClient(CookieStore, options.RetryStrategy);
             _requestHeaders = options.RequestHeaders;
-            _tokenSource = options.TokenSource;
+            _tokenSource = options.TokenSource ?? new CancellationTokenSource();
             _body = CreatePostBody(options.Revisions, _db);
         }
 
         public void Start()
         {
-            CouchbaseLiteHttpClient httpClient = null;
             var requestMessage = CreateConcreteRequest();
 
             if(!requestMessage.Headers.Contains("User-Agent")) {
@@ -140,8 +139,8 @@ namespace Couchbase.Lite.Replicator
             ExecuteRequest(_httpClient, requestMessage).ContinueWith(t => 
             {
                 Log.To.Sync.V(Tag, "RemoteRequest run() finished, url: {0}", _bulkGetUri);
-                if(httpClient != null) {
-                    httpClient.Dispose();
+                if(_httpClient != null) {
+                    _httpClient.Dispose();
                 }
 
                 requestMessage.Dispose();
@@ -203,7 +202,7 @@ namespace Couchbase.Lite.Replicator
                 try {
                     response = t.Result;
                 } catch(Exception e) {
-                    var err = (e is AggregateException) ? e.InnerException : e;
+                    var err = Misc.Flatten(e).First();
                     Log.To.Sync.E(Tag, "Unhandled exception while getting bulk documents", err);
                     error = err;
                     RespondWithResult(fullBody, err, response);

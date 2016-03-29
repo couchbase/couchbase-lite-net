@@ -87,7 +87,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) {
-                _ts.WriteLine(SourceLevels.Verbose, String.Format("{0}:\r\n{1}", msg, Misc.Flatten(tr)), tag); 
+                _ts.WriteLine(SourceLevels.Verbose, String.Format("{0}:\r\n{1}", msg, tr), tag); 
             }
         }
 
@@ -115,7 +115,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-                _ts.WriteLine(SourceLevels.ActivityTracing, String.Format("{0}:\r\n{1}", msg, Misc.Flatten(tr)), tag); 
+                _ts.WriteLine(SourceLevels.ActivityTracing, String.Format("{0}:\r\n{1}", msg, tr), tag); 
             }
         }
 
@@ -133,7 +133,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) {
-                _ts.WriteLine(SourceLevels.Information, String.Format("{0}:\r\n{1}", msg, Misc.Flatten(tr)), tag); 
+                _ts.WriteLine(SourceLevels.Information, String.Format("{0}:\r\n{1}", msg, tr), tag); 
             }
         }
 
@@ -152,7 +152,7 @@ namespace Couchbase.Lite.Util
         public void W(string tag, Exception tr)
         {
             lock (_locker) {
-                _ts.WriteLine(Misc.Flatten(tr), tag); 
+                _ts.WriteLine(tr, tag); 
             }
         }
 
@@ -163,7 +163,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-                _ts.WriteLine(SourceLevels.Warning, String.Format("{0}:\r\n{1}", msg, Misc.Flatten(tr)), tag); 
+                _ts.WriteLine(SourceLevels.Warning, String.Format("{0}:\r\n{1}", msg, tr), tag); 
             }
         }
 
@@ -186,7 +186,7 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_locker) { 
-				_ts.WriteLine(SourceLevels.Error, String.Format("{0}:\r\n{1}", msg, Misc.Flatten(tr)), tag);
+				_ts.WriteLine(SourceLevels.Error, String.Format("{0}:\r\n{1}", msg, tr), tag);
             }
         }
 

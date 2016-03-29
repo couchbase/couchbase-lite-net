@@ -209,6 +209,7 @@ namespace Couchbase.Lite.Internal
                 // Keep retrying for continuous
                 Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, sleeping for {2}ms...", this,
                     statusCode, Backoff.GetSleepTime().TotalMilliseconds);
+                Error = e;
 
                 Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => PerformRetry(true));
                 return;

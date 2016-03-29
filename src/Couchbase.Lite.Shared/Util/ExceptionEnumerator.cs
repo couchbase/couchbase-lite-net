@@ -34,6 +34,11 @@ namespace Couchbase.Lite.Util
             _e = e;
         }
 
+        public override string ToString()
+        {
+            return _e == null ? "<no exception>" : _e.ToString();
+        }
+
         #region IEnumerable
 
         public IEnumerator<Exception> GetEnumerator()
@@ -78,11 +83,6 @@ namespace Couchbase.Lite.Util
 
             Add(e.InnerException);
             _exceptionList.AddLast(e);
-        }
-
-        public override string ToString()
-        {
-            return _exceptionList.First.Value.ToString();
         }
 
         #region IEnumerator

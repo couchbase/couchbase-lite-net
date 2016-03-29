@@ -128,6 +128,7 @@ namespace Couchbase.Lite
             #endif
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
             Log.ScrubSensitivity = LogScrubSensitivity.AllOK;
+            Log.Domains.All.Level = Log.LogLevel.Base;
             LoadCustomProperties();
             StartCBLite();
             StartDatabase();

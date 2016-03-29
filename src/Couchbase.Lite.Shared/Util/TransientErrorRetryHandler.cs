@@ -38,6 +38,7 @@ namespace Couchbase.Lite.Util
             {
                 var response = request.Result;
                 if (executor.CanContinue && Misc.IsTransientError(response)) {
+                    Log.To.Sync.V(Tag, "Retrying after transient error...");
                     return executor.Retry();
                 }
 
@@ -65,7 +66,9 @@ namespace Couchbase.Lite.Util
                 throw request.Exception;
             }
 
+
             // Retry again.
+            Log.To.Sync.V(Tag, "Retrying after transient error...");
             return executor.Retry();
         }
     }

@@ -118,7 +118,7 @@ namespace Couchbase.Lite
         public static IEnumerable<Exception> Flatten(Exception inE)
         {
             if (inE == null) {
-                return null;
+                return new Exception[0];
             }
 
             return new ExceptionEnumerable(inE);
