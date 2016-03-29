@@ -230,6 +230,7 @@ namespace Couchbase.Lite
         private static int _lastSessionID;
         private string _remoteCheckpointDocID;
         private CancellationTokenSource _retryIfReadyTokenSource;
+        private CancellationTokenSource _remoteRequestCancellationSource;
         private readonly Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
         private HashSet<string> _pendingDocumentIDs;
         private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
@@ -633,7 +634,6 @@ namespace Couchbase.Lite
             Continuous = continuous;
             // NOTE: Consider running a separate scheduler for all http requests.
             WorkExecutor = workExecutor;
-            CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
             Options = new ReplicationOptionsDictionary();
             ReplicationOptions = new ReplicationOptions();
@@ -961,8 +961,9 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void CancelPendingRetryIfReady()
         {
-            if (_retryIfReadyTokenSource != null) {
-                _retryIfReadyTokenSource.Cancel();
+            var source = _retryIfReadyTokenSource;
+            if (source != null) {
+                source.Cancel();
             }
         }
 
@@ -971,7 +972,12 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void ScheduleRetryIfReady()
         {
-            _retryIfReadyTokenSource = new CancellationTokenSource();
+            CancelPendingRetryIfReady();
+            var source = Interlocked.Exchange(ref _retryIfReadyTokenSource, CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token));
+            if (source != null) {
+                source.Dispose();
+            }
+
             var token = _retryIfReadyTokenSource.Token;
             Task.Delay(RetryDelay).ContinueWith(task =>
             {
@@ -1015,6 +1021,9 @@ namespace Couchbase.Lite
                 return;
             }
 
+            CancellationTokenSource = new CancellationTokenSource();
+            _remoteRequestCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token);
+            _retryIfReadyTokenSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token);
             if (ReplicationOptions.Reset) {
                 LocalDatabase.SetLastSequence(null, RemoteCheckpointDocID());
             }
@@ -1162,7 +1171,9 @@ namespace Couchbase.Lite
                 Batcher.FlushAll();
             }
 
-            CancelPendingRetryIfReady();
+            var master = CancellationTokenSource;
+            CancellationTokenSource = new CancellationTokenSource();
+            master.Cancel();
         }
 
         #endregion
@@ -1199,15 +1210,20 @@ namespace Couchbase.Lite
 
                 Misc.SafeDispose(ref _client);
                 Log.To.Sync.I(TAG, "{0} stopped.  Elapsed time {1} sec", this, (DateTime.UtcNow - _startTime).TotalSeconds.ToString("F3"));
+                var cts = CancellationTokenSource;
+                CancellationTokenSource = null;
+                if(cts != null) {
+                    cts.Dispose();
+                }
             });
         }
 
-        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
+        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler)
         {
             try {
                 var urlStr = BuildRelativeURLString(relativePath);
                 var url = new Uri(urlStr);
-                return SendAsyncRequest(method, url, body, completionHandler, requestTokenSource);
+                return SendAsyncRequest(method, url, body, completionHandler);
             } catch (UriFormatException e) {
                 throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG, "Malformed URL for async request");
             } catch (Exception e) {
@@ -1230,7 +1246,7 @@ namespace Couchbase.Lite
             return remoteUrlString + relativePath;
         }
 
-        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
+        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler)
         {
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
@@ -1244,10 +1260,7 @@ namespace Couchbase.Lite
                 message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             }
 
-            var token = requestTokenSource != null 
-                ? requestTokenSource.Token
-                : CancellationTokenSource.Token;
-
+            var token = _remoteRequestCancellationSource.Token;
             Log.To.Sync.V(TAG, "{0} - Sending {1} request to: {2}", _replicatorID, method, new SecureLogUri(url));
             _client.Authenticator = Authenticator;
             var t = _client.SendAsync(message, token).ContinueWith(response =>
@@ -1628,10 +1641,10 @@ namespace Couchbase.Lite
 
         internal void StopRemoteRequests()
         {
-            var cts = CancellationTokenSource;
-            CancellationTokenSource = new CancellationTokenSource();
-            if (!cts.IsCancellationRequested) {
-                cts.Cancel();
+            var source = Interlocked.Exchange(ref _remoteRequestCancellationSource, CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token));
+            if (source != null) {
+                source.Cancel();
+                source.Dispose();
             }
         }
 

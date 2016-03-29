@@ -748,6 +748,12 @@ namespace Couchbase.Lite.Replicator
             set { ClientFactory.Headers = value; } 
         }
 
+        protected override void Retry()
+        {
+            _changeTracker.Stop();
+            base.Retry();
+        }
+
         protected override void StopGraceful()
         {
             var changeTrackerCopy = _changeTracker;
