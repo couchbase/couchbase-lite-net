@@ -17,10 +17,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Vendor", "Vendor", "{6E3DD8
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stateless", "Couchbase.Lite.Net35\vendor\Stateless\Stateless\Stateless.csproj", "{A15EEC02-60EC-4705-A58B-A6ECD55A9628}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ugly_net35", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_net35.csproj", "{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "platform.net35.pinvoke_packaged_sqlcipher.anycpu", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\platform.net35.pinvoke_packaged_sqlcipher.anycpu.csproj", "{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}"
-EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "websocket-sharp.shared", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.shproj", "{891A08FC-F143-4325-BC16-B9864D036B99}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj", "{B357BAC7-529E-4D81-A0D2-71041B19C8DE}"
@@ -89,18 +85,6 @@ Global
 		{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}.release|anycpu.ActiveCfg = Debug|Any CPU
 		{032C9C8B-93A0-4391-BF6D-74FF4A5BE8F5}.release|anycpu.Build.0 = Debug|Any CPU
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug_Ubuntu|Any CPU.ActiveCfg = debug|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug_Ubuntu|Any CPU.Build.0 = debug|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug|Any CPU.ActiveCfg = debug|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Debug|Any CPU.Build.0 = debug|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.debug|anycpu.ActiveCfg = debug|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.debug|anycpu.Build.0 = debug|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release_Ubuntu|Any CPU.ActiveCfg = debug|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release_Ubuntu|Any CPU.Build.0 = debug|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|Any CPU.ActiveCfg = release|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.Release|Any CPU.Build.0 = release|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.release|anycpu.ActiveCfg = release|anycpu
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4}.release|anycpu.Build.0 = release|anycpu
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug|Any CPU
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4}.Debug_Ubuntu|Any CPU.Build.0 = Debug|Any CPU
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -125,18 +109,6 @@ Global
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.release|anycpu.ActiveCfg = Debug|Any CPU
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.release|anycpu.Build.0 = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug_Ubuntu|Any CPU.Build.0 = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.debug|anycpu.ActiveCfg = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.debug|anycpu.Build.0 = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release_Ubuntu|Any CPU.ActiveCfg = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release_Ubuntu|Any CPU.Build.0 = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.release|anycpu.ActiveCfg = Debug|Any CPU
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.release|anycpu.Build.0 = Debug|Any CPU
 		{47688577-270F-47DC-8EAF-7DB26012A0F3}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug|Any CPU
 		{47688577-270F-47DC-8EAF-7DB26012A0F3}.Debug_Ubuntu|Any CPU.Build.0 = Debug|Any CPU
 		{47688577-270F-47DC-8EAF-7DB26012A0F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -250,8 +222,6 @@ Global
 		{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 		{A15EEC02-60EC-4705-A58B-A6ECD55A9628} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
-		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
-		{084F8A7A-FD6D-4F7D-8A13-DE9B1D71EFE4} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 		{891A08FC-F143-4325-BC16-B9864D036B99} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 		{9862694D-E4FA-418B-8692-A0280FEDDF36} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
