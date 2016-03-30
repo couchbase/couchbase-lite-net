@@ -33,7 +33,6 @@ using NUnit.Framework;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
-using Couchbase.Lite.Security;
 using Couchbase.Lite.Tests;
 using System.Text;
 
@@ -41,6 +40,7 @@ using System.Text;
 using System.Net.Couchbase;
 #else
 using System.Net;
+using Couchbase.Lite.Security;
 #endif
 
 namespace Couchbase.Lite
@@ -135,7 +135,7 @@ namespace Couchbase.Lite
             }
         }
 
-
+        #if !NET_3_5
         [Test]
         public void TestSsl()
         {
@@ -197,6 +197,7 @@ namespace Couchbase.Lite
                 sslListener.Stop();
             }
         }
+        #endif
 
         [Test]
         public void TestListenerRequestsAreExternal()
@@ -363,9 +364,13 @@ namespace Couchbase.Lite
         private void SetupListener(bool secure)
         {
             if (secure) {
+                #if NET_3_5
+                Assert.Inconclusive("TLS Listener is not supported on .NET 3.5");
+                #else
                 var cert = X509Manager.GetPersistentCertificate("127.0.0.1", "123abc", System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "unit_test.pfx"));
                 _listenerDBUri = new Uri(String.Format("https://localhost:{0}/{1}/", _port, LISTENER_DB_NAME));
-                _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.UseTLS, cert);  
+                _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.UseTLS, cert); 
+                #endif
             } else {
                 _listenerDBUri = new Uri(String.Format("http://localhost:{0}/{1}/", _port, LISTENER_DB_NAME));
                 _listener = new CouchbaseLiteTcpListener(manager, _port, CouchbaseLiteTcpOptions.Default); 

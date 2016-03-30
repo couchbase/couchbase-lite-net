@@ -26,7 +26,6 @@ using System.Security.Principal;
 using System.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using Couchbase.Lite.Security;
 using System.Security.Cryptography;
 using WebSocketSharp.Net;
 using System.Threading.Tasks;
@@ -116,7 +115,7 @@ namespace Couchbase.Lite.Listener.Tcp
                 _listener.SslConfiguration.ClientCertificateRequired = false;
                 if (sslCert == null) {
                     Log.I(TAG, "Generating X509 certificate for listener...");
-                    sslCert = X509Manager.GenerateTransientCertificate("Couchbase-P2P");
+                    sslCert = Couchbase.Lite.Security.X509Manager.GenerateTransientCertificate("Couchbase-P2P");
                 }
 
                 _listener.SslConfiguration.ServerCertificate = sslCert;

@@ -32,9 +32,6 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
 
     <!-- .NET 4.5 -->
     <file target="build/net45/Couchbase.Lite.Storage.ForestDB.targets" src="src/StorageEngines/ForestDB/storage.forestdb.net45/bin/Release/net45.targets" />
-    <file target="build/net45" src="src/StorageEngines/ForestDB/storage.forestdb.net45/bin/Release/CBForest-Interop.dll" />
-    <file target="build/net45/" src="src/StorageEngines/ForestDB/storage.forestdb.net45/bin/Release/libCBForest-Interop.dylib" />
-    <file target="build/net45/" src="src/StorageEngines/ForestDB/storage.forestdb.net45/bin/Release/libCBForest-Interop.so" />
     <file target="lib/net45/" src="src/StorageEngines/ForestDB/storage.forestdb.net45/bin/Release/Couchbase.Lite.Storage.ForestDB.dll*" />
     
     <!-- Xamarin.Android -->

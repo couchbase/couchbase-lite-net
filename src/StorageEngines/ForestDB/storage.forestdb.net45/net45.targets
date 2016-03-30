@@ -5,15 +5,15 @@
   </PropertyGroup> 
   <Target Name="InjectReference_11513e9c-85e5-4aa3-93a0-c55433b2b66d" BeforeTargets="ResolveAssemblyReferences">
 	<ItemGroup>
-	    <None Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)libCBForest-Interop.so">
+	    <None Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\net35\libCBForest-Interop.so">
 	      <Link>libCBForest-Interop.so</Link>
 	      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	    </None>
-	    <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)CBForest-Interop.dll">
+	    <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\net35\CBForest-Interop.dll">
 	      <Link>CBForest-Interop.dll</Link>
 	      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	    </None>
-	    <None Include="$(MSBuildThisFileDirectory)libCBForest-Interop.dylib" Condition=" $(IsMac) ">
+	    <None Include="$(MSBuildThisFileDirectory)..\net35\libCBForest-Interop.dylib" Condition=" $(IsMac) ">
 	      <Link>libCBForest-Interop.dylib</Link>
 	      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	    </None>

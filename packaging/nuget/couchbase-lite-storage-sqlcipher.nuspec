@@ -33,10 +33,6 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
 
     <!-- .NET 4.5 -->
     <file target="build/net45/Couchbase.Lite.Storage.SQLCipher.targets" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/net45.targets" />
-    <file target="build/net45/x86/sqlcipher.dll" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/x86/sqlcipher.dll" />
-    <file target="build/net45/x64/sqlcipher.dll" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/x64/sqlcipher.dll" />
-    <file target="build/net45/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/libsqlcipher.dylib" />
-    <file target="build/net45/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/libsqlcipher.so" />
     <file target="lib/net45/" src="src/StorageEngines/SQLCipher/storage.sqlcipher.net45/bin/Release/Couchbase.Lite.Storage.SQLCipher.dll*" />
 
     <!-- Xamarin.Android -->

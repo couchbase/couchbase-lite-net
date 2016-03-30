@@ -7,20 +7,20 @@
   </PropertyGroup> 
   <Target Name="InjectReference_b652c259-e538-47dd-96e1-3bfd2deac2c4" BeforeTargets="ResolveAssemblyReferences">
     <ItemGroup>
-      <Content Include="$(MSBuildThisFileDirectory)libsqlcipher.dylib" Condition=" $(IsMac) ">
+      <Content Include="$(MSBuildThisFileDirectory)..\net35\libsqlcipher.dylib" Condition=" $(IsMac) ">
       <Link>libsqlcipher.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)libsqlcipher.so" Condition=" '$(OS)' == 'Unix' AND !$(IsMac)">
+    <Content Include="$(MSBuildThisFileDirectory)..\net35\libsqlcipher.so" Condition=" '$(OS)' == 'Unix' AND !$(IsMac)">
       <Link>libsqlcipher.so</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)x86\sqlite3.dll" Condition=" '$(OS)' == 'Windows_NT' ">
-      <Link>x86\sqlite3.dll</Link>
+    <Content Include="$(MSBuildThisFileDirectory)..\net35\x86\sqlcipher.dll" Condition=" '$(OS)' == 'Windows_NT' ">
+      <Link>x86\sqlcipher.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)x64\sqlite3.dll" Condition=" '$(OS)' == 'Windows_NT' ">
-      <Link>x64\sqlite3.dll</Link>
+    <Content Include="$(MSBuildThisFileDirectory)..\net35\x64\sqlcipher.dll" Condition=" '$(OS)' == 'Windows_NT' ">
+      <Link>x64\sqlcipher.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content> 
   </ItemGroup>

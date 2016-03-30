@@ -18,6 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#if !NET_3_5
 using System;
 using System.Collections;
 using System.IO;
@@ -180,3 +181,4 @@ namespace Couchbase.Lite.Security
         }
     }
 }
+#endif

@@ -18,6 +18,5 @@
 	      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	    </None>
 	  </ItemGroup>
-	  <Message Text="Building with ForestDB storage engine..." />
     </Target>
 </Project>
