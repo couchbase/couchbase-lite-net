@@ -727,7 +727,10 @@ namespace Couchbase.Lite.Replicator
 
         protected override void Retry()
         {
-            _changeTracker.Stop();
+            if (_changeTracker != null) {
+                _changeTracker.Stop();
+            }
+
             base.Retry();
         }
 

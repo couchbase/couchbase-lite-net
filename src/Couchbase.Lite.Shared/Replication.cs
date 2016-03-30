@@ -1168,7 +1168,6 @@ namespace Couchbase.Lite
         {
             Log.To.Sync.I(TAG, "{0}: Stop Graceful...", _replicatorID);
 
-            _continuous = false;
             if (Batcher != null)  {
                 Batcher.Clear();
             }
@@ -1715,8 +1714,13 @@ namespace Couchbase.Lite
                     if (e != null && !Is404 (e)) {
                         Log.To.Sync.I(TAG, "{0} error getting remote checkpoint", this);
                         LastError = e;
-                        Log.To.Sync.V(TAG, "Couldn't get remote checkpoint, so firing StopGraceful...");
-                        FireTrigger(ReplicationTrigger.StopGraceful);
+                        Log.To.Sync.V(TAG, "Couldn't get remote checkpoint, so changing state...");
+                        if(Continuous) {
+                            FireTrigger(ReplicationTrigger.WaitingForChanges);
+                            ScheduleRetryIfReady();
+                        } else {
+                            FireTrigger(ReplicationTrigger.StopGraceful);
+                        }
                     } else {
                         if (e != null && Is404 (e)) {
                             MaybeCreateRemoteDB();

@@ -160,10 +160,6 @@
       <Project>{666B3F9B-DC39-421E-9E4E-C5B666023FB0}</Project>
       <Name>storage.forestdb.net45</Name>
     </ProjectReference>
-    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.net45\storage.systemsqlite.net45.csproj">
-      <Project>{88BB6717-85C9-46F0-923B-C263C08A189B}</Project>
-      <Name>storage.systemsqlite.net45</Name>
-    </ProjectReference>
     <ProjectReference Include="..\StorageEngines\SQLCipher\storage.sqlcipher.net45\storage.sqlcipher.net45.csproj">
       <Project>{3EEE8883-B6A9-4B71-B70E-67973F7687D5}</Project>
       <Name>storage.sqlcipher.net45</Name>
