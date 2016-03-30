@@ -44,20 +44,31 @@ rm -rf ../../src/StorageEngines/ForestDB/storage.forestdb.net35/obj
 rm -rf ../../src/StorageEngines/ForestDB/storage.forestdb.ios/obj
 rm -rf ../../src/StorageEngines/ForestDB/storage.forestdb.droid/obj
 
-#Build te managed DLLs
-xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Net35.sln
-xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Net45.sln
-xbuild /p:Configuration=Release ../../src/Couchbase.Lite.iOS.sln
-xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Android.sln
+#Build the managed DLLs
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Net35/Couchbase.Lite.Net35.csproj
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Net45/Couchbase.Lite.Net45.csproj
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.iOS/Couchbase.Lite.iOS.csproj
+xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Android/Couchbase.Lite.Android.csproj
+xbuild /p:Configuration=Release ../../src/ListenerComponent/Couchbase.Lite.Listener.Net35/Couchbase.Lite.Listener.Net35.csproj
+xbuild /p:Configuration=Release ../../src/ListenerComponent/Couchbase.Lite.Listener.Net45/Couchbase.Lite.Listener.Net45.csproj
+xbuild /p:Configuration=Release ../../src/ListenerComponent/Couchbase.Lite.Listener.iOS/Couchbase.Lite.Listener.iOS.csproj
+xbuild /p:Configuration=Release ../../src/ListenerComponent/Couchbase.Lite.Listener.Android/Couchbase.Lite.Listener.Android.csproj
+xbuild /p:Configuration=Release ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net35/Couchbase.Lite.Listener.Bonjour.Net35.csproj
+xbuild /p:Configuration=Release ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net45/Couchbase.Lite.Listener.Bonjour.Net45.csproj
+xbuild /p:Configuration=Release ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.iOS/Couchbase.Lite.Listener.Bonjour.iOS.csproj
+xbuild /p:Configuration=Release ../../src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Android/Couchbase.Lite.Listener.Bonjour.Android.csproj
 
-#Build the storage engine native components
+#Build the storage engine native plugins
 xbuild /p:Configuration=Release ../../src/StorageEngines/SystemSQLite/storage.systemsqlite.net35/storage.systemsqlite.net35.csproj
+xbuild /p:Configuration=Release ../../src/StorageEngines/SystemSQLite/storage.systemsqlite.net45/storage.systemsqlite.net45.csproj
 xbuild /p:Configuration=Release ../../src/StorageEngines/SystemSQLite/storage.systemsqlite.ios/storage.systemsqlite.ios.csproj
 xbuild /p:Configuration=Release ../../src/StorageEngines/SystemSQLite/storage.systemsqlite.droid/storage.systemsqlite.droid.csproj
 xbuild /p:Configuration=Release ../../src/StorageEngines/SQLCipher/storage.sqlcipher.net35/storage.sqlcipher.net35.csproj
+xbuild /p:Configuration=Release ../../src/StorageEngines/SQLCipher/storage.sqlcipher.net35/storage.sqlcipher.net45.csproj
 xbuild /p:Configuration=Release ../../src/StorageEngines/SQLCipher/storage.sqlcipher.ios/storage.sqlcipher.ios.csproj
 xbuild /p:Configuration=Release ../../src/StorageEngines/SQLCipher/storage.sqlcipher.droid/storage.sqlcipher.droid.csproj
 xbuild /p:Configuration=Release ../../src/StorageEngines/ForestDB/storage.forestdb.net35/storage.forestdb.net35.csproj
+xbuild /p:Configuration=Release ../../src/StorageEngines/ForestDB/storage.forestdb.net35/storage.forestdb.net45.csproj
 xbuild /p:Configuration=Release ../../src/StorageEngines/ForestDB/storage.forestdb.ios/storage.forestdb.ios.csproj
 xbuild /p:Configuration=Release ../../src/StorageEngines/ForestDB/storage.forestdb.droid/storage.forestdb.droid.csproj
 
