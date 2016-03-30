@@ -89,6 +89,7 @@ namespace Todo.WPF
 
         private void InitializeCouchbase()
         {
+            ConsoleManager.Show();
             var opts = new DatabaseOptions() {
                 Create = true
             };
@@ -119,7 +120,6 @@ namespace Todo.WPF
             };
 
             var view = _db.GetView("todos");
-
             if (view.Map == null)
             {
                 view.SetMap((props, emit) =>
@@ -209,6 +209,11 @@ namespace Todo.WPF
         {
             var window = new ConfigWindow(_viewModel);
             window.ShowDialog();
+        }
+
+        private void ToggleConsoleAction(object sender, RoutedEventArgs e)
+        {
+            ConsoleManager.Toggle();
         }
     }
 

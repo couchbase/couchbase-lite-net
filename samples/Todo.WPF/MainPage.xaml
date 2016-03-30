@@ -16,6 +16,7 @@
         <Menu Width="Auto" Height="20">
             <MenuItem Header="Config">
                 <MenuItem Header="Replication..." Click="LaunchReplicationConfig" />
+                <MenuItem Header="Toggle Console..." Click="ToggleConsoleAction" />
             </MenuItem>
         </Menu>
         <Grid>
