@@ -13,7 +13,7 @@ namespace Couchbase.Lite.Util
         public TransientErrorRetryHandler(HttpMessageHandler handler, IRetryStrategy strategy) : base(handler) 
         { 
             InnerHandler = handler;
-            _retryStrategy = strategy.Copy();
+            _retryStrategy = strategy;
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

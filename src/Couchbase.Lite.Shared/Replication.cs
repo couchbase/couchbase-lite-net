@@ -169,7 +169,6 @@ namespace Couchbase.Lite
         internal const string REPLICATOR_DATABASE_NAME = "_replicator";
         internal const int INBOX_CAPACITY = 100;
         private static readonly TimeSpan ProcessorDelay = TimeSpan.FromMilliseconds(500);
-        private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan SaveLastSequenceDelay = TimeSpan.FromSeconds(5);
         private const string TAG = "Replication";
         private const string LOCAL_CHECKPOINT_LOCAL_UUID_KEY = "localUUID";
@@ -711,6 +710,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Start()
         {
+            Log.To.Sync.V(TAG, "Start() called, firing Start...");
             FireTrigger(ReplicationTrigger.Start);
         }
 
@@ -719,6 +719,7 @@ namespace Couchbase.Lite
         /// </summary>
         public virtual void Stop()
         {
+            Log.To.Sync.V(TAG, "Stop() called, firing StopGraceful...");
             FireTrigger(ReplicationTrigger.StopGraceful);
         }
 
@@ -979,7 +980,7 @@ namespace Couchbase.Lite
             }
 
             var token = _retryIfReadyTokenSource.Token;
-            Task.Delay(RetryDelay).ContinueWith(task =>
+            Task.Delay(ReplicationOptions.ReplicationRetryDelay).ContinueWith(task =>
             {
                 if (!token.IsCancellationRequested) {
                     RetryIfReady();
@@ -1134,6 +1135,7 @@ namespace Couchbase.Lite
                 if(Continuous) {
                     FireTrigger(ReplicationTrigger.WaitingForChanges);
                 } else {
+                    Log.To.Sync.V(TAG, "Non-continuous replication caught up, firing StopGraceful...");
                     FireTrigger(ReplicationTrigger.StopGraceful);
                 }
             }
@@ -1292,7 +1294,7 @@ namespace Couchbase.Lite
                             }
 
                             if(response.IsCanceled) {
-                                error = new Exception("SendAsyncRequest Task has been canceled.");
+                                error = new WebException("SendAsyncRequest was cancelled", WebExceptionStatus.RequestCanceled);
                             } else {
                                 error = Misc.Flatten(response.Exception).FirstOrDefault();
                             }
@@ -1713,6 +1715,7 @@ namespace Couchbase.Lite
                     if (e != null && !Is404 (e)) {
                         Log.To.Sync.I(TAG, "{0} error getting remote checkpoint", this);
                         LastError = e;
+                        Log.To.Sync.V(TAG, "Couldn't get remote checkpoint, so firing StopGraceful...");
                         FireTrigger(ReplicationTrigger.StopGraceful);
                     } else {
                         if (e != null && Is404 (e)) {

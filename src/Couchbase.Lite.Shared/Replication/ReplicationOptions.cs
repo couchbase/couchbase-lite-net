@@ -59,6 +59,11 @@ namespace Couchbase.Lite
         public static readonly IRetryStrategy DefaultRetryStrategy = new ExponentialBackoffStrategy(2);
 
         /// <summary>
+        /// The default value for ReplicationRetryDelay (60 seconds)
+        /// </summary>
+        public static readonly TimeSpan DefaultReplicationRetryDelay = TimeSpan.FromSeconds(60);
+
+        /// <summary>
         /// Gets or sets whether or not the replication should forcibly start over
         /// (getting changes from the beginning of time)
         /// </summary>
@@ -145,6 +150,13 @@ namespace Couchbase.Lite
         public IRetryStrategy RetryStrategy { get; set; }
 
         /// <summary>
+        /// Non-continuous replications will give up on revisions after a while, and
+        /// restart the replication process to try to get them later.  This property
+        /// will set how long they should wait before doing so.
+        /// </summary>
+        public TimeSpan ReplicationRetryDelay { get; set; }
+
+        /// <summary>
         /// Default constructor
         /// </summary>
         public ReplicationOptions()
@@ -157,11 +169,12 @@ namespace Couchbase.Lite
             MaxOpenHttpConnections = DefaultMaxOpenHttpConnections;
             MaxRevsToGetInBulk = DefaultMaxRevsToGetInBulk;
             RetryStrategy = DefaultRetryStrategy.Copy();
+            ReplicationRetryDelay = DefaultReplicationRetryDelay;
         }
 
         public override string ToString()
         {
-            return string.Format("ReplicationOptions[Reset={0}, RequestTimeout={1}, SocketTimeout={2}, Heartbeat={3}, PollInterval={4}, UseWebSocket={5}, RemoteUUID={6}, MaxOpenHttpConnections={7}, MaxRevsToGetInBulk={8}, RetryStrategy={9}]", Reset, RequestTimeout, SocketTimeout, Heartbeat, PollInterval, UseWebSocket, RemoteUUID, MaxOpenHttpConnections, MaxRevsToGetInBulk, RetryStrategy);
+            return string.Format("ReplicationOptions[Reset={0}, RequestTimeout={1}, SocketTimeout={2}, Heartbeat={3}, PollInterval={4}, UseWebSocket={5}, RemoteUUID={6}, MaxOpenHttpConnections={7}, MaxRevsToGetInBulk={8}, RetryStrategy={9}, ReplicationRetryDelay={10}]", Reset, RequestTimeout, SocketTimeout, Heartbeat, PollInterval, UseWebSocket, RemoteUUID, MaxOpenHttpConnections, MaxRevsToGetInBulk, RetryStrategy, ReplicationRetryDelay);
         }
     }
 }

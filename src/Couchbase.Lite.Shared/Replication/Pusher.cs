@@ -233,6 +233,7 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 if (IsSafeToStop && _pendingSequences.Count == 0) {
+                    Log.To.Sync.V(TAG, "Last pending sequence removed, switching state...");
                     FireTrigger(Continuous ? ReplicationTrigger.WaitingForChanges : ReplicationTrigger.StopGraceful);
                 }
             }
@@ -519,10 +520,12 @@ namespace Couchbase.Lite.Replicator
 
             if (Continuous) {
                 if (changes.Count == 0) {
+                    Log.To.Sync.V(TAG, "No changes to push, switching to idle...");
                     FireTrigger(ReplicationTrigger.WaitingForChanges);
                 }
             } else {
                 if(changes.Count == 0) {
+                    Log.To.Sync.V(TAG, "No changes to push, firing StopGraceful...");
                     FireTrigger(ReplicationTrigger.StopGraceful);
                 }
             }

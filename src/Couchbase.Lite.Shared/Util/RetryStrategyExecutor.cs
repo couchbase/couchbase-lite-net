@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Util
 
         public RetryStrategyExecutor(HttpRequestMessage message, IRetryStrategy strategy, CancellationToken token)
         {
-            _strategy = strategy;
+            _strategy = strategy.Copy();
             _request = message;
             _token = token;
         }

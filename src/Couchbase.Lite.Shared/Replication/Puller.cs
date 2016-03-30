@@ -201,6 +201,7 @@ namespace Couchbase.Lite.Replicator
 
             Batcher.FlushAll();
             if (ChangesCount == CompletedChangesCount && IsSafeToStop) {
+                Log.To.Sync.V(TAG, "Change tracker stopped, firing StopGraceful...");
                 FireTrigger(ReplicationTrigger.StopGraceful);
             }
         }
