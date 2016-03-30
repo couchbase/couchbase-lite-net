@@ -1765,7 +1765,7 @@ namespace Couchbase.Lite
         {
             // Check at intervals to see if connection has been restored (in case
             // the offline status is the result of the *server* being offline)
-            Task.Delay(RetryDelay).ContinueWith(t =>
+            Task.Delay(ReplicationOptions.ReplicationRetryDelay).ContinueWith(t =>
             {
                 if(_stateMachine.State != ReplicationState.Offline) {
                     return;
