@@ -1,5 +1,4 @@
 using System.IO;
-using System.Security.Cryptography;
 
 namespace Couchbase.Lite.Store
 {
@@ -37,8 +36,6 @@ namespace Couchbase.Lite.Store
         /// </summary>
         /// <returns>The stream to write to for encryption</returns>
         /// <param name="baseStream">The stream to read from</param>
-        CryptoStream CreateStream(Stream baseStream);
-
-        void Dispose();
+        Stream CreateStream(Stream baseStream);
     }
 }

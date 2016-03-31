@@ -251,7 +251,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         /// <returns>The stream to write to for encryption</returns>
         /// <param name="baseStream">The stream to read from</param>
-        public CryptoStream CreateStream(Stream baseStream)
+        public Stream CreateStream(Stream baseStream)
         {
             if (_cryptor == null || baseStream == null) {
                 return null;
