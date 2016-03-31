@@ -85,7 +85,6 @@ namespace Couchbase.Lite
         private DateTime _lastUpdatedAt = DateTime.MinValue;
         private volatile bool _observing;
         private bool _runningState;
-        private readonly TaskFactory _eventContext;
 
         #endregion
 
@@ -134,8 +133,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal LiveQuery(Query query) : base(query.Database, query.View) { 
-            _eventContext = query.Database.Manager.CapturedContext;
+        internal LiveQuery(Query query) : base(query.Database, query.View) {
             StartKey = query.StartKey;
             EndKey = query.EndKey;
             Descending = query.Descending;

@@ -119,13 +119,6 @@ namespace Couchbase.Lite
         protected virtual void SetUp()
         {
             WriteDebug("SetUp");
-            #if !NET_3_5
-            /*if (_storageType == "ForestDB") {
-                CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, (level, message) =>
-                    Console.WriteLine(String.Format("[CBForest {0}]: {1}", level, (string)message))
-                );
-            }*/
-            #endif
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
             Log.ScrubSensitivity = LogScrubSensitivity.AllOK;
             Log.Domains.All.Level = Log.LogLevel.Base;
