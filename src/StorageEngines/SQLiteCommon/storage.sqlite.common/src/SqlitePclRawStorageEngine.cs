@@ -235,8 +235,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             const string commandText = "PRAGMA user_version = ?";
 
+            Log.To.TaskScheduling.V(TAG, "Scheduling SetVersion({0})", version);
             Factory.StartNew(() =>
             {
+                Log.To.TaskScheduling.V(TAG, "Running SetVersion({0})", version);
                 sqlite3_stmt statement = BuildCommand(_writeConnection, commandText, null);
 
                 if ((LastErrorCode = raw.sqlite3_bind_int(statement, 1, version)) == raw.SQLITE_ERROR)
@@ -287,8 +289,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             if (value == 1)
             {
+                Log.To.TaskScheduling.V(TAG, "Scheduling BeginTransaction()...");
                 var t = Factory.StartNew(() =>
                 {
+                    Log.To.TaskScheduling.V(TAG, "Running BeginTransaction()...");
                     try {
                         using (var statement = BuildCommand(_writeConnection, "BEGIN IMMEDIATE TRANSACTION", null))
                         {
@@ -321,8 +325,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
             if (count > 0)
                 return count;
 
+            Log.To.TaskScheduling.V(TAG, "Scheduling EndTransaction()");
             var t = Factory.StartNew(() =>
             {
+                Log.To.TaskScheduling.V(TAG, "Running EndTransaction()");
                 try {
                     if (shouldCommit)
                     {
@@ -383,8 +389,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return RawQuery(sql, paramArgs);
             }
 
+            Log.To.TaskScheduling.V(TAG, "Scheduling InTransactionRawQuery");
             var t = Factory.StartNew(() =>
             {
+                Log.To.TaskScheduling.V(TAG, "Running InTransactionRawQuery");
                 Cursor cursor = null;
                 sqlite3_stmt command = null;
                 try {
@@ -423,8 +431,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
             Cursor cursor = null;
             sqlite3_stmt command = null;
 
+            Log.To.TaskScheduling.V(TAG, "Scheduling RawQuery");
             var t = Factory.StartNew (() => 
             {
+                Log.To.TaskScheduling.V(TAG, "Running RawQuery");
                 try {
                     Log.To.Database.V (TAG, "RawQuery sql: {0} ({1})", sql, String.Join (", ", paramArgs.ToStringArray ()));
                     command = BuildCommand (_readConnection, sql, paramArgs);
@@ -463,8 +473,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 throw new InvalidOperationException("Don't use nullColumnHack");
             }
 
+            Log.To.TaskScheduling.V(TAG, "Scheduling InsertWithOnConflict");
             var t = Factory.StartNew(() =>
             {
+                Log.To.TaskScheduling.V(TAG, "Running InsertWithOnConflict");
                 var lastInsertedId = -1L;
                 var command = GetInsertCommand(table, initialValues, conflictResolutionStrategy);
 
@@ -522,8 +534,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
             Debug.Assert(!StringEx.IsNullOrWhiteSpace(table));
             Debug.Assert(values != null);
 
+            Log.To.TaskScheduling.V(TAG, "Scheduling Update");
             var t = Factory.StartNew(() =>
             {
+                Log.To.TaskScheduling.V(TAG, "Running Update");
                 var resultCount = 0;
                 var command = GetUpdateCommand(table, values, whereClause, whereArgs);
                 try
@@ -569,8 +583,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             Debug.Assert(!StringEx.IsNullOrWhiteSpace(table));
 
+            Log.To.TaskScheduling.V(TAG, "Scheduling Delete");
             var t = Factory.StartNew(() =>
             {
+                Log.To.TaskScheduling.V(TAG, "Running Delete");
                 var resultCount = -1;
                 var command = GetDeleteCommand(table, whereClause, whereArgs);
                 try
@@ -854,8 +870,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         private int ExecSQL(string sql, sqlite3 db, params object[] paramArgs)
         {
+            Log.To.TaskScheduling.V(TAG, "Scheduling ExecSQL");
             var t = Factory.StartNew(()=>
             {
+                Log.To.TaskScheduling.V(TAG, "Running ExecSQL");
                 sqlite3_stmt command = null;
 
                 try {

@@ -16,6 +16,7 @@ namespace Couchbase.Lite.Util
 
         public SingleThreadScheduler()
         {
+            Log.To.TaskScheduling.I(Tag, "New single thread task scheduler created with private thread");
             _jobQueue = new LinkedList<Task>();
             _thread = new Thread(Run) 
             {
@@ -37,6 +38,8 @@ namespace Couchbase.Lite.Util
                 throw new ArgumentNullException("jobQueue");
             }
 
+            Log.To.TaskScheduling.I(Tag, "New single thread task scheduler created with specified thread {0}",
+                thread);
             _thread = thread;
             _jobQueue = jobQueue;
         }
@@ -51,11 +54,12 @@ namespace Couchbase.Lite.Util
         protected override void QueueTask(Task task) 
         {
             if (_disposed) {
-                Log.To.NoDomain.W(Tag, "SingleThreadScheduler is disposed, ignoring task {0}", task.Id);
+                Log.To.TaskScheduling.W(Tag, "SingleThreadScheduler is disposed, ignoring task {0}", task.Id);
                 return;
             }
 
             lock (_jobQueue) {
+                Log.To.TaskScheduling.V(Tag, "Adding task to scheduler: {0}", task.Id);
                 _jobQueue.AddLast(task);
                 _mre.Set();
             }
@@ -68,7 +72,7 @@ namespace Couchbase.Lite.Util
                 Drain();
             }
 
-            Log.To.NoDomain.D(Tag, "SingleThreadScheduler finished");
+            Log.To.TaskScheduling.I(Tag, "Scheduler finished, run loop exiting");
         }
 
         private void Drain() 
@@ -76,6 +80,7 @@ namespace Couchbase.Lite.Util
             Task nextTask;
             lock (_jobQueue) {
                 if (_jobQueue.Count == 0) {
+                    Log.To.TaskScheduling.V(Tag, "No more jobs scheduled, waiting...");
                     return;
                 }
 
@@ -87,7 +92,17 @@ namespace Couchbase.Lite.Util
             }
 
             if(nextTask.Status < TaskStatus.Running) {
+                Log.To.TaskScheduling.V(Tag, "Starting task {0}", nextTask.Id);
                 TryExecuteTask(nextTask);
+                if (nextTask.Status != TaskStatus.RanToCompletion) {
+                    if (nextTask.Status == TaskStatus.Canceled) {
+                        Log.To.TaskScheduling.V(Tag, "Task {0} cancelled", nextTask.Id);
+                    } else {
+                        Log.To.TaskScheduling.V(Tag, String.Format("Task {0} faulted", nextTask.Id), nextTask.Exception);
+                    }
+                } else {
+                    Log.To.TaskScheduling.V(Tag, "Task {0} finished successfully", nextTask.Id);
+                }
             }
         }
 
@@ -103,9 +118,11 @@ namespace Couchbase.Lite.Util
                     items = _jobQueue.ToArray();
                 }
 
+                Log.To.TaskScheduling.V(Tag, "Dispose called");
                 if (items.Length == 0) {
                     _mre.Set();
                 } else {
+                    Log.To.TaskScheduling.I(Tag, "Waiting for {0} tasks...", items.Length);
                     Task.WaitAll(items);
                 }
 
@@ -117,18 +134,23 @@ namespace Couchbase.Lite.Util
 
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) 
         {
+            Log.To.TaskScheduling.V(Tag, "TryExecuteTaskInline invoked...");
             if (Thread.CurrentThread == _thread) {
                 if (taskWasPreviouslyQueued) {
                     if (TryDequeue(task)) {
+                        Log.To.TaskScheduling.V(Tag, "...executing previously queued Task!");
                         return TryExecuteTask(task);
                     } else {
+                        Log.To.TaskScheduling.V(Tag, "...Task marked as previously queued, but not found, returning false");
                         return false;
                     }
                 }
 
+                Log.To.TaskScheduling.V(Tag, "...executing Task!");
                 return TryExecuteTask(task);
             }
 
+            Log.To.TaskScheduling.V(Tag, "...not allowed from outside threads, returning false");
             return false;
         } 
 

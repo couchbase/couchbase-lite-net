@@ -49,6 +49,7 @@ using System.Linq;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Util;
+using System.Threading.Tasks;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -71,6 +72,7 @@ namespace Couchbase.Lite {
         /// <param name="documentId">The document's ID</param>
         public Document(Database database, String documentId)
         {
+            _eventContext = database.Manager.CapturedContext;
             Database = database;
             Id = documentId;
         }
@@ -88,6 +90,8 @@ namespace Couchbase.Lite {
         }
     
     #region Instance Members
+
+        private readonly TaskFactory _eventContext;
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Database"/> that owns this <see cref="Couchbase.Lite.Document"/>.
@@ -548,9 +552,17 @@ namespace Couchbase.Lite {
                 Source = this
             } ;
 
-            var changeEvent = _change;
-            if (changeEvent != null)
-                changeEvent(this, args);
+            Log.To.TaskScheduling.V(Tag, "Scheduling Change callback...");
+            _eventContext.StartNew(() =>
+            {
+                var changeEvent = _change;
+                if (changeEvent != null) {
+                    Log.To.TaskScheduling.V(Tag, "Firing Change callback...");
+                    changeEvent(this, args);
+                } else {
+                    Log.To.TaskScheduling.V(Tag, "Change callback is null, not firing...");
+                }
+            });
         }
 
     #endregion

@@ -267,12 +267,15 @@ namespace Couchbase.Lite.Util
 
         internal DomainLogger Discovery { get { return _allLoggers[10]; } }
 
-        internal DomainLogger NoDomain { get { return _allLoggers[11]; } }
+        internal DomainLogger TaskScheduling { get { return _allLoggers[11]; } }
+
+        internal DomainLogger NoDomain { get { return _allLoggers[12]; } }
 
         internal LogTo()
         {
             var domains = new[] { "DATABASE", "QUERY", "VIEW", "ROUTER", "SYNC",
-                "SYNC PERF", "CHANGE TRACKER", "VALIDATION", "UPGRADE", "LISTENER", "DISCOVERY" };
+                "SYNC PERF", "CHANGE TRACKER", "VALIDATION", "UPGRADE", "LISTENER", "DISCOVERY",
+                "TASK SCHEDULING"};
             _allLoggers = new DomainLogger[domains.Length + 1];
             int i = 0;
             foreach (var domain in domains) {

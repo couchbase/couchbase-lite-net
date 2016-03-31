@@ -158,6 +158,17 @@ namespace Couchbase.Lite.Util
         }
 
         /// <summary>
+        /// Gets the logging interface for task scheduling, which is responsible
+        /// for logging information about scheduling tasks in task schedulers.
+        /// </summary>
+        public IDomainLogging TaskScheduling
+        {
+            get {
+                return _source.TaskScheduling;
+            }
+        }
+
+        /// <summary>
         /// Gets all the logging interfaces so logic can be applied to
         /// all of them
         /// </summary>
@@ -216,7 +227,7 @@ namespace Couchbase.Lite.Util
         private LogGroup GetAll()
         {
             return new LogGroup(Database, Query, View, Router, Sync, ChangeTracker,
-                Validation, Upgrade, Listener, Discovery);
+                Validation, Upgrade, Listener, Discovery, TaskScheduling);
         }
 
         #endregion

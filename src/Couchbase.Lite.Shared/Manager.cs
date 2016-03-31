@@ -271,6 +271,7 @@ namespace Couchbase.Lite
 
             var scheduler = options.CallbackScheduler;
             CapturedContext = new TaskFactory(scheduler);
+            Log.To.TaskScheduling.I(TAG, "Callbacks will be scheduled on {0}", scheduler);
             workExecutor = new TaskFactory(new SingleTaskThreadpoolScheduler());
             _networkReachabilityManager = new NetworkReachabilityManager();
             _networkReachabilityManager.StartListening();
@@ -953,6 +954,7 @@ namespace Couchbase.Lite
 
         internal Task<T> RunAsync<T>(Func<T> action, CancellationToken token) 
         {
+            Log.To.TaskScheduling.V(TAG, "Scheduling async action in manager...");
             var task = token == CancellationToken.None 
                    ? workExecutor.StartNew<T>(action) 
                     : workExecutor.StartNew<T>(action, token);

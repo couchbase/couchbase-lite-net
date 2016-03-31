@@ -85,6 +85,7 @@ namespace Couchbase.Lite
         private DateTime _lastUpdatedAt = DateTime.MinValue;
         private volatile bool _observing;
         private bool _runningState;
+        private readonly TaskFactory _eventContext;
 
         #endregion
 
@@ -134,6 +135,7 @@ namespace Couchbase.Lite
         #region Constructors
 
         internal LiveQuery(Query query) : base(query.Database, query.View) { 
+            _eventContext = query.Database.Manager.CapturedContext;
             StartKey = query.StartKey;
             EndKey = query.EndKey;
             Descending = query.Descending;
@@ -346,8 +348,9 @@ namespace Couchbase.Lite
             _lastUpdatedAt = DateTime.Now;
             UpdateQueryTokenSource = new CancellationTokenSource();
 
+            Log.To.TaskScheduling.V(TAG, "Scheduling query run...");
             UpdateQueryTask = Task.Factory.StartNew<QueryEnumerator>(base.Run, UpdateQueryTokenSource.Token)
-                .ContinueWith(UpdateFinished, Database.Manager.CapturedContext.Scheduler);
+                .ContinueWith(UpdateFinished, _eventContext.Scheduler);
         }
 
         private void UpdateFinished(Task<QueryEnumerator> runTask)
@@ -376,7 +379,7 @@ namespace Couchbase.Lite
                 return; // No delegates were subscribed, so no work to be done.
 
             var args = new QueryChangeEventArgs (this, _rows, LastError);
-            evt (this, args);
+            evt(this, args);
         }
 
         #endregion

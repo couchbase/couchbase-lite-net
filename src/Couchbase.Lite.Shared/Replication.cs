@@ -944,8 +944,6 @@ namespace Couchbase.Lite
         protected void FireTrigger(ReplicationTrigger trigger)
         {
             Log.To.Sync.V(TAG, "Preparing to fire {0}", trigger);
-            var stackTrace = Environment.StackTrace;
-
             WorkExecutor.StartNew(() =>
             {
                 try {
@@ -2155,10 +2153,17 @@ namespace Couchbase.Lite
                 _eventQueue.Enqueue(args);
             }
 
+            Log.To.TaskScheduling.V(TAG, "Scheduling Changed callback...");
             if (_eventContext != null) {
                 _eventContext.StartNew(() =>
                 {
                     lock (_eventQueue) { 
+                        if(_eventQueue.Count > 0) {
+                            Log.To.TaskScheduling.V(TAG, "Firing {0} queued callback(s)", _eventQueue.Count);
+                        } else {
+                            Log.To.TaskScheduling.V(TAG, "No callback scheduled, not firing");
+                        }
+
                         while (_eventQueue.Count > 0) {
                             evt(this, _eventQueue.Dequeue());
                         }

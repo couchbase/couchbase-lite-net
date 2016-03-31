@@ -1414,9 +1414,17 @@ namespace Couchbase.Lite
 
                     Log.To.Database.I(TAG, "{0} posting change notifications: seq {1}", this, 
                         new LogJsonString(from change in outgoingChanges select change.AddedRevision.Sequence));
-                    var changeEvent = _changed;
-                    if (changeEvent != null)
-                        changeEvent(this, args);
+
+                    Log.To.TaskScheduling.V(TAG, "Scheduling Change callback...");
+                    Manager.CapturedContext.StartNew(() => {
+                        var changeEvent = _changed;
+                        if (changeEvent != null) {
+                            Log.To.TaskScheduling.V(TAG, "Firing Change callback...");
+                            changeEvent(this, args);
+                        } else {
+                            Log.To.TaskScheduling.V(TAG, "Change callback is null, not firing...");
+                        }
+                    });
 
                     posted = true;
                 } catch (Exception e) {

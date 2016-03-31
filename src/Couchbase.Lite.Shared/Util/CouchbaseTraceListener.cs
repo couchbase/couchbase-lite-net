@@ -62,11 +62,7 @@ namespace Couchbase.Lite.Util
         public CouchbaseTraceListener()
         {
             Name = "Couchbase";
-            #if DEBUG
             TraceOutputOptions = TraceOptions.ThreadId | TraceOptions.DateTime;
-            #else
-            TraceOutputOptions = TraceOptions.ThreadId | TraceOptions.DateTime;
-            #endif
         }
 
         void WriteOptionalTraceInfo()

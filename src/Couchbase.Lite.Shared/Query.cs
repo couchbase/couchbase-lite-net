@@ -156,6 +156,8 @@ namespace Couchbase.Lite {
         }
         private EventHandler<QueryCompletedEventArgs> _completed;
 
+        protected readonly TaskFactory _eventContext;
+
         #endregion
 
         #region Properties
@@ -373,6 +375,7 @@ namespace Couchbase.Lite {
             Debug.Assert(database != null);
 
             Database = database;
+            _eventContext = database.Manager.CapturedContext;
             View = view;
             Limit = Int32.MaxValue;
             MapOnly = (view != null && view.Reduce == null);
@@ -438,11 +441,10 @@ namespace Couchbase.Lite {
             return Database.Manager.RunAsync(run, token)
                     .ContinueWith(runTask=> // Raise the query's Completed event.
                     {
+                        Log.To.Query.V(TAG, "Manager.RunAsync finished, processing results...");
                         var error = runTask.Exception;
-
                         var completed = _completed;
-                        if (completed != null)
-                        {
+                        if (completed != null) {
                             var args = new QueryCompletedEventArgs(runTask.Result, error);
                             completed(this, args);
                         }
@@ -451,8 +453,9 @@ namespace Couchbase.Lite {
                             Log.To.Query.E(TAG, String.Format("{0} exception in RunAsync", this), error);
                             throw error; // Rethrow innner exceptions.
                         }
-                        return runTask.Result; // Give additional continuation functions access to the results task.
-                    }, Database.Manager.CapturedContext.Scheduler);
+
+                        return runTask.Result;
+                    }, _eventContext.Scheduler);
         }
 
         /// <summary>

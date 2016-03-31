@@ -107,7 +107,19 @@ namespace Couchbase.Lite.Util
 		/// Gets or sets the level at which the logger will redacted sensivity
 		/// information from the logs.
 		/// </summary>
-		public static LogScrubSensitivity ScrubSensitivity { get; set; }
+		public static LogScrubSensitivity ScrubSensitivity 
+        {
+            get { return _scrubSensitivity; }
+            set { 
+                if (value != _scrubSensitivity) {
+                    if (value == LogScrubSensitivity.AllOK) {
+                        Logger.I("Log", "SCRUBBING DISABLED, THIS LOG MAY CONTAIN SENSITIVE INFORMATION");
+                        _scrubSensitivity = value;
+                    }
+                }
+            }
+        }
+        private static LogScrubSensitivity _scrubSensitivity;
 
         /// <summary>
         /// Gets or sets the logging level for Log.* calls (domains
