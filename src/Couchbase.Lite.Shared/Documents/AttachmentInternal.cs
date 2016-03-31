@@ -130,7 +130,7 @@ namespace Couchbase.Lite.Internal
                     Log.To.Database.W(TAG, "Unable to decode attachment!");
                 }
 
-                return new byte[0];
+                return data ?? new byte[0];
             }
         }
 
