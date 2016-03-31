@@ -69,9 +69,9 @@ namespace Couchbase.Lite
 
         private readonly string _path;
 
-        public SymmetricKey EncryptionKey { get; private set; }
+        public ISymmetricKey EncryptionKey { get; private set; }
 
-        public BlobStore(string path, SymmetricKey encryptionKey)
+        public BlobStore(string path, ISymmetricKey encryptionKey)
         {
             if (path == null) {
                 throw new ArgumentNullException("path");
@@ -367,7 +367,7 @@ namespace Couchbase.Lite
             return tempDirectory;
         }
 
-        public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
+        public AtomicAction ActionToChangeEncryptionKey(ISymmetricKey newKey)
         {
             var action = new AtomicAction();
 
@@ -447,7 +447,7 @@ namespace Couchbase.Lite
             return action;
         }
 
-        public void ChangeEncryptionKey(SymmetricKey newKey)
+        public void ChangeEncryptionKey(ISymmetricKey newKey)
         {
             ActionToChangeEncryptionKey(newKey).Run();
         }

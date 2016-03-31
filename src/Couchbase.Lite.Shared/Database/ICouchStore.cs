@@ -119,7 +119,7 @@ namespace Couchbase.Lite.Store
         /// <summary>
         /// Registers the encryption key of the database file. Must be called before opening the db.
         /// </summary>
-        void SetEncryptionKey(SymmetricKey key);
+        void SetEncryptionKey(ISymmetricKey key);
 
         /// <summary>
         /// Called when the delegate changes its encryptionKey property. The storage should rewrite its
@@ -127,7 +127,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         /// <returns>The action used to change the encryption key.</returns>
         /// <param name="newKey">The new key to use</param>
-        AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey);
+        AtomicAction ActionToChangeEncryptionKey(ISymmetricKey newKey);
 
         #endregion
 

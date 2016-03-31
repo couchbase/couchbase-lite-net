@@ -974,7 +974,7 @@ namespace Couchbase.Lite
         internal DatabaseOptions DefaultOptionsFor(string dbName)
         {
             var options = new DatabaseOptions();
-            var encryptionKey = default(SymmetricKey);
+            var encryptionKey = default(ISymmetricKey);
             if (Shared.TryGetValue("encryptionKey", "", dbName, out encryptionKey)) {
                 options.EncryptionKey = encryptionKey;
             }

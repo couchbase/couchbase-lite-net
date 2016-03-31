@@ -42,9 +42,9 @@ namespace Couchbase.Lite.Store
     /// <summary>
     /// Basic AES encryption. Uses a 256-bit (32-byte) key.
     /// </summary>
-    public sealed class SymmetricKey 
+    public sealed class SymmetricKey : ISymmetricKey
     #if !NET_3_5
-        : IDisposable
+        , IDisposable
     #endif
     {
 

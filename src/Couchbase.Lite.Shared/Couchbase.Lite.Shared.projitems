@@ -17,6 +17,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\SSLGenerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revision.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\ISymmetricKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authorizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\FacebookAuthorizer.cs" />

@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Store
         private string _directory;
         private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
-        private SymmetricKey _encryptionKey;
+        private ISymmetricKey _encryptionKey;
         private bool _readOnly;
 
         #endregion
@@ -974,12 +974,12 @@ namespace Couchbase.Lite.Store
             return status;
         }
 
-        public void SetEncryptionKey(SymmetricKey key)
+        public void SetEncryptionKey(ISymmetricKey key)
         {
             _encryptionKey = key;
         }
 
-        public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
+        public AtomicAction ActionToChangeEncryptionKey(ISymmetricKey newKey)
         {
             // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export
             var hasRealEncryption = false;

@@ -160,7 +160,7 @@ namespace Couchbase.Lite.Store
             }
         }
 
-        public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
+        public AtomicAction ActionToChangeEncryptionKey(ISymmetricKey newKey)
         {
             return new AtomicAction(() => {
                 ForestDBBridge.Check(err => 
