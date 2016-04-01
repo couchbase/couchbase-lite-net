@@ -88,22 +88,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         /// <value><c>true</c> if this instance is open; otherwise, <c>false</c>.</value>
         bool IsOpen { get; }
 
-        /// <summary>
-        /// Begins a SQLite transaction
-        /// </summary>
-        /// <returns>The current nested transaction count</returns>
-        int BeginTransaction();
-
-        /// <summary>
-        /// Ends the current transaction
-        /// </summary>
-        /// <returns>The current nested transaction count</returns>
-        int EndTransaction();
-
-        /// <summary>
-        /// Sets the current transaction to be successful (i.e. will commit upon exiting)
-        /// </summary>
-        void SetTransactionSuccessful();
+        bool RunInTransaction(RunInTransactionDelegate block);
 
         /// <summary>
         /// Executes a SQL command (modification)

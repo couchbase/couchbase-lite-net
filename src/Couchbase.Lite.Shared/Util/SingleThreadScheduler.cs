@@ -58,6 +58,12 @@ namespace Couchbase.Lite.Util
                 return;
             }
 
+            if (Thread.CurrentThread == _thread) {
+                Log.To.TaskScheduling.V(Tag, "Executing re-entrant task out of order");
+                TryExecuteTask(task);
+                return;
+            }
+
             lock (_jobQueue) {
                 Log.To.TaskScheduling.V(Tag, "Adding task to scheduler: {0}", task.Id);
                 _jobQueue.AddLast(task);

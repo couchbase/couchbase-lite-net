@@ -124,6 +124,20 @@ namespace Couchbase.Lite
             return new ExceptionEnumerable(inE);
         }
 
+        public static Exception UnwrapAggregate(Exception inE)
+        {
+            if (inE == null) {
+                return null;
+            }
+
+            var ae = inE as AggregateException;
+            if (ae == null) {
+                return inE;
+            }
+
+            return ae.Flatten().InnerException;
+        }
+
         public static object KeyForPrefixMatch(object key, int depth)
         {
             if(depth < 1) {

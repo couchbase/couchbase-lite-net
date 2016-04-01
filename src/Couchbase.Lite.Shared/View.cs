@@ -93,9 +93,6 @@ namespace Couchbase.Lite {
             remove { _changed = (TypedEventHandler<View, EventArgs>)Delegate.Remove(_changed, value); }
         }
 
-        private static LockableLinkedListFactory<UpdateJob> _UpdateQueueFactory = 
-            new LockableLinkedListFactory<UpdateJob>();
-
         #endregion
 
         #region Properties
@@ -300,28 +297,20 @@ namespace Couchbase.Lite {
 
         internal Status UpdateIndex()
         {
-            UpdateJob proposedJob = Storage.CreateUpdateJob(ViewsInGroup().Select(x => x.Storage));
-            UpdateJob nextJob = null;
-            var updateQueue = _UpdateQueueFactory.ListForGroup(GroupName());
-            updateQueue.Lock();
+            var status = new Status(StatusCode.Unknown);
             try {
-                if (updateQueue.Count > 0) {
-                    nextJob = updateQueue.FirstOrDefault(x => x.Equals(proposedJob));
-                    if(nextJob == null) {
-                        QueueUpdate(proposedJob);
-                        nextJob = proposedJob;
-                    } 
+                status.Code = Storage.UpdateIndexes(ViewsInGroup().Select(x => x.Storage)) ? StatusCode.Ok :
+                    StatusCode.DbError;
+            } catch(Exception e) {
+                var innerException = Misc.Flatten(e).First() as CouchbaseLiteException;
+                if (innerException != null) {
+                    status.Code = innerException.Code;
                 } else {
-                    QueueUpdate(proposedJob);
-                    nextJob = proposedJob;
-                    nextJob.Run();
+                    status.Code = StatusCode.Exception;
                 }
-            } finally {
-                updateQueue.Unlock();
             }
 
-            nextJob.Wait();
-            return nextJob.Result;
+            return status;
         }
 
         /// <summary>Queries the view.</summary>
@@ -438,26 +427,6 @@ namespace Couchbase.Lite {
             }
 
             return null;
-        }
-
-        private UpdateJob QueueUpdate(UpdateJob job)
-        {
-            var updateQueue = _UpdateQueueFactory.ListForGroup(GroupName());
-            job.Finished += (sender, e) => {
-                updateQueue.Lock();
-                try {
-                    updateQueue.RemoveFirst();
-                    if(updateQueue.Count > 0) {
-                        updateQueue.First.Value.Run();
-                    }
-                } finally {
-                    updateQueue.Unlock();
-                }
-            };
-
-            updateQueue.AddLast(job);
-
-            return job;
         }
 
         private bool GroupOrReduce(QueryOptions options) {

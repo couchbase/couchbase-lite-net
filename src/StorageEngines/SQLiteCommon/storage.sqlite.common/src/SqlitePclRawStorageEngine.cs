@@ -76,6 +76,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
         private const int SQLITE_OPEN_NOMUTEX = 0x00008000;
         private const int SQLITE_OPEN_PRIVATECACHE = 0x00040000;
         private const int SQLITE_OPEN_SHAREDCACHE = 0x00020000;
+        private const int TRANSACTION_MAX_RETRIES = 10;
+        private const int TRANSACTION_MAX_RETRY_DELAY = 50; //milliseconds
 
         private const String TAG = "SqlitePCLRawStorageEngine";
         private sqlite3 _writeConnection;
@@ -270,7 +272,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         int transactionCount = 0;
 
-        public int BeginTransaction()
+        public bool BeginTransaction()
         {
             if (_readOnly) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Forbidden, TAG,
@@ -297,19 +299,22 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         using (var statement = BuildCommand(_writeConnection, "BEGIN IMMEDIATE TRANSACTION", null))
                         {
                             statement.step_done();
+                            return true;
                         }
                     } catch (Exception e) {
                         LastErrorCode = raw.sqlite3_errcode(_writeConnection);
                         Log.To.Database.E(TAG, "Error beginning transaction, recording error...", e);
+                        Interlocked.Decrement(ref transactionCount);
+                        return false;
                     }
                 });
-                t.Wait();
+                return t.Result;
             }
 
-            return value;
+            return true;
         }
 
-        public int EndTransaction()
+        public bool EndTransaction(bool successful)
         {
             if (_readOnly) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Forbidden, TAG,
@@ -323,37 +328,90 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             var count = Interlocked.Decrement(ref transactionCount);
             if (count > 0)
-                return count;
+                return true;
 
             Log.To.TaskScheduling.V(TAG, "Scheduling EndTransaction()");
             var t = Factory.StartNew(() =>
             {
                 Log.To.TaskScheduling.V(TAG, "Running EndTransaction()");
                 try {
-                    if (shouldCommit)
+                    if (successful)
                     {
                         using (var statement = BuildCommand(_writeConnection, "COMMIT", null))
                         {
                             statement.step_done();
+                            return true;
                         }
-
-                        shouldCommit = false;
                     }
                     else
                     {
                         using (var statement = BuildCommand(_writeConnection, "ROLLBACK", null))
                         {
                             statement.step_done();
+                            return true;
                         }
                     }
                 } catch (Exception e) {
                     Log.To.Database.E(TAG, "Error ending transaction, recording error...", e);
                     LastErrorCode = raw.sqlite3_errcode(_writeConnection);
+                    Interlocked.Increment(ref transactionCount);
+                    return false;
                 }
             });
-            t.Wait();
+            return t.Result;
+        }
 
-            return 0;
+        public bool RunInTransaction(RunInTransactionDelegate block)
+        {
+            var status = false;
+            var t = Factory.StartNew(() =>
+            {
+                var keepGoing = false;
+                int retries = 0;
+                do {
+                    keepGoing = false;
+                    if (!BeginTransaction()) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
+                            "Error beginning begin transaction");
+                    }
+
+                    try {
+                        status = block();
+                    } catch (CouchbaseLiteException e) {
+                        if (e.Code == StatusCode.DbBusy) {
+                            // retry if locked out
+                            if (transactionCount > 1) {
+                                break;
+                            }
+
+                            if (++retries > TRANSACTION_MAX_RETRIES) {
+                                Log.To.Database.E(TAG, "Db busy, too many retries, giving up");
+                                break;
+                            }
+
+                            Log.To.Database.I(TAG, "Db busy, retrying transaction ({0})", retries);
+                            Thread.Sleep(TRANSACTION_MAX_RETRY_DELAY);
+                            keepGoing = true;
+                        } else {
+                            Log.To.Database.E(TAG, "Failed to run transaction, rethrowing...");
+                            status = false;
+                            throw;
+                        }
+                    } catch (Exception e) {
+                        status = false;
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error running transaction");
+                    } finally {
+                        EndTransaction(status);
+                    }
+                } while(keepGoing);
+            });
+            try {
+                t.Wait();
+            } catch(Exception e) {
+                throw Misc.UnwrapAggregate(e);
+            }
+
+            return status;
         }
 
         public void SetTransactionSuccessful()

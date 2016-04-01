@@ -55,8 +55,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
         private const int SQLITE_MMAP_SIZE = 50 * 1024 * 1024;
         private const int DOC_ID_CACHE_SIZE = 1000;
         private const double SQLITE_BUSY_TIMEOUT = 5.0; //seconds
-        private const int TRANSACTION_MAX_RETRIES = 10;
-        private const int TRANSACTION_MAX_RETRY_DELAY = 50; //milliseconds
 
         private const string LOCAL_CHECKPOINT_DOC_ID = "CBL_LocalCheckpoint";
         private const string TAG = "SqliteCouchStore";
@@ -533,42 +531,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return outPruned;
         }
 
-        private bool BeginTransaction()
-        {
-            try {
-                _transactionCount = StorageEngine.BeginTransaction();
-                Log.To.Database.I(TAG, "Begin transaction (level {0})", _transactionCount);
-            } catch (Exception e) {
-                Log.To.Database.W(TAG, "Failed to created SQLite transaction, returning false" , e);
-                return false;
-            }
-
-            return true;
-        }
-
-        private bool EndTransaction(bool commit)
-        {
-            Debug.Assert((_transactionCount > 0));
-
-            Log.To.Database.I(TAG, "{0} transaction (level {1})", commit ? "Commit" : "Abort", _transactionCount);
-            if (commit) {
-                StorageEngine.SetTransactionSuccessful();
-            }
-
-            try  {
-                _transactionCount = StorageEngine.EndTransaction();
-            } catch (Exception e)  {
-                Log.To.Database.W(TAG, "Failed to end transaction, returning false", e);
-                return false;
-            }
-
-            if (Delegate != null) {
-                Delegate.StorageExitedTransaction(commit);
-            }
-
-            return true;
-        }
-
         internal long GetDocNumericID(string docId)
         {
             long docNumericId = 0L;
@@ -928,47 +890,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         public bool RunInTransaction(RunInTransactionDelegate block)
         {
-            var status = false;
-            var keepGoing = false;
-            int retries = 0;
-            do {
-                keepGoing = false;
-                if(!BeginTransaction()) {
-                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
-                        "Error beginning begin transaction");
-                }
-
-                try {
-                    status = block();
-                } catch(CouchbaseLiteException e) {
-                    if(e.Code == StatusCode.DbBusy) {
-                        // retry if locked out
-                        if(_transactionCount > 1) {
-                            break;
-                        }
-
-                        if(++retries > TRANSACTION_MAX_RETRIES) {
-                            Log.To.Database.E(TAG, "Db busy, too many retries, giving up");
-                            break;
-                        }
-
-                        Log.To.Database.I(TAG, "Db busy, retrying transaction ({0})", retries);
-                        Thread.Sleep(TRANSACTION_MAX_RETRY_DELAY);
-                        keepGoing = true;
-                    } else {
-                        Log.To.Database.E(TAG, "Failed to run transaction, rethrowing...");
-                        status = false;
-                        throw;
-                    }
-                } catch(Exception e) {
-                    status = false;
-                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error running transaction");
-                } finally {
-                    EndTransaction(status);
-                }
-            } while(keepGoing);
-
-            return status;
+            return StorageEngine.RunInTransaction(block);
         }
 
         public void SetEncryptionKey(SymmetricKey key)
