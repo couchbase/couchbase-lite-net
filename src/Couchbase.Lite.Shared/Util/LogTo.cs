@@ -184,7 +184,7 @@ namespace Couchbase.Lite.Util
                 return false;
             }
 
-            return _loggingMap[(int)level];
+            return _loggingMap[((int)level) - 1];
         }
             
         public override int GetHashCode()
