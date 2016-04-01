@@ -167,10 +167,10 @@ namespace Couchbase.Lite.Storage.ForestDB
             {
                 switch(level) {
                     case C4LogLevel.Debug:
-                        Log.To.Database.V("ForestDB", msg);
+                        Log.To.Database.D("ForestDB", msg);
                         break;
                     case C4LogLevel.Info:
-                        Log.To.Database.I("ForestDB", msg);
+                        Log.To.Database.V("ForestDB", msg);
                         break;
                     case C4LogLevel.Warning:
                         Log.To.Database.W("ForestDB", msg);

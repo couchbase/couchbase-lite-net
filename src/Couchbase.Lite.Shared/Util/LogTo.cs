@@ -34,25 +34,7 @@ namespace Couchbase.Lite.Util
         private readonly string _domain;
         private readonly bool _makeTag;
 
-        // A cache of whether or not to log at a given level
-        private bool[] _loggingMap = new bool[3];
-
-        public Log.LogLevel Level
-        {
-            get {
-                return _level;
-            }
-            set { 
-                // This optimization helps speed up checks for logging noticeably
-                if (_level != value) {
-                    _loggingMap[0] = value >= Log.LogLevel.Base;
-                    _loggingMap[1] = value >= Log.LogLevel.Verbose;
-                    _loggingMap[2] = value >= Log.LogLevel.Debug;
-                    _level = value;
-                }
-            }
-        }
-        private Log.LogLevel _level;
+        public Log.LogLevel Level { get; set; }
 
         public string Domain 
         {
@@ -184,7 +166,7 @@ namespace Couchbase.Lite.Util
                 return false;
             }
 
-            return _loggingMap[((int)level) - 1];
+            return Level >= level;
         }
             
         public override int GetHashCode()
