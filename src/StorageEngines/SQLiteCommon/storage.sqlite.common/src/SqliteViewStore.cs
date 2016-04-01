@@ -974,10 +974,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     }
                 }
 
-                rows.Add(row);
+
                 if(limit-- == 0) {
                     return new Status(StatusCode.Reserved);
                 }
+                rows.Add(row);
 
                 return new Status(StatusCode.Ok);
             });

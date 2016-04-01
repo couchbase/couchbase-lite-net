@@ -581,7 +581,16 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the headers that should be used when making HTTP requests
         /// </summary>
-        protected internal IDictionary<String, Object> RequestHeaders { get; set; }
+        protected internal IDictionary<String, Object> RequestHeaders
+        {
+            get {
+                return _requestHeaders;
+            }
+            set { 
+                _requestHeaders = value ?? new Dictionary<string, object>();
+            }
+        }
+        private IDictionary<string, object> _requestHeaders;
 
         /// <summary>
         /// The container for storing cookies specific to this replication

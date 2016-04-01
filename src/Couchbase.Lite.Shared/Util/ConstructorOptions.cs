@@ -29,45 +29,44 @@ namespace Couchbase.Lite.Util
     internal sealed class RequiredPropertyAttribute : Attribute
     {
         public bool CreateDefault { get; set; }
+
+        public Type ConcreteType { get; set; }
     }
         
     internal abstract class ConstructorOptions
     {
         private readonly string Tag;
-        private readonly List<PropertyInfo> _uncheckedProps = new List<PropertyInfo>();
 
         protected ConstructorOptions()
         {
             Tag = GetType().Name;
-            var allProps = GetType().GetProperties(BindingFlags.DeclaredOnly | BindingFlags.NonPublic);
-            foreach (var prop in allProps) {
-                if (prop.PropertyType.IsValueType) {
-                    Log.To.NoDomain.W(Tag, "Skipping {0} required attribute because it is a value type", prop.Name);
-                    continue;
-                }
-
-                var reqAtt = (RequiredPropertyAttribute)prop.GetCustomAttributes(typeof(RequiredPropertyAttribute), false).FirstOrDefault();
-                if (reqAtt != null) {
-                    if (reqAtt.CreateDefault) {
-                        try {
-                            prop.SetValue(this, Activator.CreateInstance(prop.PropertyType));
-                        } catch(Exception) {
-                            Log.To.NoDomain.W(Tag, "{0} has no default constructor, cannot set default value", prop.Name);
-                            _uncheckedProps.Add(prop);
-                        }
-                    } else {
-                        _uncheckedProps.Add(prop);
-                    }
-                }
-            }
         }
 
         public void Validate()
         {
-            foreach (var prop in _uncheckedProps) {
-                if (prop.GetValue(this) == null) {
-                    Log.To.NoDomain.E(Tag, "{0} is marked as required and cannot be null, throwing...", prop.Name);
-                    throw new NullReferenceException(String.Format("{0} cannot be null", prop.Name));
+            var allProps = GetType().GetProperties(BindingFlags.Instance
+                | BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.NonPublic);
+            foreach (var prop in allProps) {
+                var reqAtt = (RequiredPropertyAttribute)prop.GetCustomAttributes(typeof(RequiredPropertyAttribute), false).FirstOrDefault();
+                if (reqAtt != null) {
+                    if (prop.PropertyType.IsValueType) {
+                        Log.To.NoDomain.W(Tag, "Skipping {0} required attribute because it is a value type", prop.Name);
+                        continue;
+                    }
+
+                    if (prop.GetValue(this) == null) {
+                        if (reqAtt.CreateDefault) {
+                            try {
+                                prop.SetValue(this, Activator.CreateInstance(reqAtt.ConcreteType ?? prop.PropertyType));
+                            } catch (Exception) {
+                                Log.To.NoDomain.E(Tag, "{0} has no suitable constructor, cannot set default value, throwing...", prop.Name);
+                                throw new InvalidOperationException(String.Format("Couldn't set default value on an instance of {0}", Tag));
+                            }
+                        } else {
+                            Log.To.NoDomain.E(Tag, "Required property {0} missing value, throwing...", prop.Name);
+                            throw new ArgumentNullException(String.Format("{0}.{1}", Tag, prop.Name));
+                        }
+                    }
                 }
             }
         }

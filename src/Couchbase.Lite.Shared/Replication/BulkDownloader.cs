@@ -65,7 +65,7 @@ namespace Couchbase.Lite.Replicator
         [RequiredProperty]
         public Database Database { get; set; }
 
-        [RequiredProperty(CreateDefault=true)]
+        [RequiredProperty(CreateDefault=true, ConcreteType=typeof(Dictionary<string, object>))]
         public IDictionary<string, object> RequestHeaders { get; set; }
 
         [RequiredProperty]
