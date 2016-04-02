@@ -75,7 +75,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Auth\BasicAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\AuthUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CookieStore.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\CustomLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CouchbaseTraceListener.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\INetworkReachabilityManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\DocumentContentOptions.cs" />
@@ -152,6 +151,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ConstructorOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\LockableLinkedList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ExceptionEnumerator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\TraceLogger.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

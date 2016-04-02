@@ -107,6 +107,7 @@
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120-forestdb.zip">
       <Link>Assets\ios120-forestdb.zip</Link>
     </EmbeddedResource>
+    <None Include="app.config" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

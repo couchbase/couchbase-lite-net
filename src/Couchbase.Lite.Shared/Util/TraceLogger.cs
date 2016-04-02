@@ -45,39 +45,52 @@ using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
 {
-    internal sealed class CustomLogger : ILogger 
+    internal sealed class TraceLogger : ILogger 
     {
-
-        #region Variables
-
-        private readonly CouchbaseTraceListener _ts;
-        private readonly object _locker = new object();
-
-        #endregion
-
-        #region Constructors
-
-        public CustomLogger()
+        #if !NET_3_5
+        private void PrintThreadId(TraceEventCache info)
         {
-            _ts = new CouchbaseTraceListener();
-            try {
-                Trace.Listeners.Add(_ts);
-            } catch(NotSupportedException e) {
-                throw new MethodAccessException("It appears that needed classes for Couchbase Lite .NET have been " +
-                "linked away, please ensure that in your Project Options under iOS Build that Linker Behavior " +
-                "is set to 'Don't Link'", e);
-            }
+            Trace.Write("[");
+            Trace.Write(info.ThreadId);
+            Trace.Write("] ");
         }
 
-        #endregion
+        private void PrintDateTime(TraceEventCache info)
+        {
+            Trace.Write(info.DateTime.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK"));
+            Trace.Write(" ");
+        }
+        #endif
+
+        private void PrintEnvInfo()
+        {
+            var traceInfo = new TraceEventCache();
+            PrintThreadId(traceInfo);
+            PrintDateTime(traceInfo);
+        }
+
+        private string MakeMessage(string msg, Exception tr)
+        {
+            return String.Format("{0}:\r\n{1}", msg, tr);
+        }
+
+        private void WriteLine(string level, string tag, string msg)
+        {
+            PrintEnvInfo();
+            Trace.WriteLine(msg, String.Format("{0} {1}", level, tag));
+        }
+
+        private void WriteLine(string level, string tag, string msg, Exception tr)
+        {
+            PrintEnvInfo();
+            Trace.WriteLine(MakeMessage(msg, tr), String.Format("{0} {1}", level, tag));
+        }
 
         #region ILogger
 
         public void V(string tag, string msg)
         {
-            lock (_locker) {
-                _ts.WriteLine(SourceLevels.Verbose, msg, tag); 
-            }
+            WriteLine("VERBOSE)", tag, msg);
         }
 
         public void V(string tag, string msg, Exception tr)
@@ -86,26 +99,22 @@ namespace Couchbase.Lite.Util
                 V(tag, msg);
             }
 
-            lock (_locker) {
-                _ts.WriteLine(SourceLevels.Verbose, String.Format("{0}:\r\n{1}", msg, tr), tag); 
-            }
+            WriteLine("VERBOSE)", tag, msg, tr);
         }
 
         public void V(string tag, string format, params object[] args)
         {
-            V(tag, string.Format(format, args));
+            V(tag, String.Format(format, args));
         }
 
         public void D(string tag, string format, params object[] args)
         {
-            D(tag, string.Format(format, args));
+            D(tag, String.Format(format, args));
         }
 
         public void D(string tag, string msg)
         {
-            lock (_locker) {
-                _ts.WriteLine(SourceLevels.ActivityTracing, msg, tag); 
-            }
+            WriteLine("DEBUG)", tag, msg);
         }
 
         public void D(string tag, string msg, Exception tr)
@@ -114,16 +123,12 @@ namespace Couchbase.Lite.Util
                 D(tag, msg);
             }
 
-            lock (_locker) { 
-                _ts.WriteLine(SourceLevels.ActivityTracing, String.Format("{0}:\r\n{1}", msg, tr), tag); 
-            }
+            WriteLine("DEBUG)", tag, msg, tr);
         }
 
         public void I(string tag, string msg)
         {
-            lock (_locker) {
-                _ts.WriteLine(SourceLevels.Information, msg, tag); 
-            }
+            WriteLine("INFO)", tag, msg);
         }
 
         public void I(string tag, string msg, Exception tr)
@@ -132,9 +137,7 @@ namespace Couchbase.Lite.Util
                 I(tag, msg);
             }
 
-            lock (_locker) {
-                _ts.WriteLine(SourceLevels.Information, String.Format("{0}:\r\n{1}", msg, tr), tag); 
-            }
+            WriteLine("INFO)", tag, msg, tr);
         }
 
         public void I(string tag, string format, params object[] args)
@@ -144,16 +147,12 @@ namespace Couchbase.Lite.Util
 
         public void W(string tag, string msg)
         {
-            lock (_locker) {
-                _ts.WriteLine(SourceLevels.Warning, msg, tag);
-            }
+            WriteLine("WARN)", tag, msg);
         }
 
         public void W(string tag, Exception tr)
         {
-            lock (_locker) {
-                _ts.WriteLine(tr, tag); 
-            }
+            WriteLine("WARN)", tag, "No message", tr);
         }
 
         public void W(string tag, string msg, Exception tr)
@@ -162,9 +161,7 @@ namespace Couchbase.Lite.Util
                 W(tag, msg);
             }
 
-            lock (_locker) { 
-                _ts.WriteLine(SourceLevels.Warning, String.Format("{0}:\r\n{1}", msg, tr), tag); 
-            }
+            WriteLine("WARN)", tag, msg, tr);
         }
 
         public void W(string tag, string format, params object[] args)
@@ -174,9 +171,7 @@ namespace Couchbase.Lite.Util
 
         public void E(string tag, string msg)
         {
-            lock (_locker) { 
-				_ts.WriteLine(SourceLevels.Error, msg, tag);
-            }
+            WriteLine("ERROR)", tag, msg);
         }
 
         public void E(string tag, string msg, Exception tr)
@@ -185,9 +180,7 @@ namespace Couchbase.Lite.Util
                 E(tag, msg);
             }
 
-            lock (_locker) { 
-				_ts.WriteLine(SourceLevels.Error, String.Format("{0}:\r\n{1}", msg, tr), tag);
-            }
+            WriteLine("ERROR)", tag, msg, tr);
         }
 
         public void E(string tag, string format, params object[] args)

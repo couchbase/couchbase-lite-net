@@ -49,7 +49,7 @@ namespace Couchbase.Lite.Util
     {
         public static ILogger CreateLogger()
         {
-            return new CustomLogger();
+            return new TraceLogger();
         }
     }
 }
