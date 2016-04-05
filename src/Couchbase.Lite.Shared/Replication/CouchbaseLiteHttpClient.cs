@@ -32,6 +32,8 @@ namespace Couchbase.Lite
     {
         private HttpClient _httpClient;
         private DefaultAuthHandler _authHandler;
+        private SemaphoreSlim _sendSemaphore;
+
 
         public IAuthenticator Authenticator { get; set; }
 
@@ -45,6 +47,13 @@ namespace Couchbase.Lite
         {
             _httpClient = client;
             _authHandler = authHandler;
+            SetConcurrencyLimit(ReplicationOptions.DefaultMaxOpenHttpConnections);
+        }
+
+        public void SetConcurrencyLimit(int limit)
+        {
+            Misc.SafeDispose(ref _sendSemaphore);
+            _sendSemaphore = new SemaphoreSlim(limit, limit);
         }
 
         public Task<HttpResponseMessage> SendAsync(HttpRequestMessage message, CancellationToken token)
@@ -54,27 +63,35 @@ namespace Couchbase.Lite
 
         public Task<HttpResponseMessage> SendAsync(HttpRequestMessage message, HttpCompletionOption option, CancellationToken token)
         {
-            var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
-            if (challengeResponseAuth != null) {
-                if (_authHandler != null) {
-                    _authHandler.Authenticator = challengeResponseAuth;
+            return _sendSemaphore.WaitAsync().ContinueWith(t =>
+            {
+                var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+                if (challengeResponseAuth != null) {
+                    if (_authHandler != null) {
+                        _authHandler.Authenticator = challengeResponseAuth;
+                    }
+
+                    challengeResponseAuth.PrepareWithRequest(message);
                 }
 
-                challengeResponseAuth.PrepareWithRequest(message);
-            }
+                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
+                if (authHeader != null) {
+                    _httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                }
 
-            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
-            if (authHeader != null) {
-                _httpClient.DefaultRequestHeaders.Authorization = authHeader;
-            }
-
-            return _httpClient.SendAsync(message, option, token);
+                return _httpClient.SendAsync(message, option, token);
+            }).Unwrap().ContinueWith(t =>
+            {
+                _sendSemaphore.Release();
+                return t.Result;
+            });
         }
 
         public void Dispose()
         {
             Misc.SafeDispose(ref _httpClient);
             Misc.SafeDispose(ref _authHandler);
+            Misc.SafeDispose(ref _sendSemaphore);
         }
     }
 }

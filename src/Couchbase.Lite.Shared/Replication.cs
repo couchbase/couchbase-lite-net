@@ -1049,6 +1049,7 @@ namespace Couchbase.Lite
             _clientFactory.SocketTimeout = ReplicationOptions.SocketTimeout;
             _client = _clientFactory.GetHttpClient(_cookieStore, ReplicationOptions.RetryStrategy);
             _client.Timeout = ReplicationOptions.RequestTimeout;
+            _client.SetConcurrencyLimit(ReplicationOptions.MaxOpenHttpConnections);
 
             CheckSession();
         }

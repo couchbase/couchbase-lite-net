@@ -88,6 +88,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
         /// <value><c>true</c> if this instance is open; otherwise, <c>false</c>.</value>
         bool IsOpen { get; }
 
+
+        bool InTransaction { get; }
+      
+
         bool RunInTransaction(RunInTransactionDelegate block);
 
         /// <summary>

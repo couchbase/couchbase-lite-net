@@ -557,11 +557,6 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            if(_requests.Count > ReplicationOptions.MaxOpenHttpConnections) {
-                Task.Delay(1000).ContinueWith(t => ProcessInbox(inbox), CancellationToken.None, TaskContinuationOptions.None, WorkExecutor.Scheduler);
-                return;
-            }
-
             // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
             // <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
             var diffs = new Dictionary<String, IList<String>>();

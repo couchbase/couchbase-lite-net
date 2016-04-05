@@ -84,13 +84,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
         private sqlite3 _readConnection;
         private bool _readOnly; // Needed for issue with GetVersion()
 
-        private Boolean shouldCommit;
-
         private string Path { get; set; }
         private TaskFactory Factory { get; set; }
         private CancellationTokenSource _cts = new CancellationTokenSource();
 
         #region ISQLiteStorageEngine
+
+        public bool InTransaction 
+        {
+            get { return transactionCount > 0; }
+        }
 
         public int LastErrorCode { get; private set; }
 
@@ -138,9 +141,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             Factory = new TaskFactory(new SingleThreadScheduler());
 
             try {
-                shouldCommit = false;
                 int readFlag = readOnly ? SQLITE_OPEN_READONLY : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-                int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | readFlag | SQLITE_OPEN_FULLMUTEX;
+                int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | readFlag | SQLITE_OPEN_NOMUTEX;
                 OpenSqliteConnection(writer_flags, encryptionKey, out _writeConnection);
 
                 #if ENCRYPTION
@@ -296,8 +298,27 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 {
                     Log.To.TaskScheduling.V(TAG, "Running BeginTransaction()...");
                     try {
-                        using (var statement = BuildCommand(_writeConnection, "BEGIN IMMEDIATE TRANSACTION", null))
-                        {
+                        using (var statement = BuildCommand(_writeConnection, "BEGIN IMMEDIATE TRANSACTION", null)) {
+                            statement.step_done();
+                            return true;
+                        }
+                    } catch (Exception e) {
+                        LastErrorCode = raw.sqlite3_errcode(_writeConnection);
+                        Log.To.Database.E(TAG, "Error beginning transaction, recording error...", e);
+                        Interlocked.Decrement(ref transactionCount);
+                        return false;
+                    }
+                });
+                return t.Result;
+            } else {
+                Log.To.TaskScheduling.V(TAG, "Scheduling begin SAVEPOINT...");
+                var t = Factory.StartNew(() =>
+                {
+                    Log.To.TaskScheduling.V(TAG, "Running begin SAVEPOINT()...");
+                    try {
+                        var sql = String.Format("SAVEPOINT cbl_{0}", value - 1);
+                        using (var statement = BuildCommand(_writeConnection, sql, null)) {
+                            
                             statement.step_done();
                             return true;
                         }
@@ -327,38 +348,61 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }
 
             var count = Interlocked.Decrement(ref transactionCount);
-            if (count > 0)
-                return true;
-
-            Log.To.TaskScheduling.V(TAG, "Scheduling EndTransaction()");
-            var t = Factory.StartNew(() =>
-            {
-                Log.To.TaskScheduling.V(TAG, "Running EndTransaction()");
-                try {
-                    if (successful)
-                    {
-                        using (var statement = BuildCommand(_writeConnection, "COMMIT", null))
-                        {
-                            statement.step_done();
-                            return true;
+            if (count > 0) {
+                Log.To.TaskScheduling.V(TAG, "Scheduling end SAVEPOINT");
+                var t = Factory.StartNew(() =>
+                {
+                    Log.To.TaskScheduling.V(TAG, "Running end SAVEPOINT");
+                    try {
+                        if (successful) {
+                            var sql = String.Format("RELEASE SAVEPOINT cbl_{0}", count);
+                            using (var statement = BuildCommand(_writeConnection, sql, null)) {
+                                statement.step_done();
+                                return true;
+                            }
                         }
-                    }
-                    else
-                    {
-                        using (var statement = BuildCommand(_writeConnection, "ROLLBACK", null))
-                        {
-                            statement.step_done();
-                            return true;
+                        else {
+                            var sql = String.Format("ROLLBACK TO SAVEPOINT cbl_{0}", count);
+                            using (var statement = BuildCommand(_writeConnection, sql, null)) {
+                                statement.step_done();
+                                return true;
+                            }
                         }
+                    } catch (Exception e) {
+                        Log.To.Database.E(TAG, "Error ending transaction, recording error...", e);
+                        LastErrorCode = raw.sqlite3_errcode(_writeConnection);
+                        Interlocked.Increment(ref transactionCount);
+                        return false;
                     }
-                } catch (Exception e) {
-                    Log.To.Database.E(TAG, "Error ending transaction, recording error...", e);
-                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
-                    Interlocked.Increment(ref transactionCount);
-                    return false;
-                }
-            });
-            return t.Result;
+                });
+                return t.Result;
+            } else {
+                Log.To.TaskScheduling.V(TAG, "Scheduling EndTransaction()");
+                var t = Factory.StartNew(() =>
+                {
+                    Log.To.TaskScheduling.V(TAG, "Running EndTransaction()");
+                    try {
+                        if (successful) {
+                            using (var statement = BuildCommand(_writeConnection, "COMMIT", null)) {
+                                statement.step_done();
+                                return true;
+                            }
+                        }
+                        else {
+                            using (var statement = BuildCommand(_writeConnection, "ROLLBACK", null)) {
+                                statement.step_done();
+                                return true;
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.To.Database.E(TAG, "Error ending transaction, recording error...", e);
+                        LastErrorCode = raw.sqlite3_errcode(_writeConnection);
+                        Interlocked.Increment(ref transactionCount);
+                        return false;
+                    }
+                });
+                return t.Result;
+            }
         }
 
         public bool RunInTransaction(RunInTransactionDelegate block)
@@ -412,11 +456,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }
 
             return status;
-        }
-
-        public void SetTransactionSuccessful()
-        {
-            shouldCommit = true;
         }
 
         /// <summary>

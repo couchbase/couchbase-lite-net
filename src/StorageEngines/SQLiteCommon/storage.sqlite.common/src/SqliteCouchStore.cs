@@ -149,7 +149,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public bool InTransaction
         { 
             get {
-                return _transactionCount > 0;
+                return StorageEngine.InTransaction;
             }
         }
 
@@ -890,7 +890,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         public bool RunInTransaction(RunInTransactionDelegate block)
         {
-            return StorageEngine.RunInTransaction(block);
+            var retVal = StorageEngine.RunInTransaction(block);
+            if (!StorageEngine.InTransaction) {
+                Misc.IfNotNull(Delegate, d => d.StorageExitedTransaction(retVal));
+            }
+
+            return retVal;
         }
 
         public void SetEncryptionKey(SymmetricKey key)

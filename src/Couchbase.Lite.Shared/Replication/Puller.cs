@@ -86,7 +86,6 @@ namespace Couchbase.Lite.Replicator
         private IList<RevisionInternal> _bulkRevsToPull;
         private ChangeTracker _changeTracker;
         private SequenceMap _pendingSequences;
-        private volatile int _httpConnectionCount;
         private readonly object _locker = new object ();
 
         #endregion
@@ -253,7 +252,7 @@ namespace Couchbase.Lite.Replicator
             var bulkWorkToStartNow = new List<RevisionInternal>();
             lock (_locker)
             {
-                while (LocalDatabase.IsOpen && _httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ReplicationOptions.MaxOpenHttpConnections)
+                while (LocalDatabase.IsOpen)
                 {
                     int nBulk = 0;
                     if (_bulkRevsToPull != null) {
@@ -319,7 +318,6 @@ namespace Couchbase.Lite.Replicator
             Log.To.SyncPerf.I(TAG, "{0} bulk-getting {1} remote revisions...", ReplicatorID, nRevs);
             Log.To.Sync.V(TAG, "{0} POST _bulk_get", ReplicatorID);
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
-            ++_httpConnectionCount;
             BulkDownloader dl;
             try
             {
@@ -391,7 +389,6 @@ namespace Couchbase.Lite.Replicator
 
                     SafeAddToCompletedChangesCount(remainingRevs.Count);
                     LastSequence = _pendingSequences.GetCheckpointedValue();
-                    --_httpConnectionCount;
                     Misc.SafeDispose(ref dl);
 
                     PullRemoteRevisions();
@@ -409,7 +406,6 @@ namespace Couchbase.Lite.Replicator
         private void PullBulkWithAllDocs(IList<RevisionInternal> bulkRevs)
         {
             // http://wiki.apache.org/couchdb/HTTP_Bulk_Document_API
-            ++_httpConnectionCount;
 
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
             var keys = bulkRevs.Select(rev => rev.DocID).ToArray();
@@ -453,8 +449,6 @@ namespace Couchbase.Lite.Replicator
                     }
                     PullRemoteRevisions();
                 }
-
-                --_httpConnectionCount;
 
                 // Start another task if there are still revisions waiting to be pulled:
                 PullRemoteRevisions();
@@ -548,8 +542,6 @@ namespace Couchbase.Lite.Replicator
         /// </remarks>
         private void PullRemoteRevision(RevisionInternal rev)
         {
-            _httpConnectionCount++;
-
             // Construct a query. We want the revision history, and the bodies of attachments that have
             // been added since the latest revisions we have locally.
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
@@ -564,7 +556,6 @@ namespace Couchbase.Lite.Replicator
 
             if (knownRevs == null) {
                 //this means something is wrong, possibly the replicator has shut down
-                _httpConnectionCount--;
                 return;
             }
 
@@ -586,7 +577,7 @@ namespace Couchbase.Lite.Replicator
                     LastError = e;
                     RevisionFailed();
                     SafeIncrementCompletedChangesCount();
-                    if(IsDocumentError(e as HttpResponseException)) {
+                    if(IsDocumentError(e)) {
                         // Make sure this document is skipped because it is not available
                         // even though the server is functioning
                         _pendingSequences.RemoveSequence(rev.Sequence);
@@ -606,9 +597,19 @@ namespace Couchbase.Lite.Replicator
 
                 // Note that we've finished this task; then start another one if there
                 // are still revisions waiting to be pulled:
-                --_httpConnectionCount;
                 PullRemoteRevisions ();
             });
+        }
+
+        private static bool IsDocumentError(Exception e) 
+        {
+            foreach (var inner in Misc.Flatten(e)) {
+                if (IsDocumentError(inner as HttpResponseException) || IsDocumentError(inner as CouchbaseLiteException)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool IsDocumentError(HttpResponseException e)
