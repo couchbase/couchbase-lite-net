@@ -50,8 +50,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\CBForest\CSharp\prebuilt\CBForest-Interop.dll">
-      <Link>CBForest-Interop.dll</Link>
+    <None Include="..\CBForest\CSharp\prebuilt\x86\CBForest-Interop.dll">
+      <Link>x86/CBForest-Interop.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\CBForest\CSharp\prebuilt\x64\CBForest-Interop.dll">
+      <Link>x64/CBForest-Interop.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\CBForest\CSharp\prebuilt\libCBForest-Interop.dylib">
