@@ -663,7 +663,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             if (last == 0) {
                                 try {
                                     // If the lastSequence has been reset to 0, make sure to remove all map results:
-                                    changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#'"));
+									changes = db.StorageEngine.RawQuery(view.QueryString("SELECT COUNT(*) FROM maps_#")).GetInt(0);
+                                    db.StorageEngine.ExecSQL(view.QueryString("DROP TABLE 'maps_#'"));
+									CreateIndex();
                                 } catch (Exception) {
                                     ok = false;
                                 }
