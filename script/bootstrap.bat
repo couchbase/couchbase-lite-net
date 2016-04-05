@@ -22,8 +22,10 @@ if errorlevel 1 (
 rem Return to the directory we originally called this from
 popd 
 
+rem Move the CBForest 
 call move %cd%\script\paket-files\github.com\* %cd%\src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt
 call move %cd%\script\paket-files\github.com\arm64-v8a %cd%\src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt
 call move %cd%\script\paket-files\github.com\arm64-v7a %cd%\src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt
+call move %cd%\script\paket-files\github.com\armeabi-v7a %cd%\src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt
 call move %cd%\script\paket-files\github.com\x86 %cd%\src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt
 call move %cd%\script\paket-files\github.com\x86_64 %cd%\src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt
