@@ -32,10 +32,10 @@ namespace Couchbase.Lite.Store
         Stream DecryptStream(Stream stream);
 
         /// <summary>
-        /// Creates a strem that will encrypt the given base stream
+        /// Creates a stream that will encrypt the given base stream
         /// </summary>
         /// <returns>The stream to write to for encryption</returns>
-        /// <param name="baseStream">The stream to read from</param>
+        /// <param name="baseStream">The stream to read</param>
         Stream CreateStream(Stream baseStream);
     }
 }
