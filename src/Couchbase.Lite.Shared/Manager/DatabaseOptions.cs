@@ -70,7 +70,7 @@ namespace Couchbase.Lite
         /// will use this key, and the same key must be given every time it's opened.  The default, null, 
         /// means the database is not encrypted.
         /// </summary>
-        public SymmetricKey EncryptionKey { get; set; }
+        public ISymmetricKey EncryptionKey { get; set; }
 
         #endregion
 

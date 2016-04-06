@@ -90,7 +90,7 @@ namespace Couchbase.Lite
         public int LastErrorCode { get; private set; }
 
         // Returns true on success, false if encryption key is wrong, throws exception for other cases
-        public bool Decrypt(SymmetricKey encryptionKey, sqlite3 connection)
+        public bool Decrypt(ISymmetricKey encryptionKey, sqlite3 connection)
         {
             var hasRealEncryption = false;
             try {
@@ -132,7 +132,7 @@ namespace Couchbase.Lite
             return true;
         }
 
-        public bool Open(String path, bool readOnly, string schema, SymmetricKey encryptionKey)
+        public bool Open(String path, bool readOnly, string schema, ISymmetricKey encryptionKey)
         {
             if (IsOpen)
                 return true;
@@ -173,7 +173,7 @@ namespace Couchbase.Lite
             return true;
         }
 
-        void OpenSqliteConnection(int flags, SymmetricKey encryptionKey, out sqlite3 db)
+        void OpenSqliteConnection(int flags, ISymmetricKey encryptionKey, out sqlite3 db)
         {
             LastErrorCode = raw.sqlite3_open_v2(Path, out db, flags, null);
             if (LastErrorCode != raw.SQLITE_OK) {

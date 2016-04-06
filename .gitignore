@@ -110,6 +110,7 @@ ClientBin
 Generated_Code #added for RIA/Silverlight projects
 *.walrus
 *.designer.cs
+vendor/
 
 # Android code gen.
 R.cs
