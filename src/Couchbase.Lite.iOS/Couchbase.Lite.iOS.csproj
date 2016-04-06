@@ -8,6 +8,9 @@
   <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
   </Target>
+  <Target Condition=" '$(Configuration)' == 'Packaging'" Name="SuperClean" AfterTargets="Clean">
+    <RemoveDir Directories="$(ProjectDir)bin;$(ProjectDir)obj" />
+  </Target>
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -17,7 +20,6 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.iOS</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
-    <AssemblyName>Couchbase.Lite</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
@@ -33,6 +35,7 @@
     <ConsolePause>false</ConsolePause>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\Debug\Couchbase.Lite.xml</DocumentationFile>
+    <AssemblyName>Couchbase.Lite</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <Platform Condition=" '$(Platform)' == '' ">iPhone</Platform>
@@ -49,6 +52,13 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DefineConstants>__IOS__;</DefineConstants>
+    <AssemblyName>Couchbase.Lite</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Packaging</OutputPath>
+    <WarningLevel>4</WarningLevel>
+    <AssemblyName>Couchbase.Lite.iOS</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Data" />
@@ -59,13 +69,17 @@
     <Reference Include="System" />
     <Reference Include="ICSharpCode.SharpZipLib.Portable">
       <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0003\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid+Xamarin.iOS10\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Mono.Security" />
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Stateless">
       <HintPath>..\packages\Stateless.2.5.53.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http.WebRequest">
+      <HintPath>..\..\vendor\Mono\System.Net.Http.WebRequest.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -98,6 +112,11 @@
     <ProjectReference Include="..\StorageEngines\ForestDB\storage.forestdb.ios-bait\storage.forestdb.ios-bait.csproj">
       <Project>{BDC11824-1554-4CF8-BFD5-E3E1B9C9E41D}</Project>
       <Name>storage.forestdb.ios-bait</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj">
+      <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
+      <Name>websocket-sharp.ios</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

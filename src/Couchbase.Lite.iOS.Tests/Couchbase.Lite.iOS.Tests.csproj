@@ -85,7 +85,13 @@
       <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0003\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid+Xamarin.iOS10\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Jint">
+      <HintPath>..\packages\Jint.2.8\lib\portable-net40+sl50+win+WindowsPhoneApp81+wp80\Jint.dll</HintPath>
+    </Reference>
+    <Reference Include="Stateless">
+      <HintPath>..\packages\Stateless.2.5.62.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup />
@@ -116,21 +122,21 @@
       <Project>{2B3FFAFB-5BE1-493A-9647-901FACAD7801}</Project>
       <Name>Couchbase.Lite.Listener.Bonjour.iOS</Name>
     </ProjectReference>
-    <ProjectReference Include="vendor\Touch.Unit\NUnitLite\MonoTouch.NUnitLite.csproj">
-      <Project>{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}</Project>
-      <Name>MonoTouch.NUnitLite</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj">
-      <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
-      <Name>websocket-sharp.ios</Name>
-    </ProjectReference>
     <ProjectReference Include="..\StorageEngines\ForestDB\storage.forestdb.ios\storage.forestdb.ios.csproj">
       <Project>{04911EDB-B868-4DD7-9121-2E8A99C9833D}</Project>
       <Name>storage.forestdb.ios</Name>
     </ProjectReference>
-    <ProjectReference Include="..\StorageEngines\SystemSQLite\storage.systemsqlite.ios\storage.systemsqlite.ios.csproj">
-      <Project>{374A309A-BEC8-4750-BCBF-97895BDFDC13}</Project>
-      <Name>storage.systemsqlite.ios</Name>
+    <ProjectReference Include="..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj">
+      <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
+      <Name>websocket-sharp.ios</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\vendor\Touch.Unit\NUnitLite\MonoTouch.NUnitLite.csproj">
+      <Project>{9A9B24AF-1103-43D4-8EC0-9EC0155322FC}</Project>
+      <Name>MonoTouch.NUnitLite</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\StorageEngines\SQLCipher\storage.sqlcipher.ios\storage.sqlcipher.ios.csproj">
+      <Project>{80F83EB6-132C-4062-BDB6-2CBCC32C77EC}</Project>
+      <Name>storage.sqlcipher.ios</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -203,8 +209,5 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
-  </Target>
-  <Target Name="EnsureValidSetup" BeforeTargets="PrepareForBuild">
-    <Error Condition="!Exists('$(ProjectDir)\vendor\Touch.Unit') OR !Exists('$(ProjectDir)\vendor\NUnitLite')" Text="Set up the test environment by running the init-unit script in $(ProjectDir)" />
   </Target>
 </Project>

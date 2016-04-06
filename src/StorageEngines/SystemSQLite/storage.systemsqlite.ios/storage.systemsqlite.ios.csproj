@@ -10,6 +10,7 @@
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <AssemblyName>Couchbase.Lite.Storage.SystemSQLite</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,6 +32,11 @@
     <DefineConstants>PINVOKE_FROM_SQLITE3;OLD_REFLECTION;PLATFORM_UNIFIED;</DefineConstants>
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Packaging</OutputPath>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
@@ -38,6 +44,9 @@
     <Reference Include="Xamarin.iOS" />
     <Reference Include="SQLitePCL.ugly">
       <HintPath>..\..\..\packages\SQLitePCL.ugly.0.8.6\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.8.6\build\Xamarin.iOS10\pinvoke_sqlite3\anycpu\SQLitePCL.raw.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -47,9 +56,6 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Import Project="..\..\..\packages\SQLitePCL.raw.0.8.6\build\Xamarin.iOS10\SQLitePCL.raw.targets" Condition="Exists('..\..\..\packages\SQLitePCL.raw.0.8.6\build\Xamarin.iOS10\SQLitePCL.raw.targets')" />
   <ItemGroup>
-    <None Include="ios.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -59,4 +65,5 @@
       <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
 </Project>
