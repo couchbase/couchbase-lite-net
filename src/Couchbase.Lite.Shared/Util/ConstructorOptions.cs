@@ -53,11 +53,11 @@ namespace Couchbase.Lite.Util
                         Log.To.NoDomain.W(Tag, "Skipping {0} required attribute because it is a value type", prop.Name);
                         continue;
                     }
-
-                    if (prop.GetValue(this) == null) {
+                        
+                    if (prop.GetValue(this, null) == null) {
                         if (reqAtt.CreateDefault) {
                             try {
-                                prop.SetValue(this, Activator.CreateInstance(reqAtt.ConcreteType ?? prop.PropertyType));
+                                prop.SetValue(this, Activator.CreateInstance(reqAtt.ConcreteType ?? prop.PropertyType), null);
                             } catch (Exception) {
                                 Log.To.NoDomain.E(Tag, "{0} has no suitable constructor, cannot set default value, throwing...", prop.Name);
                                 throw new InvalidOperationException(String.Format("Couldn't set default value on an instance of {0}", Tag));

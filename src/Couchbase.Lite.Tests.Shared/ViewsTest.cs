@@ -236,6 +236,7 @@ namespace Couchbase.Lite
             }, rows[0]);
         }
 
+        #if !NET_3_5
 		[Test]
         public void TestParallelViewQueries()
         {
@@ -306,6 +307,7 @@ namespace Couchbase.Lite
             Parallel.Invoke(() => queryAction(42), () => queryAction(184), 
                 () => queryAction(256), queryAction2, () => queryAction(412));
         }
+        #endif
 
         [Test] 
         public void TestIssue490()

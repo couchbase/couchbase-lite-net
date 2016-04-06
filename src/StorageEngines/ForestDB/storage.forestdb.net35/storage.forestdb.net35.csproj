@@ -8,6 +8,7 @@
     <OutputType>Library</OutputType>
     <AssemblyName>Couchbase.Lite.Storage.ForestDB</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>false</Optimize>
@@ -15,7 +16,7 @@
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>DEBUG;NET_3_5;</DefineConstants>
+    <DefineConstants>DEBUG;NET_3_5;CUSTOM_ASSEMBLY_INFO;</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -25,7 +26,17 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
-    <DefineConstants>NET_3_5;</DefineConstants>
+    <DefineConstants>NET_3_5;CUSTOM_ASSEMBLY_INFO;</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Packaging</OutputPath>
+    <DefineConstants>NET_3_5;CUSTOM_ASSEMBLY_INFO;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <Import Project="..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems" Label="Shared" Condition="Exists('..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems')" />
   <Import Project="..\storage.forestdb.shared\storage.forestdb.shared.projitems" Label="Shared" Condition="Exists('..\storage.forestdb.shared\storage.forestdb.shared.projitems')" />
@@ -33,7 +44,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\..\packages\Newtonsoft.Json.8.0.2\lib\net35\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\..\packages\Newtonsoft.Json.7.0.1\lib\net35\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -50,10 +61,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\CBForest\CSharp\prebuilt\CBForest-Interop.dll">
-      <Link>CBForest-Interop.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="..\CBForest\CSharp\prebuilt\libCBForest-Interop.dylib">
       <Link>libCBForest-Interop.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -66,10 +73,19 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
+    <None Include="..\CBForest\CSharp\prebuilt\x86\CBForest-Interop.dll">
+      <Link>x86\CBForest-Interop.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\CBForest\CSharp\prebuilt\x64\CBForest-Interop.dll">
+      <Link>x64\CBForest-Interop.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\CBForest\CSharp\cbforest-sharp.Net35\Extensions.cs">
       <Link>Extensions.cs</Link>
     </Compile>
   </ItemGroup>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
 </Project>

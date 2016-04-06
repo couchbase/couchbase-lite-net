@@ -1301,7 +1301,7 @@ namespace Couchbase.Lite
                             }
 
                             if(response.IsCanceled) {
-                                error = new WebException("SendAsyncRequest was cancelled", WebExceptionStatus.RequestCanceled);
+                                error = new WebException("SendAsyncRequest was cancelled", System.Net.WebExceptionStatus.RequestCanceled);
                             } else {
                                 error = Misc.Flatten(response.Exception).FirstOrDefault();
                             }

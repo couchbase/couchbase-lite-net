@@ -19,7 +19,7 @@
 // limitations under the License.
 //
 
-#if !__IOS__ && !__ANDROID__
+#if !__IOS__ && !__ANDROID__ && !NET_3_5
 using System;
 using System.Configuration;
 using System.Collections.Generic;

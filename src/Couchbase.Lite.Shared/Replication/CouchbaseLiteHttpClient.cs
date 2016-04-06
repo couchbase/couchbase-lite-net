@@ -32,7 +32,12 @@ namespace Couchbase.Lite
     {
         private HttpClient _httpClient;
         private DefaultAuthHandler _authHandler;
+        #if NET_3_5
+        private int _connectionCount;
+        private int _connectionLimit;
+        #else
         private SemaphoreSlim _sendSemaphore;
+        #endif
 
 
         public IAuthenticator Authenticator { get; set; }
@@ -52,8 +57,12 @@ namespace Couchbase.Lite
 
         public void SetConcurrencyLimit(int limit)
         {
+            #if NET_3_5
+            _connectionLimit = limit;
+            #else
             Misc.SafeDispose(ref _sendSemaphore);
             _sendSemaphore = new SemaphoreSlim(limit, limit);
+            #endif
         }
 
         public Task<HttpResponseMessage> SendAsync(HttpRequestMessage message, CancellationToken token)
@@ -63,8 +72,16 @@ namespace Couchbase.Lite
 
         public Task<HttpResponseMessage> SendAsync(HttpRequestMessage message, HttpCompletionOption option, CancellationToken token)
         {
+            #if NET_3_5
+            if(_connectionCount >= _connectionLimit) {
+                return Task.Delay(500).ContinueWith(t => SendAsync(message, option, token)).Unwrap();
+            }
+
+            Interlocked.Increment(ref _connectionCount);
+            #else
             return _sendSemaphore.WaitAsync().ContinueWith(t =>
             {
+            #endif
                 var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
                 if (challengeResponseAuth != null) {
                     if (_authHandler != null) {
@@ -80,18 +97,22 @@ namespace Couchbase.Lite
                 }
 
                 return _httpClient.SendAsync(message, option, token);
+            #if !NET_3_5
             }).Unwrap().ContinueWith(t =>
             {
                 _sendSemaphore.Release();
                 return t.Result;
             });
+            #endif
         }
 
         public void Dispose()
         {
             Misc.SafeDispose(ref _httpClient);
             Misc.SafeDispose(ref _authHandler);
+            #if !NET_3_5
             Misc.SafeDispose(ref _sendSemaphore);
+            #endif
         }
     }
 }

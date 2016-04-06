@@ -75,7 +75,7 @@ namespace Couchbase.Lite
             SetupListener(false);
             CreateDocuments(database, 10);
             using (var remoteDb = sg.CreateDatabase("external_replication_test")) {
-                var request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
+                var request = WebRequest.Create("http://localhost:" + _port + "/_replicate");
                 request.ContentType = "application/json";
                 request.Method = "POST";
                 var body = String.Format("{{\"source\":\"{0}\",\"target\":\"{1}\"}}", database.Name, remoteDb.RemoteUri);
@@ -86,7 +86,7 @@ namespace Couchbase.Lite
                 var response = (HttpWebResponse)request.GetResponse();
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
-                request = WebRequest.CreateHttp("http://localhost:" + _port + "/_replicate");
+                request = WebRequest.Create("http://localhost:" + _port + "/_replicate");
                 request.ContentType = "application/json";
                 request.Method = "POST";
                 body = String.Format("{{\"source\":\"{0}\",\"target\":\"test_db\",\"create_target\":true}}", remoteDb.RemoteUri);

@@ -143,7 +143,7 @@ namespace Couchbase.Lite.Util
         static Log()
         {
             Level = LogLevel.Base;
-            #if !__IOS__ && !__ANDROID__
+            #if !__IOS__ && !__ANDROID__ && !NET_3_5
             var configSection = System.Configuration.ConfigurationManager.GetSection("couchbaselite")
                 as Couchbase.Lite.Configuration.CouchbaseConfigSection;
             if(configSection != null && configSection.Logging != null) {

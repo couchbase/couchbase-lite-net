@@ -64,9 +64,11 @@ namespace Couchbase.Lite.Util
 
         private void PrintEnvInfo()
         {
+            #if !NET_3_5
             var traceInfo = new TraceEventCache();
             PrintThreadId(traceInfo);
             PrintDateTime(traceInfo);
+            #endif
         }
 
         private string MakeMessage(string msg, Exception tr)
