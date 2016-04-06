@@ -17,7 +17,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\SSLGenerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revision.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\ISymmetricKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authorizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\FacebookAuthorizer.cs" />
@@ -91,6 +90,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\ConflictResolutionStrategy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\ContentValues.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\Cursor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\ISymmetricKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\JsonCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\RevIdCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLException.cs" />
