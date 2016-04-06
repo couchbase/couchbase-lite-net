@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Store
         /// <param name="readOnly">Whether or not this storage engine is readonly</param> 
         /// <param name="schema">The schema to use to create the database initially</param>
         /// <param name="encryptionKey">A key for encrypting the database</param>
-        bool Open(string path, bool readOnly, string schema, SymmetricKey encryptionKey);
+        bool Open(string path, bool readOnly, string schema, ISymmetricKey encryptionKey);
 
         /// <summary>
         /// Gets the user version of the database

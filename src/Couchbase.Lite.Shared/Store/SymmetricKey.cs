@@ -42,9 +42,9 @@ namespace Couchbase.Lite.Store
     /// <summary>
     /// Basic AES encryption. Uses a 256-bit (32-byte) key.
     /// </summary>
-    public sealed class SymmetricKey 
+    public sealed class SymmetricKey : ISymmetricKey
     #if !NET_3_5
-        : IDisposable
+        , IDisposable
     #endif
     {
 
@@ -251,7 +251,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         /// <returns>The stream to write to for encryption</returns>
         /// <param name="baseStream">The stream to read from</param>
-        public CryptoStream CreateStream(Stream baseStream)
+        public Stream CreateStream(Stream baseStream)
         {
             if (_cryptor == null || baseStream == null) {
                 return null;

@@ -771,7 +771,7 @@ namespace Couchbase.Lite
         /// Change the encryption key used to secure this database
         /// </summary>
         /// <param name="newKey">The new key to use</param>
-        public void ChangeEncryptionKey(SymmetricKey newKey)
+        public void ChangeEncryptionKey(ISymmetricKey newKey)
         {
             if (!IsOpen) {
                 Log.W(TAG, "ChangeEncryptionKey called on closed database");

@@ -90,6 +90,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\ConflictResolutionStrategy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\ContentValues.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\Cursor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\ISymmetricKey.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\JsonCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\RevIdCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLException.cs" />

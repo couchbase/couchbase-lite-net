@@ -88,14 +88,14 @@ namespace Couchbase.Lite.Store
             new ConcurrentDictionary<int, IntPtr>();
 
         private C4DatabaseFlags _config;
-        private SymmetricKey _encryptionKey;
+        private ISymmetricKey _encryptionKey;
         private LruCache<string, ForestDBViewStore> _views = new LruCache<string, ForestDBViewStore>(100);
 
         #endregion
 
         #region Properties
 
-        public SymmetricKey EncryptionKey
+        public ISymmetricKey EncryptionKey
         {
             get {
                 return _encryptionKey;
@@ -492,12 +492,12 @@ namespace Couchbase.Lite.Store
             }
         }
 
-        public void SetEncryptionKey(SymmetricKey key)
+        public void SetEncryptionKey(ISymmetricKey key)
         {
             _encryptionKey = key;
         }
 
-        public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
+        public AtomicAction ActionToChangeEncryptionKey(ISymmetricKey newKey)
         {
             var retVal = new AtomicAction(() =>
                 ForestDBBridge.Check(err => 
