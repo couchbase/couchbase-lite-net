@@ -11,6 +11,9 @@
   <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
   </Target>
+  <Target Condition=" '$(Configuration)' == 'Packaging'" Name="SuperClean" AfterTargets="Clean">
+    <RemoveDir Directories="$(ProjectDir)bin;$(ProjectDir)obj" />
+  </Target>
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -47,6 +50,17 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Packaging\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Prefer32Bit>false</Prefer32Bit>
+    <LangVersion>5</LangVersion>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -56,14 +70,17 @@
     <Reference Include="System.Management" />
     <Reference Include="Stateless">
       <HintPath>..\packages\Stateless.2.5.53.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System.Configuration" />
     <Reference Include="System.Xml" />
     <Reference Include="ICSharpCode.SharpZipLib.Portable">
       <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0003\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid+Xamarin.iOS10\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>

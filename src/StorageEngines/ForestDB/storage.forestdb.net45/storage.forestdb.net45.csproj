@@ -1,5 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Condition=" '$(Configuration)' == 'Packaging'" Name="SuperClean" AfterTargets="Clean">
+    <RemoveDir Directories="$(ProjectDir)bin;$(ProjectDir)obj" />
+  </Target>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -32,10 +35,21 @@
     <DebugSymbols>true</DebugSymbols>
     <DefineConstants>CUSTOM_ASSEMBLY_INFO;</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Packaging</OutputPath>
+    <DefineConstants>CUSTOM_ASSEMBLY_INFO;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\..\packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -51,11 +65,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\CBForest\CSharp\prebuilt\x86\CBForest-Interop.dll">
-      <Link>x86/CBForest-Interop.dll</Link>
+      <Link>x86\CBForest-Interop.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\CBForest\CSharp\prebuilt\x64\CBForest-Interop.dll">
-      <Link>x64/CBForest-Interop.dll</Link>
+      <Link>x64\CBForest-Interop.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\CBForest\CSharp\prebuilt\libCBForest-Interop.dylib">

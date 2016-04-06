@@ -48,11 +48,17 @@
     <Reference Include="nunit.framework, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
       <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="ICSharpCode.SharpZipLib.Portable">
       <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0003\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid+Xamarin.iOS10\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Jint">
+      <HintPath>..\packages\Jint.2.8\lib\portable-net40+sl50+win+WindowsPhoneApp81+wp80\Jint.dll</HintPath>
+    </Reference>
+    <Reference Include="Stateless">
+      <HintPath>..\packages\Stateless.2.5.62.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

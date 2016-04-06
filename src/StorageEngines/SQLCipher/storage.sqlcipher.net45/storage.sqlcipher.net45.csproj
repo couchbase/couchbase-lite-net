@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Condition=" '$(Configuration)' == 'Packaging'" Name="SuperClean" AfterTargets="Clean">
+    <RemoveDir Directories="$(ProjectDir)bin;$(ProjectDir)obj" />
+  </Target>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -29,6 +32,16 @@
     <DefineConstants>ENCRYPTION;PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;</DefineConstants>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Packaging</OutputPath>
+    <DefineConstants>ENCRYPTION;PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
