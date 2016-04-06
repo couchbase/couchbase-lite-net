@@ -20,3 +20,15 @@
 [submodule "vendor/Jint"]
 	path = vendor/Jint
 	url = https://github.com/Nogrod/jint
+[submodule "vendor/MonoDroid.Dialog"]
+	path = vendor/MonoDroid.Dialog
+	url = https://github.com/couchbaselabs/MonoDroid.Dialog
+[submodule "vendor/Andr.Unit"]
+	path = vendor/Andr.Unit
+	url = https://github.com/couchbaselabs/Andr.Unit
+[submodule "vendor/NUnitLite"]
+	path = vendor/NUnitLite
+	url = https://github.com/couchbasedeps/NUnitLite
+[submodule "vendor/Touch.Unit"]
+	path = vendor/Touch.Unit
+	url = https://github.com/couchbasedeps/Touch.Unit.git

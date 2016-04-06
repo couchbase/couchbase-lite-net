@@ -51,7 +51,6 @@ using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.ForestDB;
-using Couchbase.Lite.Configuration;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -79,14 +78,14 @@ namespace Couchbase.Lite
             var json = Manager.GetObjectMapper().WriteValueAsString(props);
             var deserialized = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(json);
             var resultObj = deserialized.Get("time");
-            Assert.IsInstanceOf<DateTime>(resultObj);
+            Assert.IsInstanceOf(typeof(DateTime), resultObj);
             Assert.AreEqual(expectedTime2, resultObj);
 
             ManagerOptions.SerializationSettings = new JsonSerializationSettings { DateTimeHandling = DateTimeHandling.UseDateTimeOffset };
             json = Manager.GetObjectMapper().WriteValueAsString(props);
             deserialized = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(json);
             resultObj = deserialized.Get("time");
-            Assert.IsInstanceOf<DateTimeOffset>(resultObj);
+            Assert.IsInstanceOf(typeof(DateTime), resultObj);
             Assert.AreEqual(expectedTime, resultObj);
             Assert.AreEqual(expectedTime.Offset, ((DateTimeOffset)resultObj).Offset);
         }
