@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>Couchbase.Lite</id>
+    <title>Couchbase Lite</title>
+    <version>1.2.0.3</version>
+    <authors>Jim Borden, Zachary Gramana</authors>
+    <owners>Couchbase</owners>
+    <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/couchbase/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
+    <releaseNotes>
+      1.2.0.3 puts an upper limit on one of our deps due to an upstream change that breaks binary compatibility.
+
+Couchbase Lite 1.2 brings a number of significant bug fixes and two new features:
+
+Encryption Support - Databases may now be encrypted. The encryption process uses industry standard protocols (PBKDF2 for key generation and 256-bit AES for encrypting).
+
+ForestDB Based Databases - You may now take advantage of the performance increases of Couchbase's ForestDB storage engine. It was designed from the ground up to be a key-value storage engine and lends itself perfectly to our JSON model.
+
+NOTE: Starting with this release the nuget package has been modularized. Making use of these two new features requires installing additional packages from nuget. By default, Couchbase.Lite will use Couchbase.Lite.Storage.SystemSQLite which makes use of the system-installed SQLite library (or a provided one for Windows). To use encryption with SQLite, you must install the Couchbase.Lite.Storage.SQLCipher package. To use ForestDB (with or without encryption) you must install the Couchbase.Lite.Storage.ForestDB package.  YOU MUST ALSO REMOVE THE SQLITEPCL.RAW AND SQLITEPCL.UGLY PACKAGES FROM YOUR PROJECT IF YOU ARE UPGRADING FROM A PREVIOUS VERSION!!
+
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
+    </releaseNotes>
+    <copyright>Copyright 2014-2016</copyright>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
+    <language>en-US</language>
+    <dependencies>
+      <group targetFramework="net35">
+        <dependency id="Newtonsoft.Json" version="7.0.1" />
+        <dependency id="SharpZipLib" version="0.86.0" />
+        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2" />
+      </group>
+      <group targetFramework="net45">
+        <dependency id="Newtonsoft.Json" version="7.0.1" />
+        <dependency id="SharpZipLib.Portable" version="0.86.0.0003" />
+        <dependency id="Stateless" version="[2.5.21.0,2.5.29.0]" />
+        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2" />
+      </group>
+      <group>
+        <dependency id="Newtonsoft.Json" version="7.0.1" />
+        <dependency id="SharpZipLib.Portable" version="0.86.0.0003" />
+        <dependency id="Stateless" version="[2.5.21.0,2.5.29.0]" />
+        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file target="" src="packaging/nuget/readme.txt" />
+    <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />
+    <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/cbforest-sharp*" />
+    <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/SQLitePCL.*" />
+    <file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.*" />
+    <file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/cbforest-sharp*" />
+  </files>
+</package>
