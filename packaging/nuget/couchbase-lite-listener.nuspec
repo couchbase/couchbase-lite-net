@@ -35,10 +35,15 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     </dependencies>
   </metadata>
   <files>
-    <file target="" src="packaging/nuget/readme.txt" />
     <file target="lib/net45" src="src/ListenerComponent/Couchbase.Lite.Listener.Net45/bin/Release/Couchbase.Lite.Listener.*" />
+    <file target="lib/net45" src="src/ListenerComponent/Couchbase.Lite.Listener.Net45/bin/Release/Mono.Security.*" />
+    <file target="lib/net45" src="src/ListenerComponent/Couchbase.Lite.Listener.Net45/bin/Release/websocket-sharp.*" />
     <file target="lib/MonoAndroid" src="src/ListenerComponent/Couchbase.Lite.Listener.Android/bin/Release/Couchbase.Lite.Listener.*" />
+    <file target="lib/MonoAndroid" src="src/ListenerComponent/Couchbase.Lite.Listener.Android/bin/Release/Mono.Security.*" />
+    <file target="lib/MonoAndroid" src="src/ListenerComponent/Couchbase.Lite.Listener.Android/bin/Release/websocket-sharp.*" />
     <file target="lib/xamarinios10" src="src/ListenerComponent/Couchbase.Lite.Listener.iOS/bin/Release/Couchbase.Lite.Listener.*" />
+    <file target="lib/xamarinios10" src="src/ListenerComponent/Couchbase.Lite.Listener.iOS/bin/Release/Mono.Security.*" />
+    <file target="lib/xamarinios10" src="src/ListenerComponent/Couchbase.Lite.Listener.iOS/bin/Release/websocket-sharp.*" />
     <file target="lib/net35" src="src/ListenerComponent/Couchbase.Lite.Listener.Net35/bin/Nuget/*" />
   </files>
 </package>

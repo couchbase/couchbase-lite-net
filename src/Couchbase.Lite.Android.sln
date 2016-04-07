@@ -41,11 +41,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "portable.profile78", "Couch
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ugly_profile78", "Couchbase.Lite.Shared\vendor\SQLitePCL\bld\ugly_profile78.csproj", "{11440D11-E458-4BB6-ADBB-7C233F952089}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "websocket-sharp.shared", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.shproj", "{891A08FC-F143-4325-BC16-B9864D036B99}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp.droid", "Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.droid.csproj", "{E1153FA4-356A-454D-B32E-136102F2482F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-droid", "ListenerComponent\Couchbase.Lite.Listener.Shared\vendor\Mono\Mono.Security\Mono.Security-droid.csproj", "{83F75E53-48BE-4F3C-8D79-62CBD5050792}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "websocket-sharp.shared", "..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.shproj", "{891A08FC-F143-4325-BC16-B9864D036B99}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp.droid", "..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.droid.csproj", "{E1153FA4-356A-454D-B32E-136102F2482F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "StorageEngines", "StorageEngines", "{15E18D64-4AC3-4CBA-A805-600E2C507D28}"
 EndProject
@@ -143,9 +143,9 @@ Global
 		{1E1A3DD6-6C0F-499C-95DD-FFFA2C83B9B1} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
 		{84547E16-A872-418D-82A6-B57ADEE290AE} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
 		{11440D11-E458-4BB6-ADBB-7C233F952089} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
+		{83F75E53-48BE-4F3C-8D79-62CBD5050792} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
 		{891A08FC-F143-4325-BC16-B9864D036B99} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
 		{E1153FA4-356A-454D-B32E-136102F2482F} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
-		{83F75E53-48BE-4F3C-8D79-62CBD5050792} = {6C305FF7-56BE-47D9-AAB0-310C78AA7B2F}
 		{DBAC3913-9754-44CC-BED1-860C97D08554} = {15E18D64-4AC3-4CBA-A805-600E2C507D28}
 		{6D09426B-6A78-4DAF-B6C4-57636DB5778C} = {15E18D64-4AC3-4CBA-A805-600E2C507D28}
 		{64220357-9661-43D9-922B-23C07448FD1B} = {15E18D64-4AC3-4CBA-A805-600E2C507D28}

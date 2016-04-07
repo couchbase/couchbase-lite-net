@@ -43,6 +43,8 @@ rm -rf ../../src/StorageEngines/ForestDB/storage.forestdb.droid/bin
 rm -rf ../../src/StorageEngines/ForestDB/storage.forestdb.net35/obj
 rm -rf ../../src/StorageEngines/ForestDB/storage.forestdb.ios/obj
 rm -rf ../../src/StorageEngines/ForestDB/storage.forestdb.droid/obj
+rm -rf ../../vendor/websocket-sharp/websocket-sharp/bin
+rm -rf ../../vendor/websocket-sharp/websocket-sharp/obj
 
 #Build the managed DLLs
 #xbuild /p:Configuration=Release ../../src/Couchbase.Lite.Net35/Couchbase.Lite.Net35.csproj
@@ -86,7 +88,9 @@ $LITE_RELEASE_DIR/System.Threading.Tasks.Net35.dll*"
 LITE_LISTENER_NUGET_DIR="../../src/ListenerComponent/Couchbase.Lite.Listener.Net35/bin/Nuget/"
 LITE_LISTENER_RELEASE_DIR="../../src/ListenerComponent/Couchbase.Lite.Listener.Net35/bin/Release"
 LITE_LISTENER_RELEASE_FILES="$LITE_LISTENER_RELEASE_DIR/Couchbase.Lite.Listener.dll*
-$LITE_LISTENER_RELEASE_DIR/Jint.dll"
+$LITE_LISTENER_RELEASE_DIR/Jint.dll
+$LITE_LISTENER_RELEASE_DIR/Mono.Security.*
+$LITE_LISTENER_RELEASE_DIR/websocket-sharp.*"
 
 rm -rf $LITE_NUGET_DIR
 mkdir -p $LITE_NUGET_DIR

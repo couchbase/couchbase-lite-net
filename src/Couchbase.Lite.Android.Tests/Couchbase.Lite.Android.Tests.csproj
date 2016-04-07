@@ -138,10 +138,6 @@
       <Name>storage.forestdb.droid</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Shared\vendor\websocket-sharp\websocket-sharp\websocket-sharp.droid.csproj">
-      <Project>{E1153FA4-356A-454D-B32E-136102F2482F}</Project>
-      <Name>websocket-sharp.droid</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\attachment.png" />
