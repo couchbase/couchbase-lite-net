@@ -6,6 +6,8 @@ open Fake.AssemblyInfoFile
 open System.IO
 open System
 
+
+
 let buildMode = "Release"
 let setParams defaults =
         { defaults with
@@ -24,6 +26,7 @@ let setParams defaults =
 
 // solution and project paths
 let net45Solution = "src"</>"Couchbase.Lite.Net45.sln"
+let androidSolution = "src"</>"Couchbase.Lite.Android.sln"
 let net45Project = "src"</>"Couchbase.Lite.Net45"</>"Couchbase.Lite.Net45.csproj"
 let androidProject = "src"</>"Couchbase.Lite.Android"</>"Couchbase.Lite.Android.csproj"
 let cbForestProject = "src"</>"Couchbase.Lite.Shared"</>"vendor"</>"cbforest"</>"CSharp"</>"cbforest-sharp.Net45"</>"cbforest-sharp.Net45.csproj"
@@ -35,6 +38,22 @@ let artifactsNuGetDir = Path.GetFullPath(@"./artifacts/nuget/")
 let artifactsBuildDir = Path.GetFullPath(@"./artifacts/build/")
 
 Target "Build" (fun _ ->
+    // iterate through the solutions and restore their packages
+    [
+        net45Solution
+        androidSolution
+    ]
+    |> List.iter(fun solution -> 
+        // restore packages for the current solution
+        RestoreMSSolutionPackages(fun p ->
+            {p with
+                OutputPath = "src/packages"
+            })
+            solution
+        )
+    
+  
+    // build the projects
     [
         cbForestProject
         net45Project
