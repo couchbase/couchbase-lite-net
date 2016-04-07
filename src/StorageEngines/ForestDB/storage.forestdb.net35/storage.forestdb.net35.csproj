@@ -41,6 +41,16 @@
   <Import Project="..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems" Label="Shared" Condition="Exists('..\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems')" />
   <Import Project="..\storage.forestdb.shared\storage.forestdb.shared.projitems" Label="Shared" Condition="Exists('..\storage.forestdb.shared\storage.forestdb.shared.projitems')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
+    <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net35" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.ForestDB.dll;$(OutputPath)Couchbase.Lite.Storage.ForestDB.dll.mdb;
+    $(OutputPath)libCBForest-Interop.dylib;$(OutputPath)libCBForest-Interop.so;$(OutputPath)net35.targets"
+    DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net35" />
+    <Copy SourceFiles="$(OutputPath)x86\CBForest-Interop.dll"
+    DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net35\x86" />
+    <Copy SourceFiles="$(OutputPath)x64\CBForest-Interop.dll"
+    DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net35\x64" />
+  </Target>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="Newtonsoft.Json">

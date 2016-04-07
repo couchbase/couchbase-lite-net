@@ -1,8 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Target Condition=" '$(Configuration)' == 'Packaging'" Name="SuperClean" AfterTargets="Clean">
-    <RemoveDir Directories="$(ProjectDir)bin;$(ProjectDir)obj" />
-  </Target>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -32,6 +29,8 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <DefineConstants>__IOS__;</DefineConstants>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -40,6 +39,8 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -47,7 +48,6 @@
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.iOS" />
     <Reference Include="System.Net.Http" />
-    <Reference Include="Mono.Security" />
     <Reference Include="Jint">
       <HintPath>..\..\packages\Jint.2.7.1\lib\portable-net40+sl50+win+WindowsPhoneApp81+wp80\Jint.dll</HintPath>
     </Reference>
@@ -57,6 +57,10 @@
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
+  <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
+    <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener\Xamarin.iOS10" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.dll.mdb;&#xA;    $(OutputPath)Mono.Security.dll;$(OutputPath)Mono.Security.dll.mdb;&#xA;    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\Xamarin.iOS10" />
+  </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
       <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
@@ -67,6 +71,10 @@
     <ProjectReference Include="..\..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj">
       <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
       <Name>websocket-sharp.ios</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\vendor\Mono\Mono.Security\Mono.Security-ios.csproj">
+      <Project>{83F75E53-48BE-4F3C-8D79-62CBD5050792}</Project>
+      <Name>Mono.Security-ios</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

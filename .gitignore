@@ -155,3 +155,4 @@ UnityDemo.sln
 *.walrus
 tmp/
 sync_gateway
+staging

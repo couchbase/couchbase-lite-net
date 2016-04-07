@@ -8,9 +8,6 @@
   <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
   </Target>
-  <Target Condition=" '$(Configuration)' == 'Packaging'" Name="SuperClean" AfterTargets="Clean">
-    <RemoveDir Directories="$(ProjectDir)bin;$(ProjectDir)obj" />
-  </Target>
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -92,6 +89,14 @@
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
+    <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.dll.mdb;$(OutputPath)Stateless.dll;
+    $(OutputPath)Stateless.dll;$(OutputPath)System.Net.Http.Net35.dll;$(OutputPath)System.Threading.Tasks.Net35.dll;
+    $(OutputPath)Rackspace.Threading.dll;$(OutputPath)Stateless.dll.mdb;$(OutputPath)System.Net.Http.Net35.dll.mdb;
+    $(OutputPath)System.Threading.Tasks.Net35.dll.mdb;$(OutputPath)Rackspace.Threading.dll.mdb"
+     DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
+  </Target>
   <ItemGroup>
     <Compile Include="StringEx.cs" />
     <Compile Include="StreamEx.cs" />
