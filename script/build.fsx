@@ -35,9 +35,13 @@ let artifactsNuGetDir = Path.GetFullPath(@"./artifacts/nuget/")
 let artifactsBuildDir = Path.GetFullPath(@"./artifacts/build/")
 
 Target "Build" (fun _ ->
-    build setParams cbForestProject|> DoNothing    
-    build setParams net45Project |> DoNothing
-    build setParams androidProject |> DoNothing
+    [
+        cbForestProject
+        net45Project
+        androidProject 
+    ] 
+    |> List.iter(fun proj ->  build setParams proj |> DoNothing) 
+
 )
 
 Target "Package" (fun _ ->
