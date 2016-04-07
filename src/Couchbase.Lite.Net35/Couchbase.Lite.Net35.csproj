@@ -1,9 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
-    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' ">
-    </MonoPrefix>
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <MonoPrefix>mono </MonoPrefix>
+    <mdb>dll.mdb</mdb>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <MonoPrefix />
+    <mdb>pdb</mdb>
   </PropertyGroup>
   <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
@@ -91,10 +94,11 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.dll.mdb;$(OutputPath)Stateless.dll;
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);$(OutputPath)Stateless.dll;
     $(OutputPath)Stateless.dll;$(OutputPath)System.Net.Http.Net35.dll;$(OutputPath)System.Threading.Tasks.Net35.dll;
-    $(OutputPath)Rackspace.Threading.dll;$(OutputPath)Stateless.dll.mdb;$(OutputPath)System.Net.Http.Net35.dll.mdb;
-    $(OutputPath)System.Threading.Tasks.Net35.dll.mdb;$(OutputPath)Rackspace.Threading.dll.mdb"
+    $(OutputPath)Rackspace.Threading.dll;$(OutputPath)Stateless.$(mdb);$(OutputPath)System.Net.Http.Net35.$(mdb);
+    $(OutputPath)System.Threading.Tasks.Net35.$(mdb);$(OutputPath)Rackspace.Threading.$(mdb);
+    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb)"
      DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
   </Target>
   <ItemGroup>

@@ -1,9 +1,14 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <MonoPrefix>mono </MonoPrefix>
+    <mdb>dll.mdb</mdb>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <MonoPrefix />
+    <mdb>pdb</mdb>
+  </PropertyGroup>
   <PropertyGroup>
-    <MonoPrefix Condition=" '$(OS)' != 'Windows_NT' ">mono </MonoPrefix>
-    <MonoPrefix Condition=" '$(OS)' == 'Windows_NT' ">
-    </MonoPrefix>
     <ReleaseVersion>1.1.1</ReleaseVersion>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <AssemblyName>Couchbase.Lite</AssemblyName>
@@ -46,6 +51,7 @@
     <LangVersion>5</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>TRACE</DefineConstants>
+    <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -57,6 +63,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Prefer32Bit>false</Prefer32Bit>
     <LangVersion>5</LangVersion>
+    <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -91,7 +98,9 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\net45" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net45" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);
+          $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb)"
+          DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net45" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">

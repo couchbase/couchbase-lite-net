@@ -1,5 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <mdb>dll.mdb</mdb>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <mdb>pdb</mdb>
+  </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -49,10 +55,9 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net35" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.dll.mdb;
-    $(OutputPath)Mono.Security.dll;$(OutputPath)Mono.Security.dll.mdb;
-    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.dll.mdb;$(OutputPath)Jint.dll;
-    $(OutputPath)Jint.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net35" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb);
+    $(OutputPath)Mono.Security.dll;$(OutputPath)Mono.Security.$(mdb);$(OutputPath)Jint.dll;
+    $(OutputPath)Jint.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net35" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\Couchbase.Lite.Net35\Couchbase.Lite.Net35.csproj">

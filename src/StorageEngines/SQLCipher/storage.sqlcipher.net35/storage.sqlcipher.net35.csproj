@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <mdb>dll.mdb</mdb>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <mdb>pdb</mdb>
+  </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -43,7 +49,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\net35" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.SQLCipher.dll;$(OutputPath)Couchbase.Lite.Storage.SQLCipher.dll.mdb;
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.SQLCipher.dll;$(OutputPath)Couchbase.Lite.Storage.SQLCipher.$(mdb);
     $(OutputPath)libsqlcipher.dylib;$(OutputPath)libsqlcipher.so;$(OutputPath)net35.targets"
     DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\net35" />
     <Copy SourceFiles="$(OutputPath)x86\sqlcipher.dll"

@@ -24,7 +24,6 @@ using System.Threading.Tasks;
 using Couchbase.Lite.Listener;
 using WebSocketSharp.Net;
 using Couchbase.Lite.Listener.Tcp;
-using System.Diagnostics.Contracts;
 
 namespace Couchbase.Lite.Tests
 {
