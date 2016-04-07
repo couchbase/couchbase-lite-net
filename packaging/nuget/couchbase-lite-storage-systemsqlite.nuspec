@@ -27,16 +27,9 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     </dependencies>
   </metadata>
   <files>
-    <!-- .NET 3.5 -->
-    <file target="lib/net35/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.net35/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
-
-    <!-- .NET 3.5 -->
-    <file target="lib/net45/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.net45/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
-
-    <!-- Xamarin.Android -->
-    <file target="lib/MonoAndroid/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.droid/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
-
-    <!-- Xamarin.iOS -->
-    <file target="lib/Xamarin.iOS10/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.ios/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
+    <file target="lib/net35/" src="staging/Couchbase.Lite.Storage.SystemSQLite/net35/*" />
+    <file target="lib/net45/" src="staging/Couchbase.Lite.Storage.SystemSQLite/net45/*" />
+    <file target="lib/MonoAndroid/" src="staging/Couchbase.Lite.Storage.SystemSQLite/MonoAndroid/*" />
+    <file target="lib/Xamarin.iOS10/" src="staging/Couchbase.Lite.Storage.SystemSQLite/Xamarin.iOS10/*" />
   </files>
 </package>

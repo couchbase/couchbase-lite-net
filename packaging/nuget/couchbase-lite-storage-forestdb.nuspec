@@ -24,23 +24,23 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
   </metadata>
   <files>
     <!-- .NET 3.5 -->
-    <file target="build/net35/Couchbase.Lite.Storage.ForestDB.targets" src="src/StorageEngines/ForestDB/storage.forestdb.net35/bin/Release/net35.targets" />
-    <file target="build/net35" src="src/StorageEngines/ForestDB/storage.forestdb.net35/bin/Release/CBForest-Interop.dll" />
-    <file target="build/net35/" src="src/StorageEngines/ForestDB/storage.forestdb.net35/bin/Release/libCBForest-Interop.dylib" />
-    <file target="build/net35/" src="src/StorageEngines/ForestDB/storage.forestdb.net35/bin/Release/libCBForest-Interop.so" />
-    <file target="lib/net35/" src="src/StorageEngines/ForestDB/storage.forestdb.net35/bin/Release/Couchbase.Lite.Storage.ForestDB.dll*" />
+    <file target="build/net35/Couchbase.Lite.Storage.ForestDB.targets" src="staging/Couchbase.Lite.Storage.ForestDB/net35/net35.targets" />
+    <file target="build/net35/x86" src="staging/Couchbase.Lite.Storage.ForestDB/net35/x86/CBForest-Interop.dll" />
+    <file target="build/net35/x64" src="staging/Couchbase.Lite.Storage.ForestDB/net35/x64/CBForest-Interop.dll" />
+    <file target="build/net35/" src="staging/Couchbase.Lite.Storage.ForestDB/net35/libCBForest-Interop.*" />
+    <file target="lib/net35/" src="staging/Couchbase.Lite.Storage.ForestDB/net35/Couchbase.Lite.Storage.ForestDB.dll*" />
 
     <!-- .NET 4.5 -->
-    <file target="build/net45/Couchbase.Lite.Storage.ForestDB.targets" src="src/StorageEngines/ForestDB/storage.forestdb.net45/bin/Release/net45.targets" />
-    <file target="build/net45" src="src/StorageEngines/ForestDB/storage.forestdb.net45/bin/Release/CBForest-Interop.dll" />
-    <file target="build/net45/" src="src/StorageEngines/ForestDB/storage.forestdb.net45/bin/Release/libCBForest-Interop.dylib" />
-    <file target="build/net45/" src="src/StorageEngines/ForestDB/storage.forestdb.net45/bin/Release/libCBForest-Interop.so" />
-    <file target="lib/net45/" src="src/StorageEngines/ForestDB/storage.forestdb.net45/bin/Release/Couchbase.Lite.Storage.ForestDB.dll*" />
+    <file target="build/net45/Couchbase.Lite.Storage.ForestDB.targets" src="staging/Couchbase.Lite.Storage.ForestDB/net45/net45.targets" />
+    <file target="build/net45/x86" src="staging/Couchbase.Lite.Storage.ForestDB/net45/x86/CBForest-Interop.dll" />
+    <file target="build/net45/x64" src="staging/Couchbase.Lite.Storage.ForestDB/net45/x64/CBForest-Interop.dll" />
+    <file target="build/net45/" src="staging/Couchbase.Lite.Storage.ForestDB/net45/libCBForest-Interop.dylib" />
+    <file target="lib/net45/" src="staging/Couchbase.Lite.Storage.ForestDB/net45/Couchbase.Lite.Storage.ForestDB.dll*" />
     
     <!-- Xamarin.Android -->
-    <file target="lib/MonoAndroid/" src="src/StorageEngines/ForestDB/storage.forestdb.droid/bin/Release/Couchbase.Lite.Storage.ForestDB.dll*" />
+    <file target="lib/MonoAndroid/" src="staging/Couchbase.Lite.Storage.ForestDB/MonoAndroid/Couchbase.Lite.Storage.ForestDB.dll*" />
 
     <!-- Xamarin.iOS -->
-    <file target="lib/Xamarin.iOS10/" src="src/StorageEngines/ForestDB/storage.forestdb.ios/bin/Release/Couchbase.Lite.Storage.ForestDB.dll*" />
+    <file target="lib/Xamarin.iOS10/" src="staging/Couchbase.Lite.Storage.ForestDB/Xamarin.iOS10/Couchbase.Lite.Storage.ForestDB.dll*" />
   </files>
 </package>

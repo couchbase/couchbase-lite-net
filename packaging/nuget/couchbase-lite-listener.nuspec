@@ -35,10 +35,9 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     </dependencies>
   </metadata>
   <files>
-    <file target="" src="packaging/nuget/readme.txt" />
-    <file target="lib/net45" src="src/ListenerComponent/Couchbase.Lite.Listener.Net45/bin/Release/Couchbase.Lite.Listener.*" />
-    <file target="lib/MonoAndroid" src="src/ListenerComponent/Couchbase.Lite.Listener.Android/bin/Release/Couchbase.Lite.Listener.*" />
-    <file target="lib/xamarinios10" src="src/ListenerComponent/Couchbase.Lite.Listener.iOS/bin/Release/Couchbase.Lite.Listener.*" />
-    <file target="lib/net35" src="src/ListenerComponent/Couchbase.Lite.Listener.Net35/bin/Nuget/*" />
+    <file target="lib/net45" src="staging/Couchbase.Lite.Listener/net45/*"/>
+    <file target="lib/MonoAndroid" src="staging/Couchbase.Lite.Listener/MonoAndroid/*" />
+    <file target="lib/xamarinios10" src="staging/Couchbase.Lite.Listener/Xamarin.iOS10/*" />
+    <file target="lib/net35" src="staging/Couchbase.Lite.Listener/net35/*" />
   </files>
 </package>
