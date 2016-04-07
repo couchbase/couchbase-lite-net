@@ -51,10 +51,16 @@ Target "Package" (fun _ ->
     if result <> 0 then failwithf "%s exited with error %d" "build.bat" result
 )
 
+Target "TeamCity"(fun _ ->
+    directoryInfo artifactsNuGetDir 
+        |> filesInDir 
+        |> Array.iter(fun file -> PublishArtifact file.FullName)
+)
 
 // Dependencies
 "Build"
      ==> "Package"
+     ==> "TeamCity"
 
 // start build
 RunTargetOrDefault "Package"
