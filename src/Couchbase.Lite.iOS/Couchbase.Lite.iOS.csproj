@@ -69,12 +69,13 @@
       <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0003\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid+Xamarin.iOS10\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Mono.Security" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Stateless">
       <HintPath>..\packages\Stateless.2.5.53.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System.Net.Http.WebRequest">
       <HintPath>..\..\vendor\Mono\System.Net.Http.WebRequest.dll</HintPath>

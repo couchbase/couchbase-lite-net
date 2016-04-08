@@ -1,5 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <mdb>dll.mdb</mdb>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <mdb>pdb</mdb>
+  </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -58,8 +64,7 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\MonoAndroid" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.ForestDB.dll;$(OutputPath)Couchbase.Lite.Storage.ForestDB.dll.mdb"
-    DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\MonoAndroid" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.ForestDB.dll;$(OutputPath)Couchbase.Lite.Storage.ForestDB.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\MonoAndroid" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Couchbase.Lite.Android\Couchbase.Lite.Android.csproj">
@@ -75,6 +80,7 @@
       <HintPath>..\..\..\packages\Newtonsoft.Json.7.0.1\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedNativeLibrary Include="..\CBForest\CSharp\prebuilt\arm64-v8a\libCBForest-Interop.so">
