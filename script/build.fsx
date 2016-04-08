@@ -67,8 +67,9 @@ Target "Package" (fun _ ->
     ensureDirectory artifactsNuGetDir
     ensureDirectory artifactsBuildDir
     
+    let basePath =  Path.GetFullPath "."
     // create and execute the command ourselves, since the NuGet helper doesn't allow us to set the BasePath command argument which we need
-    let commandArgs = sprintf @"pack -BasePath . -Verbosity detailed -OutputDirectory %s %s" artifactsNuGetDir nuspecPath
+    let commandArgs = sprintf @"pack -BasePath %s -Verbosity detailed -OutputDirectory %s %s" basePath artifactsNuGetDir nuspecPath
     let result = Shell.Exec(nugetPath,  commandArgs)
     
     if result <> 0 then failwithf "%s exited with error %d" "build.bat" result
