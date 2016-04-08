@@ -37,6 +37,11 @@ let nuspecPath = Path.GetFullPath(@"./packaging/nuget/couchbase-lite-apx.nuspec"
 let artifactsNuGetDir = Path.GetFullPath(@"./artifacts/nuget/")
 let artifactsBuildDir = Path.GetFullPath(@"./artifacts/build/")
 
+Target "Bootstrap"(fun _ ->
+    CopyDir @"src\Couchbase.Lite.Shared\vendor\cbforest\CSharp\prebuilt" @"script\paket-files\github.com\" ( fun _-> true)
+
+)
+
 Target "Build" (fun _ ->
     // iterate through the solutions and restore their packages
     [
