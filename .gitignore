@@ -156,3 +156,10 @@ UnityDemo.sln
 *.walrus
 tmp/
 sync_gateway
+
+#Fake
+.fake
+
+#Paket
+script/paket-files
+!script/.paket/paket.bootstrapper.exe
