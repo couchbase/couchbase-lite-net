@@ -45,6 +45,9 @@ using System.Collections.Generic;
 using Couchbase.Lite.Internal;
 using NUnit.Framework;
 using Couchbase.Lite.Revisions;
+using System;
+using System.Linq;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
@@ -53,6 +56,50 @@ namespace Couchbase.Lite
     {
 
         public DocumentTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestExpireDocument()
+        {
+            Log.Domains.Database.Level = Log.LogLevel.Verbose;
+            var opts = new DatabaseOptions();
+            opts.Create = true;
+            opts.ExpirePurgeInterval = TimeSpan.FromSeconds(5);
+
+            var db = manager.OpenDatabase("expiry", opts);
+            var wa = new WaitAssert();
+           
+            var doc = db.GetDocument("test");
+            doc.PutProperties(new Dictionary<string, object> { { "self_destruct", "soon" } });
+            doc.ExpireAfter(TimeSpan.FromSeconds(2));
+            db.Changed += (sender, e) => 
+                wa.RunAssert(() =>
+                {
+                    Assert.AreEqual(1, e.Changes.Count());
+                    Assert.True(e.Changes.First().IsExpiration);
+                });
+            
+            wa.WaitForResult(TimeSpan.FromSeconds(10));
+            Assert.AreEqual(0, db.GetDocumentCount());
+        }
+
+        [Test]
+        public void TestCancelExpire()
+        {
+            var opts = new DatabaseOptions();
+            opts.Create = true;
+            opts.ExpirePurgeInterval = TimeSpan.FromSeconds(5);
+
+            var db = manager.OpenDatabase("expiry", opts);
+
+            var doc = db.GetDocument("test");
+            doc.PutProperties(new Dictionary<string, object> { { "self_destruct", "soon" } });
+            doc.ExpireAfter(TimeSpan.FromSeconds(2));
+            doc.CancelExpire();
+            Sleep(7000);
+
+            Assert.AreEqual(1, db.GetDocumentCount());
+            db.Delete();
+        }
 
         [Test] // #447
         public void TestDocumentArraysMaintainOrder()

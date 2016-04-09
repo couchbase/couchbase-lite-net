@@ -1000,6 +1000,8 @@ namespace Couchbase.Lite
                 options.EncryptionKey = encryptionKey;
             }
 
+            options.ExpirePurgeInterval = Options.DefaultExpirePurgeInterval;
+
             return options;
         }
 

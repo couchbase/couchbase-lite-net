@@ -654,7 +654,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                     var nextVal = next.Value;
                     if (nextVal.size == 1 && nextVal.ElementAt(0) == (byte)'*') {
                         try {
-                            var rev = _dbStorage.GetDocument(next.DocID, next.DocSequence);
+                            var rev = _dbStorage.GetDocument(next.DocSequence);
                             value = rev.GetProperties();
                         } catch(CouchbaseLiteException e) {
                             Log.To.Query.W(Tag, "Couldn't load doc for row value: status {0}", e.CBLStatus.Code);
@@ -724,7 +724,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public IDictionary<string, object> DocumentProperties(string docId, long sequenceNumber)
         {
-            return _dbStorage.GetDocument(docId, sequenceNumber).GetProperties();
+            return _dbStorage.GetDocument(sequenceNumber).GetProperties();
         }
     }
 }

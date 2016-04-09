@@ -459,6 +459,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     dbVersion = 101;
                 }
 
+                if(dbVersion < 102) {
+                    const string upgradeSql = "ALTER TABLE docs ADD COLUMN expiry_timestamp INTEGER;" +
+                        "PRAGMA user_version = 102";
+                    RunStatements(upgradeSql);
+                    dbVersion = 102;
+                }
+
                 if (isNew) {
                     RunStatements("END TRANSACTION");
                 }
@@ -1073,6 +1080,35 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT sequence FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID.ToString());
         }
 
+        public long? GetDocumentExpiration(string documentId)
+        {
+            var docNumericId = GetDocNumericID(documentId);
+            if (docNumericId <= 0L) {
+                return null;
+            }
+
+            return QueryOrDefault<long?>(c => c.GetLong(0), false, null, "SELECT expiry_timestamp FROM docs WHERE doc_id=? AND expiry_timestamp IS NOT NULL", docNumericId);
+        }
+
+        public void SetDocumentExpiration(string documentId, long? expiration)
+        {
+            var docNumericId = GetDocNumericID(documentId);
+            if (docNumericId <= 0L) {
+                var msg = String.Format("Unable to find document {0} in SetRevisionExpiration", 
+                    new SecureLogString(documentId, LogMessageSensitivity.PotentiallyInsecure));
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG, msg);
+            }
+
+            var vals = new ContentValues(1);
+            if (expiration.HasValue) {
+                vals["expiry_timestamp"] = expiration;
+            } else {
+                vals["expiry_timestamp"] = null;
+            }
+
+            StorageEngine.Update("docs", vals, "doc_id=?", docNumericId.ToString());
+        }
+
         public RevisionInternal GetParentRevision(RevisionInternal rev)
         {
             // First get the parent's sequence:
@@ -1433,11 +1469,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
 
             bool includeDocs = options.IncludeDocs || filter != null;
+            var nowStamp = DateTime.Now.MillisecondsSinceEpoch() / 1000;
             var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
-                "WHERE sequence > ? AND current=1 " +
+                "WHERE sequence > ? AND current=1 AND expiry_timestamp > ? " +
                 "AND revs.doc_id = docs.doc_id " +
                 "ORDER BY revs.doc_id, revid DESC",
-                (includeDocs ? @", json" : @""));
+                (includeDocs ? @", json" : @""), DateTime.Now.MillisecondsSinceEpoch() / 1000);
 
             var changes = new RevisionList();
             long lastDocId = 0L;
@@ -1467,7 +1504,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return true;
-            }, false, sql, lastSequence);
+            }, false, sql, lastSequence, nowStamp);
 
             if (options.SortBySequence) {
                 changes.SortBySequence(!options.Descending);
@@ -1958,6 +1995,24 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return true;
             });
 
+            return result;
+        }
+
+        public IList<string> PurgeExpired()
+        {
+            var result = new List<string>();
+            var sequences = new List<long>();
+            var nowStamp = DateTime.Now.MillisecondsSinceEpoch() / 1000;
+            TryQuery(c =>
+            {
+                sequences.Add(c.GetLong(0));
+                result.Add(c.GetString(1));
+
+                return true;
+            }, false, "SELECT * FROM docs WHERE expiry_timestamp IS NOT NULL AND expiry_timestamp <= ?", nowStamp);
+                
+            var deleteSql = String.Format("sequence in ({0})", String.Join(", ", sequences.ToStringArray()));
+            StorageEngine.Delete("revs", deleteSql);
             return result;
         }
 

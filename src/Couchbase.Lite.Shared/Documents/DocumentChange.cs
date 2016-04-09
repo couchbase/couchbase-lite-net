@@ -50,7 +50,7 @@ namespace Couchbase.Lite {
     /// <summary>
     /// Provides details about a Document change.
     /// </summary>
-Â Â Â Â public class DocumentChange
+Â?Â?Â?Â?public class DocumentChange
     {
         internal RevisionInternal AddedRevision { get; private set; }
 
@@ -62,7 +62,7 @@ namespace Couchbase.Lite {
             IsConflict = isConflict;
             SourceUrl = sourceUrl;
         }
-Â Â Â Â 
+Â?Â?Â?Â?
     #region Instance Members
         //Properties
         /// <summary>
@@ -107,6 +107,8 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <value><c>true</c> if this instance is conflict; otherwise, <c>false</c>.</value>
         public bool IsConflict { get; private set; }
+
+        public bool IsExpiration { get; internal set; }
 
         /// <summary>
         /// Gets the remote URL of the source Database from which this change was replicated.

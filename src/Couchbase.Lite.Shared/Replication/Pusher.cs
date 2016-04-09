@@ -177,6 +177,11 @@ namespace Couchbase.Lite.Replicator
             var changes = args.Changes;
             foreach (DocumentChange change in changes)
             {
+                // Skip expired documents
+                if (change.IsExpiration) {
+                    return;
+                }
+
                 // Skip revisions that originally came from the database I'm syncing to:
                 var source = change.SourceUrl;
                 if (source != null && source.Equals(RemoteUrl)) {
