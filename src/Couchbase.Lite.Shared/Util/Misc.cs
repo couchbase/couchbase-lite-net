@@ -318,7 +318,9 @@ namespace Couchbase.Lite
                 if (we == null) {
                     Log.To.Sync.V(Tag, "No further information can be gained from this exception, " +
                     "attempting to find other nested exceptions...", exception);
-                    code = e.GetType().Name;
+                    if (!String.IsNullOrEmpty(code)) {
+                        code = e.GetType().Name;
+                    }
                     continue;
                 }
 
