@@ -263,7 +263,8 @@ namespace Couchbase.Lite.Internal
 
         private bool RetryIfFailedPost(HttpStatusCode? statusCode)
         {
-            if (!statusCode.HasValue || statusCode.Value != HttpStatusCode.MethodNotAllowed) {
+            if (!statusCode.HasValue || (statusCode.Value != HttpStatusCode.MethodNotAllowed &&
+                statusCode.Value != HttpStatusCode.NotFound)) {
                 return false;
             }
 
