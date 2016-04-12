@@ -72,11 +72,19 @@ Target "Package" (fun _ ->
     ensureDirectory artifactsNuGetDir
     ensureDirectory artifactsBuildDir
     
+    let nuspecProps = getNuspecProperties(File.ReadAllText(nuspecPath))
+        
+    let tcBuildValue = match TeamCityBuildNumber with
+                       | Some(num) -> num
+                       | None -> ""
+
+    let version = sprintf "%s%s-apx" nuspecProps.Version tcBuildValue
+    
     let basePath =  Path.GetFullPath "."
     // create and execute the command ourselves, since the NuGet helper doesn't allow us to set the BasePath command argument which we need
-    let commandArgs = sprintf @"pack -BasePath %s -Verbosity detailed -OutputDirectory %s %s" basePath artifactsNuGetDir nuspecPath
-    let result = Shell.Exec(nugetPath,  commandArgs)
-    
+    let commandArgs = sprintf @"pack -Verbosity detailed -BasePath %s -Version %s -OutputDirectory %s %s" basePath version artifactsNuGetDir nuspecPath
+    let result = Shell.Exec(nugetPath,  commandArgs.ToString())
+
     if result <> 0 then failwithf "%s exited with error %d" "build.bat" result
 )
 
