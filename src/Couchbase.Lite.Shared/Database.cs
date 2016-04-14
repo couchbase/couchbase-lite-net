@@ -2082,14 +2082,13 @@ namespace Couchbase.Lite
                 if (_SqliteStorageType == null) {
                     Type attemptOne = Type.GetType("Couchbase.Lite.Storage.SQLCipher.SqliteCouchStore, Couchbase.Lite.Storage.SQLCipher");
                     if (attemptOne != null) {
-                        Log.To.Database.I(TAG, "Loaded Couchbase.Lite.Storage.SQLCipher plugin");
                         _SqliteStorageType = attemptOne;
                         break;
                     }
 
                     _SqliteStorageType = Type.GetType("Couchbase.Lite.Storage.SystemSQLite.SqliteCouchStore, Couchbase.Lite.Storage.SystemSQLite");
                     if (_SqliteStorageType != null) {
-                        Log.To.Database.I(TAG, "Loaded Couchbase.Lite.Storage.SystemSQLite plugin.  SQLite encryption functionality will not be available");
+                        Log.To.Database.I(TAG, "Couchbase.Lite.Storage.SQLCipher plugin not found.  SQLite encryption functionality will not be available");
                         break;
                     }
 
@@ -2107,7 +2106,6 @@ namespace Couchbase.Lite
                 if (_ForestDBStorageType == null) {
                     _ForestDBStorageType = Type.GetType("Couchbase.Lite.Storage.ForestDB.ForestDBCouchStore, Couchbase.Lite.Storage.ForestDB");
                     if (_ForestDBStorageType != null) {
-                        Log.To.Database.I(TAG, "Loaded Couchbase.Lite.Storage.ForestDB plugin");
                         break;
                     }
 

@@ -18,4 +18,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)src\AssemblyInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\PluginExtensions.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\..\Couchbase.Lite.Shared\Properties\version">
+      <Link>src\Properties\version</Link>
+      <LogicalName>version</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

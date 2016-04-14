@@ -25,4 +25,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)src\RevIdCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\Utility.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\..\Couchbase.Lite.Shared\Properties\version">
+      <Link>src\Properties\version</Link>
+      <LogicalName>version</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

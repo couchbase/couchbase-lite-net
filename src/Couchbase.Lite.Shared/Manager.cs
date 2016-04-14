@@ -56,6 +56,7 @@ using Couchbase.Lite.Store;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using ICSharpCode.SharpZipLib.Zip;
+using System.Reflection;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -168,26 +169,9 @@ namespace Couchbase.Lite
             }
 
 
-            string gitVersion= String.Empty;
-            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly()
-            .GetManifestResourceStream("version")) {
-                if(stream != null) {
-                    using (StreamReader reader = new StreamReader(stream))
-                    {
-                        gitVersion= reader.ReadToEnd();
-                    }
-                } else {
-                    gitVersion = "No git information";
-                }
-            }
-
-
-            var colonPos = gitVersion.IndexOf(':');
-            var branchName = "no branch";
-            if(colonPos != -1) {
-                branchName = gitVersion.Substring(0, colonPos);
-                gitVersion = gitVersion.Substring(colonPos + 2);
-            }
+            var gitVersion= String.Empty;
+            var branchName = String.Empty;
+            ReadVersion(Assembly.GetExecutingAssembly(), out branchName, out gitVersion);
 
             #if !OFFICIAL
             #if DEBUG
@@ -207,6 +191,20 @@ namespace Couchbase.Lite
             #endif
 
             Log.To.NoDomain.I(TAG, "Starting Manager version: {0}", VersionString);
+            AppDomain.CurrentDomain.AssemblyLoad += (sender, args) => 
+            {
+                if (ReadVersion(args.LoadedAssembly, out branchName, out gitVersion)) {
+                    Log.To.NoDomain.I("AssemblyLoad", "Loaded assembly {0} was built at commit {1}",
+                        args.LoadedAssembly.FullName, gitVersion);
+                }
+            };
+
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+                if (ReadVersion(assembly, out branchName, out gitVersion)) {
+                    Log.To.NoDomain.I("AssemblyLoad", "Loaded assembly {0} was built at commit {1}",
+                        assembly.FullName, gitVersion);
+                }
+            }
         }
 
         /// <summary>
@@ -662,6 +660,30 @@ namespace Couchbase.Lite
                     replications.RemoveAt(i);
                 }
             }
+        }
+
+        private static bool ReadVersion(Assembly assembly, out string branch, out string hash)
+        {
+            branch = "No branch";
+            using (Stream stream = assembly.GetManifestResourceStream("version")) {
+                if(stream != null) {
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        hash = reader.ReadToEnd();
+                    }
+                } else {
+                    hash = "No git information";
+                    return false;
+                }
+            }
+
+            var colonPos = hash.IndexOf(':');
+            if(colonPos != -1) {
+                branch = hash.Substring(0, colonPos);
+                hash = hash.Substring(colonPos + 2);
+            }  
+                     
+            return true;
         }
 
         private bool ContainsExtension(string name)

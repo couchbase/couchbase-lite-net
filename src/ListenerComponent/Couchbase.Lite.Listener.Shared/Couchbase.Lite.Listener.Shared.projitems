@@ -60,4 +60,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\JSFilterCompiler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)X509\X509Manager.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\Couchbase.Lite.Shared\Properties\version">
+      <Link>Properties\version</Link>
+      <LogicalName>version</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>
