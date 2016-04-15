@@ -94,14 +94,15 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);$(OutputPath)Stateless.dll;
-    $(OutputPath)Stateless.dll;$(OutputPath)System.Net.Http.Net35.dll;$(OutputPath)System.Threading.Tasks.Net35.dll;
-    $(OutputPath)Rackspace.Threading.dll;$(OutputPath)Stateless.$(mdb);$(OutputPath)System.Net.Http.Net35.$(mdb);
-    $(OutputPath)System.Threading.Tasks.Net35.$(mdb);$(OutputPath)Rackspace.Threading.$(mdb);
-    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb)"
-     DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);$(OutputPath)Stateless.dll;&#xD;&#xA;    $(OutputPath)Stateless.dll;$(OutputPath)System.Net.Http.Net35.dll;$(OutputPath)System.Threading.Tasks.Net35.dll;&#xD;&#xA;    $(OutputPath)Rackspace.Threading.dll;$(OutputPath)Stateless.$(mdb);$(OutputPath)System.Net.Http.Net35.$(mdb);&#xD;&#xA;    $(OutputPath)System.Threading.Tasks.Net35.$(mdb);$(OutputPath)Rackspace.Threading.$(mdb);&#xD;&#xA;    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
   </Target>
   <ItemGroup>
+    <Compile Include="..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.cs">
+      <Link>DynamicAssemblyInfo.cs</Link>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
+    </Compile>
     <Compile Include="StringEx.cs" />
     <Compile Include="StreamEx.cs" />
     <Compile Include="EnumEx.cs" />
@@ -131,5 +132,15 @@
       <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
       <Name>websocket-sharp</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.tt">
+      <Link>DynamicAssemblyInfo.tt</Link>
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
 </Project>

@@ -95,6 +95,12 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.cs">
+      <Link>DynamicAssemblyInfo.cs</Link>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
+    </Compile>
     <Compile Include="CouchBaseTableDelegate.cs" />
     <Compile Include="CouchbaseTableSource.cs" />
     <Compile Include="ReloadEventArgs.cs" />
@@ -121,5 +127,15 @@
       <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
       <Name>websocket-sharp.ios</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.tt">
+      <Link>DynamicAssemblyInfo.tt</Link>
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
 </Project>

@@ -156,3 +156,4 @@ UnityDemo.sln
 tmp/
 sync_gateway
 staging
+DynamicAssemblyInfo.cs
