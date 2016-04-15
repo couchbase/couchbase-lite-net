@@ -65,7 +65,7 @@ namespace Couchbase.Lite
     internal static class Misc
     {
         internal static readonly DateTime Epoch = new DateTime(1970, 1, 1);
-        public static DateTime CreateDate(long milliSecondsSinceEpoch)
+        public static DateTime CreateDate(ulong milliSecondsSinceEpoch)
         {
             return Epoch.AddMilliseconds(milliSecondsSinceEpoch);
         }

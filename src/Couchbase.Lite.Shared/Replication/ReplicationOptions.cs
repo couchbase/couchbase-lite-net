@@ -156,6 +156,10 @@ namespace Couchbase.Lite
         /// </summary>
         public TimeSpan ReplicationRetryDelay { get; set; }
 
+        public bool PurgePushed { get; set; }
+
+        public bool AllNew { get; set; }
+
         /// <summary>
         /// Default constructor
         /// </summary>

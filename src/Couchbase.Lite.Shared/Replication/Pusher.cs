@@ -69,6 +69,8 @@ namespace Couchbase.Lite.Replicator
         #region Constants
 
         private const string TAG = "Pusher";
+        private const int EphemeralPurgeBatchSize = 100;
+        private static readonly TimeSpan EphemeralPurgeDelay = TimeSpan.FromSeconds(1);
 
         #endregion
 
@@ -80,6 +82,7 @@ namespace Couchbase.Lite.Replicator
         private FilterDelegate _filter;
         private SortedDictionary<long, int> _pendingSequences;
         private long _maxPendingSequence;
+        private Batcher<RevisionInternal> _purgeQueue;
 
         #endregion
 
@@ -232,8 +235,11 @@ namespace Couchbase.Lite.Replicator
                     LastSequence = maxCompleted.ToString();
                 }
 
+                if (_purgeQueue != null) {
+                    _purgeQueue.QueueObject(revisionInternal);
+                }
+
                 if (IsSafeToStop && _pendingSequences.Count == 0) {
-                    Log.To.Sync.V(TAG, "Last pending sequence removed, switching state...");
                     FireTrigger(Continuous ? ReplicationTrigger.WaitingForChanges : ReplicationTrigger.StopGraceful);
                 }
             }
@@ -423,6 +429,116 @@ namespace Couchbase.Lite.Replicator
             });
         }
 
+        private void UploadChanges(IList<RevisionInternal> changes, IDictionary<string, object> revsDiffResults)
+        {
+
+            // Go through the list of local changes again, selecting the ones the destination server
+            // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
+            var docsToSend = new List<object> ();
+            var revsToSend = new RevisionList();
+            IDictionary<string, object> revResults = null;
+            foreach (var rev in changes) {
+                // Is this revision in the server's 'missing' list?
+                if (revsDiffResults != null) {
+                    revResults = revsDiffResults.Get(rev.DocID).AsDictionary<string, object>(); 
+                    if (revResults == null) {
+                        //SafeIncrementCompletedChangesCount();
+                        continue;
+                    }
+
+                    var revs = revResults.Get("missing").AsList<string>();
+                    if (revs == null || !revs.Any(id => id.Equals(rev.RevID, StringComparison.OrdinalIgnoreCase))) {
+                        RemovePending(rev);
+                        //SafeIncrementCompletedChangesCount();
+                        continue;
+                    }
+                }
+
+                IDictionary<string, object> properties = null;
+                // Get the revision's properties:
+                var contentOptions = DocumentContentOptions.IncludeAttachments;
+                if (!_dontSendMultipart && RevisionBodyTransformationFunction == null)
+                {
+                    contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
+                }
+
+                RevisionInternal loadedRev;
+                try {
+                    loadedRev = LocalDatabase.LoadRevisionBody (rev);
+                    if(loadedRev == null) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.DbError, TAG,
+                            "Unable to load revision body");
+                    }
+
+                    properties = new Dictionary<string, object>(rev.GetProperties());
+                } catch (Exception e1) {
+                    Log.To.Sync.E(TAG, String.Format("Couldn't get local contents of {0}, marking revision failed",
+                        rev), e1);
+                    RevisionFailed();
+                    continue;
+                }
+
+                var populatedRev = TransformRevision(loadedRev);
+                IList<string> possibleAncestors = null;
+                if (revResults != null && revResults.ContainsKey("possible_ancestors")) {
+                    possibleAncestors = revResults["possible_ancestors"].AsList<string>();
+                }
+
+                properties = new Dictionary<string, object>(populatedRev.GetProperties());
+
+                try {
+                    var history = LocalDatabase.GetRevisionHistory(populatedRev, possibleAncestors);
+                    if(history == null) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.DbError, TAG,
+                            "Unable to load revision history");
+                    }
+
+                    properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
+                } catch(Exception e1) {
+                    Log.To.Sync.E(TAG, "Error getting revision history, marking revision failed", e1);
+                    RevisionFailed();
+                    continue;
+                }
+
+                populatedRev.SetProperties(properties);
+                if(properties.GetCast<bool>("_removed")) {
+                    RemovePending(rev);
+                    continue;
+                }
+
+                // Strip any attachments already known to the target db:
+                if (properties.ContainsKey("_attachments")) {
+                    // Look for the latest common ancestor and stuf out older attachments:
+                    var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
+                    try {
+                        LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
+                    } catch(Exception ex) {
+                        Log.To.Sync.E(TAG, "Error expanding attachments, marking revision failed", ex);
+                        RevisionFailed();
+                        continue;
+                    }
+
+                    properties = populatedRev.GetProperties();
+                    if (!_dontSendMultipart && UploadMultipartRevision(populatedRev)) {
+                        continue;
+                    }
+                }
+
+                if (properties == null || !properties.ContainsKey("_id")) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.BadParam, TAG,
+                        "properties must contain a document _id");
+                }
+
+                // Add the _revisions list:
+                revsToSend.Add(rev);
+
+                //now add it to the docs to send
+                docsToSend.Add (properties);
+            }
+
+            UploadBulkDocs(docsToSend, revsToSend);
+        }
+
         #endregion
 
         #region Overrides
@@ -498,6 +614,30 @@ namespace Couchbase.Lite.Replicator
             if (LastSequence != null) {
                 lastSequenceLong = long.Parse(LastSequence);
             }
+                
+            if (ReplicationOptions.PurgePushed) {
+                _purgeQueue = new Batcher<RevisionInternal>(WorkExecutor, EphemeralPurgeBatchSize, 
+                    EphemeralPurgeDelay, (revs) =>
+                {
+                    Log.To.Sync.I(TAG, "Purging {0} docs ('purgePushed' option)", revs.Count);
+                    var toPurge = new Dictionary<string, IList<string>>();
+                    foreach(var rev in revs) {
+                        toPurge[rev.DocID] = new List<string> { rev.RevID };
+                    }
+
+                    var localDb = LocalDatabase;
+                    if(localDb != null && localDb.IsOpen) {
+                        var storage = localDb.Storage;
+                        if(storage != null && storage.IsOpen) {
+                            storage.PurgeRevisions(toPurge);
+                        } else {
+                            Log.To.Sync.W(TAG, "{0} storage is closed, cannot purge...", localDb);
+                        }
+                    } else {
+                        Log.To.Sync.W(TAG, "Local database is closed or null, cannot purge...");
+                    }
+                }, CancellationTokenSource);
+            }
 
             // Now listen for future changes (in continuous mode):
             // Note:  This needs to happen before adding the observer
@@ -534,6 +674,10 @@ namespace Couchbase.Lite.Replicator
         protected override void StopGraceful()
         {
             StopObserving();
+			if (_purgeQueue != null) {
+                _purgeQueue.FlushAll();
+            }
+
             base.StopGraceful();
         }
 
@@ -554,6 +698,16 @@ namespace Couchbase.Lite.Replicator
         {
             if (Status == ReplicationStatus.Offline) {
                 Log.To.Sync.I(TAG, "Offline, so skipping inbox process");
+                return;
+            }
+                
+            if (ReplicationOptions.AllNew) {
+                // If 'allNew' option is set, upload new revs without checking first:
+                foreach (var rev in inbox) {
+                    AddPending(rev);
+                }
+
+                UploadChanges(inbox, null);
                 return;
             }
 
@@ -598,108 +752,7 @@ namespace Couchbase.Lite.Replicator
                         }
                     } else {
                         if (results.Count != 0)  {
-                            // Go through the list of local changes again, selecting the ones the destination server
-                            // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
-                            var docsToSend = new List<object> ();
-                            var revsToSend = new RevisionList();
-                            foreach (var rev in inbox) {
-                                // Is this revision in the server's 'missing' list?
-                                IDictionary<string, object> properties = null;
-                                var revResults = results.Get(rev.DocID).AsDictionary<string, object>(); 
-                                if (revResults == null) {
-                                    //SafeIncrementCompletedChangesCount();
-                                    continue;
-                                }
-
-                                var revs = revResults.Get("missing").AsList<string>();
-                                if (revs == null || !revs.Any( id => id.Equals(rev.RevID, StringComparison.OrdinalIgnoreCase))) {
-                                    RemovePending(rev);
-                                    //SafeIncrementCompletedChangesCount();
-                                    continue;
-                                }
-
-                                // Get the revision's properties:
-                                var contentOptions = DocumentContentOptions.IncludeAttachments;
-                                if (!_dontSendMultipart && RevisionBodyTransformationFunction == null)
-                                {
-                                    contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
-                                }
-
-                                RevisionInternal loadedRev;
-                                try {
-                                    loadedRev = LocalDatabase.LoadRevisionBody (rev);
-                                    if(loadedRev == null) {
-                                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.DbError, TAG,
-                                            "Unable to load revision body");
-                                    }
-
-                                    properties = new Dictionary<string, object>(rev.GetProperties());
-                                } catch (Exception e1) {
-                                    Log.To.Sync.E(TAG, String.Format("Couldn't get local contents of {0}, marking revision failed",
-                                        rev), e1);
-                                    RevisionFailed();
-                                    continue;
-                                }
-
-                                var populatedRev = TransformRevision(loadedRev);
-                                IList<string> possibleAncestors = null;
-                                if (revResults.ContainsKey("possible_ancestors")) {
-                                    possibleAncestors = revResults["possible_ancestors"].AsList<string>();
-                                }
-
-                                properties = new Dictionary<string, object>(populatedRev.GetProperties());
-
-                                try {
-                                    var history = LocalDatabase.GetRevisionHistory(populatedRev, possibleAncestors);
-                                    if(history == null) {
-                                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.DbError, TAG,
-                                            "Unable to load revision history");
-                                    }
-
-                                    properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
-                                } catch(Exception e1) {
-                                    Log.To.Sync.E(TAG, "Error getting revision history, marking revision failed", e1);
-                                    RevisionFailed();
-                                    continue;
-                                }
-
-                                populatedRev.SetProperties(properties);
-                                if(properties.GetCast<bool>("_removed")) {
-                                    RemovePending(rev);
-                                    continue;
-                                }
-
-                                // Strip any attachments already known to the target db:
-                                if (properties.ContainsKey("_attachments")) {
-                                    // Look for the latest common ancestor and stuf out older attachments:
-                                    var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
-                                    try {
-                                        LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
-                                    } catch(Exception ex) {
-                                        Log.To.Sync.E(TAG, "Error expanding attachments, marking revision failed", ex);
-                                        RevisionFailed();
-                                        continue;
-                                    }
-
-                                    properties = populatedRev.GetProperties();
-                                    if (!_dontSendMultipart && UploadMultipartRevision(populatedRev)) {
-                                        continue;
-                                    }
-                                }
-
-                                if (properties == null || !properties.ContainsKey("_id")) {
-                                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.BadParam, TAG,
-                                        "properties must contain a document _id");
-                                }
-
-                                // Add the _revisions list:
-                                revsToSend.Add(rev);
-
-                                //now add it to the docs to send
-                                docsToSend.Add (properties);
-                            }
-
-                            UploadBulkDocs(docsToSend, revsToSend);
+                            UploadChanges(inbox, results);
                         } else {
                             foreach (var revisionInternal in inbox) {
                                 RemovePending(revisionInternal);

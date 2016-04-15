@@ -3162,5 +3162,42 @@ namespace Couchbase.Lite
             }
         }
 
+        [Category("issue/606")]
+        public void TestPushAndPurge()
+        {
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            const int numDocs = 100;
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                for (int pass = 1; pass <= 2; ++pass) {
+                    Console.WriteLine("Pass #{0}: Creating {1} documents", pass, numDocs);
+                    database.RunInTransaction(() =>
+                    {
+                        for(int i = 1; i <= numDocs; i++) {
+                            var doc = database.GetDocument(String.Format("doc-{0}", i));
+                            Assert.DoesNotThrow(() => doc.PutProperties(new Dictionary<string, object> {
+                                { "index", i },
+                                { "bar", false }
+                            }));
+                        }
+
+                        return true;
+                    });
+
+                    var repl = database.CreatePushReplication(remoteDb.RemoteUri);
+                    repl.ReplicationOptions.AllNew = true;
+                    repl.ReplicationOptions.PurgePushed = true;
+                    RunReplication(repl);
+                    Assert.IsNull(repl.LastError);
+                    Assert.AreEqual(numDocs, repl.ChangesCount);
+                    Assert.AreEqual(numDocs, repl.CompletedChangesCount);
+                    Assert.AreEqual(0, database.GetDocumentCount());
+                }
+            }
+        }
     }
 }
