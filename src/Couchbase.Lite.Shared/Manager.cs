@@ -69,7 +69,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// The top-level object that manages Couchbase Lite <see cref="Couchbase.Lite.Database"/>s.
     /// </summary>
-Â Â Â Â public sealed class Manager
+Â?Â?Â?Â?public sealed class Manager
     {
 
     #region Constants
@@ -96,7 +96,7 @@ namespace Couchbase.Lite
 
     #endregion
 
-Â Â Â Â #region Static Members
+Â?Â?Â?Â?#region Static Members
 
         /// <summary>
         /// Gets the default options for creating a manager
@@ -108,7 +108,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The shared instance.</value>
         // FIXME: SharedInstance lifecycle is undefined, so returning default manager for now.
-Â Â Â Â Â Â Â Â public static Manager SharedInstance { 
+Â?Â?Â?Â?Â?Â?Â?Â?public static Manager SharedInstance { 
             get { 
                 if (sharedManager == null) {
                     sharedManager = new Manager(defaultDirectory, ManagerOptions.Default);
@@ -130,7 +130,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns><c>true</c> if the given name is a valid <see cref="Couchbase.Lite.Database"/> name, otherwise <c>false</c>.</returns>
         /// <param name="name">The Database name to validate.</param>
-Â Â Â Â Â Â Â Â public static bool IsValidDatabaseName(string name) 
+Â?Â?Â?Â?Â?Â?Â?Â?public static bool IsValidDatabaseName(string name) 
         {
             if (name == null) {
                 return false;
@@ -143,9 +143,9 @@ namespace Couchbase.Lite
             return name.Equals(Replication.REPLICATOR_DATABASE_NAME);
         }
 
-Â Â Â Â #endregion
-Â Â Â Â 
-Â Â Â Â #region Constructors
+Â?Â?Â?Â?#endregion
+Â?Â?Â?Â?
+Â?Â?Â?Â?#region Constructors
 
         static Manager()
         {
@@ -245,7 +245,7 @@ namespace Couchbase.Lite
 
             UpgradeOldDatabaseFiles(directoryFile);
 
-            #if __IOS__
+#if __IOS__
 
             Foundation.NSString protection;
             switch(options.FileProtection & Foundation.NSDataWritingOptions.FileProtectionMask) {
@@ -267,7 +267,7 @@ namespace Couchbase.Lite
             Foundation.NSError error;
             Foundation.NSFileManager.DefaultManager.SetAttributes(attributes, directoryFile.FullName, out error);
 
-            #endif
+#endif
 
             var scheduler = options.CallbackScheduler;
             CapturedContext = new TaskFactory(scheduler);
@@ -279,15 +279,15 @@ namespace Couchbase.Lite
             Log.To.Database.I(TAG, "Created {0}", this);
         }
 
-    #endregion
+#endregion
 
-    #region Instance Members
+#region Instance Members
         //Properties
         /// <summary>
         /// Gets the directory where the <see cref="Couchbase.Lite.Manager"/> stores <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
         /// <value>The directory.</value>
-Â Â Â Â Â Â Â Â public String Directory { get { return directoryFile.FullName; } }
+Â?Â?Â?Â?Â?Â?Â?Â?public String Directory { get { return directoryFile.FullName; } }
 
         /// <summary>
         /// Default storage type for newly created databases.
@@ -300,7 +300,7 @@ namespace Couchbase.Lite
         /// Gets the names of all existing <see cref="Couchbase.Lite.Database"/>s.
         /// </summary>
         /// <value>All database names.</value>
-Â Â Â Â Â Â Â Â public IEnumerable<String> AllDatabaseNames 
+Â?Â?Â?Â?Â?Â?Â?Â?public IEnumerable<String> AllDatabaseNames 
         { 
             get 
             { 
@@ -331,7 +331,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Releases all resources used by the <see cref="Couchbase.Lite.Manager"/> and closes all its <see cref="Couchbase.Lite.Database"/>s.
         /// </summary>
-Â Â Â Â Â Â Â Â public void Close() 
+Â?Â?Â?Â?Â?Â?Â?Â?public void Close() 
         {
             if (this == SharedInstance) {
                 Log.To.Database.E(TAG, "Calling close on Manager.SharedInstance is not allowed, throwing InvalidOperationException"); 
@@ -574,9 +574,9 @@ namespace Couchbase.Lite
             System.IO.Directory.Delete(tempPath, true);
         }
 
-Â Â Â Â #endregion
-Â Â Â Â 
-    #region Non-public Members
+#endregion
+Â?Â?Â?Â?
+#region Non-public Members
 
         // Static Fields
         private static readonly ObjectWriter mapper;
@@ -685,6 +685,8 @@ namespace Couchbase.Lite
 	                    return false;
 	                }
 	            }
+            } catch(NotSupportedException) {
+                return false;
 
 	            var colonPos = hash.IndexOf(':');
 	            if(colonPos != -1) {
@@ -1020,18 +1022,18 @@ namespace Couchbase.Lite
             return options;
         }
 
-    #endregion
+#endregion
 
-        #region Overrides
-        #pragma warning disable 1591
+#region Overrides
+#pragma warning disable 1591
 
         public override string ToString()
         {
             return String.Format("Manager[Dir={0} Options={1}]", Directory, Options);
         }
 
-        #pragma warning restore 1591
-        #endregion
+#pragma warning restore 1591
+#endregion
     }
 
 }

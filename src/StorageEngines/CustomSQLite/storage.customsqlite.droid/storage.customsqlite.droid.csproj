@@ -1,0 +1,124 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <mdb>dll.mdb</mdb>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <mdb>pdb</mdb>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}</ProjectGuid>
+    <ProjectTypeGuids>{EFBA0AD7-5A72-4C68-AF49-83D382785DCF};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>storage.customsqlite.droid</RootNamespace>
+    <AssemblyName>Couchbase.Lite.Storage.CustomSQLite</AssemblyName>
+    <FileAlignment>512</FileAlignment>
+    <AndroidResgenFile>Resources\Resource.Designer.cs</AndroidResgenFile>
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <AndroidUseLatestPlatformSdk>True</AndroidUseLatestPlatformSdk>
+    <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;CUSTOM_SQLITE;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;CUSTOM_SQLITE;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|AnyCPU'">
+    <OutputPath>bin\Packaging\</OutputPath>
+    <DefineConstants>TRACE;CUSTOM_SQLITE;</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Mono.Android" />
+    <Reference Include="mscorlib" />
+    <Reference Include="SQLitePCL.raw, Version=0.8.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.0-pre7\lib\MonoAndroid\SQLitePCL.raw.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.0-pre7\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Couchbase.Lite.Android\Couchbase.Lite.Android.csproj">
+      <Project>{5615e423-d0fd-4f99-a99c-061679615cee}</Project>
+      <Name>Couchbase.Lite.Android</Name>
+      <Private>False</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\arm64-v8a\libesqlite3.so">
+      <Link>arm64-v8a\libesqlite3.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\armeabi\libesqlite3.so">
+      <Link>armeabi\libesqlite3.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\armeabi-v7a\libesqlite3.so">
+      <Link>armeabi-v7a\libesqlite3.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\x86\libesqlite3.so">
+      <Link>x86\libesqlite3.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\x86_64\libesqlite3.so">
+      <Link>x86_64\libesqlite3.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\mips\libesqlite3.so">
+      <Link>mips\libesqlite3.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\mips64\libesqlite3.so">
+      <Link>mips64\libesqlite3.so</Link>
+    </EmbeddedNativeLibrary>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\util.cs">
+      <Link>util.cs</Link>
+    </Compile>
+    <Compile Include="SQLite3Plugin.cs" />
+    <Compile Include="SQLite3Provider_esqlite3.cs" />
+  </ItemGroup>
+  <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" />
+  <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+  <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
+    <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\MonoAndroid" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.dll;$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.CustomSQLite\MonoAndroid" />
+  </Target>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -22,19 +22,21 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
   </metadata>
+  <dependencies>
+      <group>
+        <dependency id="SQLitePCL.raw" version="[0.9.0-pre7]" />
+        <dependency id="SQLitePCL.ugly" version="[0.9.0-pre7]" />
+	<dependency id="SQLitePCL.plugin.sqlcipher.net45" version="[0.9.0-pre7]" />
+	<dependency id="SQLitePCL.native.sqlcipher.linux" version="[0.9.0-pre7]" />
+	<dependency id="SQLitePCL.native.sqlcipher.windows" version="[0.9.0-pre7]" />
+	<dependency id="SQLitePCL.native.sqlcipher.osx" version="[0.9.0-pre7]" />
+      </group>
+    </dependencies>
   <files>
     <!-- .NET 3.5 -->
-    <file target="build/net35/Couchbase.Lite.Storage.SQLCipher.targets" src="staging/Couchbase.Lite.Storage.SQLCipher/net35/net35.targets" />
-    <file target="build/net35/x86/sqlcipher.dll" src="staging/Couchbase.Lite.Storage.SQLCipher/net35/x86/sqlcipher.dll" />
-    <file target="build/net35/x64/sqlcipher.dll" src="staging/Couchbase.Lite.Storage.SQLCipher/net35/x64/sqlcipher.dll" />
-    <file target="build/net35/" src="staging/Couchbase.Lite.Storage.SQLCipher/net35/libsqlcipher.*" />
     <file target="lib/net35/" src="staging/Couchbase.Lite.Storage.SQLCipher/net35/Couchbase.Lite.Storage.SQLCipher.dll*" />
 
     <!-- .NET 4.5 -->
-    <file target="build/net45/Couchbase.Lite.Storage.SQLCipher.targets" src="staging/Couchbase.Lite.Storage.SQLCipher/net45/net45.targets" />
-    <file target="build/net45/x86/sqlcipher.dll" src="staging/Couchbase.Lite.Storage.SQLCipher/net45/x86/sqlcipher.dll" />
-    <file target="build/net45/x64/sqlcipher.dll" src="staging/Couchbase.Lite.Storage.SQLCipher/net45/x64/sqlcipher.dll" />
-    <file target="build/net45/" src="staging/Couchbase.Lite.Storage.SQLCipher/net45/libsqlcipher.*" />
     <file target="lib/net45/" src="staging/Couchbase.Lite.Storage.SQLCipher/net45/Couchbase.Lite.Storage.SQLCipher.dll*" />
 
     <!-- Xamarin.Android -->

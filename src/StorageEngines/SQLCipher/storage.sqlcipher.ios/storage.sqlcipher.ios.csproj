@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -16,7 +16,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;PINVOKE_FROM_INTERNAL_SQLCIPHER;OLD_REFLECTION;PLATFORM_UNIFIED;ENCRYPTION;</DefineConstants>
+    <DefineConstants>DEBUG;SQLCIPHER;ENCRYPTION;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -29,14 +29,14 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>PINVOKE_FROM_INTERNAL_SQLCIPHER;OLD_REFLECTION;PLATFORM_UNIFIED;ENCRYPTION;</DefineConstants>
+    <DefineConstants>SQLCIPHER;ENCRYPTION;</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Packaging</OutputPath>
-    <DefineConstants>PINVOKE_FROM_INTERNAL_SQLCIPHER;OLD_REFLECTION;PLATFORM_UNIFIED;ENCRYPTION;</DefineConstants>
+    <DefineConstants>SQLCIPHER;ENCRYPTION;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -46,12 +46,23 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.iOS" />
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.0-pre7\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.0-pre7\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SQLite3Plugin">
+      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlcipher.ios_unified.0.9.0-pre7\lib\Xamarin.iOS10\SQLite3Plugin.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Resources\" />
     <Folder Include="Properties\" />
+    <Folder Include="Resources\" />
   </ItemGroup>
-  <Import Project="..\SQLitePCL\sqlitepcl.shared.projitems" Label="Shared" Condition="Exists('..\SQLitePCL\sqlitepcl.shared.projitems')" />
   <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
@@ -59,17 +70,12 @@
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.SQLCipher.dll;$(OutputPath)Couchbase.Lite.Storage.SQLCipher.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\Xamarin.iOS10" />
   </Target>
   <ItemGroup>
-    <None Include="ios.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <ManifestResourceWithNoCulture Include="..\SQLitePCL\vendor\sqlcipher\libs\ios\libsqlcipher.a">
-      <Link>libsqlcipher.a</Link>
-    </ManifestResourceWithNoCulture>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
       <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
       <Name>Couchbase.Lite.iOS</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

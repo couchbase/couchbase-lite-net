@@ -27,6 +27,9 @@ using System.Runtime.CompilerServices;
 #if SQLITE
 [assembly: AssemblyTitle ("Couchbase.Lite.Storage.SystemSQLite")]
 [assembly: AssemblyDescription("Plugin for using the system provided SQLite with Couchbase Lite")]
+#elif CUSTOM_SQLITE
+[assembly: AssemblyTitle ("Couchbase.Lite.Storage.CustomSQLite")]
+[assembly: AssemblyDescription("Plugin for using a custom built SQLite with Couchbase Lite")]
 #else
 [assembly: AssemblyTitle ("Couchbase.Lite.Storage.SQLCipher")]
 [assembly: AssemblyDescription("Plugin for using SQLCipher with Couchbase Lite (for encryption features)")]
