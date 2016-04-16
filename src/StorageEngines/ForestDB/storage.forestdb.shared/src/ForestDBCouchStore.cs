@@ -162,7 +162,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         static ForestDBCouchStore()
         {
-            Log.To.Database.I(TAG, "Initialized ForestDB store (version 'BETA' (f6b109f2850acd82038b5491fd36b0d01feacc99))");
+            Log.To.Database.I(TAG, "Initialized ForestDB store (version 'BETA' (25381d66243755ebae8675ef65630c4253ca3f4b))");
             Native.c4log_register(C4LogLevel.Debug, (level, msg) =>
             {
                 switch(level) {

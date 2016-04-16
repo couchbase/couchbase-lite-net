@@ -2020,6 +2020,17 @@ namespace Couchbase.Lite
         [Test]
         public void TestViewWithDocDeletion()
         {
+            TestViewWithDocRemoval(false);
+        }
+
+        [Test]
+        public void TestViewWithDocPurge()
+        {
+            TestViewWithDocRemoval(true);
+        }
+
+        private void TestViewWithDocRemoval(bool purge)
+        {
             var view = database.GetView("vu");
             Assert.IsNotNull(view);
             view.SetMap((doc, emit) =>
@@ -2072,9 +2083,29 @@ namespace Couchbase.Lite
             Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
             Assert.AreEqual(doc2.Id, rows.ElementAt(1).DocumentId);
             Assert.AreEqual(doc1.Id, rows.ElementAt(2).DocumentId);
-            Assert.DoesNotThrow(doc2.Delete);
 
-            Assert.DoesNotThrow(() => rows = query.Run());
+            if (purge) {
+                doc2.Purge();
+            } else {
+                doc2.Delete();
+            }
+
+            // Check ascending query result:
+            query.Descending = false;
+            query.StartKey = new[] { insertListId };
+            query.EndKey = new object[] { insertListId, new Dictionary<string, object>() };
+            rows = query.Run();
+            Trace.WriteLine(String.Format("Ascending query: rows = {0}", rows));
+            Assert.AreEqual(2, rows.Count);
+            Assert.AreEqual(doc1.Id, rows.ElementAt(0).DocumentId);
+            Assert.AreEqual(doc3.Id, rows.ElementAt(1).DocumentId);
+
+            // Check descending query result:
+            query.Descending = true;
+            query.StartKey = new object[] { insertListId, new Dictionary<string, object>() };
+            query.EndKey = new[] { insertListId };
+            rows = query.Run();
+            Trace.WriteLine(String.Format("Descending query: rows = {0}", rows));
             Assert.AreEqual(2, rows.Count);
             Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
             Assert.AreEqual(doc1.Id, rows.ElementAt(1).DocumentId);
