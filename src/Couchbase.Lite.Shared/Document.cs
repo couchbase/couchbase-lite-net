@@ -479,13 +479,11 @@ namespace Couchbase.Lite {
         /// <exception cref="System.InvalidOperationException">The expireTime is not in the future</exception>
         public void ExpireAt(DateTime expireTime)
         {
-            var nowStamp = DateTime.UtcNow.MillisecondsSinceEpoch() / 1000;
-            var stamp = expireTime.MillisecondsSinceEpoch() / 1000;
-            if (stamp <= nowStamp) {
+            if(expireTime <= DateTime.Now) {
                 throw new InvalidOperationException("ExpireAt must provide a date in the future");
             }
 
-            Database.Storage.SetDocumentExpiration(Id, stamp);
+            Database.Storage.SetDocumentExpiration(Id, expireTime);
         }
 
         /// <summary>
@@ -496,8 +494,7 @@ namespace Couchbase.Lite {
         public void ExpireAfter(TimeSpan timeInterval)
         {
             var expireTime = DateTime.UtcNow + timeInterval;
-            var stamp = expireTime.MillisecondsSinceEpoch() / 1000;
-            Database.Storage.SetDocumentExpiration(Id, stamp);
+            Database.Storage.SetDocumentExpiration(Id, expireTime);
         }
 
         /// <summary>

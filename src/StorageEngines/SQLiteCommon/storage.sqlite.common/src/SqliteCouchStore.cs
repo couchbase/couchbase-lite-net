@@ -1090,7 +1090,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return QueryOrDefault<long?>(c => c.GetLong(0), false, null, "SELECT expiry_timestamp FROM docs WHERE doc_id=? AND expiry_timestamp IS NOT NULL", docNumericId);
         }
 
-        public void SetDocumentExpiration(string documentId, long? expiration)
+        public void SetDocumentExpiration(string documentId, DateTime? expiration)
         {
             var docNumericId = GetDocNumericID(documentId);
             if (docNumericId <= 0L) {
@@ -1101,7 +1101,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             var vals = new ContentValues(1);
             if (expiration.HasValue) {
-                vals["expiry_timestamp"] = expiration;
+                vals["expiry_timestamp"] = expiration.Value;
             } else {
                 vals["expiry_timestamp"] = null;
             }
@@ -2002,17 +2002,19 @@ namespace Couchbase.Lite.Storage.SQLCipher
         {
             var result = new List<string>();
             var sequences = new List<long>();
-            var nowStamp = DateTime.Now.MillisecondsSinceEpoch() / 1000;
             TryQuery(c =>
             {
                 sequences.Add(c.GetLong(0));
                 result.Add(c.GetString(1));
 
                 return true;
-            }, false, "SELECT * FROM docs WHERE expiry_timestamp IS NOT NULL AND expiry_timestamp <= ?", nowStamp);
+            }, false, "SELECT * FROM docs WHERE expiry_timestamp IS NOT NULL AND expiry_timestamp <= ?", DateTime.UtcNow);
                 
-            var deleteSql = String.Format("sequence in ({0})", String.Join(", ", sequences.ToStringArray()));
-            StorageEngine.Delete("revs", deleteSql);
+            if (result.Count > 0) {
+                var deleteSql = String.Format("sequence in ({0})", String.Join(", ", sequences.ToStringArray()));
+                StorageEngine.Delete("revs", deleteSql);
+            }
+
             return result;
         }
 

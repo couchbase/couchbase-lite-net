@@ -161,7 +161,7 @@ namespace Couchbase.Lite.Store
         /// </summary>
         long GetRevisionSequence(RevisionInternal rev);
 
-        void SetDocumentExpiration(string documentId, long? expiration);
+        void SetDocumentExpiration(string documentId, DateTime? expiration);
 
         /// <summary>
         /// Retrieves the parent revision of a revision, or returns null if there is no parent.

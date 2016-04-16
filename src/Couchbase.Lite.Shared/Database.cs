@@ -2073,6 +2073,10 @@ namespace Couchbase.Lite
         private void PurgeExpired(object state)
         {
             Log.To.Database.V(TAG, "{0} running purge job NOW...", this);
+            if (Storage == null || !Storage.IsOpen) {
+                Log.To.Database.W(TAG, "{0} storage is null or closed, cannot run purge job, returning early...", this);
+                return;
+            }
             var results = Storage.PurgeExpired();
             var changedEvt = _changed;
             if (results.Count > 0) {
