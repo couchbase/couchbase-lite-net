@@ -173,22 +173,24 @@ namespace Couchbase.Lite
             var branchName = String.Empty;
             ReadVersion(Assembly.GetExecutingAssembly(), out branchName, out gitVersion);
 
-            #if !OFFICIAL
+            var infoVersion = Attribute.GetCustomAttribute(Assembly.GetExecutingAssembly(), typeof(AssemblyInformationalVersionAttribute))
+                as AssemblyInformationalVersionAttribute;
+            
+            bool unofficial = infoVersion == null || infoVersion.InformationalVersion.StartsWith("0.0.0");
             #if DEBUG
-            const string versionNumber = "Unofficial Debug";
+            var versionNumber = infoVersion == null || infoVersion.InformationalVersion.StartsWith("0.0.0") ?
+                "Unofficial Debug" : infoVersion.InformationalVersion + " Debug";
             #else
-            const string versionNumber = "Unofficial";
+            var versionNumber = infoVersion == null || infoVersion.InformationalVersion.StartsWith("0.0.0") ?
+                "Unofficial" : infoVersion.InformationalVersion;
             #endif
-            VersionString = String.Format(".NET {0}/{1} {2} ({3})/{4}", PLATFORM, Platform.Architecture, versionNumber, branchName.Replace('/', '\\'), 
-                gitVersion.TrimEnd());
-            #else
-            #if DEBUG
-            const string versionNumber = "1.3-pre1 Debug";
-            #else
-            const string versionNumber = "1.3-pre1";
-            #endif
-            VersionString = String.Format(".NET {0}/{1} {2}/{3}", PLATFORM, Platform.Architecture, versionNumber, gitVersion.TrimEnd());
-            #endif
+
+            if (unofficial) {
+                VersionString = String.Format(".NET {0}/{1} {2} ({3})/{4}", PLATFORM, Platform.Architecture, versionNumber, branchName.Replace('/', '\\'), 
+                    gitVersion.TrimEnd());
+            } else {
+                VersionString = String.Format(".NET {0}/{1} {2}/{3}", PLATFORM, Platform.Architecture, versionNumber, gitVersion.TrimEnd());
+            }
 
             Log.To.NoDomain.I(TAG, "Starting Manager version: {0}", VersionString);
             AppDomain.CurrentDomain.AssemblyLoad += (sender, args) => 

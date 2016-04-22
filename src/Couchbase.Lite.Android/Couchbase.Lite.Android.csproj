@@ -93,6 +93,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.cs">
+      <Link>DynamicAssemblyInfo.cs</Link>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
+    </Compile>
     <Compile Include="Resources\Resource.designer.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -106,16 +112,23 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\MonoAndroid" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);
-          $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb);
-          $(OutputPath)System.Net.Http.WebRequest.dll"
-     DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\MonoAndroid" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);&#xD;&#xA;          $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb);&#xD;&#xA;          $(OutputPath)System.Net.Http.WebRequest.dll" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\MonoAndroid" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.droid.csproj">
       <Project>{E1153FA4-356A-454D-B32E-136102F2482F}</Project>
       <Name>websocket-sharp.droid</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.tt">
+      <Link>DynamicAssemblyInfo.tt</Link>
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
 </Project>

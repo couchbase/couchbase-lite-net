@@ -59,6 +59,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\DigestAuthHeaderValue.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\JSFilterCompiler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)X509\X509Manager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.cs">
+      <Link>Properties\DynamicAssemblyInfo.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\Couchbase.Lite.Shared\Properties\version">
