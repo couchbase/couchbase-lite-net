@@ -24,6 +24,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)src\Properties\AssemblyInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\RevIdCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)src\Utility.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.cs">
+      <Link>src\Properties\DynamicAssemblyInfo.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\..\Couchbase.Lite.Shared\Properties\version">
