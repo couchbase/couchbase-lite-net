@@ -1220,8 +1220,10 @@ namespace Couchbase.Lite
         internal virtual void Stopping()
         {
             Log.To.Sync.I(TAG, "{0} Stopping", this);
-            if(!LocalDatabase.IsOpen) {
-                return; // This logic has already been handled by DatabaseClosing()
+            if(!LocalDatabase.IsOpen || _client == null) {
+                // This logic has already been handled by DatabaseClosing(), or
+                // this replication never started in the first place (client still null)
+                return; 
             }
 
             LocalDatabase.ForgetReplication(this);
