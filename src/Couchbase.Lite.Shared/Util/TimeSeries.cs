@@ -23,9 +23,12 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.IO;
 using System.Linq;
-using System.IO.MemoryMappedFiles;
 using System.Collections.Concurrent;
 using System.Threading;
+
+#if !NET_3_5
+using System.IO.MemoryMappedFiles;
+#endif
 
 namespace Couchbase.Lite.Util
 {
