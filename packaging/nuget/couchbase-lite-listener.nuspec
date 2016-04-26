@@ -12,7 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Provides Couchbase Lite with a self-hosted REST API.</description>
     <releaseNotes>
-      1.2.0.3 puts an upper limit on one of our deps due to an upstream change t
+      $version$ puts an upper limit on one of our deps due to an upstream change t
       hat breaks binary compatibility.
 
 For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
@@ -22,14 +22,14 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     <language>en-US</language>
     <dependencies>
       <group targetFramework="net35">
-        <dependency id="Couchbase.Lite" version="1.2.0.3" />
+        <dependency id="Couchbase.Lite" version="$version$" />
       </group>
       <group targetFramework="net45">
-        <dependency id="Couchbase.Lite" version="1.2.0.3" />
+        <dependency id="Couchbase.Lite" version="$version$" />
         <dependency id="Jint" version="2.4.0" />
       </group>
       <group>
-        <dependency id="Couchbase.Lite" version="1.2.0.3" />
+        <dependency id="Couchbase.Lite" version="$version$" />
         <dependency id="Jint" version="2.4.0" />
       </group>
     </dependencies>

@@ -12,7 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Enables Bonjour/DNS-SD Discovery for Peer-to-Peer Couchbase Lite applications.</description>
     <releaseNotes>
-      1.2.0.3 puts an upper limit on one of our deps due to an upstream change t
+      $version$ puts an upper limit on one of our deps due to an upstream change t
       hat breaks binary compatibility.
 
 For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
@@ -21,8 +21,8 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     <tags>couchbase couchbase-mobile couchbase-lite sync database bonjour dns-sd p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <dependency id="Couchbase.Lite" version="1.2.0.3" />
-      <dependency id="Couchbase.Lite.Listener" version="1.2.0.3" />
+      <dependency id="Couchbase.Lite" version="$version$" />
+      <dependency id="Couchbase.Lite.Listener" version="$version$" />
     </dependencies>
   </metadata>
   <files>
