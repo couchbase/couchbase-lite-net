@@ -221,8 +221,8 @@ namespace Couchbase.Lite.Internal
             } else if (info.GetCast<bool>("stub", false)) {
                 // This item is just a stub; validate and skip it
                 if(info.ContainsKey("revpos")) {
-                    var revPos = info.GetCast<int>("revpos");
-                    if (revPos <= 0) {
+                    var revPos = info.GetCast("revpos", -1);  // PouchDB has a bug that generates "revpos":0; allow this (#627)
+                    if (revPos < 0) {
                         throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
                             "Invalid revpos ({0}) in ctor", revPos);
                     }
@@ -237,8 +237,8 @@ namespace Couchbase.Lite.Internal
                 }
 
                 if(info.ContainsKey("revpos")) {
-                    var revPos = info.GetCast<int>("revpos");
-                    if (revPos <= 0) {
+                    var revPos = info.GetCast("revpos", -1);  // PouchDB has a bug that generates "revpos":0; allow this (#627)
+                    if (revPos < 0) {
                         throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
                             "Invalid revpos ({0}) in ctor", revPos);
                     }

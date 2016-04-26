@@ -52,6 +52,7 @@ using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
+using System.Text;
 
 namespace Couchbase.Lite
 {
@@ -61,6 +62,65 @@ namespace Couchbase.Lite
         const String TooLongName = "a11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110";
 
         public DatabaseTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestAttachments()
+        {
+            var properties = new Dictionary<string, object> {
+                { "testName", "testAttachments" }
+            };
+            var doc = CreateDocumentWithProperties(database, properties);
+            var rev = doc.CurrentRevision;
+
+            Assert.AreEqual(0, rev.Attachments.Count());
+            Assert.AreEqual(0, rev.AttachmentNames.Count());
+            Assert.IsNull(rev.GetAttachment("index.html"));
+
+            var body = Encoding.UTF8.GetBytes("This is a test attachment!");
+            var rev2 = doc.CreateRevision();
+            rev2.SetAttachment("index.html", "text/plain; charset=utf-8", body);
+
+            Assert.AreEqual(1, rev2.Attachments.Count());
+            CollectionAssert.AreEqual(new string[] { "index.html" }, rev2.AttachmentNames);
+            var attach = rev2.GetAttachment("index.html");
+            Assert.IsNull(attach.Revision);
+            Assert.IsNull(attach.Document);
+            Assert.AreEqual("index.html", attach.Name);
+            Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
+            Assert.AreEqual(body, attach.Content);
+            Assert.AreEqual(body.Length, attach.Length);
+
+            var rev3 = rev2.Save();
+            Assert.AreEqual(1, rev3.Attachments.Count());
+            Assert.AreEqual(1, rev3.AttachmentNames.Count());
+
+            attach = rev3.GetAttachment("index.html");
+            Assert.AreEqual(doc, attach.Document);
+            Assert.AreEqual("index.html", attach.Name);
+            CollectionAssert.AreEqual(new string[] { "index.html" }, rev3.AttachmentNames);
+
+            Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
+            Assert.AreEqual(body, attach.Content);
+            Assert.AreEqual(body.Length, attach.Length);
+
+            var inStream = attach.ContentStream;
+            var data = inStream.ReadAllBytes();
+            Assert.AreEqual(body, data);
+
+            var newRev = rev3.CreateRevision();
+            newRev.RemoveAttachment(attach.Name);
+            var rev4 = newRev.Save();
+            Assert.AreEqual(0, rev4.AttachmentNames.Count());
+
+            var props = rev3.Properties;
+            var atts = props.Get("_attachments").AsDictionary<string, object>();
+            atts["zero.txt"] = new Dictionary<string, object> {
+                { "content_type", "text/plain" },
+                { "revpos", 0 },
+                { "following", true }
+            };
+            props["_attachments"] = atts;
+        }
 
         [Test]
         public void TestAllDocumentsPrefixMatch()
