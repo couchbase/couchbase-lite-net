@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite.Storage.SystemSQLite</id>
     <title>Couchbase Lite System SQLite Storage</title>
-    <version>1.2.1</version>
+    <version>1.2.1.1</version>
     <authors>Jim Borden</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,7 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A storage engine provider for Couchbase Lite .NET that utilizies the system-installed SQLite library</description>
     <releaseNotes>
-Starting with Couchbase Lite 1.2 the disk persistence mechanism is modularized, meaning that at least one support package is required for it to function properly.  The Couchbase.Lite.Storage.SystemSQLite package is added by default as a required dependency.
+This is a maintenance release which includes hotfixes applied against 1.2.0.
 
 For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
     </releaseNotes>

@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite</id>
     <title>Couchbase Lite</title>
-    <version>1.2.1</version>
+    <version>1.2.1.1</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,15 +12,9 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
-      1.2.0.3 puts an upper limit on one of our deps due to an upstream change that breaks binary compatibility.
+This is a maintenance release which includes hotfixes applied against 1.2.0.
 
-Couchbase Lite 1.2 brings a number of significant bug fixes and two new features:
-
-Encryption Support - Databases may now be encrypted. The encryption process uses industry standard protocols (PBKDF2 for key generation and 256-bit AES for encrypting).
-
-ForestDB Based Databases - You may now take advantage of the performance increases of Couchbase's ForestDB storage engine. It was designed from the ground up to be a key-value storage engine and lends itself perfectly to our JSON model.
-
-For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2.1
     </releaseNotes>
     <copyright>Copyright 2014-2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
@@ -29,19 +23,19 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
       <group targetFramework="net35">
         <dependency id="Newtonsoft.Json" version="7.0.1" />
         <dependency id="SharpZipLib" version="0.86.0" />
-        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2.1" />
+        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2.1.1" />
       </group>
       <group targetFramework="net45">
         <dependency id="Newtonsoft.Json" version="7.0.1" />
         <dependency id="SharpZipLib.Portable" version="0.86.0.0003" />
         <dependency id="Stateless" version="2.5.61.0" />
-        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2.1" />
+        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2.1.1" />
       </group>
       <group>
         <dependency id="Newtonsoft.Json" version="7.0.1" />
         <dependency id="SharpZipLib.Portable" version="0.86.0.0003" />
         <dependency id="Stateless" version="2.5.61.0" />
-        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2.1" />
+        <dependency id="Couchbase.Lite.Storage.SystemSQLite" version="1.2.1.1" />
       </group>
     </dependencies>
   </metadata>

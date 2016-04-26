@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite.Listener</id>
     <title>Couchbase Lite - HTTP Listener</title>
-    <version>1.2.1</version>
+    <version>1.2.1.1</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,8 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Provides Couchbase Lite with a self-hosted REST API.</description>
     <releaseNotes>
-      1.2.0.3 puts an upper limit on one of our deps due to an upstream change t
-      hat breaks binary compatibility.
+This is a maintenance release which includes hotfixes applied against 1.2.0.
 
 For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
     </releaseNotes>
@@ -22,14 +21,14 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     <language>en-US</language>
     <dependencies>
       <group targetFramework="net35">
-        <dependency id="Couchbase.Lite" version="1.2.1" />
+        <dependency id="Couchbase.Lite" version="1.2.1.1" />
       </group>
       <group targetFramework="net45">
-        <dependency id="Couchbase.Lite" version="1.2.1" />
+        <dependency id="Couchbase.Lite" version="1.2.1.1" />
         <dependency id="Jint" version="2.8.0" />
       </group>
       <group>
-        <dependency id="Couchbase.Lite" version="1.2.1" />
+        <dependency id="Couchbase.Lite" version="1.2.1.1" />
         <dependency id="Jint" version="2.8.0" />
       </group>
     </dependencies>
