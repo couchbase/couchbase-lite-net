@@ -366,7 +366,8 @@ namespace Couchbase.Lite
             return status == HttpStatusCode.InternalServerError || 
                 status == HttpStatusCode.BadGateway || 
                 status == HttpStatusCode.ServiceUnavailable || 
-                status == HttpStatusCode.GatewayTimeout;
+                status == HttpStatusCode.GatewayTimeout ||
+                status == HttpStatusCode.RequestTimeout;
         }
 
         /// <summary>Like equals, but works even if either/both are null</summary>

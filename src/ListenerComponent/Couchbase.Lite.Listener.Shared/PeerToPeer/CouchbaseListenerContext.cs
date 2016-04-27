@@ -338,6 +338,8 @@ namespace Couchbase.Lite.Listener
                     return body;
                 } catch(CouchbaseLiteException) {
                     return null;
+                } catch(IOException e) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Router, e, StatusCode.RequestTimeout, Tag, "IOException when attempting to read body");
                 }
             }
 

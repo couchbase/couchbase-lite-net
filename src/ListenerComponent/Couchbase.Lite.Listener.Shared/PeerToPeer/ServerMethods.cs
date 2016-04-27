@@ -23,6 +23,8 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite.Replicator;
+using System.IO;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
@@ -181,9 +183,15 @@ namespace Couchbase.Lite.Listener
         /// <remarks>
         public static ICouchbaseResponseState ManageReplicationSession(ICouchbaseListenerContext context)
         {
-            byte[] buffer = new byte[context.ContentLength];
-            context.BodyStream.Read(buffer, 0, buffer.Length);
-            var body = new Body(buffer).GetProperties() ?? new Dictionary<string, object>();
+            var body = default(IDictionary<string, object>);
+            try {
+                byte[] buffer = new byte[context.ContentLength];
+                context.BodyStream.Read(buffer, 0, buffer.Length);
+                body = new Body(buffer).GetProperties() ?? new Dictionary<string, object>();
+            } catch(IOException e) {
+                Log.To.Router.E("_replicate", "IOException while reading POST body", e);
+                return context.CreateResponse(StatusCode.RequestTimeout).AsDefaultState();
+            }
 
             Replication rep =  context.DbManager.ReplicationWithProperties(body);
             var response = context.CreateResponse();

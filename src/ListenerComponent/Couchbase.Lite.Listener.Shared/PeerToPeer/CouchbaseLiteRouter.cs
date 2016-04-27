@@ -158,17 +158,14 @@ namespace Couchbase.Lite.Listener
 
             try {
                 responseState = logic(context);
+            } catch(CouchbaseLiteException e) {
+                // This is in place so that a response can be written simply by throwing a couchbase lite exception
+                // in the routing logic
+                Log.To.Router.I(TAG, "Couchbase exception in routing logic, this message can be ignored if intentional", e);
+                responseState = context.CreateResponse(e.CBLStatus.Code).AsDefaultState();
             } catch(Exception e) {
-                var ce = e as CouchbaseLiteException;
-                if (ce != null) {
-                    // This is in place so that a response can be written simply by throwing a couchbase lite exception
-                    // in the routing logic
-                    Log.To.Router.I(TAG, "Couchbase exception in routing logic, this message can be ignored if intentional", e);
-                    responseState = context.CreateResponse(ce.CBLStatus.Code).AsDefaultState();
-                } else {
-                    Log.To.Router.E(TAG, "Unhandled non-Couchbase exception in routing logic", e);
-                    responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();
-                }
+                Log.To.Router.E(TAG, "Unhandled non-Couchbase exception in routing logic", e);
+                responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();
             }
 
             ProcessResponse(context, responseState);

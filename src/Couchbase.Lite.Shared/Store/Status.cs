@@ -113,6 +113,11 @@ namespace Couchbase.Lite
         NotAcceptable = 406,
 
         /// <summary>
+        /// A request was unable to be processed in a timely fashion
+        /// </summary>
+        RequestTimeout = 408,
+
+        /// <summary>
         /// The submitted revision put a document into a conflict state (HTTP compliant)
         /// </summary>
         Conflict = 409,

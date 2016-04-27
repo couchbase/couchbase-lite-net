@@ -28,6 +28,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Revisions;
+using System.IO;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -511,12 +512,16 @@ namespace Couchbase.Lite.Listener
             {
                 MultipartDocumentReader reader = new MultipartDocumentReader(db);
                 reader.SetContentType(context.RequestHeaders["Content-Type"]);
-                reader.AppendData(context.BodyStream.ReadAllBytes());
+                
                 try {
+                    reader.AppendData(context.BodyStream.ReadAllBytes());
                     reader.Finish();
                 } catch(InvalidOperationException e) {
                     Log.To.Router.E(TAG, "Exception trying to read data from multipart upload", e);
                     return context.CreateResponse(StatusCode.BadRequest);
+                } catch(IOException e) {
+                    Log.To.Router.E(TAG, "IOException while reading context body", e);
+                    return context.CreateResponse(StatusCode.RequestTimeout);
                 }
 
                 return callback(db, new Body(reader.GetDocumentProperties()));
