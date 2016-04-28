@@ -163,6 +163,10 @@ namespace Couchbase.Lite.Store
 
         void SetDocumentExpiration(string documentId, DateTime? expiration);
 
+        DateTime? GetDocumentExpiration(string documentID);
+
+        DateTime? NextDocumentExpiry();
+
         /// <summary>
         /// Retrieves the parent revision of a revision, or returns null if there is no parent.
         /// </summary>

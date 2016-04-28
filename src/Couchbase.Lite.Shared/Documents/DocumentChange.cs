@@ -50,7 +50,7 @@ namespace Couchbase.Lite {
     /// <summary>
     /// Provides details about a Document change.
     /// </summary>
-Â?Â?Â?Â?public class DocumentChange
+    public class DocumentChange
     {
         internal RevisionInternal AddedRevision { get; private set; }
 
@@ -62,8 +62,9 @@ namespace Couchbase.Lite {
             IsConflict = isConflict;
             SourceUrl = sourceUrl;
         }
-Â?Â?Â?Â?
-    #region Instance Members
+
+        #region Instance Members
+
         //Properties
         /// <summary>
         /// Gets the Id of the <see cref="Couchbase.Lite.Document"/> that changed.

@@ -75,12 +75,6 @@ namespace Couchbase.Lite
         public string StorageType { get; set; }
 
         /// <summary>
-        /// Gets or sets the interval in which to purge documents that have
-        /// expired
-        /// </summary>
-        public TimeSpan ExpirePurgeInterval { get; set; }
-
-        /// <summary>
         /// A key to encrypt the database with. If the database does not exist and is being created, it
         /// will use this key, and the same key must be given every time it's opened.  The default, null, 
         /// means the database is not encrypted.

@@ -85,6 +85,8 @@ namespace Couchbase.Lite
         private const string LOCAL_CHECKPOINT_DOC_ID = "CBL_LocalCheckpoint";
         private const string CHECKPOINT_LOCAL_UUID_KEY = "localUUID";
 
+        private static readonly TimeSpan HousekeepingDelayAfterOpen = TimeSpan.FromSeconds(3);
+
         private static readonly HashSet<string> SPECIAL_KEYS_TO_REMOVE = new HashSet<string> {
             "_id", "_rev", "_deleted", "_revisions", "_revs_info", "_conflicts", "_deleted_conflicts",
             "_local_seq"
@@ -2057,7 +2059,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            _expirePurgeTimer = new Timer(PurgeExpired, null, options.ExpirePurgeInterval, options.ExpirePurgeInterval);
+            _expirePurgeTimer = new Timer(PurgeExpired, null, HousekeepingDelayAfterOpen, TimeSpan.FromMilliseconds(-1));
         }
 
         internal void Open()
@@ -2065,6 +2067,18 @@ namespace Couchbase.Lite
             OpenWithOptions(Manager.DefaultOptionsFor(Name));
         }
 
+        internal void SchedulePurgeExpired(TimeSpan delay)
+        {
+            var nextExpiration = Storage.NextDocumentExpiry();
+            if(nextExpiration.HasValue) {
+                var delta = (nextExpiration.Value - DateTime.UtcNow).Add(TimeSpan.FromSeconds(1));
+                var expirationTimeSpan = delta > delay ? delta : delay;
+                _expirePurgeTimer.Change(expirationTimeSpan, TimeSpan.FromMilliseconds(-1));
+                Log.To.Database.I(TAG, "Scheduling next doc expiration in {0:F3} seconds", expirationTimeSpan.TotalSeconds);
+            } else {
+                Log.To.Database.I(TAG, "No pending doc expirations");
+            }
+        }
 
         #endregion
 
@@ -2277,7 +2291,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A delegate that can validate a key/value change.
     /// </summary>
-Â?Â?Â?Â?public delegate bool ValidateChangeDelegate(string key, object oldValue, object newValue);
+    public delegate bool ValidateChangeDelegate(string key, object oldValue, object newValue);
 
     /// <summary>
     /// A delegate that can be run asynchronously on a <see cref="Couchbase.Lite.Database"/>.

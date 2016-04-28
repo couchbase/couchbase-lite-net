@@ -48,6 +48,8 @@ using Couchbase.Lite.Revisions;
 using System;
 using System.Linq;
 using Couchbase.Lite.Util;
+using System.Diagnostics;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -60,45 +62,80 @@ namespace Couchbase.Lite
         [Test]
         public void TestExpireDocument()
         {
-            Log.Domains.Database.Level = Log.LogLevel.Verbose;
-            var opts = new DatabaseOptions();
-            opts.Create = true;
-            opts.ExpirePurgeInterval = TimeSpan.FromSeconds(5);
+            var future = DateTime.UtcNow.AddSeconds(12345);
+            Trace.WriteLine($"Now is {DateTime.UtcNow}");
+            var doc = CreateDocumentWithProperties(database, new Dictionary<string, object> { { "foo", 17 } });
+            Assert.IsNull(doc.GetExpirationDate());
+            doc.ExpireAt(future);
+            var exp = doc.GetExpirationDate();
+            Trace.WriteLine($"Doc expiration is {exp}");
+            Assert.IsNotNull(exp);
+            Assert.IsTrue(Math.Abs((exp.Value - future).TotalSeconds) < 1.0);
 
-            var db = manager.OpenDatabase("expiry", opts);
-            var wa = new WaitAssert();
-           
-            var doc = db.GetDocument("test");
-            doc.PutProperties(new Dictionary<string, object> { { "self_destruct", "soon" } });
-            doc.ExpireAfter(TimeSpan.FromSeconds(2));
-            db.Changed += (sender, e) => 
-                wa.RunAssert(() =>
-                {
-                    Assert.AreEqual(1, e.Changes.Count());
-                    Assert.True(e.Changes.First().IsExpiration);
-                });
-            
-            wa.WaitForResult(TimeSpan.FromSeconds(10));
-            Assert.AreEqual(0, db.GetDocumentCount());
-        }
+            var next = database.Storage.NextDocumentExpiry();
+            Trace.WriteLine($"Next expiry at {next}");
 
-        [Test]
-        public void TestCancelExpire()
-        {
-            var opts = new DatabaseOptions();
-            opts.Create = true;
-            opts.ExpirePurgeInterval = TimeSpan.FromSeconds(5);
+            doc.ExpireAt(null);
+            Assert.IsNull(doc.GetExpirationDate());
+            Assert.IsNull(database.Storage.NextDocumentExpiry());
 
-            var db = manager.OpenDatabase("expiry", opts);
+            Trace.WriteLine("Creating documents");
+            CreateDocuments(database, 10000);
 
-            var doc = db.GetDocument("test");
-            doc.PutProperties(new Dictionary<string, object> { { "self_destruct", "soon" } });
-            doc.ExpireAfter(TimeSpan.FromSeconds(2));
-            doc.CancelExpire();
-            Sleep(7000);
+            var cd = new CountdownEvent(1000);
+            database.Changed += (sender, args) =>
+            {
+                foreach(var change in args.Changes) {
+                    if(change.IsExpiration) {
+                        cd.Signal();
+                    }
+                }
+            };
 
-            Assert.AreEqual(1, db.GetDocumentCount());
-            db.Delete();
+            Trace.WriteLine("Marking docs for expiration");
+            int total = 0, marked = 0;
+            database.RunInTransaction(() =>
+            {
+                foreach(var row in database.CreateAllDocumentsQuery().Run()) {
+                    var resultDoc = row.Document;
+                    var sequence = resultDoc.GetProperty<long>("sequence");
+                    if((sequence % 10) == 6) {
+                        resultDoc.ExpireAfter(TimeSpan.FromSeconds(2));
+                        ++marked;
+                    } else if((sequence % 10) == 3) {
+                        resultDoc.ExpireAt(future);
+                    }
+
+                    ++total;
+                }
+
+                return true;
+            });
+
+            Assert.AreEqual(10001, total);
+            Assert.AreEqual(1000, marked);
+
+            next = database.Storage.NextDocumentExpiry();
+            Trace.WriteLine($"Next expiration at {next}");
+            Assert.IsTrue(next - DateTime.UtcNow <= TimeSpan.FromSeconds(2));
+            Assert.IsTrue(next - DateTime.UtcNow >= TimeSpan.FromSeconds(-10));
+
+            Trace.WriteLine("Waiting for auto expiration");
+            cd.Wait(TimeSpan.FromSeconds(5));
+            Assert.AreEqual(9001, database.GetDocumentCount());
+
+            total = 0;
+            foreach(var row in database.CreateAllDocumentsQuery().Run()) {
+                var resultDoc = row.Document;
+                var sequence = resultDoc.GetProperty<long>("sequence");
+                Assert.AreNotEqual(6, sequence % 10);
+                ++total;
+            }
+            Assert.AreEqual(9001, total);
+
+            next = database.Storage.NextDocumentExpiry();
+            Trace.WriteLine($"Next expiration is {next}");
+            Assert.IsTrue(Math.Abs((next.Value - future).TotalSeconds) < 1.0);
         }
 
         [Test] // #447

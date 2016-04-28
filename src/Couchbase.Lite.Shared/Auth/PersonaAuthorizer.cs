@@ -95,15 +95,14 @@ namespace Couchbase.Lite.Auth
 
         protected internal virtual bool IsAssertionExpired(IDictionary<string, object> parsedAssertion)
         {
-            if (IsSkipAssertionExpirationCheck())
-            {
+            if(IsSkipAssertionExpirationCheck()) {
                 return false;
             }
 
             var exp = (DateTime)parsedAssertion.Get(AssertionFieldExpiration);
             var now = DateTime.Now;
-            if (exp < now) {
-                Log.To.Sync.W(Tag, string.Format("Assertion for {0} expired: {1}", 
+            if(exp < now) {
+                Log.To.Sync.W(Tag, string.Format("Assertion for {0} expired: {1}",
                     new SecureLogString(emailAddress, LogMessageSensitivity.PotentiallyInsecure), exp));
                 return true;
             }
@@ -114,15 +113,14 @@ namespace Couchbase.Lite.Auth
         public virtual string AssertionForSite(Uri site)
         {
             var assertion = AssertionForEmailAndSite(emailAddress, site);
-            if (assertion == null)
-            {
-                Log.To.Sync.W(Tag, String.Format("No assertion found for email: {0}, site: {1}", 
+            if(assertion == null) {
+                Log.To.Sync.W(Tag, String.Format("No assertion found for email: {0}, site: {1}",
                     new SecureLogString(emailAddress, LogMessageSensitivity.PotentiallyInsecure), site));
                 return null;
             }
 
             var result = ParseAssertion(assertion);
-            return IsAssertionExpired (result) ? null : assertion;
+            return IsAssertionExpired(result) ? null : assertion;
         }
 
         public override string UserInfo { get { return null; } }
@@ -138,13 +136,10 @@ namespace Couchbase.Lite.Auth
         {
             IDictionary<string, string> loginParameters = new Dictionary<string, string>();
             string assertion = AssertionForSite(site);
-            if (assertion != null)
-            {
+            if(assertion != null) {
                 loginParameters[LoginParameterAssertion] = assertion;
                 return loginParameters;
-            }
-            else
-            {
+            } else {
                 return null;
             }
         }
@@ -156,8 +151,7 @@ namespace Couchbase.Lite.Auth
 
         public static string RegisterAssertion(string assertion)
         {
-            lock (typeof(PersonaAuthorizer))
-            {
+            lock(typeof(PersonaAuthorizer)) {
                 IDictionary<string, object> result = null;
                 try {
                     result = ParseAssertion(assertion);
@@ -176,7 +170,7 @@ namespace Couchbase.Lite.Auth
                 }
 
                 origin = originURL.AbsoluteUri.ToLower();
-  
+
                 return RegisterAssertion(assertion, email, origin);
             }
         }
@@ -191,11 +185,9 @@ namespace Couchbase.Lite.Auth
         /// </remarks>
         internal static string RegisterAssertion(string assertion, string email, string origin)
         {
-            lock (typeof(PersonaAuthorizer))
-            {
+            lock(typeof(PersonaAuthorizer)) {
                 var key = GetKeyForEmailAndSite(email, origin);
-                if (assertions == null)
-                {
+                if(assertions == null) {
                     assertions = new Dictionary<string, string>();
                 }
                 Log.To.Sync.I(Tag, "Registering key [{0}, {1}]",
@@ -209,7 +201,7 @@ namespace Couchbase.Lite.Auth
         {
             // https://github.com/mozilla/id-specs/blob/prod/browserid/index.md
             // http://self-issued.info/docs/draft-jones-json-web-token-04.html
-            if (assertion == null) {
+            if(assertion == null) {
                 Log.To.Sync.E(Tag, "Assertion cannot be null in ParseAssertion, throwing...");
                 throw new ArgumentNullException("assertion");
             }
@@ -217,15 +209,14 @@ namespace Couchbase.Lite.Auth
             var result = new Dictionary<string, object>();
             var components = assertion.Split('.');
             // split on "."
-            if (components.Length < 4) {
+            if(components.Length < 4) {
                 Log.To.Sync.E(Tag, "Invalid assertion in ParseAssertion (number of '.' < 4): {0}, throwing...",
                     new SecureLogString(assertion, LogMessageSensitivity.Insecure));
             }
 
             var component1Decoded = Encoding.UTF8.GetString(StringUtils.ConvertFromUnpaddedBase64String(components[1]));
             var component3Decoded = Encoding.UTF8.GetString(StringUtils.ConvertFromUnpaddedBase64String(components[3]));
-            try
-            {
+            try {
                 var mapper = Manager.GetObjectMapper();
 
                 var component1Json = mapper.ReadValue<object>(component1Decoded).AsDictionary<object, object>();
@@ -236,10 +227,10 @@ namespace Couchbase.Lite.Auth
                 var component3Json = mapper.ReadValue<object>(component3Decoded).AsDictionary<object, object>();
                 result[AssertionFieldOrigin] = component3Json.Get("aud");
 
-                var expObject = Convert.ToUInt64(component3Json.Get("exp"));
-                var expDate = Misc.CreateDate(expObject);
+                var expObject = (ulong)component3Json.Get("exp");
+                var expDate = Misc.OffsetFromEpoch(TimeSpan.FromMilliseconds(expObject));
                 result[AssertionFieldExpiration] = expDate;
-            } catch (Exception e) {
+            } catch(Exception e) {
                 throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag,
                 "Got exception while parsing assertion ({0})",
                     new SecureLogString(assertion, LogMessageSensitivity.Insecure));
@@ -251,10 +242,10 @@ namespace Couchbase.Lite.Auth
         public static string AssertionForEmailAndSite(string email, Uri site)
         {
             var key = GetKeyForEmailAndSite(email, site.ToString());
-            Log.To.Sync.V(Tag, "Searching for key [{0}, {1}]", 
+            Log.To.Sync.V(Tag, "Searching for key [{0}, {1}]",
                 new SecureLogString(email, LogMessageSensitivity.PotentiallyInsecure),
                 site);
-            
+
             return assertions.Get(key);
         }
 
@@ -266,9 +257,9 @@ namespace Couchbase.Lite.Auth
         public override string ToString()
         {
             var sb = new StringBuilder("[PersonaAuthorizer (");
-            foreach (var pair in assertions) {
-                if (pair.Key.StartsWith(emailAddress)) {
-                    sb.AppendFormat("key={0} value={1}, ", 
+            foreach(var pair in assertions) {
+                if(pair.Key.StartsWith(emailAddress)) {
+                    sb.AppendFormat("key={0} value={1}, ",
                         new SecureLogString(pair.Key, LogMessageSensitivity.PotentiallyInsecure),
                         new SecureLogString(pair.Value, LogMessageSensitivity.Insecure));
                 }

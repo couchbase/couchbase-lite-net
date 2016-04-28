@@ -67,11 +67,6 @@ namespace Couchbase.Lite
         public ReplicationOptions DefaultReplicationOptions { get; set; }
 
         /// <summary>
-        /// Gets or sets the default value for DatabaseOptions.ExpirePurgeInterval
-        /// </summary>
-        public TimeSpan DefaultExpirePurgeInterval { get; set; }
-
-        /// <summary>
         /// The maximum number of times to retry
         /// network requests that failed due to
         /// transient network errors.
@@ -150,7 +145,6 @@ namespace Couchbase.Lite
             #endif
 
             ServicePointManager.DefaultConnectionLimit = Environment.ProcessorCount * 12;
-            DefaultExpirePurgeInterval = TimeSpan.FromMinutes(5);
         }
             
         /// <summary>Gets or sets, whether changes to databases are disallowed by default.</summary>
