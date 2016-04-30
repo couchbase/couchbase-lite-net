@@ -66,7 +66,12 @@ namespace Couchbase.Lite
             Trace.WriteLine($"Now is {DateTime.UtcNow}");
             var doc = CreateDocumentWithProperties(database, new Dictionary<string, object> { { "foo", 17 } });
             Assert.IsNull(doc.GetExpirationDate());
-            doc.ExpireAt(future);
+            database.RunInTransaction(() =>
+            {
+                doc.ExpireAt(future);
+                return true;
+            });
+            
             var exp = doc.GetExpirationDate();
             Trace.WriteLine($"Doc expiration is {exp}");
             Assert.IsNotNull(exp);
@@ -75,7 +80,11 @@ namespace Couchbase.Lite
             var next = database.Storage.NextDocumentExpiry();
             Trace.WriteLine($"Next expiry at {next}");
 
-            doc.ExpireAt(null);
+            database.RunInTransaction(() =>
+            {
+                doc.ExpireAt(null);
+                return true;
+            });
             Assert.IsNull(doc.GetExpirationDate());
             Assert.IsNull(database.Storage.NextDocumentExpiry());
 
@@ -121,7 +130,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(next - DateTime.UtcNow >= TimeSpan.FromSeconds(-10));
 
             Trace.WriteLine("Waiting for auto expiration");
-            cd.Wait(TimeSpan.FromSeconds(5));
+            cd.Wait(TimeSpan.FromSeconds(10));
             Assert.AreEqual(9001, database.GetDocumentCount());
 
             total = 0;

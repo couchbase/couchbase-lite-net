@@ -65,6 +65,7 @@ namespace Couchbase.Lite
     internal static class Misc
     {
         internal static readonly DateTime Epoch = new DateTime(1970, 1, 1);
+
         public static DateTime OffsetFromEpoch(TimeSpan timeSinceEpoch)
         {
             return Epoch.Add(timeSinceEpoch);

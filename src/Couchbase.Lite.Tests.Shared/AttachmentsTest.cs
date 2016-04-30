@@ -232,7 +232,7 @@ namespace Couchbase.Lite
                 // The API prevents new insertions with MD5 hashes, so we need to insert this bypassing the API
                 // to simulate a legacy document
                 var engine = store.StorageEngine;
-                var docName = "doc" + Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+                var docName = "doc" + Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
                 var contentVals = new ContentValues();
                 contentVals["docid"] = docName;
                 engine.Insert("docs", null, contentVals);

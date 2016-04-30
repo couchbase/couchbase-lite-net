@@ -94,7 +94,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestUpgradeOldDatabaseFiles()
         {
-            var testDirName = "test-directory-" + DateTime.UtcNow.MillisecondsSinceEpoch();
+            var testDirName = "test-directory-" + (ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds;
             var rootDirPath = RootDirectory.FullName;
             var testDirPath = Path.Combine(rootDirPath, testDirName);
             var testDirInfo = Directory.CreateDirectory(testDirPath);

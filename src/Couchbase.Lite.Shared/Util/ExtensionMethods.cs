@@ -108,9 +108,9 @@ namespace Couchbase.Lite
             return rgx.Replace (str, replacement);
         }
             
-        public static ulong MillisecondsSinceEpoch(this DateTime dt)
+        public static TimeSpan TimeSinceEpoch(this DateTime dt)
         {
-            return (ulong)((dt - Misc.Epoch).TotalMilliseconds);
+            return dt - Misc.Epoch;
         }
 
         public static U Get<T, U> (this IDictionary<T, U> d, T key)

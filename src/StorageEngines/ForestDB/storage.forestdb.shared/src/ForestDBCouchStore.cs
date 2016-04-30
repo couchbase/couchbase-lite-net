@@ -688,8 +688,8 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public void SetDocumentExpiration(string documentId, DateTime? expiration)
         {
-            if(expiration.HasValue) {
-                var timestamp = expiration.Value.ToUniversalTime().MillisecondsSinceEpoch();
+            if (expiration.HasValue) {
+                var timestamp = (ulong)expiration.Value.ToUniversalTime().TimeSinceEpoch().TotalSeconds;
                 ForestDBBridge.Check(err => Native.c4doc_setExpiration(Forest, documentId, timestamp, err));
             } else {
                 ForestDBBridge.Check(err => Native.c4doc_setExpiration(Forest, documentId, UInt64.MaxValue, err));
@@ -812,7 +812,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
             var changes = new RevisionList();
             var e = new CBForestDocEnumerator(Forest, lastSequence, forestOps);
-            foreach(var next in e) {
+            foreach (var next in e) {
                 var revs = default(IEnumerable<RevisionInternal>);
                 if(options.IncludeConflicts) {
                     using(var enumerator = new CBForestHistoryEnumerator(next.GetDocument(), true, false)) {
