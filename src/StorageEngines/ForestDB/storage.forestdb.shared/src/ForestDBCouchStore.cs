@@ -39,6 +39,14 @@ using Couchbase.Lite.Util;
 namespace Couchbase.Lite.Storage.ForestDB
 {
 
+    public static class Plugin
+    {
+        public static void Register()
+        {
+            Database.RegisterStorageEngine(StorageEngineTypes.ForestDB, typeof(ForestDBCouchStore));
+        }
+    }
+
     #region Delegates
 
     internal unsafe delegate void C4DocumentActionDelegate(C4Document* doc);
@@ -162,7 +170,6 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         static ForestDBCouchStore()
         {
-            Log.To.Database.I(TAG, "Initialized ForestDB store (version 'BETA' (59e1ffd259b212ead23f9db0e26483a3ab1eb3fc))");
             Native.c4log_register(C4LogLevel.Debug, (level, msg) =>
             {
                 switch(level) {
