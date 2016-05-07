@@ -1,8 +1,10 @@
 *TL;DR (well...DWTR)*:  This is how to enable the various storage modes of Couchbase Lite:
 
-1. System SQLite - Do nothing
-2. SQLite with encryption - Add the Couchbase.Lite.Storage.SQLCipher nuget package
-3. ForestDB (with or without encryption is the same) - Add the Couchbase.Lite.Storage.ForestDB nuget package
+1. System SQLite
+  a. iOS - Call Couchbase.Lite.Storage.SystemSQLite.Plugin.Register()
+  b. Others - Either do the above or do nothing
+2. SQLite with encryption - Add the Couchbase.Lite.Storage.SQLCipher nuget package and call Couchbase.Lite.Storage.SQLCipher.Plugin.Register()
+3. ForestDB (with or without encryption is the same) - Add the Couchbase.Lite.Storage.ForestDB nuget package and call Couchbase.Lite.Storage.ForestDB.Plugin.Register()
 
 Changes in 1.2
 ==============
@@ -21,7 +23,14 @@ The third one uses ForestDB, which is a key value storage library that Couchbase
 
 Note that to make the selection process as automatic as possible, I have implemented a sort of hierarchy.  If you include the SQLCipher package it will override the SystemSQLite package.  You can check the logs to figure out which plugin has been loaded if you are unsure.  Make sure if you want to switch back to SystemSQLite from SQLCipher that you clean the project and ensure that the SQLCipher plugin DLL is not present.
 
+Changes in 1.3
+==============
+
+The registration system for plugins is now manual since automatic registration caused too many headaches on AOT platforms which would strip the references to the plugins that it thought were not being used.
+
 Details about this system
 =========================
 
-All of the managed functionality, and native image binding, has been refactored into separate pluggable assemblies.  The system will attempt to use `Assembly.Load` to load the correct assemblies at runtime.  There is no need to worry about binding to the wrong native library since the binding is not chosen via program logic directly, but rather by which managed code gets loaded.
+1.2: All of the managed functionality, and native image binding, has been refactored into separate pluggable assemblies.  The system will attempt to use `Assembly.Load` to load the correct assemblies at runtime.  There is no need to worry about binding to the wrong native library since the binding is not chosen via program logic directly, but rather by which managed code gets loaded.
+
+**NOTE** 1.3 Changes this to require a manual registration call to replace Assembly.Load.

@@ -45,6 +45,14 @@ namespace Couchbase.Lite.Storage.SystemSQLite
 namespace Couchbase.Lite.Storage.SQLCipher
 #endif
 {
+    public static class Plugin
+    {
+        public static void Register()
+        {
+            Database.RegisterStorageEngine(StorageEngineTypes.SQLite, typeof(SqliteCouchStore));
+        }
+    }
+
     #if __IOS__
     [Foundation.Preserve(AllMembers = true)]
     #endif
@@ -402,7 +410,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return;
             }
 
-            Log.To.Database.I(TAG, "Opening {0}", this);
             // Create the storage engine.
             StorageEngine = SQLiteStorageEngineFactory.CreateStorageEngine();
 

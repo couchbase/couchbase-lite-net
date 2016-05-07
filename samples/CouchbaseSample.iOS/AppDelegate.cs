@@ -28,6 +28,8 @@ namespace CouchbaseSample
         {
             window = new UIWindow (UIScreen.MainScreen.Bounds);
 
+            Couchbase.Lite.Storage.SystemSQLite.Plugin.Register();
+
             var controller = new RootViewController();
             window.TintColor = UIColor.FromRGB(0.564f, 0.0f, 0.015f);
             controller.EdgesForExtendedLayout = UIRectEdge.None;
