@@ -810,6 +810,8 @@ namespace Couchbase.Lite
         internal static void RegisterStorageEngine(string identifier, Type type)
         {
             if(type.GetInterface("Couchbase.Lite.Store.ICouchStore") == null) {
+                Log.To.Database.E(TAG, "Storage engine type {0} is not ICouchStore, throwing Exception...",
+                    type.FullName);
                 throw new ArgumentException("Storage engine type is not ICouchStore");
             }
 
@@ -819,7 +821,7 @@ namespace Couchbase.Lite
         internal static IDatabaseUpgrader CreateUpgrader(Database upgradeFrom, string upgradeTo)
         {
             // Right now only SQLite has upgrade logic
-            var sqliteType = GetSQLiteStorageClass();
+            var sqliteType = GetStorageClass(StorageEngineTypes.SQLite);
             var sqliteStorage = (ICouchStore)Activator.CreateInstance(sqliteType);
             return sqliteStorage.CreateUpgrader(upgradeFrom, upgradeTo);
         }
@@ -1973,27 +1975,25 @@ namespace Couchbase.Lite
 
             // Instantiate storage:
             string storageType = options.StorageType ?? Manager.StorageType ?? StorageEngineTypes.SQLite;
-            var primaryStorage = default(Type);
-            if (storageType == "SQLite") {
-                primaryStorage = GetSQLiteStorageClass();
-            } else if (storageType == "ForestDB") {
-                primaryStorage = GetForestDBStorageClass();
-            } else {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InvalidStorageType, "Unknown store type {0}", storageType);
-            }
+            var primaryStorage = GetStorageClass(storageType);
 
             if (primaryStorage == null) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InvalidStorageType, TAG, 
-                    "Implementation for {0} storage engine not found.  Be sure " +
-                    "that the appropriate Nuget package is installed or if building from source that the appropriate " +
-                    "project is referenced"
-                    , storageType);
+                if (storageType == StorageEngineTypes.SQLite) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InvalidStorageType, TAG, 
+                        "No implementation found for SQLite storage.  For more information, see " +
+                        "https://github.com/couchbase/couchbase-lite-net/wiki/Error-Dictionary#cblcs0001");
+                } else {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InvalidStorageType, TAG, 
+                        "No implementation found for ForestDB storage.  For more information, see " +
+                        "https://github.com/couchbase/couchbase-lite-net/wiki/Error-Dictionary#cblcs0002");
+                }
             }
 
 
             var upgrade = false;
             var primarySQLite = storageType == StorageEngineTypes.SQLite;
-            var otherStorage = primarySQLite ? GetForestDBStorageClass() : GetSQLiteStorageClass();
+            var otherStorage = primarySQLite ? GetStorageClass(StorageEngineTypes.ForestDB) : 
+                GetStorageClass(StorageEngineTypes.SQLite);
 
 
             var primaryStorageInstance = (ICouchStore)Activator.CreateInstance(primaryStorage);
@@ -2006,7 +2006,8 @@ namespace Couchbase.Lite
 
                 if (upgrade && primarySQLite) {
                     throw Misc.CreateExceptionAndLog(Log.To.Upgrade, StatusCode.InvalidStorageType, TAG,
-                        "Upgrades from ForestDB to SQLite are not supported");
+                        "Upgrades from ForestDB to SQLite are not supported.  For more information see " +
+                        "https://github.com/couchbase/couchbase-lite-net/wiki/Error-Dictionary#cbldb0001");
                 }
             } else {
                 // If options don't specify, use primary unless secondary db already exists in dir:
@@ -2033,8 +2034,6 @@ namespace Couchbase.Lite
                 Storage.Close();
                 Log.To.Database.E(TAG, "Failed to open storage for database, rethrowing...");
                 throw;
-            } catch(DllNotFoundException) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, TAG, "Native components not found, make sure to install the proper Nuget packages");
             } catch(Exception e) {
                 Storage.Close();
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Got exception while opening storage for database");
@@ -2096,26 +2095,18 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private static Type GetSQLiteStorageClass()
+        private static Type GetStorageClass(string identifier)
         {
-            var retVal = _StorageEngineMap.Get(StorageEngineTypes.SQLite);
-            if(retVal != null) {
-                Log.To.Database.I(TAG, "Using {0} for SQLite implementation", retVal.FullName);
-                return retVal;
+            if (identifier != StorageEngineTypes.SQLite && identifier != StorageEngineTypes.ForestDB) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InvalidStorageType, "Unknown store type {0}", 
+                    identifier);
             }
 
-            Log.To.Database.E(TAG, "No SQLite implementation registered, returning null!");
-            return null;
-        }
-
-        private static Type GetForestDBStorageClass()
-        {
-            var retVal = _StorageEngineMap.Get(StorageEngineTypes.ForestDB);
+            var retVal = _StorageEngineMap.Get(identifier);
             if(retVal != null) {
+                Log.To.Database.I(TAG, "Using {0} for {1} implementation", retVal.FullName, identifier);
                 return retVal;
             }
-
-            Log.To.Database.I(TAG, "No ForestDB implementation registered.");
             return null;
         }
 
