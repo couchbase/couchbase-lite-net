@@ -89,7 +89,7 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\Xamarin.iOS10" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.dll.mdb;$(OutputPath)System.Net.Http.WebRequest.dll" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\Xamarin.iOS10" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.dll.mdb;$(OutputPath)System.Net.Http.WebRequest.dll;$(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\Xamarin.iOS10" />
   </Target>
   <ItemGroup>
     <None Include="packages.config" />
