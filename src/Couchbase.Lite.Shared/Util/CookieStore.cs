@@ -93,7 +93,10 @@ namespace Couchbase.Lite.Util
         public new int Count 
         {
             get {
-                PruneExpiredCookies(true);
+                foreach(var uri in _cookieUriReference) {
+                    GetCookies(uri);
+                }
+
                 return base.Count;
             }
         }
@@ -142,12 +145,6 @@ namespace Couchbase.Lite.Util
         #region Public Methods
 
         #pragma warning disable 1591
-
-        public new CookieCollection GetCookies(Uri uri)
-        {
-            PruneExpiredCookies(false);
-            return base.GetCookies(uri);
-        }
 
         /// <summary>
         /// Add the specified cookies, force overrides CookieCollection
@@ -217,7 +214,6 @@ namespace Couchbase.Lite.Util
         public void Save()
         {
             lock (locker) {
-                PruneExpiredCookies(true);
                 if (_db != null) {
                     SerializeToDB();
                 } else {
@@ -229,26 +225,6 @@ namespace Couchbase.Lite.Util
         #endregion
 
         #region Private Methods
-
-        private void PruneExpiredCookies(bool refresh)
-        {
-            foreach (var uri in _cookieUriReference) {
-                var found = false;
-                var collection = base.GetCookies(uri);
-                for (int i = collection.Count - 1; i >= 0; i--) {
-                    var cookie = collection[i];
-                    if (IsNotSessionOnly(cookie) && (cookie.Expired || cookie.Expires < DateTime.Now)) {
-                        cookie.Expired = true;
-                        found = true;
-                    }
-                }
-
-                if (found && refresh) {
-                    //Refresh
-                    GetCookies(uri);
-                }
-            }    
-        }
 
         private void Add(Cookie cookie, bool save)
         {

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F}"
 EndProject
@@ -69,8 +69,8 @@ Global
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{88bb6717-85c9-46f0-923b-c263c08a189b}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{f376966c-ccab-4c5c-a81a-e2a754aa7a4c}*SharedItemsImports = 4
 		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{ea36a133-649c-42b3-91de-6e14dc9980a0}*SharedItemsImports = 13
-		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
 		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{9ad3badd-4f48-4208-b601-e63987c12049}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d06edb2a-0ae0-4606-a8ae-aa3f6248630f}*SharedItemsImports = 13
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{0bfc8b40-0659-4d45-b111-7cb4ccd22991}*SharedItemsImports = 13
@@ -108,6 +108,7 @@ Global
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
@@ -122,6 +123,7 @@ Global
 		{9AD3BADD-4F48-4208-B601-E63987C12049}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{9AD3BADD-4F48-4208-B601-E63987C12049}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
 		{9AD3BADD-4F48-4208-B601-E63987C12049}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{9AD3BADD-4F48-4208-B601-E63987C12049}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
 		{9AD3BADD-4F48-4208-B601-E63987C12049}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9AD3BADD-4F48-4208-B601-E63987C12049}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9AD3BADD-4F48-4208-B601-E63987C12049}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
@@ -136,6 +138,7 @@ Global
 		{8BFA15B7-957D-4AD1-9019-9DF98F1EE9EB}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{8BFA15B7-957D-4AD1-9019-9DF98F1EE9EB}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
 		{8BFA15B7-957D-4AD1-9019-9DF98F1EE9EB}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BFA15B7-957D-4AD1-9019-9DF98F1EE9EB}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
 		{8BFA15B7-957D-4AD1-9019-9DF98F1EE9EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8BFA15B7-957D-4AD1-9019-9DF98F1EE9EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8BFA15B7-957D-4AD1-9019-9DF98F1EE9EB}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
@@ -174,6 +177,7 @@ Global
 		{3EEE8883-B6A9-4B71-B70E-67973F7687D5}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{3EEE8883-B6A9-4B71-B70E-67973F7687D5}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
 		{3EEE8883-B6A9-4B71-B70E-67973F7687D5}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{3EEE8883-B6A9-4B71-B70E-67973F7687D5}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
 		{3EEE8883-B6A9-4B71-B70E-67973F7687D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3EEE8883-B6A9-4B71-B70E-67973F7687D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3EEE8883-B6A9-4B71-B70E-67973F7687D5}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
@@ -188,6 +192,7 @@ Global
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{666B3F9B-DC39-421E-9E4E-C5B666023FB0}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
@@ -202,6 +207,7 @@ Global
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{88BB6717-85C9-46F0-923B-C263C08A189B}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
@@ -216,6 +222,7 @@ Global
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
@@ -227,6 +234,7 @@ Global
 		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
 		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
 		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D68D4FED-CA32-4800-A628-58BAE485562C}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
 		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_All|Any CPU.ActiveCfg = Release|Any CPU

@@ -119,6 +119,8 @@ namespace Couchbase.Lite
         protected virtual void SetUp()
         {
             WriteDebug("SetUp");
+            Storage.SQLCipher.Plugin.Register();
+            Storage.ForestDB.Plugin.Register();
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
             Log.ScrubSensitivity = LogScrubSensitivity.AllOK;
             Log.Domains.All.Level = Log.LogLevel.Base;

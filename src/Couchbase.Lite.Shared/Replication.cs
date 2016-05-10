@@ -826,6 +826,11 @@ namespace Couchbase.Lite
         ///     </param>
         public void SetCookie(string name, string value, string path, DateTime expirationDate, bool secure, bool httpOnly)
         {
+            if(expirationDate.Kind == DateTimeKind.Unspecified) {
+                Log.To.Sync.W(TAG, "Cookie being constructed with DateTimeKind.Unspecified for expiration date.  " +
+                    "This has been known to cause issues with expiration dates being incorrect.");
+            }
+
             var cookie = new Cookie(name, value)
             {
                 Expires = expirationDate,
