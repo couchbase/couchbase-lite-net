@@ -267,7 +267,7 @@ namespace Couchbase.Lite
 
         static Database()
         {
-            var type = Type.GetType("Couchbase.Lite.Storage.SqliteCouchStore, Couchbase.Lite.Storage.SystemSQLite");
+            var type = Type.GetType("Couchbase.Lite.Storage.SystemSQLite.SqliteCouchStore, Couchbase.Lite.Storage.SystemSQLite");
             if(type != null) {
                 RegisterStorageEngine(StorageEngineTypes.SQLite, type);
             } else {

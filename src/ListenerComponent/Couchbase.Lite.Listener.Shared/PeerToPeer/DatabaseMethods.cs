@@ -363,7 +363,7 @@ namespace Couchbase.Lite.Listener
                             return context.CreateResponse(StatusCode.BadParam);
                         }
 
-                        heartbeat = Math.Min(heartbeat, MIN_HEARTBEAT);
+                        heartbeat = Math.Max(heartbeat, MIN_HEARTBEAT);
                         string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
                         responseState.StartHeartbeat(heartbeatResponse, heartbeat);
                     }
@@ -450,7 +450,7 @@ namespace Couchbase.Lite.Listener
                             return context.CreateResponse(StatusCode.BadParam);
                         }
 
-                        heartbeat = Math.Min(heartbeat, MIN_HEARTBEAT);
+                        heartbeat = Math.Max(heartbeat, MIN_HEARTBEAT);
                         string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
                         responseState.StartHeartbeat(heartbeatResponse, heartbeat);
                     }
