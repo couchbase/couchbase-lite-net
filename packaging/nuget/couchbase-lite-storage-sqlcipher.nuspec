@@ -24,12 +24,12 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
   </metadata>
   <dependencies>
       <group>
-        <dependency id="SQLitePCL.raw" version="[0.9.0-pre7]" />
-        <dependency id="SQLitePCL.ugly" version="[0.9.0-pre7]" />
-	<dependency id="SQLitePCL.plugin.sqlcipher.net45" version="[0.9.0-pre7]" />
-	<dependency id="SQLitePCL.native.sqlcipher.linux" version="[0.9.0-pre7]" />
-	<dependency id="SQLitePCL.native.sqlcipher.windows" version="[0.9.0-pre7]" />
-	<dependency id="SQLitePCL.native.sqlcipher.osx" version="[0.9.0-pre7]" />
+        <dependency id="SQLitePCL.raw" version="[0.9.0-pre8]" />
+        <dependency id="SQLitePCL.ugly" version="[0.9.0-pre8]" />
+        <dependency id="SQLitePCL.plugin.sqlcipher.net45" version="[0.9.0-pre8]" />
+        <dependency id="SQLitePCL.native.sqlcipher.linux" version="[0.9.0-pre8]" />
+        <dependency id="SQLitePCL.native.sqlcipher.windows" version="[0.9.0-pre8]" />
+        <dependency id="SQLitePCL.native.sqlcipher.osx" version="[0.9.0-pre8]" />
       </group>
     </dependencies>
   <files>
