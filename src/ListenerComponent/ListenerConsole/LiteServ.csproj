@@ -86,7 +86,7 @@
   </Target>
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <CreateItem Include="$(OutputPath)*.*">
-        <Output TaskParameter="Include" ItemName="LiteServFiles"/>
+      <Output TaskParameter="Include" ItemName="LiteServFiles" />
     </CreateItem>
     <MakeDir Directories="$(SolutionDir)..\staging\LiteServ" />
     <Copy SourceFiles="@(LiteServFiles)" DestinationFolder="$(SolutionDir)..\staging\LiteServ\" />
@@ -110,7 +110,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Listener.exe.config">
+    <None Include="LiteServ.exe.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <SubType>Designer</SubType>
     </None>
