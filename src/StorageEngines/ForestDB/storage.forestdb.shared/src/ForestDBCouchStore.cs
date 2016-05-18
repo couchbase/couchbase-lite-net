@@ -298,13 +298,22 @@ namespace Couchbase.Lite.Storage.ForestDB
             return new CBForestHistoryEnumerator(doc, false, true);
         }
 
-        private void WithC4Document(string docId, string revId, bool withBody, bool create, C4DocumentActionDelegate block)
+        private void WithC4Document(string docId, RevisionID revId, bool withBody, bool create, C4DocumentActionDelegate block)
         {
             var doc = default(C4Document*);
             try {
                 doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, docId, !create, err));
-                if(revId != null) {
-                    ForestDBBridge.Check(err => Native.c4doc_selectRevision(doc, revId, withBody, err));
+                if(revId != null) {                    
+                    ForestDBBridge.Check(err => 
+                    {
+                        bool result = false;
+                        revId.PinAndUse(slice =>
+                        {
+                            result = Native.c4doc_selectRevision(doc, slice, withBody, err);
+                        });
+
+                        return result;
+                    });
                 }
 
                 if(withBody) {
@@ -601,7 +610,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             return success;
         }
 
-        public RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
+        public RevisionInternal GetDocument(string docId, RevisionID revId, bool withBody, Status outStatus = null)
         {
             if (outStatus == null) {
                 outStatus = new Status();
@@ -728,18 +737,16 @@ namespace Couchbase.Lite.Storage.ForestDB
             return commonAncestor;
         }
 
-        public IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, ICollection<string> ancestorRevIds)
+        public IList<RevisionID> GetRevisionHistory(RevisionInternal rev, ICollection<RevisionID> ancestorRevIds)
         {
-            var history = new List<RevisionInternal>();
+            var history = new List<RevisionID>();
             WithC4Document(rev.DocID, rev.RevID, false, false, doc =>
             {
                 var enumerator = new CBForestHistoryEnumerator(doc, false);
                 foreach(var next in enumerator) {
-                    var newRev = new ForestRevisionInternal(next.GetDocument(), false);
-                    newRev.Missing = !Native.c4doc_hasRevisionBody(next.GetDocument());
-                    history.Add(newRev);
-
-                    if(ancestorRevIds != null && ancestorRevIds.Contains((string)next.SelectedRev.revID)) {
+                    var revId = next.SelectedRev.revID.AsRevID();
+                    history.Add(revId);
+                    if(ancestorRevIds.Concat(revId)) {
                         break;
                     }
                 }
@@ -1103,7 +1110,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             ForestDBBridge.Check(err => Native.c4raw_put(Forest, "info", key, null, info, err)); 
         }
 
-        public RevisionInternal PutRevision(string inDocId, string inPrevRevId, IDictionary<string, object> properties,
+        public RevisionInternal PutRevision(string inDocId, RevisionID inPrevRevId, IDictionary<string, object> properties,
             bool deleting, bool allowConflict, Uri source, StoreValidation validationBlock)
         {
             if(_config.HasFlag(C4DatabaseFlags.ReadOnly)) {
@@ -1133,7 +1140,12 @@ namespace Couchbase.Lite.Storage.ForestDB
                 {
                     if(prevRevId != null) {
                         // Updating an existing revision; make sure it exists and is a leaf:
-                        ForestDBBridge.Check(err => Native.c4doc_selectRevision(doc, prevRevId, false, err));
+                        ForestDBBridge.Check(err =>
+                        {
+                            bool result = false;
+                            prevRevId.PinAndUse(slice => Native.c4doc_selectRevision(doc, slice, false, err));
+                            return result;
+                        });
                         if(!allowConflict && !doc->selectedRev.IsLeaf) {
                             throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
                                 "Invalid attempt to create a conflict (allowConflict == false) on document " +
@@ -1219,7 +1231,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             return putRev;
         }
 
-        public void ForceInsert(RevisionInternal inRev, IList<string> revHistory, StoreValidation validationBlock, Uri source)
+        public void ForceInsert(RevisionInternal inRev, IList<RevisionID> revHistory, StoreValidation validationBlock, Uri source)
         {
             if(_config.HasFlag(C4DatabaseFlags.ReadOnly)) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Forbidden, TAG,

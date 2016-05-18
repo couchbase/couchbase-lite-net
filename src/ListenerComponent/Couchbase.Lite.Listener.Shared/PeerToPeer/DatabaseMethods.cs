@@ -728,7 +728,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 foreach (var revID in revIDs) {
-                    var rev = new RevisionInternal(docPair.Key, revID, false);
+                    var rev = new RevisionInternal(docPair.Key, revID.AsRevID(), false);
                     revs.Add(rev);
                 }
             }
@@ -751,19 +751,19 @@ namespace Couchbase.Lite.Listener
                         missingRevs = ((Dictionary<string, IList<string>>)diffs[docId])["missing"];
                     }
 
-                    missingRevs.Add(rev.RevID);
+                    missingRevs.Add(rev.RevID.ToString());
                 }
 
                 // Add the possible ancestors for each missing revision:
                 foreach(var docPair in diffs) {
                     IDictionary<string, IList<string>> docInfo = (IDictionary<string, IList<string>>)docPair.Value;
                     int maxGen = 0;
-                    string maxRevID = null;
+                    RevisionID maxRevID = null;
                     foreach(var revId in docInfo["missing"]) {
-                        var parsed = RevisionID.ParseRevId(revId);
-                        if(parsed.Item1 > maxGen) {
-                            maxGen = parsed.Item1;
-                            maxRevID = revId;
+                        var parsed = revId.AsRevID();
+                        if(parsed.Generation > maxGen) {
+                            maxGen = parsed.Generation;
+                            maxRevID = parsed;
                         }
                     }
 

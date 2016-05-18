@@ -62,6 +62,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using System.Net.Sockets;
+using Couchbase.Lite.Revisions;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -1838,10 +1839,10 @@ namespace Couchbase.Lite
             properties["_revisions"] = revDict;
 
             var rev = new RevisionInternal(properties);
-            Assert.AreEqual(0, Pusher.FindCommonAncestor(rev, new List<string>()));
-            Assert.AreEqual(0, Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-nope"}).ToList()));
-            Assert.AreEqual(1, Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-first"}).ToList()));
-            Assert.AreEqual(2, Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "2-second", "1-first"}).ToList()));
+            Assert.AreEqual(0, Pusher.FindCommonAncestor(rev, new List<RevisionID>()));
+            Assert.AreEqual(0, Pusher.FindCommonAncestor(rev, (new [] {"3-noway".AsRevID(), "1-nope".AsRevID() }).ToList()));
+            Assert.AreEqual(1, Pusher.FindCommonAncestor(rev, (new [] {"3-noway".AsRevID(), "1-first".AsRevID() }).ToList()));
+            Assert.AreEqual(2, Pusher.FindCommonAncestor(rev, (new [] {"3-noway".AsRevID(), "2-second".AsRevID(), "1-first".AsRevID() }).ToList()));
         }
 
         [Test]

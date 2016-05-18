@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Listener
                 bool mustSendJson = context.ExplicitlyAcceptsType("application/json");
                 if (openRevsParam == null || isLocalDoc) {
                     //Regular GET:
-                    string revId = context.GetQueryParam("rev"); //often null
+                    var revId = context.GetQueryParam("rev").AsRevID(); //often null
                     RevisionInternal rev;
                     bool includeAttachments = false, sendMultipart = false;
                     if (isLocalDoc) {
@@ -106,7 +106,7 @@ namespace Couchbase.Lite.Listener
                         return response;
                     }
 
-                    if(context.CacheWithEtag(rev.RevID)) {
+                    if(context.CacheWithEtag(rev.RevID.ToString())) {
                         response.InternalStatus = StatusCode.NotModified;
                         return response;
                     }
@@ -174,7 +174,7 @@ namespace Couchbase.Lite.Listener
                             }
 
                             Status status = new Status();
-                            var rev = db.GetDocument(docId, revID, true);
+                            var rev = db.GetDocument(docId, revID.AsRevID(), true);
                             if(rev != null) {
                                 rev = ApplyOptions(options, rev, context, db, status);
                             }
@@ -300,7 +300,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 // PUT's revision ID comes from the JSON body.
-                prevRevId = properties.GetCast<string>("_rev");
+                prevRevId = properties.GetCast<RevisionID>("_rev").ToString();
             } else {
                 // DELETE's revision ID comes from the ?rev= query param
                 prevRevId = context.GetQueryParam("rev");
@@ -323,9 +323,9 @@ namespace Couchbase.Lite.Listener
             StatusCode status = deleting ? StatusCode.Ok : StatusCode.Created;
             try {
                 if (docId != null && docId.StartsWith("_local")) {
-                    outRev = db.Storage.PutLocalRevision(rev, prevRevId, true); //TODO: Doesn't match iOS
+                    outRev = db.Storage.PutLocalRevision(rev, prevRevId.AsRevID(), true); //TODO: Doesn't match iOS
                 } else {
-                    outRev = db.PutRevision(rev, prevRevId, allowConflict, source);
+                    outRev = db.PutRevision(rev, prevRevId.AsRevID(), allowConflict, source);
                 }
             } catch(CouchbaseLiteException e) {
                 status = e.Code;
@@ -367,12 +367,13 @@ namespace Couchbase.Lite.Listener
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             {
                 Status status = new Status();
-                var rev = db.GetDocument(context.DocumentName, context.GetQueryParam("rev"), false, status);
+                var revID = context.GetQueryParam("rev");
+                var rev = db.GetDocument(context.DocumentName, revID == null ? null : revID.AsRevID(), false, status);
                     
                 if(rev ==null) {
                     return context.CreateResponse(status.Code);
                 }
-                if(context.CacheWithEtag(rev.RevID)) {
+                if(context.CacheWithEtag(rev.RevID.ToString())) {
                     return context.CreateResponse(StatusCode.NotModified);
                 }
 
@@ -541,21 +542,22 @@ namespace Couchbase.Lite.Listener
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevs)) {
                     var revs = db.GetRevisionHistory(rev, null);
-                    dst["_revisions"] = Database.MakeRevisionHistoryDict(revs);
+                    dst["_revisions"] = TreeRevisionID.MakeRevisionHistoryDict(revs);
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevsInfo)) {
-                    dst["_revs_info"] = db.Storage.GetRevisionHistory(rev, null).Select(x =>
+                    dst["_revs_info"] = db.GetRevisionHistory(rev, null).Select(x =>
                     {
                         string status = "available";
-                        if(x.Deleted) {
+                        var ancestor = db.GetDocument(rev.DocID, x, true);
+                        if(ancestor.Deleted) {
                             status = "deleted";
-                        } else if(x.Missing) {
+                        } else if(ancestor.Missing) {
                             status = "missing";
                         }
 
                         return new Dictionary<string, object> {
-                            { "rev", x.RevID },
+                            { "rev", x.ToString() },
                             { "status", status }
                         };
                     });
@@ -615,7 +617,7 @@ namespace Couchbase.Lite.Listener
             RevisionInternal rev;
             StatusCode status = UpdateDocument(context, db, docId, body, deleting, false, out rev);
             if ((int)status < 300) {
-                context.CacheWithEtag(rev.RevID); // set ETag
+                context.CacheWithEtag(rev.RevID.ToString()); // set ETag
                 if (!deleting) {
                     var url = context.RequestUrl;
                     if (docId != null) {
@@ -641,7 +643,7 @@ namespace Couchbase.Lite.Listener
             var castContext = context as ICouchbaseListenerContext2;
             var source = castContext != null && !castContext.IsLoopbackRequest ? castContext.Sender : null;
             RevisionInternal rev = db.UpdateAttachment(attachment, body, context.RequestHeaders["Content-Type"], AttachmentEncoding.None,
-                    docId, context.GetQueryParam("rev") ?? context.IfMatch(), source);
+                    docId, (context.GetQueryParam("rev") ?? context.IfMatch()).AsRevID(), source);
 
             var response = context.CreateResponse();
             response.JsonBody = new Body(new Dictionary<string, object> {
@@ -649,7 +651,7 @@ namespace Couchbase.Lite.Listener
                 { "id", rev.DocID },
                 { "rev", rev.RevID }
             });
-            context.CacheWithEtag(rev.RevID);
+            context.CacheWithEtag(rev.RevID.ToString());
             if (body != null) {
                 response["Location"] = context.RequestUrl.AbsoluteUri;
             }

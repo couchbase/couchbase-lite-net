@@ -935,7 +935,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">When attempting to add an invalid revision</exception>
-        internal void ForceInsert(RevisionInternal inRev, IList<string> revHistory, Uri source)
+        internal void ForceInsert(RevisionInternal inRev, IList<RevisionID> revHistory, Uri source)
         {
             if (!IsOpen) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG,
@@ -943,12 +943,12 @@ namespace Couchbase.Lite
             }
 
             if (revHistory == null) {
-                revHistory = new List<string>(0);
+                revHistory = new List<RevisionID>(0);
             }
 
             var rev = new RevisionInternal(inRev);
             rev.Sequence = 0;
-            string revID = rev.RevID;
+            RevisionID revID = rev.RevID;
             if (!Document.IsValidDocumentId(rev.DocID) || revID == null) {
                 if (rev == null) {
                     throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
@@ -960,11 +960,8 @@ namespace Couchbase.Lite
                     new SecureLogString(rev.DocID, LogMessageSensitivity.PotentiallyInsecure));
             }
 
-            if (revHistory.Count == 0) {
-                revHistory.Add(revID);
-            } else if (revID != revHistory[0]) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
-                    "Invalid revision history in ForceInsert, (root entry {0} != {1})", revHistory[0], revID);
+            if (revHistory.Count == 0 || revID != revHistory[0]) {
+                revHistory.Insert(0, revID);
             }
 
             if (inRev.GetAttachments() != null) {
@@ -1267,84 +1264,18 @@ namespace Couchbase.Lite
             PendingAttachmentsByDigest[digest] = writer;
         }
 
-        internal RevisionInternal GetDocument(string docId, string revId, bool withBody, Status outStatus = null)
+        internal RevisionInternal GetDocument(string docId, RevisionID revId, bool withBody, Status outStatus = null)
         {
             return Storage.GetDocument(docId, revId, withBody, outStatus);
         }
 
-        internal static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal> history)
-        {
-            if (history == null)
-                return null;
-
-            // Try to extract descending numeric prefixes:
-            var suffixes = new List<string>();
-            var start = -1;
-            var lastRevNo = -1;
-
-            foreach (var rev in history) {
-                var parsed = RevisionID.ParseRevId(rev.RevID);
-                int revNo = parsed.Item1;
-                string suffix = parsed.Item2;
-                if (revNo > 0 && suffix.Length > 0) {
-                    if (start < 0) {
-                        start = revNo;
-                    }
-                    else {
-                        if (revNo != lastRevNo - 1) {
-                            start = -1;
-                            break;
-                        }
-                    }
-                    lastRevNo = revNo;
-                    suffixes.Add(suffix);
-                }
-                else {
-                    start = -1;
-                    break;
-                }
-            }
-
-            var result = new Dictionary<String, Object>();
-            if (start == -1) {
-                // we failed to build sequence, just stuff all the revs in list
-                suffixes = new List<string>();
-                foreach (RevisionInternal rev_1 in history) {
-                    suffixes.Add(rev_1.RevID);
-                }
-            }
-            else {
-                result["start"] = start;
-            }
-
-            result["ids"] = suffixes;
-            return result;
-        }
-
         /// <summary>Parses the _revisions dict from a document into an array of revision ID strings.</summary>
-        internal static IList<string> ParseCouchDBRevisionHistory(IDictionary<String, Object> docProperties)
+        internal static IList<RevisionID> ParseCouchDBRevisionHistory(IDictionary<string, object> docProperties)
         {
-            var revisions = docProperties.Get ("_revisions").AsDictionary<string,object> ();
-            if (revisions == null) {
-                return new List<string>();
-            }
-
-            var ids = revisions ["ids"].AsList<string> ();
-            if (ids == null || ids.Count == 0) {
-                return new List<string>();
-            }
-
-            var revIDs = new List<string>(ids);
-            var start = Convert.ToInt64(revisions.Get("start"));
-            for (var i = 0; i < revIDs.Count; i++) {
-                var revID = revIDs[i];
-                revIDs[i] = String.Format("{0}-{1}", start--, revID);
-            }
-
-            return revIDs;
+            return TreeRevisionID.ParseRevisionHistoryDict(docProperties);
         }
 
-        internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, string prevRevId, bool allowConflict, Uri source)
+        internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, RevisionID prevRevId, bool allowConflict, Uri source)
         {
             bool deleting = properties == null || properties.GetCast<bool>("_deleted");
             Log.To.Database.I(TAG, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}", 
@@ -1360,9 +1291,10 @@ namespace Couchbase.Lite
             }
 
             if (properties != null && properties.Get("_attachments").AsDictionary<string, object>() != null) {
-                var tmpRev = new RevisionInternal(docId, prevRevId, deleting);
+                var tmpRevID = String.Format("{0}-00", prevRevId.Generation + 1).AsRevID();
+                var tmpRev = new RevisionInternal(docId ?? "x", tmpRevID, deleting);
                 tmpRev.SetProperties(properties);
-                if (!ProcessAttachmentsForRevision(tmpRev, prevRevId == null ? null : new List<string> { prevRevId })) {
+                if (!ProcessAttachmentsForRevision(tmpRev, prevRevId == null ? null : new List<RevisionID> { prevRevId })) {
                     return null;
                 }
 
@@ -1387,12 +1319,12 @@ namespace Couchbase.Lite
         }
 
         //TODO: Remove this method, it only exists for tests
-        internal RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId, bool allowConflict)
+        internal RevisionInternal PutRevision(RevisionInternal oldRev, RevisionID prevRevId, bool allowConflict)
         {
             return PutRevision(oldRev, prevRevId, allowConflict, null);
         }
 
-        internal RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId, bool allowConflict, Uri source)
+        internal RevisionInternal PutRevision(RevisionInternal oldRev, RevisionID prevRevId, bool allowConflict, Uri source)
         {
             return PutDocument(oldRev.DocID, oldRev.GetProperties(), prevRevId, allowConflict, source);
         }
@@ -1516,14 +1448,14 @@ namespace Couchbase.Lite
             return retVal;
         }
 
-        internal IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev, IList<string> ancestorRevIds)
+        internal IList<RevisionID> GetRevisionHistory(RevisionInternal rev, IList<RevisionID> ancestorRevIds)
         {
             if (!IsOpen) {
                 Log.To.Database.W(TAG, "{0} GetRevisionHistory called on closed database, returning null...", this);
                 return null;
             }
 
-            HashSet<string> ancestors = ancestorRevIds != null ? new HashSet<string>(ancestorRevIds) : null;
+            HashSet<RevisionID> ancestors = ancestorRevIds != null ? new HashSet<RevisionID>(ancestorRevIds) : null;
             return Storage.GetRevisionHistory(rev, ancestors);
         }
 
@@ -1583,7 +1515,7 @@ namespace Couchbase.Lite
             return attachment;
         }
    
-        internal bool ProcessAttachmentsForRevision(RevisionInternal rev, IList<string> ancestry)
+        internal bool ProcessAttachmentsForRevision(RevisionInternal rev, IList<RevisionID> ancestry)
         {
             var revAttachments = rev.GetAttachments();
             if (revAttachments == null) {
@@ -1599,7 +1531,7 @@ namespace Couchbase.Lite
             }
 
             var prevRevId = ancestry != null && ancestry.Count > 0 ? ancestry[0] : null;
-            int generation = RevisionID.GetGeneration(prevRevId) + 1;
+            int generation = rev.Generation;
             IDictionary<string, object> parentAttachments = null;
             return rev.MutateAttachments((name, attachInfo) =>
             {
@@ -1680,7 +1612,7 @@ namespace Couchbase.Lite
             });
         }
 
-        internal IDictionary<string, object> FindAttachment(string name, int revPos, string docId, IList<string> ancestry)
+        internal IDictionary<string, object> FindAttachment(string name, int revPos, string docId, IList<RevisionID> ancestry)
         {
             if (ancestry == null) {
                 return null;
@@ -1688,7 +1620,7 @@ namespace Couchbase.Lite
 
             for (var i = ancestry.Count - 1; i >= 0; i--) {
                 var revID = ancestry[i];
-                if (RevisionID.GetGeneration(revID) >= revPos) {
+                if (revID.Generation >= revPos) {
                     var attachments = GetAttachmentsFromDoc(docId, revID);
                     if (attachments == null) {
                         continue;
@@ -1704,7 +1636,7 @@ namespace Couchbase.Lite
             return null;
         }
 
-        internal IDictionary<string, object> GetAttachmentsFromDoc(string docId, string revId)
+        internal IDictionary<string, object> GetAttachmentsFromDoc(string docId, RevisionID revId)
         {
             var rev = new RevisionInternal(docId, revId, false);
             LoadRevisionBody(rev);
@@ -1784,7 +1716,7 @@ namespace Couchbase.Lite
         /// Updates or deletes an attachment, creating a new document revision in the process.
         /// Used by the PUT / DELETE methods called on attachment URLs.  Used by the listener;
         /// </remarks>
-        internal RevisionInternal UpdateAttachment(string filename, BlobStoreWriter body, string contentType, AttachmentEncoding encoding, string docID, string oldRevID, Uri source)
+        internal RevisionInternal UpdateAttachment(string filename, BlobStoreWriter body, string contentType, AttachmentEncoding encoding, string docID, RevisionID oldRevID, Uri source)
         {
             if (StringEx.IsNullOrWhiteSpace(filename)) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
@@ -2121,7 +2053,7 @@ namespace Couchbase.Lite
             return length;
         }
 
-        private RevisionInternal GetDocumentWithIDAndRev(string docId, string revId, bool withBody)
+        private RevisionInternal GetDocumentWithIDAndRev(string docId, RevisionID revId, bool withBody)
         {
             return Storage.GetDocument(docId, revId, withBody);
         }

@@ -48,6 +48,7 @@ using System.Diagnostics;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Store;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite 
 {
@@ -181,24 +182,24 @@ namespace Couchbase.Lite
         /// don't correspond to individual <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <value>The source document identifier.</value>
-        public String SourceDocumentId { get; private set; }
+        public string SourceDocumentId { get; private set; }
 
         /// <summary>
         /// Gets the Id of the associated <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
         /// <value>The Id of the associated <see cref="Couchbase.Lite.Revision"/>.</value>
-        public String DocumentRevisionId {
+        public string DocumentRevisionId {
             get {
                 // Get the revision id from either the embedded document contents,
                 // or the '_rev' or 'rev' value key:
                 if (_documentRevision != null) {
-                    return _documentRevision.RevID;
+                    return _documentRevision.RevID.ToString();
                 }
 
                 var value = Value as IDictionary<string, object>;
-                var rev = value == null ? null : value.GetCast<string>("_rev");
+                var rev = value == null ? null : value.GetCast<RevisionID>("_rev").ToString();
                 if (value != null && rev == null) {
-                    rev = value.GetCast<string>("rev");
+                    rev = value.GetCast<RevisionID>("rev").ToString();
                 }
 
                 return rev;
@@ -209,7 +210,7 @@ namespace Couchbase.Lite
         /// Gets the properties of the associated <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <value>The properties of the associated <see cref="Couchbase.Lite.Document"/>.</value>
-        public IDictionary<String, Object> DocumentProperties { 
+        public IDictionary<string, object> DocumentProperties { 
             get {
                 return _documentRevision != null ? _documentRevision.GetProperties() : null;
             }

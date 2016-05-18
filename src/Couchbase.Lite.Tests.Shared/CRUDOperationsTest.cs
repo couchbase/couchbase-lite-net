@@ -47,6 +47,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using System;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -92,7 +93,7 @@ namespace Couchbase.Lite
             rev1 = database.PutRevision(rev1, null, false);
             Console.WriteLine("Created {0}", rev1);
             Assert.IsTrue(rev1.DocID.Length >= 10);
-            Assert.IsTrue(rev1.RevID.StartsWith("1-"));
+            Assert.AreEqual(1, rev1.RevID.Generation);
 
             //read it back
             var readRev = database.GetDocument(rev1.DocID, null, 
@@ -116,8 +117,7 @@ namespace Couchbase.Lite
             rev2 = database.PutRevision(rev2, rev1.RevID, false);
             Console.WriteLine("Updated {0}", rev1);
             Assert.AreEqual(rev1.DocID, rev2.DocID);
-            Assert.IsTrue(rev2.RevID.StartsWith("2-"));
-
+            Assert.AreEqual(2, rev2.RevID.Generation);
             //read it back
             readRev = database.GetDocument(rev2.DocID, null, 
                 true);
@@ -150,7 +150,7 @@ namespace Couchbase.Lite
 
             revD = database.PutRevision(revD, rev2.RevID, false);
             Assert.AreEqual(revD.DocID, rev2.DocID);
-            Assert.IsTrue(revD.RevID.StartsWith("3-"));
+            Assert.AreEqual(3, revD.RevID.Generation);
             
             // Delete nonexistent doc:
             var revFake = new RevisionInternal("fake", null, true);
@@ -167,7 +167,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(changeRevisions.Count == 1);
 
             // Get Revision History:
-            IList<RevisionInternal> history = database.Storage.GetRevisionHistory(revD, null);
+            IList<RevisionID> history = database.Storage.GetRevisionHistory(revD, null);
             Assert.AreEqual(revD, history[0]);
             Assert.AreEqual(rev2, history[1]);
             Assert.AreEqual(rev1, history[2]);

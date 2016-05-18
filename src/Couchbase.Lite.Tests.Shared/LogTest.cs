@@ -24,6 +24,7 @@ using NUnit.Framework;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
 using System.Linq;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -127,7 +128,7 @@ namespace Couchbase.Lite
         public void TestSecureLogging()
         {
             var auth = new BasicAuthenticator("jim", "borden");
-            var rev = new RevisionInternal("sensitive", "1-abcdef", false);
+            var rev = new RevisionInternal("sensitive", "1-abcdef".AsRevID(), false);
             var lastMessage = default(string);
             _logCallback = (level, tag, msg) =>
             {

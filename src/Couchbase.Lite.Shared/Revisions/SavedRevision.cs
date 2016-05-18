@@ -46,6 +46,7 @@ using System.Collections.ObjectModel;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite {
     
@@ -122,6 +123,23 @@ namespace Couchbase.Lite {
             }
         }
 
+        private IEnumerable<SavedRevision> RevisionHistoryBackTo(IList<RevisionID> ancestors)
+        {
+            var history = new List<SavedRevision>();
+            foreach(var revID in Database.GetRevisionHistory(RevisionInternal, ancestors)) {
+                SavedRevision revision;
+                if(revID.Equals(RevisionInternal.RevID)) {
+                    revision = this;
+                } else {
+                    revision = Document.GetRevisionWithId(revID, false);
+                }
+
+                history.Insert(0, revision); // reverse into forwards order
+            }
+
+            return history;
+        }
+
         #endregion
 
         #region Instance Members
@@ -132,6 +150,10 @@ namespace Couchbase.Lite {
         /// <value>The parent.</value>
         public override SavedRevision Parent {
             get {
+                if(_parentRevID != null) {
+                    return Document.GetRevision(_parentRevID);
+                }
+
                 return Document.GetRevisionFromRev(Database.Storage.GetParentRevision(RevisionInternal));
             }
         }
@@ -140,7 +162,7 @@ namespace Couchbase.Lite {
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>'s Id.
         /// </summary>
         /// <value>The parent.</value>
-        public override String ParentId {
+        public override string ParentId {
             get {
                 if (_parentRevID != null) {
                     return _parentRevID;
@@ -151,7 +173,7 @@ namespace Couchbase.Lite {
                     return null;
                 }
 
-                return parRev.RevID;
+                return parRev.RevID.ToString();
             }
         }
 
@@ -164,28 +186,15 @@ namespace Couchbase.Lite {
         public override IEnumerable<SavedRevision> RevisionHistory 
         {
             get {
-                var revisions = new List<SavedRevision>();
-                var internalRevisions = Database.Storage.GetRevisionHistory(RevisionInternal, null);
-
-                foreach (var internalRevision in internalRevisions) {
-                    if (internalRevision.RevID.Equals(Id)) {
-                        revisions.Add(this);
-                    } else {
-                        var revision = Document.GetRevisionFromRev(internalRevision);
-                        revisions.Add(revision);
-                    }
-                }
-
-                revisions.Reverse();
-                return new ReadOnlyCollection<SavedRevision>(revisions);
+                return RevisionHistoryBackTo(null);
             }
         }
 
         /// <summary>Gets the Revision's id.</summary>
-        public override String Id 
+        public override string Id 
         {
             get {
-                return RevisionInternal.RevID;
+                return RevisionInternal.RevID.ToString();
             }
         }
 

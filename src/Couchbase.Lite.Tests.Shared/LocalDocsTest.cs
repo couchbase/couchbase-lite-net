@@ -71,7 +71,7 @@ namespace Couchbase.Lite
             rev1 = database.Storage.PutLocalRevision(rev1, null, true);
             WriteDebug("Created " + rev1);
             Assert.AreEqual("_local/doc1", rev1.DocID);
-            Assert.IsTrue(rev1.RevID.StartsWith("1-"));
+            Assert.AreEqual(1, rev1.RevID.Generation);
 
             //read it back
             var readRev = database.Storage.GetLocalDocument(rev1.DocID, null);
@@ -91,7 +91,7 @@ namespace Couchbase.Lite
             rev2 = database.Storage.PutLocalRevision(rev2, rev1.RevID, true);
             WriteDebug("Updated " + rev1);
             Assert.AreEqual(rev1.DocID, rev2.DocID);
-            Assert.IsTrue(rev2.RevID.StartsWith("2-"));
+            Assert.AreEqual(2, rev2.RevID.Generation);
             
             //read it back
             readRev = database.Storage.GetLocalDocument(rev2.DocID, null);

@@ -55,6 +55,7 @@ using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -102,7 +103,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(0, e.Count);
         }
 
-		[Test]
+        [Test]
         public void TestCustomFilter()
         {
             var view = database.GetView("vu");
@@ -237,7 +238,7 @@ namespace Couchbase.Lite
         }
 
         #if !NET_3_5
-		[Test]
+        [Test]
         public void TestParallelViewQueries()
         {
             var vu = database.GetView("prefix/vu");
@@ -1090,8 +1091,8 @@ namespace Couchbase.Lite
                 { "key", "44444" },
                 { "value", new Dictionary<string, object> {
                         { "rev", curRevId },
-                        { "_conflicts", new List<string> {
-                                curRevId, "1-00"
+                        { "_conflicts", new List<RevisionID> {
+                                curRevId, "1-00".AsRevID()
                             }
                         }
                     }

@@ -112,6 +112,7 @@ namespace Couchbase.Lite
             var rev4 = newRev.Save();
             Assert.AreEqual(0, rev4.AttachmentNames.Count());
 
+            // Add an attachment with revpos=0 (see #627)
             var props = rev3.Properties;
             var atts = props.Get("_attachments").AsDictionary<string, object>();
             atts["zero.txt"] = new Dictionary<string, object> {
@@ -120,6 +121,9 @@ namespace Couchbase.Lite
                 { "following", true }
             };
             props["_attachments"] = atts;
+            doc.PutExistingRevision(props, new Dictionary<string, Stream> {
+                { "zero.txt", new MemoryStream(Encoding.UTF8.GetBytes("zero")) }
+            }, new List<string> { "3-0000", rev3.Id, rev.Id }, null);
         }
 
         [Test]

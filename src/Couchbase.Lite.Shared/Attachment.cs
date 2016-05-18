@@ -101,9 +101,20 @@ namespace Couchbase.Lite {
 
         internal Attachment(Stream contentStream, string contentType)
         {
+            if(contentStream == null) {
+                Log.To.Database.E(Tag, "null contentStream in Attachment constructor, throwing...");
+                throw new ArgumentNullException("contentStream");
+            }
+
+            if(contentType == null) {
+                Log.To.Database.E(Tag, "null contentType in Attachment constructor, throwing...");
+                throw new ArgumentNullException("contentType");
+            }
+
             Metadata = new Dictionary<String, Object> {
                 { AttachmentMetadataDictionaryKeys.ContentType, contentType },
-                { AttachmentMetadataDictionaryKeys.Follows, true }
+                { AttachmentMetadataDictionaryKeys.Follows, true },
+                { AttachmentMetadataDictionaryKeys.Length, contentStream.Length }
             };
 
             Body = contentStream;
@@ -204,15 +215,16 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <value>The owning <see cref="Couchbase.Lite.Document"/></value>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public Document Document {
+        public Document Document
+        {
             get {
-                if (Revision == null) {
-                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InternalServerError, Tag,
-                        "Revision was null when Attachment.Document called");
+                if(Revision == null) {
+                    Log.To.Database.W(Tag, "Revision null when Document property was called");
+                    return null;
                 }
 
                 return Revision.Document;
-            } 
+            }
         }
 
         /// <summary>

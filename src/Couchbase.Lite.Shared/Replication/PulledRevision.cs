@@ -44,6 +44,7 @@ using System.Collections.Generic;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -59,7 +60,7 @@ namespace Couchbase.Lite.Replicator
         {
         }
 
-        public PulledRevision(string docId, string revId, bool deleted, Database database
+        public PulledRevision(string docId, RevisionID revId, bool deleted, Database database
             ) : base(docId, revId, deleted)
         {
         }

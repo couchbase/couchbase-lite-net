@@ -59,6 +59,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp", "..\vendo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-net_4_5", "..\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj", "{D68D4FED-CA32-4800-A628-58BAE485562C}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "storage.forestdb.shared", "StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.shproj", "{8E6F8876-64F8-4483-ADB2-D3AAD5672F7C}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8bfa15b7-957d-4ad1-9019-9df98f1ee9eb}*SharedItemsImports = 4
@@ -72,12 +74,13 @@ Global
 		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{9ad3badd-4f48-4208-b601-e63987c12049}*SharedItemsImports = 4
+		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{8e6f8876-64f8-4483-adb2-d3aad5672f7c}*SharedItemsImports = 13
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d06edb2a-0ae0-4606-a8ae-aa3f6248630f}*SharedItemsImports = 13
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{0bfc8b40-0659-4d45-b111-7cb4ccd22991}*SharedItemsImports = 13
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{ff87eed7-5de9-47e9-82f4-d1df659d1dc2}*SharedItemsImports = 13
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{79fc4a01-1e39-468f-8e55-195bc918232e}*SharedItemsImports = 13
-		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
+		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_All|Any CPU = Debug_All|Any CPU
@@ -271,6 +274,7 @@ Global
 		{88BB6717-85C9-46F0-923B-C263C08A189B} = {96438728-7016-4855-A95C-81E02B815F00}
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE} = {D7B73C47-09CD-4D4A-90B6-602D2AB3D04C}
 		{D68D4FED-CA32-4800-A628-58BAE485562C} = {D7B73C47-09CD-4D4A-90B6-602D2AB3D04C}
+		{8E6F8876-64F8-4483-ADB2-D3AAD5672F7C} = {6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

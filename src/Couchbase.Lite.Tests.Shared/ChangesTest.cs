@@ -47,6 +47,7 @@ using System.Collections.Generic;
 
 using Couchbase.Lite.Internal;
 using NUnit.Framework;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -122,13 +123,13 @@ namespace Couchbase.Lite
             database.Changed += handler;
 
             // Insert a dcoument as if it came from a remote source.
-            var rev = new RevisionInternal("docId", "1-abcd", false);
+            var rev = new RevisionInternal("docId", "1-abcd".AsRevID(), false);
             var properties = new Dictionary<string, object>();
             properties["_id"] = rev.DocID;
             properties["_rev"] = rev.RevID;
             rev.SetProperties(properties);
 
-            var history = new List<string>();
+            var history = new List<RevisionID>();
             history.Add(rev.RevID);
             database.ForceInsert(rev, history, GetReplicationURL());
 

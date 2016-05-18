@@ -66,7 +66,7 @@ namespace Couchbase.Lite.Internal
         #region Variables
 
         protected readonly string _docId;
-        protected readonly string _revId;
+        protected readonly RevisionID _revId;
         protected Body _body;
 
         #endregion
@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Internal
             get { return _docId; }
         }
 
-        public string RevID 
+        public RevisionID RevID 
         {
             get { return _revId; }
         }
@@ -89,7 +89,7 @@ namespace Couchbase.Lite.Internal
 
         public int Generation 
         {
-            get { return RevisionID.GetGeneration(_revId); }
+            get { return _revId.Generation; }
         }
 
         public bool Missing { get; internal set; }
@@ -109,7 +109,7 @@ namespace Couchbase.Lite.Internal
             SetProperties(properties);
         }
 
-        internal RevisionInternal(String docId, String revId, Boolean deleted)
+        internal RevisionInternal(string docId, RevisionID revId, bool deleted)
         {
             // TODO: get rid of this field!
             _docId = docId;
@@ -118,7 +118,7 @@ namespace Couchbase.Lite.Internal
         }
 
         internal RevisionInternal(Body body)
-            : this(body.GetPropertyForKey<string>("_id"), body.GetPropertyForKey<string>("_rev"), body.GetPropertyForKey<bool>("_deleted"))
+            : this(body.GetPropertyForKey<string>("_id"), body.GetPropertyForKey<RevisionID>("_rev"), body.GetPropertyForKey<bool>("_deleted"))
         {
             this._body = body;
         }
@@ -265,7 +265,7 @@ namespace Couchbase.Lite.Internal
             _body = body;
         }
 
-        public RevisionInternal Copy(string docId, string revId)
+        public RevisionInternal Copy(string docId, RevisionID revId)
         {
             System.Diagnostics.Debug.Assert((docId != null));
             System.Diagnostics.Debug.Assert(((_docId == null) || (_docId.Equals(docId))));

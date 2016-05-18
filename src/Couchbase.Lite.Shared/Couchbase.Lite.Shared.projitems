@@ -16,6 +16,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Query.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revision.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Revisions\TreeRevisionID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authorizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\FacebookAuthorizer.cs" />

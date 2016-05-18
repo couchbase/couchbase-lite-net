@@ -44,6 +44,7 @@ using System.Collections.Generic;
 
 using Couchbase.Lite.Internal;
 using NUnit.Framework;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -217,7 +218,7 @@ namespace Couchbase.Lite
             Assert.IsNotNull(document.CurrentRevision);
 
             var revisionInternal = new RevisionInternal(
-                document.Id, document.CurrentRevisionId, false);
+                document.Id, document.CurrentRevisionId.AsRevID(), false);
 
             database.LoadRevisionBody(revisionInternal);
             Assert.AreEqual(properties, revisionInternal.GetProperties());

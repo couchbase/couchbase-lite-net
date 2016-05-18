@@ -56,7 +56,7 @@ namespace Couchbase.Lite
     {
         private static RevisionInternal Mkrev(string revID)
         {
-            return new RevisionInternal("docid", revID, false);
+            return new RevisionInternal("docid", revID.AsRevID(), false);
         }
 
         public RevisionsTest(string storageType) : base(storageType) {}
@@ -128,10 +128,10 @@ namespace Couchbase.Lite
         [Test]
         public void TestMakeRevisionHistoryDict()
         {
-            var revs = new List<RevisionInternal>();
-            revs.Add(Mkrev("4-jkl"));
-            revs.Add(Mkrev("3-ghi"));
-            revs.Add(Mkrev("2-def"));
+            var revs = new List<RevisionID>();
+            revs.Add("4-jkl".AsRevID());
+            revs.Add("3-ghi".AsRevID());
+            revs.Add("2-def".AsRevID());
 
             var expectedSuffixes = new List<string>();
             expectedSuffixes.Add("jkl");
@@ -142,12 +142,12 @@ namespace Couchbase.Lite
             expectedHistoryDict["start"] = 4;
             expectedHistoryDict["ids"] = expectedSuffixes;
 
-            var historyDict = Database.MakeRevisionHistoryDict(revs);
+            var historyDict = TreeRevisionID.MakeRevisionHistoryDict(revs);
             Assert.AreEqual(expectedHistoryDict, historyDict);
             
-            revs = new List<RevisionInternal>();
-            revs.Add(Mkrev("4-jkl"));
-            revs.Add(Mkrev("2-def"));
+            revs = new List<RevisionID>();
+            revs.Add("4-jkl".AsRevID());
+            revs.Add("2-def".AsRevID());
             
             expectedSuffixes = new List<string>();
             expectedSuffixes.Add("4-jkl");
@@ -155,12 +155,12 @@ namespace Couchbase.Lite
             
             expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["ids"] = expectedSuffixes;
-            historyDict = Database.MakeRevisionHistoryDict(revs);
+            historyDict = TreeRevisionID.MakeRevisionHistoryDict(revs);
             Assert.AreEqual(expectedHistoryDict, historyDict);
 
-            revs = new List<RevisionInternal>();
-            revs.Add(Mkrev("12345"));
-            revs.Add(Mkrev("6789"));
+            revs = new List<RevisionID>();
+            revs.Add("12345".AsRevID());
+            revs.Add("6789".AsRevID());
             
             expectedSuffixes = new List<string>();
             expectedSuffixes.Add("12345");
@@ -168,7 +168,7 @@ namespace Couchbase.Lite
             
             expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["ids"] = expectedSuffixes;
-            historyDict = Database.MakeRevisionHistoryDict(revs);
+            historyDict = TreeRevisionID.MakeRevisionHistoryDict(revs);
             
             Assert.AreEqual(expectedHistoryDict, historyDict);
         }

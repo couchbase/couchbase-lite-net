@@ -47,6 +47,7 @@ using System.Linq;
 using System.Net;
 
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -75,11 +76,8 @@ namespace Couchbase.Lite
         /// <param name="name">The attachment name.</param>
         internal void AddAttachment(Attachment attachment, string name)
         {
-            var attachments = Properties.Get("_attachments").AsDictionary<string,object>();
-            if (attachments == null) {
-                attachments = new Dictionary<String, Object>();
-            }
-
+            var attachments = Properties.Get("_attachments").AsDictionary<string,object>() ?? 
+                new Dictionary<string, object>();
             var oldAttach = attachments.GetCast<Attachment>(name);
             if (oldAttach != null) {
                 oldAttach.Dispose();
@@ -89,7 +87,6 @@ namespace Couchbase.Lite
             Properties["_attachments"] = attachments;
             if (attachment != null) {
                 attachment.Name = name;
-                attachment.Revision = this;
             }
         }
 
@@ -247,7 +244,7 @@ namespace Couchbase.Lite
         /// Thrown if an issue occurs while saving the <see cref="Couchbase.Lite.UnsavedRevision"/>.
         /// </exception>
         public SavedRevision Save() { 
-            return Document.PutProperties(Properties, ParentId, false); 
+            return Document.PutProperties(Properties, ParentId.AsRevID(), false); 
         }
 
         /// <summary>
@@ -260,7 +257,7 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
         /// Thrown if an issue occurs while saving the <see cref="Couchbase.Lite.UnsavedRevision"/>.
         /// </exception>
-        public SavedRevision Save(Boolean allowConflict) { return Document.PutProperties(Properties, ParentId, allowConflict); }
+        public SavedRevision Save(bool allowConflict) { return Document.PutProperties(Properties, ParentId.AsRevID(), allowConflict); }
 
         /// <summary>
         /// Sets the attachment with the given name.
@@ -274,7 +271,7 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to set.</param>
         /// <param name="contentType">The content-type of the <see cref="Couchbase.Lite.Attachment"/>.</param>
         /// <param name="content">The <see cref="Couchbase.Lite.Attachment"/> content.</param>
-        public void SetAttachment(String name, String contentType, IEnumerable<Byte> content) {
+        public void SetAttachment(string name, string contentType, IEnumerable<byte> content) {
             var attachment = new Attachment(new MemoryStream(content.ToArray()), contentType);
             AddAttachment(attachment, name);
             

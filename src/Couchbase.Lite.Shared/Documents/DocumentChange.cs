@@ -74,7 +74,7 @@ namespace Couchbase.Lite {
         /// Gets the Id of the new Revision.
         /// </summary>
         /// <value>The Id of the new Revision.</value>
-        public String RevisionId { get { return AddedRevision.RevID; } }
+        public String RevisionId { get { return AddedRevision.RevID.ToString(); } }
 
         /// <summary>
         /// Gets a value indicating whether this instance is current revision.

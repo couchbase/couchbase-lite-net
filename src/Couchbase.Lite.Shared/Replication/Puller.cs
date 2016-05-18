@@ -54,6 +54,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Revisions;
 
 
 #if !NET_3_5
@@ -337,7 +338,7 @@ namespace Couchbase.Lite.Replicator
 
                     var rev = props.Get ("_id") != null 
                         ? new RevisionInternal (props) 
-                        : new RevisionInternal (props.GetCast<string> ("id"), props.GetCast<string> ("rev"), false);
+                        : new RevisionInternal (props.GetCast<string> ("id"), props.GetCast<string> ("rev").AsRevID(), false);
 
 
                     var pos = remainingRevs.IndexOf(rev);
@@ -456,7 +457,7 @@ namespace Couchbase.Lite.Replicator
         }
 
 
-		private bool ShouldRetryDownload(string docId)
+        private bool ShouldRetryDownload(string docId)
         {
             if (!LocalDatabase.IsOpen) {
                 return false;
@@ -545,7 +546,7 @@ namespace Couchbase.Lite.Replicator
             // Construct a query. We want the revision history, and the bodies of attachments that have
             // been added since the latest revisions we have locally.
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
-            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.DocID) + "?rev=" + Uri.EscapeUriString(rev.RevID) + "&revs=true&attachments=true");
+            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.DocID) + "?rev=" + Uri.EscapeUriString(rev.RevID.ToString()) + "&revs=true&attachments=true");
             var knownRevs = default(IList<string>);
             try {
                 var tmp = LocalDatabase.Storage.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
@@ -947,7 +948,7 @@ namespace Couchbase.Lite.Replicator
 
             foreach (var changeObj in changes) {
                 var changeDict = changeObj.AsDictionary<string, object>();
-                var revID = changeDict.GetCast<string>("rev");
+                var revID = changeDict.GetCast<string>("rev").AsRevID();
                 if (revID == null) {
                     continue;
                 }

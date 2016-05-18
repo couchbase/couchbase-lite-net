@@ -50,6 +50,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Util;
 using System.Threading.Tasks;
+using System.IO;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -115,12 +116,12 @@ namespace Couchbase.Lite {
         /// If known, gets the Id of the current <see cref="Couchbase.Lite.Revision"/>, otherwise null.
         /// </summary>
         /// <value>The Id of the current <see cref="Couchbase.Lite.Revision"/> if known, otherwise null.</value>
-        public String CurrentRevisionId {
+        public string CurrentRevisionId {
             get {
                 var cr = CurrentRevision;
                 return cr == null 
                     ? null
-                    : cr.Id;
+                    : cr.Id.ToString();
             }
         }
 
@@ -278,7 +279,7 @@ namespace Couchbase.Lite {
             if (CurrentRevision != null && id.Equals(CurrentRevision.Id))
                 return CurrentRevision;
 
-            var revisionInternal = Database.GetDocument(Id, id, true);
+            var revisionInternal = Database.GetDocument(Id, id.AsRevID(), true);
 
             var revision = GetRevisionFromRev(revisionInternal);
             return revision;
@@ -346,7 +347,7 @@ namespace Couchbase.Lite {
         /// </exception>
         public SavedRevision PutProperties(IDictionary<String, Object> properties)
         {
-            var prevID = (string)properties.Get("_rev");
+            var prevID = properties.GetCast<RevisionID>("_rev");
             return PutProperties(properties, prevID, false);
         }
 
@@ -406,6 +407,38 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>
+        /// Adds an existing revision copied from another database.  Unlike a normal insertion, this does
+        /// not assign a new revision ID; instead the revision's ID must be given.  Ths revision's history
+        /// (ancestry) must be given, which can put it anywhere in the revision tree.  It's not an error if
+        /// the revision already exists locally; it will just be ignored.
+        /// 
+        /// This is not an operation that clients normall perform; it's used by the replicator.  You might want
+        /// to use it if you're pre-loading a database with canned content, or if you're implementing some new
+        /// kind of replicator that transfers revisions from another database
+        /// </summary>
+        /// <param name="properties">The properties of the revision (_id and _rev will be ignored but _deleted
+        /// and _attachments are recognized)</param>
+        /// <param name="attachments">A dictionary providing attachment bodies.  The keys are the attachment
+        /// names (matching the keys in the properties `_attachments` dictionary) and the values are streams
+        /// that contain the attachment bodies.</param>
+        /// <param name="revisionHistory">The revision history in the form of an array of revision-ID strings, in
+        /// reverse chronological order.  The first item must be the new revision's ID.  Following items are its
+        /// parent's ID, etc.</param>
+        /// <param name="sourceUri">The URL of the database this revision came from, if any.  (This value
+        /// shows up in the Database Changed event triggered by this insertion, and can help clients decide
+        /// whether the change is local or not)</param>
+        public void PutExistingRevision(IDictionary<string, object> properties, IDictionary<string, Stream> attachments, IList<string> revisionHistory, Uri sourceUri)
+        {
+            if(revisionHistory == null || revisionHistory.Count == 0) {
+                Log.To.Database.E(Tag, "Invalid revision history in PutExistingRevision (must contain at " +
+                    "least one revision ID), throwing...");
+                throw new ArgumentException("revisionHistory");
+            }
+
+
+        }
+
+        /// <summary>
         /// Adds or Removed a change delegate that will be called whenever the Document changes
         /// </summary>
         public event EventHandler<DocumentChangeEventArgs> Change
@@ -425,13 +458,22 @@ namespace Couchbase.Lite {
             currentRevision = null;
         }
 
-        private SavedRevision GetRevisionWithId(String revId)
+        internal SavedRevision GetRevisionWithId(RevisionID revId)
         {
-            if (!StringEx.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id)) {
+            return GetRevisionWithId(revId, true);
+        }
+
+        internal SavedRevision GetRevisionWithId(RevisionID revId, bool withBody)
+        {
+            if(revId == null) {
+                return null;
+            }
+
+            if(revId.Equals(currentRevision.Id)) {
                 return currentRevision;
             }
 
-            return GetRevisionFromRev(Database.GetDocument(Id, revId, true));
+            return GetRevisionFromRev(Database.GetDocument(Id, revId, withBody));
         }
 
         internal void LoadCurrentRevisionFrom(QueryRow row)
@@ -459,7 +501,7 @@ namespace Couchbase.Lite {
         }
             
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       
-        internal SavedRevision PutProperties(IDictionary<String, Object> properties, String prevID, Boolean allowConflict)
+        internal SavedRevision PutProperties(IDictionary<string, object> properties, RevisionID prevID, bool allowConflict)
         {
             var propsCopy = properties == null ? null : new Dictionary<string, object>(properties);
             string newId = propsCopy == null ? null : propsCopy.GetCast<string>("_id");

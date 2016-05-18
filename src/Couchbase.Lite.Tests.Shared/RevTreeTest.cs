@@ -48,6 +48,7 @@ using System.Linq;
 
 using Couchbase.Lite.Internal;
 using NUnit.Framework;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -62,14 +63,14 @@ namespace Couchbase.Lite
         [Test]
         public void TestForceInsertEmptyHistory()
         {
-            var rev = new RevisionInternal("FakeDocId", "1-abcd", false);
+            var rev = new RevisionInternal("FakeDocId", "1-abcd".AsRevID(), false);
             var revProperties = new Dictionary<string, object>();
             revProperties["_id"] = rev.DocID;
             revProperties["_rev"] = rev.RevID;
             revProperties["message"] = "hi";
             rev.SetProperties(revProperties);
 
-            IList<string> revHistory = null;
+            IList<RevisionID> revHistory = null;
             database.ForceInsert(rev, revHistory, null);
         }
 
@@ -77,50 +78,48 @@ namespace Couchbase.Lite
         [Test]
         public void TestRevTree()
         {
-            var rev = new RevisionInternal("MyDocId", "4-abcd", false);
+            var rev = new RevisionInternal("MyDocId", "4-abcd".AsRevID(), false);
             var revProperties = new Dictionary<string, object>();
             revProperties["_id"] = rev.DocID;
             revProperties["_rev"] = rev.RevID;
             revProperties["message"] = "hi";
             rev.SetProperties(revProperties);
 
-            var revHistory = new List<string>();
+            var revHistory = new List<RevisionID>();
             revHistory.Add(rev.RevID);
-            revHistory.Add("3-abcd");
-            revHistory.Add("2-abcd");
-            revHistory.Add("1-abcd");
+            revHistory.Add("3-abcd".AsRevID());
+            revHistory.Add("2-abcd".AsRevID());
+            revHistory.Add("1-abcd".AsRevID());
             database.ForceInsert(rev, revHistory, null);
             Assert.AreEqual(1, database.GetDocumentCount());
-
-            VerifyHistory(database, rev, revHistory);
-            var conflict = new RevisionInternal("MyDocId", "5-abcd", false);
+            
+            var conflict = new RevisionInternal("MyDocId", "5-abcd".AsRevID(), false);
             var conflictProperties = new Dictionary<string, object>();
             conflictProperties["_id"] = conflict.DocID;
             conflictProperties["_rev"] = conflict.RevID;
             conflictProperties["message"] = "yo";
             conflict.SetProperties(conflictProperties);
             
-            var conflictHistory = new List<string>();
+            var conflictHistory = new List<RevisionID>();
             conflictHistory.Add(conflict.RevID);
-            conflictHistory.Add("4-bcde");
-            conflictHistory.Add("3-bcde");
-            conflictHistory.Add("2-abcd");
-            conflictHistory.Add("1-abcd");
+            conflictHistory.Add("4-bcde".AsRevID());
+            conflictHistory.Add("3-bcde".AsRevID());
+            conflictHistory.Add("2-abcd".AsRevID());
+            conflictHistory.Add("1-abcd".AsRevID());
             database.ForceInsert(conflict, conflictHistory, null);
             Assert.AreEqual(1, database.GetDocumentCount());
-            VerifyHistory(database, conflict, conflictHistory);
             
             // Add an unrelated document:
-            var other = new RevisionInternal("AnotherDocID", "1-cdef", false);
+            var other = new RevisionInternal("AnotherDocID", "1-cdef".AsRevID(), false);
             var otherProperties = new Dictionary<string, object>();
             otherProperties["language"] = "jp";
             other.SetProperties(otherProperties);
-            var otherHistory = new List<string>();
+            var otherHistory = new List<RevisionID>();
             otherHistory.Add(other.RevID);
             database.ForceInsert(other, otherHistory, null);
             
             // Fetch one of those phantom revisions with no body:
-            var rev2 = database.GetDocument(rev.DocID, "2-abcd", 
+            var rev2 = database.GetDocument(rev.DocID, "2-abcd".AsRevID(), 
                 true);
             Assert.IsNull(rev2);
 
@@ -156,14 +155,14 @@ namespace Couchbase.Lite
         {
             const string DOCUMENT_ID = "MyDocId";
 
-            var rev = new RevisionInternal(DOCUMENT_ID, "1-abcd", false);
+            var rev = new RevisionInternal(DOCUMENT_ID, "1-abcd".AsRevID(), false);
             var revProperties = new Dictionary<string, object>();
             revProperties["_id"] = rev.DocID;
             revProperties["_rev"] = rev.RevID;
             revProperties["message"] = "hi";
             rev.SetProperties(revProperties);
 
-            var revHistory = new List<string>();
+            var revHistory = new List<RevisionID>();
             revHistory.Add(rev.RevID);
 
             EventHandler<DatabaseChangeEventArgs> handler = (sender, e) =>
@@ -185,16 +184,16 @@ namespace Couchbase.Lite
             database.Changed -= handler;
 
             // add two more revisions to the document
-            var rev3 = new RevisionInternal(DOCUMENT_ID, "3-abcd", false);
+            var rev3 = new RevisionInternal(DOCUMENT_ID, "3-abcd".AsRevID(), false);
             var rev3Properties = new Dictionary<string, object>();
             rev3Properties["_id"] = rev3.DocID;
             rev3Properties["_rev"] = rev3.RevID;
             rev3Properties["message"] = "hi again";
             rev3.SetProperties(rev3Properties);
 
-            var rev3History = new List<string>();
+            var rev3History = new List<RevisionID>();
             rev3History.Add(rev3.RevID);
-            rev3History.Add("2-abcd");
+            rev3History.Add("2-abcd".AsRevID());
             rev3History.Add(rev.RevID);
 
             handler = (sender, e) =>
@@ -226,16 +225,16 @@ namespace Couchbase.Lite
             // add a conflicting revision, with the same history length as the last revision we
             // inserted. Since this new revision's revID has a higher ASCII sort, it should become the
             // new winning revision.
-            var conflictRev = new RevisionInternal(DOCUMENT_ID, "3-bcde", false);
+            var conflictRev = new RevisionInternal(DOCUMENT_ID, "3-bcde".AsRevID(), false);
             var conflictProperties = new Dictionary<string, object>();
             conflictProperties["_id"] = conflictRev.DocID;
             conflictProperties["_rev"] = conflictRev.RevID;
             conflictProperties["message"] = "winner";
             conflictRev.SetProperties(conflictProperties);
 
-            var conflictRevHistory = new List<string>();
+            var conflictRevHistory = new List<RevisionID>();
             conflictRevHistory.Add(conflictRev.RevID);
-            conflictRevHistory.Add("2-abcd");
+            conflictRevHistory.Add("2-abcd".AsRevID());
             conflictRevHistory.Add(rev.RevID);
 
             handler = (sender, e) =>
@@ -266,23 +265,6 @@ namespace Couchbase.Lite
             database.Changed -= handler;
         }
 
-        private void VerifyHistory(Database db, RevisionInternal rev, IList<string> history)
-        {
-            var gotRev = db.GetDocument(rev.DocID, null, 
-                true);
-            Assert.AreEqual(rev, gotRev);
-            AssertPropertiesAreEqual(rev.GetProperties(), gotRev.GetProperties());
-
-            var revHistory = db.Storage.GetRevisionHistory(gotRev, null);
-            Assert.AreEqual(history.Count, revHistory.Count);
-            
-            for (int i = 0; i < history.Count; i++)
-            {
-                RevisionInternal hrev = revHistory[i];
-                Assert.AreEqual(rev.DocID, hrev.DocID);
-                Assert.AreEqual(history[i], hrev.RevID);
-                Assert.IsFalse(rev.Deleted);
-            }
-        }
+       
     }
 }

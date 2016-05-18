@@ -57,6 +57,7 @@ using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -185,7 +186,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(rev2.Deleted);
 
             // Insert a revision several generations advanced but which hasn't changed the attachment:
-            var rev3 = rev1.Copy(rev1.DocID, "3-3333");
+            var rev3 = rev1.Copy(rev1.DocID, "3-3333".AsRevID());
             props = rev3.GetProperties();
             props["foo"] = "bar";
             rev3.SetProperties(props);
@@ -198,7 +199,7 @@ namespace Couchbase.Lite
                 return nuAtt;
             });
 
-            var history = new List<string> { rev3.RevID, rev2.RevID, rev1.RevID };
+            var history = new List<RevisionID> { rev3.RevID, rev2.RevID, rev1.RevID };
             Assert.DoesNotThrow(() => database.ForceInsert(rev3, history, null));
         }
 
@@ -509,7 +510,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(StatusCode.Conflict, ex.Code);
 
             ex = Assert.Throws<CouchbaseLiteException>(() => database.UpdateAttachment("attach", BlobForData(database, attachv2), 
-                "application/foo", AttachmentEncoding.None, rev1.DocID, "1-deadbeef", null));
+                "application/foo", AttachmentEncoding.None, rev1.DocID, "1-deadbeef".AsRevID(), null));
             Assert.AreEqual(StatusCode.Conflict, ex.Code);
 
             var rev2 = default(RevisionInternal);
@@ -542,7 +543,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(StatusCode.AttachmentNotFound, ex.Code);
 
             ex = Assert.Throws<CouchbaseLiteException>(() => database.UpdateAttachment("nosuchattach", null, 
-                null, AttachmentEncoding.None, "nosuchdoc", "nosuchrev", null));
+                null, AttachmentEncoding.None, "nosuchdoc", "nosuchrev".AsRevID(), null));
             Assert.AreEqual(StatusCode.NotFound, ex.Code);
 
             var rev3 = default(RevisionInternal);
