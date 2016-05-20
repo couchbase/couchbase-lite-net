@@ -403,7 +403,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             }
         }
 
-        private void DeleteLocalRevision(string docId, string revId, bool obeyMVCC)
+        private void DeleteLocalRevision(string docId, RevisionID revId, bool obeyMVCC)
         {
             if (!docId.StartsWith("_local/")) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
@@ -431,7 +431,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                             "Specified revision ({0}) in delete operation not found", revId);
                     }
 
-                    var currentRevID = (string)doc->meta;
+                    var currentRevID = doc->meta.AsRevID();
                     if(obeyMVCC && (revId != currentRevID)) {
                         throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
                             "Specified revision ({0}) in delete operation != current revision ({1})", revId, currentRevID);
@@ -443,18 +443,19 @@ namespace Couchbase.Lite.Storage.ForestDB
             });
         }
 
-        private bool SaveDocument(C4Document *doc, string revId, IDictionary<string, object> properties)
+        private bool SaveDocument(C4Document *doc, RevisionID revId, IDictionary<string, object> properties)
         {
             // Is the new revision the winner?
-            Native.c4doc_selectCurrentRevision(doc);
-            bool isWinner = (string)doc->selectedRev.revID == revId;
+            var winningRevID = doc->revID.AsRevID();
+            bool isWinner = winningRevID.Equals(revId);
 
             // Update the documentType:
-            if (isWinner) {
-                var type = properties == null ? null : properties.GetCast<string>("type");
-                Native.c4doc_setType(doc, type);
+            if (!isWinner) {
+                Native.c4doc_selectCurrentRevision(doc);
+                properties = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(doc->selectedRev.body);
             }
 
+            Native.c4doc_setType(doc, properties?.GetCast<string>("type"));
             // Save:
             ForestDBBridge.Check(err => Native.c4doc_save(doc, (uint)MaxRevTreeDepth, err));
             return isWinner;
@@ -464,7 +465,7 @@ namespace Couchbase.Lite.Storage.ForestDB
         {
             var winningRevId = default(string);
             if(isWinningRev) {
-                winningRevId = inRev.RevID;
+                winningRevId = inRev.RevID.ToString();
             } else {
                 winningRevId = (string)doc->revID;
             }
@@ -596,13 +597,21 @@ namespace Couchbase.Lite.Storage.ForestDB
                 Log.To.Database.W(TAG, "Failed to run transaction");
                 success = false;
                 throw;
+            } catch(CBForestException e) {
+                success = false;
+                if(e.Domain == C4ErrorDomain.HTTP) {
+                    var code = e.Code;
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, (StatusCode)code, TAG, "Failed to run transaction");
+                }
+
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error running transaction");
             } catch(Exception e) {
                 success = false;
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error running transaction");
             } finally {
                 Log.To.Database.I(TAG, "END transaction (success={0})", success);
                 ForestDBBridge.Check(err => Native.c4db_endTransaction(Forest, success, err));
-                if (!InTransaction && Delegate != null) {
+                if(!InTransaction && Delegate != null) {
                     Delegate.StorageExitedTransaction(success);
                 }
             }
@@ -668,7 +677,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 }
                     
                 ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
-                retVal = new RevisionInternal((string)doc->docID, (string)doc->selectedRev.revID, doc->selectedRev.IsDeleted);
+                retVal = new RevisionInternal((string)doc->docID, doc->selectedRev.revID.AsRevID(), doc->selectedRev.IsDeleted);
                 retVal.Sequence = (long)doc->selectedRev.sequence;
                 retVal.SetBody(new Body(doc->selectedRev.body));
             });
@@ -692,7 +701,7 @@ namespace Couchbase.Lite.Storage.ForestDB
         public IEnumerable<string> GetPossibleAncestors(RevisionInternal rev, int limit, bool onlyAttachments)
         {
             var returnedCount = 0;
-            var generation = RevisionID.GetGeneration(rev.RevID);
+            var generation = rev.RevID.Generation;
             var enumerator = GetHistoryEnumerator(rev, generation);
             if(enumerator == null) {
                 yield break;
@@ -704,7 +713,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 }
 
                 var revId = next.CurrentRevID;
-                if(RevisionID.GetGeneration(revId) < generation &&
+                if(revId.AsRevID().Generation < generation &&
                     !next.SelectedRev.IsDeleted && next.HasRevisionBody &&
                     !(onlyAttachments && !next.SelectedRev.HasAttachments)) {
                     returnedCount++;
@@ -713,21 +722,21 @@ namespace Couchbase.Lite.Storage.ForestDB
             }
         }
 
-        public string FindCommonAncestor(RevisionInternal rev, IEnumerable<string> revIds)
+        public RevisionID FindCommonAncestor(RevisionInternal rev, IEnumerable<RevisionID> revIds)
         {
-            var generation = RevisionID.GetGeneration(rev.RevID);
+            var generation = rev.RevID.Generation;
             var revIdArray = revIds == null ? null : revIds.ToList();
             if (generation <= 1 || revIdArray == null || revIdArray.Count == 0) {
                 return null;
             }
-             
-            revIdArray.Sort(RevisionID.CBLCompareRevIDs);
-            var commonAncestor = default(string);
+
+            revIdArray.Sort();
+            var commonAncestor = default(RevisionID);
             WithC4Document(rev.DocID, null, false, false, doc =>
             {
                 foreach(var possibleRevId in revIds) {
-                    if(RevisionID.GetGeneration(possibleRevId) <= generation &&
-                        Native.c4doc_selectRevision(doc, possibleRevId, false, null)) {
+                    if(possibleRevId.Generation <= generation &&
+                        Native.c4doc_selectRevision(doc, possibleRevId.ToString(), false, null)) {
                         commonAncestor = possibleRevId;
                         return;
                     }
@@ -746,7 +755,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 foreach(var next in enumerator) {
                     var revId = next.SelectedRev.revID.AsRevID();
                     history.Add(revId);
-                    if(ancestorRevIds.Concat(revId)) {
+                    if(ancestorRevIds != null && ancestorRevIds.Contains(revId)) {
                         break;
                     }
                 }
@@ -755,7 +764,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             return history;
         }
 
-        public RevisionList ChangesSince(Int64 lastSequence, ChangesOptions options, RevisionFilter filter)
+        public RevisionList ChangesSince(long lastSequence, ChangesOptions options, RevisionFilter filter)
         {
             // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
             // Translate options to ForestDB:
@@ -893,10 +902,13 @@ namespace Couchbase.Lite.Storage.ForestDB
                         continue;
                     }
 
-                    if (Native.c4doc_selectRevision(doc, rev.RevID, false, null)) {
-                        removedCount++;
-                        revs.Remove(rev);
-                    }
+                    rev.RevID.PinAndUse(slice =>
+                    {
+                        if(Native.c4doc_selectRevision(doc, slice, false, null)) {
+                            removedCount++;
+                            revs.Remove(rev);
+                        }
+                    });
                 }
             } finally {
                 Native.c4doc_free(doc);
@@ -999,7 +1011,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             return result;
         }
 
-        public RevisionInternal GetLocalDocument(string docId, string revId)
+        public RevisionInternal GetLocalDocument(string docId, RevisionID revId)
         {
             if(!docId.StartsWith("_local/")) {
                 return null;
@@ -1012,7 +1024,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                     return;
                 }
 
-                var gotRevId = (string)doc->meta;
+                var gotRevId = doc->meta.AsRevID();
                 if(revId != null && revId != gotRevId || doc->body.size == 0) {
                     return;
                 }
@@ -1027,8 +1039,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                     return;
                 }
 
-                properties["_id"] = docId;
-                properties["_rev"] = gotRevId;
+                properties.SetDocRevID(docId, gotRevId);
                 retVal = new RevisionInternal(docId, revId, false);
                 retVal.SetProperties(properties);
             });
@@ -1036,7 +1047,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             return retVal;
         }
 
-        public RevisionInternal PutLocalRevision(RevisionInternal revision, string prevRevId, bool obeyMVCC)
+        public RevisionInternal PutLocalRevision(RevisionInternal revision, RevisionID prevRevId, bool obeyMVCC)
         {
             var docId = revision.DocID;
             if (!docId.StartsWith("_local/")) {
@@ -1056,9 +1067,9 @@ namespace Couchbase.Lite.Storage.ForestDB
                 var json = Manager.GetObjectMapper().WriteValueAsString(revision.GetProperties(), true);
                 WithC4Raw(docId, "_local", doc => 
                 {
-                    var generation = RevisionID.GetGeneration(prevRevId);
+                    var generation = prevRevId == null ? 0 : prevRevId.Generation;
                     if(obeyMVCC) {
-                        var currentRevId = (doc != null ? (string)doc->meta : null);
+                        var currentRevId = (doc != null ? doc->meta.AsRevID() : null);
                         if(prevRevId != null) {
                             if(prevRevId != currentRevId) {
                                 throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
@@ -1079,8 +1090,8 @@ namespace Couchbase.Lite.Storage.ForestDB
                         }
                     }
 
-                    var newRevId = String.Format("{0}-local", ++generation);
-                    ForestDBBridge.Check(err => Native.c4raw_put(Forest, "_local", docId, newRevId, json, err));
+                    var newRevId = String.Format("{0}-local", ++generation).AsRevID();
+                    ForestDBBridge.Check(err => Native.c4raw_put(Forest, "_local", docId, newRevId.ToString(), json, err));
                     result = revision.Copy(docId, newRevId);
                 });
 
@@ -1129,95 +1140,71 @@ namespace Couchbase.Lite.Storage.ForestDB
                 inDocId = Misc.CreateGUID();
             }
 
+            C4Document* doc = null;
             var putRev = default(RevisionInternal);
             var change = default(DocumentChange);
             var success = RunInTransaction(() =>
             {
-                var docId = inDocId;
-                var prevRevId = inPrevRevId;
-                var transactionSuccess = false;
-                WithC4Document(docId, null, false, true, doc =>
-                {
-                    if(prevRevId != null) {
-                        // Updating an existing revision; make sure it exists and is a leaf:
-                        ForestDBBridge.Check(err =>
-                        {
-                            bool result = false;
-                            prevRevId.PinAndUse(slice => Native.c4doc_selectRevision(doc, slice, false, err));
-                            return result;
-                        });
-                        if(!allowConflict && !doc->selectedRev.IsLeaf) {
-                            throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
-                                "Invalid attempt to create a conflict (allowConflict == false) on document " +
-                                "{0} revision {1} (current revision {2})", 
-                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
-                                prevRevId, (string)doc->revID);
-                        }
-                    } else {
-                        // No parent revision given:
-                        if(deleting) {
-                            // Didn't specify a revision to delete: NotFound or a Conflict, depending
-                            var status = doc->Exists ? StatusCode.Conflict : StatusCode.NotFound;
-                            throw Misc.CreateExceptionAndLog(Log.To.Database, status, TAG,
-                                "No revision ID specified for delete operation on {0}",
-                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
-                        }
+                try {
+                    var docId = inDocId;
+                    var prevRevId = inPrevRevId;
+                    C4DocPutRequest rq = new C4DocPutRequest {
+                        body = json,
+                        docID = docId,
+                        deletion = deleting,
+                        hasAttachments = properties?.Get("_attachments") != null,
+                        existingRevision = false,
+                        allowConflict = allowConflict,
+                        history = prevRevId == null ? null : new[] { prevRevId.ToString() },
+                        save = false
+                    };
 
-                        // If doc exists, current rev must be in a deleted state or there will be a conflict:
-                        if(Native.c4doc_selectCurrentRevision(doc)) {
-                            if(doc->selectedRev.IsDeleted) {
-                                // New rev will be child of the tombstone:
-                                prevRevId = (string)doc->revID;
-                            } else {
-                                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Conflict, TAG,
-                                    "No revision ID specified, and {0} already has a non-deleted current revision ({1})",
-                                    new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
-                                    (string)doc->revID);
-                            }
-                        }
+                    UIntPtr commonAncestorIndex = UIntPtr.Zero;
+                    doc = (C4Document*)ForestDBBridge.Check(err =>
+                    {
+                        UIntPtr tmp;
+                        var retVal = Native.c4doc_put(Forest, rq, &tmp, err);
+                        commonAncestorIndex = tmp;
+                        return retVal;
+                    });
+
+                    if(docId == null) {
+                        docId = (string)doc->docID;
                     }
 
-                    // Compute the new revID. (Can't be done earlier because prevRevID may have changed.)
-                    var newRevID = Delegate != null ? Delegate.GenerateRevID(Encoding.UTF8.GetBytes(json), deleting, prevRevId) : null;
-                    if(newRevID == null) {
-                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
-                            "Unable to generate new revision ID (previous one ({0}) is invalid?)", prevRevId);
-                    }
+                    var newRevID = doc->selectedRev.revID.AsRevID();
 
-                    putRev = new RevisionInternal(docId, newRevID, deleting);
+                    Body body = null;
                     if(properties != null) {
-                        properties["_id"] = docId;
-                        properties["_rev"] = newRevID;
-                        putRev.SetProperties(properties);
+                        properties.SetDocRevID(docId, newRevID);
+                        body = new Body(properties);
                     }
 
-                    // Run any validation blocks:
+                    putRev = new RevisionInternal(docId, newRevID, deleting, body);
+                    if((uint)commonAncestorIndex == 0U) {
+                        return true;
+                    }
+
                     if(validationBlock != null) {
                         var prevRev = default(RevisionInternal);
-                        if(prevRevId != null) {
-                            prevRev = new RevisionInternal(docId, prevRevId, doc->selectedRev.IsDeleted);
+                        if(Native.c4doc_selectParentRevision(doc)) {
+                            prevRev = new ForestRevisionInternal(doc, false);
                         }
-                            
-                        var status = validationBlock(putRev, prevRev, prevRevId);
+
+                        var status = validationBlock(putRev, prevRev, prevRev == null ? null : prevRev.RevID);
                         if(status.IsError) {
-                            throw Misc.CreateExceptionAndLog(Log.To.Validation, status.Code, TAG,
-                                "{0} ({1}) failed validation",
-                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
-                                newRevID);
+                            Log.To.Validation.I(TAG, "{0} ({1}) failed validation", new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), new SecureLogString(newRevID, LogMessageSensitivity.PotentiallyInsecure));
+                            return false;
                         }
                     }
 
-                    // Add the revision to the database:
-                    ForestDBBridge.Check(err => Native.c4doc_insertRevision(doc, newRevID, json, deleting,
-                        putRev.GetAttachments() != null, allowConflict, err));
                     var isWinner = SaveDocument(doc, newRevID, properties);
                     putRev.Sequence = (long)doc->sequence;
-                    Log.To.Database.D(TAG, "Saved {0}", docId);
-                    change = ChangeWithNewRevision(putRev, isWinner, doc, source);
-                    transactionSuccess = true;
-                });
-
-                return transactionSuccess;
+                    change = ChangeWithNewRevision(putRev, isWinner, doc, null);
+                    return true;
+                } finally {
+                    Native.c4doc_free(doc);
+                }
             });
 
             if (!success) {
@@ -1246,7 +1233,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 WithC4Document(inRev.DocID, null, false, true, doc =>
                 {
                     ForestDBBridge.Check(err => Native.c4doc_insertRevisionWithHistory(doc, json, inRev.Deleted, 
-                        inRev.GetAttachments() != null, revHistory.ToArray(), err));
+                        inRev.GetAttachments() != null, revHistory.Select(x => x.ToString()).ToArray(), err));
 
                     // Save updated doc back to the database:
                     var isWinner = SaveDocument(doc, revHistory[0], inRev.GetProperties());

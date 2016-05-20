@@ -48,13 +48,15 @@ using System.Net;
 
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
     /// <summary>
     /// An unsaved Couchbase Lite Document Revision.
     /// </summary>
-    public class UnsavedRevision : Revision, IDisposable {
+    public class UnsavedRevision : Revision, IDisposable
+    {
 
         #region Constants
 
@@ -62,7 +64,7 @@ namespace Couchbase.Lite
 
         #endregion
 
-    #region Non-public Members
+        #region Non-public Members
         IDictionary<String, Object> properties;
 
         String ParentRevisionID { get; set; }
@@ -76,59 +78,52 @@ namespace Couchbase.Lite
         /// <param name="name">The attachment name.</param>
         internal void AddAttachment(Attachment attachment, string name)
         {
-            var attachments = Properties.Get("_attachments").AsDictionary<string,object>() ?? 
+            var attachments = Properties.Get("_attachments").AsDictionary<string, object>() ??
                 new Dictionary<string, object>();
             var oldAttach = attachments.GetCast<Attachment>(name);
-            if (oldAttach != null) {
+            if(oldAttach != null) {
                 oldAttach.Dispose();
             }
 
             attachments[name] = attachment;
             Properties["_attachments"] = attachments;
-            if (attachment != null) {
+            if(attachment != null) {
                 attachment.Name = name;
             }
         }
 
 
-    #endregion
+        #endregion
 
-    #region Constructors
-        internal UnsavedRevision(Document document, SavedRevision parentRevision): base(document)
+        #region Constructors
+        internal UnsavedRevision(Document document, SavedRevision parentRevision) : base(document)
         {
-            if (parentRevision == null)
+            if(parentRevision == null)
                 ParentRevisionID = null;
             else
                 ParentRevisionID = parentRevision.Id;
 
-            IDictionary<String, Object> parentRevisionProperties;
-            if (parentRevision == null)
-            {
+            IDictionary<string, object> parentRevisionProperties;
+            if(parentRevision == null) {
                 parentRevisionProperties = null;
-            }
-
-            else
-            {
+            } else {
                 parentRevisionProperties = parentRevision.Properties;
             }
-            if (parentRevisionProperties == null)
-            {
-                properties = new Dictionary<String, Object>();
+
+            if(parentRevisionProperties == null) {
+                properties = new Dictionary<string, object>();
                 properties["_id"] = document.Id;
-                if (ParentRevisionID != null)
-                {
-                    properties["_rev"] = ParentRevisionID;
+                if(ParentRevisionID != null) {
+                    properties.SetRevID(ParentRevisionID);
                 }
-            }
-            else
-            {
+            } else {
                 properties = new Dictionary<string, object>(parentRevisionProperties);
             }
         }
 
-    #endregion
+        #endregion
 
-    #region Instance Members
+        #region Instance Members
         /// <summary>
         /// Gets or sets if the <see cref="Couchbase.Lite.Revision"/> marks the deletion of its <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
@@ -136,15 +131,15 @@ namespace Couchbase.Lite
         /// <c>true</c> if tthe <see cref="Couchbase.Lite.Revision"/> marks the deletion of its <see cref="Couchbase.Lite.Document"/>; 
         /// otherwise, <c>false</c>.
         /// </value>
-        public new bool IsDeletion {
+        public new bool IsDeletion
+        {
             get {
                 return base.IsDeletion;
             }
             set {
-                if (value) {
+                if(value) {
                     properties["_deleted"] = true;
-                }
-                else {
+                } else {
                     properties.Remove("_deleted");
                 }
             }
@@ -154,10 +149,11 @@ namespace Couchbase.Lite
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
         /// <value>The parent.</value>
-        public override SavedRevision Parent {
+        public override SavedRevision Parent
+        {
             get {
-                return String.IsNullOrEmpty(ParentId) 
-                    ? null 
+                return String.IsNullOrEmpty(ParentId)
+                    ? null
                     : Document.GetRevision(ParentId);
             }
         }
@@ -166,7 +162,8 @@ namespace Couchbase.Lite
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>'s Id.
         /// </summary>
         /// <value>The parent.</value>
-        public override string ParentId {
+        public override string ParentId
+        {
             get {
                 return ParentRevisionID;
             }
@@ -178,7 +175,8 @@ namespace Couchbase.Lite
         /// Older, ancestor, revisions are not guaranteed to have their properties available.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public override IEnumerable<SavedRevision> RevisionHistory {
+        public override IEnumerable<SavedRevision> RevisionHistory
+        {
             get {
                 // (Don't include self in the array, because this revision doesn't really exist yet)
                 return Parent != null ? Parent.RevisionHistory : new List<SavedRevision>();
@@ -186,7 +184,8 @@ namespace Couchbase.Lite
         }
 
         /// <summary>Gets the Revision's id.</summary>
-        public override String Id {
+        public override String Id
+        {
             get {
                 return null; // Once a revision is saved, it gets an id, but also becomes a new SavedRevision instance.
             }
@@ -194,7 +193,8 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the properties of the <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
-        public override IDictionary<String, Object> Properties {
+        public override IDictionary<String, Object> Properties
+        {
             get {
                 return properties;
             }
@@ -219,20 +219,18 @@ namespace Couchbase.Lite
         /// Set, replaces all properties except for those with keys prefixed with '_'.
         /// </remarks>
         /// <value>The userProperties of the <see cref="Couchbase.Lite.Revision"/>.</value>
-        public void SetUserProperties(IDictionary<String, Object> userProperties) 
+        public void SetUserProperties(IDictionary<String, Object> userProperties)
         {
             var newProps = new Dictionary<String, Object>();
             newProps.PutAll(userProperties);
 
-            foreach (string key in Properties.Keys)
-                {
-                    if (key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        newProps[key] = properties.Get(key);
-                    }
+            foreach(string key in Properties.Keys) {
+                if(key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase)) {
+                    newProps[key] = properties.Get(key);
                 }
-                // Preserve metadata properties
-                properties = newProps;
+            }
+            // Preserve metadata properties
+            properties = newProps;
         }
 
         /// <summary>
@@ -243,8 +241,9 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
         /// Thrown if an issue occurs while saving the <see cref="Couchbase.Lite.UnsavedRevision"/>.
         /// </exception>
-        public SavedRevision Save() { 
-            return Document.PutProperties(Properties, ParentId.AsRevID(), false); 
+        public SavedRevision Save()
+        {
+            return Document.PutProperties(Properties, ParentId.AsRevID(), false);
         }
 
         /// <summary>
@@ -271,10 +270,11 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to set.</param>
         /// <param name="contentType">The content-type of the <see cref="Couchbase.Lite.Attachment"/>.</param>
         /// <param name="content">The <see cref="Couchbase.Lite.Attachment"/> content.</param>
-        public void SetAttachment(string name, string contentType, IEnumerable<byte> content) {
+        public void SetAttachment(string name, string contentType, IEnumerable<byte> content)
+        {
             var attachment = new Attachment(new MemoryStream(content.ToArray()), contentType);
             AddAttachment(attachment, name);
-            
+
         }
 
         /// <summary>
@@ -289,7 +289,8 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to set.</param>
         /// <param name="contentType">The content-type of the <see cref="Couchbase.Lite.Attachment"/>.</param>
         /// <param name="content">The <see cref="Couchbase.Lite.Attachment"/> content.</param>
-        public void SetAttachment(String name, String contentType, Stream content) {
+        public void SetAttachment(String name, String contentType, Stream content)
+        {
             var attachment = new Attachment(content, contentType);
             AddAttachment(attachment, name);
         }
@@ -306,7 +307,8 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to set.</param>
         /// <param name="contentType">The content-type of the <see cref="Couchbase.Lite.Attachment"/>.</param>
         /// <param name="contentUrl">The URL of the <see cref="Couchbase.Lite.Attachment"/> content.</param>
-        public void SetAttachment(String name, String contentType, Uri contentUrl) {
+        public void SetAttachment(String name, String contentType, Uri contentUrl)
+        {
             try {
                 byte[] inputBytes = null;
                 var request = WebRequest.Create(contentUrl);
@@ -317,7 +319,7 @@ namespace Couchbase.Lite
                 }
 
                 SetAttachment(name, contentType, inputBytes);
-            } catch (IOException e) {
+            } catch(IOException e) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag,
                     "Error opening stream for url: {0}", contentUrl);
             }
@@ -335,19 +337,19 @@ namespace Couchbase.Lite
         /// <param name="name">
         /// The name of the <see cref="Couchbase.Lite.Attachment"/> to delete.
         /// </param>
-        public void RemoveAttachment(String name) 
-        { 
+        public void RemoveAttachment(String name)
+        {
             AddAttachment(null, name);
         }
 
-    #endregion
+        #endregion
 
         #region Overrides
 
         public override string ToString()
         {
             var docId = Document == null ? "(null)" : Document.Id;
-            return String.Format("UnsavedRevision[ID={0}, Rev={1}, Deletion={2}]", 
+            return String.Format("UnsavedRevision[ID={0}, Rev={1}, Deletion={2}]",
                 new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), Id, IsDeletion);
         }
 
@@ -363,14 +365,14 @@ namespace Couchbase.Lite
         /// After calling <see cref="Dispose"/>, you must release all references to the
         /// <see cref="Couchbase.Lite.UnsavedRevision"/> so the garbage collector can reclaim the memory that the
         /// <see cref="Couchbase.Lite.UnsavedRevision"/> was occupying.</remarks>
-        public void Dispose() 
+        public void Dispose()
         {
             var attachments = GetProperty("_attachments").AsDictionary<string, object>();
-            if (attachments == null) {
+            if(attachments == null) {
                 return;
             }
 
-            foreach (var pair in attachments) {
+            foreach(var pair in attachments) {
                 var cast = pair.Value as IDisposable;
                 if(cast != null) {
                     cast.Dispose();
@@ -379,7 +381,7 @@ namespace Couchbase.Lite
         }
 
         #endregion
-    
-    }
+
+    }
 
 }

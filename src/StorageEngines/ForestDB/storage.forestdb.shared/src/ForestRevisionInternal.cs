@@ -27,7 +27,7 @@ namespace Couchbase.Lite.Storage.ForestDB.Internal
     internal class ForestRevisionInternal : RevisionInternal
     {
         internal unsafe ForestRevisionInternal(CBForest.C4Document *doc, bool loadBody) 
-            : base((string)doc->docID, (string)doc->selectedRev.revID, doc->selectedRev.IsDeleted)
+            : base((string)doc->docID, doc->selectedRev.revID.AsRevID(), doc->selectedRev.IsDeleted)
         {
             if (!doc->Exists) {
                 return;

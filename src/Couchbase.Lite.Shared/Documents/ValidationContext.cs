@@ -71,31 +71,27 @@ namespace Couchbase.Lite
 
         #region IValidationContext implementation
 
-        public void Reject ()
+        public void Reject()
         {
-            if (RejectMessage == null)
-            {
+            if(RejectMessage == null) {
                 Reject("invalid document");
             }
         }
 
-        public void Reject (String message)
+        public void Reject(String message)
         {
-            if (RejectMessage == null)
-            {
+            if(RejectMessage == null) {
                 RejectMessage = message;
             }
         }
 
-        public bool ValidateChanges (ValidateChangeDelegate changeValidator)
+        public bool ValidateChanges(ValidateChangeDelegate changeValidator)
         {
             var cur = CurrentRevision.Properties;
             var nuu = NewRevision.GetProperties();
 
-            foreach (var key in ChangedKeys)
-            {
-                if (!changeValidator(key, cur.Get(key), nuu.Get(key)))
-                {
+            foreach(var key in ChangedKeys) {
+                if(!changeValidator(key, cur.Get(key), nuu.Get(key))) {
                     Reject(String.Format("Illegal change to '{0}' property", key));
                     return false;
                 }
@@ -103,14 +99,14 @@ namespace Couchbase.Lite
             return true;
         }
 
-        public SavedRevision CurrentRevision {
+        public SavedRevision CurrentRevision
+        {
             get {
-                if (InternalRevision != null)
-                {
+                if(InternalRevision != null) {
                     try {
                         InternalRevision = Database.LoadRevisionBody(InternalRevision);
                         return new SavedRevision(Database, InternalRevision);
-                    } catch (CouchbaseLiteException) {
+                    } catch(CouchbaseLiteException) {
                         Log.To.Validation.E(Tag, "Failed to get CurrentRevision, rethrowing...");
                         throw;
                     } catch(Exception e) {
@@ -123,26 +119,22 @@ namespace Couchbase.Lite
             }
         }
 
-        public IEnumerable<String> ChangedKeys {
+        public IEnumerable<string> ChangedKeys
+        {
             get {
-                if (changedKeys == null)
-                {
+                if(changedKeys == null) {
                     changedKeys = new List<String>();
                     var cur = CurrentRevision.Properties;
                     var nuu = NewRevision.GetProperties();
 
-                    foreach (var key in cur.Keys)
-                    {
-                        if (!cur.Get(key).Equals(nuu.Get(key)) && !key.Equals("_rev"))
-                        {
+                    foreach(var key in cur.Keys) {
+                        if(!cur.Get(key).Equals(nuu.Get(key)) && !key.Equals("_rev")) {
                             changedKeys.Add(key);
                         }
                     }
 
-                    foreach (var key in nuu.Keys)
-                    {
-                        if (cur.Get(key) == null && !key.Equals("_rev") && !key.Equals("_id"))
-                        {
+                    foreach(var key in nuu.Keys) {
+                        if(cur.Get(key) == null && !key.Equals("_rev") && !key.Equals("_id")) {
                             changedKeys.Add(key);
                         }
                     }

@@ -50,6 +50,7 @@ using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite.Tests
 {
@@ -333,8 +334,7 @@ namespace Couchbase.Lite.Tests
             foreach (JObject doc in docs)
             {
                 IDictionary<string, object> responseListItem = new Dictionary<string, object>();
-                responseListItem["id"] = doc["_id"];
-                responseListItem["rev"] = doc["_rev"];
+                responseListItem.SetDocRevID(doc["_id"].Value<string>(), doc["_rev"].Value<string>());
                 responseList.Add(responseListItem);
             }
 

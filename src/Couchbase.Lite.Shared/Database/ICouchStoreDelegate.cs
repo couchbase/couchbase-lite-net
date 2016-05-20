@@ -40,14 +40,6 @@ namespace Couchbase.Lite.Store
         /// </summary>
         void DatabaseStorageChanged(DocumentChange change);
 
-        /// <summary>
-        /// Generates a revision ID for a new revision.
-        /// </summary>
-        /// <param name="json">The canonical JSON of the revision (with metadata properties removed.)</param>
-        /// <param name="deleted"><c>true</c> if this revision is a deletion</param>
-        /// <param name="prevRevId">The parent's revision ID, or nil if this is a new document.</param>
-        string GenerateRevID(IEnumerable<byte> json, bool deleted, string prevRevId);
-
     }
 }
 

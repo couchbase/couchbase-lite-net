@@ -56,6 +56,7 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
@@ -500,7 +501,7 @@ namespace Couchbase.Lite
 
         internal static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties) 
         {
-            var id = properties.GetCast<string>("_id");
+            var id = properties.CblID();
             var doc = id != null ? db.GetDocument(id) : db.CreateDocument();
 
             Assert.IsNotNull(doc);

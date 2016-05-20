@@ -25,6 +25,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Concurrent;
 using System.Threading;
+using Couchbase.Lite.Internal;
 
 #if !NET_3_5
 using System.IO.MemoryMappedFiles;
@@ -330,7 +331,7 @@ namespace Couchbase.Lite.Util
                 {
                     IDictionary<string, object> next = null;
                     while(docsToAdd.TryDequeue(out next)) {
-                        var docID = next.GetCast<string>("_id");
+                        var docID = next.CblID();
                         try {
                             _db.GetDocument(docID).PutProperties(next);
                         } catch(Exception e) {

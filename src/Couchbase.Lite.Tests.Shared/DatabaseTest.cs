@@ -440,40 +440,6 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        public void TestUnsavedRevisionCacheRetainDocument()
-        {
-            var document = database.CreateDocument();
-
-            database.DocumentCache.Remove(document.Id);
-
-            Assert.IsNull(database.DocumentCache.Get(document.Id));
-
-            var cachedDocument = default(WeakReference);
-            database.UnsavedRevisionDocumentCache.TryGetValue(document.Id, out cachedDocument);
-            Assert.IsTrue(cachedDocument.Target == document);
-
-            var checkedDocument = database.GetDocument(document.Id);
-            Assert.IsTrue(document == checkedDocument);
-        }
-
-        [Test]
-        public void TestUnsavedRevisionCacheRemoveDocument()
-        {
-            var document = database.CreateDocument();
-
-            var properties = new Dictionary<string, object>();
-            properties.Add("test", "test");
-            document.PutProperties(properties);
-
-            var cachedDocument = default(WeakReference);
-            database.UnsavedRevisionDocumentCache.TryGetValue(document.Id, out cachedDocument);
-            Assert.IsNull(cachedDocument);
-
-            var checkedDocument = database.GetDocument(document.Id);
-            Assert.IsTrue(document == checkedDocument);
-        }
-
-        [Test]
         public void TestEncodeDocumentJSON() 
         {
             var sqliteStorage = database.Storage as SqliteCouchStore;
@@ -553,7 +519,7 @@ namespace Couchbase.Lite
             Assert.IsNotNull(view);
             view.SetMap((doc, emit) =>
             {
-                emit(doc.Get("_id"), null);
+                emit(doc.CblID(), null);
             }, "1.0");
 
             var query = view.CreateQuery();

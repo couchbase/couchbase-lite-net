@@ -70,8 +70,8 @@ namespace Couchbase.Lite
                     Assert.IsNotNull(rev);
                     Assert.IsNotNull(rev.DocID);
                     Assert.IsNotNull(rev.RevID);
-                    Assert.AreEqual(rev.DocID, rev.GetProperties()["_id"]);
-                    Assert.AreEqual(rev.RevID, rev.GetProperties()["_rev"]);
+                    Assert.AreEqual(rev.DocID, rev.GetProperties().CblID());
+                    Assert.AreEqual(rev.RevID, rev.GetProperties().CblRev());
                 }
             };
 

@@ -65,17 +65,27 @@ namespace Couchbase.Lite {
 
         private static readonly string Tag = typeof(Document).Name;
         SavedRevision currentRevision;
+        private bool _currentRevisionKnown;
             
     #region Constructors
 
         /// <summary>Constructor</summary>
         /// <param name="database">The document's owning database</param>
         /// <param name="documentId">The document's ID</param>
-        public Document(Database database, String documentId)
+        [Obsolete("Use Database CreateDocument or GetDocument")]
+        public Document(Database database, string documentId)
         {
             _eventContext = database.Manager.CapturedContext;
             Database = database;
             Id = documentId;
+        }
+
+        internal Document(Database database, string documentId, bool exists)
+        {
+            _eventContext = database.Manager.CapturedContext;
+            Database = database;
+            Id = documentId;
+            _currentRevisionKnown = !exists;
         }
 
     #endregion
@@ -104,7 +114,7 @@ namespace Couchbase.Lite {
         /// Gets the <see cref="Couchbase.Lite.Document"/>'s id.
         /// </summary>
         /// <value>The <see cref="Couchbase.Lite.Document"/>'s id.</value>
-        public String Id { get; set; }
+        public string Id { get; set; }
 
         /// <summary>
         /// Gets if the <see cref="Couchbase.Lite.Document"/> is deleted.
@@ -121,7 +131,7 @@ namespace Couchbase.Lite {
                 var cr = CurrentRevision;
                 return cr == null 
                     ? null
-                    : cr.Id.ToString();
+                    : cr.Id;
             }
         }
 
@@ -131,16 +141,11 @@ namespace Couchbase.Lite {
         /// <value>The current/latest <see cref="Couchbase.Lite.Revision"/>.</value>
         public SavedRevision CurrentRevision { 
             get {
-                if (currentRevision == null) {
-                    try {
-                        var rev = GetRevisionWithId(null);
-                        if(rev != null && !rev.IsDeletion) {
-                            currentRevision = rev;
-                        }
-                    } catch(CouchbaseLiteException e) {
-                        if (e.Code != StatusCode.Deleted) {
-                            throw;
-                        }
+                if(!_currentRevisionKnown) {
+                    var status = new Status();
+                    currentRevision = GetRevisionFromRev(Database.GetDocument(Id, null, true, status));
+                    if(currentRevision != null || status.Code == StatusCode.NotFound || status.IsSuccessful) {
+                        _currentRevisionKnown = true;
                     }
                 }
 
@@ -345,9 +350,9 @@ namespace Couchbase.Lite {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
         /// Thrown if an error occurs while creating or saving the new <see cref="Couchbase.Lite.Revision"/>.
         /// </exception>
-        public SavedRevision PutProperties(IDictionary<String, Object> properties)
+        public SavedRevision PutProperties(IDictionary<string, object> properties)
         {
-            var prevID = properties.GetCast<RevisionID>("_rev");
+            var prevID = properties.CblRev();
             return PutProperties(properties, prevID, false);
         }
 
@@ -455,6 +460,7 @@ namespace Couchbase.Lite {
 
         internal void ForgetCurrentRevision()
         {
+            _currentRevisionKnown = false;
             currentRevision = null;
         }
 
@@ -478,33 +484,27 @@ namespace Couchbase.Lite {
 
         internal void LoadCurrentRevisionFrom(QueryRow row)
         {
-            if (row.DocumentRevisionId == null)
-            {
+            if(row.DocRevID == null) {
                 return;
             }
-            var revId = row.DocumentRevisionId;
-            if (currentRevision == null || RevIdGreaterThanCurrent(revId))
+
+            var revId = row.DocRevID;
+            if (currentRevision == null || revId.CompareTo(CurrentRevisionId.AsRevID()) > 0)
             {
-                currentRevision = null;
-                var properties = row.DocumentProperties;
-                if (properties != null)
-                {
-                    var rev = new RevisionInternal(properties);
+                ForgetCurrentRevision();
+                var rev = row.DocumentRevision;
+                if(rev != null) {
                     currentRevision = new SavedRevision(this, rev);
+                    _currentRevisionKnown = true;
                 }
             }
         }
 
-        private bool RevIdGreaterThanCurrent(string revId)
-        {
-            return (RevisionID.CBLCompareRevIDs(revId, currentRevision.Id) > 0);
-        }
-            
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       
         internal SavedRevision PutProperties(IDictionary<string, object> properties, RevisionID prevID, bool allowConflict)
         {
             var propsCopy = properties == null ? null : new Dictionary<string, object>(properties);
-            string newId = propsCopy == null ? null : propsCopy.GetCast<string>("_id");
+            string newId = propsCopy == null ? null : propsCopy.CblID();
             if (newId != null && !newId.Equals(Id, StringComparison.InvariantCultureIgnoreCase))  {
                 Log.To.Database.W(Tag, "{0} trying to put wrong _id to properties: {1}", this, propsCopy);
             }
@@ -571,16 +571,17 @@ namespace Couchbase.Lite {
         {
             var revId = documentChange.WinningRevisionId;
             if (revId == null) {
-                return;
+                return; // current revision didn't change
             }
-                
-            // current revision didn't change
-            if (currentRevision != null && !revId.Equals(currentRevision.Id))
+
+            if (_currentRevisionKnown && (currentRevision == null || !revId.Equals(currentRevision.Id)))
             {
                 var rev = documentChange.WinningRevisionIfKnown;
-                if (rev == null || rev.Deleted) {
+                if (rev == null) {
+                    ForgetCurrentRevision();
+                } else if (rev.Deleted) {
                     currentRevision = null;
-                } else if (!rev.Deleted) {
+                } else {
                     currentRevision = new SavedRevision(this, rev);
                 }
             }

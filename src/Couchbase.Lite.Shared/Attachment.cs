@@ -45,6 +45,7 @@ using System.IO;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
+using System.Runtime.Serialization;
 
 namespace Couchbase.Lite {
 
@@ -70,6 +71,7 @@ namespace Couchbase.Lite {
         AttachmentMetadataDictionary.EncodedLength, typeof(long),
         AttachmentMetadataDictionary.Encoding, typeof(string)
     })]
+    [DataContract]
     internal sealed class AttachmentMetadataDictionary : ContractedDictionary
     {
         internal const string ContentType = "content_type";

@@ -80,7 +80,7 @@ namespace Couchbase.Lite {
         /// Gets a value indicating whether this instance is current revision.
         /// </summary>
         /// <value><c>true</c> if this instance is current revision; otherwise, <c>false</c>.</value>
-        public Boolean IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.RevID); } }
+        public Boolean IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.RevID.ToString()); } }
 
         internal string WinningRevisionId { get; private set; }
 

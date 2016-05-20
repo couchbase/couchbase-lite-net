@@ -63,7 +63,8 @@ namespace Couchbase.Lite {
 
         #region Variables
 
-        private string _parentRevID;
+        private RevisionID _parentRevID;
+        private bool _checkedProperties;
 
         #endregion
 
@@ -77,7 +78,7 @@ namespace Couchbase.Lite {
         internal SavedRevision(Database database, RevisionInternal revision)
             : this(database.GetDocument(revision == null ? null : revision.DocID), revision) { }
 
-        internal SavedRevision(Database database, RevisionInternal revision, string parentRevId)
+        internal SavedRevision(Database database, RevisionInternal revision, RevisionID parentRevId)
             : this(database, revision)
         {
             _parentRevID = parentRevId;
@@ -88,8 +89,6 @@ namespace Couchbase.Lite {
         #region Non-public Members
 
         internal RevisionInternal RevisionInternal { get; private set; }
-
-        private  Boolean CheckedProperties { get; set; }
 
         internal override long Sequence {
             get {
@@ -151,7 +150,7 @@ namespace Couchbase.Lite {
         public override SavedRevision Parent {
             get {
                 if(_parentRevID != null) {
-                    return Document.GetRevision(_parentRevID);
+                    return Document.GetRevision(_parentRevID.ToString());
                 }
 
                 return Document.GetRevisionFromRev(Database.Storage.GetParentRevision(RevisionInternal));
@@ -165,7 +164,7 @@ namespace Couchbase.Lite {
         public override string ParentId {
             get {
                 if (_parentRevID != null) {
-                    return _parentRevID;
+                    return _parentRevID.ToString();
                 }
 
                 var parRev = Document.Database.Storage.GetParentRevision(RevisionInternal);
@@ -194,7 +193,7 @@ namespace Couchbase.Lite {
         public override string Id 
         {
             get {
-                return RevisionInternal.RevID.ToString();
+                return RevisionInternal == null ? null : RevisionInternal.RevID.ToString();
             }
         }
 
@@ -206,7 +205,7 @@ namespace Couchbase.Lite {
         /// (In other words, does it have a "_deleted" property?)
         /// </remarks>
         /// <value><c>true</c> if this instance is deletion; otherwise, <c>false</c>.</value>
-        public override Boolean IsDeletion {
+        public override bool IsDeletion {
             get {
                 return RevisionInternal.Deleted;
             }
@@ -220,13 +219,18 @@ namespace Couchbase.Lite {
         /// <returns>contents of this revision of the document.</returns>
         public override IDictionary<String, Object> Properties {
             get {
-                IDictionary<string, object> properties = RevisionInternal == null ? null : RevisionInternal.GetProperties();
-                if (properties == null && !CheckedProperties)
-                {
-                    if (LoadProperties()) {
-                        properties = RevisionInternal == null ? null : RevisionInternal.GetProperties();
+                IDictionary<string, object> properties = RevisionInternal?.GetProperties();
+                if(!_checkedProperties) {
+                    if(properties == null) {
+                        if(LoadProperties()) {
+                            properties = RevisionInternal?.GetProperties();
+                        }
+                    } else if(properties.CblID() == null) {
+                        RevisionInternal = RevisionInternal.AddBasicMetadata();
+                        properties = RevisionInternal?.GetProperties();
                     }
-                    CheckedProperties = true;
+                    
+                    _checkedProperties = true;
                 }
 
                 return properties;

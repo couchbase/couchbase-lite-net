@@ -64,65 +64,65 @@ namespace Couchbase.Lite
         [Test]
         public void TestParseRevID()
         {
-            var parsed = RevisionID.ParseRevId("1-utiopturoewpt");
-            Assert.AreEqual(1, parsed.Item1);
-            Assert.AreEqual("utiopturoewpt", parsed.Item2);
+            var parsed = "1-utiopturoewpt".AsRevID();
+            Assert.AreEqual(1, parsed.Generation);
+            Assert.AreEqual("utiopturoewpt", parsed.Suffix);
 
-            parsed = RevisionID.ParseRevId("321-fdjfdsj-e");
-            Assert.AreEqual(321, parsed.Item1);
-            Assert.AreEqual("fdjfdsj-e", parsed.Item2);
+            parsed = "321-fdjfdsj-e".AsRevID();
+            Assert.AreEqual(321, parsed.Generation);
+            Assert.AreEqual("fdjfdsj-e", parsed.Suffix);
 
-            parsed = RevisionID.ParseRevId("0-fdjfdsj-e");
-            Assert.IsTrue(parsed.Item1 == 0 && parsed.Item2 == "fdjfdsj-e");
-            parsed = RevisionID.ParseRevId("-4-fdjfdsj-e");
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionID.ParseRevId("5_fdjfdsj-e");
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionID.ParseRevId(" 5-fdjfdsj-e");
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionID.ParseRevId("7 -foo");
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionID.ParseRevId("7-");
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionID.ParseRevId("7");
+            parsed = "0-fdjfdsj-e".AsRevID();
+            Assert.IsTrue(parsed.Generation == 0 && parsed.Suffix == "fdjfdsj-e");
+            parsed = "-4-fdjfdsj-e".AsRevID();
+            Assert.IsTrue(parsed.Generation < 0);
+            parsed = "5_fdjfdsj-e".AsRevID();
+            Assert.IsTrue(parsed.Generation < 0);
+            parsed = " 5-fdjfdsj-e".AsRevID();
+            Assert.IsTrue(parsed.Generation < 0);
+            parsed = "7 -foo".AsRevID();
+            Assert.IsTrue(parsed.Generation < 0);
+            parsed = "7-".AsRevID();
+            Assert.IsTrue(parsed.Generation < 0);
+            parsed = "7".AsRevID();
            
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionID.ParseRevId("eiuwtiu");
+            Assert.IsTrue(parsed.Generation < 0);
+            parsed = "eiuwtiu".AsRevID();
            
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionID.ParseRevId(string.Empty);
-            Assert.IsTrue(parsed.Item1 < 0);
+            Assert.IsTrue(parsed.Generation < 0);
+            parsed = string.Empty.AsRevID();
+            Assert.IsTrue(parsed.Generation < 0);
         }
 
         [Test]
         public void TestCBLCompareRevIDs()
         {
             // Single Digit
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("1-foo", "1-foo") == 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("2-bar", "1-foo") > 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("1-foo", "2-bar") < 0);
+            Assert.IsTrue("1-foo".AsRevID().CompareTo("1-foo".AsRevID()) == 0);
+            Assert.IsTrue("2-bar".AsRevID().CompareTo("1-foo".AsRevID()) > 0);
+            Assert.IsTrue("1-foo".AsRevID().CompareTo("2-bar".AsRevID()) < 0);
 
             // Multi-digit:
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("123-bar", "456-foo") < 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("456-foo", "123-bar") > 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("456-foo", "456-foo") == 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("456-foo", "456-foofoo") < 0);
+            Assert.IsTrue("123-bar".AsRevID().CompareTo("456-foo".AsRevID()) < 0);
+            Assert.IsTrue("456-foo".AsRevID().CompareTo("123-bar".AsRevID()) > 0);
+            Assert.IsTrue("456-foo".AsRevID().CompareTo("456-foo".AsRevID()) == 0);
+            Assert.IsTrue("456-foo".AsRevID().CompareTo("456-foofoo".AsRevID()) < 0);
 
             // Different numbers of digits:
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("89-foo", "123-bar") < 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("123-bar", "89-foo") > 0);
+            Assert.IsTrue("89-foo".AsRevID().CompareTo("123-bar".AsRevID()) < 0);
+            Assert.IsTrue("123-bar".AsRevID().CompareTo("89-foo".AsRevID()) > 0);
 
             // Edge cases:
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("123-", "89-") > 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("123-a", "123-a") == 0);
+            Assert.IsTrue("123-".AsRevID().CompareTo("89-".AsRevID()) > 0);
+            Assert.IsTrue("123-a".AsRevID().CompareTo("123-a".AsRevID()) == 0);
 
             // Invalid rev IDs:
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("-a", "-b") < 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("-", "-") == 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs(string.Empty, string.Empty) == 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs(string.Empty, "-b") < 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("bogus", "yo") < 0);
-            Assert.IsTrue(RevisionID.CBLCollateRevIDs("bogus-x", "yo-y") < 0);
+            Assert.IsTrue("-a".AsRevID().CompareTo("-b".AsRevID()) < 0);
+            Assert.IsTrue("-".AsRevID().CompareTo("-".AsRevID()) == 0);
+            Assert.IsTrue(string.Empty.AsRevID().CompareTo(string.Empty.AsRevID()) == 0);
+            Assert.IsTrue(string.Empty.AsRevID().CompareTo("-b".AsRevID()) < 0);
+            Assert.IsTrue("bogus".AsRevID().CompareTo("yo".AsRevID()) < 0);
+            Assert.IsTrue("bogus-x".AsRevID().CompareTo("yo-y".AsRevID()) < 0);
         }
 
         [Test]
@@ -338,7 +338,7 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(1, doc.ConflictingRevisions.Count());
             Assert.AreEqual(2, doc.GetLeafRevisions(true).Count);
-            Assert.AreEqual(3, RevisionID.GetGeneration(deleteRevision.Id));
+            Assert.AreEqual(3, deleteRevision.Id.AsRevID().Generation);
             Assert.AreEqual(losingRev.Id, doc.CurrentRevisionId);
 
             // Finally create a new revision rev3 based on losing rev

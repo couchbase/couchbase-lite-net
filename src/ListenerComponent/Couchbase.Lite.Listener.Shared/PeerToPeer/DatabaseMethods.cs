@@ -228,7 +228,7 @@ namespace Couchbase.Lite.Listener
                     var castContext = context as ICouchbaseListenerContext2;
                     var source = castContext != null && !castContext.IsLoopbackRequest ? castContext.Sender : null;
                     foreach(var doc in docs) {
-                        string docId = doc.GetCast<string>("_id");
+                        string docId = doc.CblID();
                         RevisionInternal rev = null;
                         Body body = new Body(doc);
 

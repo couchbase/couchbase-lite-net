@@ -77,8 +77,8 @@ namespace Couchbase.Lite
             var readRev = database.Storage.GetLocalDocument(rev1.DocID, null);
             Assert.IsNotNull(readRev);
             var readRevProps = readRev.GetProperties();
-            Assert.AreEqual(rev1.DocID, readRevProps.Get("_id"));
-            Assert.AreEqual(rev1.RevID, readRevProps.Get("_rev"));
+            Assert.AreEqual(rev1.DocID, readRevProps.CblID());
+            Assert.AreEqual(rev1.RevID, readRevProps.CblRev());
             AssertPropertiesAreEqual(UserProperties(readRevProps), 
                 UserProperties(body.GetProperties()));
 

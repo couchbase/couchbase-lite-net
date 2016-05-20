@@ -140,7 +140,7 @@ namespace Couchbase.Lite
 
             var docId = document.Id;
 
-            properties["_rev"] = document.CurrentRevisionId;
+            properties.SetRevID(document.CurrentRevisionId);
             properties["_deleted"] = true;
             properties["mykey"] = "myval";
             var newRev = document.PutProperties(properties);
@@ -214,7 +214,7 @@ namespace Couchbase.Lite
             properties["bar"] = false;
             properties["_id"] = document.Id;
             document.PutProperties(properties);
-            properties["_rev"] = document.CurrentRevisionId;
+            properties.SetRevID(document.CurrentRevisionId);
             Assert.IsNotNull(document.CurrentRevision);
 
             var revisionInternal = new RevisionInternal(

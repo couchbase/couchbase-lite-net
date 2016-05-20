@@ -336,9 +336,9 @@ namespace Couchbase.Lite.Replicator
                 {
                     var props = args.DocumentProperties;
 
-                    var rev = props.Get ("_id") != null 
+                    var rev = props.CblID() != null 
                         ? new RevisionInternal (props) 
-                        : new RevisionInternal (props.GetCast<string> ("id"), props.GetCast<string> ("rev").AsRevID(), false);
+                        : new RevisionInternal (props.CblID(), props.CblRev(), false);
 
 
                     var pos = remainingRevs.IndexOf(rev);
@@ -350,7 +350,7 @@ namespace Couchbase.Lite.Replicator
                         return;
                     }
 
-                    if (props.GetCast<string>("_id") != null) {
+                    if (props.CblID() != null) {
                         // Add to batcher ... eventually it will be fed to -insertRevisions:.
                         QueueDownloadedRevision(rev);
                     } else {

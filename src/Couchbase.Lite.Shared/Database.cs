@@ -240,11 +240,10 @@ namespace Couchbase.Lite
             }
         }
 
-        internal String                                 DbDirectory { get; private set; }
+        internal string                                 DbDirectory { get; private set; }
         internal IList<Replication>                     ActiveReplicators { get; set; }
         internal IList<Replication>                     AllReplicators { get; set; }
-        internal LruCache<String, Document>             DocumentCache { get; set; }
-        internal ConcurrentDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
+        internal LruCache<string, Document>             DocumentCache { get; set; }
         internal ulong StartTime { get; private set; }
         internal BlobStoreWriter AttachmentWriter { get { return new BlobStoreWriter(Attachments); } }
 
@@ -285,7 +284,6 @@ namespace Couchbase.Lite
             Name = name ?? FileDirUtils.GetDatabaseNameFromPath(DbDirectory);
             Manager = manager;
             DocumentCache = new LruCache<string, Document>(MAX_DOC_CACHE_SIZE);
-            UnsavedRevisionDocumentCache = new ConcurrentDictionary<string, WeakReference>();
             _readonly = readOnly;
  
             // FIXME: Not portable to WinRT/WP8.
@@ -446,7 +444,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get or create.</param>
         public Document GetDocument(string id) 
         { 
-            return GetDocument(id, false);
+            return GetDocument(id, false, false);
         }
 
         /// <summary>
@@ -454,9 +452,9 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.Document" /> with the given id, or null if it does not exist.</returns>
         /// <param name="id">The id of the Document to get.</param>
-        public Document GetExistingDocument(String id) 
+        public Document GetExistingDocument(string id) 
         { 
-            return GetDocument(id, true);
+            return GetDocument(id, true, false);
         }
 
         /// <summary>
@@ -473,7 +471,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The existing local document.</returns>
         /// <param name="id">Identifier.</param>
-        public IDictionary<String, Object> GetExistingLocalDocument(String id) 
+        public IDictionary<string, object> GetExistingLocalDocument(String id) 
         {
             if (!IsOpen) {
                 Log.To.Database.W(TAG, "{0} GetExistingLocalDocument called on closed database, returning null...", this);
@@ -1223,8 +1221,6 @@ namespace Couchbase.Lite
         internal void RemoveDocumentFromCache(Document document)
         {
             DocumentCache.Remove(document.Id);
-            var dummy = default(WeakReference);
-            UnsavedRevisionDocumentCache.TryRemove(document.Id, out dummy);
         }
 
         internal string PrivateUUID ()
@@ -1291,7 +1287,8 @@ namespace Couchbase.Lite
             }
 
             if (properties != null && properties.Get("_attachments").AsDictionary<string, object>() != null) {
-                var tmpRevID = String.Format("{0}-00", prevRevId.Generation + 1).AsRevID();
+                var generation = prevRevId == null ? 1 : prevRevId.Generation + 1;
+                var tmpRevID = String.Format("{0}-00", generation).AsRevID();
                 var tmpRev = new RevisionInternal(docId ?? "x", tmpRevID, deleting);
                 tmpRev.SetProperties(properties);
                 if (!ProcessAttachmentsForRevision(tmpRev, prevRevId == null ? null : new List<RevisionID> { prevRevId })) {
@@ -1306,16 +1303,7 @@ namespace Couchbase.Lite
                 validationBlock = ValidateRevision;
             }
 
-            var putRev = Storage.PutRevision(docId, prevRevId, properties, deleting, allowConflict, source, validationBlock);
-            if (putRev != null) {
-                Log.To.Database.I(TAG, "--> created {0}", putRev);
-                if (!string.IsNullOrEmpty(docId)) {
-                    var dummy = default(WeakReference);
-                    UnsavedRevisionDocumentCache.TryRemove(docId, out dummy);
-                }
-            }
-
-            return putRev;
+            return Storage.PutRevision(docId, prevRevId, properties, deleting, allowConflict, source, validationBlock);
         }
 
         //TODO: Remove this method, it only exists for tests
@@ -1697,13 +1685,15 @@ namespace Couchbase.Lite
             }
 
             if (rev.Sequence > 0) {
-                var props = rev.GetProperties();
-                if (props != null && props.GetCast<string>("_rev") != null && props.GetCast<string>("_id") != null) {
+                if(rev.GetBody() != null) {
                     return rev;
+                } else if(rev.Missing) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotFound, TAG,
+                        "Attempting to load the body of a compacted revision ({0} {1})",
+                        new SecureLogString(rev.DocID, LogMessageSensitivity.PotentiallyInsecure),
+                        rev.RevID);
                 }
             }
-
-
 
             Debug.Assert(rev.DocID != null && rev.RevID != null);
             Storage.LoadRevisionBody(rev);
@@ -1794,7 +1784,7 @@ namespace Couchbase.Lite
 
         /// <summary>VALIDATION</summary>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal Status ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev, String parentRevId)
+        internal Status ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev, RevisionID parentRevId)
         {
             var validations = Shared.GetValues("validation", Name);
             if (validations == null || validations.Count == 0) {
@@ -1889,7 +1879,6 @@ namespace Couchbase.Lite
             } finally {
                 Storage = null;
 
-                UnsavedRevisionDocumentCache.Clear();
                 DocumentCache = null;
                 Manager.ForgetDatabase(this);
                 _closingTask = null;
@@ -2092,18 +2081,13 @@ namespace Couchbase.Lite
             }
         }
 
-        private Document GetDocument(string docId, bool mustExist)
+        private Document GetDocument(string docId, bool mustExist, bool isNew)
         {
             if (StringEx.IsNullOrWhiteSpace (docId)) {
                 return null;
             }
 
-            var unsavedDoc = default(WeakReference);
-            var success = UnsavedRevisionDocumentCache.TryGetValue(docId, out unsavedDoc);
-            var doc = success
-                ? (Document)unsavedDoc.Target 
-                : DocumentCache.Get(docId);
-
+            var doc = DocumentCache.Get(docId);
             if (doc != null) {
                 if (mustExist && doc.CurrentRevision == null) {
                     return null;
@@ -2112,7 +2096,7 @@ namespace Couchbase.Lite
                 return doc;
             }
 
-            doc = new Document(this, docId);
+            doc = new Document(this, docId, !isNew);
             if (mustExist && doc.CurrentRevision == null) {
                 return null;
             }
@@ -2122,7 +2106,6 @@ namespace Couchbase.Lite
             }
 
             DocumentCache[docId] = doc;
-            UnsavedRevisionDocumentCache.TryAdd(docId, new WeakReference(doc));
             return doc;
         }
 
@@ -2202,58 +2185,6 @@ namespace Couchbase.Lite
                     change.ReduceMemoryUsage();
                 }
             }
-        }
-
-        public string GenerateRevID(IEnumerable<byte> json, bool deleted, string previousRevisionId)
-        {
-            MessageDigest md5Digest;
-
-            // Revision IDs have a generation count, a hyphen, and a UUID.
-            int generation = 0;
-            if (previousRevisionId != null) {
-                generation = RevisionID.GetGeneration(previousRevisionId);
-                if (generation == 0) {
-                    return null;
-                }
-            }
-
-            // Generate a digest for this revision based on the previous revision ID, document JSON,
-            // and attachment digests. This doesn't need to be secure; we just need to ensure that this
-            // code consistently generates the same ID given equivalent revisions.
-            try {
-                md5Digest = MessageDigest.GetInstance("MD5");
-            } catch (NotSupportedException) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, TAG, "Failed to acquire a class to create MD5");
-            }
-
-            var length = 0;
-            if (previousRevisionId != null) {
-                var prevIDUTF8 = Encoding.UTF8.GetBytes(previousRevisionId);
-                length = prevIDUTF8.Length;
-                if (length > unchecked((0xFF))) {
-                    return null;
-                }
-
-                var lengthByte = unchecked((byte)(length & unchecked((0xFF))));
-                md5Digest.Update(lengthByte);
-                md5Digest.Update(prevIDUTF8);
-            }
-
-
-
-            var isDeleted = deleted ? 1 : 0;
-            var deletedByte = new[] { unchecked((byte)isDeleted) };
-            md5Digest.Update(deletedByte);
-
-            if (json != null)
-            {
-                md5Digest.Update(json != null ? json.ToArray() : null);
-            }
-
-            var md5DigestResult = md5Digest.Digest();
-            var digestAsHex = BitConverter.ToString(md5DigestResult).Replace("-", String.Empty);
-            int generationIncremented = generation + 1;
-            return string.Format("{0}-{1}", generationIncremented, digestAsHex).ToLower();
         }
 
         #pragma warning restore 1591

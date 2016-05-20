@@ -113,10 +113,10 @@ namespace Couchbase.Lite.Listener
 
                     if(!isLocalDoc && includeAttachments) {
                         int minRevPos = 1;
-                        IList<string> attsSince = context.GetJsonQueryParam("atts_since").AsList<string>();
-                        string ancestorId = db.Storage.FindCommonAncestor(rev, attsSince);
+                        var attsSince = context.GetJsonQueryParam("atts_since").AsList<string>().AsRevIDs();
+                        var ancestorId = db.Storage.FindCommonAncestor(rev, attsSince);
                         if(ancestorId != null) {
-                            minRevPos = RevisionID.GetGeneration(ancestorId) + 1;
+                            minRevPos = ancestorId.Generation + 1;
                         }
                             
                         bool attEncodingInfo = context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
@@ -293,14 +293,14 @@ namespace Couchbase.Lite.Listener
                 deleting = properties.GetCast<bool>("_deleted");
                 if (docId == null) {
                     // POST's doc ID may come from the _id field of the JSON body.
-                    docId = properties.GetCast<string>("_id");
+                    docId = properties.CblID();
                     if (docId == null && deleting) {
                         return StatusCode.BadId;
                     }
                 }
 
                 // PUT's revision ID comes from the JSON body.
-                prevRevId = properties.GetCast<RevisionID>("_rev").ToString();
+                prevRevId = properties.GetCast<string>("_rev");
             } else {
                 // DELETE's revision ID comes from the ?rev= query param
                 prevRevId = context.GetQueryParam("rev");
@@ -568,7 +568,7 @@ namespace Couchbase.Lite.Listener
                     if (revs.Count > 1) {
                         dst["_conflicts"] = revs.Select(x =>
                         {
-                            return x.Equals(rev) || x.Deleted ? null : x.RevID;
+                            return x.Equals(rev) || x.Deleted ? null : x.RevID.ToString();
                         });
                     }
                 }
@@ -606,7 +606,7 @@ namespace Couchbase.Lite.Listener
                     if (revProp == null) {
                         // No _rev property in body, so use ?rev= query param instead:
                         var props = body.GetProperties();
-                        props["_rev"] = revParam;
+                        props.SetRevID(revParam);
                         body = new Body(props);
                     } else if (!revProp.Equals(revParam)) {
                         return context.CreateResponse(StatusCode.BadRequest); // mismatch between _rev and rev

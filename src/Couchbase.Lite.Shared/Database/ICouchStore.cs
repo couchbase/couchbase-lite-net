@@ -27,7 +27,7 @@ using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite.Store
 {
-    internal delegate Status StoreValidation(RevisionInternal rev, RevisionInternal prevRev, string parentRevId);
+    internal delegate Status StoreValidation(RevisionInternal rev, RevisionInternal prevRev, RevisionID parentRevId);
 
     internal interface ICouchStore
     {
@@ -193,7 +193,7 @@ namespace Couchbase.Lite.Store
         /// As soon as you find a revID that's in the revIDs array, stop and return that revID.
         /// If no match is found, return null.
         /// </summary>
-        string FindCommonAncestor(RevisionInternal rev, IEnumerable<string> revIds);
+        RevisionID FindCommonAncestor(RevisionInternal rev, IEnumerable<RevisionID> revIds);
 
         /// <summary>
         /// Looks for each given revision in the local database, and removes each one found from the list.

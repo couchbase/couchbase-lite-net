@@ -51,9 +51,18 @@ using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
+using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
+
+    public class Foo
+    {
+        public string Bar { get; set; }
+
+        public List<object> Bar2 { get; set; }
+    }
 
     [TestFixture("ForestDB")]
     public class ApiTest : LiteTestCase
@@ -68,6 +77,26 @@ namespace Couchbase.Lite
         [Test]
         public void TestAPIManager()
         {
+            PropertyDictionary<Foo> dict = new PropertyDictionary<Foo>();
+            dict.DocID = "mydocid";
+            dict.RevID = "1-123456".AsRevID();
+            dict.UserData = new Foo {
+                Bar = "bar",
+                Bar2 = new List<object> { "one", 2, null }
+            };
+            dict.Attachments = new AttachmentDictionary() {
+                Contents = new Dictionary<string, AttachmentDataDictionary>() {
+                    { "attachment1", new AttachmentDataDictionary() {
+                        ContentType = "text/plain",
+                        Length = 10383
+                        }
+                    }
+                }
+            };
+
+            var json = Manager.GetObjectMapper().WriteValueAsString(dict);
+            var dict2 = Manager.GetObjectMapper().ReadValue<PropertyDictionary<Foo>>(json);
+
             Manager manager = this.manager;
             Assert.IsTrue(manager != null);
 
@@ -233,8 +262,7 @@ namespace Couchbase.Lite
 
             var expectProperties = new Dictionary<String, Object>();
             expectProperties["because"] = "NoSQL";
-            expectProperties["_id"] = doc.Id;
-            expectProperties["_rev"] = rev2.Id;
+            expectProperties.SetDocRevID(doc.Id, rev2.Id);
             Assert.AreEqual(newRev.Properties, expectProperties);
 
             var rev3 = newRev.Save();
@@ -511,6 +539,7 @@ namespace Couchbase.Lite
         {
             var prop = new Dictionary<String, Object>();
             prop["foo"] = "bar";
+            prop["_id"] = "conflict_test";
 
             var db = database;
 
@@ -944,14 +973,14 @@ namespace Couchbase.Lite
             Assert.AreEqual(docId, doc.Id);
             doc.PutProperties(properties);
 
-            var revId = doc.CurrentRevisionId;
+            var revId = doc.CurrentRevisionId.AsRevID();
             for (var i = 2; i < 6; i++)
             {
                 properties["tag"] = i;
-                properties["_rev"] = revId;
+                properties.SetRevID(revId);
                 doc.PutProperties(properties);
-                revId = doc.CurrentRevisionId;
-                Assert.IsTrue(revId.StartsWith(i + "-", StringComparison.Ordinal));
+                revId = doc.CurrentRevisionId.AsRevID();
+                Assert.AreEqual(i, revId.Generation);
                 Assert.AreEqual(docId, doc.Id);
             }
 

@@ -668,7 +668,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                     }
 
                                     DeleteIndex();
-									CreateIndex();
+                                    CreateIndex();
                                 } catch (Exception) {
                                     ok = false;
                                 }
@@ -763,7 +763,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                 continue;
                             }
 
-                            string revId = c.GetString(3);
+                            var revId = c.GetString(3).AsRevID();
                             var json = c.GetBlob(4);
                             bool deleted = c.GetInt(5) != 0;
                             string docType = checkDocTypes ? c.GetString(6) : null;
@@ -786,7 +786,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                   "ORDER BY revID DESC ", doc_id, minLastSequence)) {
 
                                     if (c2.MoveToNext()) {
-                                        string oldRevId = c2.GetString(0);
+                                        var oldRevId = c2.GetString(0).AsRevID();
                                         // This is the revision that used to be the 'winner'.
                                         // Remove its emitted rows:
                                         long oldSequence = c2.GetLong(1);
@@ -796,7 +796,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                             viewTotalRows[view.ViewID] -= changes;
                                         }
 
-                                        if (deleted || RevisionID.CBLCompareRevIDs(oldRevId, revId) > 0) {
+                                        if (deleted || oldRevId.CompareTo(revId) > 0) {
                                             // It still 'wins' the conflict, so it's the one that
                                             // should be mapped [again], not the current revision!
                                             revId = oldRevId;
@@ -811,7 +811,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                                 conflicts = new List<string>();
                                             }
 
-                                            conflicts.Add(oldRevId);
+                                            conflicts.Add(oldRevId.ToString());
                                             while (c2.MoveToNext()) {
                                                 conflicts.Add(c2.GetString(0));
                                             }
@@ -945,14 +945,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         value = valueData.Value.AsDictionary<string, object>();
                     }
 
-                    string linkedId = value == null ? null : value.GetCast<string>("_id");
+                    string linkedId = value?.CblID();
                     if(linkedId != null) {
                         // Linked document: http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
-                        string linkedRev = value == null ? null : value.GetCast<string>("_rev"); //usually null
+                        var linkedRev = value?.CblRev(); //usually null
                         docRevision = db.GetDocument(linkedId, linkedRev, true);
                         sequence = docRevision == null ? 0 : docRevision.Sequence;
                     } else {
-                        docRevision = db.GetRevision(docId, cursor.GetString(4), false, sequence, cursor.GetBlob(5));
+                        docRevision = db.GetRevision(docId, cursor.GetString(4).AsRevID(), false, sequence, cursor.GetBlob(5));
                     }
                 }
 

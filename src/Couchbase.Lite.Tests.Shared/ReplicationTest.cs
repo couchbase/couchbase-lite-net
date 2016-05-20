@@ -856,7 +856,7 @@ namespace Couchbase.Lite
                 var rev1 = new RevisionInternal(body);
                 rev1 = database.PutRevision(rev1, null, false);
 
-                documentProperties["_rev"] = rev1.RevID;
+                documentProperties.SetRevID(rev1.RevID);
                 documentProperties["UPDATED"] = true;
                 database.PutRevision(new RevisionInternal(documentProperties), rev1.RevID, false);
 
@@ -971,7 +971,7 @@ namespace Couchbase.Lite
                 var rev1 = new RevisionInternal(body);
                 rev1 = database.PutRevision(rev1, null, false);
 
-                documentProperties["_rev"] = rev1.RevID;
+                documentProperties.SetRevID(rev1.RevID);
                 documentProperties["UPDATED"] = true;
                 documentProperties["_deleted"] = true;
                 database.PutRevision(new RevisionInternal(documentProperties), rev1.RevID, false);
@@ -1097,8 +1097,8 @@ namespace Couchbase.Lite
                 View view = database.GetView("testPullerWithLiveQueryView");
                 view.SetMapReduce((document, emitter) =>
                 {
-                    if (document.Get("_id") != null) {
-                        emitter(document.Get("_id"), null);
+                    if (document.CblID() != null) {
+                        emitter(document.CblID(), null);
                     }
                 }, null, "1");
 
@@ -1872,7 +1872,7 @@ namespace Couchbase.Lite
                 doc1.PutProperties(new Dictionary<string, object> {
                     { "doc1", "Foo" }
                 });
-                pusher.DocIds = new List<string> { doc1.GetProperty("_id") as string };
+                pusher.DocIds = new List<string> { doc1.GetProperty<string>("_id") };
 
                 var doc2 = database.CreateDocument();
                 doc2.PutProperties(new Dictionary<string, object> {
@@ -2563,8 +2563,8 @@ namespace Couchbase.Lite
                 View view = database.GetView("testPullerWithLiveQueryView");
                 view.SetMapReduce((document, emitter) =>
                 {
-                    if (document.Get("_id") != null) {
-                        emitter(document.Get("_id"), null);
+                    if (document.CblID() != null) {
+                        emitter(document.CblID(), null);
                     }
                 }, null, "1");
 
@@ -2634,8 +2634,8 @@ namespace Couchbase.Lite
                 View view = database.GetView("testPullerWithLiveQueryView");
                 view.SetMapReduce((document, emitter) =>
                 {
-                    if (document.Get("_id") != null) {
-                        emitter(document.Get("_id"), null);
+                    if (document.CblID() != null) {
+                        emitter(document.CblID(), null);
                     }
                 }, null, "1");
 

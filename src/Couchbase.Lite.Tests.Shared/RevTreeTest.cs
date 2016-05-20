@@ -65,8 +65,7 @@ namespace Couchbase.Lite
         {
             var rev = new RevisionInternal("FakeDocId", "1-abcd".AsRevID(), false);
             var revProperties = new Dictionary<string, object>();
-            revProperties["_id"] = rev.DocID;
-            revProperties["_rev"] = rev.RevID;
+            revProperties.SetDocRevID(rev.DocID, rev.RevID);
             revProperties["message"] = "hi";
             rev.SetProperties(revProperties);
 
@@ -80,8 +79,7 @@ namespace Couchbase.Lite
         {
             var rev = new RevisionInternal("MyDocId", "4-abcd".AsRevID(), false);
             var revProperties = new Dictionary<string, object>();
-            revProperties["_id"] = rev.DocID;
-            revProperties["_rev"] = rev.RevID;
+            revProperties.SetDocRevID(rev.DocID, rev.RevID);
             revProperties["message"] = "hi";
             rev.SetProperties(revProperties);
 
@@ -95,8 +93,7 @@ namespace Couchbase.Lite
             
             var conflict = new RevisionInternal("MyDocId", "5-abcd".AsRevID(), false);
             var conflictProperties = new Dictionary<string, object>();
-            conflictProperties["_id"] = conflict.DocID;
-            conflictProperties["_rev"] = conflict.RevID;
+            conflictProperties.SetDocRevID(conflict.DocID, conflict.RevID);
             conflictProperties["message"] = "yo";
             conflict.SetProperties(conflictProperties);
             
@@ -157,8 +154,7 @@ namespace Couchbase.Lite
 
             var rev = new RevisionInternal(DOCUMENT_ID, "1-abcd".AsRevID(), false);
             var revProperties = new Dictionary<string, object>();
-            revProperties["_id"] = rev.DocID;
-            revProperties["_rev"] = rev.RevID;
+            revProperties.SetDocRevID(rev.DocID, rev.RevID);
             revProperties["message"] = "hi";
             rev.SetProperties(revProperties);
 
@@ -186,8 +182,7 @@ namespace Couchbase.Lite
             // add two more revisions to the document
             var rev3 = new RevisionInternal(DOCUMENT_ID, "3-abcd".AsRevID(), false);
             var rev3Properties = new Dictionary<string, object>();
-            rev3Properties["_id"] = rev3.DocID;
-            rev3Properties["_rev"] = rev3.RevID;
+            rev3Properties.SetDocRevID(rev3.DocID, rev3.RevID);
             rev3Properties["message"] = "hi again";
             rev3.SetProperties(rev3Properties);
 
@@ -227,8 +222,7 @@ namespace Couchbase.Lite
             // new winning revision.
             var conflictRev = new RevisionInternal(DOCUMENT_ID, "3-bcde".AsRevID(), false);
             var conflictProperties = new Dictionary<string, object>();
-            conflictProperties["_id"] = conflictRev.DocID;
-            conflictProperties["_rev"] = conflictRev.RevID;
+            conflictProperties.SetDocRevID(conflictRev.DocID, conflictRev.RevID);
             conflictProperties["message"] = "winner";
             conflictRev.SetProperties(conflictProperties);
 
