@@ -103,11 +103,11 @@ namespace Couchbase.Lite.Util
 
         #region Properties
 
-		/// <summary>
-		/// Gets or sets the level at which the logger will redacted sensivity
-		/// information from the logs.
-		/// </summary>
-		public static LogScrubSensitivity ScrubSensitivity 
+        /// <summary>
+        /// Gets or sets the level at which the logger will redacted sensivity
+        /// information from the logs.
+        /// </summary>
+        public static LogScrubSensitivity ScrubSensitivity 
         {
             get { return _scrubSensitivity; }
             set { 
@@ -116,9 +116,9 @@ namespace Couchbase.Lite.Util
                         foreach (var logger in Loggers) {
                             logger.I("Log", "SCRUBBING DISABLED, THIS LOG MAY CONTAIN SENSITIVE INFORMATION");
                         }
-
-                        _scrubSensitivity = value;
                     }
+
+                    _scrubSensitivity = value;
                 }
             }
         }
@@ -151,14 +151,14 @@ namespace Couchbase.Lite.Util
                 as Couchbase.Lite.Configuration.CouchbaseConfigSection;
             if(configSection != null && configSection.Logging != null) {
                 Log.Disabled = !configSection.Logging.Enabled;
-				Log.ScrubSensitivity = configSection.Logging.ScrubSensitivity;
-				Log.Level = configSection.Logging.GlobalLevel;
+                Log.ScrubSensitivity = configSection.Logging.ScrubSensitivity;
+                Log.Level = configSection.Logging.GlobalLevel;
                 foreach(var logSetting in configSection.Logging.VerbositySettings.Values) {
-					var property = Log.Domains.GetType().GetProperty(logSetting.Key);
-					if(property == null) {
-						Log.To.NoDomain.W("Log", "Invalid domain {0} in configuration file", logSetting.Key);
-						continue;
-					}
+                    var property = Log.Domains.GetType().GetProperty(logSetting.Key);
+                    if(property == null) {
+                        Log.To.NoDomain.W("Log", "Invalid domain {0} in configuration file", logSetting.Key);
+                        continue;
+                    }
                     var gotLogger = (IDomainLogging)property.GetValue(Log.Domains);
                     gotLogger.Level = logSetting.Value;
                 }

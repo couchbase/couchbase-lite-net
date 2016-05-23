@@ -101,7 +101,15 @@ namespace Couchbase.Lite
             }).Unwrap().ContinueWith(t =>
             {
                 _sendSemaphore.Release();
-                return t.Result;
+                try {
+                    return t.Result;
+                } catch(AggregateException e) {
+                    if(Misc.UnwrapAggregate(e) is ObjectDisposedException) {
+                        return null;
+                    }
+
+                    throw;
+                }
             });
             #endif
         }

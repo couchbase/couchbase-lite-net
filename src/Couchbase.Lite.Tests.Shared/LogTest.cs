@@ -64,7 +64,7 @@ namespace Couchbase.Lite
         }
 
         [TestCase(Log.LogLevel.None, Result=0)]
-        [TestCase(Log.LogLevel.Base, Result=1)]
+        [TestCase(Log.LogLevel.Base, Result=3)]
         #if DEBUG
         [TestCase(Log.LogLevel.Debug, Result=5)]
         #else
@@ -94,7 +94,7 @@ namespace Couchbase.Lite
         }
 
         [TestCase(Log.LogLevel.None, Result=0)]
-        [TestCase(Log.LogLevel.Base, Result=1)]
+        [TestCase(Log.LogLevel.Base, Result=3)]
         #if DEBUG
         [TestCase(Log.LogLevel.Debug, Result=5)]
         #else
@@ -135,6 +135,7 @@ namespace Couchbase.Lite
                 lastMessage = msg;
             };
 
+            Log.ScrubSensitivity = LogScrubSensitivity.NoInsecure;
             Log.To.NoDomain.I(TAG, "{0}", auth);
             Assert.AreEqual("[BasicAuthenticator (<redacted>:<redacted>)]", lastMessage);
 

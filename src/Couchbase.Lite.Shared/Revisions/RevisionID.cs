@@ -162,6 +162,11 @@ namespace Couchbase.Lite.Revisions
         {
             var other = obj as RevisionID;
             if(other == null) {
+                var otherStr = obj as string;
+                if(otherStr != null) {
+                    return ToString() == otherStr;
+                }
+
                 return false;
             }
 

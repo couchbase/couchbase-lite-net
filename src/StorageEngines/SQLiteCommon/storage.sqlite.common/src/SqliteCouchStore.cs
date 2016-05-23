@@ -1852,7 +1852,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return true;
             });
                 
-            Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId.ToString(), inConflict, source));
+            Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId?.ToString(), inConflict, source));
         }
 
         public IDictionary<string, object> PurgeRevisions(IDictionary<string, IList<string>> docsToRev)

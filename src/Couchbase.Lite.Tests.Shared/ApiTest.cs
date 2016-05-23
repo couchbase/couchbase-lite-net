@@ -77,26 +77,6 @@ namespace Couchbase.Lite
         [Test]
         public void TestAPIManager()
         {
-            PropertyDictionary<Foo> dict = new PropertyDictionary<Foo>();
-            dict.DocID = "mydocid";
-            dict.RevID = "1-123456".AsRevID();
-            dict.UserData = new Foo {
-                Bar = "bar",
-                Bar2 = new List<object> { "one", 2, null }
-            };
-            dict.Attachments = new AttachmentDictionary() {
-                Contents = new Dictionary<string, AttachmentDataDictionary>() {
-                    { "attachment1", new AttachmentDataDictionary() {
-                        ContentType = "text/plain",
-                        Length = 10383
-                        }
-                    }
-                }
-            };
-
-            var json = Manager.GetObjectMapper().WriteValueAsString(dict);
-            var dict2 = Manager.GetObjectMapper().ReadValue<PropertyDictionary<Foo>>(json);
-
             Manager manager = this.manager;
             Assert.IsTrue(manager != null);
 

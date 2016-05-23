@@ -27,27 +27,31 @@ namespace Couchbase.Lite.Internal
     {
         internal static string CblID(this IDictionary<string, object> dict)
         {
-            return dict.GetCast<string>("_id");
+            return dict?.GetCast<string>("_id");
         }
 
         internal static RevisionID CblRev(this IDictionary<string, object> dict)
         {
-            return dict.GetCast<string>("_rev").AsRevID();
+            return dict?.GetCast<string>("_rev").AsRevID();
         }
 
         internal static bool CblDeleted(this IDictionary<string, object> dict)
         {
-            return dict.GetCast<bool>("_deleted");
+            return dict == null ? false : dict.GetCast<bool>("_deleted");
         }
 
         internal static IDictionary<string, object> CblAttachments(this IDictionary<string, object> dict)
         {
-            return dict.Get("_attachments").AsDictionary<string, object>();
+            return dict?.Get("_attachments").AsDictionary<string, object>();
         }
 
         internal static void SetDocRevID(this IDictionary<string, object> dict, string docId, 
             RevisionID revId)
         {
+            if(dict == null) {
+                return;
+            }
+
             dict["_id"] = docId;
             dict["_rev"] = revId.ToString();
         }
@@ -55,17 +59,29 @@ namespace Couchbase.Lite.Internal
         internal static void SetDocRevID(this IDictionary<string, object> dict, string docId,
             string revId)
         {
+            if(dict == null) {
+                return;
+            }
+
             dict["_id"] = docId;
             dict["_rev"] = revId;
         }
 
         internal static void SetRevID(this IDictionary<string, object> dict, RevisionID revId)
         {
+            if(dict == null) {
+                return;
+            }
+
             dict["_rev"] = revId.ToString();
         }
 
         internal static void SetRevID(this IDictionary<string, object> dict, string revId)
         {
+            if(dict == null) {
+                return;
+            }
+
             dict["_rev"] = revId;
         }
     }

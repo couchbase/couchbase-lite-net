@@ -73,6 +73,9 @@ namespace Couchbase.Lite.Replicator
 
         [RequiredProperty(CreateDefault=true)]
         public CancellationTokenSource TokenSource { get; set; }
+
+        [RequiredProperty]
+        public CookieStore CookieStore { get; set; }
     }
 
     internal class BulkDownloader : IMultipartReaderDelegate, IDisposable
@@ -104,8 +107,6 @@ namespace Couchbase.Lite.Replicator
         }
         private EventHandler<RemoteRequestEventArgs> _complete;
 
-        internal CookieStore CookieStore { get; set; }
-
         internal IAuthenticator Authenticator { get; set; }
 
         /// <exception cref="System.Exception"></exception>
@@ -114,7 +115,7 @@ namespace Couchbase.Lite.Replicator
             options.Validate();
             _bulkGetUri = new Uri(AppendRelativeURLString(options.DatabaseUri, "/_bulk_get?revs=true&attachments=true"));
             _db = options.Database;
-            _httpClient = options.ClientFactory.GetHttpClient(CookieStore, options.RetryStrategy);
+            _httpClient = options.ClientFactory.GetHttpClient(options.CookieStore, options.RetryStrategy);
             _requestHeaders = options.RequestHeaders;
             _tokenSource = options.TokenSource ?? new CancellationTokenSource();
             _body = CreatePostBody(options.Revisions, _db);

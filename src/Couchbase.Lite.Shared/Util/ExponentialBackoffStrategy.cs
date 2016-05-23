@@ -49,12 +49,13 @@ namespace Couchbase.Lite.Util
 
         public TimeSpan NextDelay(bool increment)
         {
+            var retVal = _currentDelay;
             if (increment) {
                 _currentDelay = _currentDelay.Add(_currentDelay);
                 _tries++;
             }
 
-            return _currentDelay;
+            return retVal;
         }
 
         public void Reset()

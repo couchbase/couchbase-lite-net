@@ -53,6 +53,7 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
 using System.Text;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -120,10 +121,16 @@ namespace Couchbase.Lite
                 { "revpos", 0 },
                 { "following", true }
             };
+
             props["_attachments"] = atts;
-            doc.PutExistingRevision(props, new Dictionary<string, Stream> {
+            var success = doc.PutExistingRevision(props, new Dictionary<string, Stream> {
                 { "zero.txt", new MemoryStream(Encoding.UTF8.GetBytes("zero")) }
             }, new List<string> { "3-0000", rev3.Id, rev.Id }, null);
+            Assert.IsTrue(success);
+
+            var rev5 = doc.GetRevision("3-0000");
+            var att = rev5.GetAttachment("zero.txt");
+            Assert.IsNotNull(att);
         }
 
         [Test]
@@ -372,21 +379,19 @@ namespace Couchbase.Lite
         public void TestChangeListenerNotificationBatching()
         {
             const int numDocs = 50;
-            var atomicInteger = 0;
             var doneSignal = new CountdownEvent(1);
 
-            database.Changed += (sender, e) => Interlocked.Increment (ref atomicInteger);
+            database.Changed += (sender, e) => doneSignal.Signal(); ;
 
             database.RunInTransaction(() =>
             {
                 CreateDocuments(database, numDocs);
-                doneSignal.Signal();
+                
                 return true;
             });
 
-            var success = doneSignal.Wait(TimeSpan.FromSeconds(30));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(1));
             Assert.IsTrue(success);
-            Assert.AreEqual(1, atomicInteger);
         }
 
         /// <summary>
@@ -397,11 +402,11 @@ namespace Couchbase.Lite
         public void TestChangeListenerNotification()
         {
             const int numDocs = 50;
-            var atomicInteger = 0;
+            var countdownEvent = new CountdownEvent(numDocs);
 
-            database.Changed += (sender, e) => Interlocked.Increment (ref atomicInteger);
+            database.Changed += (sender, e) => countdownEvent.Signal();
             CreateDocuments(database, numDocs);
-            Assert.AreEqual(numDocs, atomicInteger);
+            Assert.IsTrue(countdownEvent.Wait(TimeSpan.FromSeconds(1)));
         }
 
         /// <summary>
@@ -493,13 +498,13 @@ namespace Couchbase.Lite
 
             var docNumericId = sqliteStorage.GetDocNumericID(doc.Id);
             Assert.IsTrue(docNumericId != 0);
-            Assert.AreEqual(rev1.Id, sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
+            Assert.AreEqual(rev1.Id.AsRevID(), sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
             Assert.IsFalse(outIsConflict);
 
             var newRev2a = rev1.CreateRevision();
             newRev2a.SetUserProperties(properties2a);
             var rev2a = newRev2a.Save();
-            Assert.AreEqual(rev2a.Id, sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
+            Assert.AreEqual(rev2a.Id.AsRevID(), sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
             Assert.IsFalse(outIsConflict);
 
             var newRev2b = rev1.CreateRevision();

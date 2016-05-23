@@ -75,14 +75,14 @@ namespace Couchbase.Lite {
         [Obsolete("Use Database CreateDocument or GetDocument")]
         public Document(Database database, string documentId)
         {
-            _eventContext = database.Manager.CapturedContext;
+            _eventContext = database?.Manager?.CapturedContext ?? new TaskFactory(TaskScheduler.Current);
             Database = database;
             Id = documentId;
         }
 
         internal Document(Database database, string documentId, bool exists)
         {
-            _eventContext = database.Manager.CapturedContext;
+            _eventContext = database?.Manager?.CapturedContext ?? new TaskFactory(TaskScheduler.Current);
             Database = database;
             Id = documentId;
             _currentRevisionKnown = !exists;
@@ -432,7 +432,8 @@ namespace Couchbase.Lite {
         /// <param name="sourceUri">The URL of the database this revision came from, if any.  (This value
         /// shows up in the Database Changed event triggered by this insertion, and can help clients decide
         /// whether the change is local or not)</param>
-        public void PutExistingRevision(IDictionary<string, object> properties, IDictionary<string, Stream> attachments, IList<string> revisionHistory, Uri sourceUri)
+        /// <returns><c>true</c> on success, false otherwise</returns>
+        public bool PutExistingRevision(IDictionary<string, object> properties, IDictionary<string, Stream> attachments, IList<string> revisionHistory, Uri sourceUri)
         {
             if(revisionHistory == null || revisionHistory.Count == 0) {
                 Log.To.Database.E(Tag, "Invalid revision history in PutExistingRevision (must contain at " +
@@ -440,7 +441,16 @@ namespace Couchbase.Lite {
                 throw new ArgumentException("revisionHistory");
             }
 
+            var revIDs = revisionHistory.AsRevIDs().ToList();
+            var rev = new RevisionInternal(Id, revIDs[0], properties.CblDeleted());
+            rev.SetProperties(PropertiesToInsert(properties));
+            if(!Database.RegisterAttachmentBodies(attachments, rev)) {
+                Log.To.Database.W(Tag, "Failed to register attachment bodies, aborting insert...");
+                return false;
+            }
 
+            Database.ForceInsert(rev, revIDs, sourceUri);
+            return true;
         }
 
         /// <summary>
@@ -457,6 +467,27 @@ namespace Couchbase.Lite {
 
 
     #region Non-public Members
+
+        private IDictionary<string, object> PropertiesToInsert(IDictionary<string, object> properties)
+        {
+            var idProp = properties.CblID();
+            if(idProp != null && idProp != Id) {
+                Log.To.Database.W(Tag, "Trying to PUT wrong _id to {0}: {1}", this, new SecureLogJsonString(properties, LogMessageSensitivity.PotentiallyInsecure));
+            }
+
+            var nuProperties = properties == null ? null : new Dictionary<string, object>(properties);
+
+            // Process attachments dict, converting Attachments in dicts
+            var attachments = properties.CblAttachments();
+            if(attachments != null && attachments.Count > 0) {
+                var expanded = Attachment.InstallAttachmentBodies(attachments, Database);
+                if(expanded != attachments) {
+                    nuProperties["_attachments"] = expanded;
+                }
+            }
+
+            return nuProperties;
+        }
 
         internal void ForgetCurrentRevision()
         {
@@ -503,24 +534,11 @@ namespace Couchbase.Lite {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       
         internal SavedRevision PutProperties(IDictionary<string, object> properties, RevisionID prevID, bool allowConflict)
         {
-            var propsCopy = properties == null ? null : new Dictionary<string, object>(properties);
-            string newId = propsCopy == null ? null : propsCopy.CblID();
-            if (newId != null && !newId.Equals(Id, StringComparison.InvariantCultureIgnoreCase))  {
-                Log.To.Database.W(Tag, "{0} trying to put wrong _id to properties: {1}", this, propsCopy);
+            var newRev = Database.PutDocument(Id, PropertiesToInsert(properties), prevID, allowConflict, null);
+            if(newRev == null) {
+                return null;
             }
 
-            // Process _attachments dict, converting CBLAttachments to dicts:
-            IDictionary<string, object> attachments = null;
-            if (propsCopy != null && propsCopy.ContainsKey("_attachments")) {
-                attachments = propsCopy.Get("_attachments").AsDictionary<string,object>();
-            }
-
-            if (attachments != null && attachments.Count > 0) {
-                var updatedAttachments = Attachment.InstallAttachmentBodies(attachments, Database);
-                propsCopy["_attachments"] = updatedAttachments;
-            }
-                
-            var newRev = Database.PutDocument(Id, propsCopy, prevID, allowConflict, null);
             return GetRevisionFromRev(newRev);
         }
 

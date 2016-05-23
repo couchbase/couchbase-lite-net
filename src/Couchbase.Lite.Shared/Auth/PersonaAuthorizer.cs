@@ -236,7 +236,7 @@ namespace Couchbase.Lite.Auth
                 var component3Json = mapper.ReadValue<object>(component3Decoded).AsDictionary<object, object>();
                 result[AssertionFieldOrigin] = component3Json.Get("aud");
 
-                var expObject = (ulong)component3Json.Get("exp");
+                var expObject = Convert.ToUInt64(component3Json.Get("exp"));
                 var expDate = Misc.CreateDate(expObject);
                 result[AssertionFieldExpiration] = expDate;
             } catch (Exception e) {

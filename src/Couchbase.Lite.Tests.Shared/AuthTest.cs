@@ -196,8 +196,9 @@ namespace Couchbase.Lite
 
             RunReplication(replicator);
 
-            var lastError = replicator.LastError;
+            var lastError = replicator.LastError as HttpResponseException;
             Assert.IsNotNull(lastError);
+            Assert.AreEqual(HttpStatusCode.Unauthorized, lastError.StatusCode);
         }
 
         [Test]

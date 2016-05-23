@@ -48,6 +48,7 @@ using System.Collections.Generic;
 using Couchbase.Lite.Internal;
 using NUnit.Framework;
 using Couchbase.Lite.Revisions;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -61,10 +62,9 @@ namespace Couchbase.Lite
         [Test]
         public void TestChangeNotification()
         {
-            var changeNotifications = 0;
-
+            var countDown = new CountdownEvent(1);
             EventHandler<DatabaseChangeEventArgs> handler
-                = (sender, e) => changeNotifications++;
+                = (sender, e) => countDown.Signal();
 
             database.Changed += handler;
 
@@ -78,8 +78,9 @@ namespace Couchbase.Lite
             var rev1 = new RevisionInternal(body);
 
             database.PutRevision(rev1, null, false);
+            Sleep(500);
             
-            Assert.AreEqual(1, changeNotifications);
+            Assert.IsTrue(countDown.Wait(TimeSpan.FromSeconds(1)));
 
             // Analysis disable once DelegateSubtraction
             database.Changed -= handler;
@@ -88,11 +89,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestLocalChangesAreNotExternal()
         {
-            var changeNotifications = 0;
+            var countDown = new CountdownEvent(1);
 
             EventHandler<DatabaseChangeEventArgs> handler = (sender, e) =>
             {
-                changeNotifications++;
+                countDown.Signal();
                 Assert.IsFalse(e.IsExternal);
             };
 
@@ -103,7 +104,7 @@ namespace Couchbase.Lite
             document.CreateRevision().Save();
 
             // Make sure that the assertion in changeListener was called.
-            Assert.AreEqual(1, changeNotifications);
+            Assert.IsTrue(countDown.Wait(TimeSpan.FromSeconds(1)));
 
             // Analysis disable once DelegateSubtraction
             database.Changed -= handler;
@@ -112,12 +113,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestPulledChangesAreExternal()
         {
-            var changeNotifications = 0;
+            var countDown = new CountdownEvent(1);
 
             EventHandler<DatabaseChangeEventArgs> handler = (sender, e) =>
             {
-                changeNotifications++;
-                Assert.IsTrue(e.IsExternal);
+                countDown.Signal();
+                Assert.IsFalse(e.IsExternal);
             };
 
             database.Changed += handler;
@@ -132,7 +133,7 @@ namespace Couchbase.Lite
             history.Add(rev.RevID);
             database.ForceInsert(rev, history, GetReplicationURL());
 
-            Assert.AreEqual(1, changeNotifications);
+            Assert.IsTrue(countDown.Wait(TimeSpan.FromSeconds(1)));
 
             // Analysis disable once DelegateSubtraction
             database.Changed -= handler;

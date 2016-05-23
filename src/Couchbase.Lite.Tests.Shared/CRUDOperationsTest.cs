@@ -168,9 +168,9 @@ namespace Couchbase.Lite
 
             // Get Revision History:
             IList<RevisionID> history = database.Storage.GetRevisionHistory(revD, null);
-            Assert.AreEqual(revD, history[0]);
-            Assert.AreEqual(rev2, history[1]);
-            Assert.AreEqual(rev1, history[2]);
+            Assert.AreEqual(revD.RevID, history[0]);
+            Assert.AreEqual(rev2.RevID, history[1]);
+            Assert.AreEqual(rev1.RevID, history[2]);
         }
     }
 }

@@ -45,7 +45,6 @@ using System.IO;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
-using System.Runtime.Serialization;
 
 namespace Couchbase.Lite {
 
@@ -71,7 +70,6 @@ namespace Couchbase.Lite {
         AttachmentMetadataDictionary.EncodedLength, typeof(long),
         AttachmentMetadataDictionary.Encoding, typeof(string)
     })]
-    [DataContract]
     internal sealed class AttachmentMetadataDictionary : ContractedDictionary
     {
         internal const string ContentType = "content_type";
@@ -176,7 +174,7 @@ namespace Couchbase.Lite {
                                 "Error installing attachment body ({0})", errMsg);
                         }
 
-                        database.RememberAttachmentWriter(writer);
+                        database.RememberAttachmentWriter(writer, writer.SHA1DigestString());
                     }
 
                     attachment.Dispose();

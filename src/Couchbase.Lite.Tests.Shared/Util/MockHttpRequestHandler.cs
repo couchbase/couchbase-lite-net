@@ -103,21 +103,15 @@ namespace Couchbase.Lite.Tests
             }
 
             if (responder != null) {
-                HttpResponseMessage message = null;
-                try {
-                    message = responder(request);
-                } catch(Exception e) {
-                    var tcs = new TaskCompletionSource<HttpResponseMessage>();
-                    tcs.SetException(e);
-                    return tcs.Task;
-                }
+                return Task.Factory.StartNew(() =>
+                {
+                    var message = responder(request);
+                    if(message is RequestCorrectHttpMessage) {
+                        return base.SendAsync(request, cancellationToken).Result;
+                    }
 
-                Task<HttpResponseMessage> retVal = Task.FromResult<HttpResponseMessage>(message);
-                NotifyResponseListeners(request, message);
-                if (message is RequestCorrectHttpMessage)
-                    return base.SendAsync(request, cancellationToken);
-                
-                return retVal;
+                    return message;
+                }, TaskCreationOptions.LongRunning);
             } else if(DefaultFail) {
                 throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
             }
