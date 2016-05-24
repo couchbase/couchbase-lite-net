@@ -71,10 +71,17 @@ namespace Couchbase.Lite.Revisions
     }
 
     [JsonConverter(typeof(RevisionConverter))]
-    internal abstract class RevisionID : IComparable<RevisionID>
+    internal abstract class RevisionID : IComparable<RevisionID>, IEquatable<string>
     {
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int memcmp(byte[] b1, byte[] b2, UIntPtr count);
+
+        public bool IsValid
+        {
+            get {
+                return Generation > 0 && Suffix != null;
+            }
+        }
 
         public virtual int Generation
         {
@@ -175,6 +182,11 @@ namespace Couchbase.Lite.Revisions
 
         public abstract int CompareTo(RevisionID other);
 
+        public bool Equals(string other)
+        {
+            return ToString().Equals(other);
+        }
+
         public static bool operator ==(RevisionID left, RevisionID right)
         {
             if(ReferenceEquals(left, null)) {
@@ -203,7 +215,7 @@ namespace Couchbase.Lite.Revisions
 
         public static IEnumerable<RevisionID> AsRevIDs(this IList<string> list)
         {
-            return list.Select(x => RevisionIDFactory.FromString(x));
+            return list?.Select(x => RevisionIDFactory.FromString(x));
         }
 
         public static IEnumerable<RevisionID> AsMaybeRevIDs(this IList list)

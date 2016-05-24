@@ -898,7 +898,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         {
             var retVal = StorageEngine.RunInTransaction(block);
             if (!StorageEngine.InTransaction) {
-                Misc.IfNotNull(Delegate, d => d.StorageExitedTransaction(retVal));
+                Delegate?.StorageExitedTransaction(retVal);
             }
 
             return retVal;
@@ -1011,6 +1011,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 result.Sequence = c.GetLong(2);
                 if(withBody) {
                     result.SetJson(c.GetBlob(3));
+                } else {
+                    result.Missing = c.GetInt(3) == 0;
                 }
                     
                 return false;
@@ -1068,7 +1070,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return 0L;
             }
 
-            return QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT sequence FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID);
+            return QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT sequence FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID.ToString());
         }
 
         public RevisionInternal GetParentRevision(RevisionInternal rev)
@@ -1083,7 +1085,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     return null;
                 }
 
-                seq = QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT parent FROM revs WHERE doc_id=? and revid=?", docNumericId, rev.RevID);
+                seq = QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT parent FROM revs WHERE doc_id=? and revid=?", docNumericId, rev.RevID.ToString());
             }
 
             if (seq == 0) {
@@ -1132,7 +1134,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 if(matches) {
                     var nextRevId = c.GetString(2).AsRevID();
                     history.Add(nextRevId);
-                    bool deleted = c.GetInt(3) != 0;
                     lastSequence = c.GetLong(1);
                     if(lastSequence == 0) {
                         return false;
@@ -1214,7 +1215,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 "WHERE doc_id=? and revid in ({0}) and revid <= ? " +
                 "ORDER BY revid DESC LIMIT 1", Utility.JoinQuoted(revIds.Select(x => x.ToString())));
 
-            return QueryOrDefault(c => c.GetString(0), false, null, sql, docNumericId, rev.RevID).AsRevID();
+            return QueryOrDefault(c => c.GetString(0), false, null, sql, docNumericId, rev.RevID.ToString()).AsRevID();
         }
 
         public int FindMissingRevisions(RevisionList revs)
@@ -1680,7 +1681,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             });
 
             //// EPILOGUE: A change notification is sent...
-            Delegate.DatabaseStorageChanged(new DocumentChange(newRev, winningRevID.ToString(), inConflict, source));
+            Delegate.DatabaseStorageChanged(new DocumentChange(newRev, winningRevID, inConflict, source));
 
             return newRev;
         }
@@ -1852,7 +1853,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return true;
             });
                 
-            Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId?.ToString(), inConflict, source));
+            Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId, inConflict, source));
         }
 
         public IDictionary<string, object> PurgeRevisions(IDictionary<string, IList<string>> docsToRev)

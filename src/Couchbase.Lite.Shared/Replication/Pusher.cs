@@ -377,7 +377,7 @@ namespace Couchbase.Lite.Replicator
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
             {
                 if (e != null) {
-                    var httpError = Misc.Flatten(e) as HttpResponseException;
+                    var httpError = Misc.Flatten(e).FirstOrDefault(ex => ex is HttpResponseException) as HttpResponseException;
                     if (httpError != null) {
                         if (httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType) {
                             _dontSendMultipart = true;
@@ -446,7 +446,7 @@ namespace Couchbase.Lite.Replicator
                     }
 
                     var revs = revResults.Get("missing").AsList<string>();
-                    if (revs == null || !revs.Any(id => id.Equals(rev.RevID))) {
+                    if (revs == null || !revs.Any(id => id.Equals(rev.RevID.ToString()))) {
                         RemovePending(rev);
                         //SafeIncrementCompletedChangesCount();
                         continue;

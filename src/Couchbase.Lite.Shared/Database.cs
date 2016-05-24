@@ -1319,7 +1319,7 @@ namespace Couchbase.Lite
         /// <summary>Parses the _revisions dict from a document into an array of revision ID strings.</summary>
         internal static IList<RevisionID> ParseCouchDBRevisionHistory(IDictionary<string, object> docProperties)
         {
-            return TreeRevisionID.ParseRevisionHistoryDict(docProperties);
+            return TreeRevisionID.ParseRevisionHistoryDict(docProperties.Get("_revisions")?.AsDictionary<string, object>());
         }
 
         internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, RevisionID prevRevId, bool allowConflict, Uri source)

@@ -143,45 +143,34 @@ namespace Couchbase.Lite.Tests
             LiteTestCase.WriteDebug("Send http request to " + pathToDoc);
 
             var httpRequestDoneSignal = new CountdownEvent(1);
-            Task.Factory.StartNew(() =>
+            var t = Task.Factory.StartNew(() =>
             {
                 HttpResponseMessage response;
                 string responseString = null;
-                try
-                {
-                    var responseTask = _httpClient.GetAsync(pathToDoc.ToString());
-                    response = responseTask.Result;
-                    var statusLine = response.StatusCode;
+                var responseTask = _httpClient.GetAsync(pathToDoc.ToString());
+                response = responseTask.Result;
+                var statusLine = response.StatusCode;
+                try {
                     Assert.IsTrue(statusLine == HttpStatusCode.OK);
-                    if (statusLine == HttpStatusCode.OK)
-                    {
+                    if(statusLine == HttpStatusCode.OK) {
                         var responseStringTask = response.Content.ReadAsStringAsync();
                         responseStringTask.Wait(TimeSpan.FromSeconds(10));
                         responseString = responseStringTask.Result;
                         Assert.IsTrue(responseString.Contains(docId));
-                        LiteTestCase.WriteDebug("result: " + responseString);
-                    }
-                    else
-                    {
+                        LiteTestCase.WriteDebug("result: {0}", responseString);
+                    } else {
                         var statusReason = response.ReasonPhrase;
                         response.Dispose();
                         throw new IOException(statusReason);
                     }
+                } finally {
+                    httpRequestDoneSignal.Signal();
                 }
-                catch (ProtocolViolationException e)
-                {
-                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                }
-                catch (IOException e)
-                {
-                    Assert.IsNull(e, "Got IOException: " + e.Message);
-                }
-
-                httpRequestDoneSignal.Signal();
             });
 
             var result = httpRequestDoneSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
+            Assert.IsNull(t.Exception);
         }
 
         public void DisableGuestAccess()

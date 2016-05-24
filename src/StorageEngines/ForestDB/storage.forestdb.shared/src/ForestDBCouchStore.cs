@@ -187,6 +187,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                         break;
                 }
             });
+            Native.c4doc_generateOldStyleRevID(true);
         }
 
         public ForestDBCouchStore()
@@ -303,8 +304,8 @@ namespace Couchbase.Lite.Storage.ForestDB
             var doc = default(C4Document*);
             try {
                 doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, docId, !create, err));
-                if(revId != null) {                    
-                    ForestDBBridge.Check(err => 
+                if(revId != null) { 
+                    RetryHandler.RetryIfBusy().AllowError(410, C4ErrorDomain.HTTP).Execute(err => 
                     {
                         bool result = false;
                         revId.PinAndUse(slice =>
@@ -317,19 +318,16 @@ namespace Couchbase.Lite.Storage.ForestDB
                 }
 
                 if(withBody) {
-                    ForestDBBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
+                    RetryHandler.RetryIfBusy().AllowError(410, C4ErrorDomain.HTTP).Execute((err => Native.c4doc_loadRevisionBody(doc, err)));
                 }
             } catch(CBForestException e) {
                 var is404 = e.Domain == C4ErrorDomain.ForestDB && e.Code == (int)ForestDBStatus.KeyNotFound;
                 is404 |= e.Domain == C4ErrorDomain.HTTP && e.Code == 404;
-                var is410 = e.Domain == C4ErrorDomain.HTTP && e.Code == 410; // Body compacted
-
-                if (!is404 && !is410) {
+                Native.c4doc_free(doc);
+                doc = null;
+                if (!is404) {
                     throw;
                 }
-
-                Native.c4doc_free(doc); // In case the failure was in selectRevision
-                doc = null;
             }
 
             try {
@@ -463,11 +461,11 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         private DocumentChange ChangeWithNewRevision(RevisionInternal inRev, bool isWinningRev, C4Document *doc, Uri source)
         {
-            var winningRevId = default(string);
+            var winningRevId = default(RevisionID);
             if(isWinningRev) {
-                winningRevId = inRev.RevID.ToString();
+                winningRevId = inRev.RevID;
             } else {
-                winningRevId = (string)doc->revID;
+                winningRevId = doc->revID.AsRevID();
             }
 
             return new DocumentChange(inRev, winningRevId, doc->IsConflicted, source);
@@ -1194,7 +1192,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                         var status = validationBlock(putRev, prevRev, prevRev == null ? null : prevRev.RevID);
                         if(status.IsError) {
                             Log.To.Validation.I(TAG, "{0} ({1}) failed validation", new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), new SecureLogString(newRevID, LogMessageSensitivity.PotentiallyInsecure));
-                            return false;
+                            throw new CouchbaseLiteException("A document failed validation", status.Code);
                         }
                     }
 

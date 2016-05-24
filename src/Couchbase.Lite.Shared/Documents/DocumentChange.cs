@@ -43,6 +43,7 @@
 using System;
 
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite {
 
@@ -54,7 +55,7 @@ namespace Couchbase.Lite {
         internal RevisionInternal AddedRevision { get; private set; }
 
         // Used by plugins
-        internal DocumentChange(RevisionInternal addedRevision, string winningRevisionId, bool isConflict, Uri sourceUrl)
+        internal DocumentChange(RevisionInternal addedRevision, RevisionID winningRevisionId, bool isConflict, Uri sourceUrl)
         {
             AddedRevision = addedRevision;
             WinningRevisionId = winningRevisionId;
@@ -68,21 +69,21 @@ namespace Couchbase.Lite {
         /// Gets the Id of the <see cref="Couchbase.Lite.Document"/> that changed.
         /// </summary>
         /// <value>The Id of the <see cref="Couchbase.Lite.Document"/> that changed.</value>
-        public String DocumentId { get { return AddedRevision.DocID; } }
+        public string DocumentId { get { return AddedRevision.DocID; } }
 
         /// <summary>
         /// Gets the Id of the new Revision.
         /// </summary>
         /// <value>The Id of the new Revision.</value>
-        public String RevisionId { get { return AddedRevision.RevID.ToString(); } }
+        public string RevisionId { get { return AddedRevision.RevID.ToString(); } }
 
         /// <summary>
         /// Gets a value indicating whether this instance is current revision.
         /// </summary>
         /// <value><c>true</c> if this instance is current revision; otherwise, <c>false</c>.</value>
-        public Boolean IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.RevID.ToString()); } }
+        public bool IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.RevID.ToString()); } }
 
-        internal string WinningRevisionId { get; private set; }
+        internal RevisionID WinningRevisionId { get; private set; }
 
         /// <summary>
         /// Gets the winning revision.
@@ -105,7 +106,7 @@ namespace Couchbase.Lite {
         /// Gets a value indicating whether this instance is conflict.
         /// </summary>
         /// <value><c>true</c> if this instance is conflict; otherwise, <c>false</c>.</value>
-        public Boolean IsConflict { get; private set; }
+        public bool IsConflict { get; private set; }
 
         /// <summary>
         /// Gets the remote URL of the source Database from which this change was replicated.
@@ -113,8 +114,29 @@ namespace Couchbase.Lite {
         /// <value>The remote URL of the source Database from which this change was replicated.</value>
         public Uri SourceUrl { get; private set; }
 
-    #endregion
+        #endregion
 
-    }
+        #region Overrides
+
+        public override bool Equals(object obj)
+        {
+            var other = obj as DocumentChange;
+            if(other == null) {
+                return false;
+            }
+
+            return RevisionInternal.Equals(AddedRevision, other.AddedRevision) &&
+                String.Equals(WinningRevisionId, other.WinningRevisionId) &&
+                Uri.Equals(SourceUrl, other.SourceUrl);
+        }
+
+        public override string ToString()
+        {
+            return String.Format("DocumentChange[AddedRevision={0}, IsWinner={1}]", AddedRevision, WinningRevisionId == RevisionId.AsRevID());
+        }
+
+        #endregion
+
+    }
 
 }

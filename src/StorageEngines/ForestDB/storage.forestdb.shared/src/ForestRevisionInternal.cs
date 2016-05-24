@@ -37,7 +37,11 @@ namespace Couchbase.Lite.Storage.ForestDB.Internal
             if (loadBody) {
                 // Important not to lazy load here since we can only assume
                 // doc lives until immediately after this function ends
-                SetBody(new Body(doc->selectedRev.body.ToArray())); 
+                if(doc->selectedRev.body.buf == null) {
+                    Missing = true;
+                } else {
+                    SetBody(new Body(doc->selectedRev.body.ToArray()));
+                }
             }
         }
 

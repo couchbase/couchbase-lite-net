@@ -46,6 +46,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -74,7 +75,7 @@ namespace Couchbase.Lite
         /// Constructor
         /// </summary>
         /// <param name="json">An enumerable collection of bytes storing JSON</param>
-        public Body(IEnumerable<Byte> json)
+        public Body(IEnumerable<byte> json)
         {
             _json = json.ToArray();
         }
@@ -95,6 +96,25 @@ namespace Couchbase.Lite
         public Body(IList<object> array)
         {
             _jsonObject = array;
+        }
+
+        internal Body(IEnumerable<byte> json, string docID, RevisionID revID, bool deleted)
+        {
+            var count = json.Count();
+            if(json != null && count < 2) {
+                _jsonObject = new NonNullDictionary<string, object> {
+                    { "_id", docID },
+                    { "_rev", revID.ToString() },
+                    { "_deleted", deleted ? (object)true : null }
+                };
+                return;
+            }
+
+            var stringToAdd = String.Format("{{\"_id\":\"{0}\",\"_rev\":\"{1}\",{2}}}", docID, revID,
+                deleted ? "\"_deleted\":true," : String.Empty);
+            var bytes = Encoding.UTF8.GetBytes(stringToAdd).ToList();
+            bytes.InsertRange(bytes.Count - 1, json.Skip(1).Take(count - 2));
+            _json = bytes.ToArray();
         }
 
         #endregion
@@ -141,7 +161,7 @@ namespace Couchbase.Lite
         /// of this object in human readable form.
         /// </summary>
         /// <returns>JSON bytes</returns>
-        public IEnumerable<Byte> AsPrettyJson()
+        public IEnumerable<byte> AsPrettyJson()
         {
             object properties = AsObject();
             if (properties != null) {

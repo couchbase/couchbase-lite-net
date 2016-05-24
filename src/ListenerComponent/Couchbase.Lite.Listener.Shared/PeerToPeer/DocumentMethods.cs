@@ -106,14 +106,14 @@ namespace Couchbase.Lite.Listener
                         return response;
                     }
 
-                    if(context.CacheWithEtag(rev.RevID.ToString())) {
+                    if(context.CacheWithEtag(rev.RevID?.ToString())) {
                         response.InternalStatus = StatusCode.NotModified;
                         return response;
                     }
 
                     if(!isLocalDoc && includeAttachments) {
                         int minRevPos = 1;
-                        var attsSince = context.GetJsonQueryParam("atts_since").AsList<string>().AsRevIDs();
+                        var attsSince = context.GetJsonQueryParam("atts_since")?.AsList<string>()?.AsRevIDs();
                         var ancestorId = db.Storage.FindCommonAncestor(rev, attsSince);
                         if(ancestorId != null) {
                             minRevPos = ancestorId.Generation + 1;

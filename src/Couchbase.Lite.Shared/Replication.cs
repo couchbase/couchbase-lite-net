@@ -578,13 +578,13 @@ namespace Couchbase.Lite
 
                     if (managerClientFactory != null) {
                         _clientFactory = managerClientFactory;
-                    }
-                    else {
-                        var id = LocalDatabase == null ? null : RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
-                        _cookieStore = new CookieStore(LocalDatabase, id);
+                    }  else {
                         _clientFactory = new CouchbaseLiteHttpClientFactory();
                     }
                 }
+
+                var id = LocalDatabase == null ? null : RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
+                _cookieStore = new CookieStore(LocalDatabase, id);
             }
         }
 

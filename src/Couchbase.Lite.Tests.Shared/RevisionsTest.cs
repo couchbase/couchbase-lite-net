@@ -73,25 +73,25 @@ namespace Couchbase.Lite
             Assert.AreEqual("fdjfdsj-e", parsed.Suffix);
 
             parsed = "0-fdjfdsj-e".AsRevID();
-            Assert.IsTrue(parsed.Generation == 0 && parsed.Suffix == "fdjfdsj-e");
+            Assert.IsFalse(parsed.IsValid);
             parsed = "-4-fdjfdsj-e".AsRevID();
-            Assert.IsTrue(parsed.Generation < 0);
+            Assert.IsFalse(parsed.IsValid);
             parsed = "5_fdjfdsj-e".AsRevID();
-            Assert.IsTrue(parsed.Generation < 0);
+            Assert.IsFalse(parsed.IsValid);
             parsed = " 5-fdjfdsj-e".AsRevID();
-            Assert.IsTrue(parsed.Generation < 0);
+            Assert.IsFalse(parsed.IsValid);
             parsed = "7 -foo".AsRevID();
-            Assert.IsTrue(parsed.Generation < 0);
+            Assert.IsFalse(parsed.IsValid);
             parsed = "7-".AsRevID();
-            Assert.IsTrue(parsed.Generation < 0);
+            Assert.IsFalse(parsed.IsValid);
             parsed = "7".AsRevID();
-           
-            Assert.IsTrue(parsed.Generation < 0);
+
+            Assert.IsFalse(parsed.IsValid);
             parsed = "eiuwtiu".AsRevID();
-           
-            Assert.IsTrue(parsed.Generation < 0);
+
+            Assert.IsFalse(parsed.IsValid);
             parsed = string.Empty.AsRevID();
-            Assert.IsTrue(parsed.Generation < 0);
+            Assert.IsFalse(parsed.IsValid);
         }
 
         [Test]

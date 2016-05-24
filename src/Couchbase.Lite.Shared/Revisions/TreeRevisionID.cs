@@ -89,9 +89,9 @@ namespace Couchbase.Lite.Revisions
                 throw Misc.CreateExceptionAndLog(Log.To.Database, Tag, "Failed to acquire a class to create MD5");
             }
 
-            var length = 0;
             if(prevRevID != null) {
                 var prevIDData = prevRevID.AsData();
+                var length = prevIDData.Length;
                 var lengthByte = unchecked((byte)(length & unchecked((0xFF))));
                 md5Digest.Update(lengthByte);
                 if(lengthByte > 0) {
@@ -147,7 +147,7 @@ namespace Couchbase.Lite.Revisions
                 };
             } else {
                 return new Dictionary<string, object> {
-                    { "ids", suffixes.Select(x => x.ToString()) }
+                    { "ids", history.Select(x => x.ToString()) }
                 };
             }
         }

@@ -234,9 +234,9 @@ namespace Couchbase.Lite.Internal
         }
 
         // Unused, but here for balance
-        internal IEnumerable<Byte> GetJson()
+        internal IEnumerable<byte> GetJson()
         {
-            IEnumerable<Byte> result = null;
+            IEnumerable<byte> result = null;
             if(_body != null) {
                 result = _body.AsJson();
             }
@@ -245,9 +245,15 @@ namespace Couchbase.Lite.Internal
         }
 
         // Used by plugins
-        internal void SetJson(IEnumerable<Byte> json)
+        internal void SetJson(IEnumerable<byte> json)
         {
-            _body = new Body(json);
+            if(json != null) {
+                _body = new Body(json, DocID, RevID, Deleted);
+                Missing = false;
+            } else {
+                _body = null;
+                Missing = true;
+            }
         }
 
         public IDictionary<string, object> GetAttachments()

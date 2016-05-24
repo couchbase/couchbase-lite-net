@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Listener
         #region Constants
 
         private const string TAG = "DatabaseMethods";
-        private const int MIN_HEARTBEAT = 5000; //NOTE: iOS uses seconds but .NET uses milliseconds
+        internal static TimeSpan MinHeartbeat = TimeSpan.FromSeconds(5);
 
         #endregion
 
@@ -363,9 +363,13 @@ namespace Couchbase.Lite.Listener
                             return context.CreateResponse(StatusCode.BadParam);
                         }
 
-                        heartbeat = Math.Max(heartbeat, MIN_HEARTBEAT);
+                        var heartbeatSpan = TimeSpan.FromMilliseconds(heartbeat);
+                        if(heartbeatSpan < MinHeartbeat) {
+                            heartbeatSpan = MinHeartbeat;
+                        }
+
                         string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
-                        responseState.StartHeartbeat(heartbeatResponse, heartbeat);
+                        responseState.StartHeartbeat(heartbeatResponse, heartbeatSpan);
                     }
 
                     return context.CreateResponse();
@@ -450,9 +454,9 @@ namespace Couchbase.Lite.Listener
                             return context.CreateResponse(StatusCode.BadParam);
                         }
 
-                        heartbeat = Math.Max(heartbeat, MIN_HEARTBEAT);
+                        heartbeat = Math.Max(heartbeat, (int)MinHeartbeat.TotalMilliseconds);
                         string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
-                        responseState.StartHeartbeat(heartbeatResponse, heartbeat);
+                        responseState.StartHeartbeat(heartbeatResponse, TimeSpan.FromMilliseconds(heartbeat));
                     }
 
                     return context.CreateResponse();
