@@ -377,10 +377,9 @@ namespace Couchbase.Lite
             Manager.DefaultOptions.RestoreDefaults();
 
             #if !NET_3_5
-            /*if (_storageType == "ForestDB") {
+            if (_storageType == "ForestDB") {
                 CBForest.Native.CheckMemoryLeaks();
-                CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, null);
-            }*/
+            }
             #endif
         }
 

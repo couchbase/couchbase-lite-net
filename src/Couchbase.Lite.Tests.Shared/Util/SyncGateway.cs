@@ -103,10 +103,10 @@ namespace Couchbase.Lite.Tests
                         Delete().ContinueWith(t => Create()).Wait();
                         return;
                     } else {
-                        Assert.Fail("Error from remote: {0}", response.StatusCode);
+                        Assert.Inconclusive("Error from remote when trying to create DB: {0}", response.StatusCode);
                     }
                 } else {
-                    Assert.Fail("Error from remote: {0}", e);
+                    Assert.Inconclusive("Error from remote when trying to create DB: {0}", e);
                 }
             }
 
@@ -128,10 +128,10 @@ namespace Couchbase.Lite.Tests
                         if (response != null) {
                             Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
                         } else {
-                            Assert.Fail("Error from remote: {0}", response.StatusCode);
+                            Assert.Inconclusive("Error from remote when trying to delete DB: {0}", response.StatusCode);
                         }
                     } else {
-                        Assert.Fail("Error from remote: {0}", ex);
+                        Assert.Inconclusive("Error from remote when trying to delete DB: {0}", ex);
                     }
                 }
             });

@@ -38,29 +38,34 @@ namespace Couchbase.Lite
         {
         }
 
-        [TestFixtureSetUp]
-        public void OneTimeSetup()
+        protected override void SetUp()
         {
+            base.SetUp();
             Log.SetLogger(this);
         }
 
-        [TestFixtureTearDown]
-        public void OneTimeTearDown()
+        protected override void TearDown()
         {
             Log.Level = Log.LogLevel.Base;
             Log.Disabled = false;
             Log.SetDefaultLogger();
+
+            base.TearDown();
         }
 
         [Test]
         public void TestLogDisabled()
         {
-            var count = TestLogLevel(Log.LogLevel.Debug);
-            Assert.AreNotEqual(0, count);
+            try {
+                var count = TestLogLevel(Log.LogLevel.Debug);
+                Assert.AreNotEqual(0, count);
 
-            Log.Disabled = true;
-            count = TestLogLevel(Log.LogLevel.Debug);
-            Assert.AreEqual(0, count);
+                Log.Disabled = true;
+                count = TestLogLevel(Log.LogLevel.Debug);
+                Assert.AreEqual(0, count);
+            } finally {
+                Log.Disabled = false;
+            }
         }
 
         [TestCase(Log.LogLevel.None, Result=0)]

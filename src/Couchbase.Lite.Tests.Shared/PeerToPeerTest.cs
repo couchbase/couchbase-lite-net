@@ -65,6 +65,13 @@ namespace Couchbase.Lite
             _listenerDB = EnsureEmptyDatabase(LISTENER_DB_NAME);
         }
 
+        protected override void TearDown()
+        {
+            _listener?.Stop();
+
+            base.TearDown();
+        }
+
         [Test]
         public void TestExternalReplicationStart()
         {

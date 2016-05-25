@@ -1921,7 +1921,7 @@ namespace Couchbase.Lite
         internal void CloseStorage()
         {
             try {
-                Storage.Close();
+                Storage?.Close();
             } catch(CouchbaseLiteException) {
                 Log.To.Database.E(TAG, "Failed to close database, rethrowing...");
                 throw;
