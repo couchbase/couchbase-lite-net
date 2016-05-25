@@ -170,18 +170,6 @@ namespace Couchbase.Lite
             return key;
         }
 
-        public static void IfNotNull<T>(T obj, Action<T> action, Action elseAction = null) where T : class
-        {
-            // This may seem silly but it's pretty boilerplate. Having it in a function
-            // assures that "obj" is a copy of the original reference and so we don't
-            // need to add an additional `var tmp = obj`
-            if (obj != null && action != null) {
-                action(obj);
-            } else if (obj == null && elseAction != null) {
-                elseAction();
-            }
-        }
-
         public static void SafeNull<T>(ref T obj, Action<T> action) where T : class
         {
             #if !__UNITY__
@@ -286,7 +274,7 @@ namespace Couchbase.Lite
             return param.Replace("\"", string.Empty);
         }
 
-		public static HttpStatusCode? GetStatusCode(WebException we)
+        public static HttpStatusCode? GetStatusCode(WebException we)
         {
             if (we == null || we.Response == null) {
                 return null;

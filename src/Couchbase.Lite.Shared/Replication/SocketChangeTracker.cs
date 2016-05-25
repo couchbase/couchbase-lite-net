@@ -85,7 +85,7 @@ namespace Couchbase.Lite.Internal
 
             tokenSource = new CancellationTokenSource();
             _responseLogic = ChangeTrackerResponseLogicFactory.CreateLogic(this);
-            _responseLogic.OnCaughtUp = () => Misc.IfNotNull(Client, c => c.ChangeTrackerCaughtUp(this));
+            _responseLogic.OnCaughtUp = () => Client?.ChangeTrackerCaughtUp(this);
             _responseLogic.OnChangeFound = (change) =>
             {
                 if (!ReceivedChange(change)) {
@@ -328,7 +328,7 @@ namespace Couchbase.Lite.Internal
             return response.Content.ReadAsStreamAsync().ContinueWith((Task<Stream> t) =>
             {
                 try {
-                    var result = _responseLogic.ProcessResponseStream(t.Result, changesFeedRequestTokenSource.Token);
+                    var result = _responseLogic.ProcessResponseStream(t?.Result, changesFeedRequestTokenSource == null ? CancellationToken.None : changesFeedRequestTokenSource.Token);
                     Backoff.ResetBackoff();
                     if(result == ChangeTrackerResponseCode.ChangeHeartbeat) {
                         Heartbeat = _responseLogic.Heartbeat;

@@ -28,8 +28,8 @@ namespace Couchbase.Lite.Util
     /// retry sending messages after receiving transient errors.
     /// Must be able to clone itself and have the clone be independent.
     /// </summary>
-	public interface IRetryStrategy
-	{
+    public interface IRetryStrategy
+    {
         /// <summary>
         /// Gets the number of attempts left before giving up on the
         /// failed message.
@@ -62,6 +62,6 @@ namespace Couchbase.Lite.Util
         /// Makes a copy of this retry strategy, set to its initial state
         /// </summary>
         IRetryStrategy Copy();
-	}
+    }
 }
 

@@ -384,7 +384,8 @@ namespace Couchbase.Lite
                 var tracker = new BadWebSocketChangeTracker(new ChangeTrackerOptions {
                     DatabaseUri = remoteDb.RemoteUri,
                     IncludeConflicts = false,
-                    Client = client
+                    Client = client,
+                    RetryStrategy = new ExponentialBackoffStrategy(2)
                 });
 
                 tracker.Start();
@@ -470,7 +471,6 @@ namespace Couchbase.Lite
 
             changeTracker.Start();
             Assert.IsTrue(changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(20)));
-            Assert.IsNull(changeTracker.Error);
         }
 
         [Test]

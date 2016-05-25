@@ -55,6 +55,7 @@ using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -102,7 +103,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(0, e.Count);
         }
 
-		[Test]
+        [Test]
         public void TestCustomFilter()
         {
             var view = database.GetView("vu");
@@ -201,9 +202,9 @@ namespace Couchbase.Lite
             var view = database.GetView("view");
             view.SetMap((doc, emit) =>
             {
-                int i = doc.GetCast<int>("_id");
-                emit(new List<object> { doc.Get("key"), i }, null);
-                emit(new List<object> { doc.Get("key"), i/100 }, null);
+                var i = doc.CblID();
+                emit(new List<object> { doc.Get("key"), Int32.Parse(i) }, null);
+                emit(new List<object> { doc.Get("key"), Int32.Parse(i) / 100 }, null);
             }, "1");
 
             Assert.AreEqual(StatusCode.Ok, view.UpdateIndex().Code);
@@ -237,7 +238,7 @@ namespace Couchbase.Lite
         }
 
         #if !NET_3_5
-		[Test]
+        [Test]
         public void TestParallelViewQueries()
         {
             var vu = database.GetView("prefix/vu");
@@ -392,14 +393,14 @@ namespace Couchbase.Lite
         public void TestViewValueIsEntireDoc()
         {
             var view = database.GetView("vu");
-            view.SetMap((doc, emit) => emit(doc["_id"], doc), "0.1");
+            view.SetMap((doc, emit) => emit(doc.CblID(), doc), "0.1");
             CreateDocuments(database, 10);
             var rows = view.CreateQuery().Run();
             foreach (var row in rows) {
                 Assert.IsNotNull(row.Value);
                 var dict = row.Value.AsDictionary<string, object>();
                 Assert.IsNotNull(dict);
-                Assert.AreEqual(row.Key, dict["_id"]);
+                Assert.AreEqual(row.Key, dict.CblID());
             }
         }
 
@@ -580,8 +581,8 @@ namespace Couchbase.Lite
             var view = db.GetView("aview");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
                 {
-                    Assert.IsNotNull(document["_id"]);
-                    Assert.IsNotNull(document["_rev"]);
+                    Assert.IsNotNull(document.CblID());
+                    Assert.IsNotNull(document.CblRev());
                     if (document["key"] != null)
                     {
                         emitter(document["key"], null);
@@ -619,8 +620,8 @@ namespace Couchbase.Lite
             {
                 numTimesInvoked += 1;
 
-                Assert.IsNotNull(document["_id"]);
-                Assert.IsNotNull(document["_rev"]);
+                Assert.IsNotNull(document.CblID());
+                Assert.IsNotNull(document.CblRev());
 
                 if (document.ContainsKey("key") && document["key"] != null)
                 {
@@ -962,8 +963,7 @@ namespace Couchbase.Lite
             });
 
             var dict6 = new Dictionary<string, object>();
-            dict6["_id"] = "66666";
-            dict6["_rev"] = "1-adcdef";
+            dict6.SetDocRevID("66666", "1-adcdef");
             dict6["key"] = "six";
             PutDoc(database, dict6);
 
@@ -1091,7 +1091,7 @@ namespace Couchbase.Lite
                 { "value", new Dictionary<string, object> {
                         { "rev", curRevId },
                         { "_conflicts", new List<string> {
-                                curRevId, "1-00"
+                                curRevId.ToString(), "1-00"
                             }
                         }
                     }
@@ -1141,11 +1141,11 @@ namespace Couchbase.Lite
 
             View view = database.GetView("totaler");
             view.SetMapReduce((document, emitter) => {
-                Assert.IsNotNull (document.Get ("_id"));
-                Assert.IsNotNull (document.Get ("_rev"));
+                Assert.IsNotNull (document.CblID());
+                Assert.IsNotNull (document.CblRev());
                 object cost = document.Get ("cost");
                 if (cost != null) {
-                    emitter (document.Get ("_id"), cost);
+                    emitter (document.CblID(), cost);
                 }
             }, BuiltinReduceFunctions.Sum, "1");
 
@@ -1672,9 +1672,9 @@ namespace Couchbase.Lite
                 }
                 else
                 {
-                    Assert.AreEqual(expected[i][3], ((IDictionary<string, object>)row.Value)["_id"]);
+                    Assert.AreEqual(expected[i][3], ((IDictionary<string, object>)row.Value).CblID());
                 }
-                Assert.AreEqual(expected[i][4], doc["_id"]);
+                Assert.AreEqual(expected[i][4], doc.CblID());
             }
         }
 
@@ -1927,7 +1927,7 @@ namespace Couchbase.Lite
             var view = database.GetView("view1");
             view.SetMapReduce((doc, emit) =>
             {
-                emit(doc["jim"], doc["_id"]);
+                emit(doc["jim"], doc.CblID());
             }, (keys, vals, rereduce) => 
             {
                 return keys.Count();
@@ -1972,7 +1972,7 @@ namespace Couchbase.Lite
             var view = database.GetView("vu");
             Assert.IsNotNull(view);
             view.SetMap((d, emit) =>
-                emit(d.Get("_id"), d.Get("_conflicts")), "1");
+                emit(d.CblID(), d.Get("_conflicts")), "1");
 
             var doc = CreateDocumentWithProperties(database, new Dictionary<string, object> { { "foo", "bar" } });
             var rev1 = doc.CurrentRevision;

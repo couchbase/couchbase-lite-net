@@ -12,10 +12,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)Attachment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Database.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Documents\DocumentExt.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revision.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Revisions\TreeRevisionID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authorizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\FacebookAuthorizer.cs" />

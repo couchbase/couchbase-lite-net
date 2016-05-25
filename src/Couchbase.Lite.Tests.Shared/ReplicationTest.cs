@@ -62,6 +62,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using System.Net.Sockets;
+using Couchbase.Lite.Revisions;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -855,7 +856,7 @@ namespace Couchbase.Lite
                 var rev1 = new RevisionInternal(body);
                 rev1 = database.PutRevision(rev1, null, false);
 
-                documentProperties["_rev"] = rev1.RevID;
+                documentProperties.SetRevID(rev1.RevID);
                 documentProperties["UPDATED"] = true;
                 database.PutRevision(new RevisionInternal(documentProperties), rev1.RevID, false);
 
@@ -970,7 +971,7 @@ namespace Couchbase.Lite
                 var rev1 = new RevisionInternal(body);
                 rev1 = database.PutRevision(rev1, null, false);
 
-                documentProperties["_rev"] = rev1.RevID;
+                documentProperties.SetRevID(rev1.RevID);
                 documentProperties["UPDATED"] = true;
                 documentProperties["_deleted"] = true;
                 database.PutRevision(new RevisionInternal(documentProperties), rev1.RevID, false);
@@ -1096,8 +1097,8 @@ namespace Couchbase.Lite
                 View view = database.GetView("testPullerWithLiveQueryView");
                 view.SetMapReduce((document, emitter) =>
                 {
-                    if (document.Get("_id") != null) {
-                        emitter(document.Get("_id"), null);
+                    if (document.CblID() != null) {
+                        emitter(document.CblID(), null);
                     }
                 }, null, "1");
 
@@ -1838,10 +1839,10 @@ namespace Couchbase.Lite
             properties["_revisions"] = revDict;
 
             var rev = new RevisionInternal(properties);
-            Assert.AreEqual(0, Pusher.FindCommonAncestor(rev, new List<string>()));
-            Assert.AreEqual(0, Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-nope"}).ToList()));
-            Assert.AreEqual(1, Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-first"}).ToList()));
-            Assert.AreEqual(2, Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "2-second", "1-first"}).ToList()));
+            Assert.AreEqual(0, Pusher.FindCommonAncestor(rev, new List<RevisionID>()));
+            Assert.AreEqual(0, Pusher.FindCommonAncestor(rev, (new [] {"3-noway".AsRevID(), "1-nope".AsRevID() }).ToList()));
+            Assert.AreEqual(1, Pusher.FindCommonAncestor(rev, (new [] {"3-noway".AsRevID(), "1-first".AsRevID() }).ToList()));
+            Assert.AreEqual(2, Pusher.FindCommonAncestor(rev, (new [] {"3-noway".AsRevID(), "2-second".AsRevID(), "1-first".AsRevID() }).ToList()));
         }
 
         [Test]
@@ -1871,7 +1872,7 @@ namespace Couchbase.Lite
                 doc1.PutProperties(new Dictionary<string, object> {
                     { "doc1", "Foo" }
                 });
-                pusher.DocIds = new List<string> { doc1.GetProperty("_id") as string };
+                pusher.DocIds = new List<string> { doc1.GetProperty<string>("_id") };
 
                 var doc2 = database.CreateDocument();
                 doc2.PutProperties(new Dictionary<string, object> {
@@ -2562,8 +2563,8 @@ namespace Couchbase.Lite
                 View view = database.GetView("testPullerWithLiveQueryView");
                 view.SetMapReduce((document, emitter) =>
                 {
-                    if (document.Get("_id") != null) {
-                        emitter(document.Get("_id"), null);
+                    if (document.CblID() != null) {
+                        emitter(document.CblID(), null);
                     }
                 }, null, "1");
 
@@ -2633,8 +2634,8 @@ namespace Couchbase.Lite
                 View view = database.GetView("testPullerWithLiveQueryView");
                 view.SetMapReduce((document, emitter) =>
                 {
-                    if (document.Get("_id") != null) {
-                        emitter(document.Get("_id"), null);
+                    if (document.CblID() != null) {
+                        emitter(document.CblID(), null);
                     }
                 }, null, "1");
 

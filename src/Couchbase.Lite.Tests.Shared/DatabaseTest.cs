@@ -52,6 +52,8 @@ using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
+using System.Text;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -61,6 +63,75 @@ namespace Couchbase.Lite
         const String TooLongName = "a11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110";
 
         public DatabaseTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestAttachments()
+        {
+            var properties = new Dictionary<string, object> {
+                { "testName", "testAttachments" }
+            };
+            var doc = CreateDocumentWithProperties(database, properties);
+            var rev = doc.CurrentRevision;
+
+            Assert.AreEqual(0, rev.Attachments.Count());
+            Assert.AreEqual(0, rev.AttachmentNames.Count());
+            Assert.IsNull(rev.GetAttachment("index.html"));
+
+            var body = Encoding.UTF8.GetBytes("This is a test attachment!");
+            var rev2 = doc.CreateRevision();
+            rev2.SetAttachment("index.html", "text/plain; charset=utf-8", body);
+
+            Assert.AreEqual(1, rev2.Attachments.Count());
+            CollectionAssert.AreEqual(new string[] { "index.html" }, rev2.AttachmentNames);
+            var attach = rev2.GetAttachment("index.html");
+            Assert.IsNull(attach.Revision);
+            Assert.IsNull(attach.Document);
+            Assert.AreEqual("index.html", attach.Name);
+            Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
+            Assert.AreEqual(body, attach.Content);
+            Assert.AreEqual(body.Length, attach.Length);
+
+            var rev3 = rev2.Save();
+            Assert.AreEqual(1, rev3.Attachments.Count());
+            Assert.AreEqual(1, rev3.AttachmentNames.Count());
+
+            attach = rev3.GetAttachment("index.html");
+            Assert.AreEqual(doc, attach.Document);
+            Assert.AreEqual("index.html", attach.Name);
+            CollectionAssert.AreEqual(new string[] { "index.html" }, rev3.AttachmentNames);
+
+            Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
+            Assert.AreEqual(body, attach.Content);
+            Assert.AreEqual(body.Length, attach.Length);
+
+            var inStream = attach.ContentStream;
+            var data = inStream.ReadAllBytes();
+            Assert.AreEqual(body, data);
+
+            var newRev = rev3.CreateRevision();
+            newRev.RemoveAttachment(attach.Name);
+            var rev4 = newRev.Save();
+            Assert.AreEqual(0, rev4.AttachmentNames.Count());
+
+            // Add an attachment with revpos=0 (see #627)
+            var props = rev3.Properties;
+            var atts = props.Get("_attachments").AsDictionary<string, object>();
+            atts["zero.txt"] = new Dictionary<string, object> {
+                { "content_type", "text/plain" },
+                { "revpos", 0 },
+                { "following", true }
+            };
+
+            props["_attachments"] = atts;
+            var success = doc.PutExistingRevision(props, new Dictionary<string, Stream> {
+                { "zero.txt", new MemoryStream(Encoding.UTF8.GetBytes("zero")) }
+            }, new List<string> { "3-0000", rev3.Id, rev.Id }, null);
+            Assert.IsTrue(success);
+
+            var rev5 = doc.GetRevision("3-0000");
+            var att = rev5.GetAttachment("zero.txt");
+            Assert.IsNotNull(att);
+        }
 
         [Test]
         public void TestAllDocumentsPrefixMatch()
@@ -308,21 +379,19 @@ namespace Couchbase.Lite
         public void TestChangeListenerNotificationBatching()
         {
             const int numDocs = 50;
-            var atomicInteger = 0;
             var doneSignal = new CountdownEvent(1);
 
-            database.Changed += (sender, e) => Interlocked.Increment (ref atomicInteger);
+            database.Changed += (sender, e) => doneSignal.Signal(); ;
 
             database.RunInTransaction(() =>
             {
                 CreateDocuments(database, numDocs);
-                doneSignal.Signal();
+                
                 return true;
             });
 
-            var success = doneSignal.Wait(TimeSpan.FromSeconds(30));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(1));
             Assert.IsTrue(success);
-            Assert.AreEqual(1, atomicInteger);
         }
 
         /// <summary>
@@ -333,11 +402,11 @@ namespace Couchbase.Lite
         public void TestChangeListenerNotification()
         {
             const int numDocs = 50;
-            var atomicInteger = 0;
+            var countdownEvent = new CountdownEvent(numDocs);
 
-            database.Changed += (sender, e) => Interlocked.Increment (ref atomicInteger);
+            database.Changed += (sender, e) => countdownEvent.Signal();
             CreateDocuments(database, numDocs);
-            Assert.AreEqual(numDocs, atomicInteger);
+            Assert.IsTrue(countdownEvent.Wait(TimeSpan.FromSeconds(1)));
         }
 
         /// <summary>
@@ -373,40 +442,6 @@ namespace Couchbase.Lite
             var passed = doneSignal.WaitOne(TimeSpan.FromSeconds(5));
             Assert.IsTrue(passed);
             Assert.AreEqual(1, database.AllReplications.Count());
-        }
-
-        [Test]
-        public void TestUnsavedRevisionCacheRetainDocument()
-        {
-            var document = database.CreateDocument();
-
-            database.DocumentCache.Remove(document.Id);
-
-            Assert.IsNull(database.DocumentCache.Get(document.Id));
-
-            var cachedDocument = default(WeakReference);
-            database.UnsavedRevisionDocumentCache.TryGetValue(document.Id, out cachedDocument);
-            Assert.IsTrue(cachedDocument.Target == document);
-
-            var checkedDocument = database.GetDocument(document.Id);
-            Assert.IsTrue(document == checkedDocument);
-        }
-
-        [Test]
-        public void TestUnsavedRevisionCacheRemoveDocument()
-        {
-            var document = database.CreateDocument();
-
-            var properties = new Dictionary<string, object>();
-            properties.Add("test", "test");
-            document.PutProperties(properties);
-
-            var cachedDocument = default(WeakReference);
-            database.UnsavedRevisionDocumentCache.TryGetValue(document.Id, out cachedDocument);
-            Assert.IsNull(cachedDocument);
-
-            var checkedDocument = database.GetDocument(document.Id);
-            Assert.IsTrue(document == checkedDocument);
         }
 
         [Test]
@@ -463,13 +498,13 @@ namespace Couchbase.Lite
 
             var docNumericId = sqliteStorage.GetDocNumericID(doc.Id);
             Assert.IsTrue(docNumericId != 0);
-            Assert.AreEqual(rev1.Id, sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
+            Assert.AreEqual(rev1.Id.AsRevID(), sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
             Assert.IsFalse(outIsConflict);
 
             var newRev2a = rev1.CreateRevision();
             newRev2a.SetUserProperties(properties2a);
             var rev2a = newRev2a.Save();
-            Assert.AreEqual(rev2a.Id, sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
+            Assert.AreEqual(rev2a.Id.AsRevID(), sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
             Assert.IsFalse(outIsConflict);
 
             var newRev2b = rev1.CreateRevision();
@@ -489,7 +524,7 @@ namespace Couchbase.Lite
             Assert.IsNotNull(view);
             view.SetMap((doc, emit) =>
             {
-                emit(doc.Get("_id"), null);
+                emit(doc.CblID(), null);
             }, "1.0");
 
             var query = view.CreateQuery();

@@ -24,6 +24,7 @@ using NUnit.Framework;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
 using System.Linq;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -37,33 +38,38 @@ namespace Couchbase.Lite
         {
         }
 
-        [TestFixtureSetUp]
-        public void OneTimeSetup()
+        protected override void SetUp()
         {
+            base.SetUp();
             Log.SetLogger(this);
         }
 
-        [TestFixtureTearDown]
-        public void OneTimeTearDown()
+        protected override void TearDown()
         {
             Log.Level = Log.LogLevel.Base;
             Log.Disabled = false;
             Log.SetDefaultLogger();
+
+            base.TearDown();
         }
 
         [Test]
         public void TestLogDisabled()
         {
-            var count = TestLogLevel(Log.LogLevel.Debug);
-            Assert.AreNotEqual(0, count);
+            try {
+                var count = TestLogLevel(Log.LogLevel.Debug);
+                Assert.AreNotEqual(0, count);
 
-            Log.Disabled = true;
-            count = TestLogLevel(Log.LogLevel.Debug);
-            Assert.AreEqual(0, count);
+                Log.Disabled = true;
+                count = TestLogLevel(Log.LogLevel.Debug);
+                Assert.AreEqual(0, count);
+            } finally {
+                Log.Disabled = false;
+            }
         }
 
         [TestCase(Log.LogLevel.None, Result=0)]
-        [TestCase(Log.LogLevel.Base, Result=1)]
+        [TestCase(Log.LogLevel.Base, Result=3)]
         #if DEBUG
         [TestCase(Log.LogLevel.Debug, Result=5)]
         #else
@@ -93,7 +99,7 @@ namespace Couchbase.Lite
         }
 
         [TestCase(Log.LogLevel.None, Result=0)]
-        [TestCase(Log.LogLevel.Base, Result=1)]
+        [TestCase(Log.LogLevel.Base, Result=3)]
         #if DEBUG
         [TestCase(Log.LogLevel.Debug, Result=5)]
         #else
@@ -127,13 +133,14 @@ namespace Couchbase.Lite
         public void TestSecureLogging()
         {
             var auth = new BasicAuthenticator("jim", "borden");
-            var rev = new RevisionInternal("sensitive", "1-abcdef", false);
+            var rev = new RevisionInternal("sensitive", "1-abcdef".AsRevID(), false);
             var lastMessage = default(string);
             _logCallback = (level, tag, msg) =>
             {
                 lastMessage = msg;
             };
 
+            Log.ScrubSensitivity = LogScrubSensitivity.NoInsecure;
             Log.To.NoDomain.I(TAG, "{0}", auth);
             Assert.AreEqual("[BasicAuthenticator (<redacted>:<redacted>)]", lastMessage);
 

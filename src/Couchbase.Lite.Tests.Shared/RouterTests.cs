@@ -52,8 +52,7 @@ namespace Couchbase.Lite
     {
         private const string TAG = "RouterTests";
 
-        private int _savedMinHeartbeat;
-        private int _minHeartbeat = 5000;
+        private TimeSpan _savedMinHeartbeat;
         private CouchbaseLiteTcpListener _listener;
         private HttpWebResponse _lastResponse;
 
@@ -1353,6 +1352,8 @@ namespace Couchbase.Lite
         [TestFixtureSetUp]
         protected void OneTimeSetUp()
         {
+            Storage.ForestDB.Plugin.Register();
+            Storage.SQLCipher.Plugin.Register();
             ServicePointManager.DefaultConnectionLimit = 10;
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
@@ -1379,15 +1380,15 @@ namespace Couchbase.Lite
             }
 
             StartDatabase();
-            _savedMinHeartbeat = _minHeartbeat;
-            _minHeartbeat = 0;
+            _savedMinHeartbeat = DatabaseMethods.MinHeartbeat;
+            DatabaseMethods.MinHeartbeat = TimeSpan.Zero;
         }
 
         [TearDown]
         protected override void TearDown()
         {
             StopDatabase();
-            _minHeartbeat = _savedMinHeartbeat;
+            DatabaseMethods.MinHeartbeat = _savedMinHeartbeat;
             _listener._router.OnAccessCheck = null;
             _listener.SetPasswords(new Dictionary<string, string>());
         }

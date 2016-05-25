@@ -66,7 +66,7 @@ namespace Couchbase.Lite.Internal
         #region Variables
 
         protected readonly string _docId;
-        protected readonly string _revId;
+        protected readonly RevisionID _revId;
         protected Body _body;
 
         #endregion
@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Internal
             get { return _docId; }
         }
 
-        public string RevID 
+        public RevisionID RevID
         {
             get { return _revId; }
         }
@@ -87,9 +87,9 @@ namespace Couchbase.Lite.Internal
 
         public bool Deleted { get; internal set; }
 
-        public int Generation 
+        public int Generation
         {
-            get { return RevisionID.GetGeneration(_revId); }
+            get { return _revId.Generation; }
         }
 
         public bool Missing { get; internal set; }
@@ -102,14 +102,14 @@ namespace Couchbase.Lite.Internal
         {
             var unmodifiableProperties = other.GetProperties();
             var properties = new Dictionary<string, object>();
-            if (unmodifiableProperties != null) {
+            if(unmodifiableProperties != null) {
                 properties.PutAll(unmodifiableProperties);
             }
 
             SetProperties(properties);
         }
 
-        internal RevisionInternal(String docId, String revId, Boolean deleted)
+        internal RevisionInternal(string docId, RevisionID revId, bool deleted)
         {
             // TODO: get rid of this field!
             _docId = docId;
@@ -117,10 +117,16 @@ namespace Couchbase.Lite.Internal
             Deleted = deleted;
         }
 
-        internal RevisionInternal(Body body)
-            : this(body.GetPropertyForKey<string>("_id"), body.GetPropertyForKey<string>("_rev"), body.GetPropertyForKey<bool>("_deleted"))
+        internal RevisionInternal(string docId, RevisionID revId, bool deleted, Body body)
+            : this(docId, revId, deleted)
         {
-            this._body = body;
+            _body = body;
+        }
+
+        internal RevisionInternal(Body body)
+            : this(body.GetProperties().CblID(), body.GetProperties().CblRev(), body.GetProperties().CblDeleted())
+        {
+            _body = body;
         }
 
         internal RevisionInternal(IDictionary<String, Object> properties)
@@ -138,32 +144,32 @@ namespace Couchbase.Lite.Internal
             (body.GetPropertyForKey("_rev") == null && body.GetPropertyForKey("_deleted") == null);
         }
 
-        public IDictionary<String, Object> GetProperties()
+        public IDictionary<string, object> GetProperties()
         {
             IDictionary<string, object> result = null;
-            if (_body != null) {
+            if(_body != null) {
                 IDictionary<string, object> prop;
                 try {
                     prop = _body.GetProperties();
-                } catch (InvalidOperationException) {
+                } catch(InvalidOperationException) {
                     // handle when both object and json are null for this body
                     return null;
                 }
 
-                if (result == null) {
+                if(result == null) {
                     result = new Dictionary<string, object>();
                 }
                 result.PutAll(prop);
 
-                if (_docId != null) {
+                if(_docId != null) {
                     result["_id"] = _docId;
                 }
 
-                if (_revId != null) {
-                    result["_rev"] = _revId;
+                if(_revId != null) {
+                    result.SetRevID(_revId);
                 }
 
-                if (Deleted) {
+                if(Deleted) {
                     result["_deleted"] = true;
                 }
             }
@@ -172,7 +178,7 @@ namespace Couchbase.Lite.Internal
 
         public RevisionInternal CopyWithoutBody()
         {
-            if (_body == null) {
+            if(_body == null) {
                 return this;
             }
 
@@ -181,22 +187,39 @@ namespace Couchbase.Lite.Internal
             rev.Missing = Missing;
             return rev;
         }
-            
+
         public object GetPropertyForKey(string key)
         {
-            if (key == "_id") {
+            if(key == "_id") {
                 return _docId;
             }
 
-            if (key == "_rev") {
+            if(key == "_rev") {
                 return _revId;
             }
 
-            if (key == "_deleted") {
+            if(key == "_deleted") {
                 return Deleted ? (object)true : null;
             }
 
             return _body.GetPropertyForKey(key);
+        }
+
+        internal RevisionInternal AddBasicMetadata()
+        {
+            var props = GetProperties();
+            if(props == null) {
+                return null;
+            }
+
+            props.SetDocRevID(DocID, RevID);
+            if(Deleted) {
+                props["_deleted"] = true;
+            }
+
+            var result = new RevisionInternal(props);
+            result.Sequence = Sequence;
+            return result;
         }
 
         internal void SetProperties(IDictionary<string, object> properties)
@@ -211,10 +234,10 @@ namespace Couchbase.Lite.Internal
         }
 
         // Unused, but here for balance
-        internal IEnumerable<Byte> GetJson()
+        internal IEnumerable<byte> GetJson()
         {
-            IEnumerable<Byte> result = null;
-            if (_body != null) {
+            IEnumerable<byte> result = null;
+            if(_body != null) {
                 result = _body.AsJson();
             }
 
@@ -222,15 +245,21 @@ namespace Couchbase.Lite.Internal
         }
 
         // Used by plugins
-        internal void SetJson(IEnumerable<Byte> json)
+        internal void SetJson(IEnumerable<byte> json)
         {
-            _body = new Body(json);
+            if(json != null) {
+                _body = new Body(json, DocID, RevID, Deleted);
+                Missing = false;
+            } else {
+                _body = null;
+                Missing = true;
+            }
         }
 
         public IDictionary<string, object> GetAttachments()
         {
             var props = GetProperties();
-            if (props == null) {
+            if(props == null) {
                 return null;
             }
 
@@ -240,20 +269,20 @@ namespace Couchbase.Lite.Internal
         // Used by listener and plugins
         public Body GetBody()
         {
-            if (_body == null) {
+            if(_body == null) {
                 return _body;
             }
 
             var props = _body.GetProperties();
-            if (_docId != null) {
+            if(_docId != null) {
                 props["_id"] = _docId;
             }
 
-            if (_revId != null) {
-                props["_rev"] = _revId;
+            if(_revId != null) {
+                props.SetRevID(_revId);
             }
 
-            if (Deleted) {
+            if(Deleted) {
                 props["_deleted"] = true;
             }
 
@@ -265,7 +294,7 @@ namespace Couchbase.Lite.Internal
             _body = body;
         }
 
-        public RevisionInternal Copy(string docId, string revId)
+        public RevisionInternal Copy(string docId, RevisionID revId)
         {
             System.Diagnostics.Debug.Assert((docId != null));
             System.Diagnostics.Debug.Assert(((_docId == null) || (_docId.Equals(docId))));
@@ -273,12 +302,11 @@ namespace Couchbase.Lite.Internal
             var result = new RevisionInternal(docId, revId, Deleted);
             var unmodifiableProperties = GetProperties();
             var properties = new Dictionary<string, object>();
-            if (unmodifiableProperties != null)
-            {
+            if(unmodifiableProperties != null) {
                 properties.PutAll(unmodifiableProperties);
             }
-            properties["_id"] = docId;
-            properties["_rev"] = revId;
+
+            properties.SetDocRevID(docId, revId);
             result.SetProperties(properties);
             return result;
         }
@@ -292,28 +320,22 @@ namespace Couchbase.Lite.Internal
             IDictionary<string, object> editedProperties = null;
 
             IDictionary<string, object> attachments = null;
-            if (properties.ContainsKey("_attachments"))
-            {
+            if(properties.ContainsKey("_attachments")) {
                 attachments = properties["_attachments"].AsDictionary<string, object>();
             }
 
             IDictionary<string, object> editedAttachments = null;
 
-            if (attachments != null)
-            {
-                foreach(var kvp in attachments)
-                {
+            if(attachments != null) {
+                foreach(var kvp in attachments) {
                     var attachment = new Dictionary<string, object>(kvp.Value.AsDictionary<string, object>());
                     var editedAttachment = mutator(kvp.Key, attachment);
-                    if (editedAttachment == null)
-                    {
+                    if(editedAttachment == null) {
                         return false;
                     }
 
-                    if (editedAttachment != attachment)
-                    {
-                        if (editedProperties == null)
-                        {
+                    if(editedAttachment != attachment) {
+                        if(editedProperties == null) {
                             // Make the document properties and _attachments dictionary mutable:
                             editedProperties = new Dictionary<string, object>(properties);
                             editedAttachments = new Dictionary<string, object>(attachments);
@@ -324,8 +346,7 @@ namespace Couchbase.Lite.Internal
                 }
             }
 
-            if (editedProperties != null)
-            {
+            if(editedProperties != null) {
                 SetProperties(editedProperties);
                 return true;
             }
@@ -339,7 +360,7 @@ namespace Couchbase.Lite.Internal
 
         public override string ToString()
         {
-            return String.Format("{{{0} #{1}{2}}}", 
+            return String.Format("{{{0} #{1}{2}}}",
                 new SecureLogString(_docId, LogMessageSensitivity.PotentiallyInsecure), _revId, Deleted ? "DEL" : String.Empty);
         }
 
@@ -347,8 +368,8 @@ namespace Couchbase.Lite.Internal
         {
             var other = o as RevisionInternal;
             bool result = false;
-            if (other != null) {
-                if (_docId.Equals(other._docId) && _revId.Equals(other._revId)) {
+            if(other != null) {
+                if(_docId.Equals(other._docId) && _revId.Equals(other._revId)) {
                     result = true;
                 }
             }

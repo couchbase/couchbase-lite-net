@@ -106,7 +106,7 @@ namespace Couchbase.Lite
             var filterBlock = c.CompileFilter("function(doc,req){return doc.ok;}", "javascript");
             Assert.IsNotNull(filterBlock);
 
-            var document = new Document(null, "doc1");
+            var document = new Document(null, "doc1", false);
             var rev = new RevisionInternal(new Dictionary<string, object> {
                 { "_id", "doc1" },
                 { "_rev", "1-aa" },

@@ -238,12 +238,19 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to return.</param>
         public Attachment GetAttachment(String name) {
             var attachmentsMetadata = GetAttachmentMetadata();
-            if (attachmentsMetadata == null)
-            {
+            if(attachmentsMetadata == null) {
                 return null;
             }
-            var attachmentMetadata = attachmentsMetadata.Get(name).AsDictionary<string,Object>();
-            return new Attachment(this, name, attachmentMetadata);
+
+
+            var attachmentMetadata = attachmentsMetadata.Get(name);
+            var attachmentMetadataObj = attachmentMetadata as Attachment;
+            if(attachmentMetadataObj != null) {
+                return attachmentMetadataObj;
+            }
+
+            var attachmentMetadataDict = attachmentMetadata.AsDictionary<string, object>();
+            return attachmentMetadataDict == null ? null : new Attachment(this, name, attachmentMetadataDict);
         }
 
     #endregion

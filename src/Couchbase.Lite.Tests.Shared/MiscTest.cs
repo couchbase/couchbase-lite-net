@@ -85,7 +85,7 @@ namespace Couchbase.Lite
             json = Manager.GetObjectMapper().WriteValueAsString(props);
             deserialized = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(json);
             resultObj = deserialized.Get("time");
-            Assert.IsInstanceOf(typeof(DateTime), resultObj);
+            Assert.IsInstanceOf(typeof(DateTimeOffset), resultObj);
             Assert.AreEqual(expectedTime, resultObj);
             Assert.AreEqual(expectedTime.Offset, ((DateTimeOffset)resultObj).Offset);
         }

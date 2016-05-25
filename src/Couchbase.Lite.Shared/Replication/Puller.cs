@@ -54,6 +54,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Revisions;
 
 
 #if !NET_3_5
@@ -318,84 +319,78 @@ namespace Couchbase.Lite.Replicator
             Log.To.SyncPerf.I(TAG, "{0} bulk-getting {1} remote revisions...", ReplicatorID, nRevs);
             Log.To.Sync.V(TAG, "{0} POST _bulk_get", ReplicatorID);
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
-            BulkDownloader dl;
-            try
+            BulkDownloader dl = new BulkDownloader(new BulkDownloaderOptions {
+                ClientFactory = ClientFactory,
+                DatabaseUri = RemoteUrl,
+                Revisions = bulkRevs,
+                Database = LocalDatabase,
+                RequestHeaders = RequestHeaders,
+                RetryStrategy = ReplicationOptions.RetryStrategy,
+                CookieStore = CookieContainer
+            });
+
+            dl.DocumentDownloaded += (sender, args) =>
             {
-                dl = new BulkDownloader(new BulkDownloaderOptions {
-                    ClientFactory = ClientFactory,
-                    DatabaseUri = RemoteUrl,
-                    Revisions = bulkRevs,
-                    Database = LocalDatabase,
-                    RequestHeaders = RequestHeaders,
-                    RetryStrategy = ReplicationOptions.RetryStrategy
-                });
+                var props = args.DocumentProperties;
 
-                dl.CookieStore = CookieContainer;
-                dl.DocumentDownloaded += (sender, args) =>
-                {
-                    var props = args.DocumentProperties;
-
-                    var rev = props.Get ("_id") != null 
-                        ? new RevisionInternal (props) 
-                        : new RevisionInternal (props.GetCast<string> ("id"), props.GetCast<string> ("rev"), false);
+                var rev = props.CblID() != null
+                    ? new RevisionInternal(props)
+                    : new RevisionInternal(props.CblID(), props.CblRev(), false);
 
 
-                    var pos = remainingRevs.IndexOf(rev);
-                    if (pos > -1) {
-                        rev.Sequence = remainingRevs[pos].Sequence;
-                        remainingRevs.RemoveAt(pos);
-                    } else {
-                        Log.To.Sync.W(TAG, "Received unexpected rev {0}; ignoring", rev);
-                        return;
-                    }
+                var pos = remainingRevs.IndexOf(rev);
+                if(pos > -1) {
+                    rev.Sequence = remainingRevs[pos].Sequence;
+                    remainingRevs.RemoveAt(pos);
+                } else {
+                    Log.To.Sync.W(TAG, "Received unexpected rev {0}; ignoring", rev);
+                    return;
+                }
 
-                    if (props.GetCast<string>("_id") != null) {
+                if(props.CblID() != null) {
                         // Add to batcher ... eventually it will be fed to -insertRevisions:.
                         QueueDownloadedRevision(rev);
-                    } else {
-                        var status = StatusFromBulkDocsResponseItem(props);
-                        Log.To.Sync.W(TAG, "Error downloading {0}", rev);
-                        var error = new CouchbaseLiteException(status.Code);
-                        LastError = error;
-                        RevisionFailed();
-                        SafeIncrementCompletedChangesCount();
-                        if(IsDocumentError(error)) {
-                            _pendingSequences.RemoveSequence(rev.Sequence);
-                        }
+                } else {
+                    var status = StatusFromBulkDocsResponseItem(props);
+                    Log.To.Sync.W(TAG, "Error downloading {0}", rev);
+                    var error = new CouchbaseLiteException(status.Code);
+                    LastError = error;
+                    RevisionFailed();
+                    SafeIncrementCompletedChangesCount();
+                    if(IsDocumentError(error)) {
+                        _pendingSequences.RemoveSequence(rev.Sequence);
                     }
-                };
+                }
+            };
 
-                dl.Complete += (sender, args) => 
-                {
-                    if (args != null && args.Error != null) {
-                        RevisionFailed();
-                        if(remainingRevs.Count == 0) {
+            dl.Complete += (sender, args) =>
+            {
+                if(args != null && args.Error != null) {
+                    RevisionFailed();
+                    if(remainingRevs.Count == 0) {
+                        LastError = args.Error;
+                    }
+
+                } else if(remainingRevs.Count > 0) {
+                    Log.To.Sync.W(TAG, "{0} revs not returned from _bulk_get: {1}",
+                        remainingRevs.Count, remainingRevs);
+                    for(int i = 0; i < remainingRevs.Count; i++) {
+                        var rev = remainingRevs[i];
+                        if(ShouldRetryDownload(rev.DocID)) {
+                            _bulkRevsToPull.Add(remainingRevs[i]);
+                        } else {
                             LastError = args.Error;
-                        }
-
-                    } else if(remainingRevs.Count > 0) {
-                        Log.To.Sync.W(TAG, "{0} revs not returned from _bulk_get: {1}",
-                            remainingRevs.Count, remainingRevs);
-                        for(int i = 0; i < remainingRevs.Count; i++) {
-                            var rev = remainingRevs[i];
-                            if(ShouldRetryDownload(rev.DocID)) {
-                                _bulkRevsToPull.Add(remainingRevs[i]);
-                            } else {
-                                LastError = args.Error;
-                                SafeIncrementCompletedChangesCount();
-                            }
+                            SafeIncrementCompletedChangesCount();
                         }
                     }
+                }
 
-                    SafeAddToCompletedChangesCount(remainingRevs.Count);
-                    LastSequence = _pendingSequences.GetCheckpointedValue();
-                    Misc.SafeDispose(ref dl);
+                SafeAddToCompletedChangesCount(remainingRevs.Count);
+                LastSequence = _pendingSequences.GetCheckpointedValue();
+                Misc.SafeDispose(ref dl);
 
-                    PullRemoteRevisions();
-                };
-            } catch (Exception) {
-                return;
-            }
+                PullRemoteRevisions();
+            };
 
             dl.Authenticator = Authenticator;
             WorkExecutor.StartNew(dl.Start, CancellationTokenSource.Token, TaskCreationOptions.None, WorkExecutor.Scheduler);
@@ -456,7 +451,7 @@ namespace Couchbase.Lite.Replicator
         }
 
 
-		private bool ShouldRetryDownload(string docId)
+        private bool ShouldRetryDownload(string docId)
         {
             if (!LocalDatabase.IsOpen) {
                 return false;
@@ -545,7 +540,7 @@ namespace Couchbase.Lite.Replicator
             // Construct a query. We want the revision history, and the bodies of attachments that have
             // been added since the latest revisions we have locally.
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
-            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.DocID) + "?rev=" + Uri.EscapeUriString(rev.RevID) + "&revs=true&attachments=true");
+            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.DocID) + "?rev=" + Uri.EscapeUriString(rev.RevID.ToString()) + "&revs=true&attachments=true");
             var knownRevs = default(IList<string>);
             try {
                 var tmp = LocalDatabase.Storage.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
@@ -650,7 +645,7 @@ namespace Couchbase.Lite.Replicator
                         var fakeSequence = rev.Sequence;
                         rev.Sequence = 0L;
                         var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
-                        if (history.Count == 0 && rev.Generation > 1) {
+                        if ((history == null || history.Count == 0) && rev.Generation > 1) {
                             Log.To.Sync.W(TAG, "{0} missing revision history in response for: {0}", this, rev);
                             LastError = new CouchbaseLiteException(StatusCode.UpStreamError);
                             RevisionFailed();
@@ -947,7 +942,7 @@ namespace Couchbase.Lite.Replicator
 
             foreach (var changeObj in changes) {
                 var changeDict = changeObj.AsDictionary<string, object>();
-                var revID = changeDict.GetCast<string>("rev");
+                var revID = changeDict.GetCast<string>("rev").AsRevID();
                 if (revID == null) {
                     continue;
                 }

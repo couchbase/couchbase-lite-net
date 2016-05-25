@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Listener
         #region Constants
 
         private const string TAG = "DatabaseMethods";
-        private const int MIN_HEARTBEAT = 5000; //NOTE: iOS uses seconds but .NET uses milliseconds
+        internal static TimeSpan MinHeartbeat = TimeSpan.FromSeconds(5);
 
         #endregion
 
@@ -228,7 +228,7 @@ namespace Couchbase.Lite.Listener
                     var castContext = context as ICouchbaseListenerContext2;
                     var source = castContext != null && !castContext.IsLoopbackRequest ? castContext.Sender : null;
                     foreach(var doc in docs) {
-                        string docId = doc.GetCast<string>("_id");
+                        string docId = doc.CblID();
                         RevisionInternal rev = null;
                         Body body = new Body(doc);
 
@@ -363,9 +363,13 @@ namespace Couchbase.Lite.Listener
                             return context.CreateResponse(StatusCode.BadParam);
                         }
 
-                        heartbeat = Math.Max(heartbeat, MIN_HEARTBEAT);
+                        var heartbeatSpan = TimeSpan.FromMilliseconds(heartbeat);
+                        if(heartbeatSpan < MinHeartbeat) {
+                            heartbeatSpan = MinHeartbeat;
+                        }
+
                         string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
-                        responseState.StartHeartbeat(heartbeatResponse, heartbeat);
+                        responseState.StartHeartbeat(heartbeatResponse, heartbeatSpan);
                     }
 
                     return context.CreateResponse();
@@ -450,9 +454,9 @@ namespace Couchbase.Lite.Listener
                             return context.CreateResponse(StatusCode.BadParam);
                         }
 
-                        heartbeat = Math.Max(heartbeat, MIN_HEARTBEAT);
+                        heartbeat = Math.Max(heartbeat, (int)MinHeartbeat.TotalMilliseconds);
                         string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
-                        responseState.StartHeartbeat(heartbeatResponse, heartbeat);
+                        responseState.StartHeartbeat(heartbeatResponse, TimeSpan.FromMilliseconds(heartbeat));
                     }
 
                     return context.CreateResponse();
@@ -728,7 +732,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 foreach (var revID in revIDs) {
-                    var rev = new RevisionInternal(docPair.Key, revID, false);
+                    var rev = new RevisionInternal(docPair.Key, revID.AsRevID(), false);
                     revs.Add(rev);
                 }
             }
@@ -751,19 +755,19 @@ namespace Couchbase.Lite.Listener
                         missingRevs = ((Dictionary<string, IList<string>>)diffs[docId])["missing"];
                     }
 
-                    missingRevs.Add(rev.RevID);
+                    missingRevs.Add(rev.RevID.ToString());
                 }
 
                 // Add the possible ancestors for each missing revision:
                 foreach(var docPair in diffs) {
                     IDictionary<string, IList<string>> docInfo = (IDictionary<string, IList<string>>)docPair.Value;
                     int maxGen = 0;
-                    string maxRevID = null;
+                    RevisionID maxRevID = null;
                     foreach(var revId in docInfo["missing"]) {
-                        var parsed = RevisionID.ParseRevId(revId);
-                        if(parsed.Item1 > maxGen) {
-                            maxGen = parsed.Item1;
-                            maxRevID = revId;
+                        var parsed = revId.AsRevID();
+                        if(parsed.Generation > maxGen) {
+                            maxGen = parsed.Generation;
+                            maxRevID = parsed;
                         }
                     }
 

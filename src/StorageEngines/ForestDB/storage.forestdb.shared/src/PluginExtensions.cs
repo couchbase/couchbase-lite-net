@@ -18,7 +18,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+using CBForest;
+using Couchbase.Lite.Revisions;
 using System;
+using System.Diagnostics;
+using System.Linq;
 
 namespace Couchbase.Lite.Storage.ForestDB
 {
@@ -27,6 +31,21 @@ namespace Couchbase.Lite.Storage.ForestDB
         internal static void SortByDocID(this RevisionList list)
         {
             list.Sort((r1, r2) => r1.DocID.CompareTo(r2.DocID));
+        }
+
+        internal static RevisionID AsRevID(this C4Slice slice)
+        {
+            return RevisionIDFactory.FromData(slice.ToArray());
+        }
+
+        internal static unsafe void PinAndUse(this RevisionID revID, Action<C4Slice> action)
+        {
+            var data = revID.AsData();
+            fixed(byte *dataPtr = data)
+            {
+                var slice = new C4Slice(dataPtr, (uint)data.Length);
+                action(slice);
+            }
         }
     }
 }

@@ -99,7 +99,7 @@ namespace Couchbase.Lite.Util
             Log.To.NoDomain.D(Tag, "Entering lock in Clear");
             lock (_locker) {
                 _recents.Clear();
-				_allValues.Clear();
+                _allValues.Clear();
                 _nodes.Clear();
             }
             Log.To.NoDomain.D(Tag, "Exited lock in Clear");
@@ -169,7 +169,7 @@ namespace Couchbase.Lite.Util
             lock (_locker) {
                 CreateCount++;
                 mapValue = _recents.Get(key);
-				_recents[key] = createdValue;
+                _recents[key] = createdValue;
                 _nodes.Remove(key);
                 _nodes.AddFirst(key);
                 if (mapValue != null) {
@@ -358,7 +358,7 @@ namespace Couchbase.Lite.Util
             lock (_locker) {
                 
                 int accesses = HitCount + MissCount;
-                int hitPercent = accesses != 0 ? (100 * HitCount / accesses) : 0;
+                int hitPercent = accesses != 0 ? (int)Math.Round((100 * (HitCount / (double)accesses))) : 0;
 
                 Log.To.NoDomain.D(Tag, "Exiting lock via return");
                 return string.Format ("LruCache[maxSize={0},hits={1},misses={2},hitRate={3:P}%]", MaxSize, HitCount, MissCount, hitPercent);

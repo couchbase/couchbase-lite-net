@@ -49,6 +49,12 @@ namespace Couchbase.Lite
             Assert.DoesNotThrow(() => _ts = new TimeSeries(database, "tstest"), "Could not create ts");
         }
 
+        protected override void TearDown()
+        {
+            _ts.Dispose();
+            base.TearDown();
+        }
+
         [Test]
         public void TestRemoteLogging()
         {

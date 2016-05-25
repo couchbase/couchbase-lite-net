@@ -48,6 +48,7 @@ using System.Linq;
 using Couchbase.Lite.Db;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
@@ -169,8 +170,8 @@ namespace Couchbase.Lite
                 var view = db.GetView("view");
                 view.SetMap((d, emit) =>
                 {
-                    if (d["_id"].Equals("BC38EA44-E153-429A-A698-0CBE6B0090C4")) {
-                        emit(d["_id"], null);
+                    if (d.CblID().Equals("BC38EA44-E153-429A-A698-0CBE6B0090C4")) {
+                        emit(d.CblID(), null);
                     }
                 }, "1");
                 var result = view.CreateQuery().Run();
@@ -192,8 +193,8 @@ namespace Couchbase.Lite
                 view = db.GetView("view");
                 view.SetMap((d, emit) =>
                 {
-                    if (d["_id"].Equals("-iTji_n2zmHpmgYecaRHqZE")) {
-                        emit(d["_id"], null);
+                    if (d.CblID().Equals("-iTji_n2zmHpmgYecaRHqZE")) {
+                        emit(d.CblID(), null);
                     }
                 }, "1");
                 result = view.CreateQuery().Run();
@@ -215,8 +216,8 @@ namespace Couchbase.Lite
                 view = db.GetView("view");
                 view.SetMap((d, emit) =>
                 {
-                    if (d["_id"].Equals("doc1")) {
-                        emit(d["_id"], null);
+                    if (d.CblID().Equals("doc1")) {
+                        emit(d.CblID(), null);
                     }
                 }, "1");
                 result = view.CreateQuery().Run();
@@ -246,8 +247,8 @@ namespace Couchbase.Lite
                 var view = db.GetView("view");
                 view.SetMap((d, emit) =>
                 {
-                    if (d["_id"].Equals("doc1")) {
-                        emit(d["_id"], null);
+                    if (d.CblID().Equals("doc1")) {
+                        emit(d.CblID(), null);
                     }
                 }, "1");
                 var result = view.CreateQuery().Run();
@@ -274,8 +275,8 @@ namespace Couchbase.Lite
                 var view = db.GetView("view");
                 view.SetMap((d, emit) =>
                 {
-                    if (d["_id"].Equals("66ac306d-de93-46c8-b60f-946c16ac4a1d")) {
-                        emit(d["_id"], null);
+                    if (d.CblID().Equals("66ac306d-de93-46c8-b60f-946c16ac4a1d")) {
+                        emit(d.CblID(), null);
                     }
                 }, "1");
                 var result = view.CreateQuery().Run();
@@ -298,8 +299,8 @@ namespace Couchbase.Lite
                 view = db.GetView("view");
                 view.SetMap((d, emit) =>
                 {
-                    if (d["_id"].Equals("d3e80747-2568-47c8-81e8-a04ba1b5c5d4")) {
-                        emit(d["_id"], null);
+                    if (d.CblID().Equals("d3e80747-2568-47c8-81e8-a04ba1b5c5d4")) {
+                        emit(d.CblID(), null);
                     }
                 }, "1");
                 result = view.CreateQuery().Run();
@@ -331,8 +332,8 @@ namespace Couchbase.Lite
                 view = db.GetView("view");
                 view.SetMap((d, emit) =>
                 {
-                    if (d["_id"].Equals("doc1")) {
-                        emit(d["_id"], null);
+                    if (d.CblID().Equals("doc1")) {
+                        emit(d.CblID(), null);
                     }
                 }, "1");
                 result = view.CreateQuery().Run();
@@ -362,8 +363,8 @@ namespace Couchbase.Lite
                 var view = db.GetView("view");
                 view.SetMap((d, emit) =>
                 {
-                    if (d["_id"].Equals("doc1")) {
-                        emit(d["_id"], null);
+                    if (d.CblID().Equals("doc1")) {
+                        emit(d.CblID(), null);
                     }
                 }, "1");
                 var result = view.CreateQuery().Run();

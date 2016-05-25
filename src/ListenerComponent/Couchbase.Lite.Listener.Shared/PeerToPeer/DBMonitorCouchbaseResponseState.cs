@@ -26,6 +26,7 @@ using System.Threading;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
+using System;
 
 namespace Couchbase.Lite.Listener
 {
@@ -139,9 +140,9 @@ namespace Couchbase.Lite.Listener
         /// </summary>
         /// <param name="response">The message to write</param>
         /// <param name="interval">The interval at which to write the message (in milliseconds)</param>
-        public void StartHeartbeat(string response, int interval)
+        public void StartHeartbeat(string response, TimeSpan interval)
         {
-            if (interval <= 0 || _heartbeatTimer != null) {
+            if (interval.TotalMilliseconds <= 0 || _heartbeatTimer != null) {
                 return;
             }
 

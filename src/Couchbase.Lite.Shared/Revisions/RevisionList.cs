@@ -46,6 +46,7 @@ using System.Linq;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using System.Text;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -89,9 +90,9 @@ namespace Couchbase.Lite
         }
 
         // Used by plugins
-        public IList<string> GetAllRevIds()
+        public IList<RevisionID> GetAllRevIds()
         {
-            IList<string> result = new List<string>();
+            IList<RevisionID> result = new List<RevisionID>();
             IEnumerator<RevisionInternal> iterator = GetEnumerator();
             while (iterator.MoveNext())
             {

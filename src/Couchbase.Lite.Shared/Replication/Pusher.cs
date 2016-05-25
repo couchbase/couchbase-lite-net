@@ -133,7 +133,7 @@ namespace Couchbase.Lite.Replicator
         /// <returns>The common ancestor.</returns>
         /// <param name="rev">Rev.</param>
         /// <param name="possibleRevIDs">Possible rev I ds.</param>
-        internal static int FindCommonAncestor(RevisionInternal rev, IList<string> possibleRevIDs)
+        internal static int FindCommonAncestor(RevisionInternal rev, IList<RevisionID> possibleRevIDs)
         {
             if (possibleRevIDs == null || possibleRevIDs.Count == 0)
             {
@@ -154,8 +154,7 @@ namespace Couchbase.Lite.Replicator
                 return 0;
             }
 
-            var parsed = RevisionID.ParseRevId(ancestorID);
-            return parsed.Item1;
+            return ancestorID.Generation;
         }
 
         #endregion
@@ -378,7 +377,7 @@ namespace Couchbase.Lite.Replicator
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
             {
                 if (e != null) {
-                    var httpError = Misc.Flatten(e) as HttpResponseException;
+                    var httpError = Misc.Flatten(e).FirstOrDefault(ex => ex is HttpResponseException) as HttpResponseException;
                     if (httpError != null) {
                         if (httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType) {
                             _dontSendMultipart = true;
@@ -447,7 +446,7 @@ namespace Couchbase.Lite.Replicator
                     }
 
                     var revs = revResults.Get("missing").AsList<string>();
-                    if (revs == null || !revs.Any(id => id.Equals(rev.RevID, StringComparison.OrdinalIgnoreCase))) {
+                    if (revs == null || !revs.Any(id => id.Equals(rev.RevID.ToString()))) {
                         RemovePending(rev);
                         //SafeIncrementCompletedChangesCount();
                         continue;
@@ -466,7 +465,7 @@ namespace Couchbase.Lite.Replicator
                 try {
                     loadedRev = LocalDatabase.LoadRevisionBody (rev);
                     if(loadedRev == null) {
-                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.DbError, TAG,
+                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.NotFound, TAG,
                             "Unable to load revision body");
                     }
 
@@ -479,9 +478,9 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 var populatedRev = TransformRevision(loadedRev);
-                IList<string> possibleAncestors = null;
+                IList<RevisionID> possibleAncestors = null;
                 if (revResults != null && revResults.ContainsKey("possible_ancestors")) {
-                    possibleAncestors = revResults["possible_ancestors"].AsList<string>();
+                    possibleAncestors = revResults["possible_ancestors"].AsList<RevisionID>();
                 }
 
                 properties = new Dictionary<string, object>(populatedRev.GetProperties());
@@ -493,7 +492,7 @@ namespace Couchbase.Lite.Replicator
                             "Unable to load revision history");
                     }
 
-                    properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
+                    properties["_revisions"] = TreeRevisionID.MakeRevisionHistoryDict(history);
                 } catch(Exception e1) {
                     Log.To.Sync.E(TAG, "Error getting revision history, marking revision failed", e1);
                     RevisionFailed();
@@ -622,7 +621,7 @@ namespace Couchbase.Lite.Replicator
                     Log.To.Sync.I(TAG, "Purging {0} docs ('purgePushed' option)", revs.Count);
                     var toPurge = new Dictionary<string, IList<string>>();
                     foreach(var rev in revs) {
-                        toPurge[rev.DocID] = new List<string> { rev.RevID };
+                        toPurge[rev.DocID] = new List<string> { rev.RevID.ToString() };
                     }
 
                     var localDb = LocalDatabase;
@@ -674,7 +673,7 @@ namespace Couchbase.Lite.Replicator
         protected override void StopGraceful()
         {
             StopObserving();
-			if (_purgeQueue != null) {
+            if (_purgeQueue != null) {
                 _purgeQueue.FlushAll();
             }
 
@@ -722,7 +721,7 @@ namespace Couchbase.Lite.Replicator
                     revs = new List<String>();
                     diffs[docID] = revs;
                 }
-                revs.Add(rev.RevID);
+                revs.Add(rev.RevID.ToString());
                 AddPending(rev);
             }
 

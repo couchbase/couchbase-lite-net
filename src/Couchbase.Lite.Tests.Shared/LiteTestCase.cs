@@ -56,6 +56,7 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
@@ -118,6 +119,8 @@ namespace Couchbase.Lite
         [SetUp]
         protected virtual void SetUp()
         {
+            var nunitListener = Debug.Listeners.Cast<TraceListener>().Where(tl => tl.Name == "NUnit").FirstOrDefault();
+            if(nunitListener != null) Debug.Listeners.Remove(nunitListener);
             WriteDebug("SetUp");
             Storage.SQLCipher.Plugin.Register();
             Storage.ForestDB.Plugin.Register();
@@ -376,10 +379,9 @@ namespace Couchbase.Lite
             Manager.DefaultOptions.RestoreDefaults();
 
             #if !NET_3_5
-            /*if (_storageType == "ForestDB") {
+            if (_storageType == "ForestDB") {
                 CBForest.Native.CheckMemoryLeaks();
-                CBForest.Native.c4log_register(CBForest.C4LogLevel.Warning, null);
-            }*/
+            }
             #endif
         }
 
@@ -500,7 +502,7 @@ namespace Couchbase.Lite
 
         internal static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties) 
         {
-            var id = properties.GetCast<string>("_id");
+            var id = properties.CblID();
             var doc = id != null ? db.GetDocument(id) : db.CreateDocument();
 
             Assert.IsNotNull(doc);

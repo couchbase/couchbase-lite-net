@@ -30,6 +30,7 @@ using Couchbase.Lite.Db;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using SQLitePCL;
+using Couchbase.Lite.Revisions;
 
 #if SQLITE
 namespace Couchbase.Lite.Storage.SystemSQLite
@@ -148,7 +149,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 int err;
                 while (raw.SQLITE_ROW == (err = raw.sqlite3_step(revQuery))) {
                     long sequence = raw.sqlite3_column_int64(revQuery, 0);
-                    string revID = raw.sqlite3_column_text(revQuery, 1);
+                    var revID = raw.sqlite3_column_text(revQuery, 1).AsRevID();
                     long parentSeq = raw.sqlite3_column_int64(revQuery, 2);
                     bool current = raw.sqlite3_column_int(revQuery, 3) != 0;
 
@@ -176,12 +177,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         RevisionInternal rev = new RevisionInternal(docID, revID, deleted);
                         rev.SetJson(json);
 
-                        var history = new List<string>();
+                        var history = new List<RevisionID>();
                         history.Add(revID);
                         while (parentSeq > 0) {
                             var ancestor = tree.Get(parentSeq);
                             Debug.Assert(ancestor != null, String.Format("Couldn't find parent sequence of {0} (doc {1})", parentSeq, docID));
-                            history.Add((string)ancestor[0]);
+                            history.Add((RevisionID)ancestor[0]);
                             parentSeq = (long)ancestor[1];
                         }
 
@@ -813,7 +814,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 int err;
                 while (raw.SQLITE_ROW == (err = raw.sqlite3_step(revQuery))) {
                     long sequence = raw.sqlite3_column_int64(revQuery, 0);
-                    string revID = raw.sqlite3_column_text(revQuery, 1);
+                    var revID = raw.sqlite3_column_text(revQuery, 1).AsRevID();
                     long parentSeq = raw.sqlite3_column_int64(revQuery, 2);
                     bool current = raw.sqlite3_column_int(revQuery, 3) != 0;
                     bool noAtts = raw.sqlite3_column_int(revQuery, 6) != 0;
@@ -842,12 +843,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         RevisionInternal rev = new RevisionInternal(docID, revID, deleted);
                         rev.SetJson(json);
 
-                        var history = new List<string>();
+                        var history = new List<RevisionID>();
                         history.Add(revID);
                         while (parentSeq > 0) {
                             var ancestor = tree.Get(parentSeq);
                             Debug.Assert(ancestor != null, String.Format("Couldn't find parent sequence of {0} (doc {1})", parentSeq, docID));
-                            history.Add((string)ancestor[0]);
+                            history.Add((RevisionID)ancestor[0]);
                             parentSeq = (long)ancestor[1];
                         }
 

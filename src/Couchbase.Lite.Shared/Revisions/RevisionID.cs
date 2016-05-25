@@ -1,5 +1,5 @@
 ﻿//
-// RevID.cs
+// RevisionID.cs
 //
 // Author:
 // 	Jim Borden  <jim.borden@couchbase.com>
@@ -18,91 +18,216 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+using Couchbase.Lite.Util;
+using Newtonsoft.Json;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Couchbase.Lite.Revisions
 {
-    internal static class RevisionID
+    internal sealed class RevisionConverter : JsonConverter
     {
-        public static int GetGeneration(string revID)
+        public override bool CanConvert(Type objectType)
         {
-            if (revID == null) {
-                return 0;
-            }
-
-            var generation = 0;
-            var dashPos = revID.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
-            if (dashPos > 0) {
-                if (!Int32.TryParse(revID.Substring(0, dashPos), out generation)) {
-                    return 0;
-                }
-            }
-
-            return generation;
+            return objectType == typeof(TreeRevisionID);
         }
 
-        public static Tuple<int, string> ParseRevId(string revId)
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            if (revId == null || revId.Contains(" ")) {
-                return Tuple.Create(-1, string.Empty); 
-            }
-
-            int dashPos = revId.IndexOf("-", StringComparison.InvariantCulture);
-            if (dashPos == -1) {
-                return Tuple.Create(-1, string.Empty);
-            }
-
-            var genStr = revId.Substring(0, dashPos);
-            int generation;
-            if (!int.TryParse(genStr, out generation)) {
-                return Tuple.Create(-1, string.Empty);
-            }
-
-            var suffix = revId.Substring(dashPos + 1);
-            if (suffix.Length == 0) {
-                return Tuple.Create(-1, string.Empty);
-            }
-
-            return Tuple.Create(generation, suffix);
+            var str = reader.Value as string;
+            return RevisionIDFactory.FromString(str);
         }
 
-        internal static int CBLCollateRevIDs(string revId1, string revId2)
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            var parsed1 = RevisionID.ParseRevId(revId1);
-            var parsed2 = RevisionID.ParseRevId(revId2);
+            writer.WriteValue(value.ToString());
+        }
+    }
 
-            // improper rev IDs; just compare as plain text:
-            if (parsed1.Item1 == -1 || parsed2.Item1 == -1) {
-                var gen1 = RevisionID.GetGeneration(revId1);
-                var gen2 = RevisionID.GetGeneration(revId2);
-                if (gen1 != 0 && gen2 != 0) {
-                    return gen1 - gen2;
-                }
+    internal static class RevisionIDFactory
+    {
+        public static RevisionID FromString(string str)
+        {
+            if(str == null) {
+                return null;
+            }
 
-                // improper rev IDs; just compare as plain text:
-                return String.Compare(revId1, revId2, true, CultureInfo.InvariantCulture);
+            return FromData(Encoding.UTF8.GetBytes(str));
+        }
+
+        public static RevisionID FromData(IEnumerable<byte> data)
+        {
+            if(data == null) {
+                return null;
+            }
+
+            return new TreeRevisionID(data);
+        }
+    }
+
+    [JsonConverter(typeof(RevisionConverter))]
+    internal abstract class RevisionID : IComparable<RevisionID>, IEquatable<string>
+    {
+        [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int memcmp(byte[] b1, byte[] b2, UIntPtr count);
+
+        public bool IsValid
+        {
+            get {
+                return Generation > 0 && Suffix != null;
+            }
+        }
+
+        public virtual int Generation
+        {
+            get { return 0; }
+        }
+
+        public virtual string Suffix
+        {
+            get { return null; }
+        }
+
+        public abstract byte[] AsData();
+
+        internal static int CBLCollateRevIDs(byte[] revID1, byte[] revID2)
+        {
+            var dash1 = Array.IndexOf(revID1, (byte)'-');
+            var dash2 = Array.IndexOf(revID2, (byte)'-');
+            if((dash1 == 1 && dash2 == 1) || dash1 > 8 || dash2 > 8 || dash1 == -1 || dash2 == -1) {
+                // Single digit generation #s, or improper rev IDs; just compare as plain text
+                return DefaultCollate(revID1, revID2);
+            }
+
+            // Parse generation numbers.  If either is invalid, revert to default collation:
+            var gen1 = ParseDigits(revID1, dash1);
+            var gen2 = ParseDigits(revID2, dash2);
+            if(gen1 == 0 || gen2 == 0) {
+                return DefaultCollate(revID1, revID2);
             }
 
             // Compare generation numbers; if they match, compare suffixes:
-            if (parsed1.Item1 != parsed2.Item1) {
-                return parsed1.Item1 - parsed2.Item1;
-            } else {
-                if (parsed1.Item2 != null && parsed2.Item2 != null) {
-                    // compare suffixes if possible
-                    return String.CompareOrdinal(parsed1.Item2, parsed2.Item2);
-                } else {
-                    // just compare as plain text:
-                    return String.Compare(revId1, revId2, true, CultureInfo.InvariantCulture);
+            var retVal = Math.Sign(gen1 - gen2);
+            if(retVal != 0) {
+                return retVal;
+            }
+
+            return DefaultCollate(revID1, revID2, dash1 + 1, dash2 + 1);
+        }
+
+        protected static int ParseDigits(byte[] revID, int position)
+        {
+            var result = 0;
+            for(int i = 0; i < position; i++) {
+                var current = revID[i];
+                if(current < (byte)'0' || current > (byte)'9') {
+                    return 0;
                 }
+
+                result = 10 * result + (current - '0');
+            }
+
+            return result;
+        }
+
+        protected static unsafe int DefaultCollate(byte[] revID1, byte[] revID2, int startIndex1 = 0, int startIndex2 = 0)
+        {
+            var len = Math.Min(revID1.Length, revID2.Length);
+            var result = memcmp(revID1, revID2, (UIntPtr)len);
+
+            if(result == 0) {
+                result = revID1.Length - revID2.Length;
+            }
+
+            return Math.Sign(result);
+        }
+
+        public override string ToString()
+        {
+            return Encoding.ASCII.GetString(AsData());
+        }
+
+        public override int GetHashCode()
+        {
+            var data = AsData();
+            unchecked {
+                int hash = 19;
+                foreach(var b in data) {
+                    hash = hash * 31 + b;
+                }
+
+                return hash;
             }
         }
 
-        internal static int CBLCompareRevIDs(string revId1, string revId2)
+        public override bool Equals(object obj)
         {
-            System.Diagnostics.Debug.Assert((revId1 != null));
-            System.Diagnostics.Debug.Assert((revId2 != null));
-            return CBLCollateRevIDs(revId1, revId2);
+            var other = obj as RevisionID;
+            if(other == null) {
+                var otherStr = obj as string;
+                if(otherStr != null) {
+                    return ToString() == otherStr;
+                }
+
+                return false;
+            }
+
+            return AsData().SequenceEqual(other.AsData());
+        }
+
+        public abstract int CompareTo(RevisionID other);
+
+        public bool Equals(string other)
+        {
+            return ToString().Equals(other);
+        }
+
+        public static bool operator ==(RevisionID left, RevisionID right)
+        {
+            if(ReferenceEquals(left, null)) {
+                return ReferenceEquals(right, null);
+            }
+
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(RevisionID left, RevisionID right)
+        {
+            if(ReferenceEquals(left, null)) {
+                return !ReferenceEquals(right, null);
+            }
+
+            return !left.Equals(right);
+        }
+    }
+
+    internal static class RevisionIDExt
+    {
+        public static RevisionID AsRevID(this string str)
+        {
+            return RevisionIDFactory.FromString(str);
+        }
+
+        public static IEnumerable<RevisionID> AsRevIDs(this IList<string> list)
+        {
+            return list?.Select(x => RevisionIDFactory.FromString(x));
+        }
+
+        public static IEnumerable<RevisionID> AsMaybeRevIDs(this IList list)
+        {
+            foreach(var obj in list) {
+                var str = obj as string;
+                if(str == null) {
+                    yield return null;
+                }
+
+                yield return RevisionIDFactory.FromString(str);
+            }
         }
     }
 }

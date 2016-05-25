@@ -113,7 +113,7 @@ namespace Couchbase.Lite.Internal
                 return;
             }
 
-            _responseLogic.OnCaughtUp = () => Misc.IfNotNull(Client, c => c.ChangeTrackerCaughtUp(this));
+            _responseLogic.OnCaughtUp = () => Client?.ChangeTrackerCaughtUp(this);
             _responseLogic.OnChangeFound = (change) =>
             {
                 if (!ReceivedChange(change)) {
@@ -127,7 +127,7 @@ namespace Couchbase.Lite.Internal
             // Now that the WebSocket is open, send the changes-feed options (the ones that would have
             // gone in the POST body if this were HTTP-based.)
             var bytes = GetChangesFeedPostBody().ToArray();
-            _client.SendAsync(bytes, null);
+            _client?.SendAsync(bytes, null);
         }
 
         // Called when a message is received
@@ -215,7 +215,7 @@ namespace Couchbase.Lite.Internal
 
         protected override void Stopped()
         {
-            Misc.IfNotNull(Client, c => c.ChangeTrackerStopped(this));
+            Client?.ChangeTrackerStopped(this);
             Misc.SafeDispose(ref _changesProcessor);
         }
 

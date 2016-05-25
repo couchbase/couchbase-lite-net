@@ -146,6 +146,7 @@ namespace Couchbase.Lite
             byte[] buffer = new byte[16384];
             int len;
             length = 0;
+            inputStream.Reset();
             try {
                 while ((len = inputStream.Read(buffer, 0, buffer.Length)) > 0)
                 {

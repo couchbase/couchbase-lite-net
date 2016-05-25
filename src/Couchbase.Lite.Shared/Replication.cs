@@ -578,13 +578,13 @@ namespace Couchbase.Lite
 
                     if (managerClientFactory != null) {
                         _clientFactory = managerClientFactory;
-                    }
-                    else {
-                        var id = LocalDatabase == null ? null : RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
-                        _cookieStore = new CookieStore(LocalDatabase, id);
+                    }  else {
                         _clientFactory = new CouchbaseLiteHttpClientFactory();
                     }
                 }
+
+                var id = LocalDatabase == null ? null : RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
+                _cookieStore = new CookieStore(LocalDatabase, id);
             }
         }
 
@@ -1894,9 +1894,9 @@ namespace Couchbase.Lite
                     }
                 } else {
                     var response = result.AsDictionary<string, object>();
-                    var rev = response.Get ("rev");
+                    var rev = response.GetCast<string>("rev");
                     if(rev != null) {
-                        body["_rev"] = rev;
+                        body.SetRevID(rev);
                     }
 
                     _remoteCheckpoint = body;
@@ -1997,8 +1997,8 @@ namespace Couchbase.Lite
                     }
                     if (xformedProperties != properties) {
                         Debug.Assert (xformedProperties != null);
-                        Debug.Assert (xformedProperties ["_id"].Equals (properties ["_id"]));
-                        Debug.Assert (xformedProperties ["_rev"].Equals (properties ["_rev"]));
+                        Debug.Assert (xformedProperties.CblID().Equals(properties.CblID()));
+                        Debug.Assert (xformedProperties.CblRev().Equals(properties.CblRev()));
 
                         var nuRev = new RevisionInternal (rev.GetProperties ());
                         nuRev.SetProperties (xformedProperties);
