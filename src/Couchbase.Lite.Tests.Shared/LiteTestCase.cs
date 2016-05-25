@@ -119,6 +119,8 @@ namespace Couchbase.Lite
         [SetUp]
         protected virtual void SetUp()
         {
+            var nunitListener = Debug.Listeners.Cast<TraceListener>().Where(tl => tl.Name == "NUnit").FirstOrDefault();
+            if(nunitListener != null) Debug.Listeners.Remove(nunitListener);
             WriteDebug("SetUp");
             Storage.SQLCipher.Plugin.Register();
             Storage.ForestDB.Plugin.Register();
