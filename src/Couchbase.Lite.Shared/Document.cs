@@ -131,10 +131,7 @@ namespace Couchbase.Lite
         public string CurrentRevisionId
         {
             get {
-                var cr = CurrentRevision;
-                return cr == null
-                    ? null
-                    : cr.Id;
+                return CurrentRevision?.Id;
             }
         }
 
@@ -319,21 +316,27 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The value of the property with the specified key.</returns>
         /// <param name="key">The key of the property value to return.</param>
-        public Object GetProperty(String key) { return CurrentRevision != null ? CurrentRevision.Properties.Get(key) : null; }
+        public object GetProperty(string key)
+        {
+            return CurrentRevision?.Properties?.Get(key);
+        }
 
         /// <summary>
         /// Returns the TValue of the property with the specified key.
         /// </summary>
         /// <returns>The value of the property with the specified key as TValue.</returns>
         /// <param name="key">The key of the property value to return.</param>
-        public TValue GetProperty<TValue>(String key)
+        public TValue GetProperty<TValue>(string key)
         {
             TValue val;
             try {
                 val = (TValue)GetProperty(key);
             } catch(InvalidCastException) {
                 val = default(TValue);
+            } catch(NullReferenceException) {
+                val = default(TValue);
             }
+
             return val;
         }
 

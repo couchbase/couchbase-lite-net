@@ -303,35 +303,30 @@ namespace Couchbase.Lite.Storage.ForestDB
         private void WithC4Document(string docId, RevisionID revId, bool withBody, bool create, C4DocumentActionDelegate block)
         {
             var doc = default(C4Document*);
-            try {
-                doc = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_get(Forest, docId, !create, err));
-                if(revId != null) {
-                    RetryHandler.RetryIfBusy().AllowError(410, C4ErrorDomain.HTTP).Execute(err =>
-                    {
-                        bool result = false;
-                        revId.PinAndUse(slice =>
+            try { 
+                doc = (C4Document *)RetryHandler.RetryIfBusy().AllowErrors(
+                    new C4Error() { code = 404, domain = C4ErrorDomain.HTTP },
+                    new C4Error() { code = (int)ForestDBStatus.KeyNotFound, domain = C4ErrorDomain.ForestDB })
+                    .Execute(err => Native.c4doc_get(Forest, docId, !create, err));
+                if(doc != null) {
+                    if(revId != null) {
+                        RetryHandler.RetryIfBusy().AllowError(410, C4ErrorDomain.HTTP).Execute(err =>
                         {
-                            result = Native.c4doc_selectRevision(doc, slice, withBody, err);
+                            bool result = false;
+                            revId.PinAndUse(slice =>
+                            {
+                                result = Native.c4doc_selectRevision(doc, slice, withBody, err);
+                            });
+
+                            return result;
                         });
+                    }
 
-                        return result;
-                    });
+                    if(withBody) {
+                        RetryHandler.RetryIfBusy().AllowError(410, C4ErrorDomain.HTTP).Execute((err => Native.c4doc_loadRevisionBody(doc, err)));
+                    }
                 }
 
-                if(withBody) {
-                    RetryHandler.RetryIfBusy().AllowError(410, C4ErrorDomain.HTTP).Execute((err => Native.c4doc_loadRevisionBody(doc, err)));
-                }
-            } catch(CBForestException e) {
-                var is404 = e.Domain == C4ErrorDomain.ForestDB && e.Code == (int)ForestDBStatus.KeyNotFound;
-                is404 |= e.Domain == C4ErrorDomain.HTTP && e.Code == 404;
-                Native.c4doc_free(doc);
-                doc = null;
-                if(!is404) {
-                    throw;
-                }
-            }
-
-            try {
                 block(doc);
             } finally {
                 Native.c4doc_free(doc);
@@ -547,6 +542,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             _fdbConnections = new ConcurrentDictionary<int, IntPtr>();
             foreach(var ptr in connections) {
                 ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
+                Native.c4db_free((C4Database*)ptr.Value.ToPointer());
             }
         }
 
@@ -692,7 +688,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 var timestamp = (ulong)expiration.Value.ToUniversalTime().TimeSinceEpoch().TotalSeconds;
                 ForestDBBridge.Check(err => Native.c4doc_setExpiration(Forest, documentId, timestamp, err));
             } else {
-                ForestDBBridge.Check(err => Native.c4doc_setExpiration(Forest, documentId, UInt64.MaxValue, err));
+                ForestDBBridge.Check(err => Native.c4doc_setExpiration(Forest, documentId, 0UL, err));
             }
         }
 
