@@ -198,11 +198,13 @@ namespace Couchbase.Lite.Storage.ForestDB
             _fdbConnections.Clear();
             foreach (var connection in connections) {
                 ForestDBBridge.Check(err => Native.c4view_close((C4View*)connection.ToPointer(), err));
+            Native.c4view_free((C4View*)connection.ToPointer());
             }
 #else
             var indexDb = _indexDB;
             _indexDB = null;
             ForestDBBridge.Check(err => Native.c4view_close(indexDb, err));
+            Native.c4view_free(indexDb);
 #endif
         }
 
@@ -221,6 +223,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
             if(dryRun) {
                 ForestDBBridge.Check(err => Native.c4view_close(retVal, err));
+                Native.c4view_free(retVal);
             }
 
             return retVal;

@@ -2069,7 +2069,7 @@ namespace Couchbase.Lite
 
         internal void SchedulePurgeExpired(TimeSpan delay)
         {
-            var nextExpiration = Storage.NextDocumentExpiry();
+            var nextExpiration = Storage?.NextDocumentExpiry();
             if(nextExpiration.HasValue) {
                 var delta = (nextExpiration.Value - DateTime.UtcNow).Add(TimeSpan.FromSeconds(1));
                 var expirationTimeSpan = delta > delay ? delta : delay;
@@ -2091,7 +2091,8 @@ namespace Couchbase.Lite
                 Log.To.Database.W(TAG, "{0} storage is null or closed, cannot run purge job, returning early...", this);
                 return;
             }
-            var results = Storage.PurgeExpired();
+
+            var results = Storage?.PurgeExpired() ?? new List<string>();
             var changedEvt = _changed;
             if (results.Count > 0) {
                 Log.To.Database.I(TAG, "{0} purged {1} expired documents", this, results.Count);

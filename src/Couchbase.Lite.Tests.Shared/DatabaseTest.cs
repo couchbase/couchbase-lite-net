@@ -75,7 +75,9 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(0, rev.Attachments.Count());
             Assert.AreEqual(0, rev.AttachmentNames.Count());
-            Assert.IsNull(rev.GetAttachment("index.html"));
+            using(var a = rev.GetAttachment("index.html")) { 
+                Assert.IsNull(a);
+            }
 
             var body = Encoding.UTF8.GetBytes("This is a test attachment!");
             var rev2 = doc.CreateRevision();
@@ -83,36 +85,39 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(1, rev2.Attachments.Count());
             CollectionAssert.AreEqual(new string[] { "index.html" }, rev2.AttachmentNames);
-            var attach = rev2.GetAttachment("index.html");
-            Assert.IsNull(attach.Revision);
-            Assert.IsNull(attach.Document);
-            Assert.AreEqual("index.html", attach.Name);
-            Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
-            Assert.AreEqual(body, attach.Content);
-            Assert.AreEqual(body.Length, attach.Length);
+            var rev2Attach = rev2.GetAttachment("index.html");
+            Assert.IsNull(rev2Attach.Revision);
+            Assert.IsNull(rev2Attach.Document);
+            Assert.AreEqual("index.html", rev2Attach.Name);
+            Assert.AreEqual("text/plain; charset=utf-8", rev2Attach.ContentType);
+            Assert.AreEqual(body, rev2Attach.Content);
+            Assert.AreEqual(body.Length, rev2Attach.Length);
 
             var rev3 = rev2.Save();
+            rev2.Dispose();
             Assert.AreEqual(1, rev3.Attachments.Count());
             Assert.AreEqual(1, rev3.AttachmentNames.Count());
 
-            attach = rev3.GetAttachment("index.html");
-            Assert.AreEqual(doc, attach.Document);
-            Assert.AreEqual("index.html", attach.Name);
-            CollectionAssert.AreEqual(new string[] { "index.html" }, rev3.AttachmentNames);
+            using(var attach = rev3.GetAttachment("index.html")) {
+                Assert.AreEqual(doc, attach.Document);
+                Assert.AreEqual("index.html", attach.Name);
+                CollectionAssert.AreEqual(new string[] { "index.html" }, rev3.AttachmentNames);
 
-            Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
-            Assert.AreEqual(body, attach.Content);
-            Assert.AreEqual(body.Length, attach.Length);
+                Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
+                Assert.AreEqual(body, attach.Content);
+                Assert.AreEqual(body.Length, attach.Length);
 
-            var inStream = attach.ContentStream;
-            var data = inStream.ReadAllBytes();
-            Assert.AreEqual(body, data);
+                var inStream = attach.ContentStream;
+                var data = inStream.ReadAllBytes();
+                Assert.AreEqual(body, data);
 
-            var newRev = rev3.CreateRevision();
-            newRev.RemoveAttachment(attach.Name);
-            var rev4 = newRev.Save();
-            Assert.AreEqual(0, rev4.AttachmentNames.Count());
-
+                var newRev = rev3.CreateRevision();
+                newRev.RemoveAttachment(attach.Name);
+                var rev4 = newRev.Save();
+                newRev.Dispose();
+                Assert.AreEqual(0, rev4.AttachmentNames.Count());
+            }
+            
             // Add an attachment with revpos=0 (see #627)
             var props = rev3.Properties;
             var atts = props.Get("_attachments").AsDictionary<string, object>();
@@ -129,8 +134,9 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
 
             var rev5 = doc.GetRevision("3-0000");
-            var att = rev5.GetAttachment("zero.txt");
-            Assert.IsNotNull(att);
+            using(var att = rev5.GetAttachment("zero.txt")) {
+                Assert.IsNotNull(att);
+            }
         }
 
         [Test]
@@ -404,7 +410,10 @@ namespace Couchbase.Lite
             const int numDocs = 50;
             var countdownEvent = new CountdownEvent(numDocs);
 
-            database.Changed += (sender, e) => countdownEvent.Signal();
+            database.Changed += (sender, e) =>
+            {
+                countdownEvent.Signal(e.Changes.Count());
+            };
             CreateDocuments(database, numDocs);
             Assert.IsTrue(countdownEvent.Wait(TimeSpan.FromSeconds(1)));
         }
