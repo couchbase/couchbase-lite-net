@@ -187,6 +187,11 @@ namespace Couchbase.Lite
         private EventHandler<ReplicationChangeEventArgs> _changed;
 
         /// <summary>
+        /// Fired when the last sequence has been saved and the replicator can be restarted
+        /// </summary>
+        public event EventHandler<EventArgs> LastSequenceSaved;
+
+        /// <summary>
         /// The state machine the holds and controls the state of the replicator
         /// </summary>
         protected readonly StateMachine<ReplicationState, ReplicationTrigger> _stateMachine;
@@ -1164,12 +1169,14 @@ namespace Couchbase.Lite
 
             LocalDatabase.ForgetReplication(this);
             lastSequenceChanged = true; // force save the sequence
+
             SaveLastSequence (() => 
             {
                 var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
                 if (reachabilityManager != null) {
                     reachabilityManager.StatusChanged -= NetworkStatusChanged;
                 }
+                OnLastSequenceSaved();
             });
         }
 
@@ -2132,6 +2139,12 @@ namespace Couchbase.Lite
         }
 
         #endregion
+
+        protected virtual void OnLastSequenceSaved()
+        {
+            EventHandler<EventArgs> handler = LastSequenceSaved;
+            if (handler != null) handler(this, EventArgs.Empty);
+        }
     }
 
     #region EventArgs Subclasses
