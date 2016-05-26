@@ -62,26 +62,26 @@ namespace Couchbase.Lite.Storage.ForestDB
         private C4View* IndexDB
         {
             get {
-    #if CONNECTION_PER_THREAD
+#if CONNECTION_PER_THREAD
                 return (C4View*)_fdbConnections.GetOrAdd(Thread.CurrentThread.ManagedThreadId, 
                     x => new IntPtr(OpenIndex())).ToPointer();
-    #else
+#else
                 if(_indexDB == null) {
                     _indexDB = OpenIndex();
                 }
 
                 return _indexDB;
-    #endif
-                
+#endif
+
             }
         }
 
 #if !CONNECTION_PER_THREAD
-        private C4View *_indexDB;
+        private C4View* _indexDB;
 #endif
 
 
-        public int TotalRows 
+        public int TotalRows
         {
             get {
                 try {
@@ -127,8 +127,8 @@ namespace Couchbase.Lite.Storage.ForestDB
             var filename = ViewNameToFilename(name);
             _path = Path.Combine(_dbStorage.Directory, filename);
             var files = System.IO.Directory.GetFiles(_dbStorage.Directory, filename + "*");
-            if (files.Length == 0) {
-                if (!create) {
+            if(files.Length == 0) {
+                if(!create) {
                     // This is normal operation, so make an exception for logging at error level
                     Log.To.View.V(Tag, "create is false but no db file exists at {0}", _path);
                     throw new InvalidOperationException(String.Format(
@@ -141,14 +141,14 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public static void WithC4Keys(object[] keySources, bool writeNull, C4KeyActionDelegate action)
         {
-            if (keySources == null) {
+            if(keySources == null) {
                 action(null);
                 return;
             }
 
             var c4Keys = new C4Key*[keySources.Length];
-            for (int i = 0; i < keySources.Length; i++) {
-                if (keySources[i] == null && !writeNull) {
+            for(int i = 0; i < keySources.Length; i++) {
+                if(keySources[i] == null && !writeNull) {
                     c4Keys[i] = null;
                 } else {
                     c4Keys[i] = CouchbaseBridge.SerializeToKey(keySources[i]);
@@ -158,7 +158,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             try {
                 action(c4Keys);
             } finally {
-                foreach (C4Key *key in c4Keys) {
+                foreach(C4Key* key in c4Keys) {
                     Native.c4key_free(key);
                 }
             }
@@ -167,10 +167,10 @@ namespace Couchbase.Lite.Storage.ForestDB
         public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
         {
             return new AtomicAction(() => {
-                ForestDBBridge.Check(err => 
+                ForestDBBridge.Check(err =>
                 {
                     var newc4key = default(C4EncryptionKey);
-                    if (newKey != null) {
+                    if(newKey != null) {
                         newc4key = new C4EncryptionKey(newKey.KeyData);
                     }
 
@@ -178,7 +178,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 });
 
                 CloseIndex();
-           }, null, null);
+            }, null, null);
         }
 
         internal static string FileNameToViewName(string filename)
@@ -198,30 +198,33 @@ namespace Couchbase.Lite.Storage.ForestDB
             _fdbConnections.Clear();
             foreach (var connection in connections) {
                 ForestDBBridge.Check(err => Native.c4view_close((C4View*)connection.ToPointer(), err));
+            Native.c4view_free((C4View*)connection.ToPointer());
             }
 #else
             var indexDb = _indexDB;
             _indexDB = null;
             ForestDBBridge.Check(err => Native.c4view_close(indexDb, err));
+            Native.c4view_free(indexDb);
 #endif
         }
 
         private C4View* OpenIndexWithOptions(C4DatabaseFlags options, bool dryRun = false)
         {
-                var retVal = (C4View*)ForestDBBridge.Check(err =>
-                {
-                    var encryptionKey = default(C4EncryptionKey);
-                    if(_dbStorage.EncryptionKey != null) {
-                        encryptionKey = new C4EncryptionKey(_dbStorage.EncryptionKey.KeyData);
-                    }
-
-                    return Native.c4view_open(_dbStorage.Forest, _path, Name, dryRun  ? "0" : Delegate.MapVersion, options, 
-                        &encryptionKey, err);
-                });
-
-                if (dryRun) {
-                    ForestDBBridge.Check(err => Native.c4view_close(retVal, err));
+            var retVal = (C4View*)ForestDBBridge.Check(err =>
+            {
+                var encryptionKey = default(C4EncryptionKey);
+                if(_dbStorage.EncryptionKey != null) {
+                    encryptionKey = new C4EncryptionKey(_dbStorage.EncryptionKey.KeyData);
                 }
+
+                return Native.c4view_open(_dbStorage.Forest, _path, Name, dryRun ? "0" : Delegate.MapVersion, options,
+                    &encryptionKey, err);
+            });
+
+            if(dryRun) {
+                ForestDBBridge.Check(err => Native.c4view_close(retVal, err));
+                Native.c4view_free(retVal);
+            }
 
             return retVal;
         }
@@ -250,8 +253,9 @@ namespace Couchbase.Lite.Storage.ForestDB
             var sb = new StringBuilder();
             var length = 0;
             var buffer = new byte[6];
-            fixed(byte* bufPtr = buffer)
-            fixed(char* ptr = unescaped) {
+            fixed (byte* bufPtr = buffer)
+            fixed (char* ptr = unescaped)
+            {
                 var currentCharPtr = ptr;
                 while(length < unescaped.Length) {
                     var numBytes = Encoding.UTF8.GetBytes(currentCharPtr, 1, bufPtr, 6);
@@ -306,7 +310,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
             var startKey = options.StartKey;
             var endKey = options.EndKey;
-            if (options.Descending) {
+            if(options.Descending) {
                 startKey = Misc.KeyForPrefixMatch(startKey, options.PrefixMatchLevel);
             } else {
                 endKey = Misc.KeyForPrefixMatch(options.EndKey, options.PrefixMatchLevel);
@@ -330,7 +334,8 @@ namespace Couchbase.Lite.Storage.ForestDB
                         opts.skip = (ulong)options.Skip;
                         opts.startKey = startEndKey[0];
                         opts.startKeyDocID = startkeydocid_.AsC4Slice();
-                        fixed (C4Key** keysPtr = c4keys) {
+                        fixed (C4Key** keysPtr = c4keys)
+                        {
                             opts.keys = keysPtr;
                             enumerator = (C4QueryEnumerator*)ForestDBBridge.Check(err => {
                                 var localOpts = opts;
@@ -344,23 +349,23 @@ namespace Couchbase.Lite.Storage.ForestDB
             return new CBForestQueryEnumerator(enumerator);
         }
 
-        #if PARSED_KEYS
+#if PARSED_KEYS
 
         private static bool GroupTogether(object lastKey, object key, int groupLevel)
         {
-            if (groupLevel == 0) {
+            if(groupLevel == 0) {
                 return !((lastKey == null) || (key == null)) && lastKey.Equals(key);
             }
 
             var lastArr = lastKey as IList;
             var arr = key as IList;
-            if (lastArr == null || arr == null) {
+            if(lastArr == null || arr == null) {
                 return groupLevel == 1 && (!((lastKey == null) || (key == null)) && lastKey.Equals(key));
             }
 
             var level = Math.Min(groupLevel, Math.Min(lastArr.Count, arr.Count));
-            for (int i = 0; i < level; i++) {
-                if (!lastArr[i].Equals(arr[i])) {
+            for(int i = 0; i < level; i++) {
+                if(!lastArr[i].Equals(arr[i])) {
                     return false;
                 }
             }
@@ -371,26 +376,26 @@ namespace Couchbase.Lite.Storage.ForestDB
         private static object GroupKey(object key, int groupLevel)
         {
             var arr = key.AsList<object>();
-            if (groupLevel > 0 && arr != null && arr.Count > groupLevel) {
+            if(groupLevel > 0 && arr != null && arr.Count > groupLevel) {
                 return new Couchbase.Lite.Util.ArraySegment<object>(arr.ToArray(), 0, groupLevel);
             }
 
             return key;
         }
 
-        #endif
+#endif
 
         private static object CallReduce(ReduceDelegate reduce, IList<object> keys, IList<object> vals)
         {
-            if (reduce == null) {
+            if(reduce == null) {
                 return null;
             }
 
-            #if PARSED_KEYS
+#if PARSED_KEYS
             var lazyKeys = keys;
-            #else
+#else
             var lazyKeys = new LazyJsonArray(keys);
-            #endif
+#endif
 
             var lazyValues = new LazyJsonArray(vals);
             try {
@@ -409,9 +414,9 @@ namespace Couchbase.Lite.Storage.ForestDB
             IList<object> keysToReduce, IList<object> valsToReduce)
         {
             try {
-                var row = new QueryRow(null, 0, group ? GroupKey(key, groupLevel) : null, 
+                var row = new QueryRow(null, 0, group ? GroupKey(key, groupLevel) : null,
                     CallReduce(reduce, keysToReduce, valsToReduce), null, this);
-                if (filter != null && filter(row)) {
+                if(filter != null && filter(row)) {
                     row = null;
                 }
 
@@ -456,12 +461,12 @@ namespace Couchbase.Lite.Storage.ForestDB
             var viewsArray = views.Cast<ForestDBViewStore>().ToArray();
             var viewInfo = viewsArray.Select(x => Tuple.Create(x, x.LastSequenceIndexed)).ToArray();
             var nativeViews = new C4View*[viewsArray.Length];
-            for (int i = 0; i < viewsArray.Length; i++) {
+            for(int i = 0; i < viewsArray.Length; i++) {
                 nativeViews[i] = viewsArray[i].IndexDB;
             }
 
             var indexer = (C4Indexer*)ForestDBBridge.Check(err => Native.c4indexer_begin(_dbStorage.Forest, nativeViews, err));
-          
+
             var enumerator = new CBForestDocEnumerator(indexer);
 
             var commit = false;
@@ -469,15 +474,15 @@ namespace Couchbase.Lite.Storage.ForestDB
                 foreach(var next in enumerator) {
                     var seq = next.Sequence;
 
-                    for (int i = 0; i < viewInfo.Length; i++) {
-                        
+                    for(int i = 0; i < viewInfo.Length; i++) {
+
                         var info = viewInfo[i];
-                        if (seq <= info.Item2) {
+                        if(seq <= info.Item2) {
                             continue; // This view has already indexed this sequence
                         }
 
                         var viewDelegate = info.Item1.Delegate;
-                        if (viewDelegate == null || viewDelegate.Map == null) {
+                        if(viewDelegate == null || viewDelegate.Map == null) {
                             Log.To.Query.V(Tag, "    {0} has no map block; skipping it", info.Item1.Name);
                             continue;
                         }
@@ -523,7 +528,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                                     values.Add(Manager.GetObjectMapper().WriteValueAsString(value));
                                 }
                             });
-                        } catch (Exception e) {
+                        } catch(Exception e) {
                             Log.To.Query.W(Tag, String.Format("Exception thrown in map function of {0}, continuing", info.Item1.Name), e);
                             continue;
                         }
@@ -535,7 +540,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 }
 
                 commit = true;
-            }  catch(Exception e) {
+            } catch(Exception e) {
                 Log.To.Query.W(Tag, "Error updates indexes, returning false", e);
                 return false;
             } finally {
@@ -549,7 +554,7 @@ namespace Couchbase.Lite.Storage.ForestDB
         {
             var cast = viewsToUpdate.Cast<ForestDBViewStore>();
             return new UpdateJob(UpdateIndexes, viewsToUpdate, from store in cast
-                select store._dbStorage.LastSequence);
+                                                               select store._dbStorage.LastSequence);
         }
 
         public IEnumerable<QueryRow> RegularQuery(QueryOptions options)
@@ -558,45 +563,45 @@ namespace Couchbase.Lite.Storage.ForestDB
             var filter = optionsCopy.Filter;
             var limit = Int32.MaxValue;
             var skip = 0;
-            if (filter != null) {
+            if(filter != null) {
                 // If a filter is present, these need to be applied to the filter
                 // and not the query
                 limit = optionsCopy.Limit;
                 skip = optionsCopy.Skip;
-                optionsCopy.Limit = Int32.MaxValue; 
+                optionsCopy.Limit = Int32.MaxValue;
                 optionsCopy.Skip = 0;
             }
 
-            var enumerator = QueryEnumeratorWithOptions(optionsCopy); 
-            foreach (var next in enumerator) {
+            var enumerator = QueryEnumeratorWithOptions(optionsCopy);
+            foreach(var next in enumerator) {
                 var key = CouchbaseBridge.DeserializeKey<object>(next.Key);
                 var value = (next.Value as IEnumerable<byte>).ToArray();
-                var docRevision = default(RevisionInternal); 
-                if (value.Length == 1 && value[0] == 42) {
+                var docRevision = default(RevisionInternal);
+                if(value.Length == 1 && value[0] == 42) {
                     docRevision = _dbStorage.GetDocument(next.DocID, null, true);
                 } else {
                     docRevision = _dbStorage.GetDocument(next.DocID, null, optionsCopy.IncludeDocs);
                 }
 
                 var row = new QueryRow(next.DocID, next.DocSequence, key, value, docRevision, this);
-                if (filter != null) {
-                    if (!filter(row)) {
+                if(filter != null) {
+                    if(!filter(row)) {
                         continue;
                     }
 
-                    if (skip > 0) {
+                    if(skip > 0) {
                         skip--;
                         continue;
                     }
 
-                    if (limit-- == 0) {
+                    if(limit-- == 0) {
                         yield break;
                     }
                 }
 
                 Log.To.Query.V(Tag, "Query {0} found row with key={1}, value={2}, id={3}", Name,
-                    new SecureLogJsonString(key, LogMessageSensitivity.PotentiallyInsecure), 
-                    new SecureLogString(value, LogMessageSensitivity.PotentiallyInsecure), 
+                    new SecureLogJsonString(key, LogMessageSensitivity.PotentiallyInsecure),
+                    new SecureLogString(value, LogMessageSensitivity.PotentiallyInsecure),
                     new SecureLogString(next.DocID, LogMessageSensitivity.PotentiallyInsecure));
                 yield return row;
             }
@@ -608,10 +613,10 @@ namespace Couchbase.Lite.Storage.ForestDB
             var group = options.Group || groupLevel > 0;
 
             var reduce = Delegate == null ? null : Delegate.Reduce;
-            if (options.ReduceSpecified) {
-                if (!options.Reduce) {
+            if(options.ReduceSpecified) {
+                if(!options.Reduce) {
                     reduce = null;
-                } else if (reduce == null) {
+                } else if(reduce == null) {
                     throw Misc.CreateExceptionAndLog(Log.To.Query, StatusCode.BadParam, Tag,
                         "Cannot use reduce option in view {0} which has no reduce block defined", Name);
 
@@ -622,7 +627,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             var filter = options.Filter;
             var keysToReduce = default(IList<object>);
             var valsToReduce = default(IList<object>);
-            if (reduce != null) {
+            if(reduce != null) {
                 keysToReduce = new List<object>(100);
                 valsToReduce = new List<object>(100);
             }
@@ -630,10 +635,10 @@ namespace Couchbase.Lite.Storage.ForestDB
             var enumerator = QueryEnumeratorWithOptions(options);
 
             var row = default(QueryRow);
-            foreach (var next in enumerator) {
+            foreach(var next in enumerator) {
                 var key = CouchbaseBridge.DeserializeKey<object>(next.Key);
                 var value = default(object);
-                if (lastKey != null && (key == null || (group && !GroupTogether(lastKey, key, groupLevel)))) {
+                if(lastKey != null && (key == null || (group && !GroupTogether(lastKey, key, groupLevel)))) {
                     // key doesn't match lastKey; emit a grouped/reduced row for what came before:
                     row = CreateReducedRow(lastKey, group, groupLevel, reduce, filter, keysToReduce, valsToReduce);
                     keysToReduce.Clear();
@@ -641,18 +646,18 @@ namespace Couchbase.Lite.Storage.ForestDB
                     if(row != null) {
                         var rowCopy = row;
                         Log.To.Query.V(Tag, "Query {0} reduced row with key={1} value={2}", Name,
-                            new SecureLogJsonString(key, LogMessageSensitivity.PotentiallyInsecure), 
+                            new SecureLogJsonString(key, LogMessageSensitivity.PotentiallyInsecure),
                             new SecureLogJsonString(value, LogMessageSensitivity.PotentiallyInsecure));
                         row = null;
                         yield return rowCopy;
                     }
                 }
 
-                if (key != null && reduce != null) {
+                if(key != null && reduce != null) {
                     // Add this key/value to the list to be reduced:
                     keysToReduce.Add(key);
                     var nextVal = next.Value;
-                    if (nextVal.size == 1 && nextVal.ElementAt(0) == (byte)'*') {
+                    if(nextVal.size == 1 && nextVal.ElementAt(0) == (byte)'*') {
                         try {
                             var rev = _dbStorage.GetDocument(next.DocID, next.DocSequence);
                             value = rev.GetProperties();
@@ -685,7 +690,7 @@ namespace Couchbase.Lite.Storage.ForestDB
         public IEnumerable<IDictionary<string, object>> Dump()
         {
             var enumerator = QueryEnumeratorWithOptions(new QueryOptions());
-            foreach (var next in enumerator) {
+            foreach(var next in enumerator) {
                 yield return new Dictionary<string, object> {
                     { "seq", next.DocSequence },
                     { "key", next.KeyJSON },
@@ -697,17 +702,17 @@ namespace Couchbase.Lite.Storage.ForestDB
         public bool RowValueIsEntireDoc(object valueData)
         {
             var valueString = valueData as IEnumerable<byte>;
-            if (valueString == null) {
+            if(valueString == null) {
                 return false;
             }
 
             bool first = true;
-            foreach (var character in valueString) {
-                if (!first) {
+            foreach(var character in valueString) {
+                if(!first) {
                     return false;
                 }
 
-                if (character != (byte)'*') {
+                if(character != (byte)'*') {
                     return false;
                 }
 

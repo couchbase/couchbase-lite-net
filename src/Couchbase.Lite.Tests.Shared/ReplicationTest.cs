@@ -514,7 +514,7 @@ namespace Couchbase.Lite
 
             Log.Domains.Sync.Level = Log.LogLevel.Debug;
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
-                var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+                var docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
                 var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
                 var doc2Id = string.Format("doc2-{0}", docIdTimestamp);           
                 remoteDb.AddDocument(doc1Id, "attachment.png");
@@ -843,7 +843,7 @@ namespace Couchbase.Lite
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var remote = remoteDb.RemoteUri;
-                var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+                var docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
 
                 // Create some documents:
                 var documentProperties = new Dictionary<string, object>();
@@ -958,7 +958,7 @@ namespace Couchbase.Lite
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var remote = remoteDb.RemoteUri;
-                var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+                var docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
 
                 // Create some documentsConvert
                 var documentProperties = new Dictionary<string, object>();
@@ -1027,7 +1027,7 @@ namespace Couchbase.Lite
                 pull.Continuous = true;
                 pull.Start();
 
-                var docName = "doc" + Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+                var docName = "doc" + Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
                 var endpoint = remoteDb.RemoteUri.AppendPath(docName);
                 var docContent = Encoding.UTF8.GetBytes("{\"foo\":false}");
                 var putRequest = new HttpRequestMessage(HttpMethod.Put, endpoint);
@@ -1086,7 +1086,7 @@ namespace Couchbase.Lite
             // Even though this test is passed, there is a runtime exception
             // thrown regarding the replication's number of changes count versus
             // number of completed changes count. Investigation is required.
-            string docIdTimestamp = System.Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+            string docIdTimestamp = System.Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
             string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 
@@ -2072,7 +2072,7 @@ namespace Couchbase.Lite
                 pusher.Continuous = true;
                 pusher.Start();
 
-                var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+                var docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
                 var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
 
                 var document = database.GetDocument(doc1Id);
@@ -2541,7 +2541,7 @@ namespace Couchbase.Lite
 
                 // Create local docs
                 for (int i = 0; i < docsToCreate; i++) {
-                    var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+                    var docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
                     var docId = string.Format("doc{0}-{1}", i, docIdTimestamp);
                 
                     var docBody = GetDocWithId(docId, "attachment.png");
@@ -2679,7 +2679,7 @@ namespace Couchbase.Lite
         {
             using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 remoteDb.DisableGuestAccess();
-                var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+                var docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
                 var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
                 var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 
@@ -2709,7 +2709,7 @@ namespace Couchbase.Lite
                 Assert.IsNull(repl.LastError);
                 repl.Stop();
 
-                docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+                docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
                 doc1Id = string.Format("doc1-{0}", docIdTimestamp);
                 doc2Id = string.Format("doc2-{0}", docIdTimestamp);
                 remoteDb.AddDocument(doc1Id, "attachment.png");
@@ -2760,7 +2760,7 @@ namespace Couchbase.Lite
         [Category("issue_398")]
         public void TestPusherUsesFilterParams()
         {
-            var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+            var docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
             var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 

@@ -1938,7 +1938,7 @@ namespace Couchbase.Lite
             var query2 = view.CreateQuery().ToLiveQuery();
             query2.Start();
 
-            var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+            var docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
             for(int i = 0; i < 50; i++) {
                 database.GetDocument(string.Format("doc{0}-{1}", i, docIdTimestamp)).PutProperties(new Dictionary<string, object> { {
                         "jim",

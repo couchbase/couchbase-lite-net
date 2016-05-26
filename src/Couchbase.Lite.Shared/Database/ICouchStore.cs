@@ -161,6 +161,12 @@ namespace Couchbase.Lite.Store
         /// </summary>
         long GetRevisionSequence(RevisionInternal rev);
 
+        void SetDocumentExpiration(string documentId, DateTime? expiration);
+
+        DateTime? GetDocumentExpiration(string documentID);
+
+        DateTime? NextDocumentExpiry();
+
         /// <summary>
         /// Retrieves the parent revision of a revision, or returns null if there is no parent.
         /// </summary>
@@ -270,6 +276,8 @@ namespace Couchbase.Lite.Store
         /// The magic revision ID "*" means "all revisions", indicating that the
         /// document should be removed entirely from the database.</param>
         IDictionary<string, object> PurgeRevisions(IDictionary<string, IList<string>> docsToRev);
+
+        IList<string> PurgeExpired();
 
         #endregion
 

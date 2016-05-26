@@ -34,7 +34,7 @@ namespace Couchbase.Lite
     public class TimeSeriesTest : LiteTestCase
     {
         private const string ScratchDbName = "cbl_replicator_scratch";
-        private static readonly DateTime FakeT0 = Misc.CreateDate(100000);
+        private static readonly DateTime FakeT0 = Misc.OffsetFromEpoch(TimeSpan.FromMilliseconds(100000));
         private TimeSeries _ts;
         private SyncGateway _sg;
 

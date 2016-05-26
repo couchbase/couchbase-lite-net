@@ -85,6 +85,8 @@ namespace Couchbase.Lite
         private const string LOCAL_CHECKPOINT_DOC_ID = "CBL_LocalCheckpoint";
         private const string CHECKPOINT_LOCAL_UUID_KEY = "localUUID";
 
+        private static readonly TimeSpan HousekeepingDelayAfterOpen = TimeSpan.FromSeconds(3);
+
         private static readonly HashSet<string> SPECIAL_KEYS_TO_REMOVE = new HashSet<string> {
             "_id", "_rev", "_deleted", "_revisions", "_revs_info", "_conflicts", "_deleted_conflicts",
             "_local_seq"
@@ -103,13 +105,14 @@ namespace Couchbase.Lite
 
         private CookieStore _persistentCookieStore;
 
-        private IDictionary<string, BlobStoreWriter> _pendingAttachmentsByDigest;
-        private IDictionary<string, View> _views;
-        private IList<DocumentChange> _changesToNotify;
-        private bool _isPostingChangeNotifications;
-        private object _allReplicatorsLocker = new object();
-        private bool _readonly;
-        private Task _closingTask;
+        private IDictionary<string, BlobStoreWriter>    _pendingAttachmentsByDigest;
+        private IDictionary<string, View>               _views;
+        private IList<DocumentChange>                   _changesToNotify;
+        private bool                                    _isPostingChangeNotifications;
+        private object                                  _allReplicatorsLocker = new object();
+        private bool                                    _readonly;
+        private Task                                    _closingTask;
+        private Timer                                   _expirePurgeTimer;
 
         #endregion
 
@@ -294,7 +297,7 @@ namespace Couchbase.Lite
 
             _changesToNotify = new List<DocumentChange>();
             Scheduler = new TaskFactory(new SingleTaskThreadpoolScheduler());
-            StartTime = DateTime.UtcNow.MillisecondsSinceEpoch();
+            StartTime = (ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds;
         }
 
         #endregion
@@ -2055,6 +2058,8 @@ namespace Couchbase.Lite
                     throw;
                 }
             }
+
+            _expirePurgeTimer = new Timer(PurgeExpired, null, HousekeepingDelayAfterOpen, TimeSpan.FromMilliseconds(-1));
         }
 
         internal void Open()
@@ -2062,10 +2067,52 @@ namespace Couchbase.Lite
             OpenWithOptions(Manager.DefaultOptionsFor(Name));
         }
 
+        internal void SchedulePurgeExpired(TimeSpan delay)
+        {
+            var nextExpiration = Storage?.NextDocumentExpiry();
+            if(nextExpiration.HasValue) {
+                var delta = (nextExpiration.Value - DateTime.UtcNow).Add(TimeSpan.FromSeconds(1));
+                var expirationTimeSpan = delta > delay ? delta : delay;
+                _expirePurgeTimer.Change(expirationTimeSpan, TimeSpan.FromMilliseconds(-1));
+                Log.To.Database.I(TAG, "Scheduling next doc expiration in {0:F3} seconds", expirationTimeSpan.TotalSeconds);
+            } else {
+                Log.To.Database.I(TAG, "No pending doc expirations");
+            }
+        }
 
         #endregion
 
         #region Private Methods
+
+        private void PurgeExpired(object state)
+        {
+            Log.To.Database.V(TAG, "{0} running purge job NOW...", this);
+            if (Storage == null || !Storage.IsOpen) {
+                Log.To.Database.W(TAG, "{0} storage is null or closed, cannot run purge job, returning early...", this);
+                return;
+            }
+
+            var results = Storage?.PurgeExpired() ?? new List<string>();
+            var changedEvt = _changed;
+            if (results.Count > 0) {
+                Log.To.Database.I(TAG, "{0} purged {1} expired documents", this, results.Count);
+                if (changedEvt != null) {
+                    var changes = new List<DocumentChange>();
+                    var args = new DatabaseChangeEventArgs();
+                    args.Source = this;
+                    foreach (var result in results) {
+                        var change = new DocumentChange(new RevisionInternal(result, null, true), null, false, null);
+                        change.IsExpiration = true;
+                        changes.Add(change);
+                    }
+
+                    args.Changes = changes;
+                    changedEvt(this, args);
+                }
+            }
+
+            SchedulePurgeExpired(TimeSpan.FromSeconds(1));
+        }
 
         private static Type GetStorageClass(string identifier)
         {
@@ -2247,7 +2294,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A delegate that can validate a key/value change.
     /// </summary>
-    public delegate bool ValidateChangeDelegate(string key, object oldValue, object newValue);
+    public delegate bool ValidateChangeDelegate(string key, object oldValue, object newValue);
 
     /// <summary>
     /// A delegate that can be run asynchronously on a <see cref="Couchbase.Lite.Database"/>.

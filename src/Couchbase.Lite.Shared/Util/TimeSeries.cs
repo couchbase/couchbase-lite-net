@@ -50,12 +50,12 @@ namespace Couchbase.Lite.Util
 
         public TimeSeries(Database db, string docType)
         {
-            if (db == null) {
+            if(db == null) {
                 Log.To.NoDomain.E(Tag, "db cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("db");
             }
 
-            if (docType == null) {
+            if(docType == null) {
                 Log.To.NoDomain.E(Tag, "docType cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("docType");
             }
@@ -80,19 +80,19 @@ namespace Couchbase.Lite.Util
 
         public void AddEvent(IDictionary<string, object> eventToAdd, DateTime time)
         {
-            if (eventToAdd == null) {
+            if(eventToAdd == null) {
                 Log.To.NoDomain.E(Tag, "eventToAdd cannot be null in AddEvent, throwing...");
                 throw new ArgumentNullException("eventToAdd");
             }
 
             var props = new Dictionary<string, object>(eventToAdd);
-            if (_scheduler == null) {
+            if(_scheduler == null) {
                 return;
             }
 
             _scheduler.StartNew(() =>
             {
-                props["t"] = time.MillisecondsSinceEpoch();
+                props["t"] = (ulong)time.TimeSinceEpoch().TotalMilliseconds;
                 var json = default(byte[]);
                 try {
                     json = Manager.GetObjectMapper().WriteValueAsBytes(props).ToArray();
@@ -128,7 +128,7 @@ namespace Couchbase.Lite.Util
 
         public Task FlushAsync()
         {
-            if (_scheduler == null) {
+            if(_scheduler == null) {
                 return Task.FromResult(false);
             }
 
@@ -167,14 +167,14 @@ namespace Couchbase.Lite.Util
             // Get the first series from the doc containing start (if any):
             IList<IDictionary<string, object>> curSeries = null;
             var curStamp = 0UL;
-            if (start > DateTime.MinValue) {
+            if(start > DateTime.MinValue) {
                 curSeries = GetEvents(start, ref curStamp);
             }
 
             // Start forwards query if I haven't already:
             var q = _db.CreateAllDocumentsQuery();
             ulong startStamp;
-            if (curSeries != null && curSeries.Count > 0) {
+            if(curSeries != null && curSeries.Count > 0) {
                 startStamp = curStamp;
                 foreach(var gotEvent in curSeries) {
                     startStamp += gotEvent.GetCast<ulong>("dt");
@@ -182,13 +182,13 @@ namespace Couchbase.Lite.Util
 
                 q.InclusiveStart = false;
             } else {
-                startStamp = start > DateTime.MinValue ? start.MillisecondsSinceEpoch() : 0;
+                startStamp = start > DateTime.MinValue ? (ulong)start.TimeSinceEpoch().TotalMilliseconds : 0UL;
             }
 
-            var endStamp = end < DateTime.MaxValue ? end.MillisecondsSinceEpoch() : UInt64.MaxValue;
+            var endStamp = end < DateTime.MaxValue ? (ulong)end.TimeSinceEpoch().TotalMilliseconds : UInt64.MaxValue;
 
             var e = default(QueryEnumerator);
-            if (startStamp < endStamp) {
+            if(startStamp < endStamp) {
                 q.StartKey = MakeDocID(startStamp);
                 q.EndKey = MakeDocID(endStamp);
                 e = q.Run();
@@ -196,13 +196,13 @@ namespace Couchbase.Lite.Util
 
             // OK, here is the block for the enumerator:
             var curIndex = 0;
-            while (true) {
-                while (curIndex >= (curSeries == null ? 0 :curSeries.Count)) {
-                    if (e == null) {
+            while(true) {
+                while(curIndex >= (curSeries == null ? 0 : curSeries.Count)) {
+                    if(e == null) {
                         yield break;
                     }
 
-                    if (!e.MoveNext()) {
+                    if(!e.MoveNext()) {
                         e.Dispose();
                         yield break;
                     }
@@ -215,15 +215,15 @@ namespace Couchbase.Lite.Util
                 // Return the next event from curSeries
                 var gotEvent = curSeries[curIndex++];
                 curStamp += gotEvent.GetCast<ulong>("dt");
-                if (curStamp > endStamp) {
-                    if (e != null) {
+                if(curStamp > endStamp) {
+                    if(e != null) {
                         e.Dispose();
                     }
 
                     yield break;
                 }
 
-                gotEvent["t"] = Misc.CreateDate(curStamp);
+                gotEvent["t"] = Misc.OffsetFromEpoch(TimeSpan.FromMilliseconds(curStamp));
                 gotEvent.Remove("dt");
                 yield return gotEvent;
             }
@@ -231,7 +231,7 @@ namespace Couchbase.Lite.Util
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposing) {
+            if(!disposing) {
                 Stop();
             }
         }
@@ -239,24 +239,24 @@ namespace Couchbase.Lite.Util
         private IList<IDictionary<string, object>> GetEvents(DateTime t, ref ulong startStamp)
         {
             var q = _db.CreateAllDocumentsQuery();
-            var timestamp = t > DateTime.MinValue ? t.MillisecondsSinceEpoch() : 0;
+            var timestamp = t > DateTime.MinValue ? (ulong)t.TimeSinceEpoch().TotalMilliseconds : 0;
             q.StartKey = MakeDocID(timestamp);
             q.Descending = true;
             q.Limit = 1;
             q.Prefetch = true;
             var row = q.Run().FirstOrDefault();
 
-            if (row == null) {
+            if(row == null) {
                 return new List<IDictionary<string, object>>();
             }
 
             var events = row.DocumentProperties.Get("events").AsList<IDictionary<string, object>>();
             var skip = 0;
             var ts = Convert.ToUInt64(row.Document.GetProperty("t0"));
-            foreach (var gotEvent in events) {
+            foreach(var gotEvent in events) {
                 var prevTs = ts;
                 ts += gotEvent.GetCast<ulong>("dt");
-                if (ts >= timestamp) {
+                if(ts >= timestamp) {
                     startStamp = prevTs;
                     break;
                 }
@@ -281,7 +281,7 @@ namespace Couchbase.Lite.Util
 
             // Parse a JSON array from the file:
             var stream = default(Stream);
-            #if !NET_3_5
+#if !NET_3_5
             var mapped = default(MemoryMappedFile);
             try {
                 mapped = MemoryMappedFile.CreateFromFile(_path, FileMode.Open, "TimeSeries", 0, MemoryMappedFileAccess.Read);
@@ -291,9 +291,9 @@ namespace Couchbase.Lite.Util
                 _error = e;
                 return;
             }
-            #else
+#else
             stream = File.OpenRead(_path);
-            #endif
+#endif
 
             var events = default(IList<object>);
             try {
@@ -304,14 +304,14 @@ namespace Couchbase.Lite.Util
                 return;
             } finally {
                 stream.Dispose();
-                #if !NET_3_5
+#if !NET_3_5
                 mapped.Dispose();
-                #endif
+#endif
             }
 
             // Add the events to documents in batches:
             var count = events.Count;
-            for (var pos = 0; pos < count; pos += MaxDocEventCount) {
+            for(var pos = 0; pos < count; pos += MaxDocEventCount) {
                 var group = events.Skip(pos).Take(MaxDocEventCount).ToList();
                 AddEventsToDB(group);
             }
@@ -326,7 +326,7 @@ namespace Couchbase.Lite.Util
         private void SaveQueuedDocs()
         {
             var docsToAdd = Interlocked.Exchange<ConcurrentQueue<IDictionary<string, object>>>(ref _docsToAdd, null);
-            if (docsToAdd != null && docsToAdd.Count > 0) {
+            if(docsToAdd != null && docsToAdd.Count > 0) {
                 _db.RunInTransaction(() =>
                 {
                     IDictionary<string, object> next = null;
@@ -348,14 +348,14 @@ namespace Couchbase.Lite.Util
 
         private void AddEventsToDB(IList<object> events)
         {
-            if (events.Count == 0) {
+            if(events.Count == 0) {
                 return;
             }
 
             var convertedEvents = new List<Dictionary<string, object>>();
             JsonUtility.PopulateNetObject(events, convertedEvents);
             var nextEvent = convertedEvents[0];
-            if (nextEvent == null) {
+            if(nextEvent == null) {
                 Log.To.NoDomain.W(Tag, "Invalid object found in log events, aborting...");
                 return;
             }
@@ -365,9 +365,9 @@ namespace Couchbase.Lite.Util
 
             // Convert all timestamps to relative:
             var t = t0;
-            foreach (var storedEvent in convertedEvents) {
+            foreach(var storedEvent in convertedEvents) {
                 var tnew = storedEvent.GetCast<ulong>("t");
-                if (tnew > t) {
+                if(tnew > t) {
                     storedEvent["dt"] = tnew - t;
                 }
 
@@ -383,13 +383,13 @@ namespace Couchbase.Lite.Util
             };
 
             bool firstDoc = false;
-            if (Interlocked.CompareExchange<ConcurrentQueue<IDictionary<string, object>>>(ref _docsToAdd,
+            if(Interlocked.CompareExchange<ConcurrentQueue<IDictionary<string, object>>>(ref _docsToAdd,
                    new ConcurrentQueue<IDictionary<string, object>>(), null) == null) {
                 firstDoc = true;
             }
 
             _docsToAdd.Enqueue(doc);
-            if (firstDoc) {
+            if(firstDoc) {
                 _db.RunAsync(d => SaveQueuedDocs());
             }
 
@@ -402,10 +402,10 @@ namespace Couchbase.Lite.Util
 
         protected void Stop()
         {
-            if (_scheduler != null) {
+            if(_scheduler != null) {
                 _scheduler.StartNew(() =>
                 {
-                    if (_out != null) {
+                    if(_out != null) {
                         _out.Dispose();
                         _out = null;
                     }
@@ -424,4 +424,3 @@ namespace Couchbase.Lite.Util
         }
     }
 }
-

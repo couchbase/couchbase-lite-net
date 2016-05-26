@@ -208,7 +208,7 @@ namespace Couchbase.Lite.Tests
             stream.Write(beginning, 0, beginning.Length);
 
             for (int i = 0; i < count; i++) {
-                var docIdTimestamp = Convert.ToString(DateTime.UtcNow.MillisecondsSinceEpoch());
+                var docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
                 var docId = string.Format("doc{0}-{1}", i, docIdTimestamp);         
 
                 docList.Add(docId);
