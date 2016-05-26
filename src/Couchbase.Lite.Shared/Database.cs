@@ -1031,23 +1031,17 @@ namespace Couchbase.Lite
             Storage.ForceInsert(inRev, revHistory, validationBlock, source);
         }
 
-        internal bool AddReplication(Replication replication)
+        internal void AddReplication(Replication replication)
         {
             lock(_allReplicatorsLocker) {
-                if(AllReplications.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
-                    AllReplicators.Add(replication);
-                    return true;
-                }
-
-                return false;
-
+                AllReplicators?.Add(replication);
             }
         }
 
         internal void ForgetReplication(Replication replication)
         {
             lock(_allReplicatorsLocker) {
-                AllReplicators.Remove(replication);
+                AllReplicators?.Remove(replication);
             }
         }
 
@@ -1066,8 +1060,8 @@ namespace Couchbase.Lite
 
             replication.Changed += (sender, e) =>
             {
-                if(e.Source != null && !e.Source.IsRunning && ActiveReplicators != null) {
-                    ActiveReplicators.Remove(e.Source);
+                if(e.Source != null && (e.ReplicationStateTransition.Trigger == ReplicationTrigger.StopGraceful || e.ReplicationStateTransition.Trigger == ReplicationTrigger.StopImmediate)) {
+                    ActiveReplicators?.Remove(e.Source);
                 }
             };
 

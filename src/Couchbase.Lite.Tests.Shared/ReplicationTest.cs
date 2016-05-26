@@ -226,6 +226,51 @@ namespace Couchbase.Lite
             base.TearDown();
         }*/
 
+
+        [Test]
+        public void TestRapidRestart()
+        {
+            var pull = database.CreatePullReplication(GetReplicationURL());
+            pull.Continuous = true;
+            pull.Start();
+            RunReplication(pull);
+            var pull2 = database.CreatePullReplication(GetReplicationURL());
+            pull2.Continuous = true;
+            pull.Stop();
+            pull2.Start();
+            Sleep(2000);
+            Assert.AreNotEqual(ReplicationStatus.Stopped, pull2.Status);
+            StopReplication(pull2);
+        }
+
+        [Test]
+        public void TestRestartSpamming()
+        {
+            CreateDocuments(database, 100);
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                push.Start();
+                pull.Start();
+                Sleep(500);
+                push.Restart();
+                pull.Restart();
+                push.Restart();
+                pull.Restart();
+                push.Restart();
+                pull.Restart();
+                push.Restart();
+                pull.Restart();
+                RunReplication(push);
+                RunReplication(pull);
+                Assert.AreEqual(ReplicationStatus.Idle, push.Status);
+                Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
+                StopReplication(push);
+                StopReplication(pull);
+            }
+        }
+
+
         [Test]
         public void TestPulledConflict()
         {

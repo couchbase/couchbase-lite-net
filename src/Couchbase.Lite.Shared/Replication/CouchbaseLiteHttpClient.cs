@@ -79,7 +79,7 @@ namespace Couchbase.Lite
 
             Interlocked.Increment(ref _connectionCount);
             #else
-            return _sendSemaphore.WaitAsync().ContinueWith(t =>
+            return _sendSemaphore?.WaitAsync()?.ContinueWith(t =>
             {
             #endif
                 var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
@@ -96,11 +96,11 @@ namespace Couchbase.Lite
                     _httpClient.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                return _httpClient.SendAsync(message, option, token);
+                return _httpClient?.SendAsync(message, option, token);
             #if !NET_3_5
-            }).Unwrap().ContinueWith(t =>
+            })?.Unwrap()?.ContinueWith(t =>
             {
-                _sendSemaphore.Release();
+                _sendSemaphore?.Release();
                 try {
                     return t.Result;
                 } catch(AggregateException e) {

@@ -591,7 +591,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the cancellation token source to cancel this replication's operation
         /// </summary>
-        protected CancellationTokenSource CancellationTokenSource { get; set; }
+        protected CancellationTokenSource CancellationTokenSource { get; set; } = new CancellationTokenSource();
 
         /// <summary>
         /// Gets or sets the headers that should be used when making HTTP requests
@@ -802,16 +802,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Restart()
         {
-            Changed += WaitForStopped;
-            if (Status == ReplicationStatus.Stopped) {
-                Log.To.Sync.W(TAG, "Restart() called on already stopped replication, " +
-                "simply calling Start()");
-                Changed -= WaitForStopped;
-                Start();
-                return;
-            }
-
-            Stop();
+            _stateMachine.Fire(ReplicationTrigger.Restart);
         }
 
         /// <summary>Sets an HTTP cookie for the Replication.</summary>
@@ -1037,9 +1028,10 @@ namespace Couchbase.Lite
                 CheckOnlineLoop();
             }
 
-            if(!LocalDatabase.AddReplication(this) || !LocalDatabase.AddActiveReplication(this)) {
+            LocalDatabase.AddReplication(this);
+            if(!LocalDatabase.AddActiveReplication(this)) {
 #if DEBUG
-                var existing = LocalDatabase.AllReplicators.FirstOrDefault(x => x.RemoteCheckpointDocID() == RemoteCheckpointDocID());
+                var existing = LocalDatabase.ActiveReplicators.FirstOrDefault(x => x.RemoteCheckpointDocID() == RemoteCheckpointDocID());
                 if(existing != null) {
                     Log.To.Sync.W(TAG, "Not starting because identical {0} already exists ({1})", IsPull ? "puller" : "pusher", existing._replicatorID);
                 } else {
@@ -1052,7 +1044,6 @@ namespace Couchbase.Lite
                 return;
             }
 
-            CancellationTokenSource = new CancellationTokenSource();
             _remoteRequestCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token);
             _retryIfReadyTokenSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token);
             if (ReplicationOptions.Reset) {
@@ -1072,6 +1063,19 @@ namespace Couchbase.Lite
             _client.SetConcurrencyLimit(ReplicationOptions.MaxOpenHttpConnections);
 
             CheckSession();
+        }
+
+        protected virtual void RestartInternal()
+        {
+            Changed += WaitForStopped;
+            if(Status == ReplicationStatus.Stopped) {
+                Log.To.Sync.W(TAG, "Restart() called on already stopped replication, " +
+                "simply calling Start()");
+                Changed -= WaitForStopped;
+                Start();
+            } else {
+                StopGraceful();
+            }
         }
 
         /// <summary>
@@ -1203,6 +1207,7 @@ namespace Couchbase.Lite
             var master = CancellationTokenSource;
             CancellationTokenSource = new CancellationTokenSource();
             master.Cancel();
+            master.Dispose();
             FireTrigger(ReplicationTrigger.StopImmediate);
         }
 
@@ -1242,11 +1247,6 @@ namespace Couchbase.Lite
 
                 Misc.SafeDispose(ref _client);
                 Log.To.Sync.I(TAG, "{0} stopped.  Elapsed time {1} sec", this, (DateTime.UtcNow - _startTime).TotalSeconds.ToString("F3"));
-                var cts = CancellationTokenSource;
-                CancellationTokenSource = null;
-                if(cts != null) {
-                    cts.Dispose();
-                }
             });
         }
 
@@ -1294,8 +1294,13 @@ namespace Couchbase.Lite
 
             var token = ignoreCancel ? CancellationToken.None : _remoteRequestCancellationSource.Token;
             Log.To.Sync.V(TAG, "{0} - Sending {1} request to: {2}", _replicatorID, method, new SecureLogUri(url));
-            _client.Authenticator = Authenticator;
-            var t = _client.SendAsync(message, token).ContinueWith(response =>
+            var client = _client;
+            if(client == null) {
+                return null;
+            }
+
+            client.Authenticator = Authenticator;
+            var t = client.SendAsync(message, token).ContinueWith(response =>
             {
                 try {
                     HttpResponseMessage result = null;
@@ -1376,8 +1381,13 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                _client.Authenticator = Authenticator;
-                var request = _client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
+                var client = _client;
+                if(client == null) {
+                    return;
+                }
+
+                client.Authenticator = Authenticator;
+                var request = client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -1919,8 +1929,10 @@ namespace Couchbase.Lite
             }, true);
 
             // This request should not be canceled when the replication is told to stop:
-            Task dummy;
-            _requests.TryRemove(message, out dummy);
+            if(message != null) {
+                Task dummy;
+                _requests.TryRemove(message, out dummy);
+            }
         }
 
         private void AddRequestHeaders(HttpRequestMessage request)
@@ -2060,17 +2072,22 @@ namespace Couchbase.Lite
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.WaitingForChanges, ReplicationState.Idle);
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.StopImmediate, ReplicationState.Stopped);
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.StopGraceful, ReplicationState.Stopping);
+            _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.Restart, ReplicationState.Stopping);
+
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.GoOffline, ReplicationState.Offline);
             _stateMachine.Configure(ReplicationState.Offline).PermitIf(ReplicationTrigger.GoOnline, ReplicationState.Running, 
                 () => LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri));
             
             _stateMachine.Configure(ReplicationState.Stopping).Permit(ReplicationTrigger.StopImmediate, ReplicationState.Stopped);
             _stateMachine.Configure(ReplicationState.Stopped).Permit(ReplicationTrigger.Start, ReplicationState.Running);
+            _stateMachine.Configure(ReplicationState.Stopped).Permit(ReplicationTrigger.Restart, ReplicationState.Running);
 
             // ignored transitions
             _stateMachine.Configure(ReplicationState.Running).Ignore(ReplicationTrigger.Start);
+            _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.Start);
             _stateMachine.Configure(ReplicationState.Initial).Ignore(ReplicationTrigger.StopGraceful);
             _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.StopGraceful);
+            _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.Restart);
             _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.StopGraceful);
             _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.StopImmediate);
             _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.WaitingForChanges);
@@ -2141,7 +2158,11 @@ namespace Couchbase.Lite
                 }
 
                 NotifyChangeListenersStateTransition(transition);
-                StopGraceful();
+                if(transition.Trigger == ReplicationTrigger.Restart) {
+                    RestartInternal();
+                } else {
+                    StopGraceful();
+                }
             });
 
             _stateMachine.Configure(ReplicationState.Stopped).OnEntry(transition =>
