@@ -44,7 +44,6 @@ namespace Couchbase.Lite.Internal
 
         private WebSocket _client;
         private CancellationTokenSource _cts;
-        private ChunkedChanges _changesProcessor;
         private IChangeTrackerResponseLogic _responseLogic = new WebSocketLogic();
 
         #endregion
@@ -96,7 +95,6 @@ namespace Couchbase.Lite.Internal
                 } else {
                     Log.To.ChangeTracker.I(Tag, "{0} remote {1} closed connection ({2} {3})",
                         this, args.WasClean ? "cleanly" : "forcibly", args.Code, args.Reason);
-                    _responseLogic = new WebSocketLogic();
                     Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => _client.ConnectAsync());
                 }
             } else {
@@ -113,6 +111,8 @@ namespace Couchbase.Lite.Internal
                 return;
             }
 
+            Misc.SafeDispose(ref _responseLogic);
+            _responseLogic = new WebSocketLogic();
             _responseLogic.OnCaughtUp = () => Client?.ChangeTrackerCaughtUp(this);
             _responseLogic.OnChangeFound = (change) =>
             {
@@ -216,7 +216,7 @@ namespace Couchbase.Lite.Internal
         protected override void Stopped()
         {
             Client?.ChangeTrackerStopped(this);
-            Misc.SafeDispose(ref _changesProcessor);
+            Misc.SafeDispose(ref _responseLogic);
         }
 
         #endregion

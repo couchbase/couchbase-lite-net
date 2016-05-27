@@ -812,9 +812,13 @@ namespace Couchbase.Lite
             var db = (Database)results["database"];
 
             // If this is a duplicate, reuse an existing replicator:
-            var existing = db.ActiveReplicators.FirstOrDefault(x => x.LocalDatabase == rep.LocalDatabase
-                && x.RemoteUrl == rep.RemoteUrl && x.IsPull == rep.IsPull &&
-                x.RemoteCheckpointDocID().Equals(rep.RemoteCheckpointDocID()));
+            var activeReplicators = default(IList<Replication>);
+            var existing = default(Replication);
+            if(db.ActiveReplicators.AcquireTemp(out activeReplicators)) {
+                existing = activeReplicators.FirstOrDefault(x => x.LocalDatabase == rep.LocalDatabase
+                    && x.RemoteUrl == rep.RemoteUrl && x.IsPull == rep.IsPull &&
+                    x.RemoteCheckpointDocID().Equals(rep.RemoteCheckpointDocID()));
+            }
 
 
             return existing ?? rep;

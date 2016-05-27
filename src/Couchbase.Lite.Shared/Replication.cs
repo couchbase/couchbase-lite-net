@@ -238,6 +238,7 @@ namespace Couchbase.Lite
         protected internal string sessionID;
 
         private bool _savingCheckpoint;
+        private bool _restartEnabled;
         private IDictionary<string, object> _remoteCheckpoint;
         private bool _continuous;
         private int _revisionsFailed;
@@ -250,7 +251,7 @@ namespace Couchbase.Lite
         private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
         private Guid _replicatorID = Guid.NewGuid();
         private CookieStore _cookieStore;
-        private CouchbaseLiteHttpClient _client;
+        private Leasable<CouchbaseLiteHttpClient> _client;
         private DateTime _startTime;
 
         #endregion
@@ -802,7 +803,25 @@ namespace Couchbase.Lite
         /// </summary>
         public void Restart()
         {
-            _stateMachine.Fire(ReplicationTrigger.Restart);
+            if(_restartEnabled) {
+                Log.To.Sync.I(TAG, "Restart already scheduled, returning early!");
+                return;
+            }
+
+            _restartEnabled = true;
+            Changed += WaitForStopped;
+            if(Status == ReplicationStatus.Stopped) {
+                Log.To.Sync.W(TAG, "Restart() called on already stopped replication, " +
+                "simply calling Start()");
+                Changed -= WaitForStopped;
+                Start();
+                return;
+            } else if(_stateMachine.IsInState(ReplicationState.Stopping)) {
+                Log.To.Sync.I(TAG, "Replication already stopping, scheduling an immediate restart");
+                return; // Already stopping
+            }
+
+            Stop();
         }
 
         /// <summary>Sets an HTTP cookie for the Replication.</summary>
@@ -1031,11 +1050,16 @@ namespace Couchbase.Lite
             LocalDatabase.AddReplication(this);
             if(!LocalDatabase.AddActiveReplication(this)) {
 #if DEBUG
-                var existing = LocalDatabase.ActiveReplicators.FirstOrDefault(x => x.RemoteCheckpointDocID() == RemoteCheckpointDocID());
-                if(existing != null) {
-                    Log.To.Sync.W(TAG, "Not starting because identical {0} already exists ({1})", IsPull ? "puller" : "pusher", existing._replicatorID);
+                var activeReplicators = default(IList<Replication>);
+                if(!LocalDatabase.ActiveReplicators.AcquireTemp(out activeReplicators)) {
+                    Log.To.Sync.E(TAG, "Active replication list unavailable!");
                 } else {
-                    Log.To.Sync.E(TAG, "Not starting {0} for unknown reasons", IsPull ? "puller" : "pusher");
+                    var existing = activeReplicators.FirstOrDefault(x => x.RemoteCheckpointDocID() == RemoteCheckpointDocID());
+                    if(existing != null) {
+                        Log.To.Sync.W(TAG, "Not starting because identical {0} already exists ({1})", IsPull ? "puller" : "pusher", existing._replicatorID);
+                    } else {
+                        Log.To.Sync.E(TAG, "Not starting {0} for unknown reasons", IsPull ? "puller" : "pusher");
+                    }
                 }
 #else
                 Log.To.Sync.W(TAG, "Not starting becuse identical {0} already exists", IsPull ? "puller" : "pusher");
@@ -1056,26 +1080,15 @@ namespace Couchbase.Lite
             sessionID = string.Format("repl{0:000}", Interlocked.Increment(ref _lastSessionID));
             Log.To.Sync.I(TAG, "Beginning replication process...");
             LastSequence = null;
-            Misc.SafeDispose(ref _client);
             _clientFactory.SocketTimeout = ReplicationOptions.SocketTimeout;
-            _client = _clientFactory.GetHttpClient(_cookieStore, ReplicationOptions.RetryStrategy);
-            _client.Timeout = ReplicationOptions.RequestTimeout;
-            _client.SetConcurrencyLimit(ReplicationOptions.MaxOpenHttpConnections);
+            var clientObj = _clientFactory.GetHttpClient(_cookieStore, ReplicationOptions.RetryStrategy);
+            clientObj.Timeout = ReplicationOptions.RequestTimeout;
+            clientObj.SetConcurrencyLimit(ReplicationOptions.MaxOpenHttpConnections);
+            _client = clientObj;
+            _changesCount = 0;
+            _completedChangesCount = 0;
 
             CheckSession();
-        }
-
-        protected virtual void RestartInternal()
-        {
-            Changed += WaitForStopped;
-            if(Status == ReplicationStatus.Stopped) {
-                Log.To.Sync.W(TAG, "Restart() called on already stopped replication, " +
-                "simply calling Start()");
-                Changed -= WaitForStopped;
-                Start();
-            } else {
-                StopGraceful();
-            }
         }
 
         /// <summary>
@@ -1184,7 +1197,7 @@ namespace Couchbase.Lite
             }
 
             var newCount = Interlocked.Add(ref _changesCount, value);
-            Log.To.Sync.I(TAG, "{0} progress {1} / {2}", this, newCount, _changesCount);
+            Log.To.Sync.I(TAG, "{0} progress {1} / {2}", this, _completedChangesCount, newCount);
             if(Continuous) {
                 FireTrigger(ReplicationTrigger.Resume);
             }
@@ -1230,7 +1243,8 @@ namespace Couchbase.Lite
         internal virtual void Stopping()
         {
             Log.To.Sync.I(TAG, "{0} Stopping", this);
-            if(!LocalDatabase.IsOpen || _client == null) {
+            var client = _client;
+            if(!LocalDatabase.IsOpen || client.Disposed) {
                 // This logic has already been handled by DatabaseClosing(), or
                 // this replication never started in the first place (client still null)
                 return; 
@@ -1245,7 +1259,7 @@ namespace Couchbase.Lite
                     reachabilityManager.StatusChanged -= NetworkStatusChanged;
                 }
 
-                Misc.SafeDispose(ref _client);
+                client.Dispose();
                 Log.To.Sync.I(TAG, "{0} stopped.  Elapsed time {1} sec", this, (DateTime.UtcNow - _startTime).TotalSeconds.ToString("F3"));
             });
         }
@@ -1278,7 +1292,7 @@ namespace Couchbase.Lite
             return remoteUrlString + relativePath;
         }
 
-        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler, bool ignoreCancel)
+        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, Uri url, object body, RemoteRequestCompletionBlock completionHandler, bool ignoreCancel)
         {
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
@@ -1294,8 +1308,9 @@ namespace Couchbase.Lite
 
             var token = ignoreCancel ? CancellationToken.None : _remoteRequestCancellationSource.Token;
             Log.To.Sync.V(TAG, "{0} - Sending {1} request to: {2}", _replicatorID, method, new SecureLogUri(url));
-            var client = _client;
-            if(client == null) {
+            var client = default(CouchbaseLiteHttpClient);
+            if(!_client.AcquireFor(TimeSpan.FromSeconds(1), out client)) {
+                Log.To.Sync.I(TAG, "Client is disposed, aborting request to {0}", new SecureLogUri(url));
                 return null;
             }
 
@@ -1381,8 +1396,9 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                var client = _client;
-                if(client == null) {
+                var client = default(CouchbaseLiteHttpClient);
+                if(!_client.AcquireFor(TimeSpan.FromSeconds(1), out client)) {
+                    Log.To.Sync.I(TAG, "Client is disposed, aborting request to {0}", new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
                     return;
                 }
 
@@ -1489,7 +1505,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal void SendAsyncMultipartRequest(HttpMethod method, String relativePath, MultipartContent multiPartEntity, RemoteRequestCompletionBlock completionHandler)
+        internal void SendAsyncMultipartRequest(HttpMethod method, string relativePath, MultipartContent multiPartEntity, RemoteRequestCompletionBlock completionHandler)
         {
             Uri url = null;
             try {
@@ -1505,8 +1521,14 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            _client.Authenticator = Authenticator;
-            var t = _client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(response=> 
+            var client = default(CouchbaseLiteHttpClient);
+            if(!_client.AcquireFor(TimeSpan.FromSeconds(1), out client)) {
+                Log.To.Sync.I(TAG, "Client is disposed, aborting request to {0}", new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
+                return;
+            }
+
+            client.Authenticator = Authenticator;
+            var t = client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(response=> 
             {
                 multiPartEntity.Dispose();
                 if (response.Status != TaskStatus.RanToCompletion)
@@ -1730,6 +1752,7 @@ namespace Couchbase.Lite
             }
                 
             Changed -= WaitForStopped;
+            _restartEnabled = false;
             Start();
         }
 
@@ -2072,7 +2095,6 @@ namespace Couchbase.Lite
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.WaitingForChanges, ReplicationState.Idle);
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.StopImmediate, ReplicationState.Stopped);
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.StopGraceful, ReplicationState.Stopping);
-            _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.Restart, ReplicationState.Stopping);
 
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.GoOffline, ReplicationState.Offline);
             _stateMachine.Configure(ReplicationState.Offline).PermitIf(ReplicationTrigger.GoOnline, ReplicationState.Running, 
@@ -2080,14 +2102,12 @@ namespace Couchbase.Lite
             
             _stateMachine.Configure(ReplicationState.Stopping).Permit(ReplicationTrigger.StopImmediate, ReplicationState.Stopped);
             _stateMachine.Configure(ReplicationState.Stopped).Permit(ReplicationTrigger.Start, ReplicationState.Running);
-            _stateMachine.Configure(ReplicationState.Stopped).Permit(ReplicationTrigger.Restart, ReplicationState.Running);
 
             // ignored transitions
             _stateMachine.Configure(ReplicationState.Running).Ignore(ReplicationTrigger.Start);
             _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.Start);
             _stateMachine.Configure(ReplicationState.Initial).Ignore(ReplicationTrigger.StopGraceful);
             _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.StopGraceful);
-            _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.Restart);
             _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.StopGraceful);
             _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.StopImmediate);
             _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.WaitingForChanges);
@@ -2158,11 +2178,7 @@ namespace Couchbase.Lite
                 }
 
                 NotifyChangeListenersStateTransition(transition);
-                if(transition.Trigger == ReplicationTrigger.Restart) {
-                    RestartInternal();
-                } else {
-                    StopGraceful();
-                }
+                StopGraceful();
             });
 
             _stateMachine.Configure(ReplicationState.Stopped).OnEntry(transition =>

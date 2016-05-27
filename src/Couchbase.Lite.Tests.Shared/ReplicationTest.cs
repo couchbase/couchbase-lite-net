@@ -246,13 +246,30 @@ namespace Couchbase.Lite
         [Test]
         public void TestRestartSpamming()
         {
+            Log.Domains.Sync.Level = Log.LogLevel.Debug;
             CreateDocuments(database, 100);
             using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                var pushMRE = new ManualResetEvent(false);
+                var pullMRE = new ManualResetEvent(false);
+                push.Changed += (sender, args) =>
+                {
+                    if(args.Status == ReplicationStatus.Idle && args.CompletedChangesCount == 100) {
+                        pushMRE.Set();
+                    }
+                };
+                push.Continuous = true;
                 var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull.Changed += (sender, args) =>
+                {
+                    if(args.Status == ReplicationStatus.Idle && args.CompletedChangesCount == 100) {
+                        pullMRE.Set();
+                    }
+                };
+                pull.Continuous = true;
                 push.Start();
                 pull.Start();
-                Sleep(500);
+                Sleep(200);
                 push.Restart();
                 pull.Restart();
                 push.Restart();
@@ -261,8 +278,25 @@ namespace Couchbase.Lite
                 pull.Restart();
                 push.Restart();
                 pull.Restart();
-                RunReplication(push);
-                RunReplication(pull);
+                
+                Assert.IsTrue(pushMRE.WaitOne(TimeSpan.FromSeconds(10)));
+                Assert.IsTrue(pullMRE.WaitOne(TimeSpan.FromSeconds(10)));
+                Assert.AreEqual(ReplicationStatus.Idle, push.Status);
+                Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
+                StopReplication(push);
+                StopReplication(pull);
+
+                push.Restart();
+                pull.Restart();
+                push.Restart();
+                pull.Restart();
+                push.Restart();
+                pull.Restart();
+                push.Restart();
+                pull.Restart();
+
+                Sleep(1000);
+
                 Assert.AreEqual(ReplicationStatus.Idle, push.Status);
                 Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
                 StopReplication(push);
@@ -270,6 +304,77 @@ namespace Couchbase.Lite
             }
         }
 
+        [Test]
+        public void TestStartSpamming()
+        {
+            Log.Domains.Sync.Level = Log.LogLevel.Debug;
+            CreateDocuments(database, 100);
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                var pushMRE = new ManualResetEvent(false);
+                var pullMRE = new ManualResetEvent(false);
+                push.Changed += (sender, args) =>
+                {
+                    if(args.Status == ReplicationStatus.Idle && args.CompletedChangesCount == 100) {
+                        pushMRE.Set();
+                    }
+                };
+                push.Continuous = true;
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull.Changed += (sender, args) =>
+                {
+                    if(args.Status == ReplicationStatus.Idle && args.CompletedChangesCount == 100) {
+                        pullMRE.Set();
+                    }
+                };
+                pull.Continuous = true;
+                push.Start();
+                pull.Start();
+                Sleep(200);
+                push.Start();
+                pull.Start();
+                push.Start();
+                pull.Start();
+                push.Start();
+                pull.Start();
+                push.Start();
+                pull.Start();
+
+                Assert.IsTrue(pushMRE.WaitOne(TimeSpan.FromSeconds(10)));
+                Assert.IsTrue(pullMRE.WaitOne(TimeSpan.FromSeconds(10)));
+                Assert.AreEqual(ReplicationStatus.Idle, push.Status);
+                Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
+                StopReplication(push);
+                StopReplication(pull);
+            }
+        }
+
+        [Test]
+        public void TestStopSpamming()
+        {
+            Log.Domains.Sync.Level = Log.LogLevel.Debug;
+            CreateDocuments(database, 100);
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                push.Continuous = true;
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull.Continuous = true;
+                push.Start();
+                pull.Start();
+                Sleep(200);
+                push.Stop();
+                pull.Stop();
+                push.Stop();
+                pull.Stop();
+                push.Stop();
+                pull.Stop();
+                StopReplication(push);
+                StopReplication(pull);
+
+                Assert.AreEqual(ReplicationStatus.Stopped, push.Status);
+                Assert.AreEqual(ReplicationStatus.Stopped, pull.Status);
+            }
+        }
 
         [Test]
         public void TestPulledConflict()
@@ -1253,9 +1358,10 @@ namespace Couchbase.Lite
                 Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)), "Timed out waiting for replicator to start");
                 Assert.IsTrue(replicator.IsRunning);
 
-                var activeReplicators = new Replication[database.ActiveReplicators.Count];
-                database.ActiveReplicators.CopyTo(activeReplicators, 0);
-                Assert.AreEqual(1, activeReplicators.Length);
+                var activeReplicators = default(IList<Replication>);
+                var got = database.ActiveReplicators.AcquireTemp(out activeReplicators);
+                Assert.IsTrue(got);
+                Assert.AreEqual(1, activeReplicators.Count);
                 Assert.AreEqual(replicator, activeReplicators[0]);
 
                 replicator.Stop();
@@ -1264,9 +1370,9 @@ namespace Couchbase.Lite
                 Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)), "Timed out waiting for replicator to stop");
                 Assert.IsFalse(replicator.IsRunning);
                 Sleep(500);
-                activeReplicators = new Replication[database.ActiveReplicators.Count];
-                database.ActiveReplicators.CopyTo(activeReplicators, 0);
-                Assert.AreEqual(0, activeReplicators.Length);
+                got = database.ActiveReplicators.AcquireTemp(out activeReplicators);
+                Assert.IsTrue(got);
+                Assert.AreEqual(0, activeReplicators.Count);
             }
         }
 

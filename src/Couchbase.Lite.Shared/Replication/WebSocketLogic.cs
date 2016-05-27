@@ -74,16 +74,12 @@ namespace Couchbase.Lite.Internal
         {
             _changeProcessor.ChunkFound += (sender, args) => 
             {
-                if(OnChangeFound != null) {
-                    OnChangeFound(args);
-                }
+                OnChangeFound?.Invoke(args);
             };
 
             _changeProcessor.Finished += (sender, args) => 
             {
-                if(OnFinished != null) {
-                    OnFinished(args);
-                }
+                OnFinished?.Invoke(args);
             };
         }
 
@@ -115,7 +111,8 @@ namespace Couchbase.Lite.Internal
 
         public void Dispose()
         {
-            _pauseWait.Dispose();
+            Misc.SafeDispose(ref _pauseWait);
+            Misc.SafeDispose(ref _changeProcessor);
         }
 
         #endregion

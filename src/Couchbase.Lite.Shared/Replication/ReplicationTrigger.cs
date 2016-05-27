@@ -34,11 +34,6 @@ namespace Couchbase.Lite.Replicator
         Start,
 
         /// <summary>
-        /// Triggers the replication to restart
-        /// </summary>
-        Restart,
-
-        /// <summary>
         /// Triggers the replication to go idle and wait for new data
         /// </summary>
         WaitingForChanges,
