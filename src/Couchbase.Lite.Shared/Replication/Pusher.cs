@@ -446,14 +446,12 @@ namespace Couchbase.Lite.Replicator
                 if (revsDiffResults != null) {
                     revResults = revsDiffResults.Get(rev.DocID).AsDictionary<string, object>(); 
                     if (revResults == null) {
-                        //SafeIncrementCompletedChangesCount();
                         continue;
                     }
 
                     var revs = revResults.Get("missing").AsList<string>();
                     if (revs == null || !revs.Any(id => id.Equals(rev.RevID.ToString()))) {
                         RemovePending(rev);
-                        //SafeIncrementCompletedChangesCount();
                         continue;
                     }
                 }
@@ -461,8 +459,7 @@ namespace Couchbase.Lite.Replicator
                 IDictionary<string, object> properties = null;
                 // Get the revision's properties:
                 var contentOptions = DocumentContentOptions.IncludeAttachments;
-                if (!_dontSendMultipart && RevisionBodyTransformationFunction == null)
-                {
+                if(!_dontSendMultipart && RevisionBodyTransformationFunction == null) {
                     contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
                 }
 

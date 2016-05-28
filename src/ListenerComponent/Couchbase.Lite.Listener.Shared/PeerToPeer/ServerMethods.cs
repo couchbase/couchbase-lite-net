@@ -78,9 +78,12 @@ namespace Couchbase.Lite.Listener
             var activity = new List<object>();
             var replicators = new List<Replication>();
             foreach (var db in context.DbManager.AllOpenDatabases()) {
-                foreach (var repl in db.ActiveReplicators) {
-                    replicators.Add(repl);
-                    activity.Add(repl.ActiveTaskInfo);
+                var activeReplicators = default(IList<Replication>);
+                if(db.ActiveReplicators.AcquireTemp(out activeReplicators)) {
+                    foreach(var repl in activeReplicators) {
+                        replicators.Add(repl);
+                        activity.Add(repl.ActiveTaskInfo);
+                    }
                 }
             }
 

@@ -25,13 +25,14 @@ using System.Threading;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
     internal sealed class CouchbaseLiteHttpClient : IDisposable
     {
-        private HttpClient _httpClient;
-        private DefaultAuthHandler _authHandler;
+        private Leasable<HttpClient> _httpClient;
+        private Leasable<DefaultAuthHandler> _authHandler;
         #if NET_3_5
         private int _connectionCount;
         private int _connectionLimit;
@@ -44,8 +45,12 @@ namespace Couchbase.Lite
 
         public TimeSpan Timeout
         {
-            get { return _httpClient.Timeout; }
-            set { _httpClient.Timeout = value; }
+            get {
+                return _httpClient.Borrow(x => x.Timeout);
+            }
+            set {
+                _httpClient.Borrow(x => x.Timeout = value);
+            }
         }
 
         public CouchbaseLiteHttpClient(HttpClient client, DefaultAuthHandler authHandler)
@@ -79,45 +84,48 @@ namespace Couchbase.Lite
 
             Interlocked.Increment(ref _connectionCount);
             #else
-            return _sendSemaphore.WaitAsync().ContinueWith(t =>
+            return _sendSemaphore?.WaitAsync()?.ContinueWith(t =>
             {
             #endif
                 var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
                 if (challengeResponseAuth != null) {
-                    if (_authHandler != null) {
-                        _authHandler.Authenticator = challengeResponseAuth;
-                    }
-
+                    _authHandler.Borrow(x => x.Authenticator = challengeResponseAuth);
                     challengeResponseAuth.PrepareWithRequest(message);
+                }
+
+                var httpClient = default(HttpClient);
+                if(!_httpClient.AcquireTemp(out httpClient)) {
+                    return null;
                 }
 
                 var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
                 if (authHeader != null) {
-                    _httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                return _httpClient.SendAsync(message, option, token);
+                return httpClient.SendAsync(message, option, token);
             #if !NET_3_5
-            }).Unwrap().ContinueWith(t =>
+            })?.Unwrap()?.ContinueWith(t =>
             {
-                _sendSemaphore.Release();
-                try {
-                    return t.Result;
-                } catch(AggregateException e) {
+                _sendSemaphore?.Release();
+                if(t.IsFaulted) {
+                    var e = t.Exception;
                     if(Misc.UnwrapAggregate(e) is ObjectDisposedException) {
                         return null;
                     }
 
-                    throw;
+                    throw e;
                 }
+
+                return t.Result;
             });
             #endif
         }
 
         public void Dispose()
         {
-            Misc.SafeDispose(ref _httpClient);
-            Misc.SafeDispose(ref _authHandler);
+            _httpClient.Dispose();
+            _authHandler.Dispose();
             #if !NET_3_5
             Misc.SafeDispose(ref _sendSemaphore);
             #endif

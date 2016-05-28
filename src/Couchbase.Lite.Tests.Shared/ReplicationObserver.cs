@@ -88,7 +88,7 @@ namespace Couchbase.Lite
                 throw new Exception(msgStr);
             }
 
-            if (args.Status == ReplicationStatus.Idle || args.Status == ReplicationStatus.Stopped ) {
+            if (args.Status == ReplicationStatus.Stopped || args.Status == ReplicationStatus.Idle) {
                 this.replicationFinished = true;
                 string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
                 LiteTestCase.WriteDebug(msg);

@@ -246,7 +246,7 @@ namespace Couchbase.Lite
         }
 
         internal string DbDirectory { get; private set; }
-        internal IList<Replication> ActiveReplicators { get; set; }
+        internal Leasable<IList<Replication>> ActiveReplicators { get; set; }
         internal IList<Replication> AllReplicators { get; set; }
         internal LruCache<string, Document> DocumentCache { get; set; }
         internal ulong StartTime { get; private set; }
@@ -1031,43 +1031,44 @@ namespace Couchbase.Lite
             Storage.ForceInsert(inRev, revHistory, validationBlock, source);
         }
 
-        internal bool AddReplication(Replication replication)
+        internal void AddReplication(Replication replication)
         {
             lock(_allReplicatorsLocker) {
-                if(AllReplications.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
-                    AllReplicators.Add(replication);
-                    return true;
-                }
-
-                return false;
-
+                AllReplicators?.Add(replication);
             }
         }
 
         internal void ForgetReplication(Replication replication)
         {
             lock(_allReplicatorsLocker) {
-                AllReplicators.Remove(replication);
+                AllReplicators?.Remove(replication);
             }
         }
 
         internal bool AddActiveReplication(Replication replication)
         {
-            if(ActiveReplicators == null) {
+            if(replication == null) {
+                return false;
+            }
+
+            var activeReplicators = default(IList<Replication>);
+            if(!ActiveReplicators.AcquireTemp(out activeReplicators)) {
                 Log.To.Database.W(TAG, "{0} ActiveReplicators is null, so replication will not be added");
                 return false;
             }
 
-            if(ActiveReplicators.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
-                ActiveReplicators.Add(replication);
+            if(activeReplicators.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
+                activeReplicators.Add(replication);
             } else {
                 return false;
             }
-
+            
             replication.Changed += (sender, e) =>
             {
-                if(e.Source != null && !e.Source.IsRunning && ActiveReplicators != null) {
-                    ActiveReplicators.Remove(e.Source);
+                if(e.ReplicationStateTransition != null && (e.ReplicationStateTransition.Trigger == ReplicationTrigger.StopGraceful || e.ReplicationStateTransition.Trigger == ReplicationTrigger.StopImmediate)) {
+                    if(ActiveReplicators.AcquireTemp(out activeReplicators)) {
+                        activeReplicators.Remove(e.Source);
+                    }
                 }
             };
 
@@ -1899,9 +1900,8 @@ namespace Couchbase.Lite
                 }
             }
 
-            var activeReplicatorCopy = ActiveReplicators;
-            ActiveReplicators = null;
-            if(activeReplicatorCopy != null && activeReplicatorCopy.Count > 0) {
+            var activeReplicatorCopy = default(IList<Replication>);
+            if(ActiveReplicators.AcquireAndDispose(out activeReplicatorCopy) && activeReplicatorCopy.Count > 0) {
                 // Give a chance for replicators to clean up before closing the DB
                 var evt = new CountdownEvent(activeReplicatorCopy.Count);
                 foreach(var repl in activeReplicatorCopy) {
@@ -1910,10 +1910,12 @@ namespace Couchbase.Lite
 
                 ThreadPool.RegisterWaitForSingleObject(evt.WaitHandle, (state, timedOut) =>
                 {
+                    ActiveReplicators.Release();
                     CloseStorage();
                     tcs.SetResult(!timedOut);
                 }, null, 15000, true);
             } else {
+                ActiveReplicators.Release();
                 CloseStorage();
                 tcs.SetResult(true);
             }
