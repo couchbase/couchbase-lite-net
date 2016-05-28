@@ -580,7 +580,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 try {
-                    view.UpdateIndex();
+                    view.UpdateIndex_Internal();
                     return QueryView(context, null, view, options);
                 } catch(CouchbaseLiteException e) {
                     response.InternalStatus = e.CBLStatus.Code;

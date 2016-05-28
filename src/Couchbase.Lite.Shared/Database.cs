@@ -1122,7 +1122,7 @@ namespace Couchbase.Lite
 
                 lastIndexedSequence = view.LastSequenceIndexed;
                 if(options.Stale == IndexUpdateMode.Before || lastIndexedSequence <= 0) {
-                    var status = view.UpdateIndex();
+                    var status = view.UpdateIndex_Internal();
                     if(status.IsError) {
                         throw Misc.CreateExceptionAndLog(Log.To.Query, status.Code, TAG,
                             "Failed to update index for `{0}`: {1}, ", viewName, status.Code);
@@ -1130,7 +1130,7 @@ namespace Couchbase.Lite
 
                     lastIndexedSequence = view.LastSequenceIndexed;
                 } else if(options.Stale == IndexUpdateMode.After && lastIndexedSequence <= GetLastSequenceNumber()) {
-                    RunAsync(d => view.UpdateIndex());
+                    RunAsync(d => view.UpdateIndex_Internal());
                 }
 
                 lastChangedSequence = view.LastSequenceChangedAt;

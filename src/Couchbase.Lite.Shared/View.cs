@@ -264,6 +264,21 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>
+        /// Updates the <see cref="Couchbase.Lite.View"/>'s persistent index.  Indexing
+        /// scans all documents that have changed since the last time the index was updated.
+        /// The body of each document is passed to the view's map callback, and any emitted
+        /// rows are added to the index.  Any existing rows previously emitted by those documents,
+        /// that weren't re-emitted this time, are removed.
+        /// </summary>
+        public void UpdateIndex()
+        {
+            var status = UpdateIndex_Internal();
+            if(status.IsError) {
+                Log.To.View.W(TAG, "Error updating index of {0} ({1})", Name, status);
+            }
+        }
+
+        /// <summary>
         /// Deletes the <see cref="Couchbase.Lite.View"/>.
         /// </summary>
         public void Delete()
@@ -295,7 +310,7 @@ namespace Couchbase.Lite {
             Database = null;
         }
 
-        internal Status UpdateIndex()
+        internal Status UpdateIndex_Internal()
         {
             var status = new Status(StatusCode.Unknown);
             try {

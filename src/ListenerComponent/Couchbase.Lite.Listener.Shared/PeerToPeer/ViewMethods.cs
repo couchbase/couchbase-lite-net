@@ -70,9 +70,9 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if(options.Stale == IndexUpdateMode.Before || view.LastSequenceIndexed <= 0) {
-                    view.UpdateIndex();
+                    view.UpdateIndex_Internal();
                 } else if(options.Stale == IndexUpdateMode.After && view.LastSequenceIndexed < db.GetLastSequenceNumber()) {
-                    db.RunAsync(_ => view.UpdateIndex());
+                    db.RunAsync(_ => view.UpdateIndex_Internal());
                 }
 
                 // Check for conditional GET and set response Etag header:

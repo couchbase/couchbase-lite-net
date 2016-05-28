@@ -163,7 +163,7 @@ namespace Couchbase.Lite
         {
             PutDocs(database);
             var view = CreateView(database);
-            Assert.AreEqual(StatusCode.Ok, view.UpdateIndex().Code);
+            Assert.AreEqual(StatusCode.Ok, view.UpdateIndex_Internal().Code);
 
             // Keys with prefix "f":
             var options = new QueryOptions();
@@ -207,7 +207,7 @@ namespace Couchbase.Lite
                 emit(new List<object> { doc.Get("key"), Int32.Parse(i) / 100 }, null);
             }, "1");
 
-            Assert.AreEqual(StatusCode.Ok, view.UpdateIndex().Code);
+            Assert.AreEqual(StatusCode.Ok, view.UpdateIndex_Internal().Code);
 
             // Keys starting with "one":
             var options = new QueryOptions();
@@ -633,7 +633,7 @@ namespace Couchbase.Lite
 
             //Assert.AreEqual(1, view.Id);
             Assert.IsTrue(view.IsStale);
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
 
             IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
             WriteDebug("View dump: " + dumpResult);
@@ -647,7 +647,7 @@ namespace Couchbase.Lite
 
             //no-op reindex
             Assert.IsFalse(view.IsStale);
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
 
             // Now add a doc and update a doc:
             var threeUpdated = new RevisionInternal(rev3.DocID, rev3.RevID, false);
@@ -661,7 +661,7 @@ namespace Couchbase.Lite
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
 
             // Make sure the map function was only invoked one more time (for the document that was added)
             Assert.AreEqual(numTimesMapFunctionInvoked + 1, numTimesInvoked);
@@ -674,7 +674,7 @@ namespace Couchbase.Lite
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
             dumpResult = view.Storage.Dump().ToList();
             WriteDebug("View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
@@ -703,7 +703,7 @@ namespace Couchbase.Lite
         {
             PutDocs(database);
             var view = CreateView(database);
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
 
             // Query all rows:
             QueryOptions options = new QueryOptions();
@@ -841,7 +841,7 @@ namespace Couchbase.Lite
 
             var view = CreateView(database);
 
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
 
             // Query all rows:
             QueryOptions options = new QueryOptions();
@@ -1150,7 +1150,7 @@ namespace Couchbase.Lite
             }, BuiltinReduceFunctions.Sum, "1");
 
 
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
 
             IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
             WriteDebug("View dump: " + dumpResult);
@@ -1270,7 +1270,7 @@ namespace Couchbase.Lite
                     emitter(key, document["time"]);
             }, BuiltinReduceFunctions.Sum, "1");
                 
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
             QueryOptions options = new QueryOptions();
             options.Reduce = true;
 
@@ -1427,7 +1427,7 @@ namespace Couchbase.Lite
                 }
             }, BuiltinReduceFunctions.Sum, "1.0");
 
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
             QueryOptions options = new QueryOptions();
             options.GroupLevel = 1;
 
@@ -1606,7 +1606,7 @@ namespace Couchbase.Lite
         {
             PutNDocs(database, 4);
             View view = CreateView(database);
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
 
             // Query all rows:
             QueryOptions options = new QueryOptions();
@@ -1638,7 +1638,7 @@ namespace Couchbase.Lite
                 }
             }, null, "1.0");
 
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
             QueryOptions options = new QueryOptions();
             options.IncludeDocs = true;
 
@@ -1786,7 +1786,7 @@ namespace Couchbase.Lite
             };
             PutDoc(database, designDoc);
 
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
             var rows = view.QueryWithOptions(null);
             Assert.AreEqual(0, rows.Count());
         }
@@ -1833,7 +1833,7 @@ namespace Couchbase.Lite
             };
             result.Add(PutDoc(database, dict));
             var view = CreateView(database);
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
 
             var options = new QueryOptions();
             options.StartKey = "one";
@@ -1911,7 +1911,7 @@ namespace Couchbase.Lite
             Assert.IsNotNull(rev2b);
 
             // re-run query
-            view.UpdateIndex();
+            view.UpdateIndex_Internal();
             rows = view.CreateQuery().Run();
 
             // we should only see one row, with key=3.
