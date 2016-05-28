@@ -65,6 +65,65 @@ namespace Couchbase.Lite
         public DatabaseTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestPruneOnPut()
+        {
+            database.SetMaxRevTreeDepth(5);
+            var lastRev = default(RevisionInternal);
+            var revs = new List<RevisionInternal>();
+            for(int gen = 1; gen <= 10; gen++) {
+                var newRev = new RevisionInternal(new Dictionary<string, object> {
+                    { "_id", "foo" },
+                    { "gen", gen }
+                });
+
+                var rev = database.PutRevision(newRev, lastRev?.RevID, false);
+                revs.Add(rev);
+                lastRev = rev;
+            }
+
+            // Verify that the first five revs are no longer available:
+            for(int gen = 1; gen <= 10; gen++) {
+                var rev = database.GetDocument("foo", revs[gen - 1].RevID, true);
+                if(gen <= 5) {
+                    Assert.IsNull(rev);
+                } else {
+                    Assert.IsNotNull(rev);
+                }
+            }
+        }
+
+        [Test]
+        public void TestPruneOnForceInsert()
+        {
+            database.SetMaxRevTreeDepth(5);
+            var lastRev = default(RevisionInternal);
+            var revs = new List<RevisionInternal>();
+            var history = new List<RevisionID>();
+            for(int gen = 1; gen <= 10; gen++) {
+                var rev = new RevisionInternal(new Dictionary<string, object> {
+                    { "_id", "foo" },
+                    { "_rev", $"{gen}-cafebabe" },
+                    { "gen", gen }
+                });
+
+                database.ForceInsert(rev, history, null);
+                history.Insert(0, rev.RevID);
+                revs.Add(rev);
+                lastRev = rev;
+            }
+
+            // Verify that the first five revs are no longer available:
+            for(int gen = 1; gen <= 10; gen++) {
+                var rev = database.GetDocument("foo", revs[gen - 1].RevID, true);
+                if(gen <= 5) {
+                    Assert.IsNull(rev);
+                } else {
+                    Assert.IsNotNull(rev);
+                }
+            }
+        }
+
+        [Test]
         public void TestAttachments()
         {
             var properties = new Dictionary<string, object> {

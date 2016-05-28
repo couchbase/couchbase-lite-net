@@ -997,6 +997,9 @@ namespace Couchbase.Lite
 
             if(revHistory == null) {
                 revHistory = new List<RevisionID>(0);
+            } else {
+                var tmp = revHistory.ToList();
+                revHistory = tmp;
             }
 
             var rev = new RevisionInternal(inRev);

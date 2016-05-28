@@ -152,20 +152,20 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
                 #endif
 
-				if(schema != null && GetVersion() == 0) {
-					foreach (var statement in schema.Split(';')) {
-						ExecSQL(statement);
-					}
-				}
+                if(schema != null && GetVersion() == 0) {
+                    foreach (var statement in schema.Split(';')) {
+                        ExecSQL(statement);
+                    }
+                }
 
-				const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
-				OpenSqliteConnection(reader_flags, encryptionKey, out _readConnection);
+                const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
+                OpenSqliteConnection(reader_flags, encryptionKey, out _readConnection);
 
                 #if ENCRYPTION
-				if(!Decrypt(encryptionKey, _readConnection)) {
+                if(!Decrypt(encryptionKey, _readConnection)) {
                     throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Unauthorized, TAG,
                         "Decryption of database failed");
-				}
+                }
                 #endif
             } catch(CouchbaseLiteException) {
                 Log.To.Database.W(TAG, "Error opening SQLite storage engine, rethrowing...");

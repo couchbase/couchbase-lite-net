@@ -403,6 +403,20 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return Utility.JoinQuoted(strings);
         }
 
+        private int PruneDocument(long docNumericID, int minGenToKeep)
+        {
+            const string sql = "DELETE FROM revs WHERE doc_id=? AND revid < ? AND current=0";
+            var minGen = String.Format("{0}-", minGenToKeep);
+            try {
+                var retVal = StorageEngine?.ExecSQL(sql, docNumericID, minGen);
+                return retVal.HasValue ? retVal.Value : 0;
+            } catch(Exception e) {
+                Log.To.Database.W(TAG, "SQLite error {0} pruning generations < {1} of doc {2}", StorageEngine?.LastErrorCode, minGenToKeep, docNumericID);
+            }
+
+            return 0;
+        }
+
         private void Open()
         {
             if (IsOpen) {
@@ -470,6 +484,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 if (isNew) {
                     RunStatements("END TRANSACTION");
+                    SetInfo("pruned", "true"); // See Compact for explanation
                 }
 
                 if (!isNew && !_readOnly) {
@@ -526,11 +541,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 RunInTransaction(() =>
                 {
-                    foreach (long id in toPrune.Keys) {
-                        var minIDToKeep = String.Format("{0}-", (toPrune.Get(id) + 1));
-                        var deleteArgs = new string[] { System.Convert.ToString(docNumericID), minIDToKeep };
-                        var rowsDeleted = StorageEngine.Delete("revs", "doc_id=? AND revid < ? AND current=0", deleteArgs);
-                        outPruned += rowsDeleted;
+                    foreach (var pair in toPrune) {
+                        outPruned += PruneDocument(pair.Key, pair.Value);
                     }
 
                     return true;
@@ -871,6 +883,15 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // Can't delete any rows because that would lose revision tree history.
             // But we can remove the JSON of non-current revisions, which is most of the space.
             try {
+                // Bulk pruning is no longer needed, because revisions are pruned incrementally as new
+                // ones are added. But databases from before this feature was added (1.3) may have documents
+                // that need pruning. So we'll do a one-time bulk prune, then set a flag indicating that
+                // it isn't needed anymore.
+                if(GetInfo("pruned") == null) {
+                    PruneRevsToMaxDepth(MaxRevTreeDepth);
+                    SetInfo("pruned", "true");
+                }
+
                 Log.To.Database.I(TAG, "Deleting JSON of old revisions...");
                 PruneRevsToMaxDepth(0);
 
@@ -1726,6 +1747,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     return true;
                 }
 
+                // Delete the deepest revs in the tree to enforce the MaxRevTreeDepth:
+                var minGenToKeep = newRev.Generation - MaxRevTreeDepth + 1;
+                if(minGenToKeep > 1) {
+                    var pruned = PruneDocument(docNumericId, minGenToKeep);
+                    if(pruned > 0) {
+                        Log.To.Database.V(TAG, "Pruned {0} old revisions of doc '{1}'", pruned,
+                            new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
+                    }
+                }
+
                 // Figure out what the new winning rev ID is:
                 winningRevID = GetWinner(docNumericId, oldWinningRevId, oldWinnerWasDeletion, newRev);
 
@@ -1898,6 +1929,25 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     if(changes == 0) {
                         // local parent wasn't a leaf, ergo we just created a branch
                         inConflict = true;
+                    }
+
+                    // Delete the deepest revs in the tree to enforce the MaxRevTreeDepth:
+                    if(inRev.Generation > MaxRevTreeDepth) {
+                        int minGen = rev.Generation, maxGen = rev.Generation;
+                        foreach(var innerRev in localRevs.Values) {
+                            var generation = innerRev.Generation;
+                            minGen = Math.Min(minGen, generation);
+                            maxGen = Math.Max(maxGen, generation);
+                        }
+
+                        var minGenToKeep = maxGen - MaxRevTreeDepth + 1;
+                        if(minGen < minGenToKeep) {
+                            var pruned = PruneDocument(docNumericId, minGenToKeep);
+                            if(pruned > 0) {
+                                Log.To.Database.V(TAG, "Pruned {0} old revisions of '{1}'", pruned,
+                                    new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
+                            }
+                        }
                     }
                 }
 
