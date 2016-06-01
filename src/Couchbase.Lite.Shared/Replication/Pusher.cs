@@ -765,7 +765,7 @@ namespace Couchbase.Lite.Replicator
                                 RemovePending(revisionInternal);
                             }
 
-                            SafeAddToCompletedChangesCount(inbox.Count);
+                            //SafeAddToCompletedChangesCount(inbox.Count);
                         }
                     }
                 } catch (Exception ex) {
