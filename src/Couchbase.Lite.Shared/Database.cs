@@ -771,6 +771,50 @@ namespace Couchbase.Lite
             return new Puller(this, url, false, new TaskFactory(scheduler)) { ReplicationOptions = replicationOptions };
         }
 
+        public Task Close()
+        {
+            if(_closingTask != null) {
+                return _closingTask;
+            } else if(!IsOpen) {
+                return Task.FromResult(true);
+            }
+
+            IsOpen = false;
+
+            var tcs = new TaskCompletionSource<bool>();
+            _closingTask = tcs.Task;
+            var retVal = _closingTask; // Will be nulled later
+
+            Log.To.Database.I(TAG, "Closing {0}", this);
+            if(_views != null) {
+                foreach(var view in _views) {
+                    view.Value.Close();
+                }
+            }
+
+            var activeReplicatorCopy = default(IList<Replication>);
+            if(ActiveReplicators.AcquireAndDispose(out activeReplicatorCopy) && activeReplicatorCopy.Count > 0) {
+                // Give a chance for replicators to clean up before closing the DB
+                var evt = new CountdownEvent(activeReplicatorCopy.Count);
+                foreach(var repl in activeReplicatorCopy) {
+                    repl.DatabaseClosing(evt);
+                }
+
+                ThreadPool.RegisterWaitForSingleObject(evt.WaitHandle, (state, timedOut) =>
+                {
+                    ActiveReplicators.Release();
+                    CloseStorage();
+                    tcs.SetResult(!timedOut);
+                }, null, 15000, true);
+            } else {
+                ActiveReplicators.Release();
+                CloseStorage();
+                tcs.SetResult(true);
+            }
+
+            return retVal;
+        }
+
         /// <summary>
         /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
@@ -1880,50 +1924,6 @@ namespace Couchbase.Lite
             get {
                 return Path.Combine(DbDirectory, "attachments");
             }
-        }
-
-        internal Task Close()
-        {
-            if(_closingTask != null) {
-                return _closingTask;
-            } else if(!IsOpen) {
-                return Task.FromResult(true);
-            }
-
-            IsOpen = false;
-
-            var tcs = new TaskCompletionSource<bool>();
-            _closingTask = tcs.Task;
-            var retVal = _closingTask; // Will be nulled later
-
-            Log.To.Database.I(TAG, "Closing {0}", this);
-            if(_views != null) {
-                foreach(var view in _views) {
-                    view.Value.Close();
-                }
-            }
-
-            var activeReplicatorCopy = default(IList<Replication>);
-            if(ActiveReplicators.AcquireAndDispose(out activeReplicatorCopy) && activeReplicatorCopy.Count > 0) {
-                // Give a chance for replicators to clean up before closing the DB
-                var evt = new CountdownEvent(activeReplicatorCopy.Count);
-                foreach(var repl in activeReplicatorCopy) {
-                    repl.DatabaseClosing(evt);
-                }
-
-                ThreadPool.RegisterWaitForSingleObject(evt.WaitHandle, (state, timedOut) =>
-                {
-                    ActiveReplicators.Release();
-                    CloseStorage();
-                    tcs.SetResult(!timedOut);
-                }, null, 15000, true);
-            } else {
-                ActiveReplicators.Release();
-                CloseStorage();
-                tcs.SetResult(true);
-            }
-
-            return retVal;
         }
 
         internal void CloseStorage()
