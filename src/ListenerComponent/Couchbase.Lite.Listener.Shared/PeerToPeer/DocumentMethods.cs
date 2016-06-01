@@ -318,14 +318,47 @@ namespace Couchbase.Lite.Listener
             RevisionInternal rev = new RevisionInternal(docId, null, deleting);
             rev.SetBody(body);
 
+            // Check for doc expiration
+            var expirationTime = default(DateTime?);
+            var tmp = default(object);
+            var props = rev.GetProperties();
+            var hasValue = false;
+            if(props.TryGetValue("_exp", out tmp)) {
+                hasValue = true;
+                if(tmp != null) {
+                    try {
+                        expirationTime = Convert.ToDateTime(tmp);
+                    } catch(Exception) {
+                        try {
+                            var num = Convert.ToInt64(tmp);
+                            expirationTime = Misc.OffsetFromEpoch(TimeSpan.FromSeconds(num));
+                        } catch(Exception) {
+                            Log.To.Router.E(TAG, "Invalid value for _exp: {0}", tmp);
+                            return StatusCode.BadRequest;
+                        }
+
+                    }
+                }
+            
+                props.Remove("_exp");
+                rev.SetProperties(props);
+            }
+
             var castContext = context as ICouchbaseListenerContext2;
             var source = castContext != null && !castContext.IsLoopbackRequest ? castContext.Sender : null;
             StatusCode status = deleting ? StatusCode.Ok : StatusCode.Created;
             try {
-                if (docId != null && docId.StartsWith("_local")) {
+                if(docId != null && docId.StartsWith("_local")) {
+                    if(expirationTime.HasValue) {
+                        return StatusCode.BadRequest;
+                    }
+
                     outRev = db.Storage.PutLocalRevision(rev, prevRevId.AsRevID(), true); //TODO: Doesn't match iOS
                 } else {
                     outRev = db.PutRevision(rev, prevRevId.AsRevID(), allowConflict, source);
+                    if(hasValue) {
+                        db.Storage?.SetDocumentExpiration(rev.DocID, expirationTime);
+                    }
                 }
             } catch(CouchbaseLiteException e) {
                 status = e.Code;
@@ -534,7 +567,8 @@ namespace Couchbase.Lite.Listener
             Database db, Status outStatus)
         {
             if ((options & (DocumentContentOptions.IncludeRevs | DocumentContentOptions.IncludeRevsInfo | DocumentContentOptions.IncludeConflicts |
-                DocumentContentOptions.IncludeAttachments | DocumentContentOptions.IncludeLocalSeq)) != 0) {
+                DocumentContentOptions.IncludeAttachments | DocumentContentOptions.IncludeLocalSeq)
+                | DocumentContentOptions.IncludeExpiration) != 0) {
                 var dst = rev.GetProperties(); 
                 if (options.HasFlag(DocumentContentOptions.IncludeLocalSeq)) {
                     dst["_local_seq"] = rev.Sequence;
@@ -570,6 +604,13 @@ namespace Couchbase.Lite.Listener
                         {
                             return x.Equals(rev) || x.Deleted ? null : x.RevID.ToString();
                         });
+                    }
+                }
+
+                if(options.HasFlag(DocumentContentOptions.IncludeExpiration)) {
+                    var expirationTime = db.Storage?.GetDocumentExpiration(rev.DocID);
+                    if(expirationTime.HasValue) {
+                        dst["_exp"] = expirationTime;
                     }
                 }
 

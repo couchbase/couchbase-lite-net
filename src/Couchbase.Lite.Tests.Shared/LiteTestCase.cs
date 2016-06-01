@@ -325,7 +325,13 @@ namespace Couchbase.Lite
 
             var firstNet = JsonUtility.ConvertToNetObject(first);
             var secondNet = JsonUtility.ConvertToNetObject(second);
-            Assert.AreEqual(firstNet, secondNet);
+            var firstDic = firstNet as IDictionary<string, object>;
+            var secondDic = secondNet as IDictionary<string, object>;
+            if(firstDic != null && secondDic != null) {
+                AssertDictionariesAreEqual(firstDic, secondDic);
+            } else {
+                Assert.AreEqual(firstNet, secondNet);
+            }
         }
 
         protected void AssertAreEqual(object first, object second)

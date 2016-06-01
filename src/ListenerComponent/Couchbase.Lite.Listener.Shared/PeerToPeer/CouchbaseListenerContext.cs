@@ -221,6 +221,10 @@ namespace Couchbase.Lite.Listener
                     _contentOptions |= DocumentContentOptions.IncludeRevsInfo;
                 }
 
+                if(GetQueryParam<bool>("show_exp", bool.TryParse, false)) {
+                    _contentOptions |= DocumentContentOptions.IncludeExpiration;
+                }
+
                 return _contentOptions.Value;
             }
         }

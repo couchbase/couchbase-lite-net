@@ -1349,6 +1349,89 @@ namespace Couchbase.Lite
             _listener.Start();
         }
 
+        [Test]
+        public void TestExpiration()
+        {
+            // Create doc without expiration:
+            var result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["message"] = "hello"
+            }), HttpStatusCode.Created, null);
+            var revID = result["rev"];
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["_rev"] = revID,
+                ["message"] = "hello"
+            });
+
+            // Set expiration as string:
+            result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["_exp"] = "2016-12-31T21:21:18Z",
+                ["_rev"] = revID
+            }), HttpStatusCode.Created, null);
+            revID = result["rev"];
+            var expectedExp = new DateTime(2016, 12, 31, 21, 21, 18, 0);
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["_rev"] = revID,
+                ["_exp"] = expectedExp
+            });
+            Assert.AreEqual(expectedExp, database.Storage.GetDocumentExpiration("doc1"));
+
+            // Update without changing expiration:
+            result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["foo"] = 17,
+                ["_rev"] = revID
+            }), HttpStatusCode.Created, null);
+            revID = result["rev"];
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["foo"] = 17,
+                ["_rev"] = revID,
+                ["_exp"] = expectedExp
+            });
+            Assert.AreEqual(expectedExp, database.Storage.GetDocumentExpiration("doc1"));
+
+            // Set expiration as number:
+            result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["_exp"] = 1234567890,
+                ["_rev"] = revID
+            }), HttpStatusCode.Created, null);
+            revID = result["rev"];
+            expectedExp = new DateTime(2009, 02, 13, 23, 31, 30, 0);
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["_rev"] = revID,
+                ["_exp"] = expectedExp
+            });
+            Assert.AreEqual(expectedExp, database.Storage.GetDocumentExpiration("doc1"));
+
+            // Set expiration as DateTime:
+            expectedExp = new DateTime(1985, 07, 23, 19, 16, 00, DateTimeKind.Utc);
+            result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["_exp"] = expectedExp,
+                ["_rev"] = revID
+            }), HttpStatusCode.Created, null);
+            revID = result["rev"];
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["_rev"] = revID,
+                ["_exp"] = expectedExp
+            });
+            Assert.AreEqual(expectedExp, database.Storage.GetDocumentExpiration("doc1"));
+
+            // Clear expiration:
+            result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["_exp"] = null,
+                ["_rev"] = revID
+            }), HttpStatusCode.Created, null);
+            revID = result["rev"];
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["_rev"] = revID
+            });
+            Assert.IsNull(database.Storage.GetDocumentExpiration("doc1"));
+        }
+
         [TestFixtureSetUp]
         protected void OneTimeSetUp()
         {

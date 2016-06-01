@@ -457,12 +457,6 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 IDictionary<string, object> properties = null;
-                // Get the revision's properties:
-                var contentOptions = DocumentContentOptions.IncludeAttachments;
-                if(!_dontSendMultipart && RevisionBodyTransformationFunction == null) {
-                    contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
-                }
-
                 RevisionInternal loadedRev;
                 try {
                     loadedRev = LocalDatabase.LoadRevisionBody (rev);
