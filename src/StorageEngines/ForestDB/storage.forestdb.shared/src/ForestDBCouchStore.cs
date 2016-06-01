@@ -279,7 +279,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             return enumerator;
         }
 
-        private CBForestHistoryEnumerator GetHistoryEnumerator(RevisionInternal rev, int generation)
+        private CBForestHistoryEnumerator GetHistoryEnumerator(RevisionInternal rev, int generation, bool onlyCurrent = false)
         {
             if(generation <= 1) {
                 return null;
@@ -297,7 +297,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 throw;
             }
 
-            return new CBForestHistoryEnumerator(doc, false, true);
+            return new CBForestHistoryEnumerator(doc, onlyCurrent, true);
         }
 
         private void WithC4Document(string docId, RevisionID revId, bool withBody, bool create, C4DocumentActionDelegate block)
@@ -741,26 +741,35 @@ namespace Couchbase.Lite.Storage.ForestDB
             return retVal;
         }
 
-        public IEnumerable<string> GetPossibleAncestors(RevisionInternal rev, int limit, bool onlyAttachments)
+        public IEnumerable<RevisionID> GetPossibleAncestors(RevisionInternal rev, int limit, ValueTypePtr<bool> haveBodies)
         {
+            haveBodies.Value = true;
             var returnedCount = 0;
             var generation = rev.RevID.Generation;
-            var enumerator = GetHistoryEnumerator(rev, generation);
-            if(enumerator == null) {
-                yield break;
-            }
-
-            foreach(var next in enumerator) {
-                if(returnedCount >= limit) {
-                    break;
+            for(int current = 1; current >= 0; current--) {
+                var enumerator = GetHistoryEnumerator(rev, generation, current == 1);
+                if(enumerator == null) {
+                    yield break;
                 }
 
-                var revId = next.CurrentRevID;
-                if(revId.AsRevID().Generation < generation &&
-                    !next.SelectedRev.IsDeleted && next.HasRevisionBody &&
-                    !(onlyAttachments && !next.SelectedRev.HasAttachments)) {
-                    returnedCount++;
-                    yield return revId;
+                foreach(var next in enumerator) {
+                    var flags = next.SelectedRev.flags;
+                    var tmp = Native.c4rev_getGeneration(next.SelectedRev.revID);
+                    if(flags.HasFlag(C4RevisionFlags.RevLeaf) == (current == 1) &&
+                        Native.c4rev_getGeneration(next.SelectedRev.revID) < generation) {
+                        if(haveBodies && !next.HasRevisionBody) {
+                            haveBodies.Value = false;
+                        }
+
+                        yield return next.SelectedRev.revID.AsRevID();
+                        if(limit > 0 && ++returnedCount >= limit) {
+                            break;
+                        }
+                    }
+                }
+
+                if(returnedCount != 0) {
+                    yield break;
                 }
             }
         }

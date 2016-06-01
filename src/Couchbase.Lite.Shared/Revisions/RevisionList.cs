@@ -65,41 +65,19 @@ namespace Couchbase.Lite
         // Used by plugins
         public RevisionInternal RevWithDocIdAndRevId(string docId, string revId)
         {
-            IEnumerator<RevisionInternal> iterator = GetEnumerator();
-            while (iterator.MoveNext())
-            {
-                var rev = iterator.Current;
-                if (docId.Equals(rev.DocID) && revId.Equals(rev.RevID)) {
-                    return rev;
-                }
-            }
-
-            return null;
+            return this.FirstOrDefault(x =>
+                x.DocID.Equals(docId) && x.RevID.ToString().Equals(revId));
         }
 
         public IList<string> GetAllDocIds()
         {
-            IList<string> result = new List<string>();
-            IEnumerator<RevisionInternal> iterator = GetEnumerator();
-            while (iterator.MoveNext())
-            {
-                RevisionInternal rev = iterator.Current;
-                result.Add(rev.DocID);
-            }
-            return result;
+            return this.Select(x => x.DocID).ToList();
         }
 
         // Used by plugins
         public IList<RevisionID> GetAllRevIds()
         {
-            IList<RevisionID> result = new List<RevisionID>();
-            IEnumerator<RevisionInternal> iterator = GetEnumerator();
-            while (iterator.MoveNext())
-            {
-                RevisionInternal rev = iterator.Current;
-                        result.Add(rev.RevID);
-            }
-            return result;
+            return this.Select(x => x.RevID).ToList();
         }
 
         // Used by plugins
@@ -119,9 +97,7 @@ namespace Couchbase.Lite
         public override string ToString()
         {
             var sb = new StringBuilder("[");
-            IEnumerator<RevisionInternal> iterator = GetEnumerator();
-            while (iterator.MoveNext()) {
-                var rev = iterator.Current;
+            foreach(var rev in this) { 
                 sb.AppendFormat("{0}, ", rev);
             }
 

@@ -65,6 +65,65 @@ namespace Couchbase.Lite
         public DatabaseTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestFindMissingRevisions()
+        {
+            var revs = new RevisionList();
+            database.Storage.FindMissingRevisions(revs);
+
+            var doc1r1 = PutDoc(new Dictionary<string, object> {
+                ["_id"] = "11111",
+                ["key"] = "one"
+            });
+            var doc2r1 = PutDoc(new Dictionary<string, object> {
+                ["_id"] = "22222",
+                ["key"] = "two"
+            });
+            PutDoc(new Dictionary<string, object> {
+                ["_id"] = "33333",
+                ["key"] = "three"
+            });
+            PutDoc(new Dictionary<string, object> {
+                ["_id"] = "44444",
+                ["key"] = "four"
+            });
+            PutDoc(new Dictionary<string, object> {
+                ["_id"] = "55555",
+                ["key"] = "five"
+            });
+
+            var doc1r2 = PutDoc(new Dictionary<string, object> {
+                ["_id"] = "11111",
+                ["_rev"] = doc1r1.RevID.ToString(),
+                ["key"] = "one+"
+            });
+            var doc2r2 = PutDoc(new Dictionary<string, object> {
+                ["_id"] = "22222",
+                ["_rev"] = doc2r1.RevID.ToString(),
+                ["key"] = "two+"
+            });
+
+            PutDoc(new Dictionary<string, object> {
+                ["_id"] = "11111",
+                ["_rev"] = doc1r2.RevID.ToString(),
+                ["_deleted"] = true
+            });
+
+            // Now call FindMissingRevisions
+            var revToFind1 = new RevisionInternal("11111", "3-6060".AsRevID(), false);
+            var revToFind2 = new RevisionInternal("22222", doc2r2.RevID, false);
+            var revToFind3 = new RevisionInternal("99999", "9-4141".AsRevID(), false);
+            revs = new RevisionList(new List<RevisionInternal> { revToFind1, revToFind2, revToFind3 });
+            database.Storage.FindMissingRevisions(revs);
+            CollectionAssert.AreEqual(new List<RevisionInternal> { revToFind1, revToFind3 }, revs);
+
+            // Check the possible ancestors
+            ValueTypePtr<bool> haveBodies = false;
+            CollectionAssert.AreEqual(new List<RevisionID> { doc1r2.RevID, doc1r1.RevID }, database.Storage.GetPossibleAncestors(revToFind1, 0, haveBodies));
+            CollectionAssert.AreEqual(new List<RevisionID> { doc1r2.RevID }, database.Storage.GetPossibleAncestors(revToFind1, 1, haveBodies));
+            CollectionAssert.AreEqual(new List<RevisionID>(), database.Storage.GetPossibleAncestors(revToFind3, 0, haveBodies));
+        }
+
+        [Test]
         public void TestPruneOnPut()
         {
             database.SetMaxRevTreeDepth(5);
@@ -601,6 +660,14 @@ namespace Couchbase.Lite
             var rows = default(QueryEnumerator);
             Assert.DoesNotThrow(() => rows = query.Run());
             onComplete(rows);
+        }
+
+        private RevisionInternal PutDoc(IDictionary<string, object> props)
+        {
+            var rev = new RevisionInternal(props);
+            var result = database.PutRevision(rev, props.CblRev(), false);
+            Assert.IsNotNull(result.RevID);
+            return result;
         }
     }
 }

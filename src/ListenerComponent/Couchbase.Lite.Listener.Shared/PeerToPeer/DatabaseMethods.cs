@@ -747,35 +747,33 @@ namespace Couchbase.Lite.Listener
                 IDictionary<string, object> diffs = new Dictionary<string, object>();
                 foreach(var rev in revs) {
                     var docId = rev.DocID;
-                    IList<string> missingRevs = null;
+                    IList<RevisionID> missingRevs = null;
                     if(!diffs.ContainsKey(docId)) {
-                        missingRevs = new List<string>();
-                        diffs[docId] = new Dictionary<string, IList<string>> { { "missing", missingRevs } };
+                        missingRevs = new List<RevisionID>();
+                        diffs[docId] = new Dictionary<string, IList<RevisionID>> { { "missing", missingRevs } };
                     } else {
-                        missingRevs = ((Dictionary<string, IList<string>>)diffs[docId])["missing"];
+                        missingRevs = ((Dictionary<string, IList<RevisionID>>)diffs[docId])["missing"];
                     }
 
-                    missingRevs.Add(rev.RevID.ToString());
+                    missingRevs.Add(rev.RevID);
                 }
 
                 // Add the possible ancestors for each missing revision:
                 foreach(var docPair in diffs) {
-                    IDictionary<string, IList<string>> docInfo = (IDictionary<string, IList<string>>)docPair.Value;
+                    IDictionary<string, IList<RevisionID>> docInfo = (IDictionary<string, IList<RevisionID>>)docPair.Value;
                     int maxGen = 0;
                     RevisionID maxRevID = null;
                     foreach(var revId in docInfo["missing"]) {
-                        var parsed = revId.AsRevID();
-                        if(parsed.Generation > maxGen) {
-                            maxGen = parsed.Generation;
-                            maxRevID = parsed;
+                        if(revId.Generation > maxGen) {
+                            maxGen = revId.Generation;
+                            maxRevID = revId;
                         }
                     }
 
                     var rev = new RevisionInternal(docPair.Key, maxRevID, false);
-                    var ancestors = db.Storage.GetPossibleAncestors(rev, 0, false);
-                    var ancestorList = ancestors == null ? null : ancestors.ToList();
-                    if(ancestorList != null && ancestorList.Count > 0) {
-                        docInfo["possible_ancestors"] = ancestorList;
+                    var ancestors = db.Storage.GetPossibleAncestors(rev, 0, ValueTypePtr<bool>.NULL)?.ToList();
+                    if(ancestors != null && ancestors.Count > 0) {
+                        docInfo["possible_ancestors"] = ancestors;
                     }
                 }
 

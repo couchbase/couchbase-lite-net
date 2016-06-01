@@ -188,10 +188,14 @@ namespace Couchbase.Lite.Store
 
         /// <summary>
         /// Returns IDs of local revisions of the same document, that have a lower generation number.
-        /// Does not return revisions whose bodies have been compacted away, or deletion markers.
-        /// If 'onlyAttachments' is true, only revisions with attachments will be returned.
+        /// If possible, returns only leaf revisions; if none match, returns non-leaves.
+        /// <param name="rev">The revision to look for ancestors of.  Only its docID and revID are used.</param>
+        /// <param name="limit">The maximum number of results to return, or if 0, unlimited.</param>
+        /// <param name="haveBodies">  On return, if not NULL, then* outHaveBodies will be YES if all the
+        /// revisions returned have their JSON bodies available, otherwise NO.</param>
+        /// <returns>An array of revIDs of existing revisions that could be ancestors of `rev`.</returns>
         /// </summary>
-        IEnumerable<string> GetPossibleAncestors(RevisionInternal rev, int limit, bool onlyAttachments);
+        IEnumerable<RevisionID> GetPossibleAncestors(RevisionInternal rev, int limit, ValueTypePtr<bool> haveBodies);
 
         /// <summary>
         /// Returns the most recent member of revIDs that appears in rev's ancestry.

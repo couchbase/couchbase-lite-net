@@ -71,7 +71,8 @@ namespace Couchbase.Lite.Replicator
 
         #region Constants
 
-        internal const int MAX_ATTS_SINCE = 50;
+        // Maximum number of revision IDs to pass in an "?atts_since=" query param
+        internal const int MaxAttsSince = 10;
         internal const int CHANGE_TRACKER_RESTART_DELAY_MS = 10000;
         private const string TAG = "Puller";
 
@@ -309,15 +310,12 @@ namespace Couchbase.Lite.Replicator
             }
 
             Log.To.Sync.I(TAG, "{0} bulk-fetching {1} remote revisions...", ReplicatorID, nRevs);
-            Log.To.Sync.V(TAG, "{0} bulk-fetching remote revisions: {1}", this, new SecureLogJsonString(bulkRevs, LogMessageSensitivity.PotentiallyInsecure));
-
             if(!_canBulkGet) {
                 PullBulkWithAllDocs(bulkRevs);
                 return;
             }
 
             Log.To.SyncPerf.I(TAG, "{0} bulk-getting {1} remote revisions...", ReplicatorID, nRevs);
-            Log.To.Sync.V(TAG, "{0} POST _bulk_get", ReplicatorID);
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
             BulkDownloader dl = new BulkDownloader(new BulkDownloaderOptions {
                 ClientFactory = ClientFactory,
@@ -540,23 +538,36 @@ namespace Couchbase.Lite.Replicator
             // Construct a query. We want the revision history, and the bodies of attachments that have
             // been added since the latest revisions we have locally.
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
-            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.DocID) + "?rev=" + Uri.EscapeUriString(rev.RevID.ToString()) + "&revs=true&attachments=true");
-            var knownRevs = default(IList<string>);
+            var path = new StringBuilder($"/{Uri.EscapeUriString(rev.DocID)}?rev={Uri.EscapeUriString(rev.RevID.ToString())}&revs=true");
+
+            var attachments = true;
+            if(attachments) {
+                // TODO: deferred attachments
+                path.Append("&attachments=true");
+            }
+
+            // Include atts_since with a list of possible ancestor revisions of rev. If getting attachments,
+            // this allows the server to skip the bodies of attachments that have not changed since the
+            // local ancestor. The server can also trim the revision history it returns, to not extend past
+            // the local ancestor (not implemented yet in SG but will be soon.)
+            var knownRevs = default(IList<RevisionID>);
+            ValueTypePtr<bool> haveBodies = false;
             try {
-                var tmp = LocalDatabase.Storage.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
-                knownRevs = tmp == null ? null : tmp.ToList();
+                knownRevs = LocalDatabase.Storage.GetPossibleAncestors(rev, MaxAttsSince, haveBodies)?.ToList();
             } catch(Exception e) {
                 Log.To.Sync.W(TAG, "Error getting possible ancestors (probably database closed)", e);
             }
 
-            if (knownRevs == null) {
-                //this means something is wrong, possibly the replicator has shut down
-                return;
-            }
-
-            if (knownRevs.Count > 0) {
-                path.Append("&atts_since=");
-                path.Append(JoinQuotedEscaped(knownRevs));
+            if(knownRevs != null) {
+                path.Append(haveBodies ? "&atts_since=" : "&revs_from=");
+                path.Append(JoinQuotedEscaped(knownRevs.Select(x => x.ToString()).ToList()));
+            } else {
+                // If we don't have any revisions at all, at least tell the server how long a history we
+                // can keep track of:
+                var maxRevTreeDepth = LocalDatabase.GetMaxRevTreeDepth();
+                if(rev.Generation > maxRevTreeDepth) {
+                    path.AppendFormat("&revs_limit={0}", maxRevTreeDepth);
+                }
             }
 
             var pathInside = path.ToString();

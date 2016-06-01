@@ -1243,35 +1243,45 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return GetAllDocumentRevisions(docId, docNumericId, onlyCurrent);
         }
 
-        public IEnumerable<string> GetPossibleAncestors(RevisionInternal rev, int limit, bool onlyAttachments)
+        public IEnumerable<RevisionID> GetPossibleAncestors(RevisionInternal rev, int limit, ValueTypePtr<bool> haveBodies)
         {
             int generation = rev.Generation;
             if (generation <= 1L) {
-                return new List<string>();
+                return new List<RevisionID>();
             }
 
             long docNumericId = GetDocNumericID(rev.DocID);
             if (docNumericId <= 0L) {
-                return new List<string>();
+                return new List<RevisionID>();
             }
 
             int sqlLimit = limit > 0 ? limit : -1;
-            const string sql = "SELECT revid, sequence FROM revs WHERE doc_id=? and revid < ?" +
-                      " and deleted=0 and json not null" +
-                      " ORDER BY sequence DESC LIMIT ?";
+            haveBodies.Value = true;
+            const string sql = "SELECT revid, json is not null FROM revs " +
+                "WHERE doc_id=? AND current=? AND revid < ? " +
+                "ORDER BY revid DESC LIMIT ?";
 
-            var revIDs = new List<string>();
-            var status = TryQuery(c => 
-            {
-                if(onlyAttachments && !SequenceHasAttachments(c.GetLong(1))) {
+            // First look only for current revisions; if none match, go to non-current ones.
+            var revIDs = new List<RevisionID>();
+            for(int current = 1; current >= 0; current--) {
+                var status = TryQuery(c =>
+                {
+                    revIDs.Add(c.GetString(0).AsRevID());
+                    if(haveBodies && c.GetInt(1) == 0) {
+                        haveBodies.Value = false;
+                    }
+
                     return true;
+                }, false, sql, docNumericId, current, String.Format("{0}-", generation), sqlLimit);
+
+                if(status.Code != StatusCode.NotFound && status.IsError) {
+                    return null;
+                } else if(revIDs.Count > 0) {
+                    return revIDs;
                 }
+            }
 
-                revIDs.Add(c.GetString(0));
-                return true;
-            }, false, sql, docNumericId, String.Format("{0}-", generation), sqlLimit);
-
-            return status.IsError ? null : revIDs;
+            return null;
         }
 
         public RevisionID FindCommonAncestor(RevisionInternal rev, IEnumerable<RevisionID> revIds)

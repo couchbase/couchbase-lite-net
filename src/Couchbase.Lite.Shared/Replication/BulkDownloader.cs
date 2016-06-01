@@ -48,6 +48,7 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -347,38 +348,49 @@ namespace Couchbase.Lite.Replicator
             evt(this, args);
         }
 
-        private static IDictionary<string, object> CreatePostBody(IEnumerable<RevisionInternal> revs, Database database)
+        private IDictionary<string, object> CreatePostBody(IEnumerable<RevisionInternal> revs, Database database)
         {
-            Func<RevisionInternal, IDictionary<String, Object>> invoke = source =>
+            var maxRevTreeDepth = database.GetMaxRevTreeDepth();
+            Func<RevisionInternal, IDictionary<string, object>> invoke = source =>
             {
                 if(!database.IsOpen) {
                     return null;
                 }
 
-                var attsSince = database.Storage.GetPossibleAncestors(source, Puller.MAX_ATTS_SINCE, true);
+                //TODO: Deferred attachments
+                ValueTypePtr<bool> haveBodies = false;
+                var possibleAncestors = database.Storage.GetPossibleAncestors(source, Puller.MaxAttsSince, haveBodies);
+                
+                var key = new Dictionary<string, object> {
+                    ["id"] = source.DocID,
+                    ["rev"] = source.RevID.ToString()
+                };
 
+                if(possibleAncestors != null) {
+                    var bodyKey = haveBodies ? "atts_since" : "revs_from";
+                    key[bodyKey] = possibleAncestors;
+                } else {
+                    if(source.Generation > maxRevTreeDepth) {
+                        key["revs_limit"] = maxRevTreeDepth;
+                    }
+                }
 
-                var mapped = new Dictionary<string, object> ();
-                mapped["id"] = source.DocID;
-                mapped["rev"] = source.RevID;
-                mapped["atts_since"] = attsSince;
-
-                return mapped;
+                return key;
             };
 
-                // Build up a JSON body describing what revisions we want:
-            IEnumerable<IDictionary<string, object>> keys = null;
-            try
-            {
-                keys = revs.Select(invoke).Where(x => x != null);
-            } 
-            catch (Exception ex)
-            {
-                Log.To.Sync.E(Tag, "Error generating bulk request data.", ex);
-            }       
+            // Build up a JSON body describing what revisions we want:
             
+            IEnumerable<IDictionary<string, object>> keys = null;
+            try {
+                keys = revs.Select(invoke).Where(x => x != null);
+            } catch(Exception ex) {
+                Log.To.Sync.E(Tag, "Error generating bulk request data.", ex);
+            }
+
             var retval = new Dictionary<string, object>();
             retval["docs"] = keys;
+            Log.To.Sync.V(Tag, "Created bulk download request {0}{1}Body: {2}", _bulkGetUri, Environment.NewLine,
+                new LogJsonString(keys));
             return retval;
         }
 

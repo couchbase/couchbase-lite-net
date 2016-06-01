@@ -63,6 +63,7 @@ using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using System.Net.Sockets;
 using Couchbase.Lite.Revisions;
+using System.Diagnostics;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -226,6 +227,65 @@ namespace Couchbase.Lite
             base.TearDown();
         }*/
 
+        [Test]
+        public void TestDeepRevTree()
+        {
+            const int NumRevisions = 2000;
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                var doc = database.GetDocument("deep");
+                var numRevisions = 0;
+                for(numRevisions = 0; numRevisions < NumRevisions;) {
+                    database.RunInTransaction(() =>
+                    {
+                        // Have to push the doc periodically, to make sure the server gets the whole
+                        // history, since CBL will only remember the latest 20 revisions.
+                        var batchSize = Math.Min(database.GetMaxRevTreeDepth(), NumRevisions - numRevisions);
+                        Trace.WriteLine($"Adding revisions {numRevisions + 1} -- {numRevisions + batchSize} ...");
+                        for(int i = 0; i < batchSize; i++) {
+                            doc.Update(rev =>
+                            {
+                                var props = rev.UserProperties;
+                                props["counter"] = ++numRevisions;
+                                rev.SetUserProperties(props);
+                                return true;
+                            });
+                        }
+
+                        return true;
+                    });
+
+                    Trace.WriteLine("Pushing ...");
+                    RunReplication(push);
+                }
+
+                Trace.WriteLine($"{Environment.NewLine}{Environment.NewLine}$$$$$$$$$$ PULLING TO DB2 $$$$$$$$$$");
+
+                // Now create a second database and pull the remote db into it:
+                var db2 = EnsureEmptyDatabase("db2");
+                var pull = db2.CreatePullReplication(remoteDb.RemoteUri);
+                RunReplication(pull);
+
+                var doc2 = db2.GetExistingDocument("deep");
+                Assert.AreEqual(db2.GetMaxRevTreeDepth(), doc2.RevisionHistory.Count());
+                Assert.AreEqual(1, doc.ConflictingRevisions.Count());
+                Trace.WriteLine($"{Environment.NewLine}{Environment.NewLine}$$$$$$$$$$ PUSHING 1 DOC FROM DB $$$$$$$$$$");
+
+                // Now add a revision to the doc, push, and pull into db2:
+                doc.Update(rev =>
+                {
+                    var props = rev.UserProperties;
+                    props["counter"] = ++numRevisions;
+                    rev.SetUserProperties(props);
+                    return true;
+                });
+                RunReplication(push);
+                Trace.WriteLine($"{Environment.NewLine}{Environment.NewLine}$$$$$$$$$$ PULLING 1 DOC INTO DB2 $$$$$$$$$$");
+                RunReplication(pull);
+                Assert.AreEqual(db2.GetMaxRevTreeDepth(), doc2.RevisionHistory.Count());
+                Assert.AreEqual(1, doc.ConflictingRevisions.Count());
+            }
+        }
 
         [Test]
         public void TestRapidRestart()
