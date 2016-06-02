@@ -19,7 +19,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
+    <DefineConstants>DEBUG;SQLITE;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -33,6 +33,7 @@
     <ConsolePause>false</ConsolePause>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
+    <DefineConstants>SQLITE;</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -42,13 +43,13 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <DefineConstants>SQLITE;</DefineConstants>
   </PropertyGroup>
   <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SystemSQLite\net35" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.SystemSQLite.dll;$(OutputPath)Couchbase.Lite.Storage.SystemSQLite.$(mdb);"
-    DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SystemSQLite\net35" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.SystemSQLite.dll;$(OutputPath)Couchbase.Lite.Storage.SystemSQLite.$(mdb);" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SystemSQLite\net35" />
   </Target>
   <ItemGroup>
     <Reference Include="SQLitePCL.raw">

@@ -117,6 +117,7 @@ namespace Couchbase.Lite.Util
             _stream = null;
             if (stream != null) {
                 stream.Dispose ();
+				_hash.Dispose ();
             }
         }
 

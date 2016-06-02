@@ -666,26 +666,33 @@ namespace Couchbase.Lite
 
         private static bool ReadVersion(Assembly assembly, out string branch, out string hash)
         {
-            branch = "No branch";
-            using (Stream stream = assembly.GetManifestResourceStream("version")) {
-                if(stream != null) {
-                    using (StreamReader reader = new StreamReader(stream))
-                    {
-                        hash = reader.ReadToEnd();
-                    }
-                } else {
-                    hash = "No git information";
-                    return false;
-                }
-            }
+			branch = "No branch";
+			try {
+	            using (Stream stream = assembly.GetManifestResourceStream("version")) {
+	                if(stream != null) {
+	                    using (StreamReader reader = new StreamReader(stream))
+	                    {
+	                        hash = reader.ReadToEnd();
+	                    }
+	                } else {
+	                    hash = "No git information";
+	                    return false;
+	                }
+	            }
 
-            var colonPos = hash.IndexOf(':');
-            if(colonPos != -1) {
-                branch = hash.Substring(0, colonPos);
-                hash = hash.Substring(colonPos + 2);
-            }  
-                     
-            return true;
+	            var colonPos = hash.IndexOf(':');
+	            if(colonPos != -1) {
+	                branch = hash.Substring(0, colonPos);
+	                hash = hash.Substring(colonPos + 2);
+	            }  
+	                     
+	            return true;
+			} catch(NotSupportedException) {
+				hash = "No git information";
+				Log.To.NoDomain.I (TAG, "Loaded assembly {0} but unable to read commit hash", assembly.FullName);
+			}
+
+			return false;
         }
 
         private bool ContainsExtension(string name)

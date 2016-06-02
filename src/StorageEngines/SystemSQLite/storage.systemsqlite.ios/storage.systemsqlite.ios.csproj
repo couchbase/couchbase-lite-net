@@ -37,7 +37,7 @@
     <OutputPath>bin\Packaging</OutputPath>
     <WarningLevel>4</WarningLevel>
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>PINVOKE_FROM_SQLITE3;OLD_REFLECTION;PLATFORM_UNIFIED;</DefineConstants>
+    <DefineConstants>__MOBILE__;__IOS__;SQLITE;</DefineConstants>
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <ItemGroup>
