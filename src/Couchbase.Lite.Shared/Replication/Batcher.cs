@@ -232,9 +232,6 @@ namespace Couchbase.Lite.Support
                 if (!_scheduled) {
                     _scheduled = true;
                     _scheduledDelay = suggestedDelay;
-    
-                    Log.To.NoDomain.D(TAG, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, _workExecutor.Scheduler.GetType().Name, ((SingleTaskThreadpoolScheduler)_workExecutor.Scheduler).ScheduledTasks.Count());
-    
                     _cancellationSource = new CancellationTokenSource();
                     _flushFuture = Task.Delay(suggestedDelay).ContinueWith((t) =>
                     {

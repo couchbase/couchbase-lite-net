@@ -157,7 +157,7 @@ namespace Couchbase.Lite.Util
                 if (lockTaken) {
                     return _items;
                 } else {
-                    throw new NotSupportedException();
+                    return null;
                 }
             }
             finally

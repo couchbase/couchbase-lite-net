@@ -26,6 +26,8 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.Util;
 using WebSocketSharp;
+using Couchbase.Lite.Auth;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Internal
 {
@@ -44,7 +46,6 @@ namespace Couchbase.Lite.Internal
 
         private WebSocket _client;
         private CancellationTokenSource _cts;
-        private IChangeTrackerResponseLogic _responseLogic = new WebSocketLogic();
 
         #endregion
 
@@ -71,6 +72,7 @@ namespace Couchbase.Lite.Internal
 
         public WebSocketChangeTracker(ChangeTrackerOptions options) : base(options)
         {
+            _responseLogic = new WebSocketLogic();
             CanConnect = true;
         }
 
@@ -183,6 +185,8 @@ namespace Couchbase.Lite.Internal
             Log.To.ChangeTracker.I(Tag, "Starting {0}...", this);
             _cts = new CancellationTokenSource();
 
+            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, ChangesFeedUrl);
+
             // A WebSocket has to be opened with a GET request, not a POST (as defined in the RFC.)
             // Instead of putting the options in the POST body as with HTTP, we will send them in an
             // initial WebSocket message
@@ -194,6 +198,11 @@ namespace Couchbase.Lite.Internal
             _client.OnMessage += OnReceive;
             _client.OnError += OnError;
             _client.OnClose += OnClose;
+            if (authHeader != null) {
+                _client.CustomHeaders = new Dictionary<string, string> {
+                    ["Authorization"] = authHeader.ToString()
+                };
+            }
             _client.ConnectAsync();
 
             return true;

@@ -32,7 +32,7 @@ namespace Couchbase.Lite.Internal
         private static readonly string Tag = typeof(OneShotOrLongPollLogic).Name;
         private bool _caughtUp = false;
         private DateTime _startTime;
-        private ManualResetEventSlim _pauseWait = new ManualResetEventSlim(true);
+        private readonly ManualResetEventSlim _pauseWait = new ManualResetEventSlim(true);
 
         public OneShotOrLongPollLogic()
         {

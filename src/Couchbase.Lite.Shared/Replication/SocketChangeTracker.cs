@@ -71,7 +71,6 @@ namespace Couchbase.Lite.Internal
         private CancellationTokenSource tokenSource;
         private CancellationTokenSource changesFeedRequestTokenSource;
         private CouchbaseLiteHttpClient _httpClient;
-        private IChangeTrackerResponseLogic _responseLogic;
 
         #endregion
 

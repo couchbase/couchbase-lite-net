@@ -65,6 +65,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SQLiteCommon", "SQLiteCommo
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "storage.sqlite.common", "StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.shproj", "{79FC4A01-1E39-468F-8E55-195BC918232E}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "CouchUseSample", "..\..\..\Downloads\CouchUseSample\CouchUseSample\CouchUseSample.shproj", "{E5DAB7B8-CDB9-426B-BFD1-76EC6EDAC046}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CouchUseSample.Droid", "..\..\..\Downloads\CouchUseSample\Droid\CouchUseSample.Droid.csproj", "{9C5CBA2D-73CA-4098-872B-A5C6174386E4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -211,6 +215,24 @@ Global
 		{83F75E53-48BE-4F3C-8D79-62CBD5050792}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
 		{83F75E53-48BE-4F3C-8D79-62CBD5050792}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{83F75E53-48BE-4F3C-8D79-62CBD5050792}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Debug_Sample|Any CPU.Build.0 = Debug|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Packaging|Any CPU.Build.0 = Release|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Release_All|Any CPU.Build.0 = Release|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Release_Sample|Any CPU.ActiveCfg = Release|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Release_Sample|Any CPU.Build.0 = Release|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C5CBA2D-73CA-4098-872B-A5C6174386E4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9C5FAB56-F098-4809-8465-65257A59B8BD}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
 		{9C5FAB56-F098-4809-8465-65257A59B8BD}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{9C5FAB56-F098-4809-8465-65257A59B8BD}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU

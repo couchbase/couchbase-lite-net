@@ -155,9 +155,13 @@ namespace Couchbase.Lite.Internal
         {
             exception = null;
             if (_inflater == null) {
-                // This is a non compressed stream, so simply copy over the bytes to the output
-                Array.Copy(input, output, input.Length);
-                return input.Length;
+                if (input != null) {
+                    // This is a non compressed stream, so simply copy over the bytes to the output
+                    Array.Copy(input, output, input.Length);
+                    return input.Length;
+                } 
+
+                return 0;
             }
 
             try {

@@ -99,10 +99,10 @@ namespace Couchbase.Lite.Internal
         #region Variables
 
         protected readonly bool _includeConflicts;
-        protected readonly ManualResetEventSlim _pauseWait = new ManualResetEventSlim(true);
         protected bool _usePost;
         protected bool _caughtUp;
         protected TaskFactory _workExecutor;
+        protected IChangeTrackerResponseLogic _responseLogic;
 
         internal readonly Uri DatabaseUrl;
         internal readonly ChangeTrackerBackoff Backoff;
@@ -146,19 +146,21 @@ namespace Couchbase.Lite.Internal
 
         public bool Paused
         {
-            get { return !_pauseWait.IsSet; }
+            get { return _paused; }
             set
             {
-                if(value != Paused) {
+                if(value != _paused) {
+                    _paused = value;
                     Log.To.ChangeTracker.I(Tag, "{0} {1}...", value ? "Pausing" : "Resuming", this);
                     if(value) {
-                        _pauseWait.Reset();
+                        _responseLogic.Pause();
                     } else {
-                        _pauseWait.Set();
+                        _responseLogic.Resume();
                     }
                 }
             }
         }
+        private bool _paused;
 
         public bool ActiveOnly { get; set; }
 
