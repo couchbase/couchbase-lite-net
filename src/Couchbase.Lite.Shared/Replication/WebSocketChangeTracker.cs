@@ -28,14 +28,22 @@ using Couchbase.Lite.Util;
 using WebSocketSharp;
 using Couchbase.Lite.Auth;
 using System.Collections.Generic;
+using Microsoft.IO;
 
 namespace Couchbase.Lite.Internal
 {
+    internal enum ChangeTrackerMessageType : byte
+    {
+        Unknown,
+        Plaintext,
+        GZip,
+        EOF
+    }
 
     // Concrete class for receiving changes over web sockets
     internal class WebSocketChangeTracker : ChangeTracker
     {
-
+        
         #region Constants
 
         private static readonly string Tag = typeof(WebSocketChangeTracker).Name;
@@ -150,11 +158,27 @@ namespace Couchbase.Lite.Internal
                     return;
                 }
 
-                var responseStream = new MemoryStream();
-                responseStream.WriteByte(args.IsText ? (byte)1 : (byte)2);
-                responseStream.Write(args.RawData, 0, args.RawData.Length);
-                responseStream.Seek(0, SeekOrigin.Begin);
-                _responseLogic.ProcessResponseStream(responseStream, _cts.Token);
+                var code = ChangeTrackerMessageType.Unknown;
+                if(args.IsText) {
+                    if(args.RawData.Length == 2 && args.RawData[0] == '\r' && args.RawData[1] == '\n') {
+                        code = ChangeTrackerMessageType.EOF;
+                    } else {
+                        code = ChangeTrackerMessageType.Plaintext;
+                    }
+                } else {
+                    code = ChangeTrackerMessageType.GZip;
+                }
+
+                Log.To.Sync.I(Tag, "Preparing to process {0}", args.Data);
+                var responseStream = RecyclableMemoryStreamManager.SharedInstance.GetStream("WebSocketChangeTracker", args.RawData.Length + 1);
+                try {
+                    responseStream.WriteByte((byte)code);
+                    responseStream.Write(args.RawData, 0, args.RawData.Length);
+                    responseStream.Seek(0, SeekOrigin.Begin);
+                    _responseLogic.ProcessResponseStream(responseStream, _cts.Token);
+                } finally {
+                    responseStream.Dispose();
+                }
             } catch(Exception e) {
                 Log.To.ChangeTracker.E(Tag, String.Format("{0} is not parseable", GetLogString(args)), e);
             }

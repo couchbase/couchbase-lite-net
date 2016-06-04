@@ -156,6 +156,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ExceptionEnumerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\TraceLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\TimeSeries.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\RecyclableMemoryStreamManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\RecyclableMemoryStream.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

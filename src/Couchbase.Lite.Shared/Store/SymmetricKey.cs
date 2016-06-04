@@ -25,6 +25,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Collections.Generic;
 using Couchbase.Lite.Util;
+using Microsoft.IO;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -220,7 +221,7 @@ namespace Couchbase.Lite.Store
 
             byte[] encrypted = null;
             _cryptor.GenerateIV();
-            using(var ms = new MemoryStream())
+            using(var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream())
             using(var cs = new CryptoStream(ms, _cryptor.CreateEncryptor(), CryptoStreamMode.Write)) {
                 ms.Write(_cryptor.IV, 0, IV_SIZE);
                 cs.Write(data, 0, data.Length);

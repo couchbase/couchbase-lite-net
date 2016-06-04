@@ -28,6 +28,7 @@ using System.Threading;
 
 using Couchbase.Lite.Util;
 using System.Threading.Tasks;
+using Microsoft.IO;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -229,7 +230,7 @@ namespace Couchbase.Lite.Support
         public IEnumerable<byte> AllOutput()
         {
             _nextInputIndex = 0;
-            using (var ms = new MemoryStream()) {
+            using (var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream()) {
                 if (!WriteAsync(ms).Wait(TimeSpan.FromSeconds(30))) {
                     Log.To.Database.W(TAG, "{0} unable to get output!", this);
                     return null;
@@ -287,8 +288,10 @@ namespace Couchbase.Lite.Support
         private Stream StreamForInput(object input)
         {
             var data = input as IEnumerable<byte>;
-            if (data != null) {
-                return new MemoryStream(data.ToArray());
+            var realized = data?.ToArray();
+            if (realized != null) {
+                return new RecyclableMemoryStreamManager.SharedInstance.GetStream("MultiStreamWriter", 
+                    realized, 0, realized.Length);
             }
 
             var fileUri = input as Uri;

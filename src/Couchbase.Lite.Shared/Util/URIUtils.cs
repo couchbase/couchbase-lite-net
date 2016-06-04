@@ -43,6 +43,7 @@
 using System;
 using System.IO;
 using System.Text;
+using Microsoft.IO;
 
 namespace Couchbase.Lite.Util
 {
@@ -175,7 +176,7 @@ namespace Couchbase.Lite.Util
             }
 
             StringBuilder result = new StringBuilder(s.Length);
-            using (MemoryStream outStream = new MemoryStream()) {
+            using (MemoryStream outStream = RecyclableMemoryStreamManager.SharedInstance.GetStream()) {
                 for (int i = 0; i < s.Length;) {
                     char c = s[i];
                     if (c == '%') {

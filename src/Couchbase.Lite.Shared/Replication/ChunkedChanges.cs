@@ -29,6 +29,8 @@ using ICSharpCode.SharpZipLib.Checksums;
 using ICSharpCode.SharpZipLib.GZip;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using System.Threading;
+using System.Text;
+using Microsoft.IO;
 
 namespace Couchbase.Lite.Internal
 {
@@ -50,7 +52,7 @@ namespace Couchbase.Lite.Internal
         // filled since we need to be informed of the newest data immediately and we don't
         // know when the next piece is going to come.  However, I don't want to read byte
         // after byte one at a time because it feels wrong.  
-        private const int BufferSize = 64; 
+        private const int BufferSize = 1024; 
 
         #endregion
 
@@ -60,6 +62,7 @@ namespace Couchbase.Lite.Internal
         private readonly Inflater _inflater; // Due to internal buffering, GZipStream cannot be used
         private bool _disposed;
         private bool _readHeader;
+        private readonly ManualResetEventSlim _pauseWait;
 
         public event TypedEventHandler<ChunkedChanges, IDictionary<string, object>> ChunkFound;
 
@@ -69,7 +72,7 @@ namespace Couchbase.Lite.Internal
 
         #region Constructors
 
-        public ChunkedChanges(bool compressed, CancellationToken token)
+        public ChunkedChanges(bool compressed, CancellationToken token, ManualResetEventSlim pauseWait)
         {
             _innerStream = new ChunkStream();
             if (compressed) {
@@ -77,6 +80,7 @@ namespace Couchbase.Lite.Internal
             }
 
             token.Register(Dispose);
+            _pauseWait = pauseWait;
             Task.Factory.StartNew(Process, TaskCreationOptions.LongRunning);
         }
 
@@ -84,17 +88,20 @@ namespace Couchbase.Lite.Internal
 
         #region Public Methods
 
-        public void AddData(IEnumerable<byte> data)
+        public void AddData(Stream data)
         {
             if (_disposed) {
                 Log.To.ChangeTracker.E(Tag, "AddData called on disposed object, throwing...");
                 throw new ObjectDisposedException("ChunkedGZipChanges");
             }
 
-            var realized = data.ToArray();
-            using (var stream = new MemoryStream(realized)) {
-                ReadHeader(stream);
-                stream.CopyTo(_innerStream);
+            ReadHeader(data);
+            var buffer = RecyclableMemoryStreamManager.SharedInstance.GetBlock();
+            try {
+                var bytesRead = data.Read(buffer, 0, buffer.Length);
+                _innerStream.Write(buffer, 0, bytesRead);
+            } finally {
+                RecyclableMemoryStreamManager.SharedInstance.ReturnBlocks(new byte[][] { buffer }, "ChunkedChanges");
             }
         }
 
@@ -121,6 +128,7 @@ namespace Couchbase.Lite.Internal
                             if (--nestedCount == 0 && parseBuffer.Count > 0) {
                                 // We have a complete JSON object or array ready for processing
                                 var changes = Manager.GetObjectMapper().ReadValue<IList<object>>(parseBuffer);
+                                Log.To.Sync.I(Tag, "Parse found {0} changes", changes.Count);
                                 foreach (var change in changes) {
                                     if (ChunkFound != null) {
                                         ChunkFound(this, change.AsDictionary<string, object>());
@@ -129,12 +137,15 @@ namespace Couchbase.Lite.Internal
 
                                 parseBuffer.Clear();
                             }
+                            _pauseWait.Wait();
                         } else if (IsStart(parseBuffer.Last())) {
                             // Begin an embedded array
                             nestedCount++;
                         }
                     }
 
+                    Log.To.Sync.I(Tag, "Parsed {0} (nested count: {1})", new LogString(unzipBuffer.Take(decodedBytes)),
+                        nestedCount);
                     decodedBytes = Decode(null, 0, unzipBuffer, out exception);
                 } 
 
@@ -189,7 +200,7 @@ namespace Couchbase.Lite.Internal
         }
 
         // From SharpZipLib GZipInputStream, slightly modified
-        private void ReadHeader(MemoryStream stream) 
+        private void ReadHeader(Stream stream) 
         {
             if (_readHeader || _inflater == null) {
                 return;

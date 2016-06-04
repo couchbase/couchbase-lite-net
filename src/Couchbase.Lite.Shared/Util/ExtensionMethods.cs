@@ -52,6 +52,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.IO;
 
 namespace Couchbase.Lite
 {
@@ -122,8 +123,9 @@ namespace Couchbase.Lite
 
         public static IEnumerable<byte> Decompress(this IEnumerable<byte> compressedData)
         {
-
-            using (var ms = new MemoryStream(compressedData.ToArray()))
+            var realized = compressedData.ToArray();
+            using (var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream("Decompress", 
+                realized, 0, realized.Length))
             using (var gs = new GZipStream(ms, CompressionMode.Decompress, false)) {
                 return gs.ReadAllBytes();
             }
@@ -132,7 +134,7 @@ namespace Couchbase.Lite
         public static IEnumerable<byte> Compress(this IEnumerable<byte> data)
         {
             var array = data.ToArray();
-            using (var ms = new MemoryStream()) {
+            using (var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream("Compress")) {
                 using (var gs = new GZipStream(ms, CompressionMode.Compress, false)) {
                     gs.Write(array, 0, array.Length);
                 }
@@ -237,22 +239,27 @@ namespace Couchbase.Lite
             return Manager.GetObjectMapper().ConvertToList<TValue>(value);
         }
 
-        public static Byte[] ReadAllBytes(this Stream stream)
+        public static byte[] ReadAllBytes(this Stream stream)
         {
-            var chunkBuffer = new byte[Attachment.DefaultStreamChunkSize];
-            // We know we'll be reading at least 1 chunk, so pre-allocate now to avoid an immediate resize.
-            var ms = new MemoryStream();
+            var ms = stream as MemoryStream;
+            var block = RecyclableMemoryStreamManager.SharedInstance.GetBlock();
+            try {
+                if (ms != null) {
+                    return ms.GetBuffer().Take((int)ms.Length).ToArray();
+                }
 
-            int bytesRead;
-            do {
-                chunkBuffer.Initialize ();
-                // Resets all values back to zero.
-                bytesRead = stream.Read(chunkBuffer, 0, Attachment.DefaultStreamChunkSize);
-                ms.Write(chunkBuffer, 0, bytesRead);
+                ms = RecyclableMemoryStreamManager.SharedInstance.GetStream();
+                var read = 0;
+                while((read = stream.Read(block, 0, block.Length)) > 0) {
+                    ms.Write(block, 0, read);
+                }
+                return ms.GetBuffer().Take((int)ms.Length).ToArray();
+            } finally {
+                ms?.Dispose();
+                if (block != null) {
+                    RecyclableMemoryStreamManager.SharedInstance.ReturnBlocks(new byte[][] { block }, "ReadAllBytes");
+                }
             }
-            while (bytesRead > 0);
-
-            return ms.ToArray();
         }
 
         public static StatusCode GetStatusCode(this HttpStatusCode code)

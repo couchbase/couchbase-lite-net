@@ -47,6 +47,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Microsoft.IO;
 
 namespace Couchbase.Lite 
 {
@@ -107,7 +108,9 @@ namespace Couchbase.Lite
 
         public T ReadValue<T> (IEnumerable<byte> json)
         {
-            using (var jsonStream = new MemoryStream(json.ToArray())) 
+            var realized = json.ToArray();
+            using (var jsonStream = RecyclableMemoryStreamManager.SharedInstance.GetStream("ObjectWriter",
+                realized, 0, realized.Length)) 
             {
                 return ReadValue<T>(jsonStream);
             }

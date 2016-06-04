@@ -49,6 +49,7 @@ using System.Net;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Internal;
+using Microsoft.IO;
 
 namespace Couchbase.Lite
 {
@@ -272,7 +273,10 @@ namespace Couchbase.Lite
         /// <param name="content">The <see cref="Couchbase.Lite.Attachment"/> content.</param>
         public void SetAttachment(string name, string contentType, IEnumerable<byte> content)
         {
-            var attachment = new Attachment(new MemoryStream(content.ToArray()), contentType);
+            var data = content.ToArray();
+            var stream = RecyclableMemoryStreamManager.SharedInstance.GetStream("UnsavedRevision", 
+                             data, 0, data.Length);
+            var attachment = new Attachment(stream, contentType);
             AddAttachment(attachment, name);
 
         }

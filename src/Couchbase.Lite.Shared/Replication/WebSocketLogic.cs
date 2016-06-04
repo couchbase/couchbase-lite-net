@@ -22,11 +22,13 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Collections.Generic;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal
 {
     internal sealed class WebSocketLogic : IChangeTrackerResponseLogic
     {
+        private static readonly string Tag = typeof(WebSocketLogic).Name;
         private ManualResetEventSlim _pauseWait = new ManualResetEventSlim(true);
         private bool _caughtUp;
         private ChunkedChanges _changeProcessor;
@@ -36,37 +38,14 @@ namespace Couchbase.Lite.Internal
         public Action<IDictionary<string, object>> OnChangeFound { get; set; }
         public Action<Exception> OnFinished { get; set; }
 
-        private ChangeTrackerResponseCode ProcessGzippedStream(Stream stream, CancellationToken token)
+        private ChangeTrackerResponseCode ProcessResponseStream(Stream stream, CancellationToken token, bool compressed)
         {
             if (_changeProcessor == null) {
-                _changeProcessor = new ChunkedChanges(true, token);
+                _changeProcessor = new ChunkedChanges(compressed, token, _pauseWait);
                 SetupChangeProcessorCallback();
             }
 
-            _changeProcessor.AddData(stream.ReadAllBytes());
-            return ChangeTrackerResponseCode.Normal;
-        }
-
-        private ChangeTrackerResponseCode ProcessRegularStream(Stream stream, CancellationToken token)
-        {
-            if (_changeProcessor == null) {
-                _changeProcessor = new ChunkedChanges(false, token);
-                SetupChangeProcessorCallback();
-            }
-
-            if(stream.Length == 3) { // +1 for the first type ID
-                if(!_caughtUp) {
-                    _caughtUp = true;
-                    if (OnCaughtUp != null) {
-                        OnCaughtUp();
-                    }
-
-                    return ChangeTrackerResponseCode.Normal;
-                }
-            }
-
-            _changeProcessor.AddData(stream.ReadAllBytes());
-
+            _changeProcessor.AddData(stream);
             return ChangeTrackerResponseCode.Normal;
         }
 
@@ -87,12 +66,23 @@ namespace Couchbase.Lite.Internal
 
         public ChangeTrackerResponseCode ProcessResponseStream(Stream stream, CancellationToken token)
         {
-            var type = stream.ReadByte();
-            if(type == 1) {
-                return ProcessRegularStream(stream, token);
-            } else {
-                return ProcessGzippedStream(stream, token);
+            _pauseWait.Wait();
+            var type = (ChangeTrackerMessageType)stream.ReadByte();
+            if (type == ChangeTrackerMessageType.Plaintext || type == ChangeTrackerMessageType.GZip) {
+                return ProcessResponseStream(stream, token, type == ChangeTrackerMessageType.GZip);
+            } else if (type == ChangeTrackerMessageType.EOF) {
+                if(!_caughtUp) {
+                    _caughtUp = true;
+                    if (OnCaughtUp != null) {
+                        OnCaughtUp();
+                    }
+                }
+
+                return ChangeTrackerResponseCode.Normal;
             }
+
+            Log.To.Sync.E(Tag, "Unknown response code {0}, returning failed status", type);
+            return ChangeTrackerResponseCode.Failed;
         }
 
         public void Pause()

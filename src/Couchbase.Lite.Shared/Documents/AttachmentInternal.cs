@@ -48,6 +48,7 @@ using System.Linq;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
+using Microsoft.IO;
 
 namespace Couchbase.Lite.Internal
 {
@@ -140,7 +141,9 @@ namespace Couchbase.Lite.Internal
                     return Database.Attachments.BlobStreamForKey(_blobKey);
                 }
 
-                return new MemoryStream(Content.ToArray());
+                var data = Content.ToArray();
+                return RecyclableMemoryStreamManager.SharedInstance.GetStream("AttachmentInternal", 
+                    data, 0, data.Length);
             }
         }
 
