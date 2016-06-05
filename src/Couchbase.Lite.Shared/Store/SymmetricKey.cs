@@ -226,7 +226,7 @@ namespace Couchbase.Lite.Store
                 ms.Write(_cryptor.IV, 0, IV_SIZE);
                 cs.Write(data, 0, data.Length);
                 cs.FlushFinalBlock();
-                encrypted = ms.ToArray();
+                encrypted = ms.GetBuffer().Take((int)ms.Length).ToArray();
             }
 
             return encrypted;
@@ -238,7 +238,8 @@ namespace Couchbase.Lite.Store
         public byte[] DecryptData(byte[] encryptedData)
         {
             var buffer = new List<byte>();
-            using(var ms = new MemoryStream(encryptedData))
+            using(var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream("SymmetricKey", 
+                encryptedData, 0, encryptedData.Length))
             using(var cs = DecryptStream(ms)) {
                 int next;
                 while((next = cs.ReadByte()) != -1) {
