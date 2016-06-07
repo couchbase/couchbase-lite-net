@@ -41,6 +41,9 @@
     <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
     <DebugSymbols>true</DebugSymbols>
     <MtouchArch>i386, x86_64</MtouchArch>
+    <MtouchSdkVersion>9.3</MtouchSdkVersion>
+    <MtouchI18n>
+    </MtouchI18n>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhone' ">
     <DebugSymbols>true</DebugSymbols>
@@ -92,6 +95,15 @@
     </Reference>
     <Reference Include="Stateless">
       <HintPath>..\packages\Stateless.2.5.62.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.raw, Version=0.8.5.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\packages\SQLitePCL.raw.0.9.0-pre7\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\packages\SQLitePCL.ugly.0.9.0-pre7\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLite3Plugin, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\packages\SQLitePCL.plugin.sqlcipher.ios_unified.0.9.0-pre7\lib\Xamarin.iOS10\SQLite3Plugin.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup />

@@ -35,6 +35,8 @@ using SQLitePCL;
 
 #if SQLITE
 namespace Couchbase.Lite.Storage.SystemSQLite
+#elif CUSTOM_SQLITE
+namespace Couchbase.Lite.Storage.CustomSQLite
 #else
 namespace Couchbase.Lite.Storage.SQLCipher
 #endif

@@ -1,4 +1,4 @@
-ï»¿
+?¿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25123.0
@@ -60,6 +60,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-net_4_5", "..\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj", "{D68D4FED-CA32-4800-A628-58BAE485562C}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "storage.forestdb.shared", "StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.shproj", "{8E6F8876-64F8-4483-ADB2-D3AAD5672F7C}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CustomSQLite", "CustomSQLite", "{CB92A237-E7DD-401F-9FA7-BE8C7A588270}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.customsqlite.net45", "StorageEngines\CustomSQLite\storage.customsqlite.net45\storage.customsqlite.net45.csproj", "{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -72,7 +75,7 @@ Global
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{f376966c-ccab-4c5c-a81a-e2a754aa7a4c}*SharedItemsImports = 4
 		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{ea36a133-649c-42b3-91de-6e14dc9980a0}*SharedItemsImports = 13
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
-		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{2f81fd95-c9eb-40ab-a933-1ffb38d327df}*SharedItemsImports = 4
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{9ad3badd-4f48-4208-b601-e63987c12049}*SharedItemsImports = 4
 		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{8e6f8876-64f8-4483-adb2-d3aad5672f7c}*SharedItemsImports = 13
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d06edb2a-0ae0-4606-a8ae-aa3f6248630f}*SharedItemsImports = 13
@@ -278,6 +281,24 @@ Global
 		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
 		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug_Sample|Any CPU.Build.0 = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Packaging|Any CPU.Build.0 = Packaging|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release_All|Any CPU.Build.0 = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release_Sample|Any CPU.ActiveCfg = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release_Sample|Any CPU.Build.0 = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -305,6 +326,8 @@ Global
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE} = {D7B73C47-09CD-4D4A-90B6-602D2AB3D04C}
 		{D68D4FED-CA32-4800-A628-58BAE485562C} = {D7B73C47-09CD-4D4A-90B6-602D2AB3D04C}
 		{8E6F8876-64F8-4483-ADB2-D3AAD5672F7C} = {6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C}
+		{CB92A237-E7DD-401F-9FA7-BE8C7A588270} = {440D39B3-3B9F-4549-ADCE-C147E60E13BC}
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF} = {CB92A237-E7DD-401F-9FA7-BE8C7A588270}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

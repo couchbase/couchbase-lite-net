@@ -117,13 +117,15 @@ namespace Couchbase.Lite.Util
             _stream = null;
             if (stream != null) {
                 stream.Dispose ();
-				_hash.Dispose ();
+#if !NET_3_5
+                _hash.Dispose ();
+#endif
             }
         }
 
-        #endregion
+#endregion
 
-        #region Private Methods
+#region Private Methods
 
         private void Init ()
         {
@@ -137,9 +139,9 @@ namespace Couchbase.Lite.Util
         }
 
 
-        #endregion
+#endregion
 
-        #region Overrides
+#region Overrides
 
         public override int GetDigestLength ()
         {
@@ -175,7 +177,7 @@ namespace Couchbase.Lite.Util
             _stream.Write (input, index, count);
         }
 
-        #endregion
+#endregion
 
     }
 }

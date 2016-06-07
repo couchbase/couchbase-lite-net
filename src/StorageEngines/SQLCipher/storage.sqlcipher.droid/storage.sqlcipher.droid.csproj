@@ -27,7 +27,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;ENCRYPTION;</DefineConstants>
+    <DefineConstants>DEBUG;SQLCIPHER;ENCRYPTION;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AndroidLinkMode>None</AndroidLinkMode>
@@ -40,7 +40,7 @@
     <WarningLevel>4</WarningLevel>
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <ConsolePause>false</ConsolePause>
-    <DefineConstants>PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;ENCRYPTION;</DefineConstants>
+    <DefineConstants>SQLCIPHER;ENCRYPTION;</DefineConstants>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
@@ -49,13 +49,12 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Packaging</OutputPath>
-    <DefineConstants>PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;ENCRYPTION;</DefineConstants>
+    <DefineConstants>SQLCIPHER;ENCRYPTION;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
-  <Import Project="..\SQLitePCL\sqlitepcl.shared.projitems" Label="Shared" Condition="Exists('..\SQLitePCL\sqlitepcl.shared.projitems')" />
   <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
@@ -70,25 +69,23 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="SQLite3Plugin, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlcipher.android.0.9.0\lib\MonoAndroid\SQLite3Plugin.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.0\lib\MonoAndroid\SQLitePCL.raw.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.0\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="Mono.Android" />
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedNativeLibrary Include="..\SQLitePCL\vendor\sqlcipher\libs\android\arm64-v8a\libsqlcipher.so">
-      <Link>arm64-v8a\libsqlcipher.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\SQLitePCL\vendor\sqlcipher\libs\android\armeabi\libsqlcipher.so">
-      <Link>armeabi\libsqlcipher.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\SQLitePCL\vendor\sqlcipher\libs\android\armeabi-v7a\libsqlcipher.so">
-      <Link>armeabi-v7a\libsqlcipher.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\SQLitePCL\vendor\sqlcipher\libs\android\x86\libsqlcipher.so">
-      <Link>x86\libsqlcipher.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\SQLitePCL\vendor\sqlcipher\libs\android\x86_64\libsqlcipher.so">
-      <Link>x86_64\libsqlcipher.so</Link>
-    </EmbeddedNativeLibrary>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Target Condition=" '$(Configuration)' == 'Packaging'" Name="SuperClean" AfterTargets="Clean">
     <RemoveDir Directories="$(ProjectDir)bin;$(ProjectDir)obj" />
@@ -68,9 +68,6 @@
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.ForestDB.dll;$(OutputPath)Couchbase.Lite.Storage.ForestDB.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\Xamarin.iOS10" />
   </Target>
   <ItemGroup>
-    <None Include="ios.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <ManifestResourceWithNoCulture Include="..\CBForest\CSharp\prebuilt\libCBForest-Interop.a">
       <Link>libCBForest-Interop.a</Link>
     </ManifestResourceWithNoCulture>

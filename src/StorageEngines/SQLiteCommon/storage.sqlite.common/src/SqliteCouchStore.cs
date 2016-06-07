@@ -41,6 +41,8 @@ using StringEx = System.String;
 
 #if SQLITE
 namespace Couchbase.Lite.Storage.SystemSQLite
+#elif CUSTOM_SQLITE
+namespace Couchbase.Lite.Storage.CustomSQLite
 #else
 namespace Couchbase.Lite.Storage.SQLCipher
 #endif
@@ -204,6 +206,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // the app might be linked with a custom version of SQLite (like SQLCipher) instead of the
             // system library, so the actual version/features may differ from what was declared in
             // sqlite3.h at compile time.
+#if SQLCIPHER || CUSTOM_SQLITE
+            SQLite3Plugin.Init();
+#elif SQLITE && !__MOBILE__
+            if(Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                SQLite3Plugin.Init();
+            }
+#endif
             Log.To.Database.I(TAG, "Initialized SQLite store (version {0} ({1}))", raw.sqlite3_libversion(), raw.sqlite3_sourceid());
             _SqliteVersion = raw.sqlite3_libversion_number();
 

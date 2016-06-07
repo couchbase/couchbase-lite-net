@@ -62,13 +62,9 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net45" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.ForestDB.dll;$(OutputPath)Couchbase.Lite.Storage.ForestDB.$(mdb);
-    $(OutputPath)libCBForest-Interop.dylib;$(OutputPath)libCBForest-Interop.so;$(OutputPath)net45.targets" 
-    DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net45" />
-    <Copy SourceFiles="$(OutputPath)x86\CBForest-Interop.dll" 
-    DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net45\x86" />
-    <Copy SourceFiles="$(OutputPath)x64\CBForest-Interop.dll" 
-    DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net45\x64" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.ForestDB.dll;$(OutputPath)Couchbase.Lite.Storage.ForestDB.$(mdb);&#xA;    $(OutputPath)libCBForest-Interop.dylib;$(OutputPath)libCBForest-Interop.so;$(OutputPath)net45.targets" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net45" />
+    <Copy SourceFiles="$(OutputPath)x86\CBForest-Interop.dll" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net45\x86" />
+    <Copy SourceFiles="$(OutputPath)x64\CBForest-Interop.dll" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.ForestDB\net45\x64" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj">

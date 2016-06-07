@@ -54,7 +54,6 @@ namespace Todo.WPF
             {
                 _query.Stop();
                 _query.Dispose();
-                Manager.SharedInstance.Close();
             };
         }
 
