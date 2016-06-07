@@ -48,15 +48,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="SQLite3Plugin, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlcipher.net45.0.9.0-pre8\lib\net45\SQLite3Plugin.dll</HintPath>
+      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlcipher.net45.0.9.0\lib\net45\SQLite3Plugin.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="SQLitePCL.raw, Version=0.8.5.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.0-pre8\lib\net45\SQLitePCL.raw.dll</HintPath>
+    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.0\lib\net45\SQLitePCL.raw.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.0-pre8\lib\net35\SQLitePCL.ugly.dll</HintPath>
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.0\lib\net35\SQLitePCL.ugly.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

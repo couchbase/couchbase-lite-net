@@ -17,7 +17,6 @@ namespace Couchbase.Lite.Storage.CustomSQLite
                 return;
             }
 
-            Log.To.Database.I("BAR", "FOO");
             // We just need to load the sqlite3 DLL into memory
             const string dllName = "sqlite3.dll";
 

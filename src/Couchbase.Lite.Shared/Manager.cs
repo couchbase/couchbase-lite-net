@@ -69,7 +69,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// The top-level object that manages Couchbase Lite <see cref="Couchbase.Lite.Database"/>s.
     /// </summary>
-Â?Â?Â?Â?public sealed class Manager
+    public sealed class Manager
     {
 
     #region Constants
@@ -96,7 +96,7 @@ namespace Couchbase.Lite
 
     #endregion
 
-Â?Â?Â?Â?#region Static Members
+    #region Static Members
 
         /// <summary>
         /// Gets the default options for creating a manager
@@ -108,7 +108,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The shared instance.</value>
         // FIXME: SharedInstance lifecycle is undefined, so returning default manager for now.
-Â?Â?Â?Â?Â?Â?Â?Â?public static Manager SharedInstance { 
+        public static Manager SharedInstance { 
             get { 
                 if (sharedManager == null) {
                     sharedManager = new Manager(defaultDirectory, ManagerOptions.Default);
@@ -130,7 +130,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns><c>true</c> if the given name is a valid <see cref="Couchbase.Lite.Database"/> name, otherwise <c>false</c>.</returns>
         /// <param name="name">The Database name to validate.</param>
-Â?Â?Â?Â?Â?Â?Â?Â?public static bool IsValidDatabaseName(string name) 
+        public static bool IsValidDatabaseName(string name) 
         {
             if (name == null) {
                 return false;
@@ -143,9 +143,9 @@ namespace Couchbase.Lite
             return name.Equals(Replication.REPLICATOR_DATABASE_NAME);
         }
 
-Â?Â?Â?Â?#endregion
-Â?Â?Â?Â?
-Â?Â?Â?Â?#region Constructors
+        #endregion
+
+        #region Constructors
 
         static Manager()
         {
@@ -287,7 +287,7 @@ namespace Couchbase.Lite
         /// Gets the directory where the <see cref="Couchbase.Lite.Manager"/> stores <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
         /// <value>The directory.</value>
-Â?Â?Â?Â?Â?Â?Â?Â?public String Directory { get { return directoryFile.FullName; } }
+        public String Directory { get { return directoryFile.FullName; } }
 
         /// <summary>
         /// Default storage type for newly created databases.
@@ -300,7 +300,7 @@ namespace Couchbase.Lite
         /// Gets the names of all existing <see cref="Couchbase.Lite.Database"/>s.
         /// </summary>
         /// <value>All database names.</value>
-Â?Â?Â?Â?Â?Â?Â?Â?public IEnumerable<String> AllDatabaseNames 
+        public IEnumerable<String> AllDatabaseNames 
         { 
             get 
             { 
@@ -331,7 +331,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Releases all resources used by the <see cref="Couchbase.Lite.Manager"/> and closes all its <see cref="Couchbase.Lite.Database"/>s.
         /// </summary>
-Â?Â?Â?Â?Â?Â?Â?Â?public void Close() 
+        public void Close() 
         {
             if (this == SharedInstance) {
                 Log.To.Database.E(TAG, "Calling close on Manager.SharedInstance is not allowed, throwing InvalidOperationException"); 
@@ -575,7 +575,7 @@ namespace Couchbase.Lite
         }
 
 #endregion
-Â?Â?Â?Â?
+
 #region Non-public Members
 
         // Static Fields
@@ -672,35 +672,32 @@ namespace Couchbase.Lite
 
         private static bool ReadVersion(Assembly assembly, out string branch, out string hash)
         {
-			branch = "No branch";
-			try {
-	            using (Stream stream = assembly.GetManifestResourceStream("version")) {
-	                if(stream != null) {
-	                    using (StreamReader reader = new StreamReader(stream))
-	                    {
-	                        hash = reader.ReadToEnd();
-	                    }
-	                } else {
-	                    hash = "No git information";
-	                    return false;
-	                }
-	            }
+            branch = "No branch";
+            try {
+                using(Stream stream = assembly.GetManifestResourceStream("version")) {
+                    if(stream != null) {
+                        using(StreamReader reader = new StreamReader(stream)) {
+                            hash = reader.ReadToEnd();
+                        }
+                    } else {
+                        hash = "No git information";
+                        return false;
+                    }
+                }
+
+                var colonPos = hash.IndexOf(':');
+                if(colonPos != -1) {
+                    branch = hash.Substring(0, colonPos);
+                    hash = hash.Substring(colonPos + 2);
+                }
+
+                return true;
             } catch(NotSupportedException) {
-                return false;
+                hash = "No git information";
+                Log.To.NoDomain.I(TAG, "Loaded assembly {0} but unable to read commit hash", assembly.FullName);
+            }
 
-	            var colonPos = hash.IndexOf(':');
-	            if(colonPos != -1) {
-	                branch = hash.Substring(0, colonPos);
-	                hash = hash.Substring(colonPos + 2);
-	            }  
-	                     
-	            return true;
-			} catch(NotSupportedException) {
-				hash = "No git information";
-				Log.To.NoDomain.I (TAG, "Loaded assembly {0} but unable to read commit hash", assembly.FullName);
-			}
-
-			return false;
+            return false;
         }
 
         private bool ContainsExtension(string name)

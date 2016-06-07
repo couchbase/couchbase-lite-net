@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
     <mdb>dll.mdb</mdb>
@@ -15,6 +15,8 @@
     <AssemblyName>Couchbase.Lite.Storage.SystemSQLite</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <RestorePackages>true</RestorePackages>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>false</Optimize>
@@ -52,18 +54,19 @@
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.SystemSQLite.dll;$(OutputPath)Couchbase.Lite.Storage.SystemSQLite.$(mdb);" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SystemSQLite\net35" />
   </Target>
   <ItemGroup>
-    <Reference Include="SQLitePCL.raw">
-      <HintPath>..\..\..\packages\SQLitePCL.raw.0.8.6\lib\net35\SQLitePCL.raw.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="SQLite3Plugin, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlite3.net35.0.9.0\lib\net35\SQLite3Plugin.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.8.6\lib\net35\SQLitePCL.ugly.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.0\lib\net35\SQLitePCL.raw.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.0\lib\net35\SQLitePCL.ugly.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Couchbase.Lite.Net35\Couchbase.Lite.Net35.csproj">
@@ -76,6 +79,9 @@
       <Name>System.Threading.Tasks.Net35</Name>
       <Private>False</Private>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
 </Project>

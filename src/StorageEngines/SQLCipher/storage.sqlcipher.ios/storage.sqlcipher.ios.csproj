@@ -42,22 +42,22 @@
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="SQLite3Plugin, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlcipher.ios_unified.0.9.0\lib\Xamarin.iOS10\SQLite3Plugin.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.0\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.0\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.iOS" />
-    <Reference Include="SQLitePCL.raw">
-      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.0-pre7\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.0-pre7\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="SQLite3Plugin">
-      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlcipher.ios_unified.0.9.0-pre7\lib\Xamarin.iOS10\SQLite3Plugin.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
