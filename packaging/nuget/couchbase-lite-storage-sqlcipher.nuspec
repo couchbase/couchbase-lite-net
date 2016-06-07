@@ -21,8 +21,7 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     <copyright>Copyright 2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
-  </metadata>
-  <dependencies>
+    <dependencies>
       <group>
         <dependency id="SQLitePCL.raw" version="[0.9.0]" />
         <dependency id="SQLitePCL.ugly" version="[0.9.0]" />
@@ -32,6 +31,7 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
         <dependency id="SQLitePCL.native.sqlcipher.osx" version="[0.9.0]" />
       </group>
     </dependencies>
+  </metadata>
   <files>
     <!-- .NET 3.5 -->
     <file target="lib/net35/" src="staging/Couchbase.Lite.Storage.SQLCipher/net35/Couchbase.Lite.Storage.SQLCipher.dll*" />
