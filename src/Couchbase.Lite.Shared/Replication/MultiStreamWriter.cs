@@ -290,7 +290,7 @@ namespace Couchbase.Lite.Support
             var data = input as IEnumerable<byte>;
             var realized = data?.ToArray();
             if (realized != null) {
-                return new RecyclableMemoryStreamManager.SharedInstance.GetStream("MultiStreamWriter", 
+                return RecyclableMemoryStreamManager.SharedInstance.GetStream("MultiStreamWriter", 
                     realized, 0, realized.Length);
             }
 

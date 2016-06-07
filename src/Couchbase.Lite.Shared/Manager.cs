@@ -356,6 +356,12 @@ namespace Couchbase.Lite
             Log.To.Database.I(TAG, "CLOSED {0}", this);
         }
 
+        [Obsolete("This method is superceded by OpenDatabase")]
+        public void RegisterEncryptionKey(string dbName, SymmetricKey key)
+        {
+            Shared.SetValue("encryptionKey", "", dbName, key);
+        }
+
         /// <summary>
         /// Returns the database with the given name. If the database is not yet open, the options given
         /// will be applied; if it's already open, the options are ignored.

@@ -23,6 +23,7 @@ using System;
 using Couchbase.Lite;
 using Couchbase.Lite.Listener;
 using Couchbase.Lite.Listener.Tcp;
+using Couchbase.Lite.Store;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
@@ -57,7 +58,7 @@ namespace Listener
             var sslCertPath = default(string);
             var sslCertPass = default(string);
             var storageType = "SQLite";
-            //var passwordMap = new Dictionary<string, string>();
+            var passwordMap = new Dictionary<string, string>();
             var showHelp = false;
 
             var options = new OptionSet {
@@ -75,7 +76,7 @@ namespace Listener
                 { "sslcert=", "Path to the SSL certificate to use", v => sslCertPath = v },
                 { "sslpass=", "Password for the SSL certificate", v => sslCertPass = v },
                 { "storage=", "Set default storage engine ('SQLite' (default) or 'ForestDB')", v => storageType = v },
-
+                { "dbpassword=", "Register password to open a database (name=password)", v => RegisterPassword(passwordMap, v) },
                 { "help|h|?", "Show this help message", v => showHelp = v != null }
             };
 
@@ -97,9 +98,22 @@ namespace Listener
                 return;
             }
 
+
+
+            if (storageType == StorageEngineTypes.ForestDB) {
+                Couchbase.Lite.Storage.ForestDB.Plugin.Register();
+            }
+
             var manager = alternateDir != null ? new Manager(new DirectoryInfo(alternateDir), ManagerOptions.Default)
                 : Manager.SharedInstance;
             manager.StorageType = storageType;
+
+            if (passwordMap.Count > 0) {
+                Couchbase.Lite.Storage.SQLCipher.Plugin.Register();
+                foreach (var entry in passwordMap) {
+                    manager.RegisterEncryptionKey(entry.Key, new SymmetricKey(entry.Value));
+                }
+            }
  
             var tcpOptions = CouchbaseLiteTcpOptions.Default | CouchbaseLiteTcpOptions.AllowBasicAuth;
             var sslCert = default(X509Certificate2);
@@ -143,7 +157,13 @@ namespace Listener
 
             listener.Start();
             Logger.I("Listener", "LISTENING...");
-            Console.ReadKey(true);
+            var wait = new ManualResetEventSlim();
+            Console.WriteLine("Press Ctrl+C to end the process");
+            Console.CancelKeyPress += (sender, e) => wait.Set();
+            wait.Wait();
+            Console.WriteLine("Shutting down now");
+            wait.Dispose();
+
             if (replicator != null) {
                 replicator.Stop();
                 Thread.Sleep(5000);
@@ -209,6 +229,17 @@ namespace Listener
         {
             Console.WriteLine("Usage: Listener.exe [options]");
             options.WriteOptionDescriptions(Console.Out);
+        }
+
+        private static void RegisterPassword(IDictionary<string, string> collection, string unparsed)
+        {
+            var userAndPass = unparsed.Split('=');
+            if (userAndPass.Length != 2) {
+                throw new ArgumentException($"Invalid entry for dbpassword ({unparsed}), must be in " +
+                    "the format <name>=<password>");
+            }
+
+            collection[userAndPass[0]] = userAndPass[1];
         }
     }
 }
