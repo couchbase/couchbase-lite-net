@@ -51,7 +51,7 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\net45" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll;&#xA;    $(OutputPath)Couchbase.Lite.Listener.Bonjour.$(mdb);$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll.config" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\net45" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll;$(OutputPath)Couchbase.Lite.Listener.Bonjour.$(mdb);$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll.config" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\net45" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\Couchbase.Lite.Listener.Net45\Couchbase.Lite.Listener.Net45.csproj">

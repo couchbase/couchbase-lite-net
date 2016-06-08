@@ -353,8 +353,8 @@ namespace Couchbase.Lite
         public override string ToString()
         {
             var docId = Document == null ? "(null)" : Document.Id;
-            return String.Format("UnsavedRevision[ID={0}, Rev={1}, Deletion={2}]",
-                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), Id, IsDeletion);
+            return String.Format("UnsavedRevision[ID={0}, ParentRev={1}, Deletion={2}]",
+                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), ParentId, IsDeletion);
         }
 
         #endregion

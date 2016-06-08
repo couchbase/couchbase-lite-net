@@ -21,6 +21,7 @@
     <AssemblyName>Couchbase.Lite.Storage.SQLCipher</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
     <TargetFrameworkVersion>v4.0.3</TargetFrameworkVersion>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

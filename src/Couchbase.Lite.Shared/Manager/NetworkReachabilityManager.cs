@@ -217,7 +217,6 @@ namespace Couchbase.Lite
             } else {
                 var firstValidIP = NetworkInterface.GetAllNetworkInterfaces().Where(IsInterfaceValid)
                     .SelectMany(x => x.GetIPProperties().UnicastAddresses)
-                    .Where(IsIPAddressValid)
                     .Select(x => x.Address).FirstOrDefault();
 
                 if(firstValidIP == null) {
@@ -264,35 +263,6 @@ namespace Couchbase.Lite
 
             Log.To.Sync.I(TAG, "Found Acceptable NIC {0} ({1})", ni.Name, ni.Description);
             return true;
-        }
-
-        private static bool IsIPAddressValid(UnicastIPAddressInformation addr)
-        {
-            var address = addr.Address;
-            Log.To.Sync.V(TAG, "    Checking IP Address {0}", new SecureLogString(address, LogMessageSensitivity.PotentiallyInsecure));
-            if(address.AddressFamily == AddressFamily.InterNetwork) {
-                var bytes = address.GetAddressBytes();
-                var correct = bytes[0] != 169 && bytes[1] != 254;
-                if(correct) {
-                    Log.To.Sync.I(TAG, "Found acceptable IPv4 address {0}", new SecureLogString(address, LogMessageSensitivity.PotentiallyInsecure));
-                } else {
-                    Log.To.Sync.V(TAG, "    Rejecting link-local IPv4 address");
-                }
-
-                return correct;
-            } else if(address.AddressFamily == AddressFamily.InterNetworkV6) {
-                var correct = !address.IsIPv6LinkLocal;
-                if(correct) {
-                    Log.To.Sync.I(TAG, "Found acceptable IPv6 address {0}", address);
-                } else {
-                    Log.To.Sync.V(TAG, "    Rejecting link-local IPv6 address", new SecureLogString(address, LogMessageSensitivity.PotentiallyInsecure));
-                }
-
-                return correct;
-            }
-
-            Log.To.Sync.V(TAG, "   IP Address type is invalid");
-            return false;
         }
 
     }
