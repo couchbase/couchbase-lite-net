@@ -211,7 +211,7 @@ namespace Couchbase.Lite.Internal
             Log.To.ChangeTracker.I(Tag, "Starting {0}...", this);
             _cts = new CancellationTokenSource();
 
-            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, ChangesFeedUrl);
+            var authHeader = (Authenticator as ICustomHeadersAuthorizer)?.AuthorizationHeaderValue;
 
             // A WebSocket has to be opened with a GET request, not a POST (as defined in the RFC.)
             // Instead of putting the options in the POST body as with HTTP, we will send them in an

@@ -40,6 +40,7 @@
 // and limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite.Auth
@@ -49,6 +50,10 @@ namespace Couchbase.Lite.Auth
     /// </summary>
     public class AuthenticatorFactory
     {
+        public static IAuthenticator CreateOpenIDAuthenticator(string token)
+        {
+            return new OpenIDAuthenticator(token);
+        }
 
         /// <summary>
         /// Creates an object for handling HTTP Basic authentication
@@ -84,6 +89,11 @@ namespace Couchbase.Lite.Auth
             var parameters = new Dictionary<string, string>();
             parameters["access_token"] = assertion;
             return new TokenAuthenticator("_persona", parameters);
+        }
+
+        public static IAuthenticator CreateFromUri(Uri uri)
+        {
+            return (IAuthenticator)FacebookAuthorizer.FromUri(uri) ?? (IAuthenticator)PersonaAuthorizer.FromUri(uri) ?? BasicAuthenticator.FromUri(uri);
         }
     }
 }

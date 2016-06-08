@@ -2,6 +2,8 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Net;
+using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Util
 {
@@ -45,7 +47,20 @@ namespace Couchbase.Lite.Util
                 if (!response.IsSuccessStatusCode) {
                     Log.To.Sync.V(Tag, "Non transient error received ({0}), throwing HttpResponseException", 
                         response.StatusCode);
-                    throw new HttpResponseException(response.StatusCode);
+
+                    var exception = new HttpResponseException(response.StatusCode);
+                    if(response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode ==
+                        HttpStatusCode.ProxyAuthenticationRequired) {
+                        var responseChallenge = response.Headers.WwwAuthenticate;
+                        foreach(var header in responseChallenge) {
+                            var challenge = AuthUtils.ParseAuthHeader(header);
+                            if(challenge != null) {
+                                exception.Data["AuthChallenge"] = challenge;
+                            }
+                        }
+                    }
+
+                    throw exception;
                 }
 
                 // If it's not faulted, there's nothing here to do.

@@ -48,226 +48,180 @@ using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
+using System.Collections.Concurrent;
+using System.Collections;
+
+#if !NET_3_5
+using StringEx = System.String;
+#endif
 
 namespace Couchbase.Lite.Auth
 {
-    internal class PersonaAuthorizer : Authorizer
+    internal class PersonaAuthorizer : ISessionCookieAuthorizer
     {
-        private static readonly string Tag = typeof(PersonaAuthorizer).Name;
+        private const string QueryParameter = "personaAssertion";
+        private static readonly string Tag = nameof(PersonaAuthorizer);
+        private static readonly ConcurrentDictionary<string, string> Assertions =
+            new ConcurrentDictionary<string, string>();
 
-        internal const string LoginParameterAssertion = "assertion";
+        public string Email { get; private set; }
 
-        private static IDictionary<string, string> assertions;
+        public string UserInfo
+        {
+            get {
+                throw new NotImplementedException();
+            }
+        }
 
-        internal const string AssertionFieldEmail = "email";
+        public string Scheme
+        {
+            get {
+                throw new NotImplementedException();
+            }
+        }
 
-        internal const string AssertionFieldOrigin = "origin";
-
-        internal const string AssertionFieldExpiration = "exp";
-
-        internal const string QueryParameter = "personaAssertion";
-
-        private bool skipAssertionExpirationCheck;
-
-        private string emailAddress;
+        public bool UsesCookieBasedLogin
+        {
+            get {
+                throw new NotImplementedException();
+            }
+        }
 
         public PersonaAuthorizer(string emailAddress)
         {
-            // set to true to skip checking whether assertions have expired (useful for testing)
-            this.emailAddress = emailAddress;
-        }
-
-        public virtual void SetSkipAssertionExpirationCheck(bool skipAssertionExpirationCheck
-            )
-        {
-            this.skipAssertionExpirationCheck = skipAssertionExpirationCheck;
-        }
-
-        public virtual bool IsSkipAssertionExpirationCheck()
-        {
-            return skipAssertionExpirationCheck;
-        }
-
-        public virtual string GetEmailAddress()
-        {
-            return emailAddress;
-        }
-
-        protected internal virtual bool IsAssertionExpired(IDictionary<string, object> parsedAssertion)
-        {
-            if(IsSkipAssertionExpirationCheck()) {
-                return false;
+            if(emailAddress == null) {
+                Log.To.Sync.E(Tag, "null email address in constructor, throwing...");
+                throw new ArgumentNullException(nameof(emailAddress));
             }
 
-            var exp = (DateTime)parsedAssertion.Get(AssertionFieldExpiration);
-            var now = DateTime.Now;
-            if(exp < now) {
-                Log.To.Sync.W(Tag, string.Format("Assertion for {0} expired: {1}",
-                    new SecureLogString(emailAddress, LogMessageSensitivity.PotentiallyInsecure), exp));
-                return true;
+            Email = emailAddress;
+        }
+
+        public static PersonaAuthorizer FromUri(Uri uri)
+        {
+            var personaAssertion = URIUtils.GetQueryParameter(uri, QueryParameter);
+
+            if(personaAssertion != null && !StringEx.IsNullOrWhiteSpace(personaAssertion)) {
+                var email = RegisterAssertion(personaAssertion);
+                var authorizer = new PersonaAuthorizer(email);
+                return authorizer;
             }
 
-            return false;
-        }
-
-        public virtual string AssertionForSite(Uri site)
-        {
-            var assertion = AssertionForEmailAndSite(emailAddress, site);
-            if(assertion == null) {
-                Log.To.Sync.W(Tag, String.Format("No assertion found for email: {0}, site: {1}",
-                    new SecureLogString(emailAddress, LogMessageSensitivity.PotentiallyInsecure), site));
-                return null;
-            }
-
-            var result = ParseAssertion(assertion);
-            return IsAssertionExpired(result) ? null : assertion;
-        }
-
-        public override string UserInfo { get { return null; } }
-
-        public override string Scheme { get { return null; } }
-
-        public override bool UsesCookieBasedLogin
-        {
-            get { return true; }
-        }
-
-        public override IDictionary<string, string> LoginParametersForSite(Uri site)
-        {
-            IDictionary<string, string> loginParameters = new Dictionary<string, string>();
-            string assertion = AssertionForSite(site);
-            if(assertion != null) {
-                loginParameters[LoginParameterAssertion] = assertion;
-                return loginParameters;
-            } else {
-                return null;
-            }
-        }
-
-        public override string LoginPathForSite(Uri site)
-        {
-            return "/_persona";
+            return null;
         }
 
         public static string RegisterAssertion(string assertion)
         {
-            lock(typeof(PersonaAuthorizer)) {
-                IDictionary<string, object> result = null;
-                try {
-                    result = ParseAssertion(assertion);
-                } catch(ArgumentException) {
-                    return null;
-                }
-                var email = (string)result.Get(AssertionFieldEmail);
-                var origin = (string)result.Get(AssertionFieldOrigin);
-
-                // Normalize the origin URL string:
-                Uri originURL;
-                if(origin == null || !Uri.TryCreate(origin, UriKind.Absolute, out originURL)) {
-                    Log.To.Sync.E(Tag, "Couldn't parse origin from assertion '{0}', throwing...",
-                        new SecureLogString(assertion, LogMessageSensitivity.Insecure));
-                    throw new ArgumentException("Couldn't parse origin", "assertion");
-                }
-
-                origin = originURL.AbsoluteUri.ToLower();
-
-                return RegisterAssertion(assertion, email, origin);
+            var email = default(string);
+            var origin = default(string);
+            var exp = default(DateTime);
+            if(!ParseAssertion(assertion, out email, out origin, out exp)) {
+                Log.To.Sync.W(Tag, "Unable to parse assertion {0}, returning null...", new SecureLogString(assertion,
+                    LogMessageSensitivity.Insecure));
+                return null;
             }
+
+            // Normalize the origin URL string:
+            var originURL = default(Uri);
+            if(!Uri.TryCreate(origin, UriKind.RelativeOrAbsolute, out originURL)) {
+                Log.To.Sync.W(Tag, "Unable to parse assertion origin {0}, returning null...", origin);
+                return null;
+            }
+
+            origin = originURL.GetLeftPart(UriPartial.Authority);
+
+            var key = $"{email}:{origin}";
+            Assertions[key] = assertion;
+            return email;
         }
 
-        /// <summary>
-        /// don't use this!! this was factored out for testing purposes, and had to be
-        /// made public since tests are in their own package.
-        /// </summary>
-        /// <remarks>
-        /// don't use this!! this was factored out for testing purposes, and had to be
-        /// made public since tests are in their own package.
-        /// </remarks>
-        internal static string RegisterAssertion(string assertion, string email, string origin)
+        public static string GetAssertion(string email, Uri site)
         {
-            lock(typeof(PersonaAuthorizer)) {
-                var key = GetKeyForEmailAndSite(email, origin);
-                if(assertions == null) {
-                    assertions = new Dictionary<string, string>();
-                }
-                Log.To.Sync.I(Tag, "Registering key [{0}, {1}]",
-                    new SecureLogString(email, LogMessageSensitivity.PotentiallyInsecure), origin);
-                assertions[key] = assertion;
-                return email;
-            }
+            var key = $"{email}:{site.GetLeftPart(UriPartial.Authority)}";
+            var assertion = default(string);
+            return Assertions.TryGetValue(key, out assertion) ? assertion : null;
         }
 
-        public static IDictionary<string, object> ParseAssertion(string assertion)
+        public string GetAssertion(Uri site)
         {
+            var assertion = GetAssertion(Email, site);
+            if(assertion == null) {
+                Log.To.Sync.W(Tag, "No assertion found for {0}", new SecureLogUri(site));
+                return null;
+            }
+
+            var email = default(string);
+            var origin = default(string);
+            var exp = default(DateTime);
+            if(!ParseAssertion(assertion, out email, out origin, out exp) || exp == Misc.Epoch) {
+                Log.To.Sync.W(Tag, "Assertion invalid or expired {0}", new SecureLogString(assertion,
+                    LogMessageSensitivity.Insecure));
+                return null;
+            }
+
+            return assertion;
+        }
+
+        public IList LoginRequestForSite(Uri site)
+        {
+            var assertion = GetAssertion(site);
+            if(assertion == null) {
+                return null;
+            }
+
+            return new ArrayList { "POST", site.AbsolutePath + "_persona", assertion };
+        }
+
+        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, IDictionary<string, string> headers, Exception error, Action<bool, Exception> continuation)
+        {
+            // No-op
+        }
+
+        private static IDictionary<string, object> DecodeComponent(IList<string> components, int index)
+        {
+            var bodyData = StringUtils.ConvertFromUnpaddedBase64String(components[index]);
+            if(bodyData == null) {
+                return null;
+            }
+
+            return Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(bodyData);
+        }
+
+        internal static bool ParseAssertion(string assertion, out string email, out string origin, out DateTime exp)
+        {
+            email = null;
+            origin = null;
+            exp = Misc.Epoch;
+
             // https://github.com/mozilla/id-specs/blob/prod/browserid/index.md
             // http://self-issued.info/docs/draft-jones-json-web-token-04.html
-            if(assertion == null) {
-                Log.To.Sync.E(Tag, "Assertion cannot be null in ParseAssertion, throwing...");
-                throw new ArgumentNullException("assertion");
-            }
-
-            var result = new Dictionary<string, object>();
             var components = assertion.Split('.');
-            // split on "."
             if(components.Length < 4) {
-                Log.To.Sync.E(Tag, "Invalid assertion in ParseAssertion (number of '.' < 4): {0}, throwing...",
-                    new SecureLogString(assertion, LogMessageSensitivity.Insecure));
+                return false;
             }
 
-            var component1Decoded = Encoding.UTF8.GetString(StringUtils.ConvertFromUnpaddedBase64String(components[1]));
-            var component3Decoded = Encoding.UTF8.GetString(StringUtils.ConvertFromUnpaddedBase64String(components[3]));
-            try {
-                var mapper = Manager.GetObjectMapper();
+            var body = DecodeComponent(components, 1);
+            var principal = body?.Get("principal")?.AsDictionary<string, object>();
+            email = principal?.GetCast<string>("email");
 
-                var component1Json = mapper.ReadValue<object>(component1Decoded).AsDictionary<object, object>();
-                var principal = component1Json.Get("principal").AsDictionary<object, object>();
-
-                result[AssertionFieldEmail] = principal.Get("email");
-
-                var component3Json = mapper.ReadValue<object>(component3Decoded).AsDictionary<object, object>();
-                result[AssertionFieldOrigin] = component3Json.Get("aud");
-
-                var expObject = Convert.ToUInt64(component3Json.Get("exp"));
-                var expDate = Misc.OffsetFromEpoch(TimeSpan.FromMilliseconds(expObject));
-                result[AssertionFieldExpiration] = expDate;
-            } catch(Exception e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag,
-                "Got exception while parsing assertion ({0})",
-                    new SecureLogString(assertion, LogMessageSensitivity.Insecure));
+            body = DecodeComponent(components, 3);
+            origin = body?.GetCast<string>("aud");
+            var expNum = default(long);
+            if(body != null && body.TryGetValue("exp", out expNum)) {
+                exp = Misc.OffsetFromEpoch(TimeSpan.FromMilliseconds(expNum));
             }
 
-            return result;
+            return email != null && origin != null && exp != Misc.Epoch;
         }
 
-        public static string AssertionForEmailAndSite(string email, Uri site)
+        public string LoginPathForSite(Uri site)
         {
-            var key = GetKeyForEmailAndSite(email, site.ToString());
-            Log.To.Sync.V(Tag, "Searching for key [{0}, {1}]",
-                new SecureLogString(email, LogMessageSensitivity.PotentiallyInsecure),
-                site);
-
-            return assertions.Get(key);
+            throw new NotImplementedException();
         }
 
-        private static string GetKeyForEmailAndSite(string email, string site)
+        public IDictionary<string, string> LoginParametersForSite(Uri site)
         {
-            return String.Format("{0}:{1}", email, site);
-        }
-
-        public override string ToString()
-        {
-            var sb = new StringBuilder("[PersonaAuthorizer (");
-            foreach(var pair in assertions) {
-                if(pair.Key.StartsWith(emailAddress)) {
-                    sb.AppendFormat("key={0} value={1}, ",
-                        new SecureLogString(pair.Key, LogMessageSensitivity.PotentiallyInsecure),
-                        new SecureLogString(pair.Value, LogMessageSensitivity.Insecure));
-                }
-            }
-
-            sb.Remove(sb.Length - 2, 2);
-            sb.Append(")]");
-            return sb.ToString();
+            throw new NotImplementedException();
         }
     }
 }

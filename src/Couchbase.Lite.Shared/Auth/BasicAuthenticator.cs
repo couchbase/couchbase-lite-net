@@ -44,6 +44,10 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Lite.Util;
+using System.Net;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 
 namespace Couchbase.Lite.Auth
 {
@@ -51,18 +55,43 @@ namespace Couchbase.Lite.Auth
     /// <summary>
     /// An object that can authenticate using HTTP basic authentication
     /// </summary>
-    public class BasicAuthenticator : IAuthenticator
+    public class BasicAuthenticator : ICredentialAuthorizer, ICustomHeadersAuthorizer
     {
+
+        #region Constants
+
+        private const string Tag = nameof(BasicAuthenticator);
+
+        #endregion
 
         #region Variables
 
-        private readonly string _username;
-        private readonly string _password;
+        private string _basicAuthorization;
 
         #endregion
 
         #region Properties
         #pragma warning disable 1591
+
+        public string AuthorizationHeaderValue
+        {
+            get {
+                if(_basicAuthorization == null) {
+                    if(Credentials.UserName != null && Credentials.Password != null) {
+                        var plaintext = $"{Credentials.UserName}:{Credentials.Password}";
+                        var seekrit = Convert.ToBase64String(Encoding.UTF8.GetBytes(plaintext));
+                        _basicAuthorization = $"Basic {seekrit}";
+                    }
+                }
+
+                return _basicAuthorization;
+            }
+        }
+
+        public NetworkCredential Credentials
+        {
+            get; private set;
+        }
 
         // IAuthenticator
         public bool UsesCookieBasedLogin { get { return false; } }
@@ -72,12 +101,7 @@ namespace Couchbase.Lite.Auth
         {
             get
             {
-                if (this._username != null && this._password != null) {
-                    var plaintext = this._username + ":" + this._password;
-                    return Convert.ToBase64String(Encoding.UTF8.GetBytes(plaintext));
-                }
-
-                return null;
+                return AuthorizationHeaderValue?.Split(' ')?.ElementAt(1);
             }
         }
 
@@ -96,20 +120,45 @@ namespace Couchbase.Lite.Auth
         /// <param name="password">The password for the auth</param>
         public BasicAuthenticator(string username, string password) 
         {
-            this._username = username;
-            this._password = password;
+            Credentials = new NetworkCredential(username, password);
+        }
+
+        public BasicAuthenticator(NetworkCredential credentials)
+        {
+            Credentials = credentials;
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        public static BasicAuthenticator FromUri(Uri uri)
+        {
+            var userInfo = uri?.UserInfo;
+            if(!String.IsNullOrEmpty(userInfo)) {
+                var parts = userInfo.Split(':');
+                if(parts.Length != 2) {
+                    Log.To.Sync.W(Tag, "Unable to parse user info from URL ({0}), not creating Authenticator...",
+                        new SecureLogString(userInfo, LogMessageSensitivity.Insecure));
+                    return null;
+                }
+
+                return new BasicAuthenticator(parts[0], parts[1]);
+            }
+
+            return null;
         }
 
         #endregion
 
         #region Overrides
-        #pragma warning disable 1591
+#pragma warning disable 1591
 
         public override string ToString()
         {
             return String.Format("[BasicAuthenticator ({0}:{1})]", 
-                new SecureLogString(_username, LogMessageSensitivity.PotentiallyInsecure), 
-                new SecureLogString(_password, LogMessageSensitivity.Insecure));
+                new SecureLogString(Credentials.UserName, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogString(Credentials.Password, LogMessageSensitivity.Insecure));
         }
 
         #endregion
@@ -129,6 +178,17 @@ namespace Couchbase.Lite.Auth
             // standard Basic Auth doesn't add any additional parameters
             // to the login url.
             return null;
+        }
+
+        public bool AuthorizeRequest(HttpRequestMessage message)
+        {
+            var auth = UserInfo;
+            if(auth == null) {
+                return false;
+            }
+
+            message.Headers.Authorization = new AuthenticationHeaderValue("Basic", auth);
+            return true;
         }
 
         #pragma warning restore 1591

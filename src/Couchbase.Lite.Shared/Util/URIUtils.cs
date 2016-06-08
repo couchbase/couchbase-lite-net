@@ -63,9 +63,6 @@ namespace Couchbase.Lite.Util
             
         public static string GetQueryParameter(Uri uri, string key)
         {
-            if (uri.IsAbsoluteUri) {
-                throw new NotSupportedException(NotHierarchical);
-            }
             if (key == null) {
                 throw new ArgumentNullException("key");
             }

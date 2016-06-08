@@ -48,50 +48,78 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 using System.Collections.Concurrent;
 using System.Text;
+using System.Collections;
+
+#if !NET_3_5
+using StringEx = System.String;
+#endif
 
 namespace Couchbase.Lite.Auth
 {
-    internal class FacebookAuthorizer : Authorizer
+    internal class FacebookAuthorizer : ISessionCookieAuthorizer
     {
         private static readonly string Tag = typeof(FacebookAuthorizer).Name;
-        internal const string LoginParameterAccessToken = "access_token";
-        internal const string QueryParameter = "facebookAccessToken";
-        internal const string QueryParameterEmail = "email";
+        private const string LoginParameterAccessToken = "access_token";
+        private const string QueryParameter = "facebookAccessToken";
+        private const string QueryParameterEmail = "email";
 
         private readonly static ConcurrentDictionary<string[], string> _AccessTokens =
             new ConcurrentDictionary<string[], string>(new StringArrayComparer());
 
         private readonly string _emailAddress;
 
+        public string UserInfo
+        {
+            get {
+                throw new NotImplementedException();
+            }
+        }
+
+        public string Scheme
+        {
+            get {
+                throw new NotImplementedException();
+            }
+        }
+
+        public bool UsesCookieBasedLogin
+        {
+            get {
+                throw new NotImplementedException();
+            }
+        }
+
         public FacebookAuthorizer(string emailAddress)
         {
+            if(emailAddress == null) {
+                Log.To.Sync.E(Tag, "Null email address in constructor, throwing...");
+                throw new ArgumentNullException("emailAddress");
+            }
+
             _emailAddress = emailAddress;
         }
 
-        public override string UserInfo { get { return null; } }
-
-        public override string Scheme { get { return null; } }
-
-        public override bool UsesCookieBasedLogin { get { return true; } }
-
-        public override IDictionary<string, string> LoginParametersForSite(Uri site)
+        public static FacebookAuthorizer FromUri(Uri uri)
         {
-            IDictionary<string, string> loginParameters = new Dictionary<string, string>();
-            string accessToken = TokenForSite(site);
-            if (accessToken != null)
-            {
-                loginParameters[LoginParameterAccessToken] = accessToken;
-                return loginParameters;
-            }
-            else
-            {
-                return null;
-            }
-        }
+            var facebookAccessToken = URIUtils.GetQueryParameter(uri, QueryParameter);
 
-        public override string LoginPathForSite(Uri site)
-        {
-            return new Uri(site.AbsolutePath + "/_facebook").AbsoluteUri;
+            if(facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken)) {
+                var email = URIUtils.GetQueryParameter(uri, QueryParameterEmail);
+                var authorizer = new FacebookAuthorizer(email);
+                Uri remoteWithQueryRemoved = null;
+
+                try {
+                    remoteWithQueryRemoved = new UriBuilder(uri.Scheme, uri.Host, uri.Port, uri.AbsolutePath).Uri;
+                } catch(UriFormatException e) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag,
+                        "Invalid URI format for remote endpoint");
+                }
+
+                RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved);
+                return authorizer;
+            }
+
+            return null;
         }
 
         public static bool RegisterAccessToken(string accessToken, string email, Uri
@@ -134,6 +162,33 @@ namespace Couchbase.Lite.Auth
             sb.Remove(sb.Length - 2, 2);
             sb.Append(")]");
             return sb.ToString();
+        }
+
+        public IList LoginRequestForSite(Uri site)
+        {
+            var token = TokenForSite(site);
+            if(token == null) {
+                return null;
+            }
+
+            return new ArrayList { "POST", site.AbsolutePath + "_facebook", new Dictionary<string, string> {
+                [LoginParameterAccessToken] = token
+            }};
+        }
+
+        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, IDictionary<string, string> headers, Exception error, Action<bool, Exception> continuation)
+        {
+            // No-op
+        }
+
+        public string LoginPathForSite(Uri site)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IDictionary<string, string> LoginParametersForSite(Uri site)
+        {
+            throw new NotImplementedException();
         }
 
         private class StringArrayComparer : IEqualityComparer<string[]>

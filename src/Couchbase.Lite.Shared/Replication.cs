@@ -665,34 +665,8 @@ namespace Couchbase.Lite
             RequestHeaders = new Dictionary<String, Object>();
             _requests = new ConcurrentDictionary<HttpRequestMessage, Task>();
 
-            // FIXME: Refactor to visitor pattern.
             if (RemoteUrl.Query != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.Query)) {
-                var uri = new Uri(remote.ToString());
-                var personaAssertion = URIUtils.GetQueryParameter(uri, PersonaAuthorizer.QueryParameter);
-
-                if (personaAssertion != null && !StringEx.IsNullOrWhiteSpace(personaAssertion)) {
-                    var email = PersonaAuthorizer.RegisterAssertion(personaAssertion);
-                    var authorizer = new PersonaAuthorizer(email);
-                    Authenticator = authorizer;
-                }
-
-                var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter);
-
-                if (facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken)) {
-                    var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameterEmail);
-                    var authorizer = new FacebookAuthorizer(email);
-                    Uri remoteWithQueryRemoved = null;
-
-                    try {
-                        remoteWithQueryRemoved = new UriBuilder(remote.Scheme, remote.Host, remote.Port, remote.AbsolutePath).Uri;
-                    } catch (UriFormatException e) {
-                        throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG,
-                            "Invalid URI format for remote endpoint");
-                    }
-
-                    FacebookAuthorizer.RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved);
-                    Authenticator = authorizer;
-                }
+                Authenticator = AuthenticatorFactory.CreateFromUri(remote);
 
                 // we need to remove the query from the URL, since it will cause problems when
                 // communicating with sync gw / couchdb

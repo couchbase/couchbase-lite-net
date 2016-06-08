@@ -275,6 +275,16 @@ namespace Couchbase.Lite
             return param.Replace("\"", string.Empty);
         }
 
+        public static bool IsUnauthorizedError(Exception e)
+        {
+            var ex = e as HttpResponseException;
+            if(ex == null) {
+                return false;
+            }
+
+            return ex.StatusCode == HttpStatusCode.Unauthorized || ex.StatusCode == HttpStatusCode.ProxyAuthenticationRequired;
+        }
+
         public static HttpStatusCode? GetStatusCode(WebException we)
         {
             if (we == null || we.Response == null) {

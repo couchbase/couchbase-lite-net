@@ -41,6 +41,7 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite.Auth
@@ -48,7 +49,7 @@ namespace Couchbase.Lite.Auth
     /// <summary>
     /// An object that can verify authentication via token (like Facebook or Persona)
     /// </summary>
-    public class TokenAuthenticator : IAuthenticator
+    public class TokenAuthenticator : ISessionCookieAuthorizer
     {
 
         #region Variables
@@ -105,7 +106,17 @@ namespace Couchbase.Lite.Auth
             return _loginParams;
         }
 
-        #pragma warning restore 1591
+        public IList LoginRequestForSite(Uri site)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, IDictionary<string, string> headers, Exception error, Action<bool, Exception> continuation)
+        {
+            throw new NotImplementedException();
+        }
+
+#pragma warning restore 1591
         #endregion
     }
 }
