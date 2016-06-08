@@ -18,6 +18,7 @@
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
+    <RestorePackages>True</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -107,6 +108,12 @@
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.dll;$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.$(mdb);$(OutputPath)libsqlite3.0.dylib;$(OutputPath)libsqlite3.so.0;$(OutputPath)net45.targets;" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.CustomSQLite\net35" />
     <Copy SourceFiles="$(OutputPath)x86\sqlite3.dll" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.CustomSQLite\net35\x86" />
     <Copy SourceFiles="$(OutputPath)x64\sqlite3.dll" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.CustomSQLite\net35\x64" />
+  </Target>
+  <Target Name="BeforeBuild">
+     <Message Text="Downloading native SQLite binaries, if needed.  This may take a while..." />
+     <Exec Condition=" '$(OS)' == 'Windows_NT' " Command='powershell -executionpolicy Unrestricted $(ProjectDir)..\vendor\sqlite\download_native.ps1 ' />
+     <Exec Condition=" '$(OS)' != 'Windows_NT' " Command='bash $(ProjectDir)..\vendor\sqlite\download_native.sh ' />
+     <Message Text="Finished Downloading!" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

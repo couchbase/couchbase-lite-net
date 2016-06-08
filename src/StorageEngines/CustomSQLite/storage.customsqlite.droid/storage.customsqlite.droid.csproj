@@ -22,6 +22,7 @@
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
     <AndroidUseLatestPlatformSdk>False</AndroidUseLatestPlatformSdk>
     <TargetFrameworkVersion>v4.0.3</TargetFrameworkVersion>
+    <RestorePackages>True</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -111,6 +112,12 @@
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\MonoAndroid" />
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.dll;$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.CustomSQLite\MonoAndroid" />
+  </Target>
+  <Target Name="BeforeBuild">
+     <Message Text="Downloading native SQLite binaries, if needed.  This may take a while..." />
+     <Exec Condition=" '$(OS)' == 'Windows_NT' " Command='powershell -executionpolicy Unrestricted $(ProjectDir)..\vendor\sqlite\download_native.ps1 ' />
+     <Exec Condition=" '$(OS)' != 'Windows_NT' " Command='bash $(ProjectDir)..\vendor\sqlite\download_native.sh ' />
+     <Message Text="Finished Downloading!" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

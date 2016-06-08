@@ -30,7 +30,7 @@ namespace Couchbase.Lite.Configuration
 {
     public sealed class CouchbaseConfigurationHandler : IConfigurationSectionHandler
     {
-        private static readonly string Tag = typeof(CouchbaseConfigurationHandler).Name;
+        private const string Tag = nameof(CouchbaseConfigurationHandler);
 
         #region IConfigurationSectionHandler implementation
 
@@ -57,8 +57,8 @@ namespace Couchbase.Lite.Configuration
 
         internal static string GetNamedAttribute(XmlNode node, string name)
         {
-            var val = node.Attributes.GetNamedItem(name);
-            return val == null ? null : val.Value;
+            var val = node.Attributes?.GetNamedItem(name);
+            return val?.Value;
         }
     }
 
@@ -76,6 +76,10 @@ namespace Couchbase.Lite.Configuration
         {
             foreach(XmlNode node in data) {
                 var domain = node.Name;
+                if(domain.StartsWith("#")) {
+                    continue; // Likely a comment
+                }
+
                 var verbosityStr = CouchbaseConfigSection.GetNamedAttribute(node, "verbosity");
                 if(verbosityStr == null) {
                     Log.To.NoDomain.W(Tag, "Invalid element {0} (missing 'verbosity') in" +
@@ -115,23 +119,23 @@ namespace Couchbase.Lite.Configuration
 
         private readonly bool _enabled;
         private readonly LogDomainVerbosityCollection _verbositySettings;
-		private readonly Log.LogLevel _logLevel = Log.LogLevel.Base;
-		private readonly LogScrubSensitivity _scrubSensitivity;
+        private readonly Log.LogLevel _logLevel = Log.LogLevel.Base;
+        private readonly LogScrubSensitivity _scrubSensitivity;
 
         public bool Enabled
         {
             get { return _enabled; }
         }
 
-		public Log.LogLevel GlobalLevel
-		{
-			get { return _logLevel; }
-		}
+        public Log.LogLevel GlobalLevel
+        {
+            get { return _logLevel; }
+        }
 
-		public LogScrubSensitivity ScrubSensitivity
-		{
-			get { return _scrubSensitivity; }
-		}
+        public LogScrubSensitivity ScrubSensitivity
+        {
+            get { return _scrubSensitivity; }
+        }
 
         public LogDomainVerbosityCollection VerbositySettings
         {
@@ -141,19 +145,19 @@ namespace Couchbase.Lite.Configuration
         public LogConfigSection(XmlNode data)
         {
             var enabledStr = CouchbaseConfigSection.GetNamedAttribute(data, "enabled");
-			if (enabledStr == null || !Boolean.TryParse (enabledStr, out _enabled)) {
-				_enabled = true;
-			}
+            if (enabledStr == null || !Boolean.TryParse (enabledStr, out _enabled)) {
+                _enabled = true;
+            }
 
-			var verbosityStr = CouchbaseConfigSection.GetNamedAttribute (data, "verbosity");
-			if (enabledStr == null || !Enum.TryParse<Log.LogLevel> (verbosityStr, true, out _logLevel)) {
-				_logLevel = Log.LogLevel.Base;
-			}
+            var verbosityStr = CouchbaseConfigSection.GetNamedAttribute (data, "verbosity");
+            if (enabledStr == null || !Enum.TryParse<Log.LogLevel> (verbosityStr, true, out _logLevel)) {
+                _logLevel = Log.LogLevel.Base;
+            }
 
-			var scrubSensitivityStr = CouchbaseConfigSection.GetNamedAttribute (data, "scrubSensitivity");
-			if (scrubSensitivityStr == null || !Enum.TryParse<LogScrubSensitivity> (scrubSensitivityStr, true, out _scrubSensitivity)) {
-				_scrubSensitivity = LogScrubSensitivity.NoInsecure;
-			}
+            var scrubSensitivityStr = CouchbaseConfigSection.GetNamedAttribute (data, "scrubSensitivity");
+            if (scrubSensitivityStr == null || !Enum.TryParse<LogScrubSensitivity> (scrubSensitivityStr, true, out _scrubSensitivity)) {
+                _scrubSensitivity = LogScrubSensitivity.NoInsecure;
+            }
 
             _verbositySettings = new LogDomainVerbosityCollection();
             foreach (XmlNode childNode in data.ChildNodes) {

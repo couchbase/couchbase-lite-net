@@ -1,5 +1,5 @@
 #!/bin/bash
-
+pushd `dirname $0`
 mkdir arm64-v8a armeabi armeabi-v7a mips mips64 x86 x86_64 x64 2> /dev/null
 ANDROID_FILENAMES=(arm64-v8a/libsqlite3.so armeabi/libsqlite3.so armeabi-v7a/libsqlite3.so mips/libsqlite3.so mips64/libsqlite3.so x86/libsqlite3.so x86_64/libsqlite3.so)
 for filename in ${ANDROID_FILENAMES[@]}; do
@@ -34,3 +34,4 @@ if [ ! -f x64/sqlite3.dll ]; then
   echo "Downloading x64/sqlite3.dll (Windows)"
   curl -L https://github.com/couchbase/couchbase-lite-java-native/raw/master/vendor/sqlite/libs/windows/x86_64/sqlite3.dll -o x64/sqlite3.dll
 fi
+popd

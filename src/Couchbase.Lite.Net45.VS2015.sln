@@ -1,4 +1,3 @@
-?¿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25123.0
@@ -45,8 +44,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SQLiteCommon", "SQLiteCommo
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "storage.sqlite.common", "StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.shproj", "{79FC4A01-1E39-468F-8E55-195BC918232E}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "sqlitepcl.shared", "StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.shproj", "{EA36A133-649C-42B3-91DE-6E14DC9980A0}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.sqlcipher.net45", "StorageEngines\SQLCipher\storage.sqlcipher.net45\storage.sqlcipher.net45.csproj", "{3EEE8883-B6A9-4B71-B70E-67973F7687D5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.forestdb.net45", "StorageEngines\ForestDB\storage.forestdb.net45\storage.forestdb.net45.csproj", "{666B3F9B-DC39-421E-9E4E-C5B666023FB0}"
@@ -60,6 +57,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-net_4_5", "..\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj", "{D68D4FED-CA32-4800-A628-58BAE485562C}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "storage.forestdb.shared", "StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.shproj", "{8E6F8876-64F8-4483-ADB2-D3AAD5672F7C}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CustomSQLite", "CustomSQLite", "{CB92A237-E7DD-401F-9FA7-BE8C7A588270}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.customsqlite.net45", "StorageEngines\CustomSQLite\storage.customsqlite.net45\storage.customsqlite.net45.csproj", "{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}"
@@ -73,7 +71,6 @@ Global
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{c87e0c01-aad6-46da-9935-c772c112bb18}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{88bb6717-85c9-46f0-923b-c263c08a189b}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{f376966c-ccab-4c5c-a81a-e2a754aa7a4c}*SharedItemsImports = 4
-		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{ea36a133-649c-42b3-91de-6e14dc9980a0}*SharedItemsImports = 13
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{2f81fd95-c9eb-40ab-a933-1ffb38d327df}*SharedItemsImports = 4
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{9ad3badd-4f48-4208-b601-e63987c12049}*SharedItemsImports = 4
@@ -82,8 +79,8 @@ Global
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{0bfc8b40-0659-4d45-b111-7cb4ccd22991}*SharedItemsImports = 13
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{ff87eed7-5de9-47e9-82f4-d1df659d1dc2}*SharedItemsImports = 13
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{79fc4a01-1e39-468f-8e55-195bc918232e}*SharedItemsImports = 13
-		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
 		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
+		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_All|Any CPU = Debug_All|Any CPU
@@ -318,7 +315,6 @@ Global
 		{04A267E1-6CB5-4BD5-9987-1A09BA1349CA} = {DA4D089F-1412-4D7E-9CAE-6E8AC159AB2A}
 		{FE3BA287-7CCB-482D-95CC-5C46F5AF0A80} = {440D39B3-3B9F-4549-ADCE-C147E60E13BC}
 		{79FC4A01-1E39-468F-8E55-195BC918232E} = {FE3BA287-7CCB-482D-95CC-5C46F5AF0A80}
-		{EA36A133-649C-42B3-91DE-6E14DC9980A0} = {42C19F0D-8DE6-4929-ACBE-134D09BBFDCC}
 		{3EEE8883-B6A9-4B71-B70E-67973F7687D5} = {42C19F0D-8DE6-4929-ACBE-134D09BBFDCC}
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0} = {6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C}
 		{0BFC8B40-0659-4D45-B111-7CB4CCD22991} = {6DA93C85-7E76-499F-9ABA-E7F5A6E7CF2C}

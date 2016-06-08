@@ -392,7 +392,7 @@ namespace Couchbase.Lite
                 // from disk, which will happen when CreateRevision
                 // sees that currentRevision is null.
                 if(lastErrorCode == StatusCode.Conflict) {
-                    currentRevision = null;
+                    ForgetCurrentRevision();
                 }
 
                 using(UnsavedRevision newRev = CreateRevision()) {

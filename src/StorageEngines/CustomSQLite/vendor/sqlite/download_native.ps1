@@ -1,4 +1,5 @@
-mkdir arm64-v8a, armeabi, armeabi-v7a, mips, mips64, x86, x86_64, x64
+push-location $PSScriptRoot
+mkdir -Force arm64-v8a, armeabi, armeabi-v7a, mips, mips64, x86, x86_64, x64
 $ANDROID_FILENAMES = @("arm64-v8a\libsqlite3.so", "armeabi\libsqlite3.so", "armeabi-v7a\libsqlite3.so", "mips\libsqlite3.so",
  "mips64\libsqlite3.so", "x86\libsqlite3.so", "x86_64\libsqlite3.so")
 
@@ -34,3 +35,4 @@ if(!(Test-Path "x64\sqlite3.dll")) {
     Write-Output "Downloading x64\sqlite3.dll (Windows)"
     Invoke-WebRequest -Uri "https://github.com/couchbase/couchbase-lite-java-native/raw/master/vendor/sqlite/libs/windows/x86_64/sqlite3.dll" -OutFile "x64\sqlite3.dll"
 }
+pop-location
