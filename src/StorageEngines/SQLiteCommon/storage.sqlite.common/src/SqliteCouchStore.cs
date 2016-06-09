@@ -206,6 +206,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // the app might be linked with a custom version of SQLite (like SQLCipher) instead of the
             // system library, so the actual version/features may differ from what was declared in
             // sqlite3.h at compile time.
+#if false
 #if SQLCIPHER || CUSTOM_SQLITE
             SQLite3Plugin.Init();
 #elif SQLITE && !__MOBILE__
@@ -214,15 +215,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 SQLite3Plugin.Init();
             }
 #endif
+#endif
             Log.To.Database.I(TAG, "Initialized SQLite store (version {0} ({1}))", raw.sqlite3_libversion(), raw.sqlite3_sourceid());
             _SqliteVersion = raw.sqlite3_libversion_number();
 
             Debug.Assert(_SqliteVersion >= 3007000, String.Format("SQLite library is too old ({0}); needs to be at least 3.7", raw.sqlite3_libversion()));
         }
 
-        #endregion
+#endregion
 
-        #region Public Methods
+#region Public Methods
 
         public void OptimizeSQLIndexes()
         {
@@ -372,9 +374,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return retVal;
         }
 
-        #endregion
+#endregion
 
-        #region Internal Methods
+#region Internal Methods
 
         internal IDictionary<string, object> GetRevisionHistoryDictStartingFromAnyAncestor(RevisionInternal rev, IList<RevisionID>ancestorRevIDs)
         {
@@ -399,9 +401,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return TreeRevisionID.MakeRevisionHistoryDict(history);
         }
 
-        #endregion
+#endregion
 
-        #region Private Methods
+#region Private Methods
 
         private static string JoinQuotedObjects(IEnumerable<Object> objects)
         {
@@ -828,10 +830,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return new Status(StatusCode.Ok);
         }
 
-        #endregion
+#endregion
 
-        #region ICouchStore
-        #pragma warning disable 1591
+#region ICouchStore
+#pragma warning disable 1591
 
         public IDatabaseUpgrader CreateUpgrader(Database upgradeTo, string upgradeFrom)
         {
@@ -946,20 +948,20 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         public void SetEncryptionKey(SymmetricKey key)
         {
-            #if !ENCRYPTION
+#if !ENCRYPTION
             Log.To.Database.E(TAG, "This store does not support encryption, throwing...");
             throw new InvalidOperationException("This store does not support encryption");
-            #else
+#else
             _encryptionKey = key;
-            #endif
+#endif
         }
 
         public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
         {
-            #if !ENCRYPTION
+#if !ENCRYPTION
             Log.To.Database.E(TAG, "This store does not support encryption, throwing...");
             throw new InvalidOperationException("This store does not support encryption");
-            #else
+#else
             // https://www.zetetic.net/sqlcipher/sqlcipher-api/index.html#sqlcipher_export
 
             var action = new AtomicAction();
@@ -1011,7 +1013,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             action.AddLogic(AtomicAction.MoveFile(tempPath, Path.Combine(_directory, DB_FILENAME)));
 
             return action;
-            #endif
+#endif
         }
 
         public RevisionInternal GetDocument(string docId, RevisionID revId, bool withBody, Status outStatus = null)
@@ -2228,7 +2230,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }
         }
 
-        #pragma warning restore 1591
-        #endregion
+#pragma warning restore 1591
+#endregion
     }
 }

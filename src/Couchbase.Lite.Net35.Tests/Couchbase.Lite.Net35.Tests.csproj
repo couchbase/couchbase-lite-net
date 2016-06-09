@@ -3,6 +3,8 @@
   <PropertyGroup>
     <MSBuildExec Condition=" '$(OS)' != 'Windows_NT' ">xbuild</MSBuildExec>
     <MSBuildExec Condition=" '$(OS)' == 'Windows_NT' ">"$(MSBuildToolsPath)\msbuild.exe"</MSBuildExec>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <Target Name="BuildDeps" BeforeTargets="PrepareForBuild">
     <Exec Command=" $(MSBuildExec) $(ProjectDir)../StorageEngines/SystemSQLite/storage.systemsqlite.net35/storage.systemsqlite.net35.csproj /p:Configuration=$(Configuration) " />
@@ -68,10 +70,8 @@
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\StorageEngines\SystemSQLite\storage.systemsqlite.net35\bin\$(Configuration)\net35.targets" Condition="Exists('..\StorageEngines\SystemSQLite\storage.systemsqlite.net35\bin\$(Configuration)\net35.targets')" />
-  <Import Project="..\StorageEngines\SQLCipher\storage.sqlcipher.net35\bin\$(Configuration)\net35.targets" Condition="Exists('..\StorageEngines\SQLCipher\storage.sqlcipher.net35\bin\$(Configuration)\net35.targets')" />
-  <Import Project="..\StorageEngines\ForestDB\storage.forestdb.net35\bin\$(Configuration)\net35.targets" Condition="Exists('..\StorageEngines\ForestDB\storage.forestdb.net35\bin\$(Configuration)\net35.targets')" />
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -161,6 +161,9 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+    <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.0\build\SQLitePCL.native.sqlcipher.windows.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.windows.0.9.0\build\SQLitePCL.native.sqlcipher.windows.targets'))" />
+    <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.osx.0.9.0\build\SQLitePCL.native.sqlcipher.osx.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.osx.0.9.0\build\SQLitePCL.native.sqlcipher.osx.targets'))" />
+    <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets'))" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
@@ -200,4 +203,7 @@
       <Name>storage.forestdb.net35</Name>
     </ProjectReference>
   </ItemGroup>
+  <Import Project="..\packages\SQLitePCL.native.sqlcipher.windows.0.9.0\build\SQLitePCL.native.sqlcipher.windows.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.0\build\SQLitePCL.native.sqlcipher.windows.targets')" />
+  <Import Project="..\packages\SQLitePCL.native.sqlcipher.osx.0.9.0\build\SQLitePCL.native.sqlcipher.osx.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.osx.0.9.0\build\SQLitePCL.native.sqlcipher.osx.targets')" />
+  <Import Project="..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets')" />
 </Project>

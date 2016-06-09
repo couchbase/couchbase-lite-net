@@ -515,6 +515,7 @@ namespace Couchbase.Lite.Listener
         private bool WriteToStream(byte[] data) {
             try {
                 _responseWriter.OutputStream.Write(data, 0, data.Length);
+                _responseWriter.OutputStream.Dispose();
                 _responseWriter.OutputStream.Flush();
                 return true;
             } catch(IOException e) {

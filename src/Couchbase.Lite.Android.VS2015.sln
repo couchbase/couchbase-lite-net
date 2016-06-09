@@ -63,9 +63,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoDroid.Dialog", "..\vend
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Android.NUnitLite", "..\vendor\Andr.Unit\Android.NUnitLite\Android.NUnitLite.csproj", "{6A005891-A3D6-4398-A729-F645397D573A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CustomSQLite", "CustomSQLite", "{E9B82C17-823F-4E98-8FEC-3F680FCCF0CF}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.customsqlite.droid", "StorageEngines\CustomSQLite\storage.customsqlite.droid\storage.customsqlite.droid.csproj", "{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "sqlitepcl.shared", "StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.shproj", "{EA36A133-649C-42B3-91DE-6E14DC9980A0}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -75,12 +73,13 @@ Global
 		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{891a08fc-f143-4325-bc16-b9864d036b99}*SharedItemsImports = 13
 		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{e1153fa4-356a-454d-b32e-136102f2482f}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{51dc5755-5ede-45ce-97d2-d45078da0f3b}*SharedItemsImports = 4
+		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{ea36a133-649c-42b3-91de-6e14dc9980a0}*SharedItemsImports = 13
 		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{9cee0189-1533-484d-a957-664b1a372eaa}*SharedItemsImports = 4
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{9cee0189-1533-484d-a957-664b1a372eaa}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{07f030b4-1fef-4bcd-ab57-ef79bbd1d449}*SharedItemsImports = 4
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{4549834b-28b6-4a54-a3ec-978d0e582444}*SharedItemsImports = 4
+		StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.projitems*{9c5fab56-f098-4809-8465-65257a59b8bd}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{9c5fab56-f098-4809-8465-65257a59b8bd}*SharedItemsImports = 4
-		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{0289a97a-ab8c-45f3-aa87-b05bb9471d7d}*SharedItemsImports = 4
 		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{8e6f8876-64f8-4483-adb2-d3aad5672f7c}*SharedItemsImports = 13
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{6b64cbd5-8d13-4e88-861d-dbbb87254bbc}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d06edb2a-0ae0-4606-a8ae-aa3f6248630f}*SharedItemsImports = 13
@@ -300,24 +299,6 @@ Global
 		{6A005891-A3D6-4398-A729-F645397D573A}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
 		{6A005891-A3D6-4398-A729-F645397D573A}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
 		{6A005891-A3D6-4398-A729-F645397D573A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_Sample|Any CPU.Build.0 = Debug|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Packaging|Any CPU.Build.0 = Packaging|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_All|Any CPU.Build.0 = Release|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_Sample|Any CPU.ActiveCfg = Release|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_Sample|Any CPU.Build.0 = Release|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -346,8 +327,7 @@ Global
 		{F970485C-CE53-457A-AAF6-7896C40F8243} = {C064DC8C-6B6A-47EF-A437-3FAEDB209405}
 		{33044C7B-47A4-4113-A61A-EB429407F818} = {06FFFE78-10F5-4714-87E8-B34655A92F4B}
 		{6A005891-A3D6-4398-A729-F645397D573A} = {06FFFE78-10F5-4714-87E8-B34655A92F4B}
-		{E9B82C17-823F-4E98-8FEC-3F680FCCF0CF} = {FC5CF612-6984-45A3-9A91-02F6849DAE57}
-		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D} = {E9B82C17-823F-4E98-8FEC-3F680FCCF0CF}
+		{EA36A133-649C-42B3-91DE-6E14DC9980A0} = {D311C9E5-3356-41BC-A68B-DA18DD858CD2}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

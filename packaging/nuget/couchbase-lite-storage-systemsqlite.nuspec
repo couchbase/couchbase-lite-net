@@ -21,10 +21,8 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     <language>en-US</language>
     <dependencies>
       <group>
-        <dependency id="SQLitePCL.raw" version="[0.9.0]" />
-        <dependency id="SQLitePCL.ugly" version="[0.9.0]" />
-        <dependency id="SQLitePCL.plugin.sqlite3.net45" version="[0.9.0]" />
-        <dependency id="SQLitePCL.native.sqlite3.v110_xp" version="[0.9.0]" />
+        <dependency id="SQLitePCL.raw" version="[0.8.6]" />
+        <dependency id="SQLitePCL.ugly" version="[0.8.6]" />
       </group>
     </dependencies>
   </metadata>
