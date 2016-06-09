@@ -48,11 +48,10 @@
   <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
   <Import Project="..\SQLitePCL\sqlitepcl.shared.projitems" Label="Shared" Condition="Exists('..\SQLitePCL\sqlitepcl.shared.projitems')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\net35" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.SQLCipher.dll;$(OutputPath)Couchbase.Lite.Storage.SQLCipher.$(mdb);&#xD;&#xA;    $(OutputPath)libsqlcipher.dylib;$(OutputPath)libsqlcipher.so;$(OutputPath)net35.targets" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\net35" />
-    <Copy SourceFiles="$(OutputPath)x86\sqlcipher.dll" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\net35\x86" />
-    <Copy SourceFiles="$(OutputPath)x64\sqlcipher.dll" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\net35\x64" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.SQLCipher.dll;$(OutputPath)Couchbase.Lite.Storage.SQLCipher.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\net35" />
   </Target>
   <ItemGroup>
     <Reference Include="SQLite3Plugin, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
