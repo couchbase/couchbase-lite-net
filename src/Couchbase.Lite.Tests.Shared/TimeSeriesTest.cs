@@ -79,7 +79,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, loggingDb.GetDocumentCount());
             var doc = loggingDb.CreateAllDocumentsQuery().Run().First();
             var events = doc.Document.GetProperty("events").AsList<object>();
-            Assert.AreEqual(45, events.Count);
+            Assert.GreaterOrEqual(events.Count, 45);
         }
 
         [Test]

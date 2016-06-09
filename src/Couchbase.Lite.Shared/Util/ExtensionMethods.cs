@@ -242,6 +242,7 @@ namespace Couchbase.Lite
         public static byte[] ReadAllBytes(this Stream stream)
         {
             var ms = stream as MemoryStream;
+            var owner = false;
             var block = RecyclableMemoryStreamManager.SharedInstance.GetBlock();
             try {
                 if (ms != null) {
@@ -249,13 +250,17 @@ namespace Couchbase.Lite
                 }
 
                 ms = RecyclableMemoryStreamManager.SharedInstance.GetStream();
+                owner = true;
                 var read = 0;
                 while((read = stream.Read(block, 0, block.Length)) > 0) {
                     ms.Write(block, 0, read);
                 }
                 return ms.GetBuffer().Take((int)ms.Length).ToArray();
             } finally {
-                ms?.Dispose();
+                if(owner) {
+                    ms?.Dispose();
+                }
+
                 if (block != null) {
                     RecyclableMemoryStreamManager.SharedInstance.ReturnBlocks(new byte[][] { block }, "ReadAllBytes");
                 }

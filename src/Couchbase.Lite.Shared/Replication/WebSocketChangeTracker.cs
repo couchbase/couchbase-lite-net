@@ -160,7 +160,7 @@ namespace Couchbase.Lite.Internal
 
                 var code = ChangeTrackerMessageType.Unknown;
                 if(args.IsText) {
-                    if(args.RawData.Length == 2 && args.RawData[0] == '\r' && args.RawData[1] == '\n') {
+                    if(args.RawData.Length == 2 && args.RawData[0] == '[' && args.RawData[1] == ']') {
                         code = ChangeTrackerMessageType.EOF;
                     } else {
                         code = ChangeTrackerMessageType.Plaintext;
@@ -169,7 +169,7 @@ namespace Couchbase.Lite.Internal
                     code = ChangeTrackerMessageType.GZip;
                 }
 
-                Log.To.Sync.I(Tag, "Preparing to process {0}", args.Data);
+                Log.To.Sync.V(Tag, "Preparing to process {0}", args.Data);
                 var responseStream = RecyclableMemoryStreamManager.SharedInstance.GetStream("WebSocketChangeTracker", args.RawData.Length + 1);
                 try {
                     responseStream.WriteByte((byte)code);

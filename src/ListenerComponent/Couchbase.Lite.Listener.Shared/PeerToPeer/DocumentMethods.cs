@@ -323,7 +323,7 @@ namespace Couchbase.Lite.Listener
             var tmp = default(object);
             var props = rev.GetProperties();
             var hasValue = false;
-            if(props.TryGetValue("_exp", out tmp)) {
+            if(props != null && props.TryGetValue("_exp", out tmp)) {
                 hasValue = true;
                 if(tmp != null) {
                     try {

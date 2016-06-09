@@ -98,18 +98,15 @@ namespace Listener
                 return;
             }
 
-
-
-            if (storageType == StorageEngineTypes.ForestDB) {
-                Couchbase.Lite.Storage.ForestDB.Plugin.Register();
-            }
+            Couchbase.Lite.Storage.ForestDB.Plugin.Register();
+            Couchbase.Lite.Storage.SQLCipher.Plugin.Register();
 
             var manager = alternateDir != null ? new Manager(new DirectoryInfo(alternateDir), ManagerOptions.Default)
                 : Manager.SharedInstance;
             manager.StorageType = storageType;
 
             if (passwordMap.Count > 0) {
-                Couchbase.Lite.Storage.SQLCipher.Plugin.Register();
+                
                 foreach (var entry in passwordMap) {
                     manager.RegisterEncryptionKey(entry.Key, new SymmetricKey(entry.Value));
                 }

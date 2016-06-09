@@ -640,10 +640,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         }
 
                         if (last < dbMaxSequence) {
-                            if (last == 0) {
-                                CreateIndex();
-                            }
-
                             minLastSequence = Math.Min(minLastSequence, last);
                             Log.To.View.V(Tag, "    {0} last indexed at #{1}", view.Name, last);
 
@@ -669,8 +665,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                         changes = changesCursor.GetInt(0);
                                     }
 
-                                    DeleteIndex();
-                                    CreateIndex();
+                                    view.DeleteIndex();
+                                    view.CreateIndex();
                                 } catch (Exception) {
                                     ok = false;
                                 }

@@ -73,9 +73,7 @@ namespace Couchbase.Lite.Internal
             } else if (type == ChangeTrackerMessageType.EOF) {
                 if(!_caughtUp) {
                     _caughtUp = true;
-                    if (OnCaughtUp != null) {
-                        OnCaughtUp();
-                    }
+                    OnCaughtUp?.Invoke();
                 }
 
                 return ChangeTrackerResponseCode.Normal;

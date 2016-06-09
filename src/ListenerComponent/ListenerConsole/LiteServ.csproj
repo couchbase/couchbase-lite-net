@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -56,15 +56,6 @@
     <Reference Include="Stateless">
       <HintPath>..\..\packages\Stateless.2.5.62.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
     </Reference>
-    <Reference Include="SQLitePCL.raw">
-      <HintPath>..\..\packages\SQLitePCL.raw.0.9.0\lib\net45\SQLitePCL.raw.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\..\packages\SQLitePCL.ugly.0.9.0\lib\net35\SQLitePCL.ugly.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLite3Plugin">
-      <HintPath>..\..\packages\SQLitePCL.plugin.sqlcipher.net45.0.9.0\lib\net45\SQLite3Plugin.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
@@ -97,10 +88,6 @@
     <ProjectReference Include="..\Couchbase.Lite.Listener.Net45\Couchbase.Lite.Listener.Net45.csproj">
       <Project>{9AD3BADD-4F48-4208-B601-E63987C12049}</Project>
       <Name>Couchbase.Lite.Listener.Net45</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\StorageEngines\SystemSQLite\storage.systemsqlite.net45\storage.systemsqlite.net45.csproj">
-      <Project>{88BB6717-85C9-46F0-923B-C263C08A189B}</Project>
-      <Name>storage.systemsqlite.net45</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\StorageEngines\SQLCipher\storage.sqlcipher.net45\storage.sqlcipher.net45.csproj">
       <Project>{3EEE8883-B6A9-4B71-B70E-67973F7687D5}</Project>

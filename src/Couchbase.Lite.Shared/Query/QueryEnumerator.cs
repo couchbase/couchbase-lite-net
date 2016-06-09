@@ -168,13 +168,17 @@ namespace Couchbase.Lite {
         #region IEnumerator
 
         public void Reset() {
-            _enumerator.Reset();
+            _enumerator?.Reset();
         }
 
         public QueryRow Current 
         {
             get {
-                var retVal = _enumerator.Current;
+                var retVal = _enumerator?.Current;
+                if(retVal == null) {
+                    return null;
+                }
+
                 retVal.Database = _database;
                 return retVal;
             }
@@ -182,12 +186,16 @@ namespace Couchbase.Lite {
 
         public bool MoveNext ()
         {
+            if(_enumerator == null) {
+                return false;
+            }
+
             return _enumerator.MoveNext();
         }
 
         public void Dispose ()
         {
-            _enumerator.Dispose();
+            _enumerator?.Dispose();
         }
 
         object System.Collections.IEnumerator.Current { get { return Current; } }

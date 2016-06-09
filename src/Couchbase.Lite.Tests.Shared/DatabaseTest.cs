@@ -435,40 +435,6 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        public void TestPruneRevsToMaxDepth()
-        {
-            var sqliteStorage = database.Storage as SqliteCouchStore;
-            if (sqliteStorage == null) {
-                Assert.Inconclusive("This test is only valid on a SQLite store");
-            }
-
-            var properties = new Dictionary<string, object>();
-            properties.Add("testName", "testDatabaseCompaction");
-            properties.Add("tag", 1337);
-
-            var doc = CreateDocumentWithProperties(database, properties);
-            var rev = doc.CurrentRevision;
-            database.SetMaxRevTreeDepth(1);
-
-            for (int i = 0; i < 10; i++)
-            {
-                var properties2 = new Dictionary<string, object>(properties);
-                properties2["tag"] = i;
-                rev = rev.CreateRevision(properties2);
-            }
-
-            var numPruned = sqliteStorage.PruneRevsToMaxDepth(1);
-            Assert.AreEqual(10, numPruned);
-
-            var fetchedDoc = database.GetDocument(doc.Id);
-            var revisions = fetchedDoc.RevisionHistory.ToList();
-            Assert.AreEqual(1, revisions.Count);
-
-            numPruned = sqliteStorage.PruneRevsToMaxDepth(1);
-            Assert.AreEqual(0, numPruned);
-        }
-
-        [Test]
         public void TestPruneRevsToMaxDepthViaCompact()
         {
             var properties = new Dictionary<string, object>();
