@@ -188,7 +188,12 @@ namespace Couchbase.Lite.Storage.ForestDB
                         break;
                 }
             });
-            Native.c4doc_generateOldStyleRevID(true);
+
+            try {
+                Native.c4doc_generateOldStyleRevID(true);
+            } catch {
+                Log.W(TAG, "Out of date ForestDB native binaries detected!");
+            }
         }
 
         public ForestDBCouchStore()
