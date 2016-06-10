@@ -56,7 +56,7 @@
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net35" />
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb);
-    $(OutputPath)Mono.Security.dll;$(OutputPath)Mono.Security.$(mdb);$(OutputPath)Jint.dll;
+    $(OutputPath)Mono.Security.Couchbase.dll;$(OutputPath)Mono.Security.Couchbase.$(mdb);$(OutputPath)Jint.dll;
     $(OutputPath)Jint.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net35" />
   </Target>
   <ItemGroup>

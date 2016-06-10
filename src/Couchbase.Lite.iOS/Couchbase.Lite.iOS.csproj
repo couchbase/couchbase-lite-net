@@ -57,6 +57,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DefineConstants>__IOS__;TRACE;</DefineConstants>
     <DebugType>pdbonly</DebugType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Data" />

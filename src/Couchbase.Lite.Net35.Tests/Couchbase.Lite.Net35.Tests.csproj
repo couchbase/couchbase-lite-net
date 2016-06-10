@@ -1,17 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <MSBuildExec Condition=" '$(OS)' != 'Windows_NT' ">xbuild</MSBuildExec>
-    <MSBuildExec Condition=" '$(OS)' == 'Windows_NT' ">"$(MSBuildToolsPath)\msbuild.exe"</MSBuildExec>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-  </PropertyGroup>
-  <Target Name="BuildDeps" BeforeTargets="PrepareForBuild">
-    <Exec Command=" $(MSBuildExec) $(ProjectDir)../StorageEngines/SystemSQLite/storage.systemsqlite.net35/storage.systemsqlite.net35.csproj /p:Configuration=$(Configuration) " />
-    <Exec Command=" $(MSBuildExec) $(ProjectDir)../StorageEngines/SQLCipher/storage.sqlcipher.net35/storage.sqlcipher.net35.csproj /p:Configuration=$(Configuration) " />
-    <Exec Command=" $(MSBuildExec) $(ProjectDir)../StorageEngines/ForestDB/storage.forestdb.net35/storage.forestdb.net35.csproj /p:Configuration=$(Configuration) " />
-  </Target>
-  <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{1B765803-7F61-497E-96D0-3BE5AF32C81A}</ProjectGuid>
@@ -87,7 +76,7 @@
     <EmbeddedResource Include="Assets\attachment2.png">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.attachment2.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Assets\local-test.properties">
+    <EmbeddedResource Include="Assets\local-test.properties" Condition="Exists('Assets\local-test.properties')">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.local-test.properties</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="Assets\test.properties">
@@ -178,10 +167,6 @@
       <Project>{ED22FDF0-B378-4950-9E59-681726AC02F6}</Project>
       <Name>Couchbase.Lite.Listener.Bonjour.Net35</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\Couchbase.Lite.Net35.csproj">
-      <Project>{81999CC3-2DB5-42DA-976F-20EF8AE047E1}</Project>
-      <Name>Couchbase.Lite.Net35</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
       <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
       <Name>Rackspace.Threading.net35-client</Name>
@@ -201,6 +186,10 @@
     <ProjectReference Include="..\StorageEngines\ForestDB\storage.forestdb.net35\storage.forestdb.net35.csproj">
       <Project>{D4BD5141-7703-4683-A500-34363F7CFBF4}</Project>
       <Name>storage.forestdb.net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\Couchbase.Lite.Net35.csproj">
+      <Project>{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}</Project>
+      <Name>Couchbase.Lite.Net35</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\packages\SQLitePCL.native.sqlcipher.windows.0.9.0\build\SQLitePCL.native.sqlcipher.windows.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.0\build\SQLitePCL.native.sqlcipher.windows.targets')" />

@@ -97,6 +97,6 @@
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener\MonoAndroid" />
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb);
-    $(OutputPath)Mono.Security.dll;$(OutputPath)Mono.Security.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\MonoAndroid" />
+    $(OutputPath)Mono.Security.Couchbase.dll;$(OutputPath)Mono.Security.Couchbase.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\MonoAndroid" />
   </Target>
 </Project>

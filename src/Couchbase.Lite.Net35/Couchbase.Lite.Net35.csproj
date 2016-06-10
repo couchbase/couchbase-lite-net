@@ -8,72 +8,48 @@
     <MonoPrefix />
     <mdb>pdb</mdb>
   </PropertyGroup>
-  <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
-    <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
-  </Target>
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{81999CC3-2DB5-42DA-976F-20EF8AE047E1}</ProjectGuid>
+    <ProjectGuid>{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>Couchbase.Lite</RootNamespace>
+    <RootNamespace>Couchbase.Lite.Net35</RootNamespace>
     <AssemblyName>Couchbase.Lite</AssemblyName>
-    <ReleaseVersion>1.1.1</ReleaseVersion>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>True</DebugSymbols>
+    <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>False</Optimize>
+    <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NET_3_5;</DefineConstants>
+    <DefineConstants>DEBUG;NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <ConsolePause>False</ConsolePause>
-    <CustomCommands>
-      <CustomCommands>
-        <Command type="Build" command="xbuild ${ProjectFile} /p:Configuration=${ProjectConfig}" />
-      </CustomCommands>
-    </CustomCommands>
+    <ConsolePause>false</ConsolePause>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>default</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <Optimize>True</Optimize>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
+    <DefineConstants>NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <ConsolePause>False</ConsolePause>
-    <DefineConstants>TRACE;NET_3_5;</DefineConstants>
-    <DebugSymbols>true</DebugSymbols>
-    <CustomCommands>
-      <CustomCommands>
-        <Command type="Build" command="xbuild ${ProjectFile} /p:Configuration=${ProjectConfig}" />
-      </CustomCommands>
-    </CustomCommands>
-    <DebugType>pdbonly</DebugType>
+    <ConsolePause>false</ConsolePause>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>default</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Packaging</OutputPath>
-    <DefineConstants>TRACE;NET_3_5;</DefineConstants>
+    <DefineConstants>NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <LangVersion>default</LangVersion>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <CustomCommands>
-      <CustomCommands>
-        <Command type="Build" command="xbuild ${ProjectFile} /p:Configuration=${ProjectConfig}" />
-      </CustomCommands>
-    </CustomCommands>
     <ConsolePause>false</ConsolePause>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
@@ -140,7 +116,5 @@
       <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
     </Content>
   </ItemGroup>
-  <ItemGroup>
-    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
-  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -58,7 +58,7 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net45" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb);&#xA;    $(OutputPath)Mono.Security.dll;$(OutputPath)Mono.Security.$(mdb);" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net45" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb);$(OutputPath)Mono.Security.Couchbase.dll;$(OutputPath)Mono.Security.Couchbase.$(mdb);" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net45" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
