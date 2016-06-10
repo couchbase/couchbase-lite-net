@@ -61,6 +61,8 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "storage.sqlite.common", "St
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{FF87EED7-5DE9-47E9-82F4-D1DF659D1DC2}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "sqlitepcl.shared", "StorageEngines\SQLCipher\SQLitePCL\sqlitepcl.shared.shproj", "{EA36A133-649C-42B3-91DE-6E14DC9980A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -417,6 +419,7 @@ Global
 		{8E6F8876-64F8-4483-ADB2-D3AAD5672F7C} = {AC84F686-DF93-4CCB-9639-87CD489ACA8D}
 		{0BFC8B40-0659-4D45-B111-7CB4CCD22991} = {AC84F686-DF93-4CCB-9639-87CD489ACA8D}
 		{79FC4A01-1E39-468F-8E55-195BC918232E} = {0C477DD8-4B03-4DBF-9199-B7B4B82D8B91}
+		{EA36A133-649C-42B3-91DE-6E14DC9980A0} = {174CC397-FBA9-4D39-B4B4-31B89CA1FA44}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
