@@ -17,7 +17,7 @@
     <ProjectGuid>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Net45</RootNamespace>
-    <AssemblyName>Couchbase.Lite.Net45</AssemblyName>
+    <AssemblyName>Couchbase.Lite</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
