@@ -148,6 +148,7 @@ namespace Couchbase.Lite.Listener
 
             IsAsync = true;
             Response.WriteHeaders();
+            Log.To.Router.V(TAG, "Starting heartbeat at intervals of {0}", interval);
             _heartbeatTimer = new Timer(SendHeartbeatResponse, Encoding.UTF8.GetBytes(response), interval, interval);
         }
 
@@ -160,10 +161,13 @@ namespace Couchbase.Lite.Listener
         {
             Log.To.Router.I(TAG, "Sending heartbeat to client");
             if (!Response.WriteData((byte[])state, false)) {
+                Log.To.Router.W(TAG, "Failed to write heartbeat");
                 if (_heartbeatTimer != null) {
                     _heartbeatTimer.Dispose();
                     _heartbeatTimer = null;
                 }
+
+                Terminate();
             }
         }
 
@@ -197,7 +201,6 @@ namespace Couchbase.Lite.Listener
                 if (ChangesFeedMode == ChangesFeedMode.LongPoll) {
                     _changes.Add(rev);
                 } else {
-                    Log.To.Router.V(TAG, "Sending continuous change chunk");
                     var written = Response.SendContinuousLine(DatabaseMethods.ChangesDictForRev(rev, this), ChangesFeedMode);
                     if (!written) {
                         Terminate();
@@ -219,6 +222,7 @@ namespace Couchbase.Lite.Listener
                 return;
             }
 
+            Log.To.Router.I(TAG, "Shutting down DBMonitorCouchbaseState");
             Db.Changed -= DatabaseChanged;
             CouchbaseLiteRouter.ResponseFinished(this);
             Db = null;

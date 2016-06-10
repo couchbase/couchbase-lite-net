@@ -19,7 +19,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;TRACE;VERBOSE;</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;VERBOSE;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Externalconsole>true</Externalconsole>
@@ -31,6 +31,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Externalconsole>true</Externalconsole>
+    <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|AnyCPU'">
     <OutputPath>bin\Packaging\</OutputPath>
@@ -41,6 +42,7 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
     <WarningLevel>4</WarningLevel>
+    <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -73,8 +75,8 @@
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
     <Error Condition="!Exists('..\..\packages\SQLitePCL.native.sqlcipher.windows.0.9.0\build\SQLitePCL.native.sqlcipher.windows.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\SQLitePCL.native.sqlcipher.windows.0.9.0\build\SQLitePCL.native.sqlcipher.windows.targets'))" />
-    <Error Condition="!Exists('..\..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets'))" />
     <Error Condition="!Exists('..\..\packages\SQLitePCL.native.sqlcipher.osx.0.9.0\build\SQLitePCL.native.sqlcipher.osx.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\SQLitePCL.native.sqlcipher.osx.0.9.0\build\SQLitePCL.native.sqlcipher.osx.targets'))" />
+    <Error Condition="!Exists('..\..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets'))" />
   </Target>
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <CreateItem Include="$(OutputPath)**\*.*">
@@ -88,13 +90,13 @@
       <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
       <Name>websocket-sharp</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\StorageEngines\SQLCipher\storage.sqlcipher.net45\storage.sqlcipher.net45.csproj">
+      <Project>{3eee8883-b6a9-4b71-b70e-67973f7687d5}</Project>
+      <Name>storage.sqlcipher.net45</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Listener.Net45\Couchbase.Lite.Listener.Net45.csproj">
       <Project>{9AD3BADD-4F48-4208-B601-E63987C12049}</Project>
       <Name>Couchbase.Lite.Listener.Net45</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\StorageEngines\SQLCipher\storage.sqlcipher.net45\storage.sqlcipher.net45.csproj">
-      <Project>{3EEE8883-B6A9-4B71-B70E-67973F7687D5}</Project>
-      <Name>storage.sqlcipher.net45</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\StorageEngines\ForestDB\storage.forestdb.net45\storage.forestdb.net45.csproj">
       <Project>{666B3F9B-DC39-421E-9E4E-C5B666023FB0}</Project>
@@ -113,6 +115,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="..\..\packages\SQLitePCL.native.sqlcipher.windows.0.9.0\build\SQLitePCL.native.sqlcipher.windows.targets" Condition="Exists('..\..\packages\SQLitePCL.native.sqlcipher.windows.0.9.0\build\SQLitePCL.native.sqlcipher.windows.targets')" />
-  <Import Project="..\..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets" Condition="Exists('..\..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets')" />
   <Import Project="..\..\packages\SQLitePCL.native.sqlcipher.osx.0.9.0\build\SQLitePCL.native.sqlcipher.osx.targets" Condition="Exists('..\..\packages\SQLitePCL.native.sqlcipher.osx.0.9.0\build\SQLitePCL.native.sqlcipher.osx.targets')" />
+  <Import Project="..\..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets" Condition="Exists('..\..\packages\SQLitePCL.native.sqlcipher.linux.0.9.0\build\SQLitePCL.native.sqlcipher.linux.targets')" />
 </Project>

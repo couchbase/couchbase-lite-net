@@ -130,6 +130,8 @@ namespace Couchbase.Lite.Listener
                 db.Open();
             } catch(CouchbaseLiteException) {
                 return context.CreateResponse(StatusCode.Exception).AsDefaultState();
+            } finally {
+                db.Close();
             }
 
             return context.CreateResponse(StatusCode.Created).AsDefaultState();
@@ -610,7 +612,11 @@ namespace Couchbase.Lite.Listener
             if (open) {
                 try {
                     db.Open();
-                } catch(Exception) {
+                } catch(CouchbaseLiteException e) {
+                    Log.To.Listener.W(TAG, "Exception in PerformLogicWithDatabase, returning 500", e);
+                    return context.CreateResponse(StatusCode.DbError);
+                } catch(Exception e) {
+                    Log.To.Listener.E(TAG, "Exception in PerformLogicWithDatabase, returning 500", e);
                     return context.CreateResponse(StatusCode.DbError);
                 }
             }

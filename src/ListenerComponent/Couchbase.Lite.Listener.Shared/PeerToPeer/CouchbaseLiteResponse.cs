@@ -301,11 +301,15 @@ namespace Couchbase.Lite.Listener
                 return false;
             }
 
+            Log.To.Router.V(TAG, "Attempting to send data over the wire: {0}", new SecureLogString(data.ToArray(),
+                LogMessageSensitivity.PotentiallyInsecure));
             if (!WriteToStream(data.ToArray())) {
+                TryClose();
                 return false;
             }
 
             if (finished) {
+                Log.To.Router.V(TAG, "Data sent, closing connectioned!");
                 TryClose();
             }
 
@@ -335,6 +339,8 @@ namespace Couchbase.Lite.Listener
                 json.AddRange(Encoding.UTF8.GetBytes("\n"));
             }
 
+            Log.To.Router.V(TAG, "Sending continous change chunk: {0}", new SecureLogJsonString(changesDict,
+                LogMessageSensitivity.PotentiallyInsecure));
             bool written = WriteData(json, false);
             return written;
         }
@@ -517,14 +523,8 @@ namespace Couchbase.Lite.Listener
                 _responseWriter.OutputStream.Write(data, 0, data.Length);
                 _responseWriter.OutputStream.Flush();
                 return true;
-            } catch(IOException e) {
+            } catch(Exception e) {
                 Log.To.Router.W(TAG, "Error writing to HTTP response stream", e);
-                return false;
-            } catch(HttpListenerException e) {
-                Log.To.Router.W(TAG, "Error writing to HTTP response stream", e);
-                return false;
-            } catch(ObjectDisposedException) {
-                Log.To.Router.I(TAG, "Data written after disposal"); // This is normal for hanging connections who write until the client disconnects
                 return false;
             }
         }
@@ -533,6 +533,7 @@ namespace Couchbase.Lite.Listener
         private void TryClose() {
             try {
                 _responseWriter.Close();
+                Log.To.Router.I(TAG, "Response closed");
             } catch(IOException) {
                 Log.To.Router.W(TAG, "Error closing HTTP response stream");
             } catch(ObjectDisposedException) {
