@@ -352,7 +352,10 @@ namespace Couchbase.Lite.Listener
                     if(context.ChangesFeedMode >= ChangesFeedMode.Continuous) {
                         response.WriteHeaders();
                         foreach(var rev in changes) {
-                            response.SendContinuousLine(ChangesDictForRev(rev, responseState), context.ChangesFeedMode);
+                            var success = response.SendContinuousLine(ChangesDictForRev(rev, responseState), context.ChangesFeedMode);
+                            if(!success) {
+                                return context.CreateResponse(StatusCode.BadRequest);
+                            }
                         }
                     }
 
