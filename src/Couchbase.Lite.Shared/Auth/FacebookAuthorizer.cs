@@ -49,6 +49,7 @@ using Couchbase.Lite.Util;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Collections;
+using System.Net.Http.Headers;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -56,7 +57,7 @@ using StringEx = System.String;
 
 namespace Couchbase.Lite.Auth
 {
-    internal class FacebookAuthorizer : ISessionCookieAuthorizer
+    internal class FacebookAuthorizer : Authorizer, ISessionCookieAuthorizer
     {
         private static readonly string Tag = typeof(FacebookAuthorizer).Name;
         private const string LoginParameterAccessToken = "access_token";
@@ -68,21 +69,21 @@ namespace Couchbase.Lite.Auth
 
         private readonly string _emailAddress;
 
-        public string UserInfo
+        public override string UserInfo
         {
             get {
                 throw new NotImplementedException();
             }
         }
 
-        public string Scheme
+        public override string Scheme
         {
             get {
                 throw new NotImplementedException();
             }
         }
 
-        public bool UsesCookieBasedLogin
+        public override bool UsesCookieBasedLogin
         {
             get {
                 throw new NotImplementedException();
@@ -133,12 +134,12 @@ namespace Couchbase.Lite.Auth
             return true;
         }
 
-        public string TokenForSite(Uri site)
+        public string GetToken()
         {
-            var key = new[] { _emailAddress, site.Host };
+            var key = new[] { _emailAddress, RemoteUrl.Host };
             Log.To.Sync.V(Tag, "Searching for Facebook key [{0}, {1}]",
                 new SecureLogString(_emailAddress, LogMessageSensitivity.PotentiallyInsecure),
-                site.Host);
+                RemoteUrl.Host);
 
             var accessToken = default(string);
             if (!_AccessTokens.TryGetValue(key, out accessToken)) {
@@ -164,29 +165,29 @@ namespace Couchbase.Lite.Auth
             return sb.ToString();
         }
 
-        public IList LoginRequestForSite(Uri site)
+        public IList LoginRequest()
         {
-            var token = TokenForSite(site);
+            var token = GetToken();
             if(token == null) {
                 return null;
             }
 
-            return new ArrayList { "POST", site.AbsolutePath + "_facebook", new Dictionary<string, string> {
+            return new ArrayList { "POST", RemoteUrl.AbsolutePath + "_facebook", new Dictionary<string, string> {
                 [LoginParameterAccessToken] = token
             }};
         }
 
-        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, IDictionary<string, string> headers, Exception error, Action<bool, Exception> continuation)
+        public bool ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
         {
-            // No-op
+            return false;
         }
 
-        public string LoginPathForSite(Uri site)
+        public override string LoginPathForSite(Uri site)
         {
             throw new NotImplementedException();
         }
 
-        public IDictionary<string, string> LoginParametersForSite(Uri site)
+        public override IDictionary<string, string> LoginParametersForSite(Uri site)
         {
             throw new NotImplementedException();
         }

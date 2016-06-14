@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Auth
     /// <summary>
     /// An object that can authenticate using HTTP basic authentication
     /// </summary>
-    public class BasicAuthenticator : ICredentialAuthorizer, ICustomHeadersAuthorizer
+    internal class BasicAuthenticator : Authorizer, ICredentialAuthorizer, ICustomHeadersAuthorizer
     {
 
         #region Constants
@@ -94,10 +94,10 @@ namespace Couchbase.Lite.Auth
         }
 
         // IAuthenticator
-        public bool UsesCookieBasedLogin { get { return false; } }
+        public override bool UsesCookieBasedLogin { get { return false; } }
 
         // IAuthenticator
-        public string UserInfo
+        public override string UserInfo
         {
             get
             {
@@ -106,7 +106,7 @@ namespace Couchbase.Lite.Auth
         }
 
         // IAuthenticator
-        public string Scheme { get { return "Basic"; } }
+        public override string Scheme { get { return "Basic"; } }
 
         #pragma warning restore 1591
         #endregion
@@ -165,12 +165,12 @@ namespace Couchbase.Lite.Auth
 
         #region IAuthenticator
 
-        public string LoginPathForSite(Uri site) 
+        public override string LoginPathForSite(Uri site) 
         {
             return null;
         }
             
-        public IDictionary<String, String> LoginParametersForSite(Uri site) 
+        public override IDictionary<String, String> LoginParametersForSite(Uri site) 
         {
             // This method has different implementation from the iOS's.
             // It is safe to return NULL as the method is not called

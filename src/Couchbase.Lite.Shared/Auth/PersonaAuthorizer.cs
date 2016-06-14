@@ -50,6 +50,7 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 using System.Collections.Concurrent;
 using System.Collections;
+using System.Net.Http.Headers;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -57,7 +58,7 @@ using StringEx = System.String;
 
 namespace Couchbase.Lite.Auth
 {
-    internal class PersonaAuthorizer : ISessionCookieAuthorizer
+    internal class PersonaAuthorizer : Authorizer, ISessionCookieAuthorizer
     {
         private const string QueryParameter = "personaAssertion";
         private static readonly string Tag = nameof(PersonaAuthorizer);
@@ -66,21 +67,21 @@ namespace Couchbase.Lite.Auth
 
         public string Email { get; private set; }
 
-        public string UserInfo
+        public override string UserInfo
         {
             get {
                 throw new NotImplementedException();
             }
         }
 
-        public string Scheme
+        public override string Scheme
         {
             get {
                 throw new NotImplementedException();
             }
         }
 
-        public bool UsesCookieBasedLogin
+        public override bool UsesCookieBasedLogin
         {
             get {
                 throw new NotImplementedException();
@@ -142,11 +143,11 @@ namespace Couchbase.Lite.Auth
             return Assertions.TryGetValue(key, out assertion) ? assertion : null;
         }
 
-        public string GetAssertion(Uri site)
+        public string GetAssertion()
         {
-            var assertion = GetAssertion(Email, site);
+            var assertion = GetAssertion(Email, RemoteUrl);
             if(assertion == null) {
-                Log.To.Sync.W(Tag, "No assertion found for {0}", new SecureLogUri(site));
+                Log.To.Sync.W(Tag, "No assertion found for {0}", new SecureLogUri(RemoteUrl));
                 return null;
             }
 
@@ -162,19 +163,19 @@ namespace Couchbase.Lite.Auth
             return assertion;
         }
 
-        public IList LoginRequestForSite(Uri site)
+        public IList LoginRequest()
         {
-            var assertion = GetAssertion(site);
+            var assertion = GetAssertion();
             if(assertion == null) {
                 return null;
             }
 
-            return new ArrayList { "POST", site.AbsolutePath + "_persona", assertion };
+            return new ArrayList { "POST", RemoteUrl.AbsolutePath + "_persona", assertion };
         }
 
-        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, IDictionary<string, string> headers, Exception error, Action<bool, Exception> continuation)
+        public bool ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
         {
-            // No-op
+            return false;
         }
 
         private static IDictionary<string, object> DecodeComponent(IList<string> components, int index)
@@ -214,12 +215,12 @@ namespace Couchbase.Lite.Auth
             return email != null && origin != null && exp != Misc.Epoch;
         }
 
-        public string LoginPathForSite(Uri site)
+        public override string LoginPathForSite(Uri site)
         {
             throw new NotImplementedException();
         }
 
-        public IDictionary<string, string> LoginParametersForSite(Uri site)
+        public override IDictionary<string, string> LoginParametersForSite(Uri site)
         {
             throw new NotImplementedException();
         }

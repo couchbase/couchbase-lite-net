@@ -24,12 +24,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 
 namespace Couchbase.Lite.Auth
 {
     internal interface IAuthorizer : IAuthenticator
     {
+        Uri RemoteUrl { get; set; }
     }
 
     internal interface ICredentialAuthorizer : IAuthorizer
@@ -44,11 +46,16 @@ namespace Couchbase.Lite.Auth
         string AuthorizationHeaderValue { get; }
     }
 
-    internal interface ISessionCookieAuthorizer : IAuthorizer
+    internal interface ILoginAuthorizer : IAuthorizer
     {
-        IList LoginRequestForSite(Uri site);
+        IList LoginRequest();
 
-        void ProcessLoginResponse(IDictionary<string, object> jsonResponse, IDictionary<string, string> headers,
-            ref Exception error, Action<bool, Exception> continuation);
+        bool ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers,
+            Exception error, Action<bool, Exception> continuation);
+    }
+
+    internal interface ISessionCookieAuthorizer : ILoginAuthorizer
+    {
+
     }
 }

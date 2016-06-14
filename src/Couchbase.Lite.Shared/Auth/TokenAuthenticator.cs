@@ -43,13 +43,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.Http.Headers;
 
 namespace Couchbase.Lite.Auth
 {
     /// <summary>
     /// An object that can verify authentication via token (like Facebook or Persona)
     /// </summary>
-    public class TokenAuthenticator : ISessionCookieAuthorizer
+    internal class TokenAuthenticator : Authorizer, ISessionCookieAuthorizer
     {
 
         #region Variables
@@ -63,13 +64,13 @@ namespace Couchbase.Lite.Auth
         #pragma warning disable 1591
 
         // IAuthenticator
-        public bool UsesCookieBasedLogin { get { return true; } }
+        public override bool UsesCookieBasedLogin { get { return true; } }
 
         // IAuthenticator
-        public string UserInfo { get { return null; } }
+        public override string UserInfo { get { return null; } }
 
         // IAuthenticator
-        public string Scheme { get { return null; } }
+        public override string Scheme { get { return null; } }
 
         #pragma warning restore 1591
         #endregion
@@ -92,7 +93,7 @@ namespace Couchbase.Lite.Auth
         #region IAuthenticator
         #pragma warning disable 1591
 
-        public string LoginPathForSite(Uri site) 
+        public override string LoginPathForSite(Uri site) 
         {
             var path = _loginPath;
             if (path != null && !path.StartsWith("/")) {
@@ -101,19 +102,23 @@ namespace Couchbase.Lite.Auth
             return path;
         }
 
-        public IDictionary<string, string> LoginParametersForSite(Uri site) 
+        public override IDictionary<string, string> LoginParametersForSite(Uri site) 
         {
             return _loginParams;
         }
 
-        public IList LoginRequestForSite(Uri site)
+        public IList LoginRequest()
         {
-            throw new NotImplementedException();
+            if(_loginParams == null) {
+                return null;
+            }
+
+            return new ArrayList { "POST", _loginParams, _loginParams };
         }
 
-        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, IDictionary<string, string> headers, Exception error, Action<bool, Exception> continuation)
+        public bool ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
         {
-            throw new NotImplementedException();
+            return false;
         }
 
 #pragma warning restore 1591

@@ -50,9 +50,9 @@ namespace Couchbase.Lite.Auth
     /// </summary>
     public class AuthenticatorFactory
     {
-        public static IAuthenticator CreateOpenIDAuthenticator(string token)
+        public static IAuthenticator CreateOpenIDAuthenticator(Manager manager, OIDCCallback callback)
         {
-            return new OpenIDAuthenticator(token);
+            return new OpenIDAuthenticator(manager, callback);
         }
 
         /// <summary>

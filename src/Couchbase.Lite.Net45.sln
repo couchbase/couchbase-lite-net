@@ -74,8 +74,8 @@ Global
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{0bfc8b40-0659-4d45-b111-7cb4ccd22991}*SharedItemsImports = 13
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{ff87eed7-5de9-47e9-82f4-d1df659d1dc2}*SharedItemsImports = 13
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{79fc4a01-1e39-468f-8e55-195bc918232e}*SharedItemsImports = 13
-		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
+		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_All|Any CPU = Debug_All|Any CPU

@@ -1054,6 +1054,11 @@ namespace Couchbase.Lite
 
             Log.To.Sync.I(TAG, "Beginning replication process...");
             LastSequence = null;
+            var authorizer = Authenticator as IAuthorizer;
+            if(authorizer != null) {
+                authorizer.RemoteUrl = RemoteUrl;
+            }
+
             _clientFactory.SocketTimeout = ReplicationOptions.SocketTimeout;
             var clientObj = _clientFactory.GetHttpClient(_cookieStore, ReplicationOptions.RetryStrategy);
             clientObj.Timeout = ReplicationOptions.RequestTimeout;
@@ -1070,34 +1075,45 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void Login()
         {
-            var loginParameters = Authenticator.LoginParametersForSite(RemoteUrl);
-            if (loginParameters == null)
-            {
+            var loginAuth = Authenticator as ILoginAuthorizer;
+            var login = loginAuth?.LoginRequest();
+            if(login == null) { 
                 Log.To.Sync.I(TAG, "{0}: {1} has no login parameters, so skipping login", this, Authenticator);
                 FetchRemoteCheckpointDoc();
                 return;
             }
 
-            var loginPath = Authenticator.LoginPathForSite(RemoteUrl);
+            var method = login[0] as string;
+            var loginPath = login[1] as string;
+            var loginParameters = login.Count >= 3 ? login[2] : null;
             Log.To.Sync.I(TAG, "{0} logging in with {1} at {2}", this, Authenticator.GetType(), loginPath);
 
-            SendAsyncRequest(HttpMethod.Post, loginPath, loginParameters, (result, e) => {
-                if (e != null)
+            var resultMessage = default(HttpRequestMessage);
+            resultMessage = SendAsyncRequest(new HttpMethod(method), loginPath, loginParameters, (result, e) => {
+                if(!loginAuth.ProcessLoginResponse(result.AsDictionary<string, object>(), resultMessage.Headers, e, (loginAgain, contError) =>
                 {
-                    Log.To.Sync.W(TAG, "{0} login failed, stopping replication process...", this);
-                    LastError = e;
+                    if(loginAgain) {
+                        Login();
+                    } else {
+                        Log.To.Sync.W(TAG, "{0} login failed, stopping replication process...", this);
+                        LastError = e;
+                        FireTrigger(ReplicationTrigger.StopGraceful);
+                    }
+                })) {
+                    if(e != null) {
+                        Log.To.Sync.W(TAG, "{0} login failed, stopping replication process...", this);
+                        LastError = e;
 
-                    // TODO: double check this behavior against iOS implementation, especially
-                    // TODO: with regards to behavior of a continuous replication.
-                    // Note: was added in order that unit test testReplicatorErrorStatus() finished and passed.
-                    // (before adding this, the replication would just end up in limbo and never finish)
-                    FireTrigger(ReplicationTrigger.StopGraceful);
-                }
-                else
-                {
-                    Log.To.Sync.I(TAG, "{0} successfully logged in!", this);
-                    FetchRemoteCheckpointDoc ();
-                }
+                        // TODO: double check this behavior against iOS implementation, especially
+                        // TODO: with regards to behavior of a continuous replication.
+                        // Note: was added in order that unit test testReplicatorErrorStatus() finished and passed.
+                        // (before adding this, the replication would just end up in limbo and never finish)
+                        FireTrigger(ReplicationTrigger.StopGraceful);
+                    } else {
+                        Log.To.Sync.I(TAG, "{0} successfully logged in!", this);
+                        FetchRemoteCheckpointDoc();
+                    }
+                } 
             });
         }
 
@@ -1707,7 +1723,7 @@ namespace Couchbase.Lite
 
         internal void CheckSession()
         {
-            if (Authenticator != null && Authenticator.UsesCookieBasedLogin) {
+            if (Authenticator != null && Authenticator is ISessionCookieAuthorizer) {
                 CheckSessionAtPath("/_session");
             }
             else {

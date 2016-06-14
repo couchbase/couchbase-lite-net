@@ -55,6 +55,8 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using System.Net.Http.Headers;
+using Couchbase.Lite.Tests;
+using System.Diagnostics;
 
 namespace Couchbase.Lite
 {
@@ -92,7 +94,7 @@ namespace Couchbase.Lite
 
             var auth = new PersonaAuthorizer(email);
             Assert.AreEqual(email, auth.Email);
-            Assert.AreEqual(sampleAssertion, auth.GetAssertion(originURL));
+            Assert.AreEqual(sampleAssertion, auth.GetAssertion());
         }
 
         [Test]
@@ -266,6 +268,81 @@ namespace Couchbase.Lite
                 ["Scheme"] = "OIDC",
                 ["login"] = "http://example.com/login?foo=bar"
             }, c);
+        }
+
+        [Test]
+        public void TestOpenIDConnect()
+        {
+            if(_storageType != StorageEngineTypes.SQLite) {
+                return;
+            }
+
+            var remoteUri = new Uri("http://192.168.3.2:4984/openid_db");
+                Assert.IsTrue(OpenIDAuthenticator.ForgetIDTokens(remoteUri));
+
+                var auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
+                {
+                    AssertValidOIDCLogin(login, authBase, remoteUri);
+                    // Fake a form submission to the OIDC test provider, to get an auth URL redirect:
+                    var authURL = LoginToOIDCTestProvider(remoteUri);
+                    Trace.WriteLine("**** Callback handing control back to authenticator...");
+                    cont(authURL, null);
+                });
+
+                var authError = PullWithOIDCAuth(remoteUri, auth);
+                Assert.IsNotNull(authError);
+
+                // The username I gave is "pupshaw," but SG namespaces it by prefixing it with the provider's
+                // registered name, which is "testing" (as given in the SG config file.)
+                Assert.AreEqual("testing_pupshaw", auth.Username);
+
+                // Now try again; this should use the ID token from storage and/or a session cookie:
+                Trace.WriteLine("**** Second replication...");
+                bool callbackInvoked = false;
+                auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
+                {
+                    AssertValidOIDCLogin(login, authBase, remoteUri);
+                    Assert.IsFalse(callbackInvoked);
+                    callbackInvoked = true;
+                    cont(null, null); // cancel
+                });
+
+                authError = PullWithOIDCAuth(remoteUri, auth);
+                Assert.IsNull(authError);
+                Assert.IsFalse(callbackInvoked);
+        }
+
+        private void AssertValidOIDCLogin(Uri login, Uri authBase, Uri remoteUri)
+        {
+            /*Trace.WriteLine($"*** Login callback invoked with login URL: <{login}>, authBase: <{authBase}>");
+            Assert.IsNotNull(login);
+            Assert.AreEqual($"{remoteUri.GetLeftPart(UriPartial.Path)}/_oidc_testing/authorize", login.GetLeftPart(UriPartial.Path));
+            Assert.IsNotNull(authBase);
+            Assert.AreEqual($"{remoteUri.GetLeftPart(UriPartial.Path)}/_oidc_callback", authBase.GetLeftPart(UriPartial.Path));*/
+        }
+
+        private Uri LoginToOIDCTestProvider(Uri uri)
+        {
+            var formURL = uri.AppendPath("/_oidc_testing/authenticate?client_id=CLIENTID&redirect_uri=http%3A%2F%2F127.0.0.1%3A4894%2Fopenid_db%2F_oidc_callback&response_type=code&scope=openid+email&state=");
+            var formData = Encoding.UTF8.GetBytes("username=pupshaw&authenticated=true");
+            var request = (HttpWebRequest)WebRequest.Create(formURL);
+            request.Method = "POST";
+            request.AllowAutoRedirect = false;
+            request.GetRequestStream().Write(formData, 0, formData.Length);
+            var response = (HttpWebResponse)request.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Found, response.StatusCode);
+            var authURLStr = response.Headers["Location"];
+            Trace.WriteLine($"Redirected to {authURLStr}");
+            Assert.IsNotNull(authURLStr);
+            return new Uri(authURLStr);
+        }
+
+        private Exception PullWithOIDCAuth(Uri remoteUri, IAuthenticator auth)
+        {
+            var repl = database.CreatePullReplication(remoteUri);
+            repl.Authenticator = auth;
+            RunReplication(repl);
+            return repl.LastError;
         }
 
         private void AddUser(string username, string password)
