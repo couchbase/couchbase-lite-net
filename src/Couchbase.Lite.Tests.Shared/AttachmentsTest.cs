@@ -69,6 +69,29 @@ namespace Couchbase.Lite
         public AttachmentsTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestRemoveAttachments()
+        {
+            var doc = database.CreateDocument();
+            var unsaved = doc.CreateRevision();
+
+            unsaved.SetAttachment("attach", "type", new byte[] { 0, 1, 2, 3, 4 });
+
+            Assert.AreEqual(1, unsaved.AttachmentNames.Count());
+            Assert.NotNull(unsaved.GetAttachment("attach"));
+
+            var saved = unsaved.Save();
+
+            Assert.AreEqual(1, saved.AttachmentNames.Count());
+            Assert.NotNull(saved.GetAttachment("attach"));
+
+            unsaved = saved.CreateRevision();
+            unsaved.RemoveAttachment("attach");
+
+            Assert.AreEqual(0, unsaved.AttachmentNames.Count());
+            Assert.Null(unsaved.GetAttachment("attach"));
+        }
+
+        [Test]
         public void TestPutEncodedAttachment()
         {
             const string bodyString = "This is the body of attach1";

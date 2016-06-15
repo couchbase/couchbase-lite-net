@@ -938,7 +938,7 @@ namespace Couchbase.Lite.Replicator
 
             var removed = change.Get("removed") != null;
             if (removed) {
-                return;
+                Log.To.Sync.V(TAG, "Removed entry received, body may not be available");
             }
 
             if (!Document.IsValidDocumentId(docID)) {

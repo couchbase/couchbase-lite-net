@@ -315,6 +315,10 @@ namespace Couchbase.Lite.Replicator
             var revProps = revision.GetProperties();
 
             var attachments = revProps.Get("_attachments").AsDictionary<string,object>();
+            if(attachments == null) {
+                return false;
+            }
+
             foreach (var attachmentKey in attachments.Keys) {
                 var attachment = attachments.Get(attachmentKey).AsDictionary<string,object>();
                 if (attachment.ContainsKey("follows")) {
@@ -502,7 +506,7 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 // Strip any attachments already known to the target db:
-                if (properties.ContainsKey("_attachments")) {
+                if (properties.Get("_attachments") != null) {
                     // Look for the latest common ancestor and stuf out older attachments:
                     var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
                     try {

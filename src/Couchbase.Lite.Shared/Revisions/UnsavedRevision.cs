@@ -86,7 +86,12 @@ namespace Couchbase.Lite
                 oldAttach.Dispose();
             }
 
-            attachments[name] = attachment;
+            if(attachment == null) {
+                attachments.Remove(name);
+            } else {
+                attachments[name] = attachment;
+            }
+
             Properties["_attachments"] = attachments;
             if(attachment != null) {
                 attachment.Name = name;

@@ -143,6 +143,7 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+    <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets'))" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -186,4 +187,5 @@
     <EmbeddedResource Condition=" Exists('Assets\local-test.properties') " Include="Assets\local-test.properties" />
     <EmbeddedResource Include="Assets\test.properties" />
   </ItemGroup>
+  <Import Project="..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets')" />
 </Project>
