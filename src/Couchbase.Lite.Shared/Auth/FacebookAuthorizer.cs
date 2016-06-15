@@ -177,9 +177,9 @@ namespace Couchbase.Lite.Auth
             }};
         }
 
-        public bool ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
+        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
         {
-            return false;
+            continuation(false, error);
         }
 
         public override string LoginPathForSite(Uri site)

@@ -173,9 +173,9 @@ namespace Couchbase.Lite.Auth
             return new ArrayList { "POST", RemoteUrl.AbsolutePath + "_persona", assertion };
         }
 
-        public bool ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
+        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
         {
-            return false;
+            continuation(false, error);
         }
 
         private static IDictionary<string, object> DecodeComponent(IList<string> components, int index)

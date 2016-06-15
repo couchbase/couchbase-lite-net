@@ -93,6 +93,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(sampleAssertion, gotAssertion);
 
             var auth = new PersonaAuthorizer(email);
+            auth.RemoteUrl = originURL;
             Assert.AreEqual(email, auth.Email);
             Assert.AreEqual(sampleAssertion, auth.GetAssertion());
         }
@@ -278,56 +279,92 @@ namespace Couchbase.Lite
             }
 
             var remoteUri = new Uri("http://192.168.3.2:4984/openid_db");
-                Assert.IsTrue(OpenIDAuthenticator.ForgetIDTokens(remoteUri));
+            Assert.IsTrue(OpenIDAuthenticator.ForgetIDTokens(remoteUri));
 
-                var auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
-                {
-                    AssertValidOIDCLogin(login, authBase, remoteUri);
-                    // Fake a form submission to the OIDC test provider, to get an auth URL redirect:
-                    var authURL = LoginToOIDCTestProvider(remoteUri);
-                    Trace.WriteLine("**** Callback handing control back to authenticator...");
-                    cont(authURL, null);
-                });
+            var auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
+            {
+                AssertValidOIDCLogin(login, authBase, remoteUri);
+                // Fake a form submission to the OIDC test provider, to get an auth URL redirect:
+                var authURL = LoginToOIDCTestProvider(remoteUri);
+                Trace.WriteLine("**** Callback handing control back to authenticator...");
+                cont(authURL, null);
+            });
 
-                var authError = PullWithOIDCAuth(remoteUri, auth);
-                Assert.IsNotNull(authError);
+            var authError = PullWithOIDCAuth(remoteUri, auth);
+            Assert.IsNull(authError);
 
-                // The username I gave is "pupshaw," but SG namespaces it by prefixing it with the provider's
-                // registered name, which is "testing" (as given in the SG config file.)
-                Assert.AreEqual("testing_pupshaw", auth.Username);
+            // The username I gave is "pupshaw," but SG namespaces it by prefixing it with the provider's
+            // registered name, which is "testing" (as given in the SG config file.)
+            Assert.AreEqual("testing_pupshaw", auth.Username);
 
-                // Now try again; this should use the ID token from storage and/or a session cookie:
-                Trace.WriteLine("**** Second replication...");
-                bool callbackInvoked = false;
-                auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
-                {
-                    AssertValidOIDCLogin(login, authBase, remoteUri);
-                    Assert.IsFalse(callbackInvoked);
-                    callbackInvoked = true;
-                    cont(null, null); // cancel
-                });
-
-                authError = PullWithOIDCAuth(remoteUri, auth);
-                Assert.IsNull(authError);
+            // Now try again; this should use the ID token from storage and/or a session cookie:
+            Trace.WriteLine("**** Second replication...");
+            bool callbackInvoked = false;
+            auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
+            {
+                AssertValidOIDCLogin(login, authBase, remoteUri);
                 Assert.IsFalse(callbackInvoked);
+                callbackInvoked = true;
+                cont(null, null); // cancel
+            });
+
+            authError = PullWithOIDCAuth(remoteUri, auth);
+            Assert.IsNull(authError);
+            Assert.IsFalse(callbackInvoked);
+        }
+
+        [Test]
+        public void TestOpenIDExpiredToken()
+        {
+            if(_storageType != StorageEngineTypes.SQLite) {
+                return;
+            }
+
+            var remoteUri = new Uri("http://192.168.3.2:4984/openid_db");
+            Assert.IsTrue(OpenIDAuthenticator.ForgetIDTokens(remoteUri));
+
+            var callbackInvoked = false;
+            var auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
+            {
+                AssertValidOIDCLogin(login, authBase, remoteUri);
+                Assert.IsFalse(callbackInvoked);
+                callbackInvoked = true;
+                cont(null, null);
+            });
+
+            // Set bogus ID and refresh tokens, so first the session check will fail, then the attempt
+            // to refresh the ID token will fail.  Finally the callback above will be called.
+            auth.IDToken = "BOGUS_ID";
+            auth.RefreshToken = "BOGUS_REFRESH";
+
+            var pullError = PullWithOIDCAuth(remoteUri, auth);
+            Assert.IsTrue(callbackInvoked);
+            Assert.IsNotNull(pullError);
+            Assert.IsInstanceOf<OperationCanceledException>(pullError);
         }
 
         private void AssertValidOIDCLogin(Uri login, Uri authBase, Uri remoteUri)
         {
-            /*Trace.WriteLine($"*** Login callback invoked with login URL: <{login}>, authBase: <{authBase}>");
+            Trace.WriteLine($"*** Login callback invoked with login URL: <{login}>, authBase: <{authBase}>");
             Assert.IsNotNull(login);
+            Assert.AreEqual(remoteUri.Host, login.Host);
+            Assert.AreEqual(remoteUri.Port, login.Port);
             Assert.AreEqual($"{remoteUri.GetLeftPart(UriPartial.Path)}/_oidc_testing/authorize", login.GetLeftPart(UriPartial.Path));
             Assert.IsNotNull(authBase);
-            Assert.AreEqual($"{remoteUri.GetLeftPart(UriPartial.Path)}/_oidc_callback", authBase.GetLeftPart(UriPartial.Path));*/
+            Assert.AreEqual(remoteUri.Host, authBase.Host);
+            Assert.AreEqual(remoteUri.Port, authBase.Port);
+            Assert.AreEqual($"{remoteUri.GetLeftPart(UriPartial.Path)}/_oidc_callback", authBase.GetLeftPart(UriPartial.Path));
         }
 
         private Uri LoginToOIDCTestProvider(Uri uri)
         {
-            var formURL = uri.AppendPath("/_oidc_testing/authenticate?client_id=CLIENTID&redirect_uri=http%3A%2F%2F127.0.0.1%3A4894%2Fopenid_db%2F_oidc_callback&response_type=code&scope=openid+email&state=");
-            var formData = Encoding.UTF8.GetBytes("username=pupshaw&authenticated=true");
+            var formURL = uri.Append("/_oidc_testing/authenticate?client_id=CLIENTID&redirect_uri=http%3A%2F%2F192.168.3.2%3A4984%2Fopenid_db%2F_oidc_callback&response_type=code&scope=openid+email&state=");
+            var formData = Encoding.ASCII.GetBytes("username=pupshaw&authenticated=true");
             var request = (HttpWebRequest)WebRequest.Create(formURL);
             request.Method = "POST";
             request.AllowAutoRedirect = false;
+            request.ContentType = "application/x-www-form-urlencoded";
+            request.ContentLength = formData.Length;
             request.GetRequestStream().Write(formData, 0, formData.Length);
             var response = (HttpWebResponse)request.GetResponse();
             Assert.AreEqual(HttpStatusCode.Found, response.StatusCode);

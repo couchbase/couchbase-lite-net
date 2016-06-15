@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Auth
     {
         IList LoginRequest();
 
-        bool ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers,
+        void ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers,
             Exception error, Action<bool, Exception> continuation);
     }
 

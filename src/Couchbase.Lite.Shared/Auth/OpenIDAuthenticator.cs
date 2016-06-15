@@ -52,13 +52,13 @@ namespace Couchbase.Lite.Auth
         //For testing only
         internal string IDToken
         {
-            get; private set;
+            get; set;
         }
 
         //For testing only
         internal string RefreshToken
         {
-            get; private set;
+            get; set;
         }
 
         internal string Username
@@ -268,7 +268,7 @@ namespace Couchbase.Lite.Auth
             if(RefreshToken != null) {
                 path = $"/_oidc_refresh?refresh_token={Uri.EscapeUriString(RefreshToken)}";
             } else if(_authUrl != null) {
-                path = $"/_oidc_callback?{_authUrl.Query}";
+                path = $"/_oidc_callback{_authUrl.Query}";
             } else {
                 path = "/_oidc_challenge";
             }
@@ -276,12 +276,12 @@ namespace Couchbase.Lite.Auth
             return new ArrayList { "GET", path };
         }
 
-        public bool ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
+        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
         {
             if(error != null && !Misc.IsUnauthorizedError(error)) {
                 // If there's some non-401 error, just pass it on
                 continuation(false, error);
-                return true;
+                return;
             }
 
             if(RefreshToken != null || _authUrl != null) {
@@ -294,7 +294,7 @@ namespace Couchbase.Lite.Auth
                         Username = null;
                         DeleteTokens();
                         continuation(true, null);
-                        return true;
+                        return;
                     }
                 } else {
                     // Generated or freshed ID token:
@@ -316,7 +316,7 @@ namespace Couchbase.Lite.Auth
                 if(login != null) {
                     Log.To.Sync.I(Tag, "{0} got OpenID Connect login URL: {1}", this, login);
                     ContinueAsyncLogin(new Uri(login), continuation);
-                    return true; // don't call the continuation block yet
+                    return; // don't call the continuation block yet
                 } else {
                     error = new CouchbaseLiteException("Server didn't provide an OpenID login URL", StatusCode.UpStreamError);
                 }
@@ -324,7 +324,6 @@ namespace Couchbase.Lite.Auth
 
             // by default, keep going immediately
             continuation(false, error);
-            return true;
         }
 
         private void ContinueAsyncLogin(Uri loginUrl, Action<bool, Exception> continuation)
@@ -334,36 +333,41 @@ namespace Couchbase.Lite.Auth
             var authBaseUrl = remoteUrl.AppendPath("_oidc_callback");
             _callbackContext.StartNew(() =>
             {
-                _loginCallback(loginUrl, authBaseUrl, (authUrl, error) =>
-                {
-                    if(authUrl != null) {
-                        Log.To.Sync.I(Tag, "{0} app login callback returned authUrl=<{1}>", this, authUrl.AbsolutePath);
-                        // Verify that the authUrl matches the site:
-                        if(String.Compare(authUrl.GetLeftPart(UriPartial.Path), remoteUrl.GetLeftPart(UriPartial.Path), StringComparison.InvariantCultureIgnoreCase) != 0) {
-                            Log.To.Sync.W(Tag, "{0} app-provided authUrl <{1}> doesn't match server URL; ignoring it", this, authUrl.AbsolutePath);
-                            authUrl = null;
-                            error = new ArgumentException("authURL does not match server URL");
-                        }
-                    }
-
-                    if(authUrl != null) {
-                        _authUrl = authUrl;
-                        continuation(true, null);
-                    } else {
-                        if(error == null) {
-                            error = new OperationCanceledException();
+                try {
+                    _loginCallback(loginUrl, authBaseUrl, (authUrl, error) =>
+                    {
+                        if(authUrl != null) {
+                            Log.To.Sync.I(Tag, "{0} app login callback returned authUrl=<{1}>", this, authUrl.AbsolutePath);
+                            // Verify that the authUrl matches the site:
+                            if(String.Compare(authUrl.Host, remoteUrl.Host, StringComparison.InvariantCultureIgnoreCase) != 0 || authUrl.Port != remoteUrl.Port || $"{remoteUrl.GetLeftPart(UriPartial.Path)}/_oidc_callback" != authUrl.GetLeftPart(UriPartial.Path)) {
+                                Log.To.Sync.W(Tag, "{0} app-provided authUrl <{1}> doesn't match server URL; ignoring it", this, authUrl.AbsolutePath);
+                                authUrl = null;
+                                error = new ArgumentException("authURL does not match server URL");
+                            }
                         }
 
-                        Log.To.Sync.I(Tag, $"{this} app login callback returned error", error);
-                        continuation(false, error);
-                    }
-                });
+                        if(authUrl != null) {
+                            _authUrl = authUrl;
+                            continuation(true, null);
+                        } else {
+                            if(error == null) {
+                                error = new OperationCanceledException();
+                            }
+
+                            Log.To.Sync.I(Tag, $"{this} app login callback returned error", error);
+                            continuation(false, error);
+                        }
+                    }); 
+                } catch(Exception e) {
+                    Log.To.Sync.W(Tag, "Exception during login callback", e);
+                    continuation(false, e);
+                }
             });
         }
 
         public override string ToString()
         {
-            return $"OpenIDAuthenticator[${RemoteUrl?.GetLeftPart(UriPartial.Path)}";
+            return $"OpenIDAuthenticator[{RemoteUrl?.GetLeftPart(UriPartial.Path)}]";
         }
     }
 }

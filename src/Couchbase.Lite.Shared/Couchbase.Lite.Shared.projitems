@@ -14,6 +14,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Auth\AuthUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\IAuthorizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\OpenIDAuthenticator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Auth\RemoteLogin.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Bootstrap.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Database.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Database\StorageEngineRule.cs" />
@@ -22,6 +23,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteSession.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\TreeRevisionID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\IInjectable.cs" />

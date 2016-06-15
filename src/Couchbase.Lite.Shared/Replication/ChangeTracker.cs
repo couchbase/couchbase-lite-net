@@ -79,6 +79,9 @@ namespace Couchbase.Lite.Internal
         [RequiredProperty]
         public IRetryStrategy RetryStrategy { get; set; }
 
+        [RequiredProperty]
+        public RemoteSession RemoteSession { get; set; }
+
         public TaskFactory WorkExecutor { get; set; }
     }
 
@@ -103,6 +106,7 @@ namespace Couchbase.Lite.Internal
         protected bool _caughtUp;
         protected TaskFactory _workExecutor;
         protected IChangeTrackerResponseLogic _responseLogic;
+        protected readonly RemoteSession _remoteSession;
 
         internal readonly Uri DatabaseUrl;
         internal readonly ChangeTrackerBackoff Backoff;
@@ -172,10 +176,6 @@ namespace Couchbase.Lite.Internal
 
         public Exception Error { get; set; }
 
-        public IDictionary<string, string> RequestHeaders { get; private set; }
-
-        public IAuthenticator Authenticator { get; set; }
-
         public ChangeTrackerMode Mode { get; set; }
 
         public string FilterName { get; set; }
@@ -187,8 +187,6 @@ namespace Couchbase.Lite.Internal
         public TimeSpan Heartbeat { get; set; }
 
         public IList<string> DocIDs { get; set; }
-
-        public RemoteServerVersion ServerType { get; set; }
 
         public bool IsRunning { get; protected set; }
 
@@ -208,7 +206,7 @@ namespace Couchbase.Lite.Internal
             LastSequenceId = options.LastSequenceID;
             _workExecutor = options.WorkExecutor ?? new TaskFactory(new SingleTaskThreadpoolScheduler());
             _usePost = true;
-            RequestHeaders = new Dictionary<string, string>();
+            _remoteSession = options.RemoteSession;
         }
 
         #endregion
@@ -236,8 +234,8 @@ namespace Couchbase.Lite.Internal
 
         protected void UpdateServerType(string header)
         {
-            ServerType = new RemoteServerVersion(header);
-            Log.To.ChangeTracker.I(Tag, "{0} Server Version: {1}", this, ServerType);
+            _remoteSession.ServerType = new RemoteServerVersion(header);
+            Log.To.ChangeTracker.I(Tag, "{0} Server Version: {1}", this, _remoteSession.ServerType);
         }
 
         protected bool ReceivedChange(IDictionary<string, object> change)

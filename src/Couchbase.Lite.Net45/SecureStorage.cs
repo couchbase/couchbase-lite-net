@@ -35,7 +35,6 @@ namespace Couchbase.Lite
     internal class SecureStorage : ISecureStorage
     {
         private static readonly byte[] _Entropy = new byte[] { 9, 8, 7, 6, 5 };
-        private readonly MessageDigest _digest = MessageDigest.GetInstance("SHA-1");
         private static readonly string _BaseDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ".cbl_store");
 
         static SecureStorage()
@@ -84,9 +83,7 @@ namespace Couchbase.Lite
         private string GetFilename(SecureStorageRequest request)
         {
             var filenameBytes = Encoding.UTF8.GetBytes($"{request.Service}{request.Label}{request.Account}");
-            _digest.Reset();
-            _digest.Update(filenameBytes);
-            return Path.Combine(_BaseDirectory, $"{Convert.ToBase64String(_digest.Digest())}.bin");
+            return Path.Combine(_BaseDirectory, $"{Misc.HexSHA1Digest(filenameBytes)}.bin");
         }
     }
 }

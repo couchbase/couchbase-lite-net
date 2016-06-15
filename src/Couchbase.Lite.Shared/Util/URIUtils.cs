@@ -42,6 +42,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Microsoft.IO;
 
@@ -235,10 +236,15 @@ namespace Couchbase.Lite.Util
             return newUriStr;
         }
 
+        public static Uri Append(this Uri uri, params string[] paths)
+        {
+            return new Uri(paths.Aggregate(uri.AbsoluteUri, (current, path) => string.Format("{0}/{1}", current.TrimEnd('/'), path.TrimStart('/'))));
+        }
+
         #endregion
 
         #region Private Methods 
-            
+
         private static bool IsAllowed(char c, string allow)
         {
             return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')

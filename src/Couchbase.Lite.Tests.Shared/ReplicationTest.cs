@@ -1675,38 +1675,6 @@ namespace Couchbase.Lite
 
         /// <exception cref="System.Exception"></exception>
         [Test]
-        public virtual void TestBuildRelativeURLString()
-        {
-            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
-            {
-                Assert.Inconclusive("Replication tests disabled.");
-                return;
-            }
-            var dbUrlString = "http://10.0.0.3:4984/todos/";
-            var replicator = new Pusher(database, new Uri(dbUrlString), false, null);
-            string relativeUrlString = replicator.BuildRelativeURLString("foo");
-            string expected = "http://10.0.0.3:4984/todos/foo";
-            Assert.AreEqual(expected, relativeUrlString);
-        }
-
-        /// <exception cref="System.Exception"></exception>
-        [Test]
-        public virtual void TestBuildRelativeURLStringWithLeadingSlash()
-        {
-            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
-            {
-                Assert.Inconclusive("Replication tests disabled.");
-                return;
-            }
-            var dbUrlString = "http://10.0.0.3:4984/todos/";
-            var replicator = new Pusher(database, new Uri(dbUrlString), false, null);
-            string relativeUrlString = replicator.BuildRelativeURLString("/foo");
-            string expected = "http://10.0.0.3:4984/todos/foo";
-            Assert.AreEqual(expected, relativeUrlString);
-        }
-
-        /// <exception cref="System.Exception"></exception>
-        [Test]
         public virtual void TestAppendPathURLString([Values("http://10.0.0.3:4984/connect-2014", "http://10.0.0.3:4984/connect-2014/")] String baseUri, [Values("/_bulk_get?revs=true&attachments=true", "_bulk_get?revs=true&attachments=true")] String newPath)
         {
             if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))

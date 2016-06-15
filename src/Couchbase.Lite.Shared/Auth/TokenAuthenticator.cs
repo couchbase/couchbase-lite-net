@@ -116,9 +116,9 @@ namespace Couchbase.Lite.Auth
             return new ArrayList { "POST", _loginParams, _loginParams };
         }
 
-        public bool ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
+        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
         {
-            return false;
+            continuation(false, error);
         }
 
 #pragma warning restore 1591

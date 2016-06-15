@@ -152,12 +152,12 @@ namespace Couchbase.Lite.Replicator
                 IncludeConflicts = true,
                 LastSequenceID = LastSequence,
                 Client = this,
+                RemoteSession = _remoteSession,
                 RetryStrategy = ReplicationOptions.RetryStrategy,
                 WorkExecutor = WorkExecutor,
             };
             _changeTracker = ChangeTrackerFactory.Create(changeTrackerOptions);
             _changeTracker.ActiveOnly = initialSync;
-            _changeTracker.Authenticator = Authenticator;
             _changeTracker.Continuous = Continuous;
             _changeTracker.PollInterval = pollInterval;
             _changeTracker.Heartbeat = ReplicationOptions.Heartbeat;
@@ -174,10 +174,6 @@ namespace Couchbase.Lite.Replicator
                 if (FilterParams != null) {
                     _changeTracker.FilterParameters = FilterParams.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                 }
-            }
-
-            if (ServerType != null) {
-                _changeTracker.ServerType = ServerType;
             }
 
             _changeTracker.Start();
@@ -405,7 +401,7 @@ namespace Couchbase.Lite.Replicator
             var body = new Dictionary<string, object>();
             body["keys"] = keys;
 
-            SendAsyncRequest(HttpMethod.Post, "/_all_docs?include_docs=true", body, (result, e) =>
+            _remoteSession.SendAsyncRequest(HttpMethod.Post, "/_all_docs?include_docs=true", body, (result, e) =>
             {
                 var res = result.AsDictionary<string, object>();
                 if(e != null) {
@@ -573,7 +569,7 @@ namespace Couchbase.Lite.Replicator
             var pathInside = path.ToString();
             Log.To.SyncPerf.I(TAG, "{0} getting {1}", this, rev);
             Log.To.Sync.V(TAG, "{0} GET {1}", this, new SecureLogString(pathInside, LogMessageSensitivity.PotentiallyInsecure));
-            SendAsyncMultipartDownloaderRequest(HttpMethod.Get, pathInside, null, LocalDatabase, (result, e) => 
+            _remoteSession.SendAsyncMultipartDownloaderRequest(HttpMethod.Get, pathInside, null, LocalDatabase, (result, e) => 
             {
                 // OK, now we've got the response revision:
                 Log.To.SyncPerf.I(TAG, "{0} got {1}", this, rev);
@@ -753,7 +749,7 @@ namespace Couchbase.Lite.Replicator
                 _changeTracker = null;
             }
 
-            StopRemoteRequests();
+            _remoteSession.Dispose();
             lock (_locker) {
                 _revsToPull = null;
                 _deletedRevsToPull = null;
@@ -774,7 +770,7 @@ namespace Couchbase.Lite.Replicator
                 _changeTracker.Stop();
             }
 
-            StopRemoteRequests();
+            _remoteSession.CancelRequests();
         }
 
         protected override void PerformGoOnline()
@@ -924,7 +920,7 @@ namespace Couchbase.Lite.Replicator
         public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
         {
             if (ServerType == null) {
-                ServerType = _changeTracker.ServerType;
+                ServerType = _remoteSession.ServerType;
             }
 
             var lastSequence = change.Get("seq").ToString();
