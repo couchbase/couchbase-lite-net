@@ -66,7 +66,6 @@ namespace Couchbase.Lite
             request.Method = "HEAD";
 
             try {
-                ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
                 using(var response = (HttpWebResponse)request.GetResponse()) {
                     return true; //We only care that the server responded
                 }
@@ -83,7 +82,7 @@ namespace Couchbase.Lite
             }
         }
 
-        #if __ANDROID__
+#if __ANDROID__
         private class AndroidNetworkChangeReceiver : BroadcastReceiver
         {
             const string Tag = "AndroidNetworkChangeReceiver";
@@ -146,9 +145,9 @@ namespace Couchbase.Lite
 
         private AndroidNetworkChangeReceiver _receiver;
 
-        #endif
+#endif
 
-        #region INetworkReachabilityManager implementation
+#region INetworkReachabilityManager implementation
 
         public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged
         {
@@ -161,50 +160,50 @@ namespace Couchbase.Lite
         /// <remarks>This method starts listening for network connectivity state changes.</remarks>
         public void StartListening()
         {
-            #if __ANDROID__
+#if __ANDROID__
             if (_receiver != null) {
                 return; // We only need one handler.
             }
             var intent = new IntentFilter(ConnectivityManager.ConnectivityAction);
             _receiver = new AndroidNetworkChangeReceiver(InvokeNetworkChangeEvent);
             Application.Context.RegisterReceiver(_receiver, intent);
-            #else
+#else
             if (_isListening) {
                 return;
             }
             NetworkChange.NetworkAddressChanged += OnNetworkChange;
             _isListening = true;
-            #endif
+#endif
         }
 
         /// <summary>This method stops this class from listening for network changes.</summary>
         /// <remarks>This method stops this class from listening for network changes.</remarks>
         public void StopListening()
         {
-            #if __ANDROID__
+#if __ANDROID__
             if (_receiver == null) {
                 return;
             }
             _receiver.DisableListening();
             Application.Context.UnregisterReceiver(_receiver);
             _receiver = null;
-            #else
+#else
             if (!_isListening) {
                 return;
             }
             NetworkChange.NetworkAddressChanged -= OnNetworkChange;          
-            #endif
+#endif
         }
 
-        #endregion
+#endregion
 
-        #region Private Members
+#region Private Members
 
-        #if !__ANDROID__
+#if !__ANDROID__
         private volatile Boolean _isListening;
-        #endif
+#endif
 
-        #endregion
+#endregion
 
         
         internal void OnNetworkChange(object sender, EventArgs args)

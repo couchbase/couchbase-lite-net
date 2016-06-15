@@ -1027,7 +1027,7 @@ namespace Couchbase.Lite
                     }
                 }
 #else
-                Log.To.Sync.W(TAG, "Not starting becuse identical {0} already exists", IsPull ? "puller" : "pusher");
+                Log.To.Sync.W(Tag, "Not starting becuse identical {0} already exists", IsPull ? "puller" : "pusher");
 #endif
                 FireTrigger(ReplicationTrigger.StopImmediate);
                 return;

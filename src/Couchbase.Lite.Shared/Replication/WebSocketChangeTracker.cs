@@ -224,9 +224,7 @@ namespace Couchbase.Lite.Internal
             _client.OnMessage += OnReceive;
             _client.OnError += OnError;
             _client.OnClose += OnClose;
-#if !NET_3_5
-            _client.SslConfiguration.EnabledSslProtocols |= SslProtocols.Tls12;
-#endif
+            _client.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls;
             foreach(Cookie cookie in Client.GetCookieStore().GetCookies(ChangesFeedUrl)) {
                 _client.SetCookie(new WebSocketSharp.Net.Cookie(cookie.Name, cookie.Value, cookie.Path, cookie.Domain));
             }

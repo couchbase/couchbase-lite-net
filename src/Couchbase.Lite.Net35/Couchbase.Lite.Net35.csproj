@@ -20,7 +20,7 @@
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <ReleaseVersion>1.1.1</ReleaseVersion>
-	<RestorePackages>true</RestorePackages>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -67,6 +67,7 @@
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net35\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="System.Security" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
@@ -77,6 +78,9 @@
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);$(OutputPath)Stateless.dll;&#xD;&#xA;    $(OutputPath)Stateless.dll;$(OutputPath)System.Net.Http.Net35.dll;$(OutputPath)System.Threading.Tasks.Net35.dll;&#xD;&#xA;    $(OutputPath)Rackspace.Threading.dll;$(OutputPath)Stateless.$(mdb);$(OutputPath)System.Net.Http.Net35.$(mdb);&#xD;&#xA;    $(OutputPath)System.Threading.Tasks.Net35.$(mdb);$(OutputPath)Rackspace.Threading.$(mdb);&#xD;&#xA;    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
   </Target>
   <ItemGroup>
+    <Compile Include="..\Couchbase.Lite.Net45\SecureStorage.cs">
+      <Link>SecureStorage.cs</Link>
+    </Compile>
     <Compile Include="..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.cs">
       <Link>DynamicAssemblyInfo.cs</Link>
       <AutoGen>True</AutoGen>

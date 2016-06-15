@@ -340,7 +340,7 @@ namespace Couchbase.Lite
             var pullError = PullWithOIDCAuth(remoteUri, auth);
             Assert.IsTrue(callbackInvoked);
             Assert.IsNotNull(pullError);
-            Assert.IsInstanceOf<OperationCanceledException>(pullError);
+            Assert.IsInstanceOf(typeof(OperationCanceledException), pullError);
         }
 
         private void AssertValidOIDCLogin(Uri login, Uri authBase, Uri remoteUri)

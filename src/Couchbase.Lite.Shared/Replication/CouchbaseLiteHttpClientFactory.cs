@@ -74,11 +74,7 @@ namespace Couchbase.Lite.Support
             Headers = new ConcurrentDictionary<string, string>();
 
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
-#if NET_3_5
             ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
-#else
-            ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
-#endif
 
             //
             // Source: http://msdn.microsoft.com/en-us/library/office/dd633677(v=exchg.80).aspx
