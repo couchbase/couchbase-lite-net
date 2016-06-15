@@ -574,6 +574,27 @@ namespace Couchbase.Lite
             System.IO.Directory.Delete(tempPath, true);
         }
 
+        /// <summary>
+        /// Deletes a database that can no longer be opened by other means (lost password, etc).
+        /// Note: will only work for databases created with version 1.2 or later.
+        /// </summary>
+        /// <param name="name">The name of the database to delete</param>
+        public void DeleteDatabase(string name)
+        {
+            var info = new DirectoryInfo(Directory);
+            var folder = info.GetDirectories($"{name}.cblite2").FirstOrDefault();
+            if(folder == null) {
+                Log.To.Database.I(TAG, "{0} does not exist and cannot be deleted, returning...", name);
+                return;
+            }
+
+            try {
+                folder.Delete(true);
+            } catch(Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error deleting {0}", name);
+            }
+        }
+
 #endregion
 
 #region Non-public Members

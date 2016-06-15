@@ -59,6 +59,15 @@ namespace Couchbase.Lite
         public ManagerTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestDeleteDatabase()
+        {
+            var db = manager.GetDatabase("deleteme");
+            db.Close();
+            manager.DeleteDatabase("deleteme");
+            Assert.IsNull(manager.GetExistingDatabase("deleteme"));
+        }
+
+        [Test]
         public void TestServer()
         {
             //to ensure this test is easily repeatable we will explicitly remove
