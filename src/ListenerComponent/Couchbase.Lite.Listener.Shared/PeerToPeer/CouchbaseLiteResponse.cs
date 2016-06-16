@@ -246,8 +246,15 @@ namespace Couchbase.Lite.Listener
                             }
                         }
                     }
-                    
-                    var json = JsonBody.AsJson().ToArray();
+
+                    var json = default(byte[]);
+                    try {
+                        json = JsonBody.AsJson().ToArray();
+                    } catch(Exception e) {
+                        Log.To.Router.E(TAG, "Invalid body on response", e);
+                        json = null;
+                    }
+
                     if (!Chunked) {
                         _responseWriter.ContentEncoding = Encoding.UTF8;
                         _responseWriter.ContentLength = json.Length;
@@ -519,6 +526,10 @@ namespace Couchbase.Lite.Listener
 
         //Attempt to write to the response stream
         private bool WriteToStream(byte[] data) {
+            if(data == null) {
+                return true;
+            }
+
             try {
                 _responseWriter.OutputStream.Write(data, 0, data.Length);
                 _responseWriter.OutputStream.Flush();

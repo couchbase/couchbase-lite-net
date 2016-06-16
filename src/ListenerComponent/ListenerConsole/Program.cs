@@ -61,6 +61,8 @@ namespace Listener
             var passwordMap = new Dictionary<string, string>();
             var showHelp = false;
 
+            View.Compiler = new JSViewCompiler();
+
             var options = new OptionSet {
                 { "dir=", "Specifies an alternate directory to store databases in", v => alternateDir = v },
                 { "port=", "Specifies the port to listen on (default 59840)", v => portToUse = Int32.Parse(v) },

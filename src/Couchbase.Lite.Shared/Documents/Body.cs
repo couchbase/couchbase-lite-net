@@ -129,7 +129,6 @@ namespace Couchbase.Lite
         {
             if (_jsonObject == null) {
                 if (_json == null) {
-                    Log.To.NoDomain.W(Tag, "Both _json and _jsonObject are null, returning false...");
                     return false;
                 }
 
@@ -302,7 +301,8 @@ namespace Couchbase.Lite
         private void LazyLoadJsonFromObject()
         {
             if (_jsonObject == null) {
-                Log.To.NoDomain.E(Tag, "Both json and object are null for this body, throwing...");
+                Log.To.NoDomain.E(Tag, "Both json and object are null for this body, throwing... {0}",
+                    Environment.StackTrace);
                 throw new InvalidOperationException("Attempt to lazy load from a body with no data");
             }
 
@@ -318,7 +318,7 @@ namespace Couchbase.Lite
         private void LazyLoadObjectFromJson()
         {
             if (_json == null) {
-                Log.To.NoDomain.E(Tag, "Both json and object are null for this body, throwing...");
+                Log.To.NoDomain.E(Tag, "Both json and object are null for this body, throwing... {0}", Environment.StackTrace);
                 throw new InvalidOperationException("Attempt to lazy load from a body with no data");
             }
 
