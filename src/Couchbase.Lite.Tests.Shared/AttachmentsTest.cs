@@ -68,6 +68,19 @@ namespace Couchbase.Lite
 
         public AttachmentsTest(string storageType) : base(storageType) {}
 
+        [Test(Description = "For issue 666")]
+        public void TestAttachmentContentType()
+        {
+            var doc = database.CreateDocument();
+            var unsaved = doc.CreateRevision();
+
+            unsaved.SetAttachment("attach", "type", new byte[] { 0, 1, 2, 3, 4 });
+
+            var attachment = unsaved.GetAttachment("attach");
+
+            Assert.AreEqual("type", attachment.ContentType); 
+        }
+
         [Test]
         public void TestRemoveAttachments()
         {
