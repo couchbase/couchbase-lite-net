@@ -653,6 +653,7 @@ namespace Couchbase.Lite
         /// <param name="workExecutor">The TaskFactory to execute work on</param>
         internal Replication(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor)
         {
+            sessionID = $"repl{ Interlocked.Increment(ref _lastSessionID):000}";
             LocalDatabase = db;
             _eventContext = LocalDatabase.Manager.CapturedContext;
             Continuous = continuous;
@@ -1077,7 +1078,6 @@ namespace Couchbase.Lite
             _startTime = DateTime.UtcNow;
             SetupRevisionBodyTransformationFunction();
 
-            sessionID = string.Format("repl{0:000}", Interlocked.Increment(ref _lastSessionID));
             Log.To.Sync.I(TAG, "Beginning replication process...");
             LastSequence = null;
             _clientFactory.SocketTimeout = ReplicationOptions.SocketTimeout;
