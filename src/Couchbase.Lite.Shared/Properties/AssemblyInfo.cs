@@ -76,4 +76,4 @@ using System;
 [assembly: InternalsVisibleTo("Couchbase.Lite.Storage.CustomSQLite")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Storage.SQLCipher")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Storage.ForestDB")]
-[assembly: InternalsVisibleTo("Listener")]
+[assembly: InternalsVisibleTo("LiteServ")]

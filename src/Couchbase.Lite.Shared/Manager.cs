@@ -78,6 +78,7 @@ namespace Couchbase.Lite
         /// The version of Couchbase Lite that is running
         /// </summary>
         public static readonly string VersionString;
+        private const int DefaultMaxRevs = 20;
 
         internal static readonly string PLATFORM = Platform.Name;
 
@@ -605,6 +606,8 @@ namespace Couchbase.Lite
         private static readonly DirectoryInfo defaultDirectory;
         private static readonly Regex illegalCharactersPattern;
 
+        internal int DefaultMaxRevTreeDepth { get; set; } = DefaultMaxRevs;
+
         // Static Methods
         internal static ObjectWriter GetObjectMapper ()
         {
@@ -857,42 +860,27 @@ namespace Couchbase.Lite
             return existing ?? rep;
         }
 
-        private Status ParseReplicationProperties(IDictionary<string, object> properties, out bool isPush, out bool createTarget,
-            IDictionary<string, object> results)
+        private Status ParseReplicationProperties(IDictionary<string, object> properties, out bool isPush, out bool createTarget, IDictionary<string, object> results)
         {
             // http://wiki.apache.org/couchdb/Replication
             isPush = false;
             createTarget = false;
-
             var sourceDict = ParseSourceOrTarget(properties, "source");
             var targetDict = ParseSourceOrTarget(properties, "target");
-            var source = sourceDict.Get("url") as string;
-            var target = targetDict.Get("url") as string;
+            var source = sourceDict.GetCast<string>("url");
+            var target = targetDict.GetCast<string>("url");
             if (source == null || target == null) {
                 return new Status(StatusCode.BadRequest);
             }
 
-            createTarget = properties.Get("create_target") is bool && (bool)properties.Get("create_target");
-
+            createTarget = properties.GetCast<bool>("create_target", false);
             IDictionary<string, object> remoteDict = null;
             bool targetIsLocal = Manager.IsValidDatabaseName(target);
             if (Manager.IsValidDatabaseName(source)) {
                 //Push replication
                 if (targetIsLocal) {
-                    // This is a local-to-local replication. Turn the remote into a full URL to keep the
-                    // replicator happy:
-                    Database targetDb;
-                    if (createTarget) {
-                        targetDb = Manager.SharedInstance.GetDatabase(target);
-                    } else {
-                        targetDb = Manager.SharedInstance.GetExistingDatabase(target);
-                    }
-
-                    if (targetDb == null) {
-                        return new Status(StatusCode.BadRequest);
-                    }
-
-                    targetDict["url"] = "http://localhost:20000" + targetDb.DbDirectory;
+                    // This is a local-to-local replication. It is not supported on .NET.
+                    return new Status(StatusCode.NotImplemented);
                 }
 
                 remoteDict = targetDict;
@@ -920,8 +908,26 @@ namespace Couchbase.Lite
                 return new Status(StatusCode.BadId);
             }
 
-            Uri remote = new Uri(remoteDict["url"] as string);
-            if (!remote.Scheme.Equals("http") && !remote.Scheme.Equals("https") && !remote.Scheme.Equals("cbl")) {
+            Uri remote;
+            if(!Uri.TryCreate(remoteDict.GetCast<string>("url"), UriKind.Absolute, out remote)) {
+                Log.To.Router.W(TAG, "Unparseable replication URL <{0}> received", remoteDict.GetCast<string>("url"));
+                return new Status(StatusCode.BadRequest);
+            }
+
+            if (!remote.Scheme.Equals("http") && !remote.Scheme.Equals("https") && !remote.Scheme.Equals("ws") &&!remote.Scheme.Equals("wss")) {
+                Log.To.Router.W(TAG, "Replication URL <{0}> has unsupported scheme", remote);
+                return new Status(StatusCode.BadRequest);
+            }
+
+            var split = remote.PathAndQuery.Split('?');
+            if(split.Length != 1) {
+                Log.To.Router.W(TAG, "Replication URL <{0}> must not contain a query", remote);
+                return new Status(StatusCode.BadRequest);
+            }
+
+            var path = split[0];
+            if(String.IsNullOrEmpty(path) || path == "/") {
+                Log.To.Router.W(TAG, "Replication URL <{0}> missing database name", remote);
                 return new Status(StatusCode.BadRequest);
             }
 
@@ -941,18 +947,8 @@ namespace Couchbase.Lite
             if (results.ContainsKey("authorizer")) {
                 var auth = remoteDict.Get("auth") as IDictionary<string, object>;
                 if (auth != null) {
-                    //var oauth = auth["oauth"] as IDictionary<string, object>;
                     var persona = auth.Get("persona") as IDictionary<string, object>;
                     var facebook = auth.Get("facebook") as IDictionary<string, object>;
-                    //TODO: OAuth
-                    /*if (oauth != null) {
-                        string consumerKey = oauth.Get("consumer_key") as string;
-                        string consumerSec = oauth.Get("consumer_secret") as string;
-                        string token = oauth.Get("token") as string;
-                        string tokenSec = oauth.Get("token_secret") as string;
-                        string sigMethod = oauth.Get("signature_method") as string;
-                        results["authorizer"] = 
-                    }*/
                     if (persona != null) {
                         string email = persona.Get("email") as string;
                         results["authorizer"] = new PersonaAuthorizer(email);

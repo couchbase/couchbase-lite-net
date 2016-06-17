@@ -76,7 +76,8 @@ namespace Couchbase.Lite.Listener
                     { "committed_update_seq", updateSequence },
                     { "purge_seq", 0 }, //TODO: Implement
                     { "disk_size", db.GetTotalDataSize() },
-                    { "start_time", db.StartTime * 1000 }
+                    { "start_time", db.StartTime * 1000 },
+                    { "revs_limit", db.GetMaxRevTreeDepth() }
                 });
 
                 return response;

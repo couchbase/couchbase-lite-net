@@ -81,7 +81,6 @@ namespace Couchbase.Lite
         private const bool AUTO_COMPACT = true;
         private const int NOTIFY_CHANGES_LIMIT = 5000;
         private const int MAX_DOC_CACHE_SIZE = 50;
-        private const int DEFAULT_MAX_REVS = 20;
         private const string LOCAL_CHECKPOINT_DOC_ID = "CBL_LocalCheckpoint";
         private const string CHECKPOINT_LOCAL_UUID_KEY = "localUUID";
 
@@ -382,7 +381,7 @@ namespace Couchbase.Lite
         public void SetMaxRevTreeDepth(int value)
         {
             if(value == 0) {
-                value = DEFAULT_MAX_REVS;
+                value = Manager.DefaultMaxRevTreeDepth;
             }
 
             _maxRevTreeDepth = value;
@@ -2032,7 +2031,7 @@ namespace Couchbase.Lite
             if(savedMaxRevDepth != null && int.TryParse(savedMaxRevDepth, out maxRevTreeDepth)) {
                 SetMaxRevTreeDepth(maxRevTreeDepth);
             } else {
-                SetMaxRevTreeDepth(DEFAULT_MAX_REVS);
+                SetMaxRevTreeDepth(Manager.DefaultMaxRevTreeDepth);
             }
 
             // Open attachment store:

@@ -60,6 +60,7 @@ namespace Listener
             var storageType = "SQLite";
             var passwordMap = new Dictionary<string, string>();
             var showHelp = false;
+            var revsLimit = 0;
 
             View.Compiler = new JSViewCompiler();
 
@@ -74,6 +75,7 @@ namespace Listener
                 { "continuous", "Specifies continuous replication", v => continuous = v != null },
                 { "user=", "Specifies a username for connecting to a remote database", v => userName = v },
                 { "password=", "Specifies a password for connection to a remote database", v => password = v },
+                { "revs_limit=", "Sets default max rev-tree depth for databases",  v => revsLimit = Int32.Parse(v) },
                 { "ssl", "Serve over SSL", v => useSSL = v != null },
                 { "sslcert=", "Path to the SSL certificate to use", v => sslCertPath = v },
                 { "sslpass=", "Password for the SSL certificate", v => sslCertPass = v },
@@ -106,6 +108,10 @@ namespace Listener
             var manager = alternateDir != null ? new Manager(new DirectoryInfo(alternateDir), ManagerOptions.Default)
                 : Manager.SharedInstance;
             manager.StorageType = storageType;
+            if(revsLimit > 0) {
+                // Note: Internal API (used for testing)
+                manager.DefaultMaxRevTreeDepth = revsLimit;
+            }
 
             if (passwordMap.Count > 0) {
                 
