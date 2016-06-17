@@ -46,7 +46,6 @@
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
-  <Import Project="..\SQLitePCL\sqlitepcl.shared.projitems" Label="Shared" Condition="Exists('..\SQLitePCL\sqlitepcl.shared.projitems')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
@@ -54,6 +53,21 @@
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.SQLCipher.dll;$(OutputPath)Couchbase.Lite.Storage.SQLCipher.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\net35" />
   </Target>
   <ItemGroup>
+    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.1\lib\net35\SQLitePCL.raw.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.1\lib\net35\SQLitePCL.ugly.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SQLitePCLPlugin_sqlcipher, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlcipher.net35.0.9.1\lib\net35\SQLitePCLPlugin_sqlcipher.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
@@ -67,5 +81,8 @@
       <Name>System.Threading.Tasks.Net35</Name>
       <Private>False</Private>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

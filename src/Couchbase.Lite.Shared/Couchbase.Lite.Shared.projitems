@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Attachment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Database.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Database\StorageEngineRule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\DocumentExt.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager.cs" />
@@ -19,6 +20,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Revision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\TreeRevisionID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Leasable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\LogicalDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authorizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\FacebookAuthorizer.cs" />
@@ -161,7 +163,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
-    <Folder Include="$(MSBuildThisFileDirectory)Database\" />
     <Folder Include="$(MSBuildThisFileDirectory)Configuration\" />
   </ItemGroup>
   <ItemGroup>

@@ -206,15 +206,19 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // the app might be linked with a custom version of SQLite (like SQLCipher) instead of the
             // system library, so the actual version/features may differ from what was declared in
             // sqlite3.h at compile time.
-#if false
-#if SQLCIPHER || CUSTOM_SQLITE
-            SQLite3Plugin.Init();
+#if SQLCIPHER
+#if __IOS__
+            raw.SetProvider(new SQLite3Provider_internal());
+#else
+            raw.SetProvider(new SQLite3Provider_sqlcipher());
+#endif
+#elif CUSTOM_SQLITE
+#error Don't forget to implement this after making the project
 #elif SQLITE && !__MOBILE__
             if(Environment.OSVersion.Platform == PlatformID.Win32NT)
             {
-                SQLite3Plugin.Init();
+                raw.SetProvider(new SQLite3Provider_esqlite3());
             }
-#endif
 #endif
             Log.To.Database.I(TAG, "Initialized SQLite store (version {0} ({1}))", raw.sqlite3_libversion(), raw.sqlite3_sourceid());
             _SqliteVersion = raw.sqlite3_libversion_number();

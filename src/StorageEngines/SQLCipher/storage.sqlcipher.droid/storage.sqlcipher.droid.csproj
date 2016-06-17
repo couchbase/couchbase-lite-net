@@ -57,7 +57,6 @@
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
-  <Import Project="..\SQLitePCL\sqlitepcl.shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
@@ -72,25 +71,26 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.1\lib\MonoAndroid\SQLitePCL.raw.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SQLitePCLPlugin_sqlcipher, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlcipher.android.0.9.1\lib\MonoAndroid\SQLitePCLPlugin_sqlcipher.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="Mono.Android" />
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedNativeLibrary Include="..\SQLitePCL\vendor\sqlcipher\libs\android\arm64-v8a\libsqlcipher.so">
-      <Link>arm64-v8a\libsqlcipher.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\SQLitePCL\vendor\sqlcipher\libs\android\armeabi\libsqlcipher.so">
-      <Link>armeabi\libsqlcipher.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\SQLitePCL\vendor\sqlcipher\libs\android\armeabi-v7a\libsqlcipher.so">
-      <Link>armeabi-v7a\libsqlcipher.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\SQLitePCL\vendor\sqlcipher\libs\android\x86\libsqlcipher.so">
-      <Link>x86\libsqlcipher.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\SQLitePCL\vendor\sqlcipher\libs\android\x86_64\libsqlcipher.so">
-      <Link>x86_64\libsqlcipher.so</Link>
-    </EmbeddedNativeLibrary>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

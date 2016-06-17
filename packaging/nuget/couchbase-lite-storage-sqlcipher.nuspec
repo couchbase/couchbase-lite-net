@@ -22,10 +22,31 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <group>
-        <dependency id="SQLitePCL.native.sqlcipher.linux" version="[0.9.0]" />
-        <dependency id="SQLitePCL.native.sqlcipher.windows" version="[0.9.0]" />
-        <dependency id="SQLitePCL.native.sqlcipher.osx" version="[0.9.0]" />
+      <group targetFramework="net35">
+        <dependency id="SQLitePCL.raw" version="0.9.1" />
+        <dependency id="SQLitePCL.ugly" version="0.9.1" />
+        <dependency id="SQLitePCL.plugin.sqlcipher.net35" version="0.9.1" />
+        <dependency id="SQLitePCL.native.sqlcipher.linux" version="0.9.1" />
+        <dependency id="SQLitePCL.native.sqlcipher.windows" version="0.9.1" />
+        <dependency id="SQLitePCL.native.sqlcipher.osx" version="0.9.1" />
+      </group>
+      <group targetFramework="net45">
+        <dependency id="SQLitePCL.raw" version="0.9.1" />
+        <dependency id="SQLitePCL.ugly" version="0.9.1" />
+        <dependency id="SQLitePCL.plugin.sqlcipher.net45" version="0.9.1" />
+        <dependency id="SQLitePCL.native.sqlcipher.linux" version="0.9.1" />
+        <dependency id="SQLitePCL.native.sqlcipher.windows" version="0.9.1" />
+        <dependency id="SQLitePCL.native.sqlcipher.osx" version="0.9.1" />
+      </group>
+      <group targetFramework="monoandroid">
+        <dependency id="SQLitePCL.raw" version="0.9.1" />
+        <dependency id="SQLitePCL.ugly" version="0.9.1" />
+        <dependency id="SQLitePCL.plugin.sqlcipher.android" version="0.9.1" />
+      </group>
+      <group targetFramework="xamarinios">
+        <dependency id="SQLitePCL.raw" version="0.9.1" />
+        <dependency id="SQLitePCL.ugly" version="0.9.1" />
+        <dependency id="SQLitePCL.plugin.sqlcipher.ios_unified" version="0.9.1" />
       </group>
     </dependencies>
   </metadata>

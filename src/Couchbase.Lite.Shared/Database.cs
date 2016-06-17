@@ -100,8 +100,10 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private static readonly Dictionary<string, Type> _StorageEngineMap =
-            new Dictionary<string, Type>();
+        private static readonly LogicalDictionary<string, Type> _StorageEngineMap =
+            new LogicalDictionary<string, Type>(new HashSet<LogicalDictionaryRule<string, Type>>{
+                new StorageEngineRule()
+            });
 
         private CookieStore _persistentCookieStore;
 

@@ -50,13 +50,20 @@
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SQLitePCL.raw, Version=0.8.5.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\SQLitePCL.raw.0.8.6\lib\net45\SQLitePCL.raw.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.1\lib\net45\SQLitePCL.raw.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
     </Reference>
     <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.8.6\lib\net35\SQLitePCL.ugly.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.1\lib\net35\SQLitePCL.ugly.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SQLitePCLPlugin_esqlite3, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlite3.net45.0.9.1\lib\net45\SQLitePCLPlugin_esqlite3.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
   </ItemGroup>
@@ -77,11 +84,4 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <Import Project="..\..\..\packages\SQLitePCL.raw.0.8.6\build\net45\SQLitePCL.raw.targets" Condition="Exists('..\..\..\packages\SQLitePCL.raw.0.8.6\build\net45\SQLitePCL.raw.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\..\packages\SQLitePCL.raw.0.8.6\build\net45\SQLitePCL.raw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\SQLitePCL.raw.0.8.6\build\net45\SQLitePCL.raw.targets'))" />
-  </Target>
 </Project>
