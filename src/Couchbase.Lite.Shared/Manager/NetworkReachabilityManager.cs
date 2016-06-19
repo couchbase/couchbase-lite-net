@@ -66,6 +66,7 @@ namespace Couchbase.Lite
             request.Method = "HEAD";
 
             try {
+                ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
                 using(var response = (HttpWebResponse)request.GetResponse()) {
                     return true; //We only care that the server responded
                 }

@@ -84,7 +84,12 @@ namespace Couchbase.Lite.Internal
 
             tokenSource = new CancellationTokenSource();
             _responseLogic = ChangeTrackerResponseLogicFactory.CreateLogic(this);
-            _responseLogic.OnCaughtUp = () => Client?.ChangeTrackerCaughtUp(this);
+            _responseLogic.OnCaughtUp = () =>
+            {
+                Client?.ChangeTrackerCaughtUp(this);
+                _caughtUp = true;
+            };
+
             _responseLogic.OnChangeFound = (change) =>
             {
                 if (!ReceivedChange(change)) {

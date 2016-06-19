@@ -378,7 +378,7 @@ namespace Couchbase.Lite.Listener
                         responseState.StartHeartbeat(heartbeatResponse, heartbeatSpan);
                     }
 
-                    return context.CreateResponse();
+                    return response;
                 } else {
                     if(responseState.ChangesIncludeConflicts) {
                         response.JsonBody = new Body(ResponseBodyForChanges(changes, since, options.Limit, responseState));

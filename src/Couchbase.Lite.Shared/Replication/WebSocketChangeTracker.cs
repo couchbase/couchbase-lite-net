@@ -29,6 +29,7 @@ using WebSocketSharp;
 using Couchbase.Lite.Auth;
 using System.Collections.Generic;
 using Microsoft.IO;
+using System.Security.Authentication;
 
 namespace Couchbase.Lite.Internal
 {
@@ -222,6 +223,9 @@ namespace Couchbase.Lite.Internal
             _client.OnMessage += OnReceive;
             _client.OnError += OnError;
             _client.OnClose += OnClose;
+#if !NET_3_5
+            _client.SslConfiguration.EnabledSslProtocols |= SslProtocols.Tls12;
+#endif
             if (authHeader != null) {
                 _client.CustomHeaders = new Dictionary<string, string> {
                     ["Authorization"] = authHeader.ToString()

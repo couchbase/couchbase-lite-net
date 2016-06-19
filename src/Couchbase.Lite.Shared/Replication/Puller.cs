@@ -913,9 +913,6 @@ namespace Couchbase.Lite.Replicator
             if (!_caughtUp) {
                 Log.To.Sync.I(TAG, "{0} caught up with changes", this);
                 _caughtUp = true;
-                if(Continuous) {
-                    FireTrigger(ReplicationTrigger.WaitingForChanges);
-                }
             }
         }
 

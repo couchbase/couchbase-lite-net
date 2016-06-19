@@ -350,7 +350,7 @@ namespace Couchbase.Lite.Internal
 
             var post = new NonNullDictionary<string, object> {
                 { "feed", Feed },
-                { "hearbeat", (long)Heartbeat.TotalSeconds },
+                { "heartbeat", (long)Heartbeat.TotalMilliseconds },
                 { "style", _includeConflicts ? (object)"all_docs" : null },
                 { "active_only", (ActiveOnly && !_caughtUp) ? (object)true : null },
                 { "since", since },

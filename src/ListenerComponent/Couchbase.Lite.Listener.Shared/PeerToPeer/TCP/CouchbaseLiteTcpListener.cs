@@ -119,6 +119,27 @@ namespace Couchbase.Lite.Listener.Tcp
                 _listener.SslConfiguration.ServerCertificate = sslCert;
                 #endif
             }
+
+            _listener.Log.Level = WebSocketSharp.LogLevel.Trace;
+            _listener.Log.Output = (data, msg) =>
+            {
+                switch(data.Level) {
+                    case WebSocketSharp.LogLevel.Fatal:
+                        Log.To.Listener.E("HttpServer", data.Message);
+                        break;
+                    case WebSocketSharp.LogLevel.Error:
+                    case WebSocketSharp.LogLevel.Warn:
+                        Log.To.Listener.W("HttpServer", data.Message);
+                        break;
+                    case WebSocketSharp.LogLevel.Info:
+                        Log.To.Listener.I("HttpServer", data.Message);
+                        break;
+                    case WebSocketSharp.LogLevel.Trace:
+                    case WebSocketSharp.LogLevel.Debug:
+                        Log.To.Listener.V("HttpServer", data.Message);
+                        break;
+                }
+            };
         }
 
         #endregion
