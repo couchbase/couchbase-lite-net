@@ -291,7 +291,6 @@ namespace Couchbase.Lite
         public void TestRapidRestart()
         {
             var pull = database.CreatePullReplication(GetReplicationURL());
-            pull.Continuous = true;
             pull.Start();
             RunReplication(pull);
             var pull2 = database.CreatePullReplication(GetReplicationURL());

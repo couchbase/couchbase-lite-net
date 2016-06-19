@@ -30,6 +30,7 @@ using Couchbase.Lite.Auth;
 using System.Collections.Generic;
 using Microsoft.IO;
 using System.Security.Authentication;
+using System.Net;
 
 namespace Couchbase.Lite.Internal
 {
@@ -226,13 +227,17 @@ namespace Couchbase.Lite.Internal
 #if !NET_3_5
             _client.SslConfiguration.EnabledSslProtocols |= SslProtocols.Tls12;
 #endif
+            foreach(Cookie cookie in Client.GetCookieStore().GetCookies(ChangesFeedUrl)) {
+                _client.SetCookie(new WebSocketSharp.Net.Cookie(cookie.Name, cookie.Value, cookie.Path, cookie.Domain));
+            }
+
             if (authHeader != null) {
                 _client.CustomHeaders = new Dictionary<string, string> {
                     ["Authorization"] = authHeader.ToString()
                 };
             }
-            _client.ConnectAsync();
 
+            _client.ConnectAsync();
             return true;
         }
 

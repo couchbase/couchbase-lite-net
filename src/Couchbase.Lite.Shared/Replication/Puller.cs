@@ -992,6 +992,11 @@ namespace Couchbase.Lite.Replicator
             return ClientFactory.GetHttpClient(CookieContainer, ReplicationOptions.RetryStrategy);
         }
 
+        public CookieContainer GetCookieStore()
+        {
+            return CookieContainer;
+        }
+
         #endregion
 
         #region Nested Classes

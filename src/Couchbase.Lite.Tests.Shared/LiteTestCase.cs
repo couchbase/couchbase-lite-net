@@ -64,6 +64,7 @@ namespace Couchbase.Lite
     public abstract class LiteTestCase
     {
         private const string TAG = "LiteTestCase";
+        private static bool _storageEngineSet = false;
         private Hashtable _runtimeTestProperties = 
             new Hashtable();
 
@@ -125,8 +126,12 @@ namespace Couchbase.Lite
             }
 
             WriteDebug("SetUp");
-            Storage.SQLCipher.Plugin.Register();
-            Storage.ForestDB.Plugin.Register();
+            if(!_storageEngineSet) {
+                _storageEngineSet = true;
+                Storage.SQLCipher.Plugin.Register();
+                Storage.ForestDB.Plugin.Register();
+            }
+
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
             Log.ScrubSensitivity = LogScrubSensitivity.AllOK;
             Log.Domains.All.Level = Log.LogLevel.Base;

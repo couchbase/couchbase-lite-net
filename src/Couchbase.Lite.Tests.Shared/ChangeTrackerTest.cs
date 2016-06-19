@@ -162,6 +162,11 @@ namespace Couchbase.Lite
                 return HttpClientFactory.GetHttpClient(null, null);
             }
 
+            public CookieContainer GetCookieStore()
+            {
+                return HttpClientFactory.GetCookieContainer();
+            }
+
             public IDictionary<string, string> Headers
             {
                 get

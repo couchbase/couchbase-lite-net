@@ -42,12 +42,20 @@
 
 using System.Collections.Generic;
 using System.Net.Http;
+using Couchbase.Lite.Util;
+
+#if NET_3_5
+using System.Net.Couchbase;
+#else
+using System.Net;
+#endif
 
 namespace Couchbase.Lite.Internal
 {
     internal interface IChangeTrackerClient
     {
         CouchbaseLiteHttpClient GetHttpClient();
+        CookieContainer GetCookieStore();
         void ChangeTrackerReceivedChange(IDictionary<string, object> change);
         void ChangeTrackerStopped(ChangeTracker tracker);
         void ChangeTrackerCaughtUp(ChangeTracker tracker);
