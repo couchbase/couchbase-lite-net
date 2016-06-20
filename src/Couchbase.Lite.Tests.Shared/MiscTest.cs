@@ -56,6 +56,7 @@ using System.Text;
 using System.Threading;
 using System.Net.Sockets;
 using System.Linq;
+using System.Collections;
 
 namespace Couchbase.Lite
 {
@@ -156,15 +157,19 @@ namespace Couchbase.Lite
 
             // Register and retrieve the sample token:
             var auth = new FacebookAuthorizer(email);
+            auth.RemoteUrl = site;
             Assert.IsTrue(FacebookAuthorizer.RegisterAccessToken(token, email, site));
-            var gotToken = auth.TokenForSite(site);
+            var gotToken = auth.GetToken();
             Assert.AreEqual(token, gotToken);
 
-            // Register and retrieve the sample token:
-            gotToken = auth.TokenForSite(new Uri("HttpS://example.com:443/some/other/path"));
+            // Try a variant form
+            var auth2 = new FacebookAuthorizer(email);
+            auth2.RemoteUrl = new Uri("HttpS://example.com:443/some/other/path");
+            gotToken = auth2.GetToken();
             Assert.AreEqual(token, gotToken);
-            Assert.AreEqual(new Dictionary<string, string> { { "access_token", token } }, 
-                auth.LoginParametersForSite(site));
+            CollectionAssert.AreEqual(new ArrayList { "POST", "_facebook", new Dictionary<string, object> {
+                ["access_token"] = token
+            } }, auth.LoginRequest());
         }
 
         [Test]

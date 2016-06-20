@@ -54,16 +54,16 @@
     <AndroidSupportedAbis>armeabi;armeabi-v7a;x86</AndroidSupportedAbis>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SQLite3Plugin, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\src\packages\SQLitePCL.plugin.sqlcipher.android.0.9.0-pre7\lib\MonoAndroid\SQLite3Plugin.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="SQLitePCL.raw, Version=0.8.5.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\..\src\packages\SQLitePCL.raw.0.9.0-pre7\lib\MonoAndroid\SQLitePCL.raw.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\..\src\packages\SQLitePCL.ugly.0.9.0-pre7\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCLPlugin_sqlcipher, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\src\packages\SQLitePCL.plugin.sqlcipher.android.0.9.1\lib\MonoAndroid\SQLitePCLPlugin_sqlcipher.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

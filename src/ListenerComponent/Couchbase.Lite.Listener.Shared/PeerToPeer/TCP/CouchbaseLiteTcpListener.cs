@@ -107,7 +107,7 @@ namespace Couchbase.Lite.Listener.Tcp
                 #if NET_3_5
                 throw new InvalidOperationException("TLS Listener not supported on .NET 3.5");
                 #else
-                _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
+                _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls;
                 _listener.SslConfiguration.ClientCertificateRequired = false;
                 if (sslCert == null) {
                     Log.To.Listener.I(TAG, "Generating X509 certificate for listener...");
@@ -119,6 +119,27 @@ namespace Couchbase.Lite.Listener.Tcp
                 _listener.SslConfiguration.ServerCertificate = sslCert;
                 #endif
             }
+
+            _listener.Log.Level = WebSocketSharp.LogLevel.Trace;
+            _listener.Log.Output = (data, msg) =>
+            {
+                switch(data.Level) {
+                    case WebSocketSharp.LogLevel.Fatal:
+                        Log.To.Listener.E("HttpServer", data.Message);
+                        break;
+                    case WebSocketSharp.LogLevel.Error:
+                    case WebSocketSharp.LogLevel.Warn:
+                        Log.To.Listener.W("HttpServer", data.Message);
+                        break;
+                    case WebSocketSharp.LogLevel.Info:
+                        Log.To.Listener.I("HttpServer", data.Message);
+                        break;
+                    case WebSocketSharp.LogLevel.Trace:
+                    case WebSocketSharp.LogLevel.Debug:
+                        Log.To.Listener.V("HttpServer", data.Message);
+                        break;
+                }
+            };
         }
 
         #endregion

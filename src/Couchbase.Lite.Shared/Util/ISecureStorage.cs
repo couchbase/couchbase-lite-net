@@ -1,5 +1,5 @@
 ﻿//
-//  Authorizer.cs
+//  ISecureStorage.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -21,19 +21,37 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace Couchbase.Lite.Auth
+namespace Couchbase.Lite.Util
 {
-    internal abstract class Authorizer : IAuthorizer
+    internal sealed class SecureStorageRequest
     {
-        public Uri RemoteUrl { get; set; }
 
-        public abstract string Scheme { get; }
-        public abstract string UserInfo { get; }
-        public abstract bool UsesCookieBasedLogin { get; }
+        public string Account { get; }
 
-        public abstract IDictionary<string, string> LoginParametersForSite(Uri site);
-        public abstract string LoginPathForSite(Uri site);
+        public string Service { get; }
+
+        public string Label { get; }
+
+        public IEnumerable<byte> Data { get; set; }
+
+        public SecureStorageRequest( string account, string service, string label)
+        {
+            Account = account;
+            Service = service;
+            Label = label;
+        }
+    }
+
+    internal interface ISecureStorage : IInjectable
+    {
+        void Write(SecureStorageRequest request);
+
+        IEnumerable<byte> Read(SecureStorageRequest request);
+
+        void Delete(SecureStorageRequest request);
     }
 }

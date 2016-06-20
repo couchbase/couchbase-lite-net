@@ -20,7 +20,7 @@
     <AndroidUseLatestPlatformSdk>False</AndroidUseLatestPlatformSdk>
     <AssemblyName>Couchbase.Lite.Listener</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
-    <TargetFrameworkVersion>v4.0.3</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -96,7 +96,6 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener\MonoAndroid" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb);
-    $(OutputPath)Mono.Security.Couchbase.dll;$(OutputPath)Mono.Security.Couchbase.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\MonoAndroid" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb);&#xD;&#xA;    $(OutputPath)Mono.Security.Couchbase.dll;$(OutputPath)Mono.Security.Couchbase.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\MonoAndroid" />
   </Target>
 </Project>

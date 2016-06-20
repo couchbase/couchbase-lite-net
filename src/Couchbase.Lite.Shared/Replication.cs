@@ -185,7 +185,7 @@ namespace Couchbase.Lite
         internal const int INBOX_CAPACITY = 100;
         private static readonly TimeSpan ProcessorDelay = TimeSpan.FromMilliseconds(500);
         private static readonly TimeSpan SaveLastSequenceDelay = TimeSpan.FromSeconds(5);
-        private const string TAG = "Replication";
+        private const string Tag = nameof(Replication);
         private const string LOCAL_CHECKPOINT_LOCAL_UUID_KEY = "localUUID";
 
         #endregion
@@ -214,8 +214,6 @@ namespace Couchbase.Lite
         /// </summary>
         protected readonly TaskFactory WorkExecutor;
 
-        private IHttpClientFactory _clientFactory;
-
         /// <summary>
         /// The list of currently active HTTP requests
         /// </summary>
@@ -225,7 +223,11 @@ namespace Couchbase.Lite
         /// <summary>
         /// The list of currently active HTTP messages
         /// </summary>
-        protected readonly ConcurrentDictionary<HttpRequestMessage, Task> _requests;
+        [Obsolete("Refactored out, and will be removed")]
+        protected ConcurrentDictionary<HttpRequestMessage, Task> _requests
+        {
+            get { return _remoteSession?._requests; }
+        }
 
         /// <summary>
         /// Whether or not the LastSequence property has changed
@@ -245,14 +247,13 @@ namespace Couchbase.Lite
         private static int _lastSessionID;
         private string _remoteCheckpointDocID;
         private CancellationTokenSource _retryIfReadyTokenSource;
-        private CancellationTokenSource _remoteRequestCancellationSource;
+        
         private readonly Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
         private HashSet<string> _pendingDocumentIDs;
         private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
         private Guid _replicatorID = Guid.NewGuid();
-        private CookieStore _cookieStore;
-        private Leasable<CouchbaseLiteHttpClient> _client;
         private DateTime _startTime;
+        internal RemoteSession _remoteSession;
 
         #endregion
 
@@ -343,7 +344,7 @@ namespace Couchbase.Lite
                 {
                     if (!IsPull)
                     {
-                        Log.To.Sync.W(TAG, "filterChannels can only be set in pull replications, not setting...");
+                        Log.To.Sync.W(Tag, "filterChannels can only be set in pull replications, not setting...");
                         return;
                     }
 
@@ -423,7 +424,7 @@ namespace Couchbase.Lite
             set
             {
                 if (value != _lastError) {
-                    Log.To.Sync.I(TAG, "Error set during replication (application may continue)", value);
+                    Log.To.Sync.I(Tag, "Error set during replication (application may continue)", value);
                     _lastError = value;
                     NotifyChangeListeners();
                 }
@@ -455,7 +456,11 @@ namespace Couchbase.Lite
         /// Gets or sets the authenticator.
         /// </summary>
         /// <value>The authenticator.</value>
-        public IAuthenticator Authenticator { get; set; }
+        public IAuthenticator Authenticator
+        {
+            get { return _remoteSession.Authenticator; }
+            set { _remoteSession.Authenticator = value as IAuthorizer; }
+        }
 
         /// <summary>
         /// Gets the active task info for thie replication
@@ -522,7 +527,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the replication options.
         /// </summary>
-        public ReplicationOptions ReplicationOptions { get; set; }
+        public ReplicationOptions ReplicationOptions { get; set; } = new ReplicationOptions();
        
         /// <summary>
         /// Returns whether or not the replication may be stopped at 
@@ -545,7 +550,7 @@ namespace Couchbase.Lite
                 }
 
                 if (!value.Equals(_lastSequence)) {
-                    Log.To.Sync.V(TAG, "{0} setting LastSequence to {1} (from {2})", this, value, _lastSequence);
+                    Log.To.Sync.V(Tag, "{0} setting LastSequence to {1} (from {2})", this, value, _lastSequence);
                     _lastSequence = value;
 
                     if (!lastSequenceChanged) {
@@ -562,30 +567,10 @@ namespace Couchbase.Lite
         /// for connected to remote databases
         /// </summary>
         internal IHttpClientFactory ClientFactory {
-            get { return _clientFactory; }
-            set { 
-                if (value != null) {
-                    _clientFactory = value;
-                } else {
-                    Manager manager = null;
-                    if (LocalDatabase != null) {
-                        manager = LocalDatabase.Manager;
-                    }
-
-                    IHttpClientFactory managerClientFactory = null;
-                    if (manager != null) {
-                        managerClientFactory = manager.DefaultHttpClientFactory;
-                    }
-
-                    if (managerClientFactory != null) {
-                        _clientFactory = managerClientFactory;
-                    }  else {
-                        _clientFactory = new CouchbaseLiteHttpClientFactory();
-                    }
-                }
-
+            get { return _remoteSession.ClientFactory; }
+            set {
                 var id = LocalDatabase == null ? null : RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
-                _cookieStore = new CookieStore(LocalDatabase, id);
+                _remoteSession.SetupHttpClientFactory(value, LocalDatabase, id);
             }
         }
 
@@ -597,23 +582,22 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the headers that should be used when making HTTP requests
         /// </summary>
-        protected internal IDictionary<String, Object> RequestHeaders
+        protected internal IDictionary<string, object> RequestHeaders
         {
             get {
-                return _requestHeaders;
+                return _remoteSession.RequestHeaders;
             }
             set { 
-                _requestHeaders = value ?? new Dictionary<string, object>();
+                _remoteSession.RequestHeaders = value ?? new Dictionary<string, object>();
             }
         }
-        private IDictionary<string, object> _requestHeaders;
 
         /// <summary>
         /// The container for storing cookies specific to this replication
         /// </summary>
         protected internal CookieStore CookieContainer
         {
-            get { return _cookieStore; }
+            get { return _remoteSession.CookieStore; }
         }
 
         /// <summary>
@@ -654,6 +638,14 @@ namespace Couchbase.Lite
         internal Replication(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor)
         {
             sessionID = $"repl{ Interlocked.Increment(ref _lastSessionID):000}";
+            var opts = new RemoteSessionContructorOptions {
+                BaseUrl = remote,
+                WorkExecutor = workExecutor,
+                Id = _replicatorID,
+                CancellationTokenSource = CancellationTokenSource
+            };
+            _remoteSession = new RemoteSession(opts);
+
             LocalDatabase = db;
             _eventContext = LocalDatabase.Manager.CapturedContext;
             Continuous = continuous;
@@ -662,44 +654,16 @@ namespace Couchbase.Lite
             RemoteUrl = remote;
             Options = new ReplicationOptionsDictionary();
             ReplicationOptions = new ReplicationOptions();
-            RequestHeaders = new Dictionary<String, Object>();
-            _requests = new ConcurrentDictionary<HttpRequestMessage, Task>();
 
-            // FIXME: Refactor to visitor pattern.
             if (RemoteUrl.Query != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.Query)) {
-                var uri = new Uri(remote.ToString());
-                var personaAssertion = URIUtils.GetQueryParameter(uri, PersonaAuthorizer.QueryParameter);
-
-                if (personaAssertion != null && !StringEx.IsNullOrWhiteSpace(personaAssertion)) {
-                    var email = PersonaAuthorizer.RegisterAssertion(personaAssertion);
-                    var authorizer = new PersonaAuthorizer(email);
-                    Authenticator = authorizer;
-                }
-
-                var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter);
-
-                if (facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken)) {
-                    var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameterEmail);
-                    var authorizer = new FacebookAuthorizer(email);
-                    Uri remoteWithQueryRemoved = null;
-
-                    try {
-                        remoteWithQueryRemoved = new UriBuilder(remote.Scheme, remote.Host, remote.Port, remote.AbsolutePath).Uri;
-                    } catch (UriFormatException e) {
-                        throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG,
-                            "Invalid URI format for remote endpoint");
-                    }
-
-                    FacebookAuthorizer.RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved);
-                    Authenticator = authorizer;
-                }
+                Authenticator = AuthenticatorFactory.CreateFromUri(remote);
 
                 // we need to remove the query from the URL, since it will cause problems when
                 // communicating with sync gw / couchdb
                 try {
                     RemoteUrl = new UriBuilder(remote.Scheme, remote.Host, remote.Port, remote.AbsolutePath).Uri;
                 } catch (UriFormatException e) {
-                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG,
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag,
                         "Invalid URI format for remote endpoint");
                 }
             }
@@ -707,16 +671,16 @@ namespace Couchbase.Lite
             Batcher = new Batcher<RevisionInternal>(workExecutor, INBOX_CAPACITY, ProcessorDelay, inbox =>
             {
                 try {
-                    Log.To.Sync.V(TAG, "*** {0} BEGIN ProcessInbox ({1} sequences)", this, inbox.Count);
+                    Log.To.Sync.V(Tag, "*** {0} BEGIN ProcessInbox ({1} sequences)", this, inbox.Count);
                     if(Continuous) {
                         FireTrigger(ReplicationTrigger.Resume);
                     }
 
                     ProcessInbox (new RevisionList(inbox));
 
-                    Log.To.Sync.V(TAG, "*** {0} END ProcessInbox (lastSequence={1})", this, LastSequence);
+                    Log.To.Sync.V(Tag, "*** {0} END ProcessInbox (lastSequence={1})", this, LastSequence);
                 } catch(Exception e) {
-                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG, 
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag, 
                         "{0} ProcessInbox failed", this);
                 }
             });
@@ -736,7 +700,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Start()
         {
-            Log.To.Sync.V(TAG, "Start() called, firing Start...");
+            Log.To.Sync.V(Tag, "Start() called, firing Start...");
             FireTrigger(ReplicationTrigger.Start);
         }
 
@@ -745,7 +709,7 @@ namespace Couchbase.Lite
         /// </summary>
         public virtual void Stop()
         {
-            Log.To.Sync.V(TAG, "Stop() called, firing StopGraceful...");
+            Log.To.Sync.V(Tag, "Stop() called, firing StopGraceful...");
             FireTrigger(ReplicationTrigger.StopGraceful);
         }
 
@@ -775,7 +739,7 @@ namespace Couchbase.Lite
             }
 
             if (!LocalDatabase.IsOpen) {
-                Log.To.Sync.W(TAG, "LocalDatabase is not open, so ruling Replication as stopped.  Returning empty pending ID set");
+                Log.To.Sync.W(Tag, "LocalDatabase is not open, so ruling Replication as stopped.  Returning empty pending ID set");
                 return new HashSet<string>();
             }
 
@@ -785,7 +749,7 @@ namespace Couchbase.Lite
                 return _pendingDocumentIDs;
             }
 
-            Log.To.Sync.W(TAG, "Error getting unpushed revisions, returning empty set...");
+            Log.To.Sync.W(Tag, "Error getting unpushed revisions, returning empty set...");
             return new HashSet<string>();
         }
 
@@ -805,20 +769,20 @@ namespace Couchbase.Lite
         public void Restart()
         {
             if(_restartEnabled) {
-                Log.To.Sync.I(TAG, "Restart already scheduled, returning early!");
+                Log.To.Sync.I(Tag, "Restart already scheduled, returning early!");
                 return;
             }
 
             _restartEnabled = true;
             Changed += WaitForStopped;
             if(Status == ReplicationStatus.Stopped) {
-                Log.To.Sync.W(TAG, "Restart() called on already stopped replication, " +
+                Log.To.Sync.W(Tag, "Restart() called on already stopped replication, " +
                 "simply calling Start()");
                 Changed -= WaitForStopped;
                 Start();
                 return;
             } else if(_stateMachine.IsInState(ReplicationState.Stopping)) {
-                Log.To.Sync.I(TAG, "Replication already stopping, scheduling an immediate restart");
+                Log.To.Sync.I(Tag, "Replication already stopping, scheduling an immediate restart");
                 return; // Already stopping
             }
 
@@ -838,7 +802,7 @@ namespace Couchbase.Lite
         public void SetCookie(string name, string value, string path, DateTime expirationDate, bool secure, bool httpOnly)
         {
             if(expirationDate.Kind == DateTimeKind.Unspecified) {
-                Log.To.Sync.W(TAG, "Cookie being constructed with DateTimeKind.Unspecified for expiration date.  " +
+                Log.To.Sync.W(Tag, "Cookie being constructed with DateTimeKind.Unspecified for expiration date.  " +
                     "This has been known to cause issues with expiration dates being incorrect.");
             }
 
@@ -854,7 +818,7 @@ namespace Couchbase.Lite
                 ? path 
                 : RemoteUrl.PathAndQuery;
             
-            _cookieStore.Add(cookie);
+            _remoteSession.CookieStore.Add(cookie);
         }
 
         /// <summary>
@@ -863,7 +827,7 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the cookie</param>
         public void DeleteCookie(String name)
         {
-            _cookieStore.Delete(RemoteUrl, name);
+            _remoteSession.CookieStore.Delete(RemoteUrl, name);
         }
             
         #endregion
@@ -937,7 +901,7 @@ namespace Couchbase.Lite
                     }
                 }
             } catch (Exception e) {
-                Log.To.Sync.E(TAG, String.Format("Exception getting status from {0}, continuing...", item), e);
+                Log.To.Sync.E(Tag, String.Format("Exception getting status from {0}, continuing...", item), e);
             }
 
             return new Status(StatusCode.Ok);
@@ -954,7 +918,7 @@ namespace Couchbase.Lite
         protected virtual void Retry()
         {
             LastError = null;
-            CheckSession();
+            Login();
         }
 
         /// <summary>
@@ -967,7 +931,7 @@ namespace Couchbase.Lite
             }
 
             if (_stateMachine.IsInState(ReplicationState.Idle)) {
-                Log.To.Sync.I(TAG, "RETRYING, to transfer missed revisions...");
+                Log.To.Sync.I(Tag, "RETRYING, to transfer missed revisions...");
                 _revisionsFailed = 0;
                 CancelPendingRetryIfReady();
                 Retry();
@@ -983,13 +947,13 @@ namespace Couchbase.Lite
         /// <param name="trigger">The trigger to fire.</param>
         protected void FireTrigger(ReplicationTrigger trigger)
         {
-            Log.To.Sync.V(TAG, "Preparing to fire {0}", trigger);
+            Log.To.Sync.V(Tag, "Preparing to fire {0}", trigger);
             WorkExecutor.StartNew(() =>
             {
                 try {
                     _stateMachine.Fire(trigger);
                 } catch(Exception e) {
-                    Log.To.Sync.E(TAG, "State machine error", e);
+                    Log.To.Sync.E(Tag, "State machine error", e);
                     throw;
                 }
             });
@@ -1031,9 +995,9 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void StartInternal()
         {
-            Log.To.Sync.I(TAG, "Attempting to start {0} ({1})", IsPull ? "puller" : "pusher", _replicatorID);
+            Log.To.Sync.I(Tag, "Attempting to start {0} ({1})", IsPull ? "puller" : "pusher", _replicatorID);
             if (!LocalDatabase.IsOpen) {
-                Log.To.Sync.W(TAG, "Not starting because local database is not open.");
+                Log.To.Sync.W(Tag, "Not starting because local database is not open.");
                 FireTrigger(ReplicationTrigger.StopImmediate);
                 return;
             }
@@ -1042,7 +1006,7 @@ namespace Couchbase.Lite
             reachabilityManager.StatusChanged += NetworkStatusChanged;
 
             if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri)) {
-                Log.To.Sync.I(TAG, "Remote endpoint is not reachable, going offline...");
+                Log.To.Sync.I(Tag, "Remote endpoint is not reachable, going offline...");
                 LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
                 FireTrigger(ReplicationTrigger.GoOffline);
                 CheckOnlineLoop();
@@ -1053,23 +1017,22 @@ namespace Couchbase.Lite
 #if DEBUG
                 var activeReplicators = default(IList<Replication>);
                 if(!LocalDatabase.ActiveReplicators.AcquireTemp(out activeReplicators)) {
-                    Log.To.Sync.E(TAG, "Active replication list unavailable!");
+                    Log.To.Sync.E(Tag, "Active replication list unavailable!");
                 } else {
                     var existing = activeReplicators.FirstOrDefault(x => x.RemoteCheckpointDocID() == RemoteCheckpointDocID());
                     if(existing != null) {
-                        Log.To.Sync.W(TAG, "Not starting because identical {0} already exists ({1})", IsPull ? "puller" : "pusher", existing._replicatorID);
+                        Log.To.Sync.W(Tag, "Not starting because identical {0} already exists ({1})", IsPull ? "puller" : "pusher", existing._replicatorID);
                     } else {
-                        Log.To.Sync.E(TAG, "Not starting {0} for unknown reasons", IsPull ? "puller" : "pusher");
+                        Log.To.Sync.E(Tag, "Not starting {0} for unknown reasons", IsPull ? "puller" : "pusher");
                     }
                 }
 #else
-                Log.To.Sync.W(TAG, "Not starting becuse identical {0} already exists", IsPull ? "puller" : "pusher");
+                Log.To.Sync.W(Tag, "Not starting becuse identical {0} already exists", IsPull ? "puller" : "pusher");
 #endif
                 FireTrigger(ReplicationTrigger.StopImmediate);
                 return;
             }
 
-            _remoteRequestCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token);
             _retryIfReadyTokenSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token);
             if (ReplicationOptions.Reset) {
                 LocalDatabase.SetLastSequence(null, RemoteCheckpointDocID());
@@ -1078,17 +1041,20 @@ namespace Couchbase.Lite
             _startTime = DateTime.UtcNow;
             SetupRevisionBodyTransformationFunction();
 
-            Log.To.Sync.I(TAG, "Beginning replication process...");
+            Log.To.Sync.I(Tag, "Beginning replication process...");
             LastSequence = null;
-            _clientFactory.SocketTimeout = ReplicationOptions.SocketTimeout;
-            var clientObj = _clientFactory.GetHttpClient(_cookieStore, ReplicationOptions.RetryStrategy);
-            clientObj.Timeout = ReplicationOptions.RequestTimeout;
-            clientObj.SetConcurrencyLimit(ReplicationOptions.MaxOpenHttpConnections);
-            _client = clientObj;
+            var authorizer = Authenticator as IAuthorizer;
+            if(authorizer != null) {
+                authorizer.RemoteUrl = RemoteUrl;
+            }
+
+            _remoteSession = RemoteSession.Clone(_remoteSession);
+            _remoteSession.Setup(ReplicationOptions);
+            
             _changesCount = 0;
             _completedChangesCount = 0;
 
-            CheckSession();
+            Login();
         }
 
         /// <summary>
@@ -1096,35 +1062,21 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void Login()
         {
-            var loginParameters = Authenticator.LoginParametersForSite(RemoteUrl);
-            if (loginParameters == null)
-            {
-                Log.To.Sync.I(TAG, "{0}: {1} has no login parameters, so skipping login", this, Authenticator);
+            if(Authenticator != null) {
+                var login = new RemoteLogin(RemoteUrl, _remoteSession);
+                login.AttemptLogin().ContinueWith(t =>
+                {
+                    if(t.Exception != null) {
+                        LastError = Misc.Flatten(t.Exception)?.FirstOrDefault();
+                        FireTrigger(ReplicationTrigger.StopImmediate);
+                    } else {
+                        Log.To.Sync.I(Tag, "{0} successfully logged in!", this);
+                        FetchRemoteCheckpointDoc();
+                    }
+                });
+            } else {
                 FetchRemoteCheckpointDoc();
-                return;
             }
-
-            var loginPath = Authenticator.LoginPathForSite(RemoteUrl);
-            Log.To.Sync.I(TAG, "{0} logging in with {1} at {2}", this, Authenticator.GetType(), loginPath);
-
-            SendAsyncRequest(HttpMethod.Post, loginPath, loginParameters, (result, e) => {
-                if (e != null)
-                {
-                    Log.To.Sync.W(TAG, "{0} login failed, stopping replication process...", this);
-                    LastError = e;
-
-                    // TODO: double check this behavior against iOS implementation, especially
-                    // TODO: with regards to behavior of a continuous replication.
-                    // Note: was added in order that unit test testReplicatorErrorStatus() finished and passed.
-                    // (before adding this, the replication would just end up in limbo and never finish)
-                    FireTrigger(ReplicationTrigger.StopGraceful);
-                }
-                else
-                {
-                    Log.To.Sync.I(TAG, "{0} successfully logged in!", this);
-                    FetchRemoteCheckpointDoc ();
-                }
-            });
         }
 
         /// <summary>
@@ -1142,7 +1094,7 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void PerformGoOffline()
         {
-            Log.To.Sync.I(TAG, "{0} going offline", this);
+            Log.To.Sync.I(Tag, "{0} going offline", this);
             CheckOnlineLoop();
         }
 
@@ -1152,7 +1104,7 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void PerformGoOnline()
         {
-            Log.To.Sync.I(TAG, "{0} going online", this);
+            Log.To.Sync.I(Tag, "{0} going online", this);
         }
 
         /// <summary>
@@ -1174,13 +1126,13 @@ namespace Couchbase.Lite
             }
 
             var newCount = Interlocked.Add(ref _completedChangesCount, value);
-            Log.To.Sync.I(TAG, "{0} progress {1} / {2}", this, newCount, _changesCount);
+            Log.To.Sync.I(Tag, "{0} progress {1} / {2}", this, newCount, _changesCount);
             NotifyChangeListeners();
             if (newCount == _changesCount && IsSafeToStop) {
                 if(Continuous) {
                     FireTrigger(ReplicationTrigger.WaitingForChanges);
                 } else {
-                    Log.To.Sync.V(TAG, "Non-continuous replication caught up, firing StopGraceful...");
+                    Log.To.Sync.V(Tag, "Non-continuous replication caught up, firing StopGraceful...");
                     FireTrigger(ReplicationTrigger.StopGraceful);
                 }
             }
@@ -1197,7 +1149,7 @@ namespace Couchbase.Lite
             }
 
             var newCount = Interlocked.Add(ref _changesCount, value);
-            Log.To.Sync.I(TAG, "{0} progress {1} / {2}", this, _completedChangesCount, newCount);
+            Log.To.Sync.I(Tag, "{0} progress {1} / {2}", this, _completedChangesCount, newCount);
             if(Continuous) {
                 FireTrigger(ReplicationTrigger.Resume);
             }
@@ -1211,7 +1163,7 @@ namespace Couchbase.Lite
         /// </summary>
         protected virtual void StopGraceful()
         {
-            Log.To.Sync.I(TAG, "{0}: Stop Graceful...", _replicatorID);
+            Log.To.Sync.I(Tag, "{0}: Stop Graceful...", _replicatorID);
 
             if (Batcher != null)  {
                 Batcher.Clear();
@@ -1242,333 +1194,29 @@ namespace Couchbase.Lite
 
         internal virtual void Stopping()
         {
-            Log.To.Sync.I(TAG, "{0} Stopping", this);
-            var client = _client;
-            if(!LocalDatabase.IsOpen || client.Disposed) {
+            Log.To.Sync.I(Tag, "{0} Stopping", this);
+            if(!LocalDatabase.IsOpen || _remoteSession.Disposed) {
                 // This logic has already been handled by DatabaseClosing(), or
                 // this replication never started in the first place (client still null)
-                return; 
+                return;
             }
 
             LocalDatabase.ForgetReplication(this);
             lastSequenceChanged = true; // force save the sequence
-            SaveLastSequence (() => 
-            {
-                var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
-                if (reachabilityManager != null) {
-                    reachabilityManager.StatusChanged -= NetworkStatusChanged;
-                }
+            SaveLastSequence(() =>
+           {
+               var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+               if(reachabilityManager != null) {
+                   reachabilityManager.StatusChanged -= NetworkStatusChanged;
+               }
 
-                client.Dispose();
-                Log.To.Sync.I(TAG, "{0} stopped.  Elapsed time {1} sec", this, (DateTime.UtcNow - _startTime).TotalSeconds.ToString("F3"));
-            });
+               _remoteSession.Dispose();
+               Log.To.Sync.I(Tag, "{0} stopped.  Elapsed time {1} sec", this, (DateTime.UtcNow - _startTime).TotalSeconds.ToString("F3"));
+           });
         }
+        
 
-        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler, bool ignoreCancel = false)
-        {
-            try {
-                var urlStr = BuildRelativeURLString(relativePath);
-                var url = new Uri(urlStr);
-                return SendAsyncRequest(method, url, body, completionHandler, ignoreCancel);
-            } catch (UriFormatException e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG, "Malformed URL for async request");
-            } catch (Exception e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG, "Error sending async request {0}",
-                    new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
-            }
-        }
-
-        internal String BuildRelativeURLString(String relativePath)
-        {
-            // the following code is a band-aid for a system problem in the codebase
-            // where it is appending "relative paths" that start with a slash, eg:
-            //     http://dotcom/db/ + /relpart == http://dotcom/db/relpart
-            // which is not compatible with the way the java url concatonation works.
-            var remoteUrlString = RemoteUrl.ToString();
-            if (remoteUrlString.EndsWith ("/", StringComparison.InvariantCultureIgnoreCase) && relativePath.StartsWith ("/", StringComparison.InvariantCultureIgnoreCase))
-            {
-                remoteUrlString = remoteUrlString.Substring(0, remoteUrlString.Length - 1);
-            }
-            return remoteUrlString + relativePath;
-        }
-
-        internal HttpRequestMessage SendAsyncRequest(HttpMethod method, Uri url, object body, RemoteRequestCompletionBlock completionHandler, bool ignoreCancel)
-        {
-            var message = new HttpRequestMessage(method, url);
-            var mapper = Manager.GetObjectMapper();
-            message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
-
-            var bytes = default(byte[]);
-            if (body != null) {
-                bytes = mapper.WriteValueAsBytes(body).ToArray();
-                var byteContent = new ByteArrayContent(bytes);
-                message.Content = byteContent;
-                message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            }
-
-            var token = ignoreCancel ? CancellationToken.None : _remoteRequestCancellationSource.Token;
-            Log.To.Sync.V(TAG, "{0} - Sending {1} request to: {2}", _replicatorID, method, new SecureLogUri(url));
-            var client = default(CouchbaseLiteHttpClient);
-            if(!_client.AcquireFor(TimeSpan.FromSeconds(1), out client)) {
-                Log.To.Sync.I(TAG, "Client is disposed, aborting request to {0}", new SecureLogUri(url));
-                return null;
-            }
-
-            client.Authenticator = Authenticator;
-            var t = client.SendAsync(message, token).ContinueWith(response =>
-            {
-                try {
-                    HttpResponseMessage result = null;
-                    Exception error = null;
-                    if(!response.IsFaulted && !response.IsCanceled) {
-                        result = response.Result;
-                        UpdateServerType(result);
-                    } else if(response.IsFaulted) {
-                        Log.To.Sync.W(TAG, String.Format("Http Message failed to send, or got error response, " +
-                            "passing to callback... {0}, ",
-                            message), response.Exception);
-                        if(bytes != null) {
-                            try {
-                                Log.To.Sync.W(TAG, "\tFailed content: {0}", new SecureLogString(bytes, LogMessageSensitivity.PotentiallyInsecure));
-                            } catch(ObjectDisposedException) {}
-                        }
-                    }
-
-                    if(completionHandler != null) {
-                        object fullBody = null;
-
-                        try {
-                            if(response.Status != TaskStatus.RanToCompletion) {
-                                Log.To.Sync.V(TAG, "SendAsyncRequest did not run to completion.");
-                            }
-
-                            if(response.IsCanceled) {
-                                error = new WebException("SendAsyncRequest was cancelled", System.Net.WebExceptionStatus.RequestCanceled);
-                            } else {
-                                error = Misc.Flatten(response.Exception).FirstOrDefault();
-                            }
-
-                            if(error == null) {
-                                if(!result.IsSuccessStatusCode) {
-                                    result = response.Result;
-                                    error = new HttpResponseException(result.StatusCode);
-                                }
-                            }
-
-                            if(error == null) {
-                                var content = result.Content;
-                                if(content != null) {
-                                    fullBody = mapper.ReadValue<object>(content.ReadAsStreamAsync().Result);
-                                }
-
-                                error = null;
-                            }
-                        } catch(Exception e) {
-                            error = e;
-                            Log.To.Sync.W(TAG, "SendAsyncRequest got an exception while processing response, " +
-                                "passing it on to the callback.", e);
-                        }
-
-                        completionHandler(fullBody, error);
-                    }
-
-                    if(result != null) {
-                        result.Dispose();
-                    }
-                } finally {
-                    Task dummy;
-                    _requests.TryRemove(message, out dummy);
-                    message.Dispose();
-                }
-            }, token);
-
-            _requests.AddOrUpdate(message, k => t, (k, v) => t);
-            return message;
-        }
-
-        internal void SendAsyncMultipartDownloaderRequest(HttpMethod method, string relativePath, object body, Database db, RemoteRequestCompletionBlock onCompletion)
-        {
-            try {
-                var urlStr = BuildRelativeURLString(relativePath);
-                var url = new Uri(urlStr);
-
-                var message = new HttpRequestMessage(method, url);
-                message.Headers.Add("Accept", "*/*");
-                AddRequestHeaders(message);
-
-                var client = default(CouchbaseLiteHttpClient);
-                if(!_client.AcquireFor(TimeSpan.FromSeconds(1), out client)) {
-                    Log.To.Sync.I(TAG, "Client is disposed, aborting request to {0}", new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
-                    return;
-                }
-
-                client.Authenticator = Authenticator;
-                var request = client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
-                {
-                    object fullBody = null;
-                    Exception error = null;
-                    try {
-                        if(responseMessage.IsFaulted) {
-                            error = responseMessage.Exception.InnerException;
-                            if(onCompletion != null) {
-                                onCompletion(null, error);
-                            }
-
-                            return;
-                        }
-
-                        var response = responseMessage.Result;
-                        // add in cookies to global store
-                        //CouchbaseLiteHttpClientFactory.Instance.AddCoIokies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
-
-                        var status = response.StatusCode;
-                        if ((Int32)status.GetStatusCode() >= 300) {
-                            Log.To.Sync.W(TAG, "Got error {0}", status.GetStatusCode());
-                            Log.To.Sync.W(TAG, "Request was for: " + message);
-                            Log.To.Sync.W(TAG, "Status reason: " + response.ReasonPhrase);
-                            Log.To.Sync.W(TAG, "Passing error onto callback...");
-                            error = new HttpResponseException(status);
-                            if(onCompletion != null) {
-                                onCompletion(null, error);
-                            }
-                        } else {
-                            var entity = response.Content;
-                            var contentTypeHeader = response.Content.Headers.ContentType;
-                            Stream inputStream = null;
-                            if (contentTypeHeader != null && contentTypeHeader.ToString().Contains("multipart/related")) {
-                                try {
-                                    var reader = new MultipartDocumentReader(LocalDatabase);
-                                    var contentType = contentTypeHeader.ToString();
-                                    reader.SetContentType(contentType);
-
-                                    var inputStreamTask = entity.ReadAsStreamAsync();
-                                    //inputStreamTask.Wait(90000, CancellationTokenSource.Token);
-                                    inputStream = inputStreamTask.Result;
-
-                                    const int bufLen = 1024;
-                                    var buffer = new byte[bufLen];
-
-                                    int numBytesRead = 0;
-                                    while ((numBytesRead = inputStream.Read(buffer, 0, buffer.Length)) > 0) {
-                                        if (numBytesRead != bufLen) {
-                                            var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<Byte>(buffer, 0, numBytesRead);
-                                            reader.AppendData(bufferToAppend);
-                                        } else {
-                                            reader.AppendData(buffer);
-                                        }
-                                    }
-
-                                    reader.Finish();
-                                    fullBody = reader.GetDocumentProperties();
-
-                                    if (onCompletion != null) {
-                                        onCompletion(fullBody, error);
-                                    }
-                                } catch (Exception ex) {
-                                    Log.To.Sync.W(TAG, "SendAsyncMultipartDownloaderRequest got an exception, aborting...", ex);
-                                } finally {
-                                    try {
-                                        inputStream.Close();
-                                    } catch (Exception) { }
-                                }
-                            } else {
-                                if (entity != null) {
-                                    try {
-                                        var readTask = entity.ReadAsStreamAsync();
-                                        //readTask.Wait(); // TODO: This should be scaled based on content length.
-                                        inputStream = readTask.Result;
-                                        fullBody = Manager.GetObjectMapper().ReadValue<Object>(inputStream);
-                                        if (onCompletion != null)
-                                            onCompletion(fullBody, error);
-                                    } catch (Exception ex) {
-                                        Log.To.Sync.W(TAG, "SendAsyncMultipartDownloaderRequest got an exception, aborting...", ex);
-                                    } finally {
-                                        try {
-                                            inputStream.Close();
-                                        } catch (Exception) { }
-                                    }
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        Log.To.Sync.W(TAG, "Got exception during SendAsyncMultipartDownload, aborting...");
-                        error = e;
-                    } finally {
-                        Task dummy;
-                        _requests.TryRemove(message, out dummy);
-                        responseMessage.Result.Dispose();
-                    }
-                }), WorkExecutor.Scheduler);
-                _requests.TryAdd(message, request);
-            } catch (UriFormatException e) {
-                Log.To.Sync.W(TAG, "Malformed URL for async request, aborting...", e);
-            }
-        }
-
-        internal void SendAsyncMultipartRequest(HttpMethod method, string relativePath, MultipartContent multiPartEntity, RemoteRequestCompletionBlock completionHandler)
-        {
-            Uri url = null;
-            try {
-                var urlStr = BuildRelativeURLString(relativePath);
-                url = new Uri(urlStr);
-            } catch (UriFormatException) {
-                Log.To.Sync.E(TAG, "Invalid path received for request: {0}, throwing...",
-                    new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
-                throw new ArgumentException("Invalid path", "relativePath");
-            }
-
-            var message = new HttpRequestMessage(method, url);
-            message.Content = multiPartEntity;
-            message.Headers.Add("Accept", "*/*");
-
-            var client = default(CouchbaseLiteHttpClient);
-            if(!_client.AcquireFor(TimeSpan.FromSeconds(1), out client)) {
-                Log.To.Sync.I(TAG, "Client is disposed, aborting request to {0}", new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
-                return;
-            }
-
-            client.Authenticator = Authenticator;
-            var t = client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(response=> 
-            {
-                multiPartEntity.Dispose();
-                if (response.Status != TaskStatus.RanToCompletion)
-                {
-                    LastError = response.Exception;
-                    Log.To.Sync.W(TAG, "SendAsyncRequest did not run to completion, returning null...");
-                    return Task.FromResult((Stream)null);
-                }
-                if ((Int32)response.Result.StatusCode > 300) {
-                    LastError = new HttpResponseException(response.Result.StatusCode);
-                    Log.To.Sync.W(TAG, "Server returned HTTP Error, returning null...", LastError);
-                    return Task.FromResult((Stream)null);
-                }
-                return response.Result.Content.ReadAsStreamAsync();
-            }, CancellationTokenSource.Token).ContinueWith(response=> 
-            {
-                try {
-                    var hasEmptyResult = response.Result == null || response.Result.Result == null || response.Result.Result.Length == 0;
-                    if (response.Status != TaskStatus.RanToCompletion) {
-                        Log.To.Sync.W(TAG, "SendAsyncRequest phase two did not run to completion, continuing...");
-                    } else if (hasEmptyResult) {
-                        Log.To.Sync.W(TAG, "Server returned an empty response, continuing...");
-                    }
-
-                    if (completionHandler != null) {
-                        object fullBody = null;
-                        if (!hasEmptyResult) {
-                            var mapper = Manager.GetObjectMapper();
-                            fullBody = mapper.ReadValue<Object> (response.Result.Result);
-                        }
-
-                        completionHandler (fullBody, response.Exception ?? LastError);
-                    }
-                } finally {
-                    Task dummy;
-                    _requests.TryRemove(message, out dummy);
-                }
-            }, CancellationTokenSource.Token);
-            _requests.TryAdd(message, t);
-        }
+       
 
         // Pusher overrides this to implement the .createTarget option
         /// <summary>This is the _local document ID stored on the remote server to keep track of state.
@@ -1615,7 +1263,7 @@ namespace Couchbase.Lite
             } else {
                 var hasValue = Options.TryGetValue<string>(ReplicationOptionsDictionary.REMOTE_UUID_KEY, out remoteUUID);
                 if (hasValue) {
-                    Log.To.Sync.W(TAG, "ReplicationOptionsDictionary support is deprecated, switch to ReplicationOptions");
+                    Log.To.Sync.W(Tag, "ReplicationOptionsDictionary support is deprecated, switch to ReplicationOptions");
                     spec["remoteURL"] = remoteUUID;
                 } else {
                     spec["remoteURL"] = ReplicationOptions.RemoteUUID ?? RemoteUrl.AbsoluteUri;
@@ -1626,10 +1274,10 @@ namespace Couchbase.Lite
             try {
                 inputBytes = Manager.GetObjectMapper().WriteValueAsBytes(spec);
             } catch(CouchbaseLiteException) {
-                Log.To.Sync.E(TAG, "Failed to serialize remote checkpoint doc ID, rethrowing...");
+                Log.To.Sync.E(Tag, "Failed to serialize remote checkpoint doc ID, rethrowing...");
                 throw;
             } catch (Exception e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG, "Error serializing remote checkpoint doc ID");
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag, "Error serializing remote checkpoint doc ID");
             }
 
             return Misc.HexSHA1Digest(inputBytes);
@@ -1670,7 +1318,7 @@ namespace Couchbase.Lite
                                 }
 
                                 if (info.Get("data") == null) {
-                                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.InternalServerError, TAG,
+                                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.InternalServerError, Tag,
                                         "Transformer added attachment without adding data");
                                 }
 
@@ -1681,7 +1329,7 @@ namespace Couchbase.Lite
                         }
                     }
                 } catch (Exception e) {
-                    Log.To.Sync.W(TAG, String.Format("Exception transforming a revision of doc '{0}', aborting...", 
+                    Log.To.Sync.W(Tag, String.Format("Exception transforming a revision of doc '{0}', aborting...", 
                         new SecureLogString(rev.DocID, LogMessageSensitivity.PotentiallyInsecure)), e);
                 }
             }
@@ -1701,18 +1349,9 @@ namespace Couchbase.Lite
             FireTrigger(ReplicationTrigger.GoOnline);
         }
 
-        internal void StopRemoteRequests()
-        {
-            var source = Interlocked.Exchange(ref _remoteRequestCancellationSource, CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token));
-            if (source != null) {
-                source.Cancel();
-                source.Dispose();
-            }
-        }
-
         internal void DatabaseClosing(CountdownEvent evt)
         {
-            Log.To.Sync.I(TAG, "Database closed while replication running, shutting down");
+            Log.To.Sync.I(Tag, "Database closed while replication running, shutting down");
             lastSequenceChanged = true; // force save the sequence
             SaveLastSequence(() => {
                 var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
@@ -1729,16 +1368,6 @@ namespace Couchbase.Lite
         {
             Debug.Assert(IsRunning);
             Batcher.QueueObject(rev);
-        }
-
-        internal void CheckSession()
-        {
-            if (Authenticator != null && Authenticator.UsesCookieBasedLogin) {
-                CheckSessionAtPath("/_session");
-            }
-            else {
-                FetchRemoteCheckpointDoc();
-            }
         }
 
         #endregion
@@ -1763,21 +1392,21 @@ namespace Couchbase.Lite
             var localLastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointId);
 
             if (localLastSequence == null && GetLastSequenceFromLocalCheckpoint() == null) {
-                Log.To.Sync.I(TAG, "{0} no local checkpoint, not getting remote one", this);
+                Log.To.Sync.I(Tag, "{0} no local checkpoint, not getting remote one", this);
                 MaybeCreateRemoteDB();
                 BeginReplicating();
                 return;
             }
 
-            Log.To.SyncPerf.I(TAG, "{0} getting remote checkpoint", this);
-            SendAsyncRequest(HttpMethod.Get, "/_local/" + checkpointId, null, (response, e) => 
+            Log.To.SyncPerf.I(Tag, "{0} getting remote checkpoint", this);
+            _remoteSession.SendAsyncRequest(HttpMethod.Get, "/_local/" + checkpointId, null, (response, e) => 
             {
                 try {
-                    Log.To.SyncPerf.I(TAG, "{0} got remote checkpoint", this);
+                    Log.To.SyncPerf.I(Tag, "{0} got remote checkpoint", this);
                     if (e != null && !Is404 (e)) {
-                        Log.To.Sync.I(TAG, "{0} error getting remote checkpoint", this);
+                        Log.To.Sync.I(Tag, "{0} error getting remote checkpoint", this);
                         LastError = e;
-                        Log.To.Sync.V(TAG, "Couldn't get remote checkpoint, so changing state...");
+                        Log.To.Sync.V(Tag, "Couldn't get remote checkpoint, so changing state...");
                         if(Continuous) {
                             FireTrigger(ReplicationTrigger.WaitingForChanges);
                             ScheduleRetryIfReady();
@@ -1812,9 +1441,9 @@ namespace Couchbase.Lite
                                 _lastSequence = GetLastSequenceFromLocalCheckpoint();
                             }
 
-                            Log.To.Sync.I(TAG, "{0} replicating from lastSequence={1}", this, LastSequence);
+                            Log.To.Sync.I(Tag, "{0} replicating from lastSequence={1}", this, LastSequence);
                         } else {
-                            Log.To.Sync.I(TAG, "{0} lastSequence mismatch: I had {1}, remote had {2} (response = {3}, " +
+                            Log.To.Sync.I(Tag, "{0} lastSequence mismatch: I had {1}, remote had {2} (response = {3}, " +
                                 "resetting lastSequence to 0",
                                 this, localLastSequence, remoteLastSequence, response);
                             _lastSequence = "0";
@@ -1823,7 +1452,7 @@ namespace Couchbase.Lite
                         BeginReplicating ();
                     }
                 } catch (Exception ex) {
-                    Log.To.Sync.E(TAG, String.Format("{0} error analyzing _local response", this), ex);
+                    Log.To.Sync.E(Tag, String.Format("{0} error analyzing _local response", this), ex);
                 }
             });
         }
@@ -1889,7 +1518,7 @@ namespace Couchbase.Lite
 
             lastSequenceChanged = false;
             var lastSequence = LastSequence;
-            Log.To.Sync.I(TAG, "{0} checkpointing sequence={1}", this, lastSequence);
+            Log.To.Sync.I(Tag, "{0} checkpointing sequence={1}", this, lastSequence);
             var body = new Dictionary<String, Object>();
             if (_remoteCheckpoint != null) {
                 foreach (var pair in _remoteCheckpoint) {
@@ -1900,27 +1529,27 @@ namespace Couchbase.Lite
             body["lastSequence"] = lastSequence;
             var remoteCheckpointDocID = RemoteCheckpointDocID();
             if (String.IsNullOrEmpty(remoteCheckpointDocID)) {
-                Log.To.Sync.W(TAG, "remoteCheckpointDocID is null for {0}, aborting SaveLastSequence", this);
+                Log.To.Sync.W(Tag, "remoteCheckpointDocID is null for {0}, aborting SaveLastSequence", this);
                 if (completionHandler != null) { completionHandler(); }
                 return;
             }
 
             _savingCheckpoint = true;
-            var message = SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => 
+            var message = _remoteSession.SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => 
             {
                 _savingCheckpoint = false;
                 if (e != null) {
                     switch (GetStatusFromError(e)) {
                         case StatusCode.NotFound:
-                            Log.To.Sync.I(TAG, "Got 404 from _local, ignoring...");
+                            Log.To.Sync.I(Tag, "Got 404 from _local, ignoring...");
                             _remoteCheckpoint = null;
                             break;
                         case StatusCode.Conflict:
-                            Log.To.Sync.I(TAG, "Got 409 from _local, retrying...");
+                            Log.To.Sync.I(Tag, "Got 409 from _local, retrying...");
                             RefreshRemoteCheckpointDoc();
                             break;
                         default:
-                            Log.To.Sync.W(TAG, String.Format("Unable to save remote checkpoint for {0}", _replicatorID), e);
+                            Log.To.Sync.W(Tag, String.Format("Unable to save remote checkpoint for {0}", _replicatorID), e);
                             // TODO: On 401 or 403, and this is a pull, remember that remote
                             // TODO: is read-only & don't attempt to read its checkpoint next time.
                             break;
@@ -1935,7 +1564,7 @@ namespace Couchbase.Lite
                     _remoteCheckpoint = body;
                     var localDb = LocalDatabase;
                     if(localDb.Storage == null) {
-                        Log.To.Sync.I(TAG, "Database is null or closed, ignoring remote checkpoint response");
+                        Log.To.Sync.I(Tag, "Database is null or closed, ignoring remote checkpoint response");
                         if(completionHandler != null) {
                             completionHandler();
                         }
@@ -1943,7 +1572,7 @@ namespace Couchbase.Lite
                     }
 
                     localDb.SetLastSequence(LastSequence, remoteCheckpointDocID);
-                    Log.To.Sync.I(TAG, "{0} saved remote checkpoint '{1}' (_rev={2})", this, lastSequence, rev);
+                    Log.To.Sync.I(Tag, "{0} saved remote checkpoint '{1}' (_rev={2})", this, lastSequence, rev);
                 }
 
                 if (completionHandler != null) {
@@ -1954,24 +1583,7 @@ namespace Couchbase.Lite
             // This request should not be canceled when the replication is told to stop:
             if(message != null) {
                 Task dummy;
-                _requests.TryRemove(message, out dummy);
-            }
-        }
-
-        private void AddRequestHeaders(HttpRequestMessage request)
-        {
-            foreach (string requestHeaderKey in RequestHeaders.Keys) {
-                request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey).ToString());
-            }
-        }
-
-        private void UpdateServerType(HttpResponseMessage response)
-        {
-            var server = response.Headers.Server;
-            if (server != null && server.Any()) {
-                var serverString = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null).ToStringArray());
-                ServerType = new RemoteServerVersion(serverString);
-                Log.To.Sync.I(TAG, "{0}: Server Version: {0}", ServerType);
+                _remoteSession?._requests.TryRemove(message, out dummy);
             }
         }
 
@@ -1993,22 +1605,22 @@ namespace Couchbase.Lite
 
         private void RefreshRemoteCheckpointDoc()
         {
-            Log.To.Sync.I(TAG, "{0} refreshing remote checkpoint to get its _rev...", this);
+            Log.To.Sync.I(Tag, "{0} refreshing remote checkpoint to get its _rev...", this);
             _savingCheckpoint = true;
 
-            SendAsyncRequest(HttpMethod.Get, "/_local/" + RemoteCheckpointDocID(), null, (result, e) =>
+            _remoteSession.SendAsyncRequest(HttpMethod.Get, "/_local/" + RemoteCheckpointDocID(), null, (result, e) =>
             {
                 if (!LocalDatabase.IsOpen) {
-                    Log.To.Sync.I(TAG, "{0} DB closed while refreshing remote checkpoint.  Aborting.", this);
+                    Log.To.Sync.I(Tag, "{0} DB closed while refreshing remote checkpoint.  Aborting.", this);
                     return;
                 }
 
                 _savingCheckpoint = false;
 
                 if (e != null && GetStatusFromError(e) != StatusCode.NotFound) {
-                    Log.To.Sync.I(TAG, String.Format("{0} error refreshing remote checkpoint", this), e);
+                    Log.To.Sync.I(Tag, String.Format("{0} error refreshing remote checkpoint", this), e);
                 } else {
-                    Log.To.Sync.I(TAG, "{0} refreshed remote checkpoint: {1}", this, new LogJsonString(result));
+                    Log.To.Sync.I(Tag, "{0} refreshed remote checkpoint: {1}", this, new LogJsonString(result));
                     _remoteCheckpoint = result.AsDictionary<string, object>();
                     lastSequenceChanged = true;
                     SaveLastSequence(null);
@@ -2042,35 +1654,6 @@ namespace Couchbase.Lite
                     return rev;
                 };
             }
-        }
-
-        private void CheckSessionAtPath(string sessionPath)
-        {
-            SendAsyncRequest(HttpMethod.Get, sessionPath, null, (result, e) => {
-                if (e != null)
-                {
-                    if (e is WebException && ((WebException)e).Status == System.Net.WebExceptionStatus.ProtocolError && ((HttpWebResponse)((WebException)e).Response).StatusCode == System.Net.HttpStatusCode.NotFound
-                        && sessionPath.Equals("/_session", StringComparison.InvariantCultureIgnoreCase)) {
-                        CheckSessionAtPath ("_session");
-                        return;
-                    }
-                    Log.To.Sync.I(TAG, String.Format("{0} session check failed", this), e);
-                    LastError = e;
-                }
-                else
-                {
-                    var response = result.AsDictionary<string, object>();
-                    var userCtx = response.Get("userCtx").AsDictionary<string, object>();
-                    var username = (string)userCtx.Get ("name");
-
-                    if (!string.IsNullOrEmpty (username)) {
-                        Log.To.Sync.I (TAG, "{0} has an active session, logged in as {1}", this, new SecureLogString(username, LogMessageSensitivity.PotentiallyInsecure));
-                        FetchRemoteCheckpointDoc ();
-                    } else {
-                        Login ();
-                    }
-                }
-            });
         }
 
         private void NetworkStatusChanged(object sender, NetworkReachabilityChangeEventArgs e)
@@ -2131,17 +1714,17 @@ namespace Couchbase.Lite
             // actions
             _stateMachine.Configure(ReplicationState.Running).OnEntry(transition =>
             {
-                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(Tag, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 StartInternal();
                 NotifyChangeListenersStateTransition(transition);
             });
 
             _stateMachine.Configure(ReplicationState.Running).OnExit(transition =>
-               Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID));
+               Log.To.Sync.V(Tag, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID));
 
             _stateMachine.Configure(ReplicationState.Idle).OnEntry(transition =>
             {
-                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(Tag, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 if(transition.Source == transition.Destination) {
                     return;
                 }
@@ -2157,23 +1740,23 @@ namespace Couchbase.Lite
 
             _stateMachine.Configure(ReplicationState.Offline).OnEntry(transition =>
             {
-                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(Tag, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 PerformGoOffline();
                 NotifyChangeListenersStateTransition(transition);
             });
 
             _stateMachine.Configure(ReplicationState.Offline).OnExit(transition =>
             {
-                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(Tag, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 PerformGoOnline();
                 NotifyChangeListenersStateTransition(transition);
             });
 
             _stateMachine.Configure(ReplicationState.Stopping).OnEntry(transition =>
             {
-                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(Tag, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 if(transition.Source == transition.Destination) {
-                    Log.To.Sync.W(TAG, "Concurrency issue with ReplicationState.Stopping, ignoring state change...");
+                    Log.To.Sync.W(Tag, "Concurrency issue with ReplicationState.Stopping, ignoring state change...");
                     return;
                 }
 
@@ -2183,11 +1766,11 @@ namespace Couchbase.Lite
 
             _stateMachine.Configure(ReplicationState.Stopped).OnEntry(transition =>
             {
-                Log.To.Sync.V(TAG, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
+                Log.To.Sync.V(Tag, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
                 Stopping();
 
                 if(transition.Source == transition.Destination) {
-                    Log.To.Sync.W(TAG, "Concurrency issue with ReplicationState.Stopped, ignoring state change...");
+                    Log.To.Sync.W(Tag, "Concurrency issue with ReplicationState.Stopped, ignoring state change...");
                     return;
                 }
 
@@ -2203,7 +1786,7 @@ namespace Couchbase.Lite
 
         private void NotifyChangeListeners(ReplicationStateTransition transition = null) 
         {
-            Log.To.Sync.I(TAG, "NotifyChangeListeners ({0}/{1}, state={2} (batch={3}, net={4}))",
+            Log.To.Sync.I(Tag, "NotifyChangeListeners ({0}/{1}, state={2} (batch={3}, net={4}))",
                 CompletedChangesCount, ChangesCount,
                 _stateMachine.State, Batcher == null ? 0 : Batcher.Count(), _requests.Count);
 
@@ -2222,15 +1805,15 @@ namespace Couchbase.Lite
                 _eventQueue.Enqueue(args);
             }
 
-            Log.To.TaskScheduling.V(TAG, "Scheduling Changed callback...");
+            Log.To.TaskScheduling.V(Tag, "Scheduling Changed callback...");
             if (_eventContext != null) {
                 _eventContext.StartNew(() =>
                 {
                     lock (_eventQueue) { 
                         if(_eventQueue.Count > 0) {
-                            Log.To.TaskScheduling.V(TAG, "Firing {0} queued callback(s)", _eventQueue.Count);
+                            Log.To.TaskScheduling.V(Tag, "Firing {0} queued callback(s)", _eventQueue.Count);
                         } else {
-                            Log.To.TaskScheduling.V(TAG, "No callback scheduled, not firing");
+                            Log.To.TaskScheduling.V(Tag, "No callback scheduled, not firing");
                         }
 
                         while (_eventQueue.Count > 0) {

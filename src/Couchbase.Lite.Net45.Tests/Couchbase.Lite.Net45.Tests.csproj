@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -153,9 +153,9 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
-    <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets'))" />
     <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets'))" />
     <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets'))" />
+    <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets'))" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -199,7 +199,7 @@
     <EmbeddedResource Condition=" Exists('Assets\local-test.properties') " Include="Assets\local-test.properties" />
     <EmbeddedResource Include="Assets\test.properties" />
   </ItemGroup>
-  <Import Project="..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets')" />
   <Import Project="..\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets')" />
   <Import Project="..\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets')" />
+  <Import Project="..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets')" />
 </Project>

@@ -281,7 +281,7 @@ namespace Couchbase.Lite
             return StatusCode.Unknown;
         }
 
-        public static AuthenticationHeaderValue GetAuthenticationHeader(this Uri uri, string scheme)
+        public static string GetAuthenticationHeader(this Uri uri, string scheme)
         {
             Debug.Assert(uri != null);
 
@@ -291,7 +291,7 @@ namespace Couchbase.Lite
 
             var param = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(unescapedUserInfo));
 
-            return new AuthenticationHeaderValue(scheme, param);
+            return $"{scheme} {param}";
         }
 
         public static AuthenticationHeaderValue AsAuthenticationHeader(this string userinfo, string scheme)

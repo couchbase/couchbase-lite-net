@@ -29,6 +29,8 @@ using WebSocketSharp;
 using Couchbase.Lite.Auth;
 using System.Collections.Generic;
 using Microsoft.IO;
+using System.Security.Authentication;
+using System.Net;
 
 namespace Couchbase.Lite.Internal
 {
@@ -209,7 +211,7 @@ namespace Couchbase.Lite.Internal
             Log.To.ChangeTracker.I(Tag, "Starting {0}...", this);
             _cts = new CancellationTokenSource();
 
-            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, ChangesFeedUrl);
+            var authHeader = (_remoteSession.Authenticator as ICustomHeadersAuthorizer)?.AuthorizationHeaderValue;
 
             // A WebSocket has to be opened with a GET request, not a POST (as defined in the RFC.)
             // Instead of putting the options in the POST body as with HTTP, we will send them in an
@@ -222,13 +224,18 @@ namespace Couchbase.Lite.Internal
             _client.OnMessage += OnReceive;
             _client.OnError += OnError;
             _client.OnClose += OnClose;
+            _client.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls;
+            foreach(Cookie cookie in Client.GetCookieStore().GetCookies(ChangesFeedUrl)) {
+                _client.SetCookie(new WebSocketSharp.Net.Cookie(cookie.Name, cookie.Value, cookie.Path, cookie.Domain));
+            }
+
             if (authHeader != null) {
                 _client.CustomHeaders = new Dictionary<string, string> {
                     ["Authorization"] = authHeader.ToString()
                 };
             }
-            _client.ConnectAsync();
 
+            _client.ConnectAsync();
             return true;
         }
 

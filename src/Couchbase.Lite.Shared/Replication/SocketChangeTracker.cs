@@ -70,7 +70,6 @@ namespace Couchbase.Lite.Internal
         private HttpRequestMessage Request;
         private CancellationTokenSource tokenSource;
         private CancellationTokenSource changesFeedRequestTokenSource;
-        private CouchbaseLiteHttpClient _httpClient;
 
         #endregion
 
@@ -84,7 +83,12 @@ namespace Couchbase.Lite.Internal
 
             tokenSource = new CancellationTokenSource();
             _responseLogic = ChangeTrackerResponseLogicFactory.CreateLogic(this);
-            _responseLogic.OnCaughtUp = () => Client?.ChangeTrackerCaughtUp(this);
+            _responseLogic.OnCaughtUp = () =>
+            {
+                Client?.ChangeTrackerCaughtUp(this);
+                _caughtUp = true;
+            };
+
             _responseLogic.OnChangeFound = (change) =>
             {
                 if (!ReceivedChange(change)) {
@@ -133,7 +137,6 @@ namespace Couchbase.Lite.Internal
             } else {
                 Request = new HttpRequestMessage(HttpMethod.Get, url);
             }
-            AddRequestHeaders(Request);
 
             Log.To.ChangeTracker.V(Tag, "Making request to {0}", new SecureLogUri(url));
             if (tokenSource.Token.IsCancellationRequested) {
@@ -142,8 +145,7 @@ namespace Couchbase.Lite.Internal
                 
             try {
                 changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
-                _httpClient.Authenticator = Authenticator;
-                var info = _httpClient.SendAsync(
+                var info = _remoteSession.SendAsyncRequest(
                     Request, 
                     HttpCompletionOption.ResponseHeadersRead,
                     changesFeedRequestTokenSource.Token
@@ -256,7 +258,7 @@ namespace Couchbase.Lite.Internal
                 return false;
             }
 
-            var statusCode = Misc.GetStatusCode(e as WebException);
+            var statusCode = Misc.GetStatusCode(e);
             return RetryIfFailedPost(statusCode);
         }
 
@@ -352,13 +354,6 @@ namespace Couchbase.Lite.Internal
             });
         }
 
-        private void AddRequestHeaders(HttpRequestMessage request)
-        {
-            foreach (string requestHeaderKey in RequestHeaders.Keys)  {
-                request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey));
-            }
-        }
-
         #endregion
 
         #region Overrides
@@ -371,7 +366,6 @@ namespace Couchbase.Lite.Internal
                 
             _responseLogic.Heartbeat = Heartbeat;
             Log.To.ChangeTracker.I(Tag, "Starting {0}...", this);
-            _httpClient = Client.GetHttpClient();
             Error = null;
             _workExecutor.StartNew(Run);
             Log.To.ChangeTracker.I(Tag, "Started {0}", this);
@@ -393,7 +387,6 @@ namespace Couchbase.Lite.Internal
                 Log.To.ChangeTracker.I(Tag, "Stopping {0}...", this);
 
                 IsRunning = false;
-                Misc.SafeDispose(ref _httpClient);
 
                 var feedTokenSource = changesFeedRequestTokenSource;
                 if (feedTokenSource != null && !feedTokenSource.IsCancellationRequested) {

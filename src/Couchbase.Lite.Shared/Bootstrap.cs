@@ -1,5 +1,5 @@
 ﻿//
-//  Authorizer.cs
+//  Bootstrap.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -22,18 +22,15 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Auth
+namespace Couchbase.Lite
 {
-    internal abstract class Authorizer : IAuthorizer
+    internal static class Bootstrap
     {
-        public Uri RemoteUrl { get; set; }
-
-        public abstract string Scheme { get; }
-        public abstract string UserInfo { get; }
-        public abstract bool UsesCookieBasedLogin { get; }
-
-        public abstract IDictionary<string, string> LoginParametersForSite(Uri site);
-        public abstract string LoginPathForSite(Uri site);
+        public static void Run()
+        {
+            InjectableCollection.RegisterImplementation<ISecureStorage>(() => new SecureStorage());
+        }
     }
 }

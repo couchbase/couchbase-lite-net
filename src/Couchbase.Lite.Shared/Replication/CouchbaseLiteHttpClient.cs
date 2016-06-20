@@ -98,11 +98,8 @@ namespace Couchbase.Lite
                     return null;
                 }
 
-                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
-                if (authHeader != null) {
-                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
-                }
 
+                (Authenticator as ICustomHeadersAuthorizer)?.AuthorizeRequest(message);
                 return httpClient.SendAsync(message, option, token);
             #if !NET_3_5
             })?.Unwrap()?.ContinueWith(t =>

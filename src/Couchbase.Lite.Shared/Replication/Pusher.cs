@@ -266,7 +266,7 @@ namespace Couchbase.Lite.Replicator
             bulkDocsBody["new_edits"] = false;
             SafeAddToChangesCount(numDocsToSend);
 
-            SendAsyncRequest(HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, e) => {
+            _remoteSession.SendAsyncRequest(HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, e) => {
                 if (e == null) {
                     var failedIds = new HashSet<string>();
                     // _bulk_docs response is really an array not a dictionary
@@ -383,7 +383,7 @@ namespace Couchbase.Lite.Replicator
             // TODO: need to throttle these requests
             Log.To.Sync.D(TAG, "{0} uploading multipart request.  Revision: {1}", this, revision);
             SafeAddToChangesCount(1);
-            SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
+            _remoteSession.SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
             {
                 if (e != null) {
                     var httpError = Misc.Flatten(e).FirstOrDefault(ex => ex is HttpResponseException) as HttpResponseException;
@@ -421,7 +421,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             var path = string.Format("/{0}?new_edits=false", Uri.EscapeUriString(rev.DocID));
-            SendAsyncRequest(HttpMethod.Put, path, rev.GetProperties(), (result, e) =>
+            _remoteSession.SendAsyncRequest(HttpMethod.Put, path, rev.GetProperties(), (result, e) =>
             {
                 if (e != null) 
                 {
@@ -559,7 +559,7 @@ namespace Couchbase.Lite.Replicator
             _creatingTarget = true;
             Log.To.Sync.I(TAG, "{0} remote db might not exist; creating it...", this);
 
-            SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) =>
+            _remoteSession.SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) =>
             {
                 _creatingTarget = false;
                 if (e is HttpResponseException && ((HttpResponseException)e).StatusCode.GetStatusCode() != StatusCode.PreconditionFailed) {
@@ -684,7 +684,7 @@ namespace Couchbase.Lite.Replicator
         {
             base.PerformGoOnline();
 
-            CheckSession();
+            Login();
         }
 
         protected override void PerformGoOffline()
@@ -727,7 +727,7 @@ namespace Couchbase.Lite.Replicator
 
             // Call _revs_diff on the target db:
             Log.To.Sync.D(TAG, "posting to /_revs_diff: {0}", String.Join(Environment.NewLine, new[] { Manager.GetObjectMapper().WriteValueAsString(diffs) }));
-            SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
+            _remoteSession.SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
             {
                 try {
                     if(!LocalDatabase.IsOpen) {

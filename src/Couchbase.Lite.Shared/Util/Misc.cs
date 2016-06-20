@@ -275,18 +275,24 @@ namespace Couchbase.Lite
             return param.Replace("\"", string.Empty);
         }
 
-        public static HttpStatusCode? GetStatusCode(WebException we)
+        public static bool IsUnauthorizedError(Exception e)
         {
-            if (we == null || we.Response == null) {
-                return null;
+            var ex = e as HttpResponseException;
+            if(ex == null) {
+                return false;
             }
 
-            var response = we.Response as HttpWebResponse;
-            if (response == null) {
-                return null;
+            return ex.StatusCode == HttpStatusCode.Unauthorized || ex.StatusCode == HttpStatusCode.ProxyAuthenticationRequired;
+        }
+
+        public static HttpStatusCode? GetStatusCode(Exception e)
+        {
+            var attempt = ((HttpWebResponse)(e as WebException)?.Response)?.StatusCode;
+            if(attempt.HasValue) {
+                return attempt;
             }
 
-            return response.StatusCode;
+            return (e as HttpResponseException)?.StatusCode;
         }
 
         public static bool IsTransientNetworkError(Exception e, out string code)
