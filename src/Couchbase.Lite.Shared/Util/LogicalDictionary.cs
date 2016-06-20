@@ -119,9 +119,14 @@ namespace Couchbase.Lite.Util
             set {
                 V oldVal = default(V);
                 var e = LogicalDictionaryEvent.Change;
-                if(!TryGetValue(key, out oldVal)) {
+                if (!TryGetValue(key, out oldVal))
+                {
                     e = LogicalDictionaryEvent.Add;
                     oldVal = default(V);
+                }
+                else if (oldVal.Equals(value))
+                {
+                    return;
                 }
 
                 foreach(var rule in _ruleset) {
