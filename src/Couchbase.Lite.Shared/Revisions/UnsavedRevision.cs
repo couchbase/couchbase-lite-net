@@ -278,7 +278,12 @@ namespace Couchbase.Lite
         /// <param name="content">The <see cref="Couchbase.Lite.Attachment"/> content.</param>
         public void SetAttachment(string name, string contentType, IEnumerable<byte> content)
         {
-            var data = content.ToArray();
+            var data = content?.ToArray();
+            if(data == null) {
+                AddAttachment(null, name);
+                return;
+            }
+
             var stream = RecyclableMemoryStreamManager.SharedInstance.GetStream("UnsavedRevision", 
                              data, 0, data.Length);
             var attachment = new Attachment(stream, contentType);
