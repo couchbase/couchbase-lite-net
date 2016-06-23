@@ -673,6 +673,11 @@ namespace Couchbase.Lite
         private static bool ReadVersion(Assembly assembly, out string branch, out string hash)
         {
             branch = "No branch";
+            hash = "No git information";
+            if(assembly.IsDynamic) {
+                return false;
+            }
+
             try {
                 using(Stream stream = assembly.GetManifestResourceStream("version")) {
                     if(stream != null) {
@@ -680,7 +685,6 @@ namespace Couchbase.Lite
                             hash = reader.ReadToEnd();
                         }
                     } else {
-                        hash = "No git information";
                         return false;
                     }
                 }
@@ -693,7 +697,6 @@ namespace Couchbase.Lite
 
                 return true;
             } catch(NotSupportedException) {
-                hash = "No git information";
                 Log.To.NoDomain.I(TAG, "Loaded assembly {0} but unable to read commit hash", assembly.FullName);
             }
 

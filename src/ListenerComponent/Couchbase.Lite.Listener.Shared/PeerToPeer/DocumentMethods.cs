@@ -569,7 +569,7 @@ namespace Couchbase.Lite.Listener
             if ((options & (DocumentContentOptions.IncludeRevs | DocumentContentOptions.IncludeRevsInfo | DocumentContentOptions.IncludeConflicts |
                 DocumentContentOptions.IncludeAttachments | DocumentContentOptions.IncludeLocalSeq)
                 | DocumentContentOptions.IncludeExpiration) != 0) {
-                var dst = rev.GetProperties(); 
+                var dst = rev.GetProperties() ?? new Dictionary<string, object>(); 
                 if (options.HasFlag(DocumentContentOptions.IncludeLocalSeq)) {
                     dst["_local_seq"] = rev.Sequence;
                 }

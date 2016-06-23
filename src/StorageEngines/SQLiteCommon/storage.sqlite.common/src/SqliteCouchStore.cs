@@ -1442,14 +1442,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 while(keepGoing) {
                     long docNumericId = c.GetLong(0);
                     string docId = c.GetString(1);
-                    var revId = c.GetString(2).AsRevID();
+                    var revId = c.GetString(2);
                     long sequence = c.GetLong(3);
                     bool deleted = includeDeletedDocs && c.GetInt(includeDocs ? 6 : 4) != 0;
 
                     RevisionInternal docRevision = null;
                     if(includeDocs) {
                         // Fill in the document contents:
-                        docRevision = RevisionWithDocID(docId, revId, deleted, sequence, c.GetBlob(4));
+                        docRevision = RevisionWithDocID(docId, revId.AsRevID(), deleted, sequence, c.GetBlob(4));
                         Debug.Assert(docRevision != null);
                     }
 
