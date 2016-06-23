@@ -107,7 +107,7 @@ namespace Couchbase.Lite.Listener.Tcp
                 #if NET_3_5
                 throw new InvalidOperationException("TLS Listener not supported on .NET 3.5");
                 #else
-                _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls;
+                _listener.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls | SSlProtocols.Tls11 | SslProtocols.Tls12;
                 _listener.SslConfiguration.ClientCertificateRequired = false;
                 if (sslCert == null) {
                     Log.To.Listener.I(TAG, "Generating X509 certificate for listener...");

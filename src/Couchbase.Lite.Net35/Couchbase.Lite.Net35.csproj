@@ -14,7 +14,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}</ProjectGuid>
+    <ProjectGuid>{81999CC3-2DB5-42DA-976F-20EF8AE047E1}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Net35</RootNamespace>
     <AssemblyName>Couchbase.Lite</AssemblyName>

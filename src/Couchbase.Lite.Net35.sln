@@ -11,7 +11,7 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Net35.Tests", "Couchbase.Lite.Net35.Tests\Couchbase.Lite.Net35.Tests.csproj", "{1B765803-7F61-497E-96D0-3BE5AF32C81A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Net35", "Couchbase.Lite.Net35\Couchbase.Lite.Net35.csproj", "{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Net35", "Couchbase.Lite.Net35\Couchbase.Lite.Net35.csproj", "{81999CC3-2DB5-42DA-976F-20EF8AE047E1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Vendor", "Vendor", "{6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}"
 EndProject
@@ -69,12 +69,12 @@ Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8555f0b6-3f1a-4c80-8ccb-3eed653d6242}*SharedItemsImports = 13
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{5aa87149-7173-42a0-8bbc-ac618b404d46}*SharedItemsImports = 13
+		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{81999cc3-2db5-42da-976f-20ef8ae047e1}*SharedItemsImports = 4
 		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{b357bac7-529e-4d81-a0d2-71041b19c8de}*SharedItemsImports = 4
-		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{d4bd5141-7703-4683-a500-34363f7cfbf4}*SharedItemsImports = 4
 		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{d4bd5141-7703-4683-a500-34363f7cfbf4}*SharedItemsImports = 4
+		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{d4bd5141-7703-4683-a500-34363f7cfbf4}*SharedItemsImports = 4
 		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{891a08fc-f143-4325-bc16-b9864d036b99}*SharedItemsImports = 13
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{032c9c8b-93a0-4391-bf6d-74ff4a5be8f5}*SharedItemsImports = 4
-		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{c8e92d18-a47c-4bb3-bd1b-97c5d0280dfb}*SharedItemsImports = 4
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{146576de-ef8a-43ee-ad43-eaf81a2479a4}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{47688577-270f-47dc-8eaf-7db26012a0f3}*SharedItemsImports = 4
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{ed22fdf0-b378-4950-9e59-681726ac02f6}*SharedItemsImports = 4
@@ -106,20 +106,20 @@ Global
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Packaging|Any CPU.Build.0 = Packaging|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Release_All|Any CPU.Build.0 = Release|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C8E92D18-A47C-4BB3-BD1B-97C5D0280DFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Packaging|Any CPU.Build.0 = Packaging|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Release_All|Any CPU.Build.0 = Release|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{52CA4A3B-F296-4489-B5F0-AD375D039B35}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
 		{52CA4A3B-F296-4489-B5F0-AD375D039B35}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{52CA4A3B-F296-4489-B5F0-AD375D039B35}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU

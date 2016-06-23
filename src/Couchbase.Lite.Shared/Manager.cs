@@ -698,9 +698,11 @@ namespace Couchbase.Lite
         {
             branch = "No branch";
             hash = "No git information";
+#if !NET_3_5
             if(assembly.IsDynamic) {
                 return false;
             }
+#endif
 
             try {
                 using(Stream stream = assembly.GetManifestResourceStream("version")) {

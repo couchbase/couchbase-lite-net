@@ -553,12 +553,15 @@ namespace Couchbase.Lite.Listener
                 Log.To.Router.W(TAG, "Error closing HTTP response stream");
             } catch(ObjectDisposedException) {
                 //swallow (already closed)
-            } finally {
+            }
+#if !NET_3_5
+            finally {
                 _writeLock.Dispose();
             }
+#endif
         }
 
-        #endregion
+#endregion
     }
 }
 
