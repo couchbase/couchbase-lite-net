@@ -530,9 +530,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
             Cursor cursor = null;
             sqlite3_stmt command = null;
 
-            Log.To.TaskScheduling.V(TAG, "Scheduling RawQuery");
-            var t = Factory.StartNew (() => 
-            {
+            //Log.To.TaskScheduling.V(TAG, "Scheduling RawQuery");
+            //var t = Factory.StartNew (() => 
+            //{
                 Log.To.TaskScheduling.V(TAG, "Running RawQuery");
                 try {
                     Log.To.Database.V (TAG, "RawQuery sql: {0} ({1})", sql, String.Join (", ", paramArgs.ToStringArray ()));
@@ -551,9 +551,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     throw;
                 }
                 return cursor;
-            });
+            //});
 
-            return t.Result;
+            //return t.Result;
         }
 
         public long Insert(String table, String nullColumnHack, ContentValues values)
