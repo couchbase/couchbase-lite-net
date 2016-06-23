@@ -26,7 +26,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-
+using System.Threading;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
@@ -53,6 +53,7 @@ namespace Couchbase.Lite.Listener
         private readonly NameValueCollection _requestHeaders;
         private readonly string _requestMethod;
         private bool _headersWritten;
+        private readonly Mutex _writeLock = new Mutex();
 
         #endregion
 
@@ -531,12 +532,15 @@ namespace Couchbase.Lite.Listener
             }
 
             try {
+                _writeLock.WaitOne();
                 _responseWriter.OutputStream.Write(data, 0, data.Length);
                 _responseWriter.OutputStream.Flush();
                 return true;
             } catch(Exception e) {
                 Log.To.Router.W(TAG, "Error writing to HTTP response stream", e);
                 return false;
+            } finally {
+                _writeLock.ReleaseMutex();
             }
         }
 
@@ -549,6 +553,8 @@ namespace Couchbase.Lite.Listener
                 Log.To.Router.W(TAG, "Error closing HTTP response stream");
             } catch(ObjectDisposedException) {
                 //swallow (already closed)
+            } finally {
+                _writeLock.Dispose();
             }
         }
 

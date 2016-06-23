@@ -19,6 +19,7 @@
 // limitations under the License.
 //
 using System;
+using System.Linq;
 using System.Text;
 
 namespace Couchbase.Lite.Util
@@ -56,6 +57,7 @@ namespace Couchbase.Lite.Util
     internal abstract class SecureLogItem
     {
         protected const string Redacted = "<redacted>";
+        protected const int CharLimit = 100;
 
         private readonly LogMessageSensitivity _sensitivity;
 
@@ -83,12 +85,19 @@ namespace Couchbase.Lite.Util
         {
             get {
                 if (_string == null) {
+                    var str = default(string);
                     if (_bytes != null) {
-                        _string = Encoding.UTF8.GetString(_bytes);
+                        str = Encoding.UTF8.GetString(_bytes);
                     } else if (_obj != null) {
-                        _string = _obj.ToString();
+                        str = _obj.ToString();
                     } else {
-                        _string = "(null)";
+                        str = "(null)";
+                    }
+
+                    if(str.Length > 100) {
+                        _string = $"{new string(str.Take(100).ToArray())}...";
+                    } else {
+                        _string = str;
                     }
                 }
 
@@ -126,7 +135,12 @@ namespace Couchbase.Lite.Util
         {
             get {
                 if(_str == null) {
-                    _str = Manager.GetObjectMapper().WriteValueAsString(_object);
+                    var str = Manager.GetObjectMapper().WriteValueAsString(_object);
+                    if(str.Length > 100) {
+                        _str = $"{new string(str.Take(100).ToArray())}...";
+                    } else {
+                        _str = str;
+                    }
                 }
 
                 return _str;

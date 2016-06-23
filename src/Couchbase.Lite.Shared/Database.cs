@@ -1260,7 +1260,7 @@ namespace Couchbase.Lite
                 }
 
                 var value = new NonNullDictionary<string, object> {
-                    { "rev", rev.RevID },
+                    { "rev", rev.RevID.ToString() },
                     { "deleted", rev.Deleted ? (object)true : null }
                 };
                 result.Add(new QueryRow(rev.DocID, seq, rev.DocID, value, rev, null));
