@@ -240,13 +240,21 @@ namespace Couchbase.Lite
 
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
+            var opts = new RemoteSessionContructorOptions {
+                BaseUrl = testUrl,
+                WorkExecutor = new TaskFactory(scheduler)
+            };
+            var remoteSession = new RemoteSession (opts);
+            remoteSession.SetupHttpClientFactory (client.HttpClientFactory, database, "foo");
+            remoteSession.Setup (new ReplicationOptions ());
             var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
                 DatabaseUri = testUrl,
                 Mode = ChangeTrackerMode.LongPoll,
                 IncludeConflicts = true,
                 Client = client,
                 RetryStrategy = new ExponentialBackoffStrategy(2),
-                WorkExecutor = new TaskFactory(scheduler)
+                WorkExecutor = new TaskFactory(scheduler),
+                RemoteSession = remoteSession
             });
             changeTracker.Continuous = true;
 
@@ -462,15 +470,23 @@ namespace Couchbase.Lite
             var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, null);
             client.HttpClientFactory = factory;
 
+
             var testUrl = GetReplicationURL();
             var scheduler = new SingleTaskThreadpoolScheduler();
+            var remoteSession = new RemoteSession (new RemoteSessionContructorOptions {
+                BaseUrl = testUrl,
+                WorkExecutor = new TaskFactory (scheduler)
+            });
+            remoteSession.SetupHttpClientFactory (client.HttpClientFactory, database, "giveup");
+            remoteSession.Setup (new ReplicationOptions ());
             var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
                 DatabaseUri = testUrl,
                 Mode = ChangeTrackerMode.OneShot,
                 IncludeConflicts = true,
                 Client = client,
                 RetryStrategy = new ExponentialBackoffStrategy(2),
-                WorkExecutor = new TaskFactory(scheduler)
+                WorkExecutor = new TaskFactory(scheduler),
+                RemoteSession = remoteSession
             });
 
 

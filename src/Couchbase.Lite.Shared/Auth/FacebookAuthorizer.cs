@@ -172,7 +172,7 @@ namespace Couchbase.Lite.Auth
                 return null;
             }
 
-            return new ArrayList { "POST", RemoteUrl.AbsolutePath + "_facebook", new Dictionary<string, string> {
+            return new ArrayList { "POST", "_facebook", new Dictionary<string, string> {
                 [LoginParameterAccessToken] = token
             }};
         }

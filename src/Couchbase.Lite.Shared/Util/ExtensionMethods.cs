@@ -126,7 +126,7 @@ namespace Couchbase.Lite
             var realized = compressedData.ToArray();
             using (var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream("Decompress", 
                 realized, 0, realized.Length))
-            using (var gs = new GZipStream(ms, CompressionMode.Decompress, false)) {
+            using (var gs = new GZipStream(ms, CompressionMode.Decompress, true)) {
                 return gs.ReadAllBytes();
             }
         }
@@ -135,7 +135,7 @@ namespace Couchbase.Lite
         {
             var array = data.ToArray();
             using (var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream("Compress")) {
-                using (var gs = new GZipStream(ms, CompressionMode.Compress, false)) {
+                using (var gs = new GZipStream(ms, CompressionMode.Compress, true)) {
                     gs.Write(array, 0, array.Length);
                 }
 

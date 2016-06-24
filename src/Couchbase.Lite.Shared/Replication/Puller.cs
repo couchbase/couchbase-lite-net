@@ -910,6 +910,10 @@ namespace Couchbase.Lite.Replicator
                 Log.To.Sync.I(TAG, "{0} caught up with changes", this);
                 _caughtUp = true;
             }
+
+            if (Continuous && ChangesCount == CompletedChangesCount) {
+                FireTrigger (ReplicationTrigger.WaitingForChanges);
+            }
         }
 
         public void ChangeTrackerFinished(ChangeTracker tracker)

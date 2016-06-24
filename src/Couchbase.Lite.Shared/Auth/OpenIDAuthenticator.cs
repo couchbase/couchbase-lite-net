@@ -242,7 +242,7 @@ namespace Couchbase.Lite.Auth
                 return $"_oidc_callback?{Uri.EscapeUriString(_authUrl.Query)}";
             }
 
-            return "_oidc_challenge";
+            return "_oidc_challenge?offline=true";
         }
 
         public bool AuthorizeRequest(HttpRequestMessage message)

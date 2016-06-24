@@ -278,7 +278,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var remoteUri = new Uri("http://192.168.3.2:4984/openid_db");
+            var remoteUri = new Uri($"http://{GetReplicationServer()}:{GetReplicationPort()}/openid_db");
             Assert.IsTrue(OpenIDAuthenticator.ForgetIDTokens(remoteUri));
 
             var auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
@@ -294,8 +294,8 @@ namespace Couchbase.Lite
             Assert.IsNull(authError);
 
             // The username I gave is "pupshaw," but SG namespaces it by prefixing it with the provider's
-            // registered name, which is "testing" (as given in the SG config file.)
-            Assert.AreEqual("testing_pupshaw", auth.Username);
+            // registered issuer (as given in the SG config file.)
+            Assert.IsTrue(auth.Username.EndsWith("_pupshaw", StringComparison.InvariantCulture));
 
             // Now try again; this should use the ID token from storage and/or a session cookie:
             Trace.WriteLine("**** Second replication...");
@@ -320,7 +320,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var remoteUri = new Uri("http://192.168.3.2:4984/openid_db");
+            var remoteUri = new Uri ($"http://{GetReplicationServer ()}:{GetReplicationPort ()}/openid_db");
             Assert.IsTrue(OpenIDAuthenticator.ForgetIDTokens(remoteUri));
 
             var callbackInvoked = false;
@@ -358,7 +358,7 @@ namespace Couchbase.Lite
 
         private Uri LoginToOIDCTestProvider(Uri uri)
         {
-            var formURL = uri.Append("/_oidc_testing/authenticate?client_id=CLIENTID&redirect_uri=http%3A%2F%2F192.168.3.2%3A4984%2Fopenid_db%2F_oidc_callback&response_type=code&scope=openid+email&state=");
+            var formURL = uri.Append($"/_oidc_testing/authenticate?client_id=CLIENTID&redirect_uri=http%3A%2F%2F{GetReplicationServer()}%3A{GetReplicationPort()}%2Fopenid_db%2F_oidc_callback&response_type=code&scope=openid+email&state=");
             var formData = Encoding.ASCII.GetBytes("username=pupshaw&authenticated=true");
             var request = (HttpWebRequest)WebRequest.Create(formURL);
             request.Method = "POST";
