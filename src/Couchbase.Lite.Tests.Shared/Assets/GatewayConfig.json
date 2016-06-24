@@ -12,6 +12,29 @@
               },
              "bucket":"testing",
              "sync":`function(doc) {channel(doc.channels);}`
+          },
+          "openid_db": {
+            "server":"walrus:",
+            "users": {
+                "openidOP": {"admin_channels":["public"],"password":"abc123"},
+                "couchbaseUser": {"admin_channels":["public"],"password":"xyz789"}
+            },
+            "unsupported": {
+                "oidc_test_provider": {
+                    "enabled": true
+                }
+            },
+            "oidc": {
+                "providers": {
+                    "testing": {
+                        "issuer":"http://localhost:4984/openid_db/_oidc_testing",
+                        "client_id":"sync_gateway",
+                        "validation_key":"abc123",
+                        "register": true
+                    }
+                },
+                "default_provider":"testing"
+            }
           }
      },
      "facebook" : { "register" : true }
