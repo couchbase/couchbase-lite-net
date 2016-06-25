@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Listener
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db => {
                 var response = context.CreateResponse();
                 string docId = context.DocumentName;
-                bool isLocalDoc = docId.StartsWith("_local");
+                bool isLocalDoc = docId.StartsWith("_local", StringComparison.InvariantCulture);
 
                 DocumentContentOptions options = context.ContentOptions;
                 string openRevsParam = context.GetQueryParam("open_revs");

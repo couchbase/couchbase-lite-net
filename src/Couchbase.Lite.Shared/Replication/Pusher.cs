@@ -477,16 +477,16 @@ namespace Couchbase.Lite.Replicator
                     continue;
                 }
 
-                var populatedRev = TransformRevision(loadedRev);
-                IList<RevisionID> possibleAncestors = null;
-                if (revResults != null && revResults.ContainsKey("possible_ancestors")) {
-                    possibleAncestors = revResults["possible_ancestors"].AsList<RevisionID>();
+                if (properties.GetCast<bool> ("_removed")) {
+                    RemovePending (rev);
+                    continue;
                 }
 
-                properties = new Dictionary<string, object>(populatedRev.GetProperties());
+                var populatedRev = TransformRevision(loadedRev);
+                var backTo = revResults?.Get("possible_ancestors")?.AsList<RevisionID>();
 
                 try {
-                    var history = LocalDatabase.GetRevisionHistory(populatedRev, possibleAncestors);
+                    var history = LocalDatabase.GetRevisionHistory(populatedRev, backTo);
                     if(history == null) {
                         throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.DbError, TAG,
                             "Unable to load revision history");
@@ -499,16 +499,10 @@ namespace Couchbase.Lite.Replicator
                     continue;
                 }
 
-                populatedRev.SetProperties(properties);
-                if(properties.GetCast<bool>("_removed")) {
-                    RemovePending(rev);
-                    continue;
-                }
-
                 // Strip any attachments already known to the target db:
                 if (properties.Get("_attachments") != null) {
                     // Look for the latest common ancestor and stuf out older attachments:
-                    var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
+                    var minRevPos = FindCommonAncestor(populatedRev, backTo);
                     try {
                         LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
                     } catch(Exception ex) {

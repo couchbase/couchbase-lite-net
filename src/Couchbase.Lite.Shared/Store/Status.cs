@@ -263,7 +263,7 @@ namespace Couchbase.Lite
             { StatusCode.BadJson, Tuple.Create(400, "Bad JSON") },
             { StatusCode.BadId, Tuple.Create(400, "Invalid database/document/revision ID") },
             { StatusCode.BadParam, Tuple.Create(400, "Invalid parameter in HTTP query or JSON body") },
-            { StatusCode.Deleted, Tuple.Create(404, "Deleted") },
+            { StatusCode.Deleted, Tuple.Create(404, "not_found") },
             { StatusCode.InvalidStorageType, Tuple.Create(406, "Can't open database in that storage format") },
 
             { StatusCode.UpStreamError, Tuple.Create(502, "Invalid response from remote replication server") },
