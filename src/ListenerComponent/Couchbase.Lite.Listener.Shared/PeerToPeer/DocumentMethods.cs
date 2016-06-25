@@ -600,10 +600,9 @@ namespace Couchbase.Lite.Listener
                 if (options.HasFlag(DocumentContentOptions.IncludeConflicts)) {
                     RevisionList revs = db.Storage.GetAllDocumentRevisions(rev.DocID, true);
                     if (revs.Count > 1) {
-                        dst["_conflicts"] = revs.Select(x =>
-                        {
-                            return x.Equals(rev) || x.Deleted ? null : x.RevID.ToString();
-                        });
+                        dst["_conflicts"] = from r in revs
+                                            where !r.Equals(rev) && !r.Deleted
+                                            select r.RevID.ToString();
                     }
                 }
 

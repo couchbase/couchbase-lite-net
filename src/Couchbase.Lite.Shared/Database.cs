@@ -1076,7 +1076,7 @@ namespace Couchbase.Lite
                 validationBlock = ValidateRevision;
             }
 
-            Storage.ForceInsert(inRev, revHistory, validationBlock, source);
+            Storage?.ForceInsert(inRev, revHistory, validationBlock, source);
         }
 
         internal void AddReplication(Replication replication)

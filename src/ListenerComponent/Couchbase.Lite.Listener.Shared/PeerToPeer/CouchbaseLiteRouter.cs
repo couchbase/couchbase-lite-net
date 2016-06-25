@@ -54,7 +54,8 @@ namespace Couchbase.Lite.Listener
                 { "/{[^_].*}/*", DocumentMethods.GetDocument },
                 { "/{[^_].*}/_local/*", DocumentMethods.GetDocument },
                 { "/{[^_].*}/*/**", DocumentMethods.GetAttachment },
-                { "/{[^_].*}/_design/*/_view/*", ViewMethods.GetDesignView }
+                { "/{[^_].*}/_design/*/_view/*", ViewMethods.GetDesignView },
+                { "/{[^_].*}/_design/*", DocumentMethods.GetDocument }
             });
 
         private static readonly RouteCollection _Post =

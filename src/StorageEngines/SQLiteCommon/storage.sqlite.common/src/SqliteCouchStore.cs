@@ -909,13 +909,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 Log.To.Database.I(TAG, "Deleting JSON of old revisions...");
-                PruneRevsToMaxDepth(0);
-
                 var args = new ContentValues();
                 args["json"] = null;
                 args["doc_type"] = null;
                 args["no_attachments"] = 1;
-                StorageEngine.Update("revs", args, "current=0", null);
+                var result = StorageEngine.Update("revs", args, "current=0", null);
+                Log.To.Database.I (TAG, "...Deleted {0} revisions", result);
             } catch(CouchbaseLiteException) {
                 Log.To.Database.E(TAG, "Error compacting old JSON, rethrowing...");
                 throw;
@@ -923,8 +922,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, 
                     "Error compacting old JSON");
             }
-
-            Log.To.Database.I(TAG, "Deleting old attachments...");
 
             try {
                 Log.To.Database.V(TAG, "Flushing SQLite WAL...");
@@ -938,6 +935,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, 
                     "Error vacuuming Sqlite DB");
             }
+
+            Log.To.Database.I(TAG, "...Finished database compaction.");
         }
 
         public bool RunInTransaction(RunInTransactionDelegate block)
@@ -1817,13 +1816,33 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         "Error inserting document {0}", new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                 }
 
-                if(!isNewDoc) {
+                var fullHistoryCount = revHistory.Count;
+                var commonAncestorIndex = 0;
+                var commonAncestor = default(RevisionInternal);
+                if (isNewDoc) {
+                    commonAncestorIndex = fullHistoryCount;
+                } else {
                     var localRevsList = default(RevisionList);
                     try {
                         localRevsList = GetAllDocumentRevisions(docId, docNumericId, false);
                         localRevs = new Dictionary<RevisionID, RevisionInternal>(localRevsList.Count);
                         foreach(var localRev in localRevsList) {
                             localRevs[localRev.RevID] = localRev;
+                        }
+
+                        // What's the oldest revID in the history that appears to be in the local db?
+                        commonAncestorIndex = 0;
+                        foreach (var revID in revHistory) {
+                            commonAncestor = localRevs.Get(revID);
+                            if (commonAncestor != null) {
+                                break;
+                            }
+
+                            commonAncestorIndex++;
+                        }
+
+                        if (commonAncestorIndex == 0) { // No-op: rev already exists
+                            return true;
                         }
 
                         // Look up which rev is the winner, before this insertion
@@ -1853,96 +1872,82 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     }
                 }
 
-                if(validationBlock != null) {
-                    RevisionInternal oldRev = null;
-                    for(int i = 1; i < revHistory.Count; i++) {
-                        oldRev = localRevs == null ? null : localRevs.Get(revHistory[i]);
-                        if(oldRev != null) {
-                            break;
-                        }
-                    }
+                // Trim down the history to what we need
+                var history = revHistory;
+                if (commonAncestorIndex < fullHistoryCount) {
+                    // Trim history to new revisions
+                    history = revHistory.Take(commonAncestorIndex).ToList();
+                } else if (fullHistoryCount > MaxRevTreeDepth) {
+                    // If no common ancestor, limit history to max depth
+                    history = revHistory.Take(MaxRevTreeDepth).ToList();
+                }
 
+                // Validate against the latest common ancestor
+                if(validationBlock != null) {
                     RevisionID parentRevId = (revHistory.Count > 1) ? revHistory[1] : null;
-                    var validationStatus = validationBlock(rev, oldRev, parentRevId);
+                    var validationStatus = validationBlock(rev, commonAncestor, parentRevId);
                     if(validationStatus.IsError) {
                         Log.To.Validation.I(TAG, "{0} failed validation, throwing CouchbaseLiteException", rev);
-                        throw new CouchbaseLiteException(String.Format("{0} failed validation", rev),
-                            StatusCode.DbError);
+                        throw new CouchbaseLiteException($"{rev} failed validation", StatusCode.DbError);
                     }
                 }
 
                 // Walk through the remote history in chronological order, matching each revision ID to
                 // a local revision. When the list diverges, start creating blank local revisions to fill
                 // in the local history:
-                long sequence = 0L;
-                long localParentSequence = 0L;
-                for(int i = revHistory.Count - 1; i >= 0; --i) {
+                long sequence = commonAncestor == null ? 0L : commonAncestor.Sequence;
+                for(int i = history.Count - 1; i >= 0; --i) {
                     var revId = revHistory[i];
-                    var localRev = localRevs == null ? null : localRevs.Get(revId);
-                    if(localRev != null) {
-                        // This revision is known locally. Remember its sequence as the parent of the next one:
-                        sequence = localRev.Sequence;
-                        Debug.Assert(sequence > 0);
-                        localParentSequence = sequence;
+                    var newRev = default(RevisionInternal);
+                    var json = default(IEnumerable<byte>);
+                    var docType = default(string);
+                    var current = false;
+                    if (i == 0) {
+                        // Hey, this is the leaf revision we're inserting:
+                        newRev = rev;
+                        json = EncodeDocumentJSON(rev);
+                        docType = rev.GetPropertyForKey("type") as string;
+                        current = true;
                     } else {
-                        // This revision isn't known, so add it:
-                        RevisionInternal newRev = null;
-                        IEnumerable<byte> json = null;
-                        string docType = null;
-                        bool current = false;
-                        if(i == 0) {
-                            // Hey, this is the leaf revision we're inserting:
-                            newRev = rev;
-                            json = EncodeDocumentJSON(rev);
+                        // It's an intermediate parent, so insert a stub:
+                        newRev = new RevisionInternal(docId, revId, false);
+                    }
 
-                            docType = rev.GetPropertyForKey("type") as string;
-                            current = true;
-                        } else {
-                            // It's an intermediate parent, so insert a stub:
-                            newRev = new RevisionInternal(docId, revId, false);
-                        }
-
-                        // Insert it:
-                        try {
-                            sequence = InsertRevision(newRev, docNumericId, sequence, current, newRev.GetAttachments() != null, json, docType);
-                        } catch(CouchbaseLiteException e) {
-                            if(e.Code == StatusCode.DbError) {
-                                var sqliteException = e.InnerException as ugly.sqlite3_exception;
-                                if(sqliteException == null) {
-                                    // DbError without an inner sqlite3 exception? Weird...throw
-                                    throw;
-                                }
-
-                                if(sqliteException.errcode != raw.SQLITE_CONSTRAINT) {
-                                    // This is a genuine error inserting the revision
-                                    Log.To.Database.E(TAG, "Error inserting revision {0} ({1}), rethrowing...", newRev, sqliteException.errcode);
-                                    throw;
-                                } else {
-                                    // This situation means that the revision already exists, so go get the existing
-                                    // sequence number
-                                    sequence = GetSequenceOfDocument(docNumericId, newRev.RevID, false);
-                                }
-                            } else {
-                                Log.To.Database.E(TAG, "Error inserting revision {0}, rethrowing...", newRev);
+                    // Insert it:
+                    try {
+                        sequence = InsertRevision(newRev, docNumericId, sequence, current, newRev.GetAttachments() != null, json, docType);
+                    } catch (CouchbaseLiteException e) {
+                        if (e.Code == StatusCode.DbError) {
+                            var sqliteException = e.InnerException as ugly.sqlite3_exception;
+                            if (sqliteException == null) {
+                                // DbError without an inner sqlite3 exception? Weird...throw
                                 throw;
                             }
+
+                            if (sqliteException.errcode != raw.SQLITE_CONSTRAINT) {
+                                // This is a genuine error inserting the revision
+                                Log.To.Database.E(TAG, "Error inserting revision {0} ({1}), rethrowing...", newRev, sqliteException.errcode);
+                                throw;
+                            } else {
+                                // This situation means that the revision already exists, so go get the existing
+                                // sequence number
+                                sequence = GetSequenceOfDocument(docNumericId, newRev.RevID, false);
+                            }
+                        } else {
+                            Log.To.Database.E(TAG, "Error inserting revision {0}, rethrowing...", newRev);
+                            throw;
                         }
                     }
                 }
 
-                if(localParentSequence == sequence) {
-                    // No-op: No new revisions were inserted.
-                    return true;
-                }
-
                 // Mark the latest local rev as no longer current:
-                if(localParentSequence > 0) {
+                if(commonAncestor != null) {
                     var args = new ContentValues();
                     args["current"] = 0;
                     args["doc_type"] = null;
                     int changes;
                     try {
-                        changes = StorageEngine.Update("revs", args, "sequence=? AND current != 0", localParentSequence.ToString());
+                        changes = StorageEngine.Update("revs", args, "sequence=? AND current != 0", commonAncestor.Sequence.ToString());
                     } catch(CouchbaseLiteException) {
                         Log.To.Database.E(TAG, "Failed to update {0}, rethrowing...", 
                             new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
@@ -1956,23 +1961,23 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         // local parent wasn't a leaf, ergo we just created a branch
                         inConflict = true;
                     }
+                }
 
-                    // Delete the deepest revs in the tree to enforce the MaxRevTreeDepth:
-                    if(inRev.Generation > MaxRevTreeDepth) {
-                        int minGen = rev.Generation, maxGen = rev.Generation;
-                        foreach(var innerRev in localRevs.Values) {
-                            var generation = innerRev.Generation;
-                            minGen = Math.Min(minGen, generation);
-                            maxGen = Math.Max(maxGen, generation);
-                        }
+                // Delete the deepest revs in the tree to enforce the MaxRevTreeDepth:
+                if (inRev.Generation > MaxRevTreeDepth) {
+                    int minGen = rev.Generation, maxGen = rev.Generation;
+                    foreach (var innerRev in localRevs.Values) {
+                        var generation = innerRev.Generation;
+                        minGen = Math.Min(minGen, generation);
+                        maxGen = Math.Max(maxGen, generation);
+                    }
 
-                        var minGenToKeep = maxGen - MaxRevTreeDepth + 1;
-                        if(minGen < minGenToKeep) {
-                            var pruned = PruneDocument(docNumericId, minGenToKeep);
-                            if(pruned > 0) {
-                                Log.To.Database.V(TAG, "Pruned {0} old revisions of '{1}'", pruned,
-                                    new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
-                            }
+                    var minGenToKeep = maxGen - MaxRevTreeDepth + 1;
+                    if (minGen < minGenToKeep) {
+                        var pruned = PruneDocument(docNumericId, minGenToKeep);
+                        if (pruned > 0) {
+                            Log.To.Database.V(TAG, "Pruned {0} old revisions of '{1}'", pruned,
+                                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                         }
                     }
                 }
