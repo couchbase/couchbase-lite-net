@@ -152,6 +152,10 @@ namespace Couchbase.Lite.Auth
                 return DeleteTokens();
             }
 
+            if (!tokens.ContainsKey ("refresh_token") && RefreshToken != null) {
+                tokens ["refresh_token"] = RefreshToken;
+            }
+
             var itemData = Manager.GetObjectMapper().WriteValueAsBytes(tokens);
             var request = CreateRequest();
             request.Data = itemData;
@@ -199,7 +203,11 @@ namespace Couchbase.Lite.Auth
             }
 
             IDToken = idToken;
-            RefreshToken = tokens.GetCast<string>("refresh_token");
+            var newRefreshToken = tokens.GetCast<string>("refresh_token");
+            if (newRefreshToken != null) {
+                RefreshToken = newRefreshToken;
+            }
+
             Username = tokens.GetCast<string>("name");
             _haveSessionCookie = tokens.ContainsKey("session_id");
             return true;
