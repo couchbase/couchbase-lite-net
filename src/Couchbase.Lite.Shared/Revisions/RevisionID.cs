@@ -73,7 +73,11 @@ namespace Couchbase.Lite.Revisions
     [JsonConverter(typeof(RevisionConverter))]
     internal abstract class RevisionID : IComparable<RevisionID>, IEquatable<string>
     {
+#if __MOBILE__
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
+#else
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
+        #endif
         private static extern int memcmp(byte[] b1, byte[] b2, UIntPtr count);
 
         public bool IsValid

@@ -61,11 +61,6 @@ namespace Couchbase.Lite.Auth
             get; set;
         }
 
-        internal string Username
-        {
-            get; private set;
-        }
-
         public string AuthorizationHeaderValue
         {
             get {
@@ -270,7 +265,7 @@ namespace Couchbase.Lite.Auth
             } else if(_authUrl != null) {
                 path = $"/_oidc_callback{_authUrl.Query}";
             } else {
-                path = "/_oidc_challenge";
+                path = "/_oidc_challenge?offline=true";
             }
 
             return new ArrayList { "GET", path };
@@ -339,7 +334,8 @@ namespace Couchbase.Lite.Auth
                         if(authUrl != null) {
                             Log.To.Sync.I(Tag, "{0} app login callback returned authUrl=<{1}>", this, authUrl.AbsolutePath);
                             // Verify that the authUrl matches the site:
-                            if(String.Compare(authUrl.Host, remoteUrl.Host, StringComparison.InvariantCultureIgnoreCase) != 0 || authUrl.Port != remoteUrl.Port || $"{remoteUrl.GetLeftPart(UriPartial.Path)}/_oidc_callback" != authUrl.GetLeftPart(UriPartial.Path)) {
+                            var remoteUrlLeft = remoteUrl.GetLeftPart (UriPartial.Path).TrimEnd('/');
+                            if(String.Compare(authUrl.Host, remoteUrl.Host, StringComparison.InvariantCultureIgnoreCase) != 0 || authUrl.Port != remoteUrl.Port || $"{remoteUrlLeft}/_oidc_callback" != authUrl.GetLeftPart(UriPartial.Path)) {
                                 Log.To.Sync.W(Tag, "{0} app-provided authUrl <{1}> doesn't match server URL; ignoring it", this, authUrl.AbsolutePath);
                                 authUrl = null;
                                 error = new ArgumentException("authURL does not match server URL");

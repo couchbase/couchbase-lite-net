@@ -42,6 +42,12 @@ namespace Couchbase.Lite.Auth
 
         #endregion
 
+        #region Properties
+
+        public string Username { get; private set; }
+
+        #endregion
+
         #region Constructors
 
         /// <summary>

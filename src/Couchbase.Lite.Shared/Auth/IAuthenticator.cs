@@ -85,6 +85,7 @@ namespace Couchbase.Lite.Auth
         [Obsolete("Not intended for outside use")]
         IDictionary<string, string> LoginParametersForSite(Uri site);
 
+        string Username { get; }
     }
 
     /// <summary>
