@@ -72,9 +72,17 @@ namespace Couchbase.Lite.Support
         {
             SocketTimeout = ReplicationOptions.DefaultSocketTimeout;
             Headers = new ConcurrentDictionary<string, string>();
+        }
 
+        internal static void SetupSslCallback()
+        {
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
             ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
+
+            if(ServicePointManager.ServerCertificateValidationCallback != null)
+            {
+                return;
+            }
 
             //
             // Source: http://msdn.microsoft.com/en-us/library/office/dd633677(v=exchg.80).aspx
@@ -82,7 +90,7 @@ namespace Couchbase.Lite.Support
             // The certificate is valid and signed with a valid root certificate.
             // The certificate is self-signed by the server that returned the certificate.
             //
-            ServicePointManager.ServerCertificateValidationCallback = 
+            ServicePointManager.ServerCertificateValidationCallback =
             (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
             {
                 // If the certificate is a valid, signed certificate, return true.

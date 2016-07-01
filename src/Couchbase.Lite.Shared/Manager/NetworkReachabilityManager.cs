@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using Couchbase.Lite.Support;
 
 #if __ANDROID__
 using Android.App;
@@ -47,6 +48,7 @@ namespace Couchbase.Lite
 
         public bool CanReach(string remoteUri)
         {
+            CouchbaseLiteHttpClientFactory.SetupSslCallback();
             HttpWebRequest request;
 
             var uri = new Uri (remoteUri);
