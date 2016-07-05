@@ -214,7 +214,7 @@ namespace Couchbase.Lite.Internal
                     } else if(response.IsFaulted) {
                         Log.To.Sync.W(Tag, String.Format("Http Message failed to send, or got error response, " +
                             "passing to callback... {0}, ",
-                            new SecureLogUri(message.RequestUri), response.Exception);
+                            new SecureLogUri(message.RequestUri)), response.Exception);
                         if(bytes != null) {
                             try {
                                 Log.To.Sync.W(Tag, "\tFailed content: {0}", new SecureLogString(bytes, LogMessageSensitivity.PotentiallyInsecure));
