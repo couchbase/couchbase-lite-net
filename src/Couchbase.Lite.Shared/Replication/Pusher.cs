@@ -674,6 +674,12 @@ namespace Couchbase.Lite.Replicator
             base.StopGraceful();
         }
 
+        internal override void Stopping ()
+        {
+            StopObserving (); // Just in case
+            base.Stopping ();
+        }
+
         protected override void PerformGoOnline()
         {
             base.PerformGoOnline();

@@ -131,8 +131,6 @@ namespace Couchbase.Lite.Listener
                 db.Open();
             } catch(CouchbaseLiteException) {
                 return context.CreateResponse(StatusCode.Exception).AsDefaultState();
-            } finally {
-                db.Close();
             }
 
             return context.CreateResponse(StatusCode.Created).AsDefaultState();

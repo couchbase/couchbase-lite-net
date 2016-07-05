@@ -74,7 +74,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             get {
                 var db = _dbStorage;
                 var totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), false, 0, "SELECT total_docs FROM views WHERE name=?", Name);
-                if (totalRows == -1) { //means unknown
+                if (totalRows < 0) { //means unknown or somehow became invalid
                     CreateIndex();
                     totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), false, 0, QueryString("SELECT COUNT(*) FROM 'maps_#'"));
                     var args = new ContentValues();
