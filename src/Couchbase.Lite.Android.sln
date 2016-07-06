@@ -15,7 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{3D44EF32
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Android.Tests", "Couchbase.Lite.Android.Tests\Couchbase.Lite.Android.Tests.csproj", "{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{D2192E1B-3E4E-4B11-A134-747A54D614C2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ListenerComponent", "ListenerComponent", "{93A9E803-DBF3-45BE-96FA-87D68422F401}"
 EndProject
@@ -68,17 +68,17 @@ Global
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{5615e423-d0fd-4f99-a99c-061679615cee}*SharedItemsImports = 4
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8555f0b6-3f1a-4c80-8ccb-3eed653d6242}*SharedItemsImports = 13
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{5aa87149-7173-42a0-8bbc-ac618b404d46}*SharedItemsImports = 13
+		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d2192e1b-3e4e-4b11-a134-747a54d614c2}*SharedItemsImports = 13
 		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{891a08fc-f143-4325-bc16-b9864d036b99}*SharedItemsImports = 13
 		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{e1153fa4-356a-454d-b32e-136102f2482f}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{51dc5755-5ede-45ce-97d2-d45078da0f3b}*SharedItemsImports = 4
-		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{9cee0189-1533-484d-a957-664b1a372eaa}*SharedItemsImports = 4
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{9cee0189-1533-484d-a957-664b1a372eaa}*SharedItemsImports = 4
+		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{9cee0189-1533-484d-a957-664b1a372eaa}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{07f030b4-1fef-4bcd-ab57-ef79bbd1d449}*SharedItemsImports = 4
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{4549834b-28b6-4a54-a3ec-978d0e582444}*SharedItemsImports = 4
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{9c5fab56-f098-4809-8465-65257a59b8bd}*SharedItemsImports = 4
 		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{8e6f8876-64f8-4483-adb2-d3aad5672f7c}*SharedItemsImports = 13
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{6b64cbd5-8d13-4e88-861d-dbbb87254bbc}*SharedItemsImports = 4
-		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d06edb2a-0ae0-4606-a8ae-aa3f6248630f}*SharedItemsImports = 13
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{0bfc8b40-0659-4d45-b111-7cb4ccd22991}*SharedItemsImports = 13
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{ff87eed7-5de9-47e9-82f4-d1df659d1dc2}*SharedItemsImports = 13
 		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{79fc4a01-1e39-468f-8e55-195bc918232e}*SharedItemsImports = 13
@@ -131,6 +131,7 @@ Global
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
+		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Debug_Testing|Any CPU.Deploy.0 = Debug|Any CPU
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
@@ -302,7 +303,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{F970485C-CE53-457A-AAF6-7896C40F8243} = {5D187322-B6C6-4B74-A097-179F97B61B75}
 		{07F030B4-1FEF-4BCD-AB57-EF79BBD1D449} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
-		{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
+		{D2192E1B-3E4E-4B11-A134-747A54D614C2} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 		{5AA87149-7173-42A0-8BBC-AC618B404D46} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{6B64CBD5-8D13-4E88-861D-DBBB87254BBC} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{27CD854D-D0A5-4EA0-A997-04CE8EDD5095} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
@@ -355,6 +356,18 @@ Global
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
+		$2.IndentSwitchSection = True
+		$2.NewLinesForBracesInProperties = True
+		$2.NewLinesForBracesInAnonymousMethods = True
+		$2.NewLinesForBracesInAnonymousTypes = True
+		$2.NewLinesForBracesInObjectCollectionArrayInitializers = True
+		$2.NewLinesForBracesInLambdaExpressionBody = True
+		$2.NewLineForMembersInObjectInit = True
+		$2.NewLineForMembersInAnonymousTypes = True
+		$2.NewLineForClausesInQuery = True
+		$2.SpacingAfterMethodDeclarationName = False
+		$2.SpaceAfterMethodCallName = False
+		$2.SpaceBeforeOpenSquareBracket = False
 		version = 1.1.1
 	EndGlobalSection
 EndGlobal

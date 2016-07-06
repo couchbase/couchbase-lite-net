@@ -1,5 +1,5 @@
 //
-//  SecureStorage.cs
+//  SecureStorageAES.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -32,14 +32,14 @@ using Javax.Crypto.Spec;
 
 namespace Couchbase.Lite
 {
-    internal sealed class SecureStorage : ISecureStorage
+    internal sealed class SecureStorageAES : ISecureStorage
     {
-        private const string Tag = nameof(SecureStorage);
+        private const string Tag = nameof(SecureStorageAES);
         private const string ServiceName = "CouchbaseLite";
         private const string Alias = "CouchbaseLiteSecureStorage";
-        private static readonly bool _HasKeyStore = Build.VERSION.SdkInt >= BuildVersionCodes.JellyBeanMr2;
+        
 
-        static SecureStorage()
+        static SecureStorageAES()
         {
             InitializePrivateKey();
         }
@@ -61,15 +61,13 @@ namespace Couchbase.Lite
             }
 
             var data = Convert.FromBase64String(saved);
-            if(_HasKeyStore) {
-                var iv = Convert.FromBase64String(prefs.GetString($"{key}_iv", null));
-                var keyStore = KeyStore.GetInstance("AndroidKeyStore");
-                keyStore.Load(null);
-                var entry = (KeyStore.SecretKeyEntry)keyStore.GetEntry(Alias, null);
-                var cipher = Cipher.GetInstance("AES/CBC/PKCS7Padding");
-                cipher.Init(CipherMode.DecryptMode, entry.SecretKey, new IvParameterSpec(iv));
-                data = cipher.DoFinal(data);
-            }
+            var iv = Convert.FromBase64String(prefs.GetString($"{key}_iv", null));
+            var keyStore = KeyStore.GetInstance("AndroidKeyStore");
+            keyStore.Load(null);
+            var entry = (KeyStore.SecretKeyEntry)keyStore.GetEntry(Alias, null);
+            var cipher = Cipher.GetInstance("AES/CBC/PKCS7Padding");
+            cipher.Init(CipherMode.DecryptMode, entry.SecretKey, new IvParameterSpec(iv));
+            data = cipher.DoFinal(data);
 
             return data;
         }
@@ -87,15 +85,13 @@ namespace Couchbase.Lite
 
             var data = request.Data.ToArray();
             var iv = default(string);
-            if(_HasKeyStore) {
-                var keyStore = KeyStore.GetInstance("AndroidKeyStore");
-                keyStore.Load(null);
-                var entry = (KeyStore.SecretKeyEntry)keyStore.GetEntry(Alias, null);
-                var cipher = Cipher.GetInstance("AES/CBC/PKCS7Padding");
-                cipher.Init(CipherMode.EncryptMode, entry.SecretKey);
-                iv = Convert.ToBase64String(cipher.GetIV());
-                data = cipher.DoFinal(data);
-            }
+            var keyStore = KeyStore.GetInstance("AndroidKeyStore");
+            keyStore.Load(null);
+            var entry = (KeyStore.SecretKeyEntry)keyStore.GetEntry(Alias, null);
+            var cipher = Cipher.GetInstance("AES/CBC/PKCS7Padding");
+            cipher.Init(CipherMode.EncryptMode, entry.SecretKey);
+            iv = Convert.ToBase64String(cipher.GetIV());
+            data = cipher.DoFinal(data);
 
             var prefs = Application.Context.GetSharedPreferences(ServiceName, FileCreationMode.Private);
             var editor = prefs.Edit();
@@ -112,10 +108,6 @@ namespace Couchbase.Lite
 
         private static void InitializePrivateKey()
         {
-            if(!_HasKeyStore) {
-                return;
-            }
-
             var keyStore = KeyStore.GetInstance("AndroidKeyStore");
             keyStore.Load(null);
             var entry = keyStore.GetEntry(Alias, null);

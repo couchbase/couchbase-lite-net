@@ -30,7 +30,15 @@ namespace Couchbase.Lite
     {
         public static void Run()
         {
+#if __ANDROID__
+            if(global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.M) {
+                InjectableCollection.RegisterImplementation<ISecureStorage>(() => new SecureStorageAES());
+            } else {
+                InjectableCollection.RegisterImplementation<ISecureStorage>(() => new SecureStorageRSA());
+            }
+#else
             InjectableCollection.RegisterImplementation<ISecureStorage>(() => new SecureStorage());
+#endif
         }
     }
 }

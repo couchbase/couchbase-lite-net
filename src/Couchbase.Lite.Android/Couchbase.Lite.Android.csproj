@@ -103,7 +103,8 @@
       <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
     </Compile>
     <Compile Include="Resources\Resource.designer.cs" />
-    <Compile Include="SecureStorage.cs" />
+    <Compile Include="SecureStorageAES.cs" />
+    <Compile Include="SecureStorageRSA.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
