@@ -165,8 +165,8 @@ namespace Couchbase.Lite.Replicator
         {
             var localDb = LocalDatabase;
             if (_observing) {
-                _observing = false;
                 if (localDb != null) {
+                    _observing = false;
                     localDb.Changed -= OnChanged;
                 }
             }

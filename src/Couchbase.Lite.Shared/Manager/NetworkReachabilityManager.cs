@@ -46,7 +46,7 @@ namespace Couchbase.Lite
 
         public Exception LastError { get; private set; }
 
-        public bool CanReach(string remoteUri)
+        public bool CanReach(string remoteUri, TimeSpan timeout)
         {
             CouchbaseLiteHttpClientFactory.SetupSslCallback();
             HttpWebRequest request;
@@ -64,7 +64,7 @@ namespace Couchbase.Lite
             }
 
             request.AllowWriteStreamBuffering = true;
-            request.Timeout = 10000;
+            request.Timeout = (int)timeout.TotalMilliseconds;
             request.Method = "HEAD";
 
             try {
