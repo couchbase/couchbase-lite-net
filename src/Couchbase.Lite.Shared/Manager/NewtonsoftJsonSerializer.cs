@@ -99,7 +99,7 @@ namespace Couchbase.Lite
             try {
                 item = JsonConvert.DeserializeObject<T>(json, settings);
             } catch(JsonException e) {
-                throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error deserializing json ({0})",
+                throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, StatusCode.BadJson, TAG, "Error deserializing json ({0})",
                     new SecureLogString(json, LogMessageSensitivity.PotentiallyInsecure));
             }
 
@@ -116,7 +116,7 @@ namespace Couchbase.Lite
                 try {
                     item = serializer.Deserialize<T>(jsonReader);
                 } catch (JsonException e) {
-                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error deserializing json from stream");
+                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, StatusCode.BadJson, TAG, "Error deserializing json from stream");
                 }
 
                 return item;

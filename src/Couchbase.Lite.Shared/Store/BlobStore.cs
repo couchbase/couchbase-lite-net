@@ -215,9 +215,12 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var fos = default(FileStream);
+            var fos = default(Stream);
             try {
                 fos = File.Open(keyPath, FileMode.Create);
+                if(EncryptionKey != null) {
+                    fos = EncryptionKey.CreateStream(fos);
+                }
                 fos.Write(data, 0, data.Length);
             } catch (FileNotFoundException e) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.AttachmentError, TAG,
