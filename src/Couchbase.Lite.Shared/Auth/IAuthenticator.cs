@@ -84,8 +84,6 @@ namespace Couchbase.Lite.Auth
         /// <param name="site">The uri of the site</param>
         [Obsolete("Not intended for outside use")]
         IDictionary<string, string> LoginParametersForSite(Uri site);
-
-        string Username { get; }
     }
 
     /// <summary>

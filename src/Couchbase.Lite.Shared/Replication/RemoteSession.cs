@@ -79,6 +79,13 @@ namespace Couchbase.Lite.Internal
 
         public bool Disposed { get; private set; }
 
+        public int RequestCount
+        {
+            get {
+                return _requests.Count;
+            }
+        }
+
         public RemoteSession(RemoteSessionContructorOptions options)
         {
             options.Validate();

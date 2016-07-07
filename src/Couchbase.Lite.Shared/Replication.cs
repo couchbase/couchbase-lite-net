@@ -175,9 +175,9 @@ namespace Couchbase.Lite
         /// User-Agent version.
         /// </summary>
         [Obsolete("Use SyncProtocolVersion")]
-        public const string SYNC_PROTOCOL_VERSION = "1.2";
+        public const string SYNC_PROTOCOL_VERSION = "1.3";
 
-        public static readonly string SyncProtocolVersion = "1.2";
+        public static readonly string SyncProtocolVersion = "1.3";
 
         internal const string CHANNELS_QUERY_PARAM = "channels";
         internal const string BY_CHANNEL_FILTER_NAME = "sync_gateway/bychannel";
@@ -258,6 +258,8 @@ namespace Couchbase.Lite
         #endregion
 
         #region Properties
+
+        public string Username { get; private set; }
 
         /// <summary>
         /// Gets or sets the transformation function used on the properties of the documents
@@ -645,6 +647,7 @@ namespace Couchbase.Lite
                 CancellationTokenSource = CancellationTokenSource
             };
             _remoteSession = new RemoteSession(opts);
+            Username = remote.UserInfo;
 
             LocalDatabase = db;
             _eventContext = LocalDatabase.Manager.CapturedContext;
@@ -829,10 +832,30 @@ namespace Couchbase.Lite
         {
             _remoteSession.CookieStore.Delete(RemoteUrl, name);
         }
-            
+
+        /// <summary>
+        /// Deletes any persistent credentials (passwords, auth tokens...) associated with this 
+        /// replication's Authenticator. Also removes session cookies from the cookie store. 
+        /// </summary>
+        /// <returns><c>true</c> on success, <c>false</c> otherwise</returns>
+        public bool RemoveStoredCredentials()
+        {
+            if(Authenticator != null && !((IAuthorizer)Authenticator).RemoveStoredCredentials()) {
+                return false;
+            }
+
+            DeleteAllCookies();
+            return true;
+        }
+
         #endregion
 
         #region Protected Methods
+
+        internal void DeleteAllCookies()
+        {
+            _remoteSession.CookieStore.Delete(RemoteUrl);
+        }
 
         /// <summary>
         /// Creates the database object on the remote endpoint, if necessary
@@ -1788,9 +1811,11 @@ namespace Couchbase.Lite
         {
             Log.To.Sync.I(Tag, "NotifyChangeListeners ({0}/{1}, state={2} (batch={3}, net={4}))",
                 CompletedChangesCount, ChangesCount,
-                _stateMachine.State, Batcher == null ? 0 : Batcher.Count(), _requests.Count);
+                _stateMachine.State, Batcher == null ? 0 : Batcher.Count(), _remoteSession.RequestCount);
 
             _pendingDocumentIDs = null;
+            Username = (Authenticator as IAuthorizer)?.Username;
+
             var evt = _changed;
             if (evt == null) {
                 return;
@@ -1835,12 +1860,6 @@ namespace Couchbase.Lite
     public class ReplicationChangeEventArgs : EventArgs
     {
         private static readonly string Tag = typeof(ReplicationChangeEventArgs).Name;
-        private readonly Replication _source;
-        private readonly ReplicationStateTransition _transition;
-        private readonly int _changesCount;
-        private readonly int _completedChangesCount;
-        private readonly ReplicationStatus _status;
-        private readonly Exception _lastError;
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.  Do not
@@ -1848,54 +1867,41 @@ namespace Couchbase.Lite
         /// between the time the args were created and the time that the event was raised.
         /// Instead use the various other properties.
         /// </summary>
-        public Replication Source 
-        {
-            get { return _source; }
-        }
+        public Replication Source { get; }
 
         /// <summary>
         /// Gets the number of changes scheduled for the replication at the
         /// time the event was created.
         /// </summary>
-        public int ChangesCount
-        {
-            get { return _changesCount; }
-        }
+        public int ChangesCount { get; }
 
         /// <summary>
         /// Gets the number of changes completed by the replication at the
         /// time the event was created.
         /// </summary>
-        public int CompletedChangesCount
-        {
-            get { return _completedChangesCount; }
-        }
+        public int CompletedChangesCount { get; }
 
         /// <summary>
         /// Gets the status of the replication at the time the event was created
         /// </summary>
-        public ReplicationStatus Status
-        {
-            get { return _status; }
-        }
+        public ReplicationStatus Status { get; }
 
         /// <summary>
         /// Gets the transition
         /// </summary>
         /// <value>The replication state transition.</value>
-        public ReplicationStateTransition ReplicationStateTransition 
-        {
-            get { return _transition; }
-        }
+        public ReplicationStateTransition ReplicationStateTransition { get; }
 
         /// <summary>
         /// Gets the most recent error that occured at the time of this change
         /// </summary>
         /// <value>The last error.</value>
-        public Exception LastError
-        {
-            get { return _lastError; }
-        }
+        public Exception LastError { get; }
+
+        /// <summary>
+        /// The current username assigned to the replication
+        /// </summary>
+        public string Username { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Couchbase.Lite.ReplicationChangeEventArgs"/> class.
@@ -1909,15 +1915,16 @@ namespace Couchbase.Lite
                 throw new ArgumentNullException("sender");
             }
 
-            _source = sender;
-            _transition = transition;
-            _changesCount = sender.ChangesCount;
-            _completedChangesCount = sender.CompletedChangesCount;
-            _status = sender.Status;
-            _lastError = sender.LastError;
+            Source = sender;
+            ReplicationStateTransition = transition;
+            ChangesCount = sender.ChangesCount;
+            CompletedChangesCount = sender.CompletedChangesCount;
+            Status = sender.Status;
+            LastError = sender.LastError;
+            Username = sender.Username;
 
-            if (_status == ReplicationStatus.Offline && transition != null && transition.Destination == ReplicationState.Running) {
-                _status = ReplicationStatus.Active;
+            if (Status == ReplicationStatus.Offline && transition != null && transition.Destination == ReplicationState.Running) {
+                Status = ReplicationStatus.Active;
             }
 
         }

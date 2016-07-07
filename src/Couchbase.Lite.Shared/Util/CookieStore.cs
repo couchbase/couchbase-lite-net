@@ -209,6 +209,37 @@ namespace Couchbase.Lite.Util
         }
 
         /// <summary>
+        /// Deletes all cookies for the specified uri
+        /// </summary>
+        /// <param name="uri">The uri of the cookies to be deleted</param>
+        public void Delete(Uri uri)
+        {
+            if(uri == null) {
+                return;
+            }
+
+            lock(locker) {
+                var delete = false;
+                var cookies = GetCookies(uri);
+                foreach(Cookie cookie in cookies) {
+                    cookie.Discard = true;
+                    cookie.Expired = true;
+                    cookie.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+
+                    if(!delete) {
+                        delete = true;
+                    }
+                }
+
+                if(delete) {
+                    // Trigger container cookie list refreshment
+                    GetCookies(uri);
+                    Save();
+                }
+            }
+        }
+
+        /// <summary>
         /// Saves the cookies to disk
         /// </summary>
         public void Save()

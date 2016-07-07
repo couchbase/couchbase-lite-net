@@ -248,6 +248,19 @@ namespace Couchbase.Lite.Auth
             return "_oidc_challenge?offline=true";
         }
 
+        public override bool RemoveStoredCredentials()
+        {
+            if(!DeleteTokens()) {
+                return false;
+            }
+
+            IDToken = null;
+            RefreshToken = null;
+            _haveSessionCookie = false;
+            _authUrl = null;
+            return true;
+        }
+
         public bool AuthorizeRequest(HttpRequestMessage message)
         {
             LoadTokens();

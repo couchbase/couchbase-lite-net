@@ -37,5 +37,10 @@ namespace Couchbase.Lite.Auth
 
         public abstract IDictionary<string, string> LoginParametersForSite(Uri site);
         public abstract string LoginPathForSite(Uri site);
+
+        public virtual bool RemoveStoredCredentials()
+        {
+            return true;
+        }
     }
 }

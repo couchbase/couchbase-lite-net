@@ -32,6 +32,10 @@ namespace Couchbase.Lite.Auth
     internal interface IAuthorizer : IAuthenticator
     {
         Uri RemoteUrl { get; set; }
+
+        string Username { get; }
+
+        bool RemoveStoredCredentials();
     }
 
     internal interface ICredentialAuthorizer : IAuthorizer

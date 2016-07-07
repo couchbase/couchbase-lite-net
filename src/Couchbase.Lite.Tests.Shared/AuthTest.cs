@@ -279,8 +279,7 @@ namespace Couchbase.Lite
             }
 
             var remoteUri = new Uri($"http://{GetReplicationServer()}:{GetReplicationPort()}/openid_db");
-            Assert.IsTrue(OpenIDAuthenticator.ForgetIDTokens(remoteUri));
-
+    
             var auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
             {
                 AssertValidOIDCLogin(login, authBase, remoteUri);
@@ -289,13 +288,9 @@ namespace Couchbase.Lite
                 Trace.WriteLine("**** Callback handing control back to authenticator...");
                 cont(authURL, null);
             });
-
-            var authError = PullWithOIDCAuth(remoteUri, auth);
+           
+            var authError = PullWithOIDCAuth(remoteUri, auth, "pupshaw");
             Assert.IsNull(authError);
-
-            // The username I gave is "pupshaw," but SG namespaces it by prefixing it with the provider's
-            // registered issuer (as given in the SG config file.)
-            Assert.IsTrue(auth.Username.EndsWith("_pupshaw", StringComparison.InvariantCulture));
 
             // Now try again; this should use the ID token from storage and/or a session cookie:
             Trace.WriteLine("**** Second replication...");
@@ -308,9 +303,10 @@ namespace Couchbase.Lite
                 cont(null, null); // cancel
             });
 
-            authError = PullWithOIDCAuth(remoteUri, auth);
+            authError = PullWithOIDCAuth(remoteUri, auth, "pupshaw");
             Assert.IsNull(authError);
             Assert.IsFalse(callbackInvoked);
+            Assert.IsTrue(auth.RemoveStoredCredentials());
         }
 
         [Test]
@@ -321,7 +317,6 @@ namespace Couchbase.Lite
             }
 
             var remoteUri = new Uri ($"http://{GetReplicationServer ()}:{GetReplicationPort ()}/openid_db");
-            Assert.IsTrue(OpenIDAuthenticator.ForgetIDTokens(remoteUri));
 
             var callbackInvoked = false;
             var auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
@@ -337,10 +332,11 @@ namespace Couchbase.Lite
             auth.IDToken = "BOGUS_ID";
             auth.RefreshToken = "BOGUS_REFRESH";
 
-            var pullError = PullWithOIDCAuth(remoteUri, auth);
+            var pullError = PullWithOIDCAuth(remoteUri, auth, null);
             Assert.IsTrue(callbackInvoked);
             Assert.IsNotNull(pullError);
             Assert.IsInstanceOf(typeof(OperationCanceledException), pullError);
+            Assert.IsTrue(auth.RemoveStoredCredentials());
         }
 
         private void AssertValidOIDCLogin(Uri login, Uri authBase, Uri remoteUri)
@@ -374,11 +370,17 @@ namespace Couchbase.Lite
             return new Uri(authURLStr);
         }
 
-        private Exception PullWithOIDCAuth(Uri remoteUri, IAuthenticator auth)
+        private Exception PullWithOIDCAuth(Uri remoteUri, IAuthenticator auth, string expectedUsername)
         {
             var repl = database.CreatePullReplication(remoteUri);
             repl.Authenticator = auth;
             RunReplication(repl);
+            if(expectedUsername != null && repl.LastError == null) {
+                // SG namespaces the username by prefixing it with the hash of
+                // the identity provider's registered name (given in the SG config file.)
+                Assert.IsTrue(repl.Username.EndsWith(expectedUsername));
+            }
+
             return repl.LastError;
         }
 
