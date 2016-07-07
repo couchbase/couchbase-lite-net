@@ -89,7 +89,7 @@ namespace Couchbase.Lite.Internal
 
         public int Generation
         {
-            get { return _revId.Generation; }
+            get { return _revId == null ? 0 : _revId.Generation; }
         }
 
         public bool Missing { get; internal set; }
