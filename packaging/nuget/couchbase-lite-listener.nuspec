@@ -12,10 +12,15 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Provides Couchbase Lite with a self-hosted REST API.</description>
     <releaseNotes>
-      $version$ puts an upper limit on one of our deps due to an upstream change t
-      hat breaks binary compatibility.
+This is a feature release, with a focus on performance. Noteworthy changes:
 
-For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
+- Support for OpenID Connect authentication, so you can log into Sync Gateway using a 3rd-party identity like a Google or Yahoo ID.
+- Timed expiration of documents can help keep your database from growing indefinitely.
+- Better performance with docs that have many revisions. Replication is faster, and older revisions are now automatically cleaned up in SQLite storage.
+- Clearer error messages and better logging, including customizable domains and app.config support
+- And of course many smaller optimizations, and lots of bug fixes.
+
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.3-pre1
     </releaseNotes>
     <copyright>Copyright 2015-2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>

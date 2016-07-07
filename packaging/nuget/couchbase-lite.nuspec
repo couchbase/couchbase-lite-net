@@ -12,17 +12,15 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
-      1.2.0.3 puts an upper limit on one of our deps due to an upstream change that breaks binary compatibility.
+This is a feature release, with a focus on performance. Noteworthy changes:
 
-Couchbase Lite 1.2 brings a number of significant bug fixes and two new features:
+- Support for OpenID Connect authentication, so you can log into Sync Gateway using a 3rd-party identity like a Google or Yahoo ID.
+- Timed expiration of documents can help keep your database from growing indefinitely.
+- Better performance with docs that have many revisions. Replication is faster, and older revisions are now automatically cleaned up in SQLite storage.
+- Clearer error messages and better logging, including customizable domains and app.config support
+- And of course many smaller optimizations, and lots of bug fixes.
 
-Encryption Support - Databases may now be encrypted. The encryption process uses industry standard protocols (PBKDF2 for key generation and 256-bit AES for encrypting).
-
-ForestDB Based Databases - You may now take advantage of the performance increases of Couchbase's ForestDB storage engine. It was designed from the ground up to be a key-value storage engine and lends itself perfectly to our JSON model.
-
-NOTE: Starting with this release the nuget package has been modularized. Making use of these two new features requires installing additional packages from nuget. By default, Couchbase.Lite will use Couchbase.Lite.Storage.SystemSQLite which makes use of the system-installed SQLite library (or a provided one for Windows). To use encryption with SQLite, you must install the Couchbase.Lite.Storage.SQLCipher package. To use ForestDB (with or without encryption) you must install the Couchbase.Lite.Storage.ForestDB package.  YOU MUST ALSO REMOVE THE SQLITEPCL.RAW AND SQLITEPCL.UGLY PACKAGES FROM YOUR PROJECT IF YOU ARE UPGRADING FROM A PREVIOUS VERSION!!
-
-For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.3-pre1
     </releaseNotes>
     <copyright>Copyright 2014-2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
