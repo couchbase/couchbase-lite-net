@@ -46,6 +46,14 @@
     </CustomCommands>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\SQLitePCL.raw.0.9.1\lib\net35\SQLitePCL.raw.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\SQLitePCL.ugly.0.9.1\lib\net35\SQLitePCL.ugly.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="SQLitePCLPlugin_sqlcipher, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\SQLitePCL.plugin.sqlcipher.net35.0.9.1\lib\net35\SQLitePCLPlugin_sqlcipher.dll</HintPath>
       <Private>True</Private>
@@ -73,6 +81,14 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios130-forestdb.zip">
+      <Link>Assets\ios130-forestdb.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.ios130-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios130.zip">
+      <Link>Assets\ios130.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.ios130.zip</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="Assets\attachment.blob">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.attachment.blob</LogicalName>
     </EmbeddedResource>

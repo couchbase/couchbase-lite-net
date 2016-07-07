@@ -47,18 +47,11 @@
     <DebugSymbols>True</DebugSymbols>
     <EmbedAssembliesIntoApk>True</EmbedAssembliesIntoApk>
     <AndroidSupportedAbis>armeabi,armeabi-v7a,x86,x86_64,arm64-v8a</AndroidSupportedAbis>
-    <AndroidUseSharedRuntime>False</AndroidUseSharedRuntime>
     <AndroidLinkSkip />
     <AndroidLinkMode>SdkOnly</AndroidLinkMode>
-    <BundleAssemblies>False</BundleAssemblies>
-    <AndroidCreatePackagePerAbi>False</AndroidCreatePackagePerAbi>
     <AndroidStoreUncompressedFileExtensions />
     <MandroidI18n />
     <Debugger>Xamarin</Debugger>
-    <AotAssemblies>False</AotAssemblies>
-    <EnableLLVM>False</EnableLLVM>
-    <AndroidEnableMultiDex>False</AndroidEnableMultiDex>
-    <EnableProguard>False</EnableProguard>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -186,6 +179,12 @@
     <EmbeddedResource Include="Assets\test.properties" />
     <EmbeddedResource Include="Assets\attachment.blob" />
     <EmbeddedResource Include="Assets\withattachments.cblite" />
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios130-forestdb.zip">
+      <Link>Assets\ios130-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios130.zip">
+      <Link>Assets\ios130.zip</Link>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
       <Link>Assets\android104.zip</Link>
     </EmbeddedResource>

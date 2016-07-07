@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -75,6 +75,12 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\attachment.blob" />
     <EmbeddedResource Include="Assets\withattachments.cblite" />
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios130-forestdb.zip">
+      <Link>Assets\ios130-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios130.zip">
+      <Link>Assets\ios130.zip</Link>
+    </EmbeddedResource>
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>

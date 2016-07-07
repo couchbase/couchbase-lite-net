@@ -19,7 +19,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;ENCRYPTION;</DefineConstants>
+    <DefineConstants>DEBUG;SQLCIPHER;ENCRYPTION;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -32,7 +32,7 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;ENCRYPTION;</DefineConstants>
+    <DefineConstants>SQLCIPHER;ENCRYPTION;</DefineConstants>
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
@@ -40,7 +40,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Packaging</OutputPath>
-    <DefineConstants>PINVOKE_FROM_PACKAGED_SQLCIPHER;OLD_REFLECTION;ENCRYPTION;</DefineConstants>
+    <DefineConstants>SQLCIPHER;ENCRYPTION;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>

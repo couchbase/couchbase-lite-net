@@ -1435,8 +1435,11 @@ namespace Couchbase.Lite
         [TestFixtureSetUp]
         protected void OneTimeSetUp()
         {
-            Storage.ForestDB.Plugin.Register();
-            Storage.SQLCipher.Plugin.Register();
+            if(!_storageEngineSet) {
+                _storageEngineSet = true;
+                Storage.SQLCipher.Plugin.Register();
+                Storage.ForestDB.Plugin.Register();
+            }
             ServicePointManager.DefaultConnectionLimit = 10;
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 

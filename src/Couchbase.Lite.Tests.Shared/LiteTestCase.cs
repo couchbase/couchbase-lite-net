@@ -64,7 +64,7 @@ namespace Couchbase.Lite
     public abstract class LiteTestCase
     {
         private const string TAG = "LiteTestCase";
-        private static bool _storageEngineSet = false;
+        protected static bool _storageEngineSet = false;
         private Hashtable _runtimeTestProperties = 
             new Hashtable();
 
