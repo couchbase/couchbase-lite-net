@@ -166,7 +166,7 @@ namespace Couchbase.Lite
                 TestReplaceDatabase("ios", "104", 2, "BC38EA44-E153-429A-A698-0CBE6B0090C4");
                 TestReplaceDatabase("ios", "110", 2, "-iTji_n2zmHpmgYecaRHqZE");
                 TestReplaceDatabase("ios", "120", 2, "doc1");
-                TestReplaceDatabase("ios", "130", 1, "doc1", "doc2");
+                TestReplaceDatabase("ios", "130", 1, "doc1", "doc2", "_local/local1");
             } else {
                 TestReplaceDatabase("ios", "120-forestdb", 1, "doc1", "doc2");
                 TestReplaceDatabase("ios", "130-forestdb", 1, "doc1", "doc2");
@@ -178,7 +178,7 @@ namespace Couchbase.Lite
             if (_storageType == "SQLite") {
                 TestReplaceDatabase("android", "104", 1, "66ac306d-de93-46c8-b60f-946c16ac4a1d");
                 TestReplaceDatabase("android", "110", 1, "d3e80747-2568-47c8-81e8-a04ba1b5c5d4");
-                TestReplaceDatabase("android", "120", 1, "doc1", "doc2");
+                TestReplaceDatabase("android", "120", 1, "doc1", "doc2", "_local/local1");
             } else {
                 TestReplaceDatabase("android", "120-forestdb", 1, "doc1", "doc2");
             }
@@ -213,12 +213,16 @@ namespace Couchbase.Lite
 
             var db = manager.GetExistingDatabase($"{platform}db");
             Assert.IsNotNull(db, "Failed to import database");
-            foreach(var docName in docNames) { 
-            var doc = db.GetExistingDocument(docName);
-                Assert.IsNotNull(doc, $"Failed to get doc {docName} from imported database");
-                Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), attachmentCount, "Failed to get attachments from imported database");
-                using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
-                    Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
+            foreach(var docName in docNames) {
+                if(docName.StartsWith("_local/")) {
+                    Assert.IsNotNull(db.GetExistingLocalDocument(docName.Substring(7)));
+                } else {
+                    var doc = db.GetExistingDocument(docName);
+                    Assert.IsNotNull(doc, $"Failed to get doc {docName} from imported database");
+                    Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), attachmentCount, "Failed to get attachments from imported database");
+                    using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
+                        Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
+                    }
                 }
             }
 

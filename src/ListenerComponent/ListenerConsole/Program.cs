@@ -169,6 +169,10 @@ namespace Listener
             Console.WriteLine("Shutting down now");
             wait.Dispose();
 
+            foreach(var db in manager.AllOpenDatabases()) {
+                db.Close();
+            }
+
             if (replicator != null) {
                 replicator.Stop();
                 Thread.Sleep(5000);
