@@ -179,8 +179,10 @@ namespace Couchbase.Lite
                 TestReplaceDatabase("android", "104", 1, "66ac306d-de93-46c8-b60f-946c16ac4a1d");
                 TestReplaceDatabase("android", "110", 1, "d3e80747-2568-47c8-81e8-a04ba1b5c5d4");
                 TestReplaceDatabase("android", "120", 1, "doc1", "doc2", "_local/local1");
+                TestReplaceDatabase("android", "130", 1, "doc1", "doc2", "_local/local1");
             } else {
                 TestReplaceDatabase("android", "120-forestdb", 1, "doc1", "doc2");
+                TestReplaceDatabase("android", "130-forestdb", 1, "doc1", "doc2");
             }
         }
 

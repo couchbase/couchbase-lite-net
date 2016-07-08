@@ -203,6 +203,14 @@
       <Link>Assets\ios130.zip</Link>
       <LogicalName>CouchbaseLiteiOSTests.Assets.ios130.zip</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android130-forestdb.zip">
+      <Link>Assets\android130-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android130-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android130.zip">
+      <Link>Assets\android130.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android130.zip</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
       <Link>Resources\android104.zip</Link>
       <LogicalName>CouchbaseLiteiOSTests.Assets.android104.zip</LogicalName>

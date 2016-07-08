@@ -81,6 +81,14 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
+  <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android130-forestdb.zip">
+      <Link>Assets\android130-forestdb.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.android130-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android130.zip">
+      <Link>Assets\android130.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.android130.zip</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios130-forestdb.zip">
       <Link>Assets\ios130-forestdb.zip</Link>
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.ios130-forestdb.zip</LogicalName>
