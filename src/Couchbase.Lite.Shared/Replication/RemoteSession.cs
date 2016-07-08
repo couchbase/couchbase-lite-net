@@ -143,7 +143,7 @@ namespace Couchbase.Lite.Internal
             _remoteRequestCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token);
         }
 
-        internal void SetupHttpClientFactory(IHttpClientFactory newValue, Database db, string checkpointId)
+        internal void SetupHttpClientFactory(IHttpClientFactory newValue, Database db)
         {
             if(newValue != null) {
                 ClientFactory = newValue;
@@ -153,7 +153,7 @@ namespace Couchbase.Lite.Internal
                 ClientFactory = managerClientFactory ?? new CouchbaseLiteHttpClientFactory();
             }
 
-            CookieStore = new CookieStore(db, checkpointId);
+            CookieStore = new CookieStore(db, null);
         }
 
         internal Task<HttpResponseMessage> SendAsyncRequest(HttpRequestMessage message, HttpCompletionOption option, CancellationToken token)

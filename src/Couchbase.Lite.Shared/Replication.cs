@@ -571,8 +571,7 @@ namespace Couchbase.Lite
         internal IHttpClientFactory ClientFactory {
             get { return _remoteSession.ClientFactory; }
             set {
-                var id = LocalDatabase == null ? null : RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
-                _remoteSession.SetupHttpClientFactory(value, LocalDatabase, id);
+                _remoteSession.SetupHttpClientFactory(value, LocalDatabase);
             }
         }
 
@@ -1069,6 +1068,7 @@ namespace Couchbase.Lite
             var authorizer = Authenticator as IAuthorizer;
             if(authorizer != null) {
                 authorizer.RemoteUrl = RemoteUrl;
+                authorizer.LocalUUID = LocalDatabase.PublicUUID();
             }
 
             _remoteSession = RemoteSession.Clone(_remoteSession);
@@ -1086,7 +1086,7 @@ namespace Couchbase.Lite
         protected virtual void Login()
         {
             if(Authenticator != null) {
-                var login = new RemoteLogin(RemoteUrl, _remoteSession);
+                var login = new RemoteLogin(RemoteUrl, LocalDatabase.PublicUUID(), _remoteSession);
                 login.AttemptLogin().ContinueWith(t =>
                 {
                     if(t.Exception != null) {

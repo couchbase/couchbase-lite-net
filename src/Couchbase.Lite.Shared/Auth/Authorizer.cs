@@ -31,6 +31,8 @@ namespace Couchbase.Lite.Auth
 
         public string Username { get; protected set; }
 
+        public string LocalUUID { get; set; }
+
         public abstract string Scheme { get; }
         public abstract string UserInfo { get; }
         public abstract bool UsesCookieBasedLogin { get; }

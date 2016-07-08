@@ -41,7 +41,6 @@ namespace Couchbase.Lite.Auth
     internal sealed class OpenIDAuthenticator : Authorizer, ILoginAuthorizer, ICustomHeadersAuthorizer, ISessionCookieAuthorizer
     {
         private const string Tag = nameof(OpenIDAuthenticator);
-        private const string OIDCServiceName = "OpenID Connect";
 
         private readonly OIDCCallback _loginCallback;
         private bool _checkedTokens;
@@ -192,7 +191,7 @@ namespace Couchbase.Lite.Auth
             }
 
             var label = $"{RemoteUrl?.Host} OpenID Connect tokens";
-            return new SecureStorageRequest(account, OIDCServiceName, label);
+            return new SecureStorageRequest(account, LocalUUID, label);
         }
 
         private bool ParseTokens(IDictionary<string, object> tokens)

@@ -35,6 +35,8 @@ namespace Couchbase.Lite.Auth
 
         string Username { get; }
 
+        string LocalUUID { get; set; }
+
         bool RemoveStoredCredentials();
     }
 

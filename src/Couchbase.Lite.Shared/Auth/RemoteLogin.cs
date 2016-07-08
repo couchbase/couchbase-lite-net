@@ -39,11 +39,13 @@ namespace Couchbase.Lite.Auth
         private readonly Uri _remoteUrl;
         private readonly RemoteSession _session;
         private TaskCompletionSource<bool> _tcs;
+        private string _localUUID;
         private static readonly HashSet<RemoteLogin> _activeAttempts = new HashSet<RemoteLogin>();
 
-        public RemoteLogin(Uri remoteUrl, RemoteSession session)
+        public RemoteLogin(Uri remoteUrl, string localUUID, RemoteSession session)
         {
             _remoteUrl = remoteUrl;
+            _localUUID = localUUID;
             _session = session;
         }
 
@@ -58,6 +60,7 @@ namespace Couchbase.Lite.Auth
             _tcs = tcs;
             _activeAttempts.Add(this);
             _session.Authenticator.RemoteUrl = _remoteUrl;
+            _session.Authenticator.LocalUUID = _localUUID;
             CheckSession();
             return tcs.Task;
         }

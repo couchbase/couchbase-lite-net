@@ -215,7 +215,7 @@ namespace Couchbase.Lite
                 WorkExecutor = new TaskFactory(scheduler),
                 BaseUrl = testUrl
             });
-            remoteSession.SetupHttpClientFactory(client.HttpClientFactory, database, "testwithmode");
+            remoteSession.SetupHttpClientFactory(client.HttpClientFactory, database);
             remoteSession.Setup(new ReplicationOptions());
             var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
                 DatabaseUri = testUrl,
@@ -252,7 +252,7 @@ namespace Couchbase.Lite
                 WorkExecutor = new TaskFactory(scheduler)
             };
             var remoteSession = new RemoteSession (opts);
-            remoteSession.SetupHttpClientFactory (client.HttpClientFactory, database, "foo");
+            remoteSession.SetupHttpClientFactory (client.HttpClientFactory, database);
             remoteSession.Setup (new ReplicationOptions ());
             var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
                 DatabaseUri = testUrl,
@@ -347,7 +347,7 @@ namespace Couchbase.Lite
                 WorkExecutor = new TaskFactory(scheduler),
                 BaseUrl = testUrl
             });
-            remoteSession.SetupHttpClientFactory(client.HttpClientFactory, database, "bar");
+            remoteSession.SetupHttpClientFactory(client.HttpClientFactory, database);
             remoteSession.Setup(new ReplicationOptions());
             var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
                 DatabaseUri = testUrl,
@@ -411,7 +411,7 @@ namespace Couchbase.Lite
                 var remoteSession = new RemoteSession(new RemoteSessionContructorOptions {
                     BaseUrl = remoteDb.RemoteUri
                 });
-                remoteSession.SetupHttpClientFactory(null, database, "live");
+                remoteSession.SetupHttpClientFactory(null, database);
                 remoteSession.Setup(new ReplicationOptions());
                 var tracker = new BadWebSocketChangeTracker(new ChangeTrackerOptions {
                     DatabaseUri = remoteDb.RemoteUri,
@@ -435,7 +435,7 @@ namespace Couchbase.Lite
                 var remoteSession = new RemoteSession(new RemoteSessionContructorOptions {
                     BaseUrl = uri
                 });
-                remoteSession.SetupHttpClientFactory(null, database, "live");
+                remoteSession.SetupHttpClientFactory(null, database);
                 remoteSession.Setup(new ReplicationOptions());
                 var tracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
                     DatabaseUri = uri,
@@ -459,7 +459,7 @@ namespace Couchbase.Lite
                 var remoteSession = new RemoteSession(new RemoteSessionContructorOptions {
                     BaseUrl = uri
                 });
-                remoteSession.SetupHttpClientFactory(null, database, "live");
+                remoteSession.SetupHttpClientFactory(null, database);
                 remoteSession.Setup(new ReplicationOptions());
                 var tracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
                     DatabaseUri = uri,
@@ -483,7 +483,7 @@ namespace Couchbase.Lite
                 var remoteSession = new RemoteSession(new RemoteSessionContructorOptions {
                     BaseUrl = uri
                 });
-                remoteSession.SetupHttpClientFactory(null, database, "live");
+                remoteSession.SetupHttpClientFactory(null, database);
                 remoteSession.Setup(new ReplicationOptions());
                 var tracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
                     DatabaseUri = uri,
@@ -515,8 +515,8 @@ namespace Couchbase.Lite
                 BaseUrl = testUrl,
                 WorkExecutor = new TaskFactory (scheduler)
             });
-            remoteSession.SetupHttpClientFactory (client.HttpClientFactory, database, "giveup");
-            remoteSession.Setup (new ReplicationOptions ());
+            remoteSession.SetupHttpClientFactory (client.HttpClientFactory, database);
+            remoteSession.Setup(new ReplicationOptions());
             var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
                 DatabaseUri = testUrl,
                 Mode = ChangeTrackerMode.OneShot,
@@ -596,7 +596,7 @@ namespace Couchbase.Lite
             var remoteSession = new RemoteSession(new RemoteSessionContructorOptions {
                 BaseUrl = testURL
             });
-            remoteSession.SetupHttpClientFactory(null, database, "docids");
+            remoteSession.SetupHttpClientFactory(null, database);
             remoteSession.Setup(new ReplicationOptions());
             var changeTracker = ChangeTrackerFactory.Create(new ChangeTrackerOptions {
                 DatabaseUri = testURL,

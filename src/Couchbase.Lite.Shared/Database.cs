@@ -909,6 +909,11 @@ namespace Couchbase.Lite
             PutLocalDocument(LOCAL_CHECKPOINT_DOC_ID, document);
         }
 
+        internal void SetLocalCheckpointDoc(IDictionary<string, object> newDoc)
+        {
+            PutLocalDocument(LOCAL_CHECKPOINT_DOC_ID, newDoc);
+        }
+
         /* Returns local checkpoint document if it exists. Otherwise returns null. */
         internal IDictionary<string, object> GetLocalCheckpointDoc()
         {
