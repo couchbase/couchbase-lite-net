@@ -493,6 +493,7 @@ namespace Couchbase.Lite.Replicator
                     }
 
                     properties["_revisions"] = TreeRevisionID.MakeRevisionHistoryDict(history);
+                    populatedRev.SetPropertyForKey("_revisions", properties["_revisions"]);
                 } catch(Exception e1) {
                     Log.To.Sync.E(TAG, "Error getting revision history, marking revision failed", e1);
                     RevisionFailed();
