@@ -1774,23 +1774,39 @@ namespace Couchbase.Lite
                 var puller = database.CreatePullReplication(remote);
                 var headers = new Dictionary<string, string>();
                 headers["foo"] = "bar";
+
+                var pusher = database.CreatePushReplication (remote);
+                pusher.Headers = headers;
+                pusher.Start ();
+                Sleep (5000);
+                pusher.Stop ();
+
+                ValidateHttpHeaders (mockHttpHandler);
+                mockHttpHandler.ClearCapturedRequests ();
+
                 puller.Headers = headers;
                 puller.Start();
                 Sleep(5000);
                 puller.Stop();
 
-                var foundFooHeader = false;
-                var requests = mockHttpHandler.CapturedRequests;
-
-                foreach (var request in requests) {
-                    var requestHeaders = request.Headers.GetValues("foo");
-                    foreach (var requestHeader in requestHeaders) {
-                        foundFooHeader = true;
-                        Assert.AreEqual("bar", requestHeader);
-                    }
-                }
-                Assert.IsTrue(foundFooHeader);
+                ValidateHttpHeaders (mockHttpHandler);
             }
+        }
+
+        private void ValidateHttpHeaders (MockHttpRequestHandler mockHttpHandler)
+        {
+            var foundFooHeader = false;
+            var requests = mockHttpHandler.CapturedRequests;
+
+            foreach (var request in requests) {
+                var requestHeaders = request.Headers.GetValues ("foo");
+                foundFooHeader = false;
+                foreach (var requestHeader in requestHeaders) {
+                    foundFooHeader = true;
+                    Assert.AreEqual ("bar", requestHeader);
+                }
+            }
+            Assert.IsTrue (foundFooHeader);
         }
 
         /// <exception cref="System.Exception"></exception>

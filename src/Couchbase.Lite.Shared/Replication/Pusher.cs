@@ -538,7 +538,10 @@ namespace Couchbase.Lite.Replicator
 
         public override IEnumerable<String> DocIds { get; set; }
 
-        public override IDictionary<String, String> Headers { get; set; }
+        public override IDictionary<String, String> Headers {
+            get { return ClientFactory.Headers; }
+            set { ClientFactory.Headers = value; }
+        }
 
         public override Boolean CreateTarget { get; set; }
 

@@ -159,7 +159,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(conflict, current);
 
             // Check that the list of conflicts is accurate
-            var conflictingRevs = database.Storage.GetAllDocumentRevisions(rev.DocID, true);
+            var conflictingRevs = database.Storage.GetAllDocumentRevisions(rev.DocID, true, false);
             CollectionAssert.AreEqual(new[] { conflict, rev }, conflictingRevs);
             
             // Get the _changes feed and verify only the winner is in it:
