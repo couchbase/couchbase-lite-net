@@ -184,7 +184,7 @@ namespace Couchbase.Lite.Store
         /// <returns>An array of all available revisions of the document.</returns>
         /// <param name="docId">The document ID</param>
         /// <param name="onlyCurrent">If <c>true</c>, only leaf revisions (whether or not deleted) should be returned.</param>
-        RevisionList GetAllDocumentRevisions(string docId, bool onlyCurrent);
+        RevisionList GetAllDocumentRevisions(string docId, bool onlyCurrent, bool includeDeleted);
 
         /// <summary>
         /// Returns IDs of local revisions of the same document, that have a lower generation number.

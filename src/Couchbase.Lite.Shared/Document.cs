@@ -591,7 +591,7 @@ namespace Couchbase.Lite
         internal IList<SavedRevision> GetLeafRevisions(bool includeDeleted)
         {
             var result = new List<SavedRevision>();
-            var revs = Database.Storage.GetAllDocumentRevisions(Id, true);
+            var revs = Database.Storage.GetAllDocumentRevisions(Id, true, true);
             foreach(RevisionInternal rev in revs) {
                 // add it to result, unless we are not supposed to include deleted and it's deleted
                 if(!includeDeleted && rev.Deleted) {

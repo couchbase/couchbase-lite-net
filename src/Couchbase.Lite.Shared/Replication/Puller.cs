@@ -591,7 +591,9 @@ namespace Couchbase.Lite.Replicator
                     gotRev.Sequence = rev.Sequence;
 
                     if (_downloadsToInsert != null) {
-                        _downloadsToInsert.QueueObject(gotRev);
+                        if (!_downloadsToInsert.QueueObject (gotRev)) {
+                            SafeIncrementCompletedChangesCount ();
+                        }
                     } else {
                         Log.To.Sync.E (TAG, "downloadsToInsert is null");
                     }
@@ -816,6 +818,7 @@ namespace Couchbase.Lite.Replicator
             if (numRevisionsRemoved > 0)
             {
                 // Some of the revisions originally in the inbox aren't missing; treat those as processed:
+                Log.To.Sync.I (TAG, "{0} Removed {1} already present revisions", this, numRevisionsRemoved);
                 SafeAddToCompletedChangesCount(numRevisionsRemoved);
             }
 
@@ -930,6 +933,7 @@ namespace Couchbase.Lite.Replicator
             var lastSequence = change.Get("seq").ToString();
             var docID = (string)change.Get("id");
             if (docID == null) {
+                Log.To.Sync.W (TAG, "{0} Change received with no id, ignoring...", this);
                 return;
             }
 
@@ -955,6 +959,8 @@ namespace Couchbase.Lite.Replicator
                 var changeDict = changeObj.AsDictionary<string, object>();
                 var revID = changeDict.GetCast<string>("rev").AsRevID();
                 if (revID == null) {
+                    Log.To.Sync.W (TAG, "{0} missing revID for entry, skipping...");
+                    SafeIncrementCompletedChangesCount ();
                     continue;
                 }
 
@@ -965,7 +971,10 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 Log.To.Sync.D(TAG, "Adding rev to inbox " + rev);
-                AddToInbox(rev);
+                if(!AddToInbox(rev)) {
+                    Log.To.Sync.W (TAG, "{0} Failed to add change, probably already added.  Marking completed", this);
+                    SafeIncrementCompletedChangesCount ();
+                }
             }
 
             PauseOrResume();

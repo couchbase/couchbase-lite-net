@@ -755,16 +755,18 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return revId;
         }
 
-        private RevisionList GetAllDocumentRevisions(string docId, long docNumericId, bool onlyCurrent)
+        private RevisionList GetAllDocumentRevisions(string docId, long docNumericId, bool onlyCurrent, bool includedDeleted)
         {
-            string sql;
+            StringBuilder sql = new StringBuilder("SELECT sequence, revid, deleted FROM revs WHERE doc_id=?");
             if (onlyCurrent) {
-                sql = "SELECT sequence, revid, deleted FROM revs " +
-                    "WHERE doc_id=? AND current ORDER BY sequence DESC";
-            } else {
-                sql = "SELECT sequence, revid, deleted FROM revs " +
-                    "WHERE doc_id=? ORDER BY sequence DESC";
+                sql.Append (" and current");
             }
+
+            if (!includedDeleted) {
+                sql.Append (" and deleted=0");
+            }
+
+            sql.Append (" ORDER BY sequence DESC");
 
             var revs = new RevisionList();
             var innerStatus = TryQuery(c =>
@@ -774,7 +776,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 revs.Add(rev);
 
                 return true;
-            }, true, sql, docNumericId);
+            }, true, sql.ToString(), docNumericId);
                 
             if (innerStatus.IsError && innerStatus.Code != StatusCode.NotFound) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, innerStatus.Code, TAG,
@@ -1244,7 +1246,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return history;
         }
 
-        public RevisionList GetAllDocumentRevisions(string docId, bool onlyCurrent)
+        public RevisionList GetAllDocumentRevisions(string docId, bool onlyCurrent, bool includeDeleted)
         {
             var docNumericId = GetDocNumericID(docId);
             if (docNumericId < 0) {
@@ -1255,7 +1257,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return new RevisionList(); // no such document
             }
 
-            return GetAllDocumentRevisions(docId, docNumericId, onlyCurrent);
+            return GetAllDocumentRevisions(docId, docNumericId, onlyCurrent, includeDeleted);
         }
 
         public IEnumerable<RevisionID> GetPossibleAncestors(RevisionInternal rev, int limit, ValueTypePtr<bool> haveBodies)
@@ -1332,8 +1334,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
             {
                 var rev = revs.RevWithDocIdAndRevId(c.GetString(0), c.GetString(1));
                 if(rev != null) {
-                    count++;
-                    revs.Remove(rev);
+                    while (revs.Contains (rev)) {
+                        count++;
+                        revs.Remove (rev);
+                    }
                 }
 
                 return true;
@@ -1824,7 +1828,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 } else {
                     var localRevsList = default(RevisionList);
                     try {
-                        localRevsList = GetAllDocumentRevisions(docId, docNumericId, false);
+                        localRevsList = GetAllDocumentRevisions(docId, docNumericId, false, true);
                         localRevs = new Dictionary<RevisionID, RevisionInternal>(localRevsList.Count);
                         foreach(var localRev in localRevsList) {
                             localRevs[localRev.RevID] = localRev;

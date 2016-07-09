@@ -202,7 +202,7 @@ namespace Couchbase.Lite.Internal
                 return Deleted ? (object)true : null;
             }
 
-            return _body.GetPropertyForKey(key);
+            return _body?.GetPropertyForKey(key);
         }
 
         internal RevisionInternal AddBasicMetadata()

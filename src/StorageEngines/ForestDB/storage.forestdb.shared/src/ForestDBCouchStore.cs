@@ -733,13 +733,16 @@ namespace Couchbase.Lite.Storage.ForestDB
             return retVal;
         }
 
-        public RevisionList GetAllDocumentRevisions(string docId, bool onlyCurrent)
+        public RevisionList GetAllDocumentRevisions(string docId, bool onlyCurrent, bool includeDeleted)
         {
             var retVal = default(RevisionList);
             WithC4Document(docId, null, false, false, doc =>
             {
                 using(var enumerator = new CBForestHistoryEnumerator(doc, onlyCurrent, false)) {
-                    retVal = new RevisionList(enumerator.Select(x => new ForestRevisionInternal(x.GetDocument(), false)).Cast<RevisionInternal>().ToList());
+                    var expression = includeDeleted ?
+                        enumerator.Select (x => new ForestRevisionInternal (x.GetDocument (), false)) :
+                        enumerator.Where (x => !x.IsDeleted).Select (x => new ForestRevisionInternal (x.GetDocument (), false));
+                    retVal = new RevisionList(expression.Cast<RevisionInternal>().ToList());
                 }
             });
 
@@ -962,8 +965,10 @@ namespace Couchbase.Lite.Storage.ForestDB
                     rev.RevID.PinAndUse(slice =>
                     {
                         if(Native.c4doc_selectRevision(doc, slice, false, null)) {
-                            removedCount++;
-                            revs.Remove(rev);
+                            while (revs.Contains (rev)) {
+                                removedCount++;
+                                revs.Remove (rev);
+                            }
                         }
                     });
                 }

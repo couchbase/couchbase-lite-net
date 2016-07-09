@@ -128,25 +128,30 @@ namespace Couchbase.Lite.Support
             }
         }
 
-        public void QueueObjects(IList<T> objects)
+        public int QueueObjects(IList<T> objects)
         {
             if (objects == null || objects.Count == 0) {
-                return;
+                return 0;
             }
 
             Log.To.NoDomain.V(TAG, "QueueObjects called with {0} objects", objects.Count);
+            int added = 0;
             foreach (var obj in objects) {
-                _inbox.Enqueue(obj);
+                if (!_inbox.Contains (obj)) {
+                    added++;
+                    _inbox.Enqueue (obj);
+                }
             }
 
             ScheduleWithDelay(DelayToUse());
+            return added;
         }
 
         /// <summary>Adds an object to the queue.</summary>
-        public void QueueObject(T o)
+        public bool QueueObject(T o)
         {
             var objects = new List<T> { o };
-            QueueObjects(objects);
+            return QueueObjects(objects) == 1;
         }
 
         /// <summary>Sends queued objects to the processor block (up to the capacity).</summary>

@@ -134,7 +134,7 @@ namespace Couchbase.Lite.Listener
                     if(openRevsParam.Equals("all")) {
                         // ?open_revs=all returns all current/leaf revisions:
                         bool includeDeleted = context.GetQueryParam<bool>("include_deleted", bool.TryParse, false);
-                        RevisionList allRevs = db.Storage.GetAllDocumentRevisions(docId, true);
+                        RevisionList allRevs = db.Storage.GetAllDocumentRevisions(docId, true, includeDeleted);
 
                         result = new List<IDictionary<string, object>>();
                         foreach(var rev in allRevs) {
@@ -598,7 +598,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeConflicts)) {
-                    RevisionList revs = db.Storage.GetAllDocumentRevisions(rev.DocID, true);
+                    RevisionList revs = db.Storage.GetAllDocumentRevisions(rev.DocID, true, false);
                     if (revs.Count > 1) {
                         dst["_conflicts"] = from r in revs
                                             where !r.Equals(rev) && !r.Deleted

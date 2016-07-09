@@ -609,7 +609,17 @@ namespace Couchbase.Lite
             get { return _replicatorID; }
         }
 
-        internal RemoteServerVersion ServerType { get; set; }
+        internal RemoteServerVersion ServerType 
+        {
+            get {
+                return _remoteSession?.ServerType;
+            } set {
+                if (_remoteSession != null) {
+                    _remoteSession.ServerType = value;
+                }
+            }
+        }
+
         internal Batcher<RevisionInternal> Batcher { get; set; }
         internal Func<RevisionInternal, RevisionInternal> RevisionBodyTransformationFunction { get; private set; }
 
@@ -1387,10 +1397,10 @@ namespace Couchbase.Lite
             });
         }
 
-        internal void AddToInbox(RevisionInternal rev)
+        internal bool AddToInbox(RevisionInternal rev)
         {
             Debug.Assert(IsRunning);
-            Batcher.QueueObject(rev);
+            return Batcher.QueueObject(rev);
         }
 
         #endregion
