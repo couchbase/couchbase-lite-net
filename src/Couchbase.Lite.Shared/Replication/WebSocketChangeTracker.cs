@@ -107,7 +107,7 @@ namespace Couchbase.Lite.Internal
                 } else {
                     Log.To.ChangeTracker.I(Tag, "{0} remote {1} closed connection ({2} {3})",
                         this, args.WasClean ? "cleanly" : "forcibly", args.Code, args.Reason);
-                    Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => _client.ConnectAsync());
+                    Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => _client?.ConnectAsync());
                 }
             } else {
                 Log.To.ChangeTracker.I(Tag, "{0} is closed", this);

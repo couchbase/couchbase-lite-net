@@ -375,7 +375,8 @@ namespace Couchbase.Lite.Util
                 return;
             }
 
-            var val = _db.Storage.GetInfo(CookieStorageKey).AsList<Cookie>();
+
+            var val = Manager.GetObjectMapper().ReadValue<IList<Cookie>>(_db.Storage.GetInfo(CookieStorageKey));
             if (val == null) {
                 return;
             }
