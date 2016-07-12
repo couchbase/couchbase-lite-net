@@ -1810,7 +1810,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             RunInTransaction(() =>
             {
                 // First look up the document's row-id and all locally-known revisions of it:
-                Dictionary<RevisionID, RevisionInternal> localRevs = null;
+                var localRevs = new Dictionary<RevisionID, RevisionInternal>();
                 RevisionID oldWinningRevId = null;
                 ValueTypePtr<bool> oldWinnerWasDeletion = false;
                 bool isNewDoc = revHistory.Count == 1;
