@@ -108,11 +108,13 @@ namespace Couchbase.Lite
         public void TestPutEncodedAttachment()
         {
             const string bodyString = "This is the body of attach1";
+            var digest = Environment.OSVersion.Platform == PlatformID.Win32NT ? "sha1-nBwocxIXCeWVFcfFzAVEdcS8AZk="
+                : "sha1-Wk8g89eb0Y+5DtvMKkf+/g90Mhc=";
             var rev1 = PutDocument(null, bodyString, true);
             var resultDict = new Dictionary<string, object> { 
                 { "attach", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "digest", "sha1-Wk8g89eb0Y+5DtvMKkf+/g90Mhc=" },
+                        { "digest", digest },
                         { "length", 27 },
                         { "encoded_length", 45 },
                         { "encoding", "gzip" },
@@ -137,7 +139,7 @@ namespace Couchbase.Lite
             var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(bodyString).Compress().ToArray());
             AssertDictionariesAreEqual(new Dictionary<string, object> { { "attach", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "digest", "sha1-Wk8g89eb0Y+5DtvMKkf+/g90Mhc=" },
+                        { "digest", digest },
                         { "length", 27 },
                         { "encoded_length", 45 },
                         { "encoding", "gzip" },
@@ -153,7 +155,7 @@ namespace Couchbase.Lite
             encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(bodyString));
             AssertDictionariesAreEqual(new Dictionary<string, object> { { "attach", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "digest", "sha1-Wk8g89eb0Y+5DtvMKkf+/g90Mhc=" },
+                        { "digest", digest },
                         { "length", 27 },
                         { "data", encoded },
                         { "revpos", 1 }

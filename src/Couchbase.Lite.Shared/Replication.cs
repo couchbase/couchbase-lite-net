@@ -1081,7 +1081,7 @@ namespace Couchbase.Lite
                 authorizer.LocalUUID = LocalDatabase.PublicUUID();
             }
 
-            _remoteSession = RemoteSession.Clone(_remoteSession);
+            _remoteSession = RemoteSession.Clone(_remoteSession, CancellationTokenSource);
             _remoteSession.Setup(ReplicationOptions);
             
             _changesCount = 0;
@@ -1228,7 +1228,8 @@ namespace Couchbase.Lite
         internal virtual void Stopping()
         {
             Log.To.Sync.I(Tag, "{0} Stopping", this);
-            if(!LocalDatabase.IsOpen || _remoteSession.Disposed) {
+            var remoteSession = _remoteSession;
+            if(!LocalDatabase.IsOpen || remoteSession.Disposed) {
                 // This logic has already been handled by DatabaseClosing(), or
                 // this replication never started in the first place (client still null)
                 return;
@@ -1243,7 +1244,7 @@ namespace Couchbase.Lite
                    reachabilityManager.StatusChanged -= NetworkStatusChanged;
                }
 
-               _remoteSession.Dispose();
+               remoteSession.Dispose();
                Log.To.Sync.I(Tag, "{0} stopped.  Elapsed time {1} sec", this, (DateTime.UtcNow - _startTime).TotalSeconds.ToString("F3"));
            });
         }

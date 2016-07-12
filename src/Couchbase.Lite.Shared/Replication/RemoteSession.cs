@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Internal
         private CancellationTokenSource _remoteRequestCancellationSource;
         private readonly Uri _baseUrl;
         private readonly Guid _id;
-        private readonly CancellationTokenSource _cancellationTokenSource;
+        private CancellationTokenSource _cancellationTokenSource;
         private readonly TaskFactory _workExecutor;
 
         public IHttpClientFactory ClientFactory { get; set; }
@@ -98,22 +98,20 @@ namespace Couchbase.Lite.Internal
         private RemoteSession(RemoteSession source)
         {
             _workExecutor = source._workExecutor;
-            _cancellationTokenSource = source._cancellationTokenSource;
             _id = source._id;
             _baseUrl = source._baseUrl;
             Authenticator = source.Authenticator;
             RequestHeaders = source.RequestHeaders;
             ServerType = source.ServerType;
             CookieStore = source.CookieStore;
+            ClientFactory = source.ClientFactory;
         }
 
-        public static RemoteSession Clone(RemoteSession source)
+        public static RemoteSession Clone(RemoteSession source, CancellationTokenSource cts)
         {
-            if(!source.Disposed) {
-                return source;
-            }
-
-            return new RemoteSession(source);
+            var retVal = new RemoteSession(source);
+            retVal._cancellationTokenSource = cts;
+            return retVal;
         }
 
         public void Setup(ReplicationOptions options)

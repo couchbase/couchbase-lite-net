@@ -797,7 +797,7 @@ namespace Couchbase.Lite
             if(ActiveReplicators.AcquireAndDispose(out activeReplicatorCopy) && activeReplicatorCopy.Count > 0) {
                 // Give a chance for replicators to clean up before closing the DB
                 var evt = new CountdownEvent(activeReplicatorCopy.Count);
-                foreach(var repl in activeReplicatorCopy) {
+                foreach(var repl in activeReplicatorCopy.ToArray()) {
                     repl.DatabaseClosing(evt);
                 }
 

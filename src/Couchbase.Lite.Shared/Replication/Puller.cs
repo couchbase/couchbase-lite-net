@@ -144,6 +144,7 @@ namespace Couchbase.Lite.Replicator
                 mode = ChangeTrackerMode.WebSocket;
             }
 
+            _canBulkGet = mode == ChangeTrackerMode.WebSocket;
             Log.To.Sync.V(TAG, "{0} starting ChangeTracker: mode={0} since={1}", this, mode, LastSequence);
             var initialSync = LocalDatabase.IsOpen && LocalDatabase.GetDocumentCount() == 0;
             var changeTrackerOptions = new ChangeTrackerOptions {
@@ -185,6 +186,7 @@ namespace Couchbase.Lite.Replicator
             var webSocketTracker = tracker as WebSocketChangeTracker;
             if (webSocketTracker != null && !webSocketTracker.CanConnect) {
                 ReplicationOptions.UseWebSocket = false;
+                _canBulkGet = false;
                 Log.To.Sync.I(TAG, "Server doesn't support web socket changes feed, switching " +
                 "to regular HTTP");
                 StartChangeTracker();
