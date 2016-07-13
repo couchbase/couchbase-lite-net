@@ -741,7 +741,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 using(var enumerator = new CBForestHistoryEnumerator(doc, onlyCurrent, false)) {
                     var expression = includeDeleted ?
                         enumerator.Select (x => new ForestRevisionInternal (x.GetDocument (), false)) :
-                        enumerator.Where (x => !x.IsDeleted).Select (x => new ForestRevisionInternal (x.GetDocument (), false));
+                        enumerator.Where (x => !x.SelectedRev.IsDeleted).Select (x => new ForestRevisionInternal (x.GetDocument (), false));
                     retVal = new RevisionList(expression.Cast<RevisionInternal>().ToList());
                 }
             });
