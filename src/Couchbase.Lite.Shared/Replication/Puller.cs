@@ -518,7 +518,10 @@ namespace Couchbase.Lite.Replicator
             //TODO: rev.getBody().compact();
 
             if (_downloadsToInsert != null) {
-                _downloadsToInsert.QueueObject(rev);
+                if(!_downloadsToInsert.QueueObject(rev)) {
+                    Log.To.Sync.W(TAG, "{0} failed to queue {1} for download because it is already queued, marking completed...", this, rev);
+                    SafeIncrementCompletedChangesCount();
+                }
             }
             else {
                 Log.To.Sync.W(TAG, "{0} is finished and cannot accept download requests", this);
@@ -594,6 +597,7 @@ namespace Couchbase.Lite.Replicator
 
                     if (_downloadsToInsert != null) {
                         if (!_downloadsToInsert.QueueObject (gotRev)) {
+                            Log.To.Sync.W(TAG, "{0} failed to queue {1} for download because it is already queued, marking completed...", this, rev);
                             SafeIncrementCompletedChangesCount ();
                         }
                     } else {
@@ -974,7 +978,7 @@ namespace Couchbase.Lite.Replicator
 
                 Log.To.Sync.D(TAG, "Adding rev to inbox " + rev);
                 if(!AddToInbox(rev)) {
-                    Log.To.Sync.W (TAG, "{0} Failed to add change, probably already added.  Marking completed", this);
+                    Log.To.Sync.W (TAG, "{0} Failed to add {1} to inbox, probably already added.  Marking completed", this, rev);
                     SafeIncrementCompletedChangesCount ();
                 }
             }

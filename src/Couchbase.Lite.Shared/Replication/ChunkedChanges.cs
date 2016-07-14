@@ -52,7 +52,8 @@ namespace Couchbase.Lite.Internal
         // filled since we need to be informed of the newest data immediately and we don't
         // know when the next piece is going to come.  However, I don't want to read byte
         // after byte one at a time because it feels wrong.  
-        private const int BufferSize = 1024; 
+        private const int BufferSize = 1024;
+        private const byte CaughtUp = 1;
 
         #endregion
 
@@ -68,6 +69,8 @@ namespace Couchbase.Lite.Internal
 
         public event TypedEventHandler<ChunkedChanges, Exception> Finished;
 
+        public event EventHandler OnCaughtUp;
+
         #endregion
 
         #region Constructors
@@ -75,6 +78,7 @@ namespace Couchbase.Lite.Internal
         public ChunkedChanges(bool compressed, CancellationToken token, ManualResetEventSlim pauseWait)
         {
             _innerStream = new ChunkStream();
+            _innerStream.BookmarkReached += (sender, args) => OnCaughtUp?.Invoke(this, null);
             if (compressed) {
                 _inflater = new Inflater(true);
             }
@@ -87,6 +91,16 @@ namespace Couchbase.Lite.Internal
         #endregion
 
         #region Public Methods
+
+        public void ScheduleCaughtUp()
+        {
+            if(_disposed) {
+                Log.To.ChangeTracker.E(Tag, "AddData called on disposed object, throwing...");
+                throw new ObjectDisposedException("ChunkedGZipChanges");
+            }
+
+            _innerStream.Bookmark(CaughtUp);
+        }
 
         public void AddData(Stream data)
         {

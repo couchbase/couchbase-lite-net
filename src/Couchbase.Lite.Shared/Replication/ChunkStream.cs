@@ -36,8 +36,11 @@ namespace Couchbase.Lite.Internal
 
         #region Variables
 
-        private BlockingCollection<Queue<byte>> _chunkQueue = new BlockingCollection<Queue<byte>>();
-        private Queue<byte> _current;
+        public event EventHandler<byte> BookmarkReached;
+
+        private BlockingCollection<Queue<ushort>> _chunkQueue = new BlockingCollection<Queue<ushort>>();
+        private Queue<ushort> _current;
+    
 
         #endregion
 
@@ -83,6 +86,22 @@ namespace Couchbase.Lite.Internal
 
         #endregion
 
+        #region Public Methods
+
+        public void Bookmark(byte code)
+        {
+            if(_chunkQueue.IsAddingCompleted) {
+                throw new ObjectDisposedException("ChunkStream");
+            }
+
+            var actual = code + 255;
+            var queue = new Queue<ushort>(1);
+            queue.Enqueue((ushort)actual);
+            _chunkQueue.Add(queue);
+        }
+
+        #endregion
+
         #region Overrides
 
         public override void Flush()
@@ -113,8 +132,16 @@ namespace Couchbase.Lite.Internal
                     }
                 }
 
+                var next = _current.Dequeue();
+                if(next > 255) {
+                    // bookmark
+                    BookmarkReached?.Invoke(this, (byte)(next - 255));
+                    _current = null;
+                    continue;
+                }
+
                 // We have a new batch of data, so continue to copy it into the buffer
-                buffer[offset + i] = _current.Dequeue();
+                buffer[offset + i] = (byte)next;
                 readCount++;
             }
 
@@ -127,7 +154,7 @@ namespace Couchbase.Lite.Internal
                 throw new ObjectDisposedException("ChunkStream");
             }
 
-            _chunkQueue.Add(new Queue<byte>(buffer.Skip(offset).Take(count)));
+            _chunkQueue.Add(new Queue<ushort>(buffer.Skip(offset).Take(count).Cast<ushort>()));
         }
 
         #endregion

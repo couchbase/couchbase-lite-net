@@ -49,6 +49,7 @@ namespace Couchbase.Lite.Internal
             return ChangeTrackerResponseCode.Normal;
         }
 
+
         private void SetupChangeProcessorCallback()
         {
             _changeProcessor.ChunkFound += (sender, args) => 
@@ -59,6 +60,14 @@ namespace Couchbase.Lite.Internal
             _changeProcessor.Finished += (sender, args) => 
             {
                 OnFinished?.Invoke(args);
+            };
+
+            _changeProcessor.OnCaughtUp += (sender, args) =>
+            {
+                if(!_caughtUp) {
+                    _caughtUp = true;
+                    OnCaughtUp?.Invoke();
+                }
             };
         }
 
@@ -71,9 +80,13 @@ namespace Couchbase.Lite.Internal
             if (type == ChangeTrackerMessageType.Plaintext || type == ChangeTrackerMessageType.GZip) {
                 return ProcessResponseStream(stream, token, type == ChangeTrackerMessageType.GZip);
             } else if (type == ChangeTrackerMessageType.EOF) {
-                if(!_caughtUp) {
-                    _caughtUp = true;
-                    OnCaughtUp?.Invoke();
+                if(_changeProcessor == null) {
+                    if(!_caughtUp) {
+                        _caughtUp = true;
+                        OnCaughtUp?.Invoke();
+                    }
+                } else {
+                    _changeProcessor.ScheduleCaughtUp();
                 }
 
                 return ChangeTrackerResponseCode.Normal;
