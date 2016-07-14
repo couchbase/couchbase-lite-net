@@ -83,12 +83,6 @@ namespace Couchbase.Lite.Store
 
         private Aes _cryptor;
 
-        private struct Header
-        {
-            public byte[] iv;
-            public byte[] encrypted;
-        }
-
         #endregion
 
         #region Properties

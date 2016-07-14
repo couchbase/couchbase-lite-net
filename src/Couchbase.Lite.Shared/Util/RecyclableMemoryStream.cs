@@ -442,6 +442,7 @@ namespace Microsoft.IO
             return this.largeBuffer;
         }
 
+#pragma warning disable 809
         /// <summary>
         /// Returns a new array with a copy of the buffer's contents. You should almost certainly be using GetBuffer combined with the Length to 
         /// access the bytes in this stream. Calling ToArray will destroy the benefits of pooled buffers, but it is included
@@ -460,6 +461,7 @@ namespace Microsoft.IO
 
             return newBuffer;
         }
+#pragma warning restore 809
 
         /// <summary>
         /// Reads from the current position into the provided buffer

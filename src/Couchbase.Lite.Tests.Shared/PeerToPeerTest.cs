@@ -53,7 +53,7 @@ namespace Couchbase.Lite
         private CouchbaseLiteTcpListener _listener;
         private Uri _listenerDBUri;
         private ushort _port = 59840;
-        private AuthenticationSchemes _authScheme;
+        private AuthenticationSchemes _authScheme = AuthenticationSchemes.None;
         private Random _rng = new Random(DateTime.Now.Millisecond);
 
         public PeerToPeerTest(string storageType) : base(storageType) {}

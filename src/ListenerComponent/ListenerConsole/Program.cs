@@ -116,7 +116,9 @@ namespace Listener
             if (passwordMap.Count > 0) {
                 
                 foreach (var entry in passwordMap) {
+#pragma warning disable 618
                     manager.RegisterEncryptionKey(entry.Key, new SymmetricKey(entry.Value));
+#pragma warning restore 618
                 }
             }
  

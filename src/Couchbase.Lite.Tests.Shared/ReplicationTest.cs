@@ -3144,7 +3144,9 @@ namespace Couchbase.Lite
             fakeFactory.HttpHandler.SetResponder("_bulk_get", (request) =>
                 flow.ExecuteNext<HttpResponseMessage>());
             manager.DefaultHttpClientFactory = fakeFactory;
+#pragma warning disable 618
             ManagerOptions.Default.RequestTimeout = TimeSpan.FromSeconds(5);
+#pragma warning restore 618
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 CreatePullAndTest(20, remoteDb, (repl) => Assert.AreEqual(20, database.GetDocumentCount(), "Didn't recover from the error"));
@@ -3226,6 +3228,7 @@ namespace Couchbase.Lite
                 });
                 
                 manager.DefaultHttpClientFactory = fakeFactory;
+#pragma warning disable 618
                 Manager.DefaultOptions.MaxRevsToGetInBulk = 10;
                 Manager.DefaultOptions.MaxOpenHttpConnections = 8;
                 Manager.DefaultOptions.RequestTimeout = TimeSpan.FromSeconds(5);
@@ -3236,6 +3239,7 @@ namespace Couchbase.Lite
                     Assert.IsTrue(database.GetDocumentCount() > 0, "Didn't get docs from second bulk get batch");
                     Assert.AreEqual(gotSequence, Int32.Parse(repl.LastSequence), "LastSequence was advanced");
                 });
+#pragma warning restore 618
 
                 Sleep(500);
                 fakeFactory.HttpHandler.ClearResponders();

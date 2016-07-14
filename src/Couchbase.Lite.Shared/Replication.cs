@@ -129,6 +129,8 @@ namespace Couchbase.Lite
 
     #endregion
 
+#pragma warning disable 618
+
     public struct ReplicationOptionsDictionaryKeys
     {
         /// <summary>
@@ -159,6 +161,8 @@ namespace Couchbase.Lite
         internal const string PurgePushedKey = "purgePushed";
         internal const string AllNewKey = "allNew";
     }
+
+#pragma warning restore 618
 
     /// <summary>
     /// A Couchbase Lite pull or push <see cref="Couchbase.Lite.Replication"/>
@@ -664,7 +668,9 @@ namespace Couchbase.Lite
             // NOTE: Consider running a separate scheduler for all http requests.
             WorkExecutor = workExecutor;
             RemoteUrl = remote;
+#pragma warning disable 618
             Options = new ReplicationOptionsDictionary();
+#pragma warning restore 618
             ReplicationOptions = new ReplicationOptions();
 
             if (RemoteUrl.Query != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.Query)) {
@@ -1295,7 +1301,9 @@ namespace Couchbase.Lite
             if (ReplicationOptions.RemoteUUID != null) {
                 spec["remoteURL"] = ReplicationOptions.RemoteUUID;
             } else {
+#pragma warning disable 618
                 var hasValue = Options.TryGetValue<string>(ReplicationOptionsDictionary.REMOTE_UUID_KEY, out remoteUUID);
+#pragma warning restore 618
                 if (hasValue) {
                     Log.To.Sync.W(Tag, "ReplicationOptionsDictionary support is deprecated, switch to ReplicationOptions");
                     spec["remoteURL"] = remoteUUID;

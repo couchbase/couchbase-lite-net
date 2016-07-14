@@ -147,7 +147,9 @@ namespace Couchbase.Lite
             var filterBlock = c.CompileFilter("function(doc,req){return doc.name == req.name;}", "javascript");
             Assert.IsNotNull(filterBlock);
             var filterParams = new Dictionary<string, object> { { "name", "jim" } };
+#pragma warning disable 618
             var document = new Document(null, "doc1");
+#pragma warning restore 618
             var rev = new RevisionInternal(new Dictionary<string, object> {
                 { "_id", "doc1" },
                 { "_rev", "1-aa" },

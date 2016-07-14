@@ -741,12 +741,14 @@ namespace Couchbase.Lite
             }
 
             var scheduler = new SingleTaskThreadpoolScheduler();
+#pragma warning disable 618
             var replicationOptions = Manager.Options.DefaultReplicationOptions ?? new ReplicationOptions {
                 RetryStrategy = new ExponentialBackoffStrategy(Manager.Options.MaxRetries),
                 MaxOpenHttpConnections = Manager.Options.MaxOpenHttpConnections,
                 MaxRevsToGetInBulk = Manager.Options.MaxRevsToGetInBulk,
                 RequestTimeout = Manager.Options.RequestTimeout
             };
+#pragma warning restore 618
             return new Pusher(this, url, false, new TaskFactory(scheduler)) { ReplicationOptions = replicationOptions };
         }
 
@@ -762,12 +764,14 @@ namespace Couchbase.Lite
                 return null;
             }
 
+#pragma warning disable 618
             var replicationOptions = Manager.Options.DefaultReplicationOptions ?? new ReplicationOptions {
                 RetryStrategy = new ExponentialBackoffStrategy(Manager.Options.MaxRetries),
                 MaxOpenHttpConnections = Manager.Options.MaxOpenHttpConnections,
                 MaxRevsToGetInBulk = Manager.Options.MaxRevsToGetInBulk,
                 RequestTimeout = Manager.Options.RequestTimeout
             };
+#pragma warning restore 618
             var scheduler = new SingleTaskThreadpoolScheduler();
             return new Puller(this, url, false, new TaskFactory(scheduler)) { ReplicationOptions = replicationOptions };
         }
@@ -1001,8 +1005,8 @@ namespace Couchbase.Lite
                         writer.Read(value);
                         writer.Finish();
                     } catch(Exception e) {
-                        Log.To.Database.W(TAG, "Error reading stream for attachment {0}, skipping...",
-                            name);
+                        Log.To.Database.W(TAG, $"Error reading stream for attachment {name}, skipping...",
+                            e);
                         ok = false;
                         return null;
                     }

@@ -135,7 +135,9 @@ namespace Couchbase.Lite
             //Copy database from assets to local storage
             var dbStream = GetAsset("noattachments.cblite");
 
+#pragma warning disable 618
             manager.ReplaceDatabase("replaced", dbStream, null);
+#pragma warning restore 618
             dbStream.Dispose();
 
             //Now validate the number of files in the DB
@@ -149,7 +151,9 @@ namespace Couchbase.Lite
             var dbStream = GetAsset("withattachments.cblite");
             var attachments = new Dictionary<string, Stream>();
             attachments["356a192b7913b04c54574d18c28d46e6395428ab.blob"] = GetAsset("attachment.blob");
+#pragma warning disable 618
             manager.ReplaceDatabase("replaced", dbStream, attachments);
+#pragma warning restore 618
             dbStream.Dispose();
             //Validate the number of files in the DB
             Assert.AreEqual(1, manager.GetDatabase("replaced").GetDocumentCount());

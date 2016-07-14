@@ -122,6 +122,8 @@ namespace Couchbase.Lite
         {
             DefaultReplicationOptions = null; // To maintain backwards compatibility until 2.0
 
+#pragma warning disable 618
+
             MaxRetries = 2;
 
             MaxOpenHttpConnections = 8;
@@ -130,9 +132,11 @@ namespace Couchbase.Lite
 
             RequestTimeout = TimeSpan.FromSeconds(60);
 
-            #if __UNITY__
+#pragma warning restore 618
+
+#if __UNITY__
             CallbackScheduler = Couchbase.Lite.Unity.UnityMainThreadScheduler.TaskScheduler;
-            #else
+#else
             TaskScheduler scheduler = null;
             try {
                 scheduler = TaskScheduler.FromCurrentSynchronizationContext ();

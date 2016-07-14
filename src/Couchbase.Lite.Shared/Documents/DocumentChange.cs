@@ -44,6 +44,7 @@ using System;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite {
 
@@ -131,6 +132,11 @@ namespace Couchbase.Lite {
             return RevisionInternal.Equals(AddedRevision, other.AddedRevision) &&
                 String.Equals(WinningRevisionId, other.WinningRevisionId) &&
                 Uri.Equals(SourceUrl, other.SourceUrl);
+        }
+
+        public override int GetHashCode()
+        {
+            return Hasher.Hash(AddedRevision, WinningRevisionId, SourceUrl);
         }
 
         public override string ToString()

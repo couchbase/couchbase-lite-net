@@ -26,6 +26,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteSession.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\TreeRevisionID.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Hasher.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\IInjectable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ISecureStorage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Leasable.cs" />

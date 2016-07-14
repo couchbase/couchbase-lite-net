@@ -118,7 +118,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
         private static readonly int _SqliteVersion;
 
         private string _directory;
-        private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
         private SymmetricKey _encryptionKey = null;
         private bool _readOnly;
@@ -289,7 +288,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             } else {
                 try {
                     docProperties = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(realizedJson);
-                } catch(CouchbaseLiteException e) {
+                } catch(CouchbaseLiteException) {
                     Log.To.Database.W(TAG, "Unparseable JSON for doc={0}, rev={1}: {2}, returning skeleton set", 
                         new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
                         revId, 
@@ -426,7 +425,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 var retVal = StorageEngine?.ExecSQL(sql, docNumericID, minGen);
                 return retVal.HasValue ? retVal.Value : 0;
-            } catch(Exception e) {
+            } catch(Exception) {
                 Log.To.Database.W(TAG, "SQLite error {0} pruning generations < {1} of doc {2}", StorageEngine?.LastErrorCode, minGenToKeep, docNumericID);
             }
 

@@ -333,8 +333,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 });
                 return t.Result;
             }
-
-            return true;
         }
 
         public bool EndTransaction(bool successful)

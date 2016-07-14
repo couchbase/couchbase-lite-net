@@ -40,8 +40,8 @@ namespace Couchbase.Lite.Auth
             var raw = header.Parameter;
             var regex = new Regex("(\\w+)=((\\w+)|\"([^\"]+))");
             var matches = regex.Matches(raw);
-            for(int i = 0; i < matches.Count; i++) {
-                var groups = matches[i].Groups;
+            if(matches.Count > 0) { 
+                var groups = matches[0].Groups;
                 var key = groups[1].Value;
                 var k = groups[3];
                 if(!k.Success) {
@@ -50,7 +50,6 @@ namespace Couchbase.Lite.Auth
 
                 retVal[key] = k.Value;
                 retVal["Scheme"] = header.Scheme;
-                break;
             }
 
             retVal["WWW-Authenticate"] = header.ToString();

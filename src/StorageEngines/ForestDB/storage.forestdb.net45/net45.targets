@@ -9,8 +9,12 @@
 	      <Link>libCBForest-Interop.so</Link>
 	      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	    </None>
-	    <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)CBForest-Interop.dll">
-	      <Link>CBForest-Interop.dll</Link>
+	    <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)x86\CBForest-Interop.dll">
+	      <Link>x86\CBForest-Interop.dll</Link>
+	      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	    </None>
+        <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)x64\CBForest-Interop.dll">
+	      <Link>x64\CBForest-Interop.dll</Link>
 	      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	    </None>
 	    <None Include="$(MSBuildThisFileDirectory)libCBForest-Interop.dylib" Condition=" $(IsMac) ">
