@@ -244,6 +244,13 @@ namespace Couchbase.Lite.Support
 
         #region Protected Methods
 
+        protected virtual void Dispose(bool finalizing)
+        {
+            if(!finalizing) {
+                Close();
+            }
+        }
+
         /// <summary>
         /// Called when the output stream is opened
         /// </summary>
@@ -341,7 +348,8 @@ namespace Couchbase.Lite.Support
 
         public void Dispose()
         {
-            Close();
+            Dispose(false);
+            GC.SuppressFinalize(this);
         }
 
         #pragma warning restore 1591

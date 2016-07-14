@@ -1118,7 +1118,8 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            if(activeReplicators.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
+            var copy = activeReplicators.ToArray();
+            if(copy.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
                 activeReplicators.Add(replication);
             } else {
                 return false;
@@ -2241,6 +2242,7 @@ namespace Couchbase.Lite
             if(IsOpen) {
                 try {
                     Close();
+                    _expirePurgeTimer.Dispose();
                 } catch(Exception e) {
                     Log.To.Database.W(TAG, "Error disposing database (possibly already disposed?), continuing...", e);
                 }

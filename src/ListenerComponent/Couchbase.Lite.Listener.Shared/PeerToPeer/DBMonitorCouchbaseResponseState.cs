@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Listener
     /// This class will wait for the database to change before writing to and
     /// possibly closing the HTTP response
     /// </summary>
-    internal class DBMonitorCouchbaseResponseState : ICouchbaseResponseState
+    internal sealed class DBMonitorCouchbaseResponseState : ICouchbaseResponseState
     {
 
         #region Constants
@@ -96,7 +96,7 @@ namespace Couchbase.Lite.Listener
 
         #endregion
 
-        #region COnstructors
+        #region Constructors
 
         /// <summary>
         /// Constructor

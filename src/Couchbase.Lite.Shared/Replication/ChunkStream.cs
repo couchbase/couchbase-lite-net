@@ -26,6 +26,15 @@ using System.Linq;
 
 namespace Couchbase.Lite.Internal
 {
+    internal sealed class BookmarkEventArgs : EventArgs
+    {
+        public byte BookmarkCode { get; }
+
+        public BookmarkEventArgs(byte eventCode)
+        {
+            BookmarkCode = eventCode;
+        }
+    }
 
     // This is a utility class that facilitates the parsing of continuous 
     // changes received over a web socket.  The change is broken up into
@@ -36,7 +45,7 @@ namespace Couchbase.Lite.Internal
 
         #region Variables
 
-        public event EventHandler<byte> BookmarkReached;
+        public event EventHandler<BookmarkEventArgs> BookmarkReached;
 
         private BlockingCollection<Queue<ushort>> _chunkQueue = new BlockingCollection<Queue<ushort>>();
         private Queue<ushort> _current;
@@ -135,7 +144,7 @@ namespace Couchbase.Lite.Internal
                 var next = _current.Dequeue();
                 if(next > 255) {
                     // bookmark
-                    BookmarkReached?.Invoke(this, (byte)(next - 255));
+                    BookmarkReached?.Invoke(this, new BookmarkEventArgs((byte)(next - 255)));
                     _current = null;
                     continue;
                 }

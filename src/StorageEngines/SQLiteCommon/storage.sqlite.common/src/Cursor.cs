@@ -52,7 +52,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class for encapsulating a result set from a database
     /// </summary>
-    public class Cursor : IDisposable
+    public sealed class Cursor : IDisposable
     {
         #region Constants
 

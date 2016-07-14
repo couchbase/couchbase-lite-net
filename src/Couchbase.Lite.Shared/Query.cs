@@ -482,8 +482,22 @@ namespace Couchbase.Lite {
 
         #endregion
 
+        #region Protected Methods
+
+        protected virtual void Dispose(bool finalizing)
+        {
+            if(finalizing) {
+                return;
+            }
+
+            if(TemporaryView)
+                View.Delete();
+        }
+
+        #endregion
+
         #region Overrides
-        #pragma warning disable 1591
+#pragma warning disable 1591
 
         public override string ToString()
         {
@@ -513,8 +527,8 @@ namespace Couchbase.Lite {
         /// the garbage collector can reclaim the memory that the <see cref="Couchbase.Lite.Query"/> was occupying.</remarks>
         public void Dispose()
         {
-            if (TemporaryView)
-                View.Delete();
+            Dispose(false);
+            GC.SuppressFinalize(this);
         }
     
         #pragma warning restore 1591

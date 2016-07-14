@@ -161,7 +161,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ReplicationOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\RetryStrategyExecutor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ConstructorOptions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\LockableLinkedList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ExceptionEnumerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\TraceLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\TimeSeries.cs" />

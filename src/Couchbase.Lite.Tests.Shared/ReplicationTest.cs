@@ -2925,7 +2925,7 @@ namespace Couchbase.Lite
                 allDocsLiveQuery.Start();
                 puller.Start();
 
-                Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(60)), "Replication Timeout");
+                Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(180)), "Replication Timeout");
 
                 StopReplication(pusher);
                 StopReplication(puller);
