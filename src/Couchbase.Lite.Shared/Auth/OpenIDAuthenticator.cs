@@ -34,19 +34,42 @@ namespace Couchbase.Lite.Auth
     using System.Text;
     using System.Threading.Tasks;
 
+    /// <summary>
+    /// Signature for a method which can handle phase two of an OpenID authentication flow,
+    /// in which the Authorization URL has been obtained from the server
+    /// </summary>
+    /// <param name="authUrl">The obtained URL, if available</param>
+    /// <param name="error">The error that occurred, if any</param>
     public delegate void OIDCLoginContinuation(Uri authUrl, Exception error);
 
+    /// <summary>
+    /// Signature for a method which can handle phase one of an OpenID authentication flow
+    /// </summary>
+    /// <param name="loginUrl">The sync gateway (or other endpoint) login URL</param>
+    /// <param name="authBaseUrl">The base URL of the authentication server</param>
+    /// <param name="continuation">A callback for phase two</param>
     public delegate void OIDCCallback(Uri loginUrl, Uri authBaseUrl, OIDCLoginContinuation continuation);
 
     internal sealed class OpenIDAuthenticator : Authorizer, ILoginAuthorizer, ICustomHeadersAuthorizer, ISessionCookieAuthorizer
     {
+
+        #region Constants
+
         private const string Tag = nameof(OpenIDAuthenticator);
+
+        #endregion
+
+        #region Variables
 
         private readonly OIDCCallback _loginCallback;
         private bool _checkedTokens;
         private Uri _authUrl;
         private bool _haveSessionCookie;
         private readonly TaskFactory _callbackContext;
+
+        #endregion
+
+        #region Properties
 
         //For testing only
         internal string IDToken
@@ -97,6 +120,10 @@ namespace Couchbase.Lite.Auth
             get; private set;
         }
 
+        #endregion
+
+        #region Constructors
+
         public OpenIDAuthenticator(Manager manager, OIDCCallback callback)
         {
             _loginCallback = callback;
@@ -108,12 +135,20 @@ namespace Couchbase.Lite.Auth
 
         }
 
+        #endregion
+
+        #region Public Methods
+
         public static bool ForgetIDTokens(Uri serverUrl)
         {
             var auth = new OpenIDAuthenticator();
             auth.RemoteUrl = serverUrl;
             return auth.DeleteTokens();
         }
+
+        #endregion
+
+        #region Private Methods
 
         private bool LoadTokens()
         {
@@ -212,6 +247,50 @@ namespace Couchbase.Lite.Auth
             return true;
         }
 
+        private void ContinueAsyncLogin(Uri loginUrl, Action<bool, Exception> continuation)
+        {
+            Log.To.Sync.I(Tag, "{0} scheduling app login callback block", this);
+            var remoteUrl = RemoteUrl;
+            var authBaseUrl = remoteUrl.AppendPath("_oidc_callback");
+            _callbackContext.StartNew(() =>
+            {
+                try {
+                    _loginCallback(loginUrl, authBaseUrl, (authUrl, error) =>
+                    {
+                        if(authUrl != null) {
+                            Log.To.Sync.I(Tag, "{0} app login callback returned authUrl=<{1}>", this, authUrl.AbsolutePath);
+                            // Verify that the authUrl matches the site:
+                            var remoteUrlLeft = remoteUrl.GetLeftPart(UriPartial.Path).TrimEnd('/');
+                            if(String.Compare(authUrl.Host, remoteUrl.Host, StringComparison.InvariantCultureIgnoreCase) != 0 || authUrl.Port != remoteUrl.Port || $"{remoteUrlLeft}/_oidc_callback" != authUrl.GetLeftPart(UriPartial.Path)) {
+                                Log.To.Sync.W(Tag, "{0} app-provided authUrl <{1}> doesn't match server URL; ignoring it", this, authUrl.AbsolutePath);
+                                authUrl = null;
+                                error = new ArgumentException("authURL does not match server URL");
+                            }
+                        }
+
+                        if(authUrl != null) {
+                            _authUrl = authUrl;
+                            continuation(true, null);
+                        } else {
+                            if(error == null) {
+                                error = new OperationCanceledException();
+                            }
+
+                            Log.To.Sync.I(Tag, $"{this} app login callback returned error", error);
+                            continuation(false, error);
+                        }
+                    });
+                } catch(Exception e) {
+                    Log.To.Sync.W(Tag, "Exception during login callback", e);
+                    continuation(false, e);
+                }
+            });
+        }
+
+        #endregion
+
+        #region Overrides
+
         public override IDictionary<string, string> LoginParametersForSite(Uri site)
         {
             LoginUri = null;
@@ -259,6 +338,15 @@ namespace Couchbase.Lite.Auth
             _authUrl = null;
             return true;
         }
+
+        public override string ToString()
+        {
+            return $"OpenIDAuthenticator[{RemoteUrl?.GetLeftPart(UriPartial.Path)}]";
+        }
+
+        #endregion
+
+        #region IAuthorizer
 
         public bool AuthorizeRequest(HttpRequestMessage message)
         {
@@ -341,49 +429,7 @@ namespace Couchbase.Lite.Auth
             continuation(false, error);
         }
 
-        private void ContinueAsyncLogin(Uri loginUrl, Action<bool, Exception> continuation)
-        {
-            Log.To.Sync.I(Tag, "{0} scheduling app login callback block", this);
-            var remoteUrl = RemoteUrl;
-            var authBaseUrl = remoteUrl.AppendPath("_oidc_callback");
-            _callbackContext.StartNew(() =>
-            {
-                try {
-                    _loginCallback(loginUrl, authBaseUrl, (authUrl, error) =>
-                    {
-                        if(authUrl != null) {
-                            Log.To.Sync.I(Tag, "{0} app login callback returned authUrl=<{1}>", this, authUrl.AbsolutePath);
-                            // Verify that the authUrl matches the site:
-                            var remoteUrlLeft = remoteUrl.GetLeftPart (UriPartial.Path).TrimEnd('/');
-                            if(String.Compare(authUrl.Host, remoteUrl.Host, StringComparison.InvariantCultureIgnoreCase) != 0 || authUrl.Port != remoteUrl.Port || $"{remoteUrlLeft}/_oidc_callback" != authUrl.GetLeftPart(UriPartial.Path)) {
-                                Log.To.Sync.W(Tag, "{0} app-provided authUrl <{1}> doesn't match server URL; ignoring it", this, authUrl.AbsolutePath);
-                                authUrl = null;
-                                error = new ArgumentException("authURL does not match server URL");
-                            }
-                        }
+        #endregion
 
-                        if(authUrl != null) {
-                            _authUrl = authUrl;
-                            continuation(true, null);
-                        } else {
-                            if(error == null) {
-                                error = new OperationCanceledException();
-                            }
-
-                            Log.To.Sync.I(Tag, $"{this} app login callback returned error", error);
-                            continuation(false, error);
-                        }
-                    }); 
-                } catch(Exception e) {
-                    Log.To.Sync.W(Tag, "Exception during login callback", e);
-                    continuation(false, e);
-                }
-            });
-        }
-
-        public override string ToString()
-        {
-            return $"OpenIDAuthenticator[{RemoteUrl?.GetLeftPart(UriPartial.Path)}]";
-        }
     }
 }

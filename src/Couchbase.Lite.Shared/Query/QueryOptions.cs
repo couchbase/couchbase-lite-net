@@ -53,9 +53,15 @@ namespace Couchbase.Lite
 
         #region Constants
 
+        /// <summary>
+        /// The default limit to use when querying (i.e. unlimited)
+        /// </summary>
         [Obsolete("Use DefaultLimit instead")]
         public const int DEFAULT_LIMIT = Int32.MaxValue;
 
+        /// <summary>
+        /// The default limit to use when querying (i.e. unlimited)
+        /// </summary>
         public static readonly int DefaultLimit = Int32.MaxValue;
 
         #endregion
@@ -206,6 +212,10 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        /// <summary>
+        /// Create a copy of a given QueryOptions object
+        /// </summary>
+        /// <returns>A copy of a given QueryOptions object</returns>
         public QueryOptions Copy()
         {
             return (QueryOptions)MemberwiseClone();

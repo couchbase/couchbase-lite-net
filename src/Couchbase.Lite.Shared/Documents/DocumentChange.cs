@@ -110,6 +110,9 @@ namespace Couchbase.Lite {
         /// <value><c>true</c> if this instance is conflict; otherwise, <c>false</c>.</value>
         public bool IsConflict { get; private set; }
 
+        /// <summary>
+        /// Gets whether or not this change is a document expiration (i.e. TTL has passed)
+        /// </summary>
         public bool IsExpiration { get; internal set; }
 
         /// <summary>
@@ -121,6 +124,7 @@ namespace Couchbase.Lite {
         #endregion
 
         #region Overrides
+#pragma warning disable 1591
 
         public override bool Equals(object obj)
         {
@@ -144,6 +148,7 @@ namespace Couchbase.Lite {
             return String.Format("DocumentChange[AddedRevision={0}, IsWinner={1}]", AddedRevision, WinningRevisionId == RevisionId.AsRevID());
         }
 
+#pragma warning restore 1591
         #endregion
 
     }

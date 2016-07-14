@@ -184,6 +184,7 @@ namespace Couchbase.Lite.Store
         /// <returns>An array of all available revisions of the document.</returns>
         /// <param name="docId">The document ID</param>
         /// <param name="onlyCurrent">If <c>true</c>, only leaf revisions (whether or not deleted) should be returned.</param>
+        /// <param name="includeDeleted">Whether or not to include deleted revisions in the results</param>
         RevisionList GetAllDocumentRevisions(string docId, bool onlyCurrent, bool includeDeleted);
 
         /// <summary>
@@ -248,6 +249,7 @@ namespace Couchbase.Lite.Store
         /// <param name="deleting"><c>true</c> if this revision is a deletion</param>
         /// <param name="allowConflict"><c>true</c> if this operation is allowed to create a conflict; otherwise a 409
         /// status will be returned if the parent revision is not a leaf.</param>
+        /// <param name="source">The source of this revision (if it came from a replication)</param>
         /// <param name="validationBlock">If non-null, this block will be called before the revision is added.
         /// It's given the parent revision, with its properties if available, and can reject
         /// the operation by returning an error status.</param>

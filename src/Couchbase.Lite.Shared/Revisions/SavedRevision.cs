@@ -289,9 +289,10 @@ namespace Couchbase.Lite {
         /// </exception>
         public SavedRevision DeleteDocument() { return CreateRevision(null); }
 
-        #endregion
+        #endregion
 
-        #region
+        #region Overrides
+#pragma warning disable 1591
 
         public override string ToString()
         {
@@ -300,6 +301,7 @@ namespace Couchbase.Lite {
                 new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), Id, IsDeletion);
         }
 
-        #endregion
-    }
+#pragma warning restore 1591
+        #endregion
+    }
 }

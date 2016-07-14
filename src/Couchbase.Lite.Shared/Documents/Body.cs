@@ -333,6 +333,7 @@ namespace Couchbase.Lite
         #endregion
 
         #region Overrides
+#pragma warning disable 1591
 
         public override string ToString()
         {
@@ -345,8 +346,9 @@ namespace Couchbase.Lite
             } else {
                 return String.Format("Body[{0}]", new SecureLogJsonString(_jsonObject, LogMessageSensitivity.PotentiallyInsecure));
             }
-        } 
+        }
 
+#pragma warning restore 1591
         #endregion
     }
 }

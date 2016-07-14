@@ -110,6 +110,9 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IJsonSerializer : IDisposable
     {
+        /// <summary>
+        /// Gets or sets the settings to apply to the serializer
+        /// </summary>
         JsonSerializationSettings Settings { get; set; }
 
         /// <summary>

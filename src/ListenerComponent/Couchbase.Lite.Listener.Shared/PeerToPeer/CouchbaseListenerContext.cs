@@ -54,9 +54,12 @@ namespace Couchbase.Lite.Listener
         #endregion
 
         #region Properties
+#pragma warning disable 1591
 
+        // ICouchbaseListenerContext2
         public bool IsLoopbackRequest { get;  set; }
 
+        // ICouchbaseListenerContext2
         public Uri Sender { get; set; }
 
         // ICouchbaseListenerContext
@@ -270,6 +273,7 @@ namespace Couchbase.Lite.Listener
         // ICouchbaseListenerContext
         public abstract long ContentLength { get; }
 
+#pragma warning restore 1591
         #endregion
 
         #region Constructors
@@ -286,6 +290,7 @@ namespace Couchbase.Lite.Listener
         #endregion
 
         #region ICouchbaseListenerContext
+#pragma warning disable 1591
 
         public object GetJsonQueryParam(string key)
         {
@@ -358,6 +363,7 @@ namespace Couchbase.Lite.Listener
 
         public abstract bool CacheWithEtag(string etag);
 
+#pragma warning restore 1591
         #endregion
 
         #region Private Methods

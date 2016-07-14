@@ -48,14 +48,45 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite {
 
+    /// <summary>
+    /// Contains the keys associated with attachment metadata (i.e. entries in _attachments)
+    /// </summary>
     public struct AttachmentMetadataDictionaryKeys
     {
+        /// <summary>
+        /// The key for the type of attachment
+        /// </summary>
         public static readonly string ContentType = AttachmentMetadataDictionary.ContentType;
+
+        /// <summary>
+        /// The key for the length of the attachment when decoded
+        /// </summary>
         public static readonly string Length = AttachmentMetadataDictionary.Length;
+
+        /// <summary>
+        /// The key for indicating whether the attachment body is coming later in the request
+        /// </summary>
         public static readonly string Follows = AttachmentMetadataDictionary.Follows;
+
+        /// <summary>
+        /// The key for the digest of the attachment
+        /// </summary>
         public static readonly string Digest = AttachmentMetadataDictionary.Digest;
+
+        /// <summary>
+        /// The key for indicating whether or not the attachment is a stub (i.e. doesn't have
+        /// inlined data)
+        /// </summary>
         public static readonly string Stub = AttachmentMetadataDictionary.Stub;
+
+        /// <summary>
+        /// The key for the length of the attachment when encoded
+        /// </summary>
         public static readonly string EncodedLength = AttachmentMetadataDictionary.EncodedLength;
+
+        /// <summary>
+        /// The key for the encoding of the attachment
+        /// </summary>
         public static readonly string Encoding = AttachmentMetadataDictionary.Encoding;
     }
 

@@ -24,9 +24,19 @@ using System;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// Contains the identifiers for supported storage engines for Couchbase Lite
+    /// </summary>
     public struct StorageEngineTypes
     {
+        /// <summary>
+        /// The string representing the SQLite storage engine
+        /// </summary>
         public static readonly string SQLite = "SQLite";
+
+        /// <summary>
+        /// The string representing the ForestDB storage engine
+        /// </summary>
         public static readonly string ForestDB = "ForestDB";
     }
 

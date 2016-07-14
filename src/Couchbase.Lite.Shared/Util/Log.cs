@@ -191,6 +191,10 @@ namespace Couchbase.Lite.Util
             return true;
         }
 
+        /// <summary>
+        /// Add a logger to the list of loggers to write output to
+        /// </summary>
+        /// <param name="logger">The logger to add</param>
         public static void AddLogger(ILogger logger)
         {
             _Loggers.Add(logger);

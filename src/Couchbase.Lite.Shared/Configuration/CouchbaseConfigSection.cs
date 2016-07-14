@@ -28,11 +28,20 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Configuration
 {
+    /// <summary>
+    /// The class that handles loading configuration information from app.config
+    /// </summary>
     public sealed class CouchbaseConfigurationHandler : IConfigurationSectionHandler
     {
+
+        #region Constants
+
         private const string Tag = nameof(CouchbaseConfigurationHandler);
 
+        #endregion
+
         #region IConfigurationSectionHandler implementation
+#pragma warning disable 1591
 
         public object Create(object parent, object configContext, XmlNode section)
         {
@@ -48,6 +57,7 @@ namespace Couchbase.Lite.Configuration
             return retVal;
         }
 
+#pragma warning restore 1591
         #endregion
     }
 

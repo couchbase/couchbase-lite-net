@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/common.html#get--db
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetConfiguration(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>
@@ -91,7 +91,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/common.html#delete--db
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState DeleteConfiguration(ICouchbaseListenerContext context) 
         {
             return PerformLogicWithDatabase(context, false, db =>
@@ -118,7 +118,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/common.html#put--db
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState UpdateConfiguration(ICouchbaseListenerContext context)
         {
             string dbName = context.DatabaseName;
@@ -143,7 +143,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/bulk-api.html#get--db-_all_docs
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetAllDocuments(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>
@@ -169,7 +169,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/bulk-api.html#post--db-_all_docs
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetAllSpecifiedDocuments(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>
@@ -201,7 +201,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/bulk-api.html#post--db-_bulk_docs
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState ProcessDocumentChangeOperations(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>
@@ -298,7 +298,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/changes.html#get--db-_changes
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetChanges(ICouchbaseListenerContext context)
         {
             DBMonitorCouchbaseResponseState responseState = new DBMonitorCouchbaseResponseState();
@@ -486,7 +486,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/compact.html#post--db-_compact
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState Compact(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>
@@ -507,7 +507,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/misc.html#post--db-_purge
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState Purge(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>
@@ -540,7 +540,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/temp-views.html#post--db-_temp_view
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState ExecuteTemporaryViewFunction(ICouchbaseListenerContext context)
         {
             var response = context.CreateResponse();
@@ -685,6 +685,7 @@ namespace Couchbase.Lite.Listener
         /// </summary>
         /// <returns>The HTTP response containing the results of the query</returns>
         /// <param name="context">The request context</param>
+        /// <param name="db">The database to run the query in</param>
         /// <param name="view">The view to query</param>
         /// <param name="options">The options to apply to the query</param>
         public static CouchbaseLiteResponse QueryView(ICouchbaseListenerContext context, Database db, View view, QueryOptions options)

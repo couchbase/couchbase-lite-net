@@ -206,11 +206,13 @@ namespace Couchbase.Lite.Listener
             return successful && equal;
         }
 
+#pragma warning disable 1591
         [Obsolete("This method is no longer supported")]
         protected bool ValidateUser(DigestAuthHeaderValue headerValue)
         {
             return headerValue.ValidateAgainst(this);
         }
+#pragma warning restore 1591
 
         /// <summary>
         /// Tries to get the password for the user.
@@ -267,6 +269,7 @@ namespace Couchbase.Lite.Listener
         #endregion
 
         #region IDisposable
+#pragma warning disable 1591
 
         public void Dispose()
         {
@@ -278,6 +281,7 @@ namespace Couchbase.Lite.Listener
             _disposed = true;
         }
 
+#pragma warning restore 1591
         #endregion
     }
 }

@@ -79,6 +79,7 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
+        #pragma warning disable 1591
         #region Overrides
 
         public override string ToString()
@@ -88,7 +89,6 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
-        #pragma warning disable 1591
         #region IEnumerable
 
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()

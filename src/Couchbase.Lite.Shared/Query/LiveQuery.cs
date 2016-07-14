@@ -53,7 +53,7 @@ namespace Couchbase.Lite
     /// automatically refreshes every time the <see cref="Couchbase.Lite.Database"/> changes 
     /// in a way that would affect the results.
     /// </summary>
-    public sealed class LiveQuery : Query
+    public sealed class LiveQuery : Query
     {
         #region Constants
 
@@ -281,7 +281,7 @@ namespace Couchbase.Lite
 
         #endregion
        
-        #region Private Methods
+        #region Private Methods
 
         private void OnDatabaseChanged (object sender, DatabaseChangeEventArgs e)
         {
@@ -334,7 +334,7 @@ namespace Couchbase.Lite
                     return;
                 }
             }
-				
+                
 
             if (!_runningState) {
                 Log.To.Query.D(TAG, "Update called, but running state == false.  Ignoring.");
@@ -380,18 +380,20 @@ namespace Couchbase.Lite
             evt(this, args);
         }
 
-        #endregion
+        #endregion
 
         #region Overrides
+#pragma warning disable 1591
 
         public override string ToString()
         {
             return base.ToString().Insert(1, "Live");
         }
 
+#pragma warning restore 1591
         #endregion
-    
-    }
+
+    }
 
     /// <summary>
     /// Query change event arguments.

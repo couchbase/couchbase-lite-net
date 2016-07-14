@@ -58,6 +58,9 @@ namespace Couchbase.Lite.Store
         [Obsolete("Use DataSize")]
         public const int DATA_SIZE = 32;
 
+        /// <summary>
+        /// Number of bytes in a 256-bit key
+        /// </summary>
         public static readonly int DataSize = 32;
 
         /// <summary>
@@ -66,6 +69,9 @@ namespace Couchbase.Lite.Store
         [Obsolete("Use EncryptedContentType")]
         public const string ENCRYPTED_CONTENT_TYPE = "application/x-beanbag-aes-256";
 
+        /// <summary>
+        /// The data type associated with encrypted content
+        /// </summary>
         public static readonly string EncryptedContentType = "application/x-beanbag-aes-256";
 
         private static readonly string Tag = typeof(SymmetricKey).Name;

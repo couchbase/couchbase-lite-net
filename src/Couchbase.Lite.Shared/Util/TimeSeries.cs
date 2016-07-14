@@ -33,11 +33,22 @@ using System.IO.MemoryMappedFiles;
 
 namespace Couchbase.Lite.Util
 {
+    /// <summary>
+    /// A class for collecting a series of time stamped events, writing them to a database,
+    /// and then optionally replicating them
+    /// </summary>
     public class TimeSeries : IDisposable
     {
+
+        #region Constants
+
         private static readonly string Tag = typeof(TimeSeries).Name;
         private const int MaxDocSize = 100 * 1024; // bytes
         private const int MaxDocEventCount = 1000;
+
+        #endregion
+
+        #region Variables
 
         private TaskFactory _scheduler = new TaskFactory(new SingleTaskThreadpoolScheduler());
         private Database _db;
@@ -48,6 +59,15 @@ namespace Couchbase.Lite.Util
         private string _path;
         private ConcurrentQueue<IDictionary<string, object>> _docsToAdd;
 
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="db">The database to write to</param>
+        /// <param name="docType">The document type to use when writing documents</param>
         public TimeSeries(Database db, string docType)
         {
             if(db == null) {
@@ -73,11 +93,24 @@ namespace Couchbase.Lite.Util
             _docType = docType;
         }
 
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Add an event to the series using the current UTC time
+        /// </summary>
+        /// <param name="eventToAdd">The properties of the event</param>
         public void AddEvent(IDictionary<string, object> eventToAdd)
         {
-            AddEvent(eventToAdd, DateTime.Now);
+            AddEvent(eventToAdd, DateTime.UtcNow);
         }
 
+        /// <summary>
+        /// Add an event to the database using the specified time
+        /// </summary>
+        /// <param name="eventToAdd">The properties of the event</param>
+        /// <param name="time">The timestamp of the event</param>
         public void AddEvent(IDictionary<string, object> eventToAdd, DateTime time)
         {
             if(eventToAdd == null) {
@@ -126,6 +159,10 @@ namespace Couchbase.Lite.Util
             });
         }
 
+        /// <summary>
+        /// Flush the events to the database asynchronously 
+        /// </summary>
+        /// <returns>An awaitable Task</returns>
         public Task FlushAsync()
         {
             if(_scheduler == null) {
@@ -140,11 +177,20 @@ namespace Couchbase.Lite.Util
             });
         }
 
+        /// <summary>
+        /// Flushes the events to the database synchronously
+        /// </summary>
         public void Flush()
         {
             FlushAsync().Wait();
         }
 
+        /// <summary>
+        /// Create a push replication to replicate the events to a remote endpoint
+        /// </summary>
+        /// <param name="remoteUrl">The URL to replicate to</param>
+        /// <param name="purgeWhenPushed">If <c>true</c>, delete the events after pushed</param>
+        /// <returns>The configured Replication option</returns>
         public Replication CreatePushReplication(Uri remoteUrl, bool purgeWhenPushed)
         {
             var push = _db.CreatePushReplication(remoteUrl);
@@ -162,6 +208,12 @@ namespace Couchbase.Lite.Util
             return push;
         }
 
+        /// <summary>
+        /// Returns all the events in a given time range
+        /// </summary>
+        /// <param name="start">The beginning of the time range to query</param>
+        /// <param name="end">The end of the time range to query</param>
+        /// <returns>All the event in the given time range</returns>
         public IEnumerable<IDictionary<string, object>> GetEventsInRange(DateTime start, DateTime end)
         {
             // Get the first series from the doc containing start (if any):
@@ -229,12 +281,45 @@ namespace Couchbase.Lite.Util
             }
         }
 
+        #endregion
+
+        #region Protected Methods
+
+        /// <summary>
+        /// Override this to clean up a derived class at disposal time
+        /// </summary>
+        /// <param name="disposing">If <c>false</c>, Dispose() was called.  Otherwise, the object
+        /// is being finalized.</param>
         protected virtual void Dispose(bool disposing)
         {
             if(!disposing) {
                 Stop();
             }
         }
+
+        /// <summary>
+        /// Stops the object from processing any more events
+        /// </summary>
+        protected void Stop()
+        {
+            if(_scheduler != null) {
+                _scheduler.StartNew(() =>
+                {
+                    if(_out != null) {
+                        _out.Dispose();
+                        _out = null;
+                    }
+                });
+
+                _scheduler = null;
+            }
+
+            _error = null;
+        }
+
+        #endregion
+
+        #region Private Methods
 
         private IList<IDictionary<string, object>> GetEvents(DateTime t, ref ulong startStamp)
         {
@@ -400,27 +485,18 @@ namespace Couchbase.Lite.Util
             return String.Format("TS-{0}-{1:D8}", _docType, timestamp);
         }
 
-        protected void Stop()
-        {
-            if(_scheduler != null) {
-                _scheduler.StartNew(() =>
-                {
-                    if(_out != null) {
-                        _out.Dispose();
-                        _out = null;
-                    }
-                });
+        #endregion
 
-                _scheduler = null;
-            }
-
-            _error = null;
-        }
+        #region IDisposable
+#pragma warning disable 1591
 
         public void Dispose()
         {
             GC.SuppressFinalize(this);
             Dispose(false);
         }
+
+#pragma warning restore 1591
+        #endregion
     }
 }

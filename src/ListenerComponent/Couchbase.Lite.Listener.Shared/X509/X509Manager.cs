@@ -30,6 +30,9 @@ using Couchbase.Lite.Util;
 namespace Couchbase.Lite.Security
 {
     //http://www.freekpaans.nl/2015/04/creating-self-signed-x-509-certificates-using-mono-security/
+    /// <summary>
+    /// Manages X509 certificates for use with Couchbase Listeners
+    /// </summary>
     public static class X509Manager
     {
         private static readonly string Tag = typeof(X509Manager).Name;
@@ -53,8 +56,7 @@ namespace Couchbase.Lite.Security
         /// <param name="certificateName">The name to set or verify on the certificate</param>
         /// <param name="password">The password to set or use on the file.</param>
         /// <param name="savePath">The path to read from or write to</param>
-        /// <exception cref="System.InvalidDataException>Thrown if the given certificateName
-        /// does not match the one on the saved certificate</exception>
+        /// <exception cref="InvalidDataException">Thrown if the given certificateName does not match the one on the saved certificate</exception>
         public static X509Certificate2 GetPersistentCertificate(string certificateName, string password, string savePath)
         {
             var retVal = GetExistingPersistentCertificate(certificateName, password, savePath);
@@ -71,10 +73,10 @@ namespace Couchbase.Lite.Security
         /// Gets an existing X509 certificate from the specified path.
         /// </summary>
         /// <returns>The retrieved certificate, or null if it does not exist</returns>
-        /// <param name="certificateName">The subject name to check on the existing certificate</param></param>
+        /// <param name="certificateName">The subject name to check on the existing certificate</param>
         /// <param name="password">The password to use to open the certificate file.</param>
-        /// <param name="savePath">The path to read the certificate from</param>
-        /// <exception cref="System.InvalidDataException>Thrown if the given certificateName
+        /// <param name="filePath">The path to read the certificate from</param>
+        /// <exception cref="InvalidDataException">Thrown if the given certificateName
         /// does not match the one on the saved certificate</exception>
         public static X509Certificate2 GetExistingPersistentCertificate(string certificateName, string password, string filePath)
         {

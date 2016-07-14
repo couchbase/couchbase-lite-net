@@ -26,6 +26,7 @@ using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
+#pragma warning disable 1591
     [Obsolete("This class is no longer needed, and will be removed")]
     public sealed class DigestAuthHeaderValue
     {
@@ -66,5 +67,6 @@ namespace Couchbase.Lite.Listener.Tcp
             _calculatedResponse = DigestCalculator.Calculate(_components, listener.HashPasswordToDigest);
         }
     }
+#pragma warning restore 1591
 }
 

@@ -121,6 +121,12 @@ namespace Couchbase.Lite {
 
         #region Public Methods
 
+        /// <summary>
+        /// Returns whether or not this query result set is stale (i.e. the database has been
+        /// updated since the query ran)
+        /// </summary>
+        /// <returns>Whether or not this query result set is stale (i.e. the database has been
+        /// updated since the query ran)</returns>
         public bool IsStale()
         {
             return SequenceNumber < _database.GetLastSequenceNumber(); 

@@ -30,7 +30,7 @@ namespace Couchbase.Lite.Auth
     /// <summary>
     /// An authenticator for performing HTTP Digest authentication (RFC 2617)
     /// </summary>
-    public sealed class DigestAuthenticator : IChallengeResponseAuthenticator
+    internal sealed class DigestAuthenticator : IChallengeResponseAuthenticator
     {
 
         #region Variables
@@ -39,12 +39,6 @@ namespace Couchbase.Lite.Auth
         private int _nc;
         private readonly string _username;
         private readonly string _password;
-
-        #endregion
-
-        #region Properties
-
-        public string Username { get; private set; }
 
         #endregion
 
@@ -64,6 +58,7 @@ namespace Couchbase.Lite.Auth
         #endregion
 
         #region Overrides
+        #pragma warning disable 1591
 
         public override string ToString()
         {
@@ -75,7 +70,7 @@ namespace Couchbase.Lite.Auth
         #endregion
 
         #region IChallengeResponseAuthenticator
-        #pragma warning disable 1591
+        
 
         public string ResponseFromChallenge(HttpResponseMessage message)
         {

@@ -489,7 +489,7 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Sets the contents of the local <see cref="Couchbase.Lite.Document" /> with the given id.  If <param name="properties"/> is null, the 
+        /// Sets the contents of the local <see cref="Couchbase.Lite.Document" /> with the given id.  If properties is null, the 
         /// <see cref="Couchbase.Lite.Document" /> is deleted.
         /// </summary>
         /// <param name="id">The id of the local document whos contents to set.</param>
@@ -776,6 +776,10 @@ namespace Couchbase.Lite
             return new Puller(this, url, false, new TaskFactory(scheduler)) { ReplicationOptions = replicationOptions };
         }
 
+        /// <summary>
+        /// Closes the database asynchronously
+        /// </summary>
+        /// <returns>An awaitable task</returns>
         public Task Close()
         {
             if(_closingTask != null) {

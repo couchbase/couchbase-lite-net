@@ -72,16 +72,19 @@ namespace Couchbase.Lite
             StatusCode = HttpStatusCode.InternalServerError;
         }
 
+        /// <summary>
+        /// Constructor for ISerializable
+        /// </summary>
+        /// <param name="info">The info passed from the serialization</param>
+        /// <param name="context">The context</param>
         protected HttpResponseException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
             StatusCode = (HttpStatusCode)info.GetInt32("HttpResponseStatusCode");
         }
 
-        /// <summary>
-        /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.HttpResponseException"/>.
-        /// </summary>
-        /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.HttpResponseException"/>.</returns>
+#pragma warning disable 1591
+
         public override string ToString ()
         {
             return string.Format ("[HttpResponseException: StatusCode = {0}]", StatusCode);
@@ -93,6 +96,8 @@ namespace Couchbase.Lite
 
             info.AddValue("HttpResponseStatusCode", (int)StatusCode);
         }
+
+#pragma warning restore 1591
     }
 }
 

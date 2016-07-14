@@ -414,6 +414,10 @@ namespace Couchbase.Lite
             return null;
         }
 
+        /// <summary>
+        /// Gets the expiration data of this document, if it has one
+        /// </summary>
+        /// <returns>The expiration data of this document, if it has one</returns>
         public DateTime? GetExpirationDate()
         {
             return Database.Storage.GetDocumentExpiration(Id);

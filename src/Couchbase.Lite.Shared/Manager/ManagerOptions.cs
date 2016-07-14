@@ -180,9 +180,11 @@ namespace Couchbase.Lite
         [Obsolete("Moving to the ReplicationOptions class")]
         public int MaxRevsToGetInBulk { get; set; }
 
+#pragma warning disable 1591
         public override string ToString()
         {
             return String.Format("ManagerOptions[ReadOnly={0}, CallbackScheduler={1}, DefaultReplicationOptions={2}]", ReadOnly, CallbackScheduler.GetType().Name, DefaultReplicationOptions);
         }
+#pragma warning restore 1591
     }
 }

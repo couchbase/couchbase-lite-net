@@ -156,6 +156,9 @@ namespace Couchbase.Lite {
         }
         private EventHandler<QueryCompletedEventArgs> _completed;
 
+        /// <summary>
+        /// The context to fire events on
+        /// </summary>
         protected readonly TaskFactory _eventContext;
 
         #endregion

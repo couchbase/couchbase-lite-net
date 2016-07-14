@@ -53,10 +53,6 @@ namespace Couchbase.Lite.Listener
 
         #region Constructors
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="map">A dictionary containing URL strings and their logic</param>
         public RouteCollection(string name, IDictionary<string, RestMethod> map)
         {
             _name = name;

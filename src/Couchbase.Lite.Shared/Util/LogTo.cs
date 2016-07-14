@@ -24,9 +24,20 @@ using System.Linq;
 
 namespace Couchbase.Lite.Util
 {
+    /// <summary>
+    /// An interface describing a logger which logs to a specific domain
+    /// </summary>
     public interface IDomainLogging : IEnumerable<IDomainLogging>
     {
+        /// <summary>
+        /// Gets or sets the current logging level of this logger
+        /// </summary>
         Log.LogLevel Level { get; set; }
+
+        /// <summary>
+        /// Gets the domain of this logger
+        /// </summary>
+        string Domain { get; }
     }
 
     internal sealed class DomainLogger : IDomainLogging

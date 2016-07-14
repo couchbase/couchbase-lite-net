@@ -28,6 +28,9 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class ReplicationOptions
     {
+
+        #region Constants
+
         /// <summary>
         /// The default value for Heartbeat (5 minutes)
         /// </summary>
@@ -62,6 +65,10 @@ namespace Couchbase.Lite
         /// The default value for ReplicationRetryDelay (60 seconds)
         /// </summary>
         public static readonly TimeSpan DefaultReplicationRetryDelay = TimeSpan.FromSeconds(60);
+
+        #endregion
+
+        #region Properties
 
         /// <summary>
         /// Gets or sets whether or not the replication should forcibly start over
@@ -156,9 +163,20 @@ namespace Couchbase.Lite
         /// </summary>
         public TimeSpan ReplicationRetryDelay { get; set; }
 
+        /// <summary>
+        /// If <c>true</c>, purge documents after pushing
+        /// </summary>
         public bool PurgePushed { get; set; }
 
+        /// <summary>
+        /// If <c>true</c>, assume all document revisions are new and skip asking
+        /// the server if they exist during replication
+        /// </summary>
         public bool AllNew { get; set; }
+
+        #endregion
+
+        #region Constructors
 
         /// <summary>
         /// Default constructor
@@ -176,10 +194,19 @@ namespace Couchbase.Lite
             ReplicationRetryDelay = DefaultReplicationRetryDelay;
         }
 
+        #endregion
+
+        #region Overrides
+#pragma warning disable 1591
+
         public override string ToString()
         {
             return string.Format("ReplicationOptions[Reset={0}, RequestTimeout={1}, SocketTimeout={2}, Heartbeat={3}, PollInterval={4}, UseWebSocket={5}, RemoteUUID={6}, MaxOpenHttpConnections={7}, MaxRevsToGetInBulk={8}, RetryStrategy={9}, ReplicationRetryDelay={10}]", Reset, RequestTimeout, SocketTimeout, Heartbeat, PollInterval, UseWebSocket, RemoteUUID, MaxOpenHttpConnections, MaxRevsToGetInBulk, RetryStrategy, ReplicationRetryDelay);
         }
+
+#pragma warning restore 1591
+        #endregion
+
     }
 }
 

@@ -70,12 +70,14 @@ namespace Couchbase.Lite.Util
         #endregion
 
         #region Overrides
+        #pragma warning disable 1591
 
         public override string ToString()
         {
             return IsNull ? "<No Value>" : Value.ToString();
         }
 
+        #pragma warning restore 1591
         #endregion
 
     }

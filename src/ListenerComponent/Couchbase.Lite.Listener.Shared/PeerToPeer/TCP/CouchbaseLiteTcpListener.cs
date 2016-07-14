@@ -30,11 +30,25 @@ using WebSocketSharp.Net;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
+    /// <summary>
+    /// Options for configurating a TCP listener
+    /// </summary>
     [Flags]
     public enum CouchbaseLiteTcpOptions
     {
+        /// <summary>
+        /// Use the default settings (plain HTTP, no basic auth allowed)
+        /// </summary>
         Default = 0,
+
+        /// <summary>
+        /// Allow basic authentication (insecure over plain HTTP)
+        /// </summary>
         AllowBasicAuth = 1 << 0,
+
+        /// <summary>
+        /// Use TLS for encrypting connections
+        /// </summary>
         UseTLS = 1 << 1
     }
 
@@ -67,6 +81,7 @@ namespace Couchbase.Lite.Listener.Tcp
         /// </summary>
         /// <param name="manager">The manager to use for opening DBs, etc</param>
         /// <param name="port">The port to listen on</param>
+        /// <param name="realm">The realm to use when sending challenges</param>
         /// <remarks>
         /// If running on Windows, check <a href="https://github.com/couchbase/couchbase-lite-net/wiki/Gotchas">
         /// This document</a>
@@ -77,18 +92,40 @@ namespace Couchbase.Lite.Listener.Tcp
             
         }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="manager">The manager to use for opening DBs, etc</param>
+        /// <param name="port">The port to listen on</param>
+        /// <param name="options">The options to use when configuring the listener</param>
+        /// <param name="realm">The realm to use when sending challenges</param>
         public CouchbaseLiteTcpListener(Manager manager, ushort port, CouchbaseLiteTcpOptions options, string realm = "Couchbase")
             : this(manager, port, options, realm, null)
         {
             
         }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="manager">The manager to use for opening DBs, etc</param>
+        /// <param name="port">The port to listen on</param>
+        /// <param name="options">The options to use when configuring the listener</param>
+        /// <param name="sslCert">The certificate to use when serving the listener over https</param>
         public CouchbaseLiteTcpListener(Manager manager, ushort port, CouchbaseLiteTcpOptions options, X509Certificate2 sslCert)
             : this(manager, port, options, "Couchbase", sslCert)
         {
 
         }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="manager">The manager to use for opening DBs, etc</param>
+        /// <param name="port">The port to listen on</param>
+        /// <param name="options">The options to use when configuring the listener</param>
+        /// <param name="realm">The realm to use when sending challenges</param>
+        /// <param name="sslCert">The certificate to use when serving the listener over https</param>
         public CouchbaseLiteTcpListener(Manager manager, ushort port, CouchbaseLiteTcpOptions options, string realm, X509Certificate2 sslCert)
         {
             _manager = manager;
@@ -202,6 +239,7 @@ namespace Couchbase.Lite.Listener.Tcp
         #endregion
 
         #region Overrides
+#pragma warning disable 1591
 
         public override void Start()
         {
@@ -250,6 +288,7 @@ namespace Couchbase.Lite.Listener.Tcp
             return string.Format("CouchbaseLiteTcpListener[Prefixes={0}]", new LogJsonString(_listener.Prefixes));
         }
 
+#pragma warning restore 1591
         #endregion
 
     }

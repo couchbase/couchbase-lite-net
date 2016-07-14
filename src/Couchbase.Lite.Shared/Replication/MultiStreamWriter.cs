@@ -327,6 +327,7 @@ namespace Couchbase.Lite.Support
         #endregion
 
         #region Overrides
+        #pragma warning disable 1591
 
         public override string ToString()
         {
@@ -336,7 +337,7 @@ namespace Couchbase.Lite.Support
         #endregion
 
         #region IDisposable
-        #pragma warning disable 1591
+        
 
         public void Dispose()
         {

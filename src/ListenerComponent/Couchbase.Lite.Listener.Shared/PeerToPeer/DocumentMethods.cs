@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/document/common.html#get--db-docid
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetDocument(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db => {
@@ -206,7 +206,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/document/common.html#put--db-docid
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState UpdateDocument(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDocumentBody(context, (db, body) =>
@@ -261,7 +261,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/database/common.html#post--db
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState CreateDocument(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDocumentBody(context, (db, body) => UpdateDb(context, db, null, body, false))
@@ -375,7 +375,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/document/common.html#delete--db-docid
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState DeleteDocument(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
@@ -394,7 +394,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/document/attachments.html#get--db-docid-attname
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetAttachment(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
@@ -454,7 +454,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/document/attachments.html#put--db-docid-attname
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState UpdateAttachment(ICouchbaseListenerContext context)
         {
             var state = new AsyncOpCouchbaseResponseState();
@@ -490,7 +490,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/document/attachments.html#delete--db-docid-attname
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState DeleteAttachment(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>

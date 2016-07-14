@@ -43,7 +43,7 @@ namespace Microsoft.IO
     /// multiples of LargeBufferMultiple (1 MB by default). They are split by size to avoid overly-wasteful buffer
     /// usage. There should be far fewer 8 MB buffers than 1 MB buffers, for example.
     /// </remarks>
-    public class RecyclableMemoryStreamManager
+    internal sealed class RecyclableMemoryStreamManager
     {
         public enum MemoryStreamDiscardReason
         {

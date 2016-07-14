@@ -39,7 +39,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/ddoc/views.html#get--db-_design-ddoc-_view-view
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetDesignView(ICouchbaseListenerContext context)
         {
             return QueryDesignDocument(context, null).AsDefaultState();

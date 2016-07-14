@@ -131,6 +131,10 @@ namespace Couchbase.Lite
 
 #pragma warning disable 618
 
+    /// <summary>
+    /// Contains the keys for a replication options dictionary
+    /// </summary>
+    [Obsolete("Use ReplicationOptions instead")]
     public struct ReplicationOptionsDictionaryKeys
     {
         /// <summary>
@@ -181,6 +185,11 @@ namespace Couchbase.Lite
         [Obsolete("Use SyncProtocolVersion")]
         public const string SYNC_PROTOCOL_VERSION = "1.3";
 
+        /// <summary>
+        /// The protocol version to use when syncing with Sync Gateway.
+        /// This value is also included in all HTTP requests as the
+        /// User-Agent version.
+        /// </summary>
         public static readonly string SyncProtocolVersion = "1.3";
 
         internal const string CHANNELS_QUERY_PARAM = "channels";
@@ -263,6 +272,10 @@ namespace Couchbase.Lite
 
         #region Properties
 
+        /// <summary>
+        /// If applicable, will store the username of the logged in user once
+        /// they are authenticated
+        /// </summary>
         public string Username { get; private set; }
 
         /// <summary>

@@ -55,7 +55,7 @@ namespace Microsoft.IO
     /// are maintained in the stream until the stream is disposed (unless AggressiveBufferReturn is enabled in the stream manager).
     /// 
     /// </remarks>
-    public sealed class RecyclableMemoryStream : MemoryStream
+    internal sealed class RecyclableMemoryStream : MemoryStream
     {
         private const long MaxStreamLength = Int32.MaxValue;
 

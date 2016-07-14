@@ -108,11 +108,4 @@ namespace Couchbase.Lite.Auth
         void PrepareWithRequest(HttpRequestMessage request);
     }
 
-    public interface IOIDCAuthenticator : IAuthenticator
-    {
-        Uri LoginUri { get; }
-
-        Uri AuthBaseUri { get; }
-    }
-
 }

@@ -359,6 +359,7 @@ namespace Couchbase.Lite
         #endregion
 
         #region Overrides
+#pragma warning disable 1591
 
         public override string ToString()
         {
@@ -394,6 +395,7 @@ namespace Couchbase.Lite
             }
         }
 
+#pragma warning restore 1591
         #endregion
 
     }

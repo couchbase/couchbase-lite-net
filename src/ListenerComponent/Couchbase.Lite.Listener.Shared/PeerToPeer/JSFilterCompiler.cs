@@ -27,10 +27,14 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
+    /// <summary>
+    /// A class for compiling javascript functions into filter functions
+    /// </summary>
     public sealed class JSFilterCompiler : IFilterCompiler
     {
 
         #region IFilterCompiler
+#pragma warning disable 1591
 
         public FilterDelegate CompileFilter(string filterSource, string language)
         {
@@ -57,6 +61,7 @@ namespace Couchbase.Lite.Listener
             };
         }
 
+#pragma warning restore 1591
         #endregion
 
         private class NoThrowDictionary : IDictionary<string, object>

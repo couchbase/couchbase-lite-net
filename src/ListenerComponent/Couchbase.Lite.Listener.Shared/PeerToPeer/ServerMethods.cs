@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/common.html#get--
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState Greeting(ICouchbaseListenerContext context)
         {
             var info = new Dictionary<string, object> {
@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/common.html#get--_active_tasks
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetActiveTasks(ICouchbaseListenerContext context)
         {
             // Get the current task info of all replicators:
@@ -115,7 +115,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/common.html#get--_all_dbs
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetAllDbs(ICouchbaseListenerContext context)
         {
             var names = context.DbManager.AllDatabaseNames.Cast<object>().ToList();
@@ -133,7 +133,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/authn.html#get--_session
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetSession(ICouchbaseListenerContext context)
         {
             // Even though CouchbaseLite doesn't support user logins, it implements a generic response to the
@@ -158,7 +158,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/common.html#get--_uuids
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetUUIDs(ICouchbaseListenerContext context)
         {
             int count = context.GetQueryParam<int>("count", int.TryParse, 1);
@@ -183,7 +183,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/common.html#post--_replicate
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState ManageReplicationSession(ICouchbaseListenerContext context)
         {
             var body = default(IDictionary<string, object>);

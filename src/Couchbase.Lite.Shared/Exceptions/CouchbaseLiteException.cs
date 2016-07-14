@@ -118,6 +118,11 @@ namespace Couchbase.Lite {
         public CouchbaseLiteException (String messageFormat, params Object[] values)
             : base(String.Format(messageFormat, values)) {  }
 
+        /// <summary>
+        /// The constructor for ISerializable
+        /// </summary>
+        /// <param name="info">The serialization info</param>
+        /// <param name="context">The serialization context</param>
         protected CouchbaseLiteException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
@@ -134,12 +139,16 @@ namespace Couchbase.Lite {
             return new Status(Code);
         }
 
+#pragma warning disable 1591
+
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             base.GetObjectData(info, context);
 
             info.AddValue("CBLStatus", (int)Code);
         }
+
+#pragma warning restore 1591
     }
 
 }

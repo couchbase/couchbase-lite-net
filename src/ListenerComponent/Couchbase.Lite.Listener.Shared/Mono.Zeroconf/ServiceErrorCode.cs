@@ -26,6 +26,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#pragma warning disable 1591
 namespace Mono.Zeroconf
 {
     // These are just copied from Bonjour
@@ -56,3 +57,4 @@ namespace Mono.Zeroconf
         BadTime             = -65559
     }
 }
+#pragma warning restore 1591

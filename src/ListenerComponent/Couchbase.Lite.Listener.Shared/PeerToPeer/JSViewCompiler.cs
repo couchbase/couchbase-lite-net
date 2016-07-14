@@ -37,6 +37,7 @@ namespace Couchbase.Lite.Listener
     {
 
         #region IViewCompiler
+#pragma warning disable 1591
 
         public MapDelegate CompileMap(string source, string language)
         {
@@ -73,6 +74,7 @@ namespace Couchbase.Lite.Listener
             };
         }
 
+#pragma warning restore 1591
         #endregion
 
     }

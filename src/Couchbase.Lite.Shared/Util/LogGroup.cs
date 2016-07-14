@@ -28,6 +28,8 @@ namespace Couchbase.Lite.Util
     {
         private readonly IEnumerable<IDomainLogging> _components;
 
+        public string Domain { get; }
+
         public Log.LogLevel Level
         {
             get {
@@ -44,6 +46,7 @@ namespace Couchbase.Lite.Util
         internal LogGroup(params IDomainLogging[] components)
         {
             _components = components;
+            Domain = components.Aggregate(String.Empty, (l, r) => $"{l},{r.Domain}");
         }
         
         #region IEnumerable implementation

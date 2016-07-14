@@ -164,6 +164,7 @@ namespace Couchbase.Lite.Listener
         #endregion
 
         #region Overrides
+#pragma warning disable 1591
 
         public override string ToString()
         {
@@ -183,6 +184,7 @@ namespace Couchbase.Lite.Listener
             _browser.Dispose();
         }
 
+#pragma warning restore 1591
         #endregion
 
     }

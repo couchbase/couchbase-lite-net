@@ -357,6 +357,11 @@ namespace Couchbase.Lite
             Log.To.Database.I(TAG, "CLOSED {0}", this);
         }
 
+        /// <summary>
+        /// Registers an encryption key for use when a given database is requested via GetDatabase
+        /// </summary>
+        /// <param name="dbName">The name of the database to register</param>
+        /// <param name="key">The key object to register</param>
         [Obsolete("This method is superceded by OpenDatabase")]
         public void RegisterEncryptionKey(string dbName, SymmetricKey key)
         {
