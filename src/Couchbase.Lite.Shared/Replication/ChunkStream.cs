@@ -169,7 +169,7 @@ namespace Couchbase.Lite.Internal
                     Log.To.ChangeTracker.D(Tag, "{0} bookmark reached (code: {1})", this, next - 255);
                     BookmarkReached?.Invoke(this, new BookmarkEventArgs((byte)(next - 255)));
                     _current = null;
-                    if(!ReadNextQueue(true)) {
+                    if(!ReadNextQueue(i == 0)) {
                         break;
                     }
 
