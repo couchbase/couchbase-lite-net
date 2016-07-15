@@ -163,7 +163,12 @@ namespace Couchbase.Lite.Internal
                 throw new ObjectDisposedException("ChunkStream");
             }
 
-            _chunkQueue.Add(new Queue<ushort>(buffer.Skip(offset).Take(count).Cast<ushort>()));
+            var newQueue = new Queue<ushort>(count);
+            foreach(var b in buffer.Skip(offset).Take(count)) {
+                newQueue.Enqueue((ushort)b);
+            }
+
+            _chunkQueue.Add(newQueue);
         }
 
         #endregion

@@ -607,7 +607,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     throw;
                 } catch (Exception ex) {
                     LastErrorCode = raw.sqlite3_errcode(_writeConnection);
-                    throw Misc.CreateExceptionAndLog(Log.To.Database, ex, TAG, 
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, ex, StatusCode.DbError, TAG, 
                         "Error inserting into table {0}", table);
                 }
 

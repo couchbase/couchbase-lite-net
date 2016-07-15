@@ -1934,6 +1934,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             } else {
                                 // This situation means that the revision already exists, so go get the existing
                                 // sequence number
+                                Log.To.Database.I(TAG, "Previous error due to duplicate revision, fetching existing one...");
                                 sequence = GetSequenceOfDocument(docNumericId, newRev.RevID, false);
                             }
                         } else {

@@ -159,7 +159,7 @@ namespace Couchbase.Lite.Revisions
         public override int GetHashCode()
         {
             var data = AsData();
-            return Hasher.Hash(data);
+            return Hasher.HashList(data);
         }
 
         public override bool Equals(object obj)

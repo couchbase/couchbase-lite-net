@@ -329,15 +329,11 @@ namespace Couchbase.Lite
         public TValue GetProperty<TValue>(string key)
         {
             TValue val;
-            try {
-                val = (TValue)GetProperty(key);
-            } catch(InvalidCastException) {
-                val = default(TValue);
-            } catch(NullReferenceException) {
-                val = default(TValue);
+            if(ExtensionMethods.TryCast(GetProperty(key), out val)) {
+                return val;
             }
 
-            return val;
+            return default(TValue);
         }
 
         /// <summary>

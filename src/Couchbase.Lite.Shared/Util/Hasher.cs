@@ -38,5 +38,17 @@ namespace Couchbase.Lite.Util
                 return hash;
             }
         }
+
+        public static int HashList<T>(IEnumerable<T> items)
+        {
+            unchecked {
+                int hash = 13;
+                foreach(var obj in items) {
+                    hash = (hash * 7) + obj.GetHashCode();
+                }
+
+                return hash;
+            }
+        }
     }
 }
