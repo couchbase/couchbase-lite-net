@@ -1102,9 +1102,6 @@ namespace Couchbase.Lite
 
             _remoteSession = RemoteSession.Clone(_remoteSession, CancellationTokenSource);
             _remoteSession.Setup(ReplicationOptions);
-            
-            _changesCount = 0;
-            _completedChangesCount = 0;
 
             Login();
         }

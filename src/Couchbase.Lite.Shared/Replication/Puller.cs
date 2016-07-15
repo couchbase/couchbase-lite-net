@@ -757,7 +757,6 @@ namespace Couchbase.Lite.Replicator
                 _changeTracker = null;
             }
 
-            _remoteSession.Dispose();
             lock (_locker) {
                 _revsToPull = null;
                 _deletedRevsToPull = null;

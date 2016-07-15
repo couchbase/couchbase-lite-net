@@ -113,7 +113,7 @@ namespace Couchbase.Lite.Auth
                 return null;
             }
 
-            return new ArrayList { "POST", _loginParams, _loginParams };
+            return new ArrayList { "POST", _loginPath, _loginParams };
         }
 
         public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)

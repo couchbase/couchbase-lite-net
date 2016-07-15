@@ -354,8 +354,8 @@ namespace Couchbase.Lite.Util
 
         private void SerializeToDB()
         {
-            if (_db == null || _storageKey == null) {
-                Log.To.Database.I(TAG, "Database or storage key null, so skipping serialization");
+            if (_db == null) {
+                Log.To.Database.I(TAG, "Database null, so skipping serialization");
                 return;
             }
 
@@ -370,8 +370,8 @@ namespace Couchbase.Lite.Util
 
         private void DeserializeFromDB()
         {
-            if (_db == null || _storageKey == null) {
-                Log.To.Database.I(TAG, "Database or storage key null, so skipping deserialization");
+            if (_db == null) {
+                Log.To.Database.I(TAG, "Database null, so skipping deserialization");
                 return;
             }
 
