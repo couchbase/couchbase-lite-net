@@ -111,6 +111,7 @@ namespace Couchbase.Lite
         private IList<DocumentChange>                   _changesToNotify;
         private bool                                    _isPostingChangeNotifications;
         private object                                  _allReplicatorsLocker = new object();
+        private object                                  _activeReplicatorsLocker = new object();
         private bool                                    _readonly;
         private Task                                    _closingTask;
         private Timer                                   _expirePurgeTimer;
@@ -805,8 +806,10 @@ namespace Couchbase.Lite
             if(ActiveReplicators.AcquireAndDispose(out activeReplicatorCopy) && activeReplicatorCopy.Count > 0) {
                 // Give a chance for replicators to clean up before closing the DB
                 var evt = new CountdownEvent(activeReplicatorCopy.Count);
-                foreach(var repl in activeReplicatorCopy.ToArray()) {
-                    repl.DatabaseClosing(evt);
+                lock(_activeReplicatorsLocker) {
+                    foreach(var repl in activeReplicatorCopy) {
+                        repl.DatabaseClosing(evt);
+                    }
                 }
 
                 ThreadPool.RegisterWaitForSingleObject(evt.WaitHandle, (state, timedOut) =>
@@ -1118,18 +1121,21 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            var copy = activeReplicators.ToArray();
-            if(copy.All(x => x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
-                activeReplicators.Add(replication);
-            } else {
-                return false;
+            lock(_activeReplicatorsLocker) {
+                if(activeReplicators.All(x => x != null && x.RemoteCheckpointDocID() != replication.RemoteCheckpointDocID())) {
+                    activeReplicators.Add(replication);
+                } else {
+                    return false;
+                }
             }
             
             replication.Changed += (sender, e) =>
             {
                 if(e.ReplicationStateTransition != null && (e.ReplicationStateTransition.Trigger == ReplicationTrigger.StopGraceful || e.ReplicationStateTransition.Trigger == ReplicationTrigger.StopImmediate)) {
                     if(ActiveReplicators.AcquireTemp(out activeReplicators)) {
-                        activeReplicators.Remove(e.Source);
+                        lock(_activeReplicatorsLocker) {
+                            activeReplicators.Remove(e.Source);
+                        }
                     }
                 }
             };

@@ -3429,13 +3429,13 @@ namespace Couchbase.Lite
                 puller1.SetCookie("whitechoco", "sweet", "/", DateTime.Now.AddSeconds(60), false, false);
                 Assert.AreEqual(1, puller1.CookieContainer.Count);
                 var pusher1 = database.CreatePushReplication(remoteDb.RemoteUri);
-                Assert.AreEqual(0, pusher1.CookieContainer.Count);
+                Assert.AreEqual(1, pusher1.CookieContainer.Count);
                 var puller2 = secondDb.CreatePullReplication(remoteDb.RemoteUri);
                 Assert.AreEqual(0, puller2.CookieContainer.Count);
 
                 puller1.SetCookie("whitechoco", "bitter sweet", "/", DateTime.Now.AddSeconds(60), false, false);
                 Assert.AreEqual(1, puller1.CookieContainer.Count);
-                Assert.AreEqual(0, pusher1.CookieContainer.Count);
+                Assert.AreEqual(1, pusher1.CookieContainer.Count);
                 Assert.AreEqual(0, puller2.CookieContainer.Count);
             }
         }
