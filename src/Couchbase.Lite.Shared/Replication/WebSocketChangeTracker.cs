@@ -171,7 +171,6 @@ namespace Couchbase.Lite.Internal
                     code = ChangeTrackerMessageType.GZip;
                 }
 
-                Log.To.Sync.V(Tag, "Preparing to process {0}", args.Data);
                 var responseStream = RecyclableMemoryStreamManager.SharedInstance.GetStream("WebSocketChangeTracker", args.RawData.Length + 1);
                 try {
                     responseStream.WriteByte((byte)code);

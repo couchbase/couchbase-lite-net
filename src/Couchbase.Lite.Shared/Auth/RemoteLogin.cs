@@ -109,7 +109,7 @@ namespace Couchbase.Lite.Auth
             var loginAuth = _session.Authenticator as ILoginAuthorizer;
             var login = loginAuth?.LoginRequest();
             if(login == null) {
-                Log.To.Sync.I(Tag, "{0}: {1} has no login parameters, so skipping login", this, _session.Authenticator);
+                Log.To.Sync.V(Tag, "{0}: {1} does not need any special login steps", this, _session.Authenticator);
                 OnFinished(null);
                 return;
             }

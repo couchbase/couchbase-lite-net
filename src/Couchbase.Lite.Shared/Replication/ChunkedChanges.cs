@@ -142,11 +142,10 @@ namespace Couchbase.Lite.Internal
                             if (--nestedCount == 0 && parseBuffer.Count > 0) {
                                 // We have a complete JSON object or array ready for processing
                                 var changes = Manager.GetObjectMapper().ReadValue<IList<object>>(parseBuffer);
-                                Log.To.Sync.I(Tag, "Parse found {0} changes", changes.Count);
+                                Log.To.ChangeTracker.I(Tag, "Parse found {0} changes", changes.Count);
                                 foreach (var change in changes) {
-                                    if (ChunkFound != null) {
-                                        ChunkFound(this, change.AsDictionary<string, object>());
-                                    }
+                                    Log.To.ChangeTracker.D(Tag, "{0} sending next change: {1}", this, new LogJsonString(change));
+                                    ChunkFound?.Invoke(this, change.AsDictionary<string, object>());
                                 }
 
                                 parseBuffer.Clear();
@@ -158,7 +157,7 @@ namespace Couchbase.Lite.Internal
                         }
                     }
 
-                    Log.To.Sync.I(Tag, "Parsed {0} (nested count: {1})", new LogString(unzipBuffer.Take(decodedBytes)),
+                    Log.To.ChangeTracker.I(Tag, "Parsed {0} (nested count: {1})", new LogString(unzipBuffer.Take(decodedBytes)),
                         nestedCount);
                     decodedBytes = Decode(null, 0, unzipBuffer, out exception);
                 } 
@@ -220,6 +219,7 @@ namespace Couchbase.Lite.Internal
                 return;
             }
 
+            Log.To.ChangeTracker.D(Tag, "{0} reading header from compressed stream", this);
             // 1. Check the two magic bytes
             Crc32 headCRC = new Crc32();
             int magic = stream.ReadByte();

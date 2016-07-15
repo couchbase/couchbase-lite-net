@@ -45,6 +45,7 @@ namespace Couchbase.Lite.Internal
                 SetupChangeProcessorCallback();
             }
 
+            Log.To.ChangeTracker.D(Tag, "{0} received a {1} stream ({2} bytes)", this, compressed ? "compressed" : "plaintext", stream.Length);
             _changeProcessor.AddData(stream);
             return ChangeTrackerResponseCode.Normal;
         }
@@ -80,6 +81,7 @@ namespace Couchbase.Lite.Internal
             if (type == ChangeTrackerMessageType.Plaintext || type == ChangeTrackerMessageType.GZip) {
                 return ProcessResponseStream(stream, token, type == ChangeTrackerMessageType.GZip);
             } else if (type == ChangeTrackerMessageType.EOF) {
+                Log.To.ChangeTracker.D(Tag, "{0} Received EOF for processing", this);
                 if(_changeProcessor == null) {
                     if(!_caughtUp) {
                         _caughtUp = true;

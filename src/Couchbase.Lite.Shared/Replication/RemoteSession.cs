@@ -122,6 +122,7 @@ namespace Couchbase.Lite.Internal
             var clientObj = ClientFactory.GetHttpClient(CookieStore, options.RetryStrategy);
             clientObj.Timeout = options.RequestTimeout;
             clientObj.SetConcurrencyLimit(options.MaxOpenHttpConnections);
+            clientObj.Authenticator = Authenticator;
             _client = clientObj;
         }
 

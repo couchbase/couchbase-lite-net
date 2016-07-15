@@ -23,6 +23,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal
 {
@@ -42,6 +43,12 @@ namespace Couchbase.Lite.Internal
     // one stream while accepting message inputs
     internal sealed class ChunkStream : Stream
     {
+
+        #region Constants
+
+        private const string Tag = nameof(ChunkStream);
+
+        #endregion
 
         #region Variables
 
@@ -111,6 +118,24 @@ namespace Couchbase.Lite.Internal
 
         #endregion
 
+        #region Private Methods
+
+        private bool ReadNextQueue(bool wait)
+        {
+            // We only want to block if we have no data available, otherwise we might wait
+            // too long before allowing another change to be processed
+            Log.To.ChangeTracker.D(Tag, "{0} waiting for next chunk", this);
+            var success = wait ? _chunkQueue.TryTake(out _current, -1) : _chunkQueue.TryTake(out _current);
+            if(!success) {
+                return false;
+            }
+
+            Log.To.ChangeTracker.D(Tag, "{0} got next chunk ({1} bytes)", this, _current.Count);
+            return true;
+        }
+
+        #endregion
+
         #region Overrides
 
         public override void Flush()
@@ -133,10 +158,7 @@ namespace Couchbase.Lite.Internal
             var readCount = 0;
             for (int i = 0; i < count; i++) {
                 if (_current == null || _current.Count == 0) {
-                    // We only want to block if we have no data available, otherwise we might wait
-                    // too long before allowing another change to be processed
-                    var success = i == 0 ? _chunkQueue.TryTake(out _current, -1) : _chunkQueue.TryTake(out _current);
-                    if (!success) {
+                    if(!ReadNextQueue(i == 0)) {
                         break;
                     }
                 }
@@ -144,9 +166,14 @@ namespace Couchbase.Lite.Internal
                 var next = _current.Dequeue();
                 if(next > 255) {
                     // bookmark
+                    Log.To.ChangeTracker.D(Tag, "{0} bookmark reached (code: {1})", this, next - 255);
                     BookmarkReached?.Invoke(this, new BookmarkEventArgs((byte)(next - 255)));
                     _current = null;
-                    continue;
+                    if(!ReadNextQueue(true)) {
+                        break;
+                    }
+
+                    next = _current.Dequeue();
                 }
 
                 // We have a new batch of data, so continue to copy it into the buffer
@@ -168,7 +195,13 @@ namespace Couchbase.Lite.Internal
                 newQueue.Enqueue((ushort)b);
             }
 
+            Log.To.ChangeTracker.D(Tag, "{0} received {1} bytes", this, count);
             _chunkQueue.Add(newQueue);
+        }
+
+        public override string ToString()
+        {
+            return $"ChunkStream[QueueLength={_chunkQueue.Count}]";
         }
 
         #endregion
