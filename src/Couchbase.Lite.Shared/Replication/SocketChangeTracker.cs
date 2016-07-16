@@ -151,7 +151,8 @@ namespace Couchbase.Lite.Internal
                     changesFeedRequestTokenSource.Token
                 );
 
-                info.ContinueWith(ChangeFeedResponseHandler, changesFeedRequestTokenSource.Token, 
+                info.ContinueWith(ChangeFeedResponseHandler, changesFeedRequestTokenSource == null ? 
+                                  CancellationToken.None : changesFeedRequestTokenSource.Token, 
                     TaskContinuationOptions.LongRunning, 
                     TaskScheduler.Default);
             }

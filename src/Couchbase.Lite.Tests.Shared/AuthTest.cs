@@ -279,7 +279,6 @@ namespace Couchbase.Lite
             }
 
             var remoteUri = new Uri($"http://{GetReplicationServer()}:{GetReplicationPort()}/openid_db");
-    
             var auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>
             {
                 AssertValidOIDCLogin(login, authBase, remoteUri);
@@ -288,7 +287,8 @@ namespace Couchbase.Lite
                 Trace.WriteLine("**** Callback handing control back to authenticator...");
                 cont(authURL, null);
             });
-           
+
+            OpenIDAuthenticator.ForgetIDTokens(remoteUri);
             var authError = PullWithOIDCAuth(remoteUri, auth, "pupshaw");
             Assert.IsNull(authError);
 
@@ -317,6 +317,7 @@ namespace Couchbase.Lite
             }
 
             var remoteUri = new Uri ($"http://{GetReplicationServer ()}:{GetReplicationPort ()}/openid_db");
+            OpenIDAuthenticator.ForgetIDTokens(remoteUri);
 
             var callbackInvoked = false;
             var auth = (OpenIDAuthenticator)AuthenticatorFactory.CreateOpenIDAuthenticator(manager, (login, authBase, cont) =>

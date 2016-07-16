@@ -602,7 +602,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public bool RunInTransaction(RunInTransactionDelegate block)
         {
-            Log.To.Database.I(TAG, "BEGIN transaction...");
+            Log.To.Database.V(TAG, "BEGIN transaction...");
             ForestDBBridge.Check(err => Native.c4db_beginTransaction(Forest, err));
             var success = false;
             try {
@@ -623,7 +623,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                 success = false;
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error running transaction");
             } finally {
-                Log.To.Database.I(TAG, "END transaction (success={0})", success);
+                Log.To.Database.V(TAG, "END transaction (success={0})", success);
                 ForestDBBridge.Check(err => Native.c4db_endTransaction(Forest, success, err));
                 if(!InTransaction && Delegate != null) {
                     Delegate.StorageExitedTransaction(success);

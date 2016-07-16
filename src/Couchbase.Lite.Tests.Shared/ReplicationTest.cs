@@ -2861,7 +2861,7 @@ namespace Couchbase.Lite
             }
 
             // Create remote docs.
-            const int docsToCreate = 500;
+            const int docsToCreate = 100;
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var docList = remoteDb.AddDocuments(docsToCreate, true);

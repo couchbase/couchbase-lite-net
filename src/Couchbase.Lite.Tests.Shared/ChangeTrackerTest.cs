@@ -277,6 +277,7 @@ namespace Couchbase.Lite
 
             handler.ClearResponders();
             handler.AddResponderReturnEmptyChangesFeed();
+            handler.ResponseDelayMilliseconds = 100;
 
             // at this point, the change tracker backoff should cause it to sleep for about 3 seconds
             // and so lets wait 3 seconds until it wakes up and starts getting valid responses
@@ -287,14 +288,14 @@ namespace Couchbase.Lite
             Sleep(2 * 1000);
             int after = handler.CapturedRequests.Count;
 
+            changeTracker.Stop();
+
             // assert that the delta is high, because at this point the change tracker should
             // be hammering away
-            Assert.Greater((after - before), 25);
+            Assert.Greater((after - before), 10);
 
             // the backoff numAttempts should have been reset to 0
             Assert.IsTrue(changeTracker.Backoff.NumAttempts == 0);
-
-            changeTracker.Stop();
 
             var success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);

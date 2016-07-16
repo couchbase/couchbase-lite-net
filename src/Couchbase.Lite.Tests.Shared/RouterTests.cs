@@ -477,8 +477,10 @@ namespace Couchbase.Lite
         [Test]
         public void TestJSViews()
         {
+
+            Log.Domains.Query.Level = Log.LogLevel.Debug;
             View.Compiler = new JSViewCompiler();
-           // Database.FilterCompiler = new JSFilterCompiler();
+            Database.FilterCompiler = new JSFilterCompiler();
 
             string endpoint = String.Format("/{0}/doc1", database.Name);
             SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {

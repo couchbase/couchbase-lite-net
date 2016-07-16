@@ -19,7 +19,7 @@
 // limitations under the License.
 //
 #define PARSED_KEYS
-//#define CONNECTION_PER_THREAD
+#define CONNECTION_PER_THREAD
 
 using System;
 using System.Collections;
@@ -109,6 +109,7 @@ namespace Couchbase.Lite.Storage.ForestDB
         {
             get {
                 try {
+                    Log.To.Query.D (Tag, "Last sequence indexed for {0} is {1}", Name, Native.c4view_getLastSequenceIndexed (IndexDB));
                     return (long)Native.c4view_getLastSequenceIndexed(IndexDB);
                 } catch(Exception e) {
                     Log.To.Database.W(Tag, "Exception opening index while getting last sequence indexed, returning 0", e);
@@ -198,7 +199,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             _fdbConnections.Clear();
             foreach (var connection in connections) {
                 ForestDBBridge.Check(err => Native.c4view_close((C4View*)connection.ToPointer(), err));
-            Native.c4view_free((C4View*)connection.ToPointer());
+                Native.c4view_free((C4View*)connection.ToPointer());
             }
 #else
             var indexDb = _indexDB;
@@ -444,7 +445,21 @@ namespace Couchbase.Lite.Storage.ForestDB
         public void DeleteView()
         {
             _dbStorage.ForgetViewStorage(Name);
+#if CONNECTION_PER_THREAD
+            var connections = _fdbConnections.Values.ToArray ();
+            var current = IndexDB;
+            _fdbConnections.Clear ();
+            foreach (var connection in connections) {
+                if (connection.ToPointer() != current) {
+                    ForestDBBridge.Check (err => Native.c4view_close ((C4View*)connection.ToPointer (), err));
+                    Native.c4view_free ((C4View*)connection.ToPointer ());
+                }
+            }
+
+            ForestDBBridge.Check (err => Native.c4view_delete (current, err));
+#else
             ForestDBBridge.Check(err => Native.c4view_delete(IndexDB, err));
+#endif
         }
 
         public bool SetVersion(string version)

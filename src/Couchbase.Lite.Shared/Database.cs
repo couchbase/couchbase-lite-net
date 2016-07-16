@@ -66,7 +66,6 @@ using System.Net.Couchbase;
 
 namespace Couchbase.Lite
 {
-
     /// <summary>
     /// A Couchbase Lite Database.
     /// </summary>
@@ -115,6 +114,7 @@ namespace Couchbase.Lite
         private bool                                    _readonly;
         private Task                                    _closingTask;
         private Timer                                   _expirePurgeTimer;
+        private volatile bool                           _purgeActive;
 
         #endregion
 
@@ -1397,7 +1397,7 @@ namespace Couchbase.Lite
         internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, RevisionID prevRevId, bool allowConflict, Uri source)
         {
             bool deleting = properties == null || properties.GetCast<bool>("_deleted");
-            Log.To.Database.I(TAG, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}",
+            Log.To.Database.V(TAG, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}",
                 new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), prevRevId, deleting, allowConflict);
             if(prevRevId != null && docId == null) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadId, TAG,
@@ -2095,12 +2095,21 @@ namespace Couchbase.Lite
 
         internal void SchedulePurgeExpired(TimeSpan delay)
         {
+            if (_purgeActive) {
+                Log.To.Database.I(TAG, "Purge operation busy, will try again later...");
+                return;
+            }
             var nextExpiration = Storage?.NextDocumentExpiry();
-            if(nextExpiration.HasValue) {
+            if (nextExpiration.HasValue) {
                 var delta = (nextExpiration.Value - DateTime.UtcNow).Add(TimeSpan.FromSeconds(1));
                 var expirationTimeSpan = delta > delay ? delta : delay;
-                _expirePurgeTimer.Change(expirationTimeSpan, TimeSpan.FromMilliseconds(-1));
-                Log.To.Database.I(TAG, "Scheduling next doc expiration in {0:F3} seconds", expirationTimeSpan.TotalSeconds);
+                if (expirationTimeSpan.TotalSeconds <= Double.Epsilon) {
+                    _expirePurgeTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                    PurgeExpired(null);
+                } else {
+                    _expirePurgeTimer.Change(expirationTimeSpan, TimeSpan.FromMilliseconds(-1));
+                    Log.To.Database.I(TAG, "Scheduling next doc expiration in {0:F3} seconds", expirationTimeSpan.TotalSeconds);
+                }
             } else {
                 Log.To.Database.I(TAG, "No pending doc expirations");
             }
@@ -2112,32 +2121,38 @@ namespace Couchbase.Lite
 
         private void PurgeExpired(object state)
         {
-            Log.To.Database.V(TAG, "{0} running purge job NOW...", this);
-            if (Storage == null || !Storage.IsOpen) {
-                Log.To.Database.W(TAG, "{0} storage is null or closed, cannot run purge job, returning early...", this);
-                return;
-            }
-
-            var results = Storage?.PurgeExpired() ?? new List<string>();
-            var changedEvt = _changed;
-            if (results.Count > 0) {
-                Log.To.Database.I(TAG, "{0} purged {1} expired documents", this, results.Count);
-                if (changedEvt != null) {
-                    var changes = new List<DocumentChange>();
-                    var args = new DatabaseChangeEventArgs();
-                    args.Source = this;
-                    foreach (var result in results) {
-                        var change = new DocumentChange(new RevisionInternal(result, null, true), null, false, null);
-                        change.IsExpiration = true;
-                        changes.Add(change);
-                    }
-
-                    args.Changes = changes;
-                    changedEvt(this, args);
+            if (!_purgeActive) {
+                _purgeActive = true;
+                Log.To.Database.V(TAG, "{0} running purge job NOW...", this);
+                if (Storage == null || !Storage.IsOpen) {
+                    Log.To.Database.W(TAG, "{0} storage is null or closed, cannot run purge job, returning early...", this);
+                    return;
                 }
-            }
 
-            SchedulePurgeExpired(TimeSpan.FromSeconds(1));
+                var results = Storage?.PurgeExpired() ?? new List<string>();
+                var changedEvt = _changed;
+                if (results.Count > 0) {
+                    Log.To.Database.I(TAG, "{0} purged {1} expired documents", this, results.Count);
+                    if (changedEvt != null) {
+                        var changes = new List<DocumentChange>();
+                        var args = new DatabaseChangeEventArgs();
+                        args.Source = this;
+                        foreach (var result in results) {
+                            var change = new DocumentChange(new RevisionInternal(result, null, true), null, false, null);
+                            change.IsExpiration = true;
+                            changes.Add(change);
+                        }
+
+                        args.Changes = changes;
+                        changedEvt(this, args);
+                    }
+                }
+
+                _purgeActive = false;
+                SchedulePurgeExpired(TimeSpan.FromSeconds(1));
+            } else {
+                Log.To.Database.I(TAG, "Purge already running, will try again later...");
+            }
         }
 
         private static Type GetStorageClass(string identifier)
@@ -2284,7 +2299,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Log.To.Database.I(TAG, "Added: {0}", change.AddedRevision);
+            Log.To.Database.V(TAG, "Added: {0}", change.AddedRevision);
             if(_changesToNotify == null) {
                 _changesToNotify = new List<DocumentChange>();
             }

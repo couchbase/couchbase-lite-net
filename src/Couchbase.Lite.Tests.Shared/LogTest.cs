@@ -126,6 +126,8 @@ namespace Couchbase.Lite
             Log.To.Database.W(TAG, "TEST");
             Log.To.Database.E(TAG, "TEST");
 
+            _logCallback = (level, tag, msg) => { };
+
             return count;
         }
 

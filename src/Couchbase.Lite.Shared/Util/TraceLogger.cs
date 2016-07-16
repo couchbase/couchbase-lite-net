@@ -42,50 +42,50 @@
 
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Util
 {
     internal sealed class TraceLogger : ILogger 
     {
-        #if !NET_3_5
-        private void PrintThreadId(TraceEventCache info)
-        {
-            Trace.Write("[");
-            Trace.Write(info.ThreadId);
-            Trace.Write("] ");
-        }
-
-        private void PrintDateTime(TraceEventCache info)
-        {
-            Trace.Write(info.DateTime.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK"));
-            Trace.Write(" ");
-        }
-        #endif
-
-        private void PrintEnvInfo()
-        {
-            #if !NET_3_5
-            var traceInfo = new TraceEventCache();
-            PrintThreadId(traceInfo);
-            PrintDateTime(traceInfo);
-            #endif
-        }
+        private TaskFactory _scheduler = new TaskFactory(new SingleTaskThreadpoolScheduler());
 
         private string MakeMessage(string msg, Exception tr)
         {
+            #if !NET_3_5
+            var traceInfo = new TraceEventCache();
+            var dateTime = traceInfo.DateTime.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
+            return $"[{traceInfo.ThreadId}] {dateTime} {msg}:\r\n{tr}";
+            #else
             return String.Format("{0}:\r\n{1}", msg, tr);
+            #endif
+        }
+
+        private string MakeMessage(string msg)
+        {
+#if !NET_3_5
+            var traceInfo = new TraceEventCache();
+            var dateTime = traceInfo.DateTime.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
+            return $"[{traceInfo.ThreadId}] {dateTime} {msg}";
+#else
+            return String.Format("{0}:\r\n{1}", msg, tr);
+#endif
         }
 
         private void WriteLine(string level, string tag, string msg)
         {
-            PrintEnvInfo();
-            Trace.WriteLine(msg, String.Format("{0} {1}", level, tag));
+            _scheduler.StartNew(() =>
+            {
+                Trace.WriteLine(MakeMessage(msg), $"{level} {tag}");
+            });
         }
 
         private void WriteLine(string level, string tag, string msg, Exception tr)
         {
-            PrintEnvInfo();
-            Trace.WriteLine(MakeMessage(msg, tr), String.Format("{0} {1}", level, tag));
+            _scheduler.StartNew(() =>
+            {
+                Trace.WriteLine(MakeMessage(msg, tr), $"{level} {tag}");
+            });
         }
 
         #region ILogger

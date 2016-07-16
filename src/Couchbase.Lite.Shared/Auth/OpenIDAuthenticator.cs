@@ -220,13 +220,13 @@ namespace Couchbase.Lite.Auth
 
         private SecureStorageRequest CreateRequest()
         {
-            var account = RemoteUrl?.GetLeftPart(UriPartial.Path);
-            if(account == null) {
-                throw new InvalidOperationException($"No account set for {this}");
+            var service = RemoteUrl?.GetLeftPart(UriPartial.Path);
+            if(service == null) {
+                throw new InvalidOperationException($"No service set for {this}");
             }
 
             var label = $"{RemoteUrl?.Host} OpenID Connect tokens";
-            return new SecureStorageRequest(account, LocalUUID, label);
+            return new SecureStorageRequest(LocalUUID, service, label);
         }
 
         private bool ParseTokens(IDictionary<string, object> tokens)

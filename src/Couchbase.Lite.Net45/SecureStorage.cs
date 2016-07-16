@@ -44,6 +44,14 @@ namespace Couchbase.Lite
 
         public void Delete(SecureStorageRequest request)
         {
+            if (request.Account == null) {
+                var folder = GetFoldername (request);
+                try {
+                    Directory.Delete (folder, true);
+                } catch (DirectoryNotFoundException) {}
+                return;
+            }
+
             var filename = GetFilename(request);
             File.Delete(filename);
         }
@@ -58,7 +66,7 @@ namespace Couchbase.Lite
             using(var fs = File.OpenRead(filename))
             using(var buffer = RecyclableMemoryStreamManager.SharedInstance.GetStream("SecureStorage", (int)fs.Length)) {
                 fs.CopyTo(buffer);
-                return ProtectedData.Unprotect(buffer.GetBuffer(), _Entropy, DataProtectionScope.CurrentUser);
+                return ProtectedData.Unprotect(buffer.GetBuffer().Take((int)buffer.Length).ToArray(), _Entropy, DataProtectionScope.CurrentUser);
             }
         }
 
@@ -80,10 +88,18 @@ namespace Couchbase.Lite
             }
         }
 
+        private string GetFoldername (SecureStorageRequest request)
+        {
+            var folderBytes = Encoding.UTF8.GetBytes ($"{request.Service}{request.Label}");
+            var retVal = Path.Combine (_BaseDirectory, $"{Misc.HexSHA1Digest (folderBytes)}");
+            Directory.CreateDirectory (retVal);
+            return retVal;
+        }
+
         private string GetFilename(SecureStorageRequest request)
         {
-            var filenameBytes = Encoding.UTF8.GetBytes($"{request.Service}{request.Label}{request.Account}");
-            return Path.Combine(_BaseDirectory, $"{Misc.HexSHA1Digest(filenameBytes)}.bin");
+            var filenameBytes = Encoding.UTF8.GetBytes($"{request.Account}");
+            return Path.Combine(GetFoldername(request), $"{Misc.HexSHA1Digest(filenameBytes)}.bin");
         }
     }
 }
