@@ -2102,28 +2102,29 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public IList<string> PurgeExpired()
         {
             var result = new List<string>();
-            var sequences = new List<long>();
-            var now = DateTime.UtcNow;
-            TryQuery(c =>
-            {
-                sequences.Add(c.GetLong(0));
-                result.Add(c.GetString(1));
+            RunInOuterTransaction (() => {
+                var sequences = new List<long>();
+                var now = DateTime.UtcNow;
+                TryQuery(c =>
+                {
+                    sequences.Add(c.GetLong(0));
+                    result.Add(c.GetString(1));
+
+                    return true;
+                }, false, "SELECT * FROM docs WHERE expiry_timestamp <= ?", now);
+                    
+                if (result.Count > 0) {
+                    var deleteSql = String.Format("sequence in ({0})", String.Join(", ", sequences.ToStringArray()));
+                    var vals = new ContentValues(1);
+                    vals["expiry_timestamp"] = null;
+
+                        StorageEngine.Delete("revs", deleteSql);
+                        StorageEngine.ExecSQL("UPDATE docs SET expiry_timestamp=null WHERE expiry_timestamp <= ?", now);
+                        return true;
+                }
 
                 return true;
-            }, false, "SELECT * FROM docs WHERE expiry_timestamp <= ?", now);
-                
-            if (result.Count > 0) {
-                var deleteSql = String.Format("sequence in ({0})", String.Join(", ", sequences.ToStringArray()));
-                var vals = new ContentValues(1);
-                vals["expiry_timestamp"] = null;
-                RunInTransaction(() =>
-                {
-                    StorageEngine.Delete("revs", deleteSql);
-                    StorageEngine.ExecSQL("UPDATE docs SET expiry_timestamp=null WHERE expiry_timestamp <= ?", now);
-                    return true;
-                });
-                
-            }
+            });
 
             return result;
         }

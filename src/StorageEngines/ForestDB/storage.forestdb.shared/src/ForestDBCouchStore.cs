@@ -1077,12 +1077,16 @@ namespace Couchbase.Lite.Storage.ForestDB
         public IList<string> PurgeExpired()
         {
             var results = new List<string>();
-            foreach(var expired in new CBForestExpiryEnumerator(Forest, true)) {
-                results.Add(expired);
-            }
+            RunInTransaction (() => {
+                foreach (var expired in new CBForestExpiryEnumerator (Forest, true)) {
+                    results.Add (expired);
+                }
 
-            var purgeMap = results.ToDictionary<string, string, IList<string>>(x => x, x => new List<string> { "*" });
-            PurgeRevisions(purgeMap);
+                var purgeMap = results.ToDictionary<string, string, IList<string>> (x => x, x => new List<string> { "*" });
+                PurgeRevisions (purgeMap);
+
+                return true;
+            });
             return results;
         }
 
