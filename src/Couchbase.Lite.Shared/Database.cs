@@ -1107,6 +1107,14 @@ namespace Couchbase.Lite
             lock(_allReplicatorsLocker) {
                 AllReplicators?.Remove(replication);
             }
+
+            // HACK: Ensure this is removed.  Any exception in the changed callback on the
+            // user side will cause the logic for removing this to fail.
+            lock (_activeReplicatorsLocker) {
+                ActiveReplicators.Borrow (ar => {
+                    ar.Remove (replication);
+                });
+            }
         }
 
         internal bool AddActiveReplication(Replication replication)

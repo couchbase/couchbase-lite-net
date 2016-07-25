@@ -1047,10 +1047,19 @@ namespace Couchbase.Lite
         protected virtual void StartInternal()
         {
             Log.To.Sync.I(Tag, "Attempting to start {0} ({1})", IsPull ? "puller" : "pusher", _replicatorID);
+            _remoteSession = RemoteSession.Clone (_remoteSession, CancellationTokenSource);
+            _remoteSession.Setup (ReplicationOptions);
+
             if (!LocalDatabase.IsOpen) {
                 Log.To.Sync.W(Tag, "Not starting because local database is not open.");
                 FireTrigger(ReplicationTrigger.StopImmediate);
                 return;
+            }
+
+            var authorizer = Authenticator as IAuthorizer;
+            if (authorizer != null) {
+                authorizer.RemoteUrl = RemoteUrl;
+                authorizer.LocalUUID = LocalDatabase.PublicUUID ();
             }
 
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
@@ -1094,15 +1103,6 @@ namespace Couchbase.Lite
 
             Log.To.Sync.I(Tag, "Beginning replication process...");
             LastSequence = null;
-            var authorizer = Authenticator as IAuthorizer;
-            if(authorizer != null) {
-                authorizer.RemoteUrl = RemoteUrl;
-                authorizer.LocalUUID = LocalDatabase.PublicUUID();
-            }
-
-            _remoteSession = RemoteSession.Clone(_remoteSession, CancellationTokenSource);
-            _remoteSession.Setup(ReplicationOptions);
-
             Login();
         }
 
@@ -1871,7 +1871,12 @@ namespace Couchbase.Lite
                         }
 
                         while (_eventQueue.Count > 0) {
-                            evt(this, _eventQueue.Dequeue());
+                            try {
+                                evt (this, _eventQueue.Dequeue ());
+                            } catch (Exception e) {
+                                Log.To.Sync.E (Tag, "Exception in Changed callback, " +
+                                               "this will cause instability unless corrected!", e);
+                            }
                         }
                     }
                 });
