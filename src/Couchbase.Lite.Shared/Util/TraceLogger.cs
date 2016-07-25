@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Util
             var dateTime = traceInfo.DateTime.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
             return $"[{traceInfo.ThreadId}] {dateTime} {msg}";
 #else
-            return String.Format("{0}:\r\n{1}", msg, tr);
+            return msg;
 #endif
         }
 
