@@ -187,7 +187,7 @@ namespace Couchbase.Lite.Util
                 }
             }
 
-            _Loggers = new List<ILogger> { customLogger };
+            _Loggers = customLogger != null ? new List<ILogger> { customLogger } : new List<ILogger>();
             return true;
         }
 
@@ -197,7 +197,9 @@ namespace Couchbase.Lite.Util
         /// <param name="logger">The logger to add</param>
         public static void AddLogger(ILogger logger)
         {
-            _Loggers.Add(logger);
+            if (logger != null) {
+                _Loggers.Add (logger);
+            }
         }
 
         /// <summary>
