@@ -866,7 +866,7 @@ namespace Couchbase.Lite
         /// replication's Authenticator. Also removes session cookies from the cookie store. 
         /// </summary>
         /// <returns><c>true</c> on success, <c>false</c> otherwise</returns>
-        public bool RemoveStoredCredentials()
+        public bool ClearAuthenticationStores()
         {
             if(Authenticator != null && !((IAuthorizer)Authenticator).RemoveStoredCredentials()) {
                 return false;
