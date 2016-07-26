@@ -83,6 +83,9 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedNativeLibrary Include="..\CBForest\CSharp\prebuilt\armeabi\libCBForest-Interop.so">
+      <Link>armeabi\libCBForest-Interop.so</Link>
+    </EmbeddedNativeLibrary>
     <EmbeddedNativeLibrary Include="..\CBForest\CSharp\prebuilt\arm64-v8a\libCBForest-Interop.so">
       <Link>arm64-v8a\libCBForest-Interop.so</Link>
     </EmbeddedNativeLibrary>
@@ -94,9 +97,6 @@
     </EmbeddedNativeLibrary>
     <EmbeddedNativeLibrary Include="..\CBForest\CSharp\prebuilt\x86_64\libCBForest-Interop.so">
       <Link>x86_64\libCBForest-Interop.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\CBForest\CSharp\prebuilt\mips64\libCBForest-Interop.so">
-      <Link>mips64\libCBForest-Interop.so</Link>
     </EmbeddedNativeLibrary>
   </ItemGroup>
   <ItemGroup>
