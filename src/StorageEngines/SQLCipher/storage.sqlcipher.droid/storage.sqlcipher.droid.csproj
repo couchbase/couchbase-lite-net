@@ -22,6 +22,7 @@
     <ReleaseVersion>1.1.1</ReleaseVersion>
     <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
     <RestorePackages>true</RestorePackages>
+	<AndroidSdkBuildToolsVersion>23.0.3</AndroidSdkBuildToolsVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

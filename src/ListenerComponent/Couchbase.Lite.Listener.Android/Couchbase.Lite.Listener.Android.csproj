@@ -20,6 +20,7 @@
     <AndroidUseLatestPlatformSdk>False</AndroidUseLatestPlatformSdk>
     <AssemblyName>Couchbase.Lite.Listener</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
+	<AndroidSdkBuildToolsVersion>23.0.3</AndroidSdkBuildToolsVersion>
     <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>

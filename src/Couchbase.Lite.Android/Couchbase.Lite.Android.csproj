@@ -28,6 +28,7 @@
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
+	<AndroidSdkBuildToolsVersion>23.0.3</AndroidSdkBuildToolsVersion>
     <RestorePackages>true</RestorePackages>
     <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
