@@ -265,12 +265,8 @@ namespace Couchbase.Lite.Internal
 
         internal string GetChangesFeedPath()
         {
-            if (_usePost) {
-                return "_changes";
-            }
-
             var path = new StringBuilder();
-            path.AppendFormat("_changes?feed={0}&heartbeat={1}", Feed, (long)Heartbeat.TotalSeconds);
+            path.AppendFormat("_changes?feed={0}&heartbeat={1}", Feed, (long)Heartbeat.TotalMilliseconds);
 
             if (_includeConflicts) {
                 path.Append("&style=all_docs");
@@ -305,22 +301,24 @@ namespace Couchbase.Lite.Internal
 
             if (filterName != null) {
                 path.AppendFormat("&filter={0}", Uri.EscapeUriString(filterName));
-                foreach (var pair in filterParameters) {
-                    var valueStr = pair.Value as string;
-                    if (valueStr == null) {
-                        // It's ambiguous whether non-string filter params are allowed.
-                        // If we get one, encode it as JSON:
-                        try {
-                            valueStr = Manager.GetObjectMapper().WriteValueAsString(pair.Value);
-                        } catch(Exception) {
-                            Log.To.ChangeTracker.W(Tag, "Illegal filter parameter {0} = {1}",
-                                new SecureLogString(pair.Key, LogMessageSensitivity.PotentiallyInsecure),
-                                new SecureLogJsonString(pair.Value, LogMessageSensitivity.PotentiallyInsecure));
-                            continue;
+                if (!_usePost) {
+                    foreach (var pair in filterParameters) {
+                        var valueStr = pair.Value as string;
+                        if (valueStr == null) {
+                            // It's ambiguous whether non-string filter params are allowed.
+                            // If we get one, encode it as JSON:
+                            try {
+                                valueStr = Manager.GetObjectMapper ().WriteValueAsString (pair.Value);
+                            } catch (Exception) {
+                                Log.To.ChangeTracker.W (Tag, "Illegal filter parameter {0} = {1}",
+                                    new SecureLogString (pair.Key, LogMessageSensitivity.PotentiallyInsecure),
+                                    new SecureLogJsonString (pair.Value, LogMessageSensitivity.PotentiallyInsecure));
+                                continue;
+                            }
                         }
-                    }
 
-                    path.AppendFormat("&{0}={1}", Uri.EscapeUriString(pair.Key), Uri.EscapeUriString(valueStr));
+                        path.AppendFormat ("&{0}={1}", Uri.EscapeUriString (pair.Key), Uri.EscapeUriString(valueStr));
+                }
                 }
             }
 
