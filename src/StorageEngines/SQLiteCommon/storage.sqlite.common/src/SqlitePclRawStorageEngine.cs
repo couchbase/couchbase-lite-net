@@ -995,8 +995,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             try
             {
-                //FIXME.JHB:  This wait should be optional (API change)
-                t.Wait(30000, _cts.Token);
+                t.Wait(_cts.Token);
             }
             catch (AggregateException ex)
             {
@@ -1010,11 +1009,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 //subclassing the factory to avoid this awkward behavior
                 Log.To.Database.I(TAG, "StorageEngine closed, canceling operation");
                 return 0;
-            }
-
-            if (t.Status != TaskStatus.RanToCompletion) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InternalServerError, TAG,
-                    "ExecSQL timed out waiting for Task #{0}", t.Id);
             }
 
             return db.changes();
