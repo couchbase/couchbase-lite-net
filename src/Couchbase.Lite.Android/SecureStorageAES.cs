@@ -48,7 +48,10 @@ namespace Couchbase.Lite
         {
             var prefs = Application.Context.GetSharedPreferences(ServiceName, FileCreationMode.Private);
             var editor = prefs.Edit();
-            editor.Remove(GetKey(request));
+            var key = GetKey(request);
+            editor.Remove(key);
+            editor.Remove($"{key}_iv");
+            editor.Commit();
         }
 
         public IEnumerable<byte> Read(SecureStorageRequest request)

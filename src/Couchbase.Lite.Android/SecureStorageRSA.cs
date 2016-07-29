@@ -153,12 +153,7 @@ namespace Couchbase.Lite
             try {
                 var cipher = Cipher.GetInstance(CipherAlgorithm);
                 cipher.Init(CipherMode.EncryptMode, key);
-                using(var bos = RecyclableMemoryStreamManager.SharedInstance.GetStream()) {
-                    using(var cos = new CipherOutputStream(bos, cipher)) {
-                        cos.Write(data);
-                    }
-                    return bos.GetBuffer().Take((int)bos.Length).ToArray();
-                }
+                return cipher.DoFinal(data);
             } catch(Exception e) {
                 Log.To.NoDomain.E(Tag, "Unable to open keystore or encrypt AES key", e);
                 return null;
@@ -168,19 +163,9 @@ namespace Couchbase.Lite
         private static byte[] DecryptRSA(IKey key, byte[] data)
         {
             try {
-                using(var bos = new ByteArrayOutputStream(2048)) {
-                    var cipher = Cipher.GetInstance(CipherAlgorithm);
-                    cipher.Init(CipherMode.DecryptMode, key);
-                    using(var bis = RecyclableMemoryStreamManager.SharedInstance.GetStream(Tag, data, 0, data.Length))
-                    using(var cis = new CipherInputStream(bis, cipher)) {
-                        var read = new byte[512];
-                        for(int i; (i = cis.Read(read)) != -1;) {
-                            bos.Write(read, 0, i);
-                        }
-                    }
-
-                    return bos.ToByteArray();
-                }
+                var cipher = Cipher.GetInstance(CipherAlgorithm);
+                cipher.Init(CipherMode.DecryptMode, key);
+                return cipher.DoFinal(data);
             } catch(Exception e) {
                 Log.To.NoDomain.E(Tag, "Unable to decrypt AES key", e);
                 return null;
@@ -189,7 +174,12 @@ namespace Couchbase.Lite
 
         public void Delete(SecureStorageRequest request)
         {
-            throw new NotImplementedException();
+            var prefs = Application.Context.GetSharedPreferences(ServiceName, FileCreationMode.Private);
+            var editor = prefs.Edit();
+            var key = GetKey(request);
+            editor.Remove($"{key}_key");
+            editor.Remove($"{key}_data");
+            editor.Commit();
         }
 
         public IEnumerable<byte> Read(SecureStorageRequest request)
@@ -204,8 +194,8 @@ namespace Couchbase.Lite
                 return null;
             }
 
-            var secretKey = Convert.FromBase64String(prefs.GetString("${key}_key", null));
-            var data = Convert.FromBase64String(prefs.GetString("${key}_data", null));
+            var secretKey = Convert.FromBase64String(prefs.GetString($"{key}_key", null));
+            var data = Convert.FromBase64String(prefs.GetString($"{key}_data", null));
             return Decrypt(secretKey, data);
         }
 
