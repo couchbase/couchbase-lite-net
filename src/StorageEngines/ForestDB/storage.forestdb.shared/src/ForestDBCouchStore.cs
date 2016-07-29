@@ -38,9 +38,15 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Storage.ForestDB
 {
-
+    /// <summary>
+    /// This class will register this storage engine for use with Couchbase Lite
+    /// </summary>
     public static class Plugin
     {
+        /// <summary>
+        /// Register this class for use as the storage engine for the ForestDB storage type
+        /// (be careful, once you set this you cannot change it)
+        /// </summary>
         public static void Register()
         {
             Database.RegisterStorageEngine(StorageEngineTypes.ForestDB, typeof(ForestDBCouchStore));

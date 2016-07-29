@@ -47,8 +47,16 @@ namespace Couchbase.Lite.Storage.CustomSQLite
 namespace Couchbase.Lite.Storage.SQLCipher
 #endif
 {
+    /// <summary>
+    /// This class will register this storage engine for use with Couchbase Lite
+    /// </summary>
     public static class Plugin
     {
+
+        /// <summary>
+        /// Register this class for use as the storage engine for the SQLite storage type
+        /// (be careful, once you set this you cannot change it)
+        /// </summary>
         public static void Register()
         {
             Database.RegisterStorageEngine(StorageEngineTypes.SQLite, typeof(SqliteCouchStore));

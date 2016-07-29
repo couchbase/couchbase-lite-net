@@ -361,13 +361,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
         #endregion
 
         #region Overrides
+        #pragma warning disable 1591
 
-        /// <summary>
-        /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="Couchbase.Lite.Store.ContentValues"/>.
-        /// </summary>
-        /// <param name="obj">The <see cref="System.Object"/> to compare with the current <see cref="Couchbase.Lite.Store.ContentValues"/>.</param>
-        /// <returns><c>true</c> if the specified <see cref="System.Object"/> is equal to the current
-        /// <see cref="Couchbase.Lite.Store.ContentValues"/>; otherwise, <c>false</c>.</returns>
         public override bool Equals(object obj)
         {
             if (!(obj is ContentValues))
@@ -377,20 +372,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return mValues.Equals(((ContentValues)obj).mValues);
         }
 
-        /// <summary>
-        /// Serves as a hash function for a <see cref="Couchbase.Lite.Store.ContentValues"/> object.
-        /// </summary>
-        /// <returns>A hash code for this instance that is suitable for use in hashing algorithms and data structures such as a
-        /// hash table.</returns>
         public override int GetHashCode()
         {
             return mValues.GetHashCode();
         }
 
-        /// <summary>
-        /// Returns a string containing a concise, human-readable description of this object.
-        /// </summary>
-        /// <returns>a printable representation of this object.</returns>
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
@@ -406,6 +392,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return sb.ToString();
         }
 
+        #pragma warning restore 1591
         #endregion
 
     }

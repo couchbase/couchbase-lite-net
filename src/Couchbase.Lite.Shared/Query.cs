@@ -484,6 +484,11 @@ namespace Couchbase.Lite {
 
         #region Protected Methods
 
+        /// <summary>
+        /// Disposes the resources of this object
+        /// </summary>
+        /// <param name="finalizing">If <c>true</c>, this is the finalizer method.  Otherwise,
+        /// this is the IDisposable.Dispose() method calling.</param>
         protected virtual void Dispose(bool finalizing)
         {
             if(finalizing) {
@@ -521,9 +526,9 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Releases all resource used by the <see cref="Couchbase.Lite.Query"/> object.
         /// </summary>
-        /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="Couchbase.Lite.Query"/>. The
-        /// <see cref="Dispose"/> method leaves the <see cref="Couchbase.Lite.Query"/> in an unusable state. After
-        /// calling <see cref="Dispose"/>, you must release all references to the <see cref="Couchbase.Lite.Query"/> so
+        /// <remarks>Call <see cref="Dispose()"/> when you are finished using the <see cref="Couchbase.Lite.Query"/>. The
+        /// <see cref="Dispose()"/> method leaves the <see cref="Couchbase.Lite.Query"/> in an unusable state. After
+        /// calling <see cref="Dispose()"/>, you must release all references to the <see cref="Couchbase.Lite.Query"/> so
         /// the garbage collector can reclaim the memory that the <see cref="Couchbase.Lite.Query"/> was occupying.</remarks>
         public void Dispose()
         {

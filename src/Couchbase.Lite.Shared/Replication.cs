@@ -537,11 +537,13 @@ namespace Couchbase.Lite
             }
         }
 
+        #pragma warning disable 618
         /// <summary>
         /// Gets or sets custom options on this replication
         /// </summary>
         [Obsolete("Replaced by ReplicationOptions")]
         public ReplicationOptionsDictionary Options { get; set; }
+        #pragma warning restore 618
 
         /// <summary>
         /// Gets or sets the replication options.

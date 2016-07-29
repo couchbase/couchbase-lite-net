@@ -456,7 +456,7 @@ namespace Microsoft.IO
             var newBuffer = new byte[this.Length];
 
             this.InternalRead(newBuffer, 0, this.length, 0);
-            string stack = this.memoryManager.GenerateCallStacks ? Environment.StackTrace : null;
+            //string stack = this.memoryManager.GenerateCallStacks ? Environment.StackTrace : null;
             this.memoryManager.ReportStreamToArray();
 
             return newBuffer;

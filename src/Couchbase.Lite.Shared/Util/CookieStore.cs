@@ -75,7 +75,6 @@ namespace Couchbase.Lite.Util
         private readonly object locker = new object();
         private readonly DirectoryInfo directory;
         private readonly Database _db;
-        private readonly string _storageKey;
         private HashSet<Uri> _cookieUriReference = new HashSet<Uri>();
 
         #endregion
@@ -128,7 +127,6 @@ namespace Couchbase.Lite.Util
         public CookieStore(Database db, string storageKey)
         {
             _db = db;
-            _storageKey = storageKey;
             if(!MigrateOldCookies()) {
                 DeserializeFromDisk();
                 DeserializeFromDB();

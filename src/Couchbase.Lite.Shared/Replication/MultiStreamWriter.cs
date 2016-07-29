@@ -244,6 +244,11 @@ namespace Couchbase.Lite.Support
 
         #region Protected Methods
 
+        /// <summary>
+        /// Disposes the resources of the object
+        /// </summary>
+        /// <param name="finalizing">If <c>true</c>, this is the finalizer method, otherwise
+        /// it is the IDisposable Dispose() method.</param>
         protected virtual void Dispose(bool finalizing)
         {
             if(!finalizing) {
