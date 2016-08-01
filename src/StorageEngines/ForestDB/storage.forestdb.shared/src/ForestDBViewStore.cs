@@ -473,8 +473,16 @@ namespace Couchbase.Lite.Storage.ForestDB
 
             // Creates an array of tuples -> [[view1, view1 last sequence, view1 native handle], 
             // [view2, view2 last sequence, view2 native handle], ...]
-            var viewsArray = views.Cast<ForestDBViewStore>().ToArray();
-            var viewInfo = viewsArray.Select(x => Tuple.Create(x, x.LastSequenceIndexed)).ToArray();
+            var viewsArray = views.Where (x => {
+                var viewDelegate = x.Delegate;
+                if (viewDelegate == null || viewDelegate.Map == null) {
+                    Log.To.Query.V (Tag, "    {0} has no map block; skipping it", x.Name);
+                    return false;
+                }
+
+                return true;
+            }).Cast<ForestDBViewStore> ().ToArray ();
+
             var nativeViews = new C4View*[viewsArray.Length];
             for(int i = 0; i < viewsArray.Length; i++) {
                 nativeViews[i] = viewsArray[i].IndexDB;
@@ -489,17 +497,10 @@ namespace Couchbase.Lite.Storage.ForestDB
                 foreach(var next in enumerator) {
                     var seq = next.Sequence;
 
-                    for(int i = 0; i < viewInfo.Length; i++) {
-
-                        var info = viewInfo[i];
-                        if(seq <= info.Item2) {
+                    for(int i = 0; i < viewsArray.Length; i++) {
+                        var info = viewsArray [i];
+                        if (seq <= info.LastSequenceIndexed) {
                             continue; // This view has already indexed this sequence
-                        }
-
-                        var viewDelegate = info.Item1.Delegate;
-                        if(viewDelegate == null || viewDelegate.Map == null) {
-                            Log.To.Query.V(Tag, "    {0} has no map block; skipping it", info.Item1.Name);
-                            continue;
                         }
 
                         var rev = new ForestRevisionInternal(next, true);
@@ -529,7 +530,7 @@ namespace Couchbase.Lite.Storage.ForestDB
 
                         try {
                             var props = rev.GetProperties();
-                            viewDelegate.Map(props, (key, value) =>
+                            info.Delegate.Map(props, (key, value) =>
                             {
                                 if(key == null) {
                                     Log.To.Query.W(Tag, "Emit function called with a null key; ignoring");
@@ -544,7 +545,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                                 }
                             });
                         } catch(Exception e) {
-                            Log.To.Query.W(Tag, String.Format("Exception thrown in map function of {0}, continuing", info.Item1.Name), e);
+                            Log.To.Query.W(Tag, String.Format("Exception thrown in map function of {0}, continuing", info.Name), e);
                             continue;
                         }
 
