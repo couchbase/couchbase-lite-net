@@ -7,22 +7,22 @@
   </PropertyGroup> 
   <Target Name="InjectReference_e101bf39-2506-4efb-91a7-f8ea3c40bd65" BeforeTargets="ResolveAssemblyReferences">
     <ItemGroup Condition=" '$(OS)' == 'Windows_NT' ">
-      <Content Include="$(MSBuildThisFileDirectory)x86\sqlite3.dll">
-        <Link>x86_custom\sqlite3.dll</Link>
+      <Content Include="$(MSBuildThisFileDirectory)x86_custom\cbsqlite3.dll">
+        <Link>x86\cbsqlite3.dll</Link>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
-      <Content Include="$(MSBuildThisFileDirectory)x64\sqlite3.dll">
-        <Link>x64_custom\sqlite3.dll</Link>
+      <Content Include="$(MSBuildThisFileDirectory)x64_custom\cbsqlite3.dll">
+        <Link>x64\cbsqlite3.dll</Link>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
     <ItemGroup Condition=" $(IsMac) ">
-      <Content Include="$(MSBuildThisFileDirectory)libsqlite3.dylib">
+      <Content Include="$(MSBuildThisFileDirectory)libcbsqlite3.dylib">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
     <ItemGroup Condition=" !$(IsMac) AND '$(OS)' != 'Windows_NT' ">
-      <Content Include="$(MSBuildThisFileDirectory)libsqlite3.so">
+      <Content Include="$(MSBuildThisFileDirectory)libcbsqlite3.so">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>

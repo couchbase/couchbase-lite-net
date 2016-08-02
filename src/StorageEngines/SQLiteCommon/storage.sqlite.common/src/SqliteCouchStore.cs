@@ -220,7 +220,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             raw.SetProvider(new SQLite3Provider_sqlcipher());
 #endif
 #elif CUSTOM_SQLITE
-#error Don't forget to implement this after making the project
+#if __IOS__
+            raw.SetProvider(new SQLite3Provider_internal());
+#else
+            raw.SetProvider (new SQLite3Provider_cbsqlite());
+#endif
 #elif SQLITE && !__MOBILE__
             if(Environment.OSVersion.Platform == PlatformID.Win32NT)
             {

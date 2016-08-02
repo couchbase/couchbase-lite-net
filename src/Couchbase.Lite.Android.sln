@@ -63,6 +63,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SQLiteCommon", "SQLiteCommo
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "storage.sqlite.common", "StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.shproj", "{79FC4A01-1E39-468F-8E55-195BC918232E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CustomSQLite", "CustomSQLite", "{1E870C9E-9E95-4C08-967D-4C63860980F1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.customsqlite.droid", "StorageEngines\CustomSQLite\storage.customsqlite.droid\storage.customsqlite.droid.csproj", "{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{5615e423-d0fd-4f99-a99c-061679615cee}*SharedItemsImports = 4
@@ -296,6 +300,24 @@ Global
 		{51DC5755-5EDE-45CE-97D2-D45078DA0F3B}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
 		{51DC5755-5EDE-45CE-97D2-D45078DA0F3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{51DC5755-5EDE-45CE-97D2-D45078DA0F3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_Sample|Any CPU.Build.0 = Debug|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Packaging|Any CPU.Build.0 = Packaging|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_All|Any CPU.Build.0 = Release|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_Sample|Any CPU.ActiveCfg = Release|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_Sample|Any CPU.Build.0 = Release|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -324,6 +346,8 @@ Global
 		{51DC5755-5EDE-45CE-97D2-D45078DA0F3B} = {64220357-9661-43D9-922B-23C07448FD1B}
 		{2DADB54E-54D4-4EE8-9776-E1C7FFFA0CAD} = {15E18D64-4AC3-4CBA-A805-600E2C507D28}
 		{79FC4A01-1E39-468F-8E55-195BC918232E} = {2DADB54E-54D4-4EE8-9776-E1C7FFFA0CAD}
+		{1E870C9E-9E95-4C08-967D-4C63860980F1} = {15E18D64-4AC3-4CBA-A805-600E2C507D28}
+		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D} = {1E870C9E-9E95-4C08-967D-4C63860980F1}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

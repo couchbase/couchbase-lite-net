@@ -21,13 +21,12 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     <language>en-US</language>
     <dependencies>
       <group>
-        <dependency id="SQLitePCL.raw" version="[0.9.0]" />
-        <dependency id="SQLitePCL.ugly" version="[0.9.0]" />
+        <dependency id="SQLitePCL.raw" version="0.9.3" />
+        <dependency id="SQLitePCL.ugly" version="0.9.3" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file target="lib/net35/" src="staging/Couchbase.Lite.Storage.CustomSQLite/net35/*" />
     <file target="lib/net45/" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/*" />
     <file target="lib/MonoAndroid/" src="staging/Couchbase.Lite.Storage.CustomSQLite/MonoAndroid/*" />
     <file target="lib/Xamarin.iOS10/" src="staging/Couchbase.Lite.Storage.CustomSQLite/Xamarin.iOS10/*" />
