@@ -749,7 +749,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     Cursor c = null;
                     Cursor c2 = null;
                     try {
-                        c = db.StorageEngine.IntransactionRawQuery(sql.ToString(), minLastSequence, dbMaxSequence);
+                        c = db.StorageEngine.RawQuery(sql.ToString(), minLastSequence, dbMaxSequence);
                         bool keepGoing = c.MoveToNext();
                         while (keepGoing) {
                             // Get row values now, before the code below advances 'c':
@@ -779,7 +779,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             long realSequence = sequence; // because sequence may be changed, below
                             if (minLastSequence > 0) {
                                 // Find conflicts with documents from previous indexings.
-                                using (c2 = db.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs " +
+                                using (c2 = db.StorageEngine.RawQuery("SELECT revid, sequence FROM revs " +
                                   "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " +
                                   "ORDER BY revID DESC ", doc_id, minLastSequence)) {
 
