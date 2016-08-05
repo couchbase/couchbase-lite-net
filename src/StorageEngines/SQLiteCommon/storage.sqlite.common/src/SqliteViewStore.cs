@@ -73,10 +73,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
         {
             get {
                 var db = _dbStorage;
-                var totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), false, 0, "SELECT total_docs FROM views WHERE name=?", Name);
+                var totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), 0, "SELECT total_docs FROM views WHERE name=?", Name);
                 if (totalRows < 0) { //means unknown or somehow became invalid
                     CreateIndex();
-                    totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), false, 0, QueryString("SELECT COUNT(*) FROM 'maps_#'"));
+                    totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), 0, QueryString("SELECT COUNT(*) FROM 'maps_#'"));
                     var args = new ContentValues();
                     args["total_docs"] = totalRows;
                     db.StorageEngine.Update("views", args, "view_id=?", ViewID.ToString());
@@ -90,7 +90,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public long LastSequenceIndexed
         {
             get {
-                return _dbStorage.QueryOrDefault<long>(c => c.GetLong(0), true, 0, "SELECT lastsequence FROM views WHERE name=?", Name);
+                return _dbStorage.QueryOrDefault<long>(c => c.GetLong(0), 0, "SELECT lastsequence FROM views WHERE name=?", Name);
             }
         }
 
@@ -102,11 +102,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }
         }
 
-        private int ViewID
+        internal int ViewID
         {
             get {
                 if (_viewId < 0) {
-                    _viewId = _dbStorage.QueryOrDefault<int>(c => c.GetInt(0), false, 0, "SELECT view_id FROM views WHERE name=?", Name);
+                    _viewId = _dbStorage.QueryOrDefault<int>(c => c.GetInt(0), 0, "SELECT view_id FROM views WHERE name=?", Name);
                 }
 
                 return _viewId;
@@ -496,7 +496,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return true;
-            }, true, sql.ToString(), args.ToArray());
+            }, sql.ToString(), args.ToArray());
 
             return status;
         }
@@ -800,7 +800,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                             revId = oldRevId;
                                             deleted = false;
                                             sequence = oldSequence;
-                                            json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
+                                            json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), null, "SELECT json FROM revs WHERE sequence=?", sequence);
                                         }
 
                                         if (!deleted) {
@@ -1119,7 +1119,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 });
 
                 return true;
-            }, false, QueryString("SELECT sequence, key, value FROM 'maps_#' ORDER BY key"));
+            }, QueryString("SELECT sequence, key, value FROM 'maps_#' ORDER BY key"));
 
             return retVal;
         }
