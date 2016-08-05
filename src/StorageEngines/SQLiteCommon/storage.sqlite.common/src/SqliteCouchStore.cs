@@ -118,7 +118,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
         private static readonly int _SqliteVersion;
 
         private string _directory;
-        private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
         private SymmetricKey _encryptionKey = null;
         private bool _readOnly;
@@ -145,14 +144,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public int DocumentCount { 
             get {
                 return QueryOrDefault<int>(c => c.GetInt(0),
-                    false, -1, "SELECT COUNT(DISTINCT doc_id) FROM revs WHERE current=1 AND deleted=0");
+                     -1, "SELECT COUNT(DISTINCT doc_id) FROM revs WHERE current=1 AND deleted=0");
             }
         }
 
         public long LastSequence { 
             get {
                 return QueryOrDefault<long>(c => c.GetLong(0),
-                    false, 0L, "SELECT seq FROM sqlite_sequence WHERE name='revs'");
+                     0L, "SELECT seq FROM sqlite_sequence WHERE name='revs'");
             }
         }
 
@@ -289,7 +288,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             } else {
                 try {
                     docProperties = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(realizedJson);
-                } catch(CouchbaseLiteException e) {
+                } catch(CouchbaseLiteException) {
                     Log.To.Database.W(TAG, "Unparseable JSON for doc={0}, rev={1}: {2}, returning skeleton set", 
                         new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure),
                         revId, 
@@ -318,7 +317,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 result.SetBody(new Body(c.GetBlob(2)));
 
                 return false;
-            }, false, "SELECT revid, deleted, json FROM revs WHERE sequence=?", sequence);
+            }, "SELECT revid, deleted, json FROM revs WHERE sequence=?", sequence);
 
             return result;
         }
@@ -334,15 +333,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return rev;
         }
 
-        public Status TryQuery(Func<Cursor, bool> action, bool readUncommit, string sqlQuery, params object[] args)
+        public Status TryQuery(Func<Cursor, bool> action, string sqlQuery, params object[] args)
         {
             Cursor c = null;
             try {
-                if (readUncommit) {
-                    c = StorageEngine.IntransactionRawQuery(sqlQuery, args);
-                } else {
-                    c = StorageEngine.RawQuery(sqlQuery, args);
-                }
+                c = StorageEngine.RawQuery (sqlQuery, args);
 
                 var retVal = new Status(StatusCode.NotFound);
                 while(c.MoveToNext()) {
@@ -364,13 +359,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return new Status(StatusCode.DbError);
         }
 
-        public T QueryOrDefault<T>(Func<Cursor, T> action, bool readUncommit, T defaultVal, string sqlQuery, params object[] args)
+        public T QueryOrDefault<T>(Func<Cursor, T> action, T defaultVal, string sqlQuery, params object[] args)
         {
             T retVal = defaultVal;
             var success = TryQuery(c => {
                 retVal = action(c);
                 return false;
-            }, readUncommit, sqlQuery, args);
+            }, sqlQuery, args);
             if(success.IsError) {
                 return defaultVal;
             }
@@ -426,7 +421,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             try {
                 var retVal = StorageEngine?.ExecSQL(sql, docNumericID, minGen);
                 return retVal.HasValue ? retVal.Value : 0;
-            } catch(Exception e) {
+            } catch(Exception) {
                 Log.To.Database.W(TAG, "SQLite error {0} pruning generations < {1} of doc {2}", StorageEngine?.LastErrorCode, minGenToKeep, docNumericID);
             }
 
@@ -581,7 +576,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             {
                 docNumericId = c.GetLong(0);
                 return false;
-            }, true, "SELECT doc_id FROM docs WHERE docid=?", docId);
+            }, "SELECT doc_id FROM docs WHERE docid=?", docId);
 
             if (success.Code == StatusCode.DbError) {
                 return -1L;
@@ -637,7 +632,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         private bool SequenceHasAttachments(long sequence)
         {
-            return QueryOrDefault<bool>(c => c.GetInt(0) != 0, false, false, 
+            return QueryOrDefault<bool>(c => c.GetInt(0) != 0, false, 
                 "SELECT no_attachments=0 FROM revs WHERE sequence=?", sequence);
         }
 
@@ -675,7 +670,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             var sql = String.Format("SELECT sequence FROM revs WHERE doc_id=? AND revid=? {0} LIMIT 1",
                           (onlyCurrent ? "AND current=1" : ""));
 
-            return QueryOrDefault<long>(c => c.GetLong(0), true, 0L, sql, docNumericId, revId.ToString());
+            return QueryOrDefault<long>(c => c.GetLong(0), 0L, sql, docNumericId, revId.ToString());
         }
 
         private bool DocumentExists(string docId, RevisionID revId)
@@ -749,7 +744,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 // The document is in conflict if there are two+ result rows that are not deletions.
                 outConflict.Value = !outDeleted && c.MoveToNext() && c.GetInt(1) == 0;
                 return false;
-            }, true, "SELECT revid, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY deleted asc, revid desc LIMIT ?",
+            }, "SELECT revid, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY deleted asc, revid desc LIMIT ?",
                 docNumericId, (!outConflict.IsNull ? 2 : 1));
 
             return revId;
@@ -774,7 +769,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 revs.Add(rev);
 
                 return true;
-            }, true, sql, docNumericId);
+            }, sql.ToString(), docNumericId);
                 
             if (innerStatus.IsError && innerStatus.Code != StatusCode.NotFound) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, innerStatus.Code, TAG,
@@ -889,7 +884,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             var success = TryQuery(c => {
                 retVal = c.GetString(0);
                 return false;
-            }, false, "SELECT value FROM info WHERE key=?", key);
+            }, "SELECT value FROM info WHERE key=?", key);
 
             return success.IsError ? null : retVal;
         }
@@ -994,7 +989,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             action.AddLogic(() => 
             {
                 StorageEngine.ExecSQL("SELECT sqlcipher_export('rekeyed_db')");
-                var version = QueryOrDefault<int>(c => c.GetInt(0), false, 0, "PRAGMA user_version");
+                var version = QueryOrDefault<int>(c => c.GetInt(0), 0, "PRAGMA user_version");
                 StorageEngine.ExecSQL(String.Format("PRAGMA rekeyed_db.user_version = {0}", version));
             }, null, null);
 
@@ -1061,7 +1056,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
                     
                 return false;
-            }, true, sb.ToString(), docNumericId, revId?.ToString());
+            }, sb.ToString(), docNumericId, revId?.ToString());
 
             if (transactionStatus.IsError) {
                 if (transactionStatus.Code == StatusCode.NotFound) {
@@ -1100,7 +1095,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return false;
-            }, false, "SELECT sequence, json FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID.ToString());
+            }, "SELECT sequence, json FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID.ToString());
 
             if (status.IsError) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, status.Code, TAG,
@@ -1115,12 +1110,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return 0L;
             }
 
-            return QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT sequence FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID.ToString());
+            return QueryOrDefault<long>(c => c.GetLong(0), 0L, "SELECT sequence FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID.ToString());
         }
 
         public DateTime? NextDocumentExpiry()
         {
-            var result = QueryOrDefault<long?>(c => c.GetLong(0), true, null, "SELECT expiry_timestamp FROM " +
+            var result = QueryOrDefault<long?>(c => c.GetLong(0), null, "SELECT expiry_timestamp FROM " +
                 "docs WHERE expiry_timestamp IS NOT NULL ORDER BY expiry_timestamp ASC LIMIT 1");
             if(result == null) {
                 return null;
@@ -1136,7 +1131,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return null;
             }
 
-            var result = QueryOrDefault<long?>(c => c.GetLong(0), false, null, "SELECT expiry_timestamp FROM docs WHERE doc_id=? AND expiry_timestamp IS NOT NULL", docNumericId);
+            var result = QueryOrDefault<long?>(c => c.GetLong(0), null, "SELECT expiry_timestamp FROM docs WHERE doc_id=? AND expiry_timestamp IS NOT NULL", docNumericId);
             if(result == null) {
                 return null;
             }
@@ -1167,14 +1162,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // First get the parent's sequence:
             var seq = rev.Sequence;
             if (seq != 0) {
-                seq = QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT parent FROM revs WHERE sequence=?", seq);
+                seq = QueryOrDefault<long>(c => c.GetLong(0), 0L, "SELECT parent FROM revs WHERE sequence=?", seq);
             } else {
                 var docNumericId = GetDocNumericID(rev.DocID);
                 if (docNumericId == 0L) {
                     return null;
                 }
 
-                seq = QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT parent FROM revs WHERE doc_id=? and revid=?", docNumericId, rev.RevID.ToString());
+                seq = QueryOrDefault<long>(c => c.GetLong(0), 0L, "SELECT parent FROM revs WHERE doc_id=? and revid=?", docNumericId, rev.RevID.ToString());
             }
 
             if (seq == 0) {
@@ -1188,7 +1183,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 result = new RevisionInternal(rev.DocID, c.GetString(0).AsRevID(), c.GetInt(1) != 0);
                 result.Sequence = seq;
                 return false;
-            }, false, "SELECT revid, deleted FROM revs WHERE sequence=?", seq);
+            }, "SELECT revid, deleted FROM revs WHERE sequence=?", seq);
 
             return result;
         }
@@ -1234,7 +1229,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return true;
-            }, false, "SELECT sequence, parent, revid" +
+            }, "SELECT sequence, parent, revid" +
             " FROM revs WHERE doc_id=? ORDER BY sequence DESC", docNumericId);
 
             if (status.IsError) {
@@ -1287,7 +1282,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     }
 
                     return true;
-                }, false, sql, docNumericId, current, String.Format("{0}-", generation), sqlLimit);
+                }, sql, docNumericId, current, String.Format("{0}-", generation), sqlLimit);
 
                 if(status.Code != StatusCode.NotFound && status.IsError) {
                     return null;
@@ -1314,7 +1309,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 "WHERE doc_id=? and revid in ({0}) and revid <= ? " +
                 "ORDER BY revid DESC LIMIT 1", Utility.JoinQuoted(revIds.Select(x => x.ToString())));
 
-            return QueryOrDefault(c => c.GetString(0), false, null, sql, docNumericId, rev.RevID.ToString()).AsRevID();
+            return QueryOrDefault(c => c.GetString(0), null, sql, docNumericId, rev.RevID.ToString()).AsRevID();
         }
 
         public int FindMissingRevisions(RevisionList revs)
@@ -1337,7 +1332,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return true;
-            }, false, sql);
+            }, sql);
 
             return status.IsSuccessful ? count : 0;
         }
@@ -1366,7 +1361,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return true;
-            }, false, "SELECT json FROM revs WHERE no_attachments != 1");
+            }, "SELECT json FROM revs WHERE no_attachments != 1");
 
             return status.IsError && status.Code != StatusCode.NotFound ? null : allKeys;
         }
@@ -1566,7 +1561,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return true;
-            }, false, sql, lastSequence);
+            }, sql, lastSequence);
 
             if (options.SortBySequence) {
                 changes.SortBySequence(!options.Descending);
@@ -2055,7 +2050,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                 seqsToKeep.Add(parent);
                             }
                             return true;
-                        }, true, sql, docNumericId);
+                        }, sql, docNumericId);
 
                         seqsToPurge.ExceptWith(seqsToKeep);
                         Log.To.Database.I(TAG, "Purging doc '{0}' revs ({1}); asked for ({2})", 
@@ -2098,28 +2093,29 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public IList<string> PurgeExpired()
         {
             var result = new List<string>();
-            var sequences = new List<long>();
-            var now = DateTime.UtcNow;
-            TryQuery(c =>
-            {
-                sequences.Add(c.GetLong(0));
-                result.Add(c.GetString(1));
+            RunInOuterTransaction (() => {
+                var sequences = new List<long>();
+                var now = DateTime.UtcNow;
+                TryQuery(c =>
+                {
+                    sequences.Add(c.GetLong(0));
+                    result.Add(c.GetString(1));
+
+                    return true;
+                }, "SELECT * FROM docs WHERE expiry_timestamp <= ?", now);
+                    
+                if (result.Count > 0) {
+                    var deleteSql = String.Format("sequence in ({0})", String.Join(", ", sequences.ToStringArray()));
+                    var vals = new ContentValues(1);
+                    vals["expiry_timestamp"] = null;
+
+                        StorageEngine.Delete("revs", deleteSql);
+                        StorageEngine.ExecSQL("UPDATE docs SET expiry_timestamp=null WHERE expiry_timestamp <= ?", now);
+                        return true;
+                }
 
                 return true;
-            }, false, "SELECT * FROM docs WHERE expiry_timestamp <= ?", now);
-                
-            if (result.Count > 0) {
-                var deleteSql = String.Format("sequence in ({0})", String.Join(", ", sequences.ToStringArray()));
-                var vals = new ContentValues(1);
-                vals["expiry_timestamp"] = null;
-                RunInTransaction(() =>
-                {
-                    StorageEngine.Delete("revs", deleteSql);
-                    StorageEngine.ExecSQL("UPDATE docs SET expiry_timestamp=null WHERE expiry_timestamp <= ?", now);
-                    return true;
-                });
-                
-            }
+            });
 
             return result;
         }
@@ -2136,7 +2132,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             {
                 result.Add(c.GetString(0));
                 return true;
-            }, false, "SELECT name FROM views");
+            }, "SELECT name FROM views");
 
             return result;
         }
@@ -2168,7 +2164,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 result.SetProperties(properties);
 
                 return false;
-            }, false, "SELECT revid, json FROM localdocs WHERE docid=?", docId);
+            }, "SELECT revid, json FROM localdocs WHERE docid=?", docId);
 
             return result;
         }

@@ -14,6 +14,12 @@ namespace Couchbase.Lite.Util
         private bool _disposed;
         private ManualResetEventSlim _mre = new ManualResetEventSlim();
 
+        public bool IsOnSpecialThread {
+            get {
+                return Thread.CurrentThread.ManagedThreadId == _thread.ManagedThreadId;
+            }
+        }
+
         public SingleThreadScheduler()
         {
             Log.To.TaskScheduling.I(Tag, "New single thread task scheduler created with private thread");

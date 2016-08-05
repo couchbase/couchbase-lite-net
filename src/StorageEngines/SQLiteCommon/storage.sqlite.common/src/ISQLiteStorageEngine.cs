@@ -104,20 +104,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
         int ExecSQL(string sql, params object[] paramArgs);
 
         /// <summary>
-        /// Executes a read-commit SQL query (i.e. the changes in the current transaction will not be shown)
+        /// Executes a SQL query (i.e. the changes in the current transaction will not be shown)
         /// </summary>
         /// <returns>An iterator containing the results of the query</returns>
         /// <param name="sql">The SQL format string</param>
         /// <param name="paramArgs">The SQL string arguments</param>
         Cursor RawQuery(string sql, params Object[] paramArgs);
-
-        /// <summary>
-        /// Executes a read-uncommit SQL query (i.e. the changes in the current transaction will be shown)
-        /// </summary>
-        /// <returns>An iterator containing the results of the query</returns>
-        /// <param name="sql">The SQL format string</param>
-        /// <param name="paramArgs">The SQL string arguments</param>
-        Cursor IntransactionRawQuery(String sql, params Object[] paramArgs);
 
         /// <summary>
         /// Performs an INSERT operation

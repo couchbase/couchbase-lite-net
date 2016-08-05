@@ -56,6 +56,7 @@ using Couchbase.Lite.Views;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Storage.SQLCipher;
 
 namespace Couchbase.Lite
 {
@@ -2109,6 +2110,33 @@ namespace Couchbase.Lite
             Assert.AreEqual(2, rows.Count);
             Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
             Assert.AreEqual(doc1.Id, rows.ElementAt(1).DocumentId);
+        }
+
+        [Test] // Issue 710
+        public void TestViewsInTransaction ()
+        {
+            if (_storageType != "SQLite") {
+                Assert.Inconclusive ("Only valid for a SQLite backing store");
+            }
+
+            var foo = default (View);
+            var bar = default (View);
+            database.RunInTransaction (() => {
+                foo = database.GetView ("foo");
+                foo.SetMap ((document, emit) => {
+                    emit ("test", null);
+                }, "1");
+
+                bar = database.GetView ("bar");
+                bar.SetMapReduce ((document, emit) => {
+                    emit ("test", null);
+                }, BuiltinReduceFunctions.Count, "1");
+
+                return true;
+            });
+
+            Assert.AreEqual (1, ((SqliteViewStore)foo.Storage).ViewID);
+            Assert.AreEqual (2, ((SqliteViewStore)bar.Storage).ViewID);
         }
 
         private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)

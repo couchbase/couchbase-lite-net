@@ -90,6 +90,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
         private TaskFactory Factory { get; set; }
         private CancellationTokenSource _cts = new CancellationTokenSource();
 
+        private bool IsOnDBThread {
+            get {
+                var scheduler = Factory.Scheduler as SingleThreadScheduler;
+                return scheduler.IsOnSpecialThread;
+            }
+        }
+
         #region ISQLiteStorageEngine
 
         public bool InTransaction 
@@ -476,50 +483,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
         /// <returns>The query.</returns>
         /// <param name="sql">Sql.</param>
         /// <param name="paramArgs">Parameter arguments.</param>
-        public Cursor IntransactionRawQuery(String sql, params Object[] paramArgs)
-        {
-            if (!IsOpen) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadRequest, TAG,
-                    "IntransactionRawQuery called on closed database");
-            }
-
-            if (transactionCount == 0) 
-            {
-                return RawQuery(sql, paramArgs);
-            }
-
-            Log.To.TaskScheduling.V(TAG, "Scheduling InTransactionRawQuery");
-            var t = Factory.StartNew(() =>
-            {
-                Log.To.TaskScheduling.V(TAG, "Running InTransactionRawQuery");
-                Cursor cursor = null;
-                sqlite3_stmt command = null;
-                try {
-                    Log.To.Database.V(TAG, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
-                    command = BuildCommand (_writeConnection, sql, paramArgs);
-                    cursor = new Cursor(command);
-                } catch (Exception e) {
-                    if (command != null) {
-                        command.Dispose();
-                    }
-
-                    Log.To.Database.E(TAG, String.Format("Error executing raw query '{0}', rethrowing...", sql), e);
-                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
-                    throw;
-                }
-                return cursor;
-            });
-
-            return t.Result;
-        }
-
-
-        /// <summary>
-        /// Executes only read-only SQL.
-        /// </summary>
-        /// <returns>The query.</returns>
-        /// <param name="sql">Sql.</param>
-        /// <param name="paramArgs">Parameter arguments.</param>
         public Cursor RawQuery(String sql, params Object[] paramArgs)
         {
             if (!IsOpen) {
@@ -535,8 +498,9 @@ namespace Couchbase.Lite.Storage.SQLCipher
             //{
                 Log.To.TaskScheduling.V(TAG, "Running RawQuery");
                 try {
-                    Log.To.Database.V (TAG, "RawQuery sql: {0} ({1})", sql, String.Join (", ", paramArgs.ToStringArray ()));
-                    command = BuildCommand (_readConnection, sql, paramArgs);
+                    var connection = IsOnDBThread ? _writeConnection : _readConnection;
+                    Log.To.Database.V (TAG, "RawQuery sql ({2}): {0} ({1})", sql, String.Join (", ", paramArgs.ToStringArray ()), IsOnDBThread ? "read uncommit" : "read commit");
+                    command = BuildCommand (connection, sql, paramArgs);
                     cursor = new Cursor (command);
                 } catch (Exception e) {
                     if (command != null) {
