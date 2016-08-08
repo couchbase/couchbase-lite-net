@@ -166,10 +166,16 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\TimeSeries.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\RecyclableMemoryStreamManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\RecyclableMemoryStream.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\Evaluator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\DatabaseQueryable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\DatabaseQueryProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\AllDocsQueryable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\AllDocsQueryProvider.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
     <Folder Include="$(MSBuildThisFileDirectory)Configuration\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Linq\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)Properties\version">

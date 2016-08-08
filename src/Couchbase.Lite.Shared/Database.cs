@@ -56,6 +56,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Linq;
 
 #if !NET_3_5
 using System.Net;
@@ -305,6 +306,11 @@ namespace Couchbase.Lite
         #endregion
 
         #region Public Methods
+
+        public IQueryable<QueryRow> AsQueryable ()
+        {
+            return new DatabaseQueryable<QueryRow> (this);
+        }
 
         /// <summary>
         /// Gets the number of <see cref="Couchbase.Lite.Document" /> in the <see cref="Couchbase.Lite.Database"/>.
