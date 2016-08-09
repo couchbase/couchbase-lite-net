@@ -7,7 +7,7 @@
     <ProjectTypeGuids>{FEACFBD2-3405-455C-9665-78FE426C6842};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Exe</OutputType>
     <RootNamespace>LiteServ.iOS</RootNamespace>
-    <AssemblyName>LiteServ.iOS</AssemblyName>
+    <AssemblyName>LiteServ</AssemblyName>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
@@ -91,10 +91,25 @@
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.iOS" />
     <Reference Include="Jint">
-      <HintPath>..\..\packages\Jint.2.9.1\lib\portable-net40+sl50+win+WindowsPhoneApp81+wp80\Jint.dll</HintPath>
+      <HintPath>..\..\packages\Jint.2.8\lib\portable-net40+sl50+win+WindowsPhoneApp81+wp80\Jint.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\packages\Newtonsoft.Json.9.0.1\lib\portable-net45+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\packages\Newtonsoft.Json.7.0.1\lib\portable-net45+wp80+win8+wpa81+dnxcore50\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Stateless">
+      <HintPath>..\..\packages\Stateless.2.5.53.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib.Portable">
+      <HintPath>..\..\packages\SharpZipLib.Portable.0.86.0.0003\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid+Xamarin.iOS10\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCLPlugin_internal">
+      <HintPath>..\..\packages\SQLitePCL.plugin.sqlcipher.ios_unified.0.9.1\lib\Xamarin.iOS10\SQLitePCLPlugin_internal.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\..\packages\SQLitePCL.raw.0.9.1\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>..\..\packages\SQLitePCL.ugly.0.9.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -137,14 +152,6 @@
     <ProjectReference Include="..\..\StorageEngines\SQLCipher\storage.sqlcipher.ios\storage.sqlcipher.ios.csproj">
       <Project>{80F83EB6-132C-4062-BDB6-2CBCC32C77EC}</Project>
       <Name>storage.sqlcipher.ios</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj">
-      <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
-      <Name>websocket-sharp.ios</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\vendor\Mono\Mono.Security\Mono.Security-ios.csproj">
-      <Project>{83F75E53-48BE-4F3C-8D79-62CBD5050792}</Project>
-      <Name>Mono.Security-ios</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\LiteServ.Shared\LiteServ.Shared.projitems" Label="Shared" Condition="Exists('..\LiteServ.Shared\LiteServ.Shared.projitems')" />

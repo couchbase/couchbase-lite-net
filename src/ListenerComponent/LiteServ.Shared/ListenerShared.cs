@@ -36,7 +36,7 @@ namespace Listener
 {
     public static class ListenerShared
     {
-        private const int DefaultPort = 9840;
+        private const int DefaultPort = 59840;
 
         public static void StartListener()
         {
