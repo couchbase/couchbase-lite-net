@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Linq
         }
 
         public Expression Expression {
-            get; private set;
+            get; 
         }
 
         public IQueryProvider Provider {

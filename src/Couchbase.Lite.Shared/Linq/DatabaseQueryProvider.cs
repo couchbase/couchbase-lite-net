@@ -53,7 +53,11 @@ namespace Couchbase.Lite.Linq
             }
 
             if (method.Method.Name == "Select") {
-                return new AllDocsQueryable<TElement> (_db, expression, null);
+                return new DatabaseQueryable<TElement> (expression, new AllDocsQueryProvider(_db));
+            }
+
+            if (method.Method.Name == "Where") {
+                return new DatabaseQueryable<TElement> (expression, new MapQueryProvider (_db));
             }
 
             throw new NotSupportedException ();
@@ -61,31 +65,12 @@ namespace Couchbase.Lite.Linq
 
         public object Execute (Expression expression)
         {
-            return null;
+            throw new NotSupportedException ();
         }
 
         public TResult Execute<TResult> (Expression expression)
         {
-            var whereExpression = expression as MethodCallExpression;
-            _lambda = (LambdaExpression)((UnaryExpression)whereExpression.Arguments [1]).Operand;
-            var digest = MessageDigest.GetInstance ("SHA-1");
-            digest.Update (Encoding.ASCII.GetBytes (_lambda.ToString ()));
-            var digestStr = BitConverter.ToString (digest.Digest ()).Replace ("-", "").ToLowerInvariant ();
-            _view = _db.GetView ($"linq_{digestStr}");
-            _view.SetMap (Map, "1");
-
-            _view.UpdateIndex ();
-            return default(TResult);
-        }
-
-        private List<RevisionInternal> _selectedDocs = new List<RevisionInternal>();
-        public void Map (IDictionary<string, object> doc, EmitDelegate emit)
-        {
-            var mapFunction = (Func<QueryRow, bool>)_lambda.Compile ();
-            var fakeRow = new QueryRow (doc.CblID (), 0, null, null, new RevisionInternal(doc), null);
-            if (mapFunction (fakeRow)) {
-                _selectedDocs.Add (fakeRow.DocumentRevision);
-            }
+            throw new NotSupportedException ();
         }
     }
 }

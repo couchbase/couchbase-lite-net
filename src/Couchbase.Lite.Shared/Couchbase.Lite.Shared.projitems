@@ -169,8 +169,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Linq\Evaluator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\DatabaseQueryable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\DatabaseQueryProvider.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Linq\AllDocsQueryable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\AllDocsQueryProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\MapQueryProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\NotSupportedExpressionVisitor.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
