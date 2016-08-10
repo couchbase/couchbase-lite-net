@@ -69,7 +69,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiteServ.Android", "Listene
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteServ.Shared", "ListenerComponent\LiteServ.Shared\LiteServ.Shared.shproj", "{706AE2FB-1279-4A88-A212-247C8630FFB7}"
 EndProject
-Project("{9344BDBB-3E7F-41FC-A0DD-8665D75EE146}") = "SimpleAndroidSync_source", "..\samples\SimpleAndroidSync\UsesSource\SimpleAndroidSync_source.csproj", "{281E63A0-0C49-4400-8113-8AC7AD74EB1A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleAndroidSync_source", "..\samples\SimpleAndroidSync\UsesSource\SimpleAndroidSync_source.csproj", "{F970485C-CE53-457A-AAF6-7896C40F8243}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -327,19 +327,19 @@ Global
 		{C6739518-CCF3-4D5C-AAEF-085B1A115DE6}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
 		{C6739518-CCF3-4D5C-AAEF-085B1A115DE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C6739518-CCF3-4D5C-AAEF-085B1A115DE6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Debug_Sample|Any CPU.Build.0 = Debug|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Release_All|Any CPU.Build.0 = Release|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Release_Sample|Any CPU.ActiveCfg = Release|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Release_Sample|Any CPU.Build.0 = Release|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug_Sample|Any CPU.ActiveCfg = Debug|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug_Sample|Any CPU.Build.0 = Debug|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Release_All|Any CPU.Build.0 = Release|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Release_Sample|Any CPU.ActiveCfg = Release|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Release_Sample|Any CPU.Build.0 = Release|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
+		{F970485C-CE53-457A-AAF6-7896C40F8243}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -371,7 +371,7 @@ Global
 		{0289A97A-AB8C-45F3-AA87-B05BB9471D7D} = {1E870C9E-9E95-4C08-967D-4C63860980F1}
 		{C6739518-CCF3-4D5C-AAEF-085B1A115DE6} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{706AE2FB-1279-4A88-A212-247C8630FFB7} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
-		{281E63A0-0C49-4400-8113-8AC7AD74EB1A} = {5D187322-B6C6-4B74-A097-179F97B61B75}
+		{F970485C-CE53-457A-AAF6-7896C40F8243} = {5D187322-B6C6-4B74-A097-179F97B61B75}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

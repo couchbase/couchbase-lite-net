@@ -92,12 +92,12 @@
     <CreateItem Include="$(OutputPath)**\*.*">
       <Output TaskParameter="Include" ItemName="LiteServFiles" />
     </CreateItem>
-    <MakeDir Directories="$(SolutionDir)..\staging\LiteServ" />
-    <Copy SourceFiles="@(LiteServFiles)" DestinationFolder="$(SolutionDir)..\staging\LiteServ\%(RecursiveDir)" />
-    <Copy SourceFiles="..\..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\native\windows\x86\sqlcipher.dll" DestinationFolder="$(SolutionDir)..\staging\LiteServ\x86" />
-    <Copy SourceFiles="..\..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\native\windows\x86_64\sqlcipher.dll" DestinationFolder="$(SolutionDir)..\staging\LiteServ\x64" />
-    <Copy SourceFiles="..\..\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\native\osx\libsqlcipher.dylib" DestinationFolder="$(SolutionDir)..\staging\LiteServ" />
-    <Copy SourceFiles="..\..\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\native\linux\x86_64\libsqlcipher.so" DestinationFolder="$(SolutionDir)..\staging\LiteServ" />
+    <MakeDir Directories="$(SolutionDir)..\staging\LiteServ\net45" />
+    <Copy SourceFiles="@(LiteServFiles)" DestinationFolder="$(SolutionDir)..\staging\LiteServ\net45\%(RecursiveDir)" />
+    <Copy SourceFiles="..\..\packages\SQLitePCL.native.sqlcipher.windows.0.9.3\build\native\windows\x86\sqlcipher.dll" DestinationFolder="$(SolutionDir)..\staging\LiteServ\net45\x86" />
+    <Copy SourceFiles="..\..\packages\SQLitePCL.native.sqlcipher.windows.0.9.3\build\native\windows\x86_64\sqlcipher.dll" DestinationFolder="$(SolutionDir)..\staging\LiteServ\net45\x64" />
+    <Copy SourceFiles="..\..\packages\SQLitePCL.native.sqlcipher.osx.0.9.3\build\native\osx\libsqlcipher.dylib" DestinationFolder="$(SolutionDir)..\staging\LiteServ\net45" />
+    <Copy SourceFiles="..\..\packages\SQLitePCL.native.sqlcipher.linux.0.9.3\build\native\linux\x86_64\libsqlcipher.so" DestinationFolder="$(SolutionDir)..\staging\LiteServ\net45" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">

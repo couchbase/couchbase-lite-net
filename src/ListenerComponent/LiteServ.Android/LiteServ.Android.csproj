@@ -16,6 +16,7 @@
     <MonoAndroidResourcePrefix>Resources</MonoAndroidResourcePrefix>
     <MonoAndroidAssetsPrefix>Assets</MonoAndroidAssetsPrefix>
     <AndroidUseLatestPlatformSdk>true</AndroidUseLatestPlatformSdk>
+	<AndroidSupportedAbis>arm64-v8a;armeabi;armeabi-v7a;x86</AndroidSupportedAbis>
     <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -28,7 +29,6 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <AndroidLinkMode>None</AndroidLinkMode>
-    <AndroidSupportedAbis>arm64-v8a;armeabi;armeabi-v7a;x86</AndroidSupportedAbis>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -107,10 +107,6 @@
       <Project>{9CEE0189-1533-484D-A957-664B1A372EAA}</Project>
       <Name>storage.forestdb.droid</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.droid.csproj">
-      <Project>{E1153FA4-356A-454D-B32E-136102F2482F}</Project>
-      <Name>websocket-sharp.droid</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\StorageEngines\SQLCipher\storage.sqlcipher.droid\storage.sqlcipher.droid.csproj">
       <Project>{9C5FAB56-F098-4809-8465-65257A59B8BD}</Project>
       <Name>storage.sqlcipher.droid</Name>
@@ -118,10 +114,6 @@
     <ProjectReference Include="..\..\..\vendor\MonoDroid.Dialog\MonoDroid.Dialog\MonoDroid.Dialog.csproj">
       <Project>{33044C7B-47A4-4113-A61A-EB429407F818}</Project>
       <Name>MonoDroid.Dialog</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\vendor\Mono\Mono.Security\Mono.Security-droid.csproj">
-      <Project>{83F75E53-48BE-4F3C-8D79-62CBD5050792}</Project>
-      <Name>Mono.Security-droid</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\LiteServ.Shared\LiteServ.Shared.projitems" Label="Shared" Condition="Exists('..\LiteServ.Shared\LiteServ.Shared.projitems')" />
