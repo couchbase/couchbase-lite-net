@@ -25,6 +25,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Linq
@@ -36,6 +37,8 @@ namespace Couchbase.Lite.Linq
         private LambdaExpression _select;
         private LambdaExpression _orderby;
         private string _next;
+        private bool _descending;
+        private QueryOptions _queryOptions = new QueryOptions ();
 
         public MapQueryProvider (Database db)
         {
@@ -60,7 +63,7 @@ namespace Couchbase.Lite.Linq
 
         public TResult Execute<TResult> (Expression expression)
         {
-            if (_where == null || (_select == null && _orderby == null)) {
+            if (_where == null || _select == null) {
                 throw new NotSupportedException ();
             }
 
@@ -69,8 +72,45 @@ namespace Couchbase.Lite.Linq
             var digestStr = BitConverter.ToString (digest.Digest ()).Replace ("-", "").ToLowerInvariant ();
             var view = _db.GetView ($"linq_{digestStr}");
             view.SetMap (Map, "1");
-            object results = view.CreateQuery ().Run ();
-            return (TResult)((IEnumerable<QueryRow>)results).Select(x => x.Key);
+            var query = view.CreateQuery ();
+            query.Skip = _queryOptions.Skip;
+            query.Limit = _queryOptions.Limit;
+            var results = query.Run ();
+            if (_orderby == null) {
+                return (TResult)GetTypedKeys<TResult>(results);
+            }
+
+            var realized = ((IEnumerable<QueryRow>)results).ToList ();
+            var compiled = _orderby.Compile ();
+            realized.Sort ((x, y) => {
+                var xVal = compiled.DynamicInvoke(x);
+                var yVal = compiled.DynamicInvoke(y);
+                var xComp = xVal as IComparable;
+                if (xComp != null) {
+                    var yComp = yVal as IComparable;
+                    return _descending ? yComp.CompareTo(xComp) : xComp.CompareTo (yComp);
+                }
+
+                return _descending ? Comparer<object>.Default.Compare (yVal, xVal) : Comparer<object>.Default.Compare(xVal, yVal);
+            });
+
+            return (TResult)GetTypedKeys<TResult>(realized);
+        }
+
+        private object GetTypedKeys<TOriginal> (IEnumerable<QueryRow> input)
+        {
+            var genericTypeArgs = typeof (TOriginal).GetGenericArguments ();
+            var tmp = input.Select (x => x.Key);
+            if (genericTypeArgs.Length == 0) {
+                return tmp;
+            }
+
+            if (genericTypeArgs [0].Name == "RevisionID") {
+                tmp = input.Select (x => ((string)x.Key).AsRevID());
+            }
+
+            var methodInfo = typeof (Enumerable).GetMethod ("Cast").MakeGenericMethod(genericTypeArgs[0]);
+            return methodInfo.Invoke (null, new [] { tmp });
         }
 
         protected override Expression VisitMethodCall (MethodCallExpression node)
@@ -89,8 +129,11 @@ namespace Couchbase.Lite.Linq
                 _select = (LambdaExpression)node.Operand;
             } else if (_next == "Where") {
                 _where = (LambdaExpression)node.Operand;
-            } else if (_next == "OrderBy") {
+            } else if (_next == "OrderBy" || _next == "OrderByDescending") {
                 _orderby = (LambdaExpression)node.Operand;
+                _descending = _next == "OrderByDescending";
+            } else if(_next == "GroupBy") { 
+
             } else {
                 throw new NotSupportedException ();
             }
@@ -100,6 +143,14 @@ namespace Couchbase.Lite.Linq
 
         protected override Expression VisitConstant (ConstantExpression node)
         {
+            if (_next == "Skip") {
+                _queryOptions.Skip = (int)node.Value;
+                return node;
+            } else if (_next == "Take") {
+                _queryOptions.Limit = (int)node.Value;
+                return node;
+            }
+
             _fromSubclass = true;
             return base.VisitConstant (node);
         }

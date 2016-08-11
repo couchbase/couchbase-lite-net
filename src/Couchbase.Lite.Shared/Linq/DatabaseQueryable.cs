@@ -26,7 +26,7 @@ using System.Linq.Expressions;
 
 namespace Couchbase.Lite.Linq
 {
-    internal sealed class DatabaseQueryable<TElement> : IQueryable<TElement>
+    internal sealed class DatabaseQueryable<TElement> : IOrderedQueryable<TElement>
     {
         public Type ElementType {
             get {
