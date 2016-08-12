@@ -18,6 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#if !NET_3_5
 using System;
 using System.Linq.Expressions;
 
@@ -369,3 +370,4 @@ namespace Couchbase.Lite.Linq
     }
 }
 
+#endif
