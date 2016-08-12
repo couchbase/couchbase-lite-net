@@ -28,6 +28,8 @@ namespace Couchbase.Lite.Linq
 {
     internal sealed class DatabaseQueryable<TElement> : IOrderedQueryable<TElement>
     {
+        private readonly string _version;
+
         public Type ElementType {
             get {
                 return typeof (TElement);
@@ -42,10 +44,10 @@ namespace Couchbase.Lite.Linq
             get;
         }
 
-        public DatabaseQueryable (Database db)
+        public DatabaseQueryable (Database db, string version)
         {
             Expression = Expression.Constant (this);
-            Provider = new DatabaseQueryProvider (db);
+            Provider = new MapReduceQueryProvider (db, version);
         }
 
         public DatabaseQueryable (Expression expression, IQueryProvider provider)

@@ -307,9 +307,9 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
-        public IQueryable<QueryRow> AsQueryable ()
+        public IQueryable<QueryRow> AsQueryable (string version = "1")
         {
-            return new DatabaseQueryable<QueryRow> (this);
+            return new DatabaseQueryable<QueryRow> (this, version);
         }
 
         /// <summary>
