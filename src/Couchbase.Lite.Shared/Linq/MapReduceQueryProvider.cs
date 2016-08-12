@@ -89,12 +89,20 @@ namespace Couchbase.Lite.Linq
             query.Skip = _queryOptions.Skip;
             query.Limit = _queryOptions.Limit;
             query.Descending = _queryOptions.Descending;
-            var results = query.Run();
 
+            var results = default(QueryEnumerator);
             if(_orderby == null) {
+                results = query.Run();
                 return _reduce != null ? (TResult)results.First().Value
                                                           : (TResult)GetTypedKeys<TResult>(results);
             }
+
+            // OrderBy needs to defer skip and limit to the end
+            var skip = query.Skip;
+            var limit = query.Limit;
+            query.Skip = 0;
+            query.Limit = Int32.MaxValue;
+            results = query.Run();
 
             var realized = ((IEnumerable<QueryRow>)results).ToList();
             var compiled = _orderby.Compile();
@@ -110,7 +118,7 @@ namespace Couchbase.Lite.Linq
                 return _descending ? Comparer<object>.Default.Compare(yVal, xVal) : Comparer<object>.Default.Compare(xVal, yVal);
             });
 
-            return (TResult)GetTypedKeys<TResult>(realized);
+            return (TResult)GetTypedKeys<TResult>(realized, skip, limit);
         }
 
         private View SetupView()
@@ -127,10 +135,10 @@ namespace Couchbase.Lite.Linq
             return view;
         }
 
-        private object GetTypedKeys<TOriginal>(IEnumerable<QueryRow> input)
+        private object GetTypedKeys<TOriginal>(IEnumerable<QueryRow> input, int skip = 0, int limit = Int32.MaxValue)
         {
             var genericTypeArgs = typeof(TOriginal).GetGenericArguments();
-            var tmp = _where != null ? input.Select(x => x.Key) : Map(input);
+            var tmp = _where != null ? input.Skip(skip).Take(limit).Select(x => x.Key) : Map(input.Skip(skip).Take(limit));
 
             if(genericTypeArgs.Length == 0) {
                 return tmp;
