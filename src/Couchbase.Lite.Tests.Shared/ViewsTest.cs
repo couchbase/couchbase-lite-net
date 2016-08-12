@@ -71,6 +71,65 @@ namespace Couchbase.Lite
         public ViewsTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestLinq ()
+        {
+            CreateDocuments (database, 10);
+            database.CreateDocument ().PutProperties (new Dictionary<string, object> {
+                ["foo"] = "bar",
+                ["sequence"] = 100
+            });
+
+            var allDocsResult = from row in database.AsQueryable()
+                                select row.SequenceNumber;
+
+            var lastSequence = -1L;
+            foreach(var docSequence in allDocsResult) {
+                Assert.Greater(docSequence, lastSequence);
+            }
+
+            var allDocsOrderByResults = from row in database.AsQueryable()
+                                        orderby row.DocumentId
+                                        select row.DocumentId;
+
+            var lastId = default(string);
+            foreach(var docId in allDocsOrderByResults) {
+                if(lastId != null) {
+                    Assert.IsTrue(docId.CompareTo(lastId) >= 0);
+                }
+
+                lastId = docId;
+            }
+
+            allDocsOrderByResults = from row in database.AsQueryable()
+                                    orderby row.DocumentId descending
+                                    select row.DocumentId;
+
+            lastId = null;
+            foreach(var docId in allDocsOrderByResults) {
+                if(lastId != null) {
+                    Assert.IsTrue(docId.CompareTo(lastId) <= 0);
+                }
+
+                lastId = docId;
+            }
+
+            var query = from row in database.AsQueryable()
+                        where row.DocumentProperties.ContainsKey("testName")
+                        select (long)row.DocumentProperties["sequence"];
+
+            CollectionAssert.AreEqual(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, query);
+            CollectionAssert.AreEqual(new[] { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }, query.Reverse());
+            CollectionAssert.AreEqual(new[] { 5, 6, 7, 8, 9 }, query.Skip(5));
+            CollectionAssert.AreEqual(new[] { 0, 1, 2, 3, 4 }, query.Take(5));
+
+            var reduce = query.Aggregate((x, y) => x + y);
+            Assert.AreEqual(45, reduce);
+
+            reduce = query.Skip(2).Aggregate((x, y) => x + y);
+            Assert.AreEqual(44, reduce);
+        }
+
+        [Test]
         public void TestEmitNullKey()
         {
             var view = database.GetView("vu");

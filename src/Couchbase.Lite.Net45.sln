@@ -299,6 +299,10 @@ Global
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
+		$2.SpacingAfterMethodDeclarationName = False
+		$2.SpaceAfterMethodCallName = False
+		$2.SpaceAfterControlFlowStatementKeyword = False
+		$2.SpaceBeforeOpenSquareBracket = False
 		version = 1.1.1
 	EndGlobalSection
 EndGlobal
