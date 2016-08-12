@@ -124,9 +124,6 @@ namespace Couchbase.Lite
 
             var reduce = query.Aggregate((x, y) => x + y);
             Assert.AreEqual(45, reduce);
-
-            reduce = query.Skip(2).Aggregate((x, y) => x + y);
-            Assert.AreEqual(44, reduce);
         }
 
         [Test]
