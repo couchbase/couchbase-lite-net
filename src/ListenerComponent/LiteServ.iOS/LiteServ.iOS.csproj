@@ -173,6 +173,9 @@
       <Name>storage.sqlcipher.ios</Name>
     </ProjectReference>
   </ItemGroup>
+  <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" AfterTargets="CreateIpa">
+    <Copy SourceFiles="$(IpaPackagePath)" DestinationFiles="$(ProjectDir)..\..\..\staging\LiteServ\iOS\LiteServ.ipa" />
+  </Target>
   <Import Project="..\LiteServ.Shared\LiteServ.Shared.projitems" Label="Shared" Condition="Exists('..\LiteServ.Shared\LiteServ.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
 </Project>
