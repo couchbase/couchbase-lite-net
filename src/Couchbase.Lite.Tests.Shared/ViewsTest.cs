@@ -128,11 +128,6 @@ namespace Couchbase.Lite
             allDocsQuery.AllDocsMode = AllDocsMode.BySequence;
             allDocs = allDocsQuery.Run();
             Assert.AreEqual(2, allDocs.First().SequenceNumber);
-
-            allDocsQuery.AllDocsMode = AllDocsMode.BySequence;
-            allDocsQuery.IncludeDeleted = true;
-            allDocs = allDocsQuery.Run();
-            Assert.AreEqual(1, allDocs.First().SequenceNumber);
         }
 
         [Test]
