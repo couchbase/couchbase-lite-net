@@ -68,6 +68,24 @@ namespace Couchbase.Lite
 
         public AttachmentsTest(string storageType) : base(storageType) {}
 
+        [Test]
+        public void TestAttachmentMetadata()
+        {
+            var doc = database.CreateDocument();
+            var unsaved = doc.CreateRevision();
+
+            var data = new byte[] { 0, 1, 2, 3, 4 };
+            unsaved.SetAttachment("attach", "type", data);
+
+            var attachment = unsaved.GetAttachment("attach");
+            var metadata = attachment.Metadata;
+            Assert.AreEqual("type", metadata["content_type"]);
+            Assert.AreEqual(5, metadata["length"]);
+            Assert.AreEqual(true, metadata["follows"]);
+
+            CollectionAssert.AreEqual(data, attachment.ContentStream.ReadAllBytes());
+        }
+
         [Test(Description = "For issue 666")]
         public void TestAttachmentContentType()
         {

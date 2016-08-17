@@ -290,6 +290,7 @@ namespace Couchbase.Lite {
         /// This property has no effect in other types of Queries.
         /// </summary>
         /// <value><c>true</c> if include deleted; otherwise, <c>false</c>.</value>
+        [Obsolete("Use AllDocsMode.IncludeDeleted")]
         public bool IncludeDeleted 
         {
             get { return AllDocsMode == AllDocsMode.IncludeDeleted; }

@@ -71,6 +71,71 @@ namespace Couchbase.Lite
         public ViewsTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestQueryParams()
+        {
+            CreateDocuments(database, 50);
+            var view = database.GetView("test_query_params");
+            view.SetMap((document, emit) => {
+                emit(document["sequence"], document["_id"]);
+            }, "1");
+
+            var query = view.CreateQuery();
+            var completionWait = new WaitAssert();
+            query.Completed += (sender, e) => {
+                Assert.IsNull(e.ErrorInfo);
+                Assert.IsNotNull(e.Rows);
+                completionWait.RunAssert(() => Assert.AreEqual(50, e.Rows.Count));
+            };
+
+            query.RunAsync();
+            completionWait.WaitForResult(TimeSpan.FromSeconds(5));
+
+            query.InclusiveStart = false;
+            query.InclusiveEnd = false;
+            completionWait = new WaitAssert();
+            query.Completed += (sender, e) => {
+                Assert.IsNull(e.ErrorInfo);
+                Assert.IsNotNull(e.Rows);
+                completionWait.RunAssert(() => Assert.AreEqual(48, e.Rows.Count));
+            };
+
+            query.RunAsync();
+            completionWait.WaitForResult(TimeSpan.FromSeconds(5));
+
+            query.InclusiveStart = true;
+            query.InclusiveEnd = true;
+
+            var allDocsQuery = database.CreateAllDocumentsQuery();
+            allDocsQuery.AllDocsMode = AllDocsMode.BySequence;
+            var allDocs = allDocsQuery.Run();
+            Assert.AreEqual(50, allDocs.Count);
+            var delete = true;
+            foreach(var row in allDocs) {
+                if(delete) {
+                    row.Document.Delete();
+                }
+
+                delete = !delete;
+            }
+
+            allDocsQuery.AllDocsMode = AllDocsMode.AllDocs;
+            allDocs = allDocsQuery.Run();
+            Assert.AreEqual(25, allDocs.Count);
+
+            allDocsQuery.AllDocsMode = AllDocsMode.IncludeDeleted;
+            Assert.AreEqual(50, allDocsQuery.Run().Count);
+
+            allDocsQuery.AllDocsMode = AllDocsMode.BySequence;
+            allDocs = allDocsQuery.Run();
+            Assert.AreEqual(2, allDocs.First().SequenceNumber);
+
+            allDocsQuery.AllDocsMode = AllDocsMode.BySequence;
+            allDocsQuery.IncludeDeleted = true;
+            allDocs = allDocsQuery.Run();
+            Assert.AreEqual(1, allDocs.First().SequenceNumber);
+        }
+
+        [Test]
         public void TestLinq ()
         {
             CreateDocuments (database, 10);

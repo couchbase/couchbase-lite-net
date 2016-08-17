@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 
 using Couchbase.Lite.Store;
@@ -53,6 +54,21 @@ namespace Couchbase.Lite
             Console.WriteLine("Keys completed (3/3)");
             sw.Stop();
             Console.WriteLine("Created three keys in {0}ms", sw.ElapsedMilliseconds);
+        }
+
+        [Test]
+        public void TestKey()
+        {
+            Assert.AreEqual("c66c9a3d66dfa2f8b9420b0379fd1b80928d8d74501e12dd5bc453a7a9a748ab", _letmein.HexData);
+            var rawKey = new SymmetricKey(_letmein.KeyData);
+            const string msg = "To infinity!";
+            var bytes = Encoding.UTF8.GetBytes(msg);
+            var encrypted = _letmein.EncryptData(bytes);
+            var decrypted = _letmein.DecryptData(encrypted);
+            CollectionAssert.AreEqual(bytes, decrypted);
+            decrypted = rawKey.DecryptData(encrypted);
+            CollectionAssert.AreEqual(bytes, decrypted);
+            Assert.Throws<CryptographicException>(() => _letmeout.DecryptData(encrypted));
         }
 
         [Test]
