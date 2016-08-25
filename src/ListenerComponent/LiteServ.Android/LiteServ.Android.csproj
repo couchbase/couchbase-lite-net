@@ -17,6 +17,7 @@
     <MonoAndroidAssetsPrefix>Assets</MonoAndroidAssetsPrefix>
     <AndroidUseLatestPlatformSdk>true</AndroidUseLatestPlatformSdk>
 	<AndroidSupportedAbis>arm64-v8a;armeabi;armeabi-v7a;x86</AndroidSupportedAbis>
+	<AndroidSdkBuildToolsVersion>23.0.3</AndroidSdkBuildToolsVersion>
     <ReleaseVersion>1.1.1</ReleaseVersion>
 	<RestorePackages>true</RestorePackages>
   </PropertyGroup>
