@@ -983,8 +983,9 @@ namespace Couchbase.Lite
         private static IDictionary<string, object> ParseSourceOrTarget(IDictionary<string, object> properties, string key)
         {
             object val = properties.Get(key);
-            if (val is IDictionary<string, object>) {
-                return (IDictionary<string, object>)val;
+            var parsedVal = val.AsDictionary<string, object>();
+            if (parsedVal != null) {
+                return parsedVal;
             }
 
             if (val is string) {
