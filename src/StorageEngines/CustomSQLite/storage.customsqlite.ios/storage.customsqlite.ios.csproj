@@ -84,6 +84,7 @@
   </ItemGroup>
   <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
+	<Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.CustomSQLite\Xamarin.iOS10" />
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.dll;$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.CustomSQLite\Xamarin.iOS10" />

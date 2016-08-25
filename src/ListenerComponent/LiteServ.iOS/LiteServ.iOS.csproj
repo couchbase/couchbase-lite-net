@@ -196,4 +196,5 @@
   </Target>
   <Import Project="..\LiteServ.Shared\LiteServ.Shared.projitems" Label="Shared" Condition="Exists('..\LiteServ.Shared\LiteServ.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
+	<Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
 </Project>

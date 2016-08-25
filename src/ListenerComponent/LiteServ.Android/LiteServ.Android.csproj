@@ -127,6 +127,7 @@
   </ItemGroup>
   <Import Project="..\LiteServ.Shared\LiteServ.Shared.projitems" Label="Shared" Condition="Exists('..\LiteServ.Shared\LiteServ.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+	<Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="CopyToStaging" Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" AfterTargets="SignAndroidPackage">
     <Copy SourceFiles="$(OutputPath)com.couchbase.liteserv-Signed.apk" DestinationFiles="$(ProjectDir)..\..\..\staging\LiteServ\Android\LiteServ.apk" />
   </Target>
