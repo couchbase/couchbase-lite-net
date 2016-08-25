@@ -48,7 +48,6 @@
     <MtouchArch>ARMv7, ARM64</MtouchArch>
     <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
     <MtouchTlsProvider>Default</MtouchTlsProvider>
-	<BuildIpa Condition=" '$(Archive)' == 'true' ">true</BuildIpa>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhoneSimulator' ">
     <Optimize>true</Optimize>
@@ -103,7 +102,21 @@
     <MtouchArch>ARMv7, ARM64</MtouchArch>
     <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
     <MtouchTlsProvider>Default</MtouchTlsProvider>
-    <BuildIpa>true</BuildIpa>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|iPhoneSimulator' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\iPhoneSimulator\Packaging</OutputPath>
+    <DefineConstants></DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <CodesignKey>iPhone Developer</CodesignKey>
+    <MtouchUseSGen>true</MtouchUseSGen>
+    <MtouchUseRefCounting>true</MtouchUseRefCounting>
+    <MtouchLink>None</MtouchLink>
+    <MtouchArch>i386</MtouchArch>
+    <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
+    <MtouchTlsProvider>Default</MtouchTlsProvider>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -174,8 +187,12 @@
       <Name>storage.sqlcipher.ios</Name>
     </ProjectReference>
   </ItemGroup>
-  <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" AfterTargets="CreateIpa">
-    <Copy SourceFiles="$(IpaPackagePath)" DestinationFiles="$(ProjectDir)..\..\..\staging\LiteServ\iOS\LiteServ.ipa" />
+  <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" AfterTargets="Build">
+		<ItemGroup>
+            <x Include="$(OutputPath)LiteServ.app\**\*.*" />
+		</ItemGroup>
+		<MakeDir Directories="$(ProjectDir)..\..\..\staging\LiteServ\iOS\LiteServ.app" />
+    <Copy SourceFiles="@(x)" DestinationFolder="$(ProjectDir)..\..\..\staging\LiteServ\iOS\LiteServ.app\%(RecursiveDir)" />
   </Target>
   <Import Project="..\LiteServ.Shared\LiteServ.Shared.projitems" Label="Shared" Condition="Exists('..\LiteServ.Shared\LiteServ.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
