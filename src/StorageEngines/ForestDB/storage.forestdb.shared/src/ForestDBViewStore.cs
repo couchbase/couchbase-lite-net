@@ -494,12 +494,13 @@ namespace Couchbase.Lite.Storage.ForestDB
 
             var commit = false;
             try {
+                var lastSequenceIndexed = viewsArray.Select (x => x.LastSequenceIndexed).ToArray ();
                 foreach(var next in enumerator) {
                     var seq = next.Sequence;
 
                     for(int i = 0; i < viewsArray.Length; i++) {
                         var info = viewsArray [i];
-                        if (seq <= info.LastSequenceIndexed) {
+                        if (seq <= lastSequenceIndexed[i]) {
                             continue; // This view has already indexed this sequence
                         }
 
