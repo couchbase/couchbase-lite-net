@@ -602,6 +602,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the headers that should be used when making HTTP requests
         /// </summary>
+        [Obsolete("Use Headers")]
         protected internal IDictionary<string, object> RequestHeaders
         {
             get {

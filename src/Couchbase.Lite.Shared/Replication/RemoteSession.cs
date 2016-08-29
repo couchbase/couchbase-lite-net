@@ -191,6 +191,7 @@ namespace Couchbase.Lite.Internal
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
+            AddRequestHeaders(message);
 
             var bytes = default(byte[]);
             if(body != null) {

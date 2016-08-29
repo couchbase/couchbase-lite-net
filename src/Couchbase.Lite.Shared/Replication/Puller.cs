@@ -320,7 +320,6 @@ namespace Couchbase.Lite.Replicator
                 DatabaseUri = RemoteUrl,
                 Revisions = bulkRevs,
                 Database = LocalDatabase,
-                RequestHeaders = RequestHeaders,
                 RetryStrategy = ReplicationOptions.RetryStrategy,
                 CookieStore = CookieContainer
             });
