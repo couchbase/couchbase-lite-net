@@ -457,6 +457,7 @@ namespace Couchbase.Lite.Storage.ForestDB
             }
 
             ForestDBBridge.Check (err => Native.c4view_delete (current, err));
+            Native.c4view_free(current);
 #else
             ForestDBBridge.Check(err => Native.c4view_delete(IndexDB, err));
 #endif

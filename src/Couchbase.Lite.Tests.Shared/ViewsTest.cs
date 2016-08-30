@@ -71,6 +71,46 @@ namespace Couchbase.Lite
         public ViewsTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestDeleteViews()
+        {
+            var views = database.GetAllViews();
+            foreach(var v in views) {
+                v.Delete();
+            }
+
+            Assert.AreEqual(0, database.GetAllViews().Count);
+            Assert.IsNull(database.GetExistingView("viewToDelete"));
+
+            var view = database.GetView("viewToDelete");
+            Assert.IsNotNull(view);
+            Assert.AreEqual(database, view.Database);
+            Assert.AreEqual("viewToDelete", view.Name);
+            Assert.IsNull(view.Map);
+            Assert.AreEqual(view, database.GetExistingView("viewToDelete"));
+
+            // Note: ForestDB view storage created view db when constructor is called
+            // but SQLite view storage does not
+            if(_storageType == StorageEngineTypes.ForestDB) {
+                Assert.AreEqual(1, database.GetAllViews().Count);
+            } else {
+                Assert.AreEqual(0, database.GetAllViews().Count);
+            }
+
+            view.SetMap((doc, emit) =>
+            {
+                // no-op 
+            }, "1");
+
+            Assert.AreEqual(1, database.GetAllViews().Count);
+            Assert.AreEqual(view, database.GetAllViews()[0]);
+            view.Delete();
+            Assert.AreEqual(0, database.GetAllViews().Count);
+
+            var nullView = database.GetExistingView("viewToDelete");
+            Assert.IsNull(nullView);
+        }
+
+        [Test]
         public void TestQueryParams()
         {
             CreateDocuments(database, 50);
