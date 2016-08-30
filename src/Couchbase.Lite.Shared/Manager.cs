@@ -57,12 +57,13 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using ICSharpCode.SharpZipLib.Zip;
 using System.Reflection;
-using System.Net;
 
 #if !NET_3_5
 using StringEx = System.String;
+using System.Net;
 #else
 using Rackspace.Threading;
+using System.Net.Couchbase;
 #endif
 
 namespace Couchbase.Lite
