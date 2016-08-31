@@ -60,7 +60,6 @@ namespace Couchbase.Lite.Listener
 
         private static readonly RouteCollection _Post =
             new RouteCollection("POST", new Dictionary<string, RestMethod> {
-                { "/_replicate", ServerMethods.ManageReplicationSession },
                 { "/{[^_].*}/_revs_diff", DatabaseMethods.RevsDiff },
                 { "/{[^_].*}/_all_docs", DatabaseMethods.GetAllSpecifiedDocuments },
                 { "/{[^_].*}/_changes", DatabaseMethods.GetChangesPost },
@@ -71,6 +70,11 @@ namespace Couchbase.Lite.Listener
                 { "/{[^_].*}", DocumentMethods.CreateDocument }, //CouchDB does not have an equivalent for POST to _local
                 { "/_facebook_token", AuthenticationMethods.RegisterFacebookToken },
                 { "/_persona_assertion", AuthenticationMethods.RegisterPersonaToken }
+            });
+
+        private static readonly RouteCollection _PostPrivate =
+            new RouteCollection("POST", new Dictionary<string, RestMethod> {
+                { "/_replicate", ServerMethods.ManageReplicationSession }
             });
 
         private static readonly RouteCollection _Put =
@@ -101,6 +105,9 @@ namespace Couchbase.Lite.Listener
         // a method that only has GET)
         private static readonly RestMethod NOT_ALLOWED = 
             context => context.CreateResponse(StatusCode.MethodNotAllowed).AsDefaultState();
+
+        private static readonly RestMethod FORBIDDEN =
+            context => context.CreateResponse(StatusCode.Forbidden).AsDefaultState();
 
         #endregion
 
@@ -142,11 +149,20 @@ namespace Couchbase.Lite.Listener
                 }
             }
 
+            var c = context as ICouchbaseListenerContext2;
+            var allowPrivate = c != null && c.IsLoopbackRequest;
+
             RestMethod logic = null;
             if (method.Equals("GET") || method.Equals("HEAD")) {
                 logic = _Get.LogicForRequest(context.RequestUrl);
             } else if (method.Equals("POST")) {
                 logic = _Post.LogicForRequest(context.RequestUrl);
+                if(logic == RouteCollection.NOT_FOUND) {
+                    logic = _PostPrivate.LogicForRequest(context.RequestUrl);
+                    if (!allowPrivate && logic != RouteCollection.NOT_FOUND) {
+                        logic = FORBIDDEN;
+                    }
+                }
             } else if (method.Equals("PUT")) {
                 logic = _Put.LogicForRequest(context.RequestUrl);
             } else if (method.Equals("DELETE")) {
