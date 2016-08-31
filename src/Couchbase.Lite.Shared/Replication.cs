@@ -263,6 +263,8 @@ namespace Couchbase.Lite
         
         private readonly Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
         private HashSet<string> _pendingDocumentIDs;
+        private long _pendingDocumentIDsSequence;
+        private long _lastSequencePushed;
         private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
         private Guid _replicatorID = Guid.NewGuid();
         private DateTime _startTime;
@@ -754,37 +756,29 @@ namespace Couchbase.Lite
         /// <returns>The pending document IDs.</returns>
         public ICollection<string> GetPendingDocumentIDs()
         {
-            if (IsPull || (_stateMachine.State > ReplicationState.Initial && _pendingDocumentIDs != null)) {
-                return _pendingDocumentIDs;
+            if(IsPull) {
+                return null;
             }
 
-            var lastSequence = LastSequence;
-            if (lastSequence == null || lastSequence == "0") {
-                var checkpointID = RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
-                lastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointID);
-                if (lastSequence == null) {
-                    var doc = LocalDatabase.GetLocalCheckpointDoc();
-                    var importedUUID = doc == null ? null : doc.GetCast<string>(LOCAL_CHECKPOINT_LOCAL_UUID_KEY);
-                    if (importedUUID != null) {
-                        checkpointID = RemoteCheckpointDocID(importedUUID);
-                        lastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointID);
-                    }
+            if(_pendingDocumentIDs != null) {
+                if(_pendingDocumentIDsSequence == LocalDatabase.GetLastSequenceNumber()) {
+                    return _pendingDocumentIDs; // Still valid
                 }
+
+                _pendingDocumentIDs = null;
             }
 
-            if (!LocalDatabase.IsOpen) {
-                Log.To.Sync.W(Tag, "LocalDatabase is not open, so ruling Replication as stopped.  Returning empty pending ID set");
-                return new HashSet<string>();
+            var lastSequence = GetLastSequencePushed();
+            if(lastSequence < 0) {
+                return null;
             }
 
-            var revs = LocalDatabase.UnpushedRevisionsSince(lastSequence, LocalDatabase.GetFilter(Filter), FilterParams);
-            if (revs != null) {
-                _pendingDocumentIDs = new HashSet<string>(revs.GetAllDocIds());
-                return _pendingDocumentIDs;
-            }
+            var newPendingDocIDsSequence = LocalDatabase.GetLastSequenceNumber();
+            var revs = LocalDatabase.UnpushedRevisionsSince(lastSequence.ToString(), LocalDatabase.GetFilter(Filter), FilterParams);
 
-            Log.To.Sync.W(Tag, "Error getting unpushed revisions, returning empty set...");
-            return new HashSet<string>();
+            _pendingDocumentIDsSequence = newPendingDocIDsSequence;
+            _pendingDocumentIDs = new HashSet<string>(revs.Select(x => x.DocID));
+            return _pendingDocumentIDs;
         }
 
         /// <summary>
@@ -794,7 +788,31 @@ namespace Couchbase.Lite
         /// <param name="doc">The document to check.</param>
         public bool IsDocumentPending(Document doc)
         {
-            return doc != null && GetPendingDocumentIDs().Contains(doc.Id);
+            var lastSeq = GetLastSequencePushed();
+            if(lastSeq < 0) {
+                return false; // Error
+            }
+
+            var rev = doc.CurrentRevision;
+            var seq = rev.Sequence;
+            if(seq <= lastSeq) {
+                return false;
+            }
+
+            if(Filter != null) {
+                // Use _pendingDocumentIDs as a shortcut, if it's valid
+                if(_pendingDocumentIDs != null && _pendingDocumentIDsSequence == LocalDatabase.GetLastSequenceNumber()) {
+                    return _pendingDocumentIDs.Contains(doc.Id);
+                }
+
+                // Else run the filter on the doc
+                var filter = LocalDatabase.GetFilter(Filter);
+                if(filter != null && !filter(rev, FilterParams)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -886,6 +904,21 @@ namespace Couchbase.Lite
         internal void DeleteAllCookies()
         {
             _remoteSession.CookieStore.Delete(RemoteUrl);
+        }
+
+        internal long GetLastSequencePushed()
+        {
+            if(IsPull) {
+                return -1L;
+            }
+
+            if(_lastSequencePushed <= 0L) {
+                // If running replicator hasn't updated yet, fetch the checkpointed last sequence:
+                var lastSequence = LocalDatabase.LastSequenceWithCheckpointId(RemoteCheckpointDocID(LocalDatabase.PrivateUUID()));
+                _lastSequencePushed = lastSequence == null ? 0L : Int64.Parse(lastSequence);
+            }
+
+            return _lastSequencePushed;
         }
 
         /// <summary>
@@ -1850,9 +1883,13 @@ namespace Couchbase.Lite
                 CompletedChangesCount, ChangesCount,
                 _stateMachine.State, Batcher == null ? 0 : Batcher.Count(), _remoteSession.RequestCount);
 
-            _pendingDocumentIDs = null;
-            Username = (Authenticator as IAuthorizer)?.Username;
+            var lastSequencePushed = (IsPull && LastSequence == null) ? -1L : Int64.Parse(LastSequence);
+            if(_lastSequencePushed != lastSequencePushed) {
+                _lastSequencePushed = lastSequencePushed;
+                _pendingDocumentIDs = null;
+            }
 
+            Username = (Authenticator as IAuthorizer)?.Username;
             var evt = _changed;
             if (evt == null) {
                 return;
