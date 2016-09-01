@@ -1007,7 +1007,12 @@ namespace Couchbase.Lite.Storage.ForestDB
                         var body = doc->selectedRev.body;
                         if(body.size > 0) {
                             var rev = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(body);
-                            foreach(var entry in rev.Get("_attachments").AsDictionary<string, IDictionary<string, object>>()) {
+                            var attachments = rev.Get("_attachments").AsDictionary<string, IDictionary<string, object>>();
+                            if(attachments == null) {
+                                continue;
+                            }
+
+                            foreach(var entry in attachments) {
                                 try {
                                     var key = new BlobKey(entry.Value.GetCast<string>("digest"));
                                     keys.Add(key);

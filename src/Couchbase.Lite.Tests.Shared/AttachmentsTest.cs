@@ -58,6 +58,7 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
 using Couchbase.Lite.Revisions;
+using FluentAssertions;
 
 namespace Couchbase.Lite
 {
@@ -84,6 +85,61 @@ namespace Couchbase.Lite
             Assert.AreEqual(true, metadata["follows"]);
 
             CollectionAssert.AreEqual(data, attachment.ContentStream.ReadAllBytes());
+        }
+
+        [Test]
+        public void TestAttachmentSurvivesCompaction()
+        {
+            var doc = database.CreateDocument();
+            var unsaved = doc.CreateRevision();
+
+            var data = new byte[] { 0, 1, 2, 3, 4 };
+            unsaved.SetAttachment("attach", "type", data);
+            unsaved.SetUserProperties(new Dictionary<string, object> {
+                ["revision"] = 1
+            });
+            unsaved.Save();
+
+            doc = database.GetExistingDocument(doc.Id);
+            doc.Should().NotBeNull("because he document should have been saved");
+            doc.CurrentRevision.Attachments.Should().NotBeEmpty()
+                .And.HaveCount(1, "because only one attachment was specified");
+            doc.CurrentRevision.Attachments.First().Content.Should().BeEquivalentTo(data, "because that is the data that was saved");
+
+            doc.Update(rev =>
+            {
+                var props = rev.UserProperties;
+                props["revision"] = 2;
+                rev.SetUserProperties(props);
+                return true;
+            });
+
+            database.Compact();
+            doc.CurrentRevision.Attachments.Should().NotBeEmpty()
+                .And.HaveCount(1, "because the attachment is still valid");
+            doc.CurrentRevision.Attachments.First().Content.Should().BeEquivalentTo(data, "because the attachment should still be readable");
+
+            database.Close();
+            database = manager.GetDatabase(database.Name);
+
+            doc = database.GetExistingDocument(doc.Id);
+            doc.Should().NotBeNull();
+            doc.CurrentRevision.Attachments.Should().NotBeEmpty()
+             .And.HaveCount(1, "because the attachment is still valid");
+            doc.CurrentRevision.Attachments.First().Content.Should().BeEquivalentTo(data, "because the attachment should still be readable");
+
+            doc.Update(rev =>
+            {
+                rev.RemoveAttachment("attach");
+                return true;
+            });
+
+            doc.CurrentRevision.Attachments.Should().BeEmpty("because we removed the attachment from the revision");
+            Directory.GetFiles(database.AttachmentStorePath).Should().NotBeEmpty()
+                .And.HaveCount(1, "because the database has not been compacted yet");
+
+            database.Compact();
+            Directory.GetFiles(database.AttachmentStorePath).Should().BeEmpty("because the database was compacted");
         }
 
         [Test(Description = "For issue 666")]
