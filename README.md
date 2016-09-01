@@ -17,12 +17,11 @@ These are the packages that are created by this repo:  [Couchbase.Lite](https://
 
 ## Building Couchbase Lite master branch from source
 
-Please use `git` to clone the repo, rather than downloading it from a zip file.  This ensures two things:  that I will always know by looking at the logs which git commit you built your source from if you file a bug report, and that you will be able to pull the appropriate submodules if you are targeting .NET 3.5 or Unity.  After you clone the repo, or change branches, be sure to update the submodules with this command `git submodule update --init --recursive`
+Please use `git` to clone the repo, rather than downloading it from a zip file.  This ensures two things:  that I will always know by looking at the logs which git commit you built your source from if you file a bug report, and that you will be able to pull the appropriate submodules.  After you clone the repo, or change branches, be sure to update the submodules with this command `git submodule update --init --recursive`
 
 You can build Couchbase Lite using either of the following:
 
-* Visual Studio 2013 Pro, Premium, or Ultimate, Update 2 or later.
-    * Must also have the [Shared Project Reference Manager](https://visualstudiogallery.msdn.microsoft.com/315c13a7-2787-4f57-bdf7-adae6ed54450) extension.
+* Visual Studio 2015 Pro, Premium, or Ultimate or later.
 * Xamarin Studio 5 or later.
 
 There are solution files per platform and the projects included can be identified in the following way:
@@ -31,12 +30,14 @@ There are solution files per platform and the projects included can be identifie
 
 \<Name> is one of the following:
 
-* Couchbase.Lite - The core Couchbase Lite library
-* Couchbase.Lite.Listener - The Couchbase Lite P2P REST API server implementation
-* Couchbase.Lite.Listener.Bonjour - The optional Bonjour service discover mechanism for P2P
-* storage.systemsqlite - Couchbase Lite system SQLite storage engine
-* storage.sqlcipher - Couchbase Lite SQLCipher storage engine
-* storage.forestdb - Couchbase Lite ForestDB storage engine
+* Couchbase.Lite - The core Couchbase Lite library (required)
+* Couchbase.Lite.Listener - The Couchbase Lite P2P REST API server implementation (optional)
+* Couchbase.Lite.Listener.Bonjour - The optional Bonjour service discover mechanism for P2P (optional)
+* storage.systemsqlite - Couchbase Lite system SQLite storage engine (optional*)
+* storage.sqlcipher - Couchbase Lite SQLCipher storage engine (optional*)
+* storage.forestdb - Couchbase Lite ForestDB storage engine (optional*)
+
+\* You must have at least one of these, and it must be [properly registered at runtime](Notes/StorageEngineOverview.md)
 
 \<Platform> is one of the following:
 
@@ -48,9 +49,11 @@ There are solution files per platform and the projects included can be identifie
 * UnityAndroid - Unity Android Player
 * UnityApple - Unity iOS and OS X Standalone
 
+If you simply build the solution file that will cause a build of *all* projects by default.  You can change which projects get built in the solution options of Xamarin Studio, or the Configuration Manager of Visual Studio.  Alternatively, you could build the projects you want instead of the whole solution.  
+
 Note that the Unity project needs rebasing, and likely does not build correctly on master.  There is a release/unity-ga branch currently tracking the state of Unity.  So far this has not been an issue, but I'd like to wait for Unity to upgrade their .NET runtime before attempting a rebase.  This will allow the removal of ***a lot*** of cruft code around ancient .NET profiles.  To build any of the Unity projects you must supply the UnityEngine.dll file to the project.  If your Unity install is in the default location, then the project will copy it as part of the build.  Otherwise, it needs to go in the src/Couchbase.Lite.Unity/vendor/Unity folder.  If you can't build the project then file an issue here.
 
-ForestDB requires native components to be built for each platform you want to target.  Those need to be put in `src/Couchbase.Lite.Shared/vendor/cbforest/prebuilt`.  You can either download the binaries from a GitHub release page (starting with 1.2) or build them yourself.  Building instructions can be found [here](https://github.com/couchbaselabs/cbforest/blob/release/1.2-net/CSharp/README.md).
+ForestDB requires native components to be built for each platform you want to target.  Those need to be put in `src/Couchbase.Lite.Shared/vendor/cbforest/prebuilt`.  You can either download the binaries from a GitHub release page (starting with 1.2) or build them yourself.  Building instructions can be found [here](https://github.com/couchbaselabs/cbforest/blob/1.3-net/CSharp/README.md).
 
 ## Other Notes
 
