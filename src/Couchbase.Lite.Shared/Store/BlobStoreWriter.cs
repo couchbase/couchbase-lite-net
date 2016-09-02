@@ -204,7 +204,7 @@ namespace Couchbase.Lite
             }
 
             // Move temp file to correct location in blob store:
-            string destPath = store.PathForKey(blobKey);
+            string destPath = store.RawPathForKey(blobKey);
             try {
                 File.Move(tempFile, destPath);
             } catch(Exception) {

@@ -224,7 +224,7 @@ namespace Couchbase.Lite
             Assert.IsNotNull(digest);
             var attKey = default(BlobKey);
             Assert.DoesNotThrow(() => attKey = new BlobKey(digest));
-            var path = seekrit.Attachments.PathForKey(attKey);
+            var path = seekrit.Attachments.RawPathForKey(attKey);
             var raw = File.ReadAllBytes(path);
             Assert.IsNotNull(raw);
             Assert.AreNotEqual(raw, body, "Oops, attachment was not encrypted");

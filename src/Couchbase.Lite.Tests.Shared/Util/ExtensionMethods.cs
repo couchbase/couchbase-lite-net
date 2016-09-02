@@ -42,7 +42,9 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 #if !NET_3_5
@@ -53,6 +55,48 @@ namespace Couchbase.Lite.Tests
 {
     public static class ExtensionMethods
     {
+        static readonly int[] Empty = new int[0];
+
+        // Adapted from http://stackoverflow.com/a/283648/1155387
+        public static int Locate(this IEnumerable<byte> self, IEnumerable<byte> candidate)
+        {
+            var s = self.ToArray();
+            var c = candidate.ToArray();
+            if(IsEmptyLocate(s, c))
+                return -1;
+
+            var list = new List<int>();
+
+            for(int i = 0; i < s.Length; i++) {
+                if(!IsMatch(s, i, c))
+                    continue;
+
+                return i;
+            }
+
+            return -1;
+        }
+
+        static bool IsMatch(byte[] array, int position, byte[] candidate)
+        {
+            if(candidate.Length > (array.Length - position))
+                return false;
+
+            for(int i = 0; i < candidate.Length; i++)
+                if(array[position + i] != candidate[i])
+                    return false;
+
+            return true;
+        }
+
+        static bool IsEmptyLocate(byte[] array, byte[] candidate)
+        {
+            return array == null
+                || candidate == null
+                || array.Length == 0
+                || candidate.Length == 0
+                || candidate.Length > array.Length;
+        }
         public static void Load(this Hashtable props, System.IO.Stream stream)
         {
             if (stream == null) {

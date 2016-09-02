@@ -1567,7 +1567,7 @@ namespace Couchbase.Lite
             } else {
                 // If it's an installed attachment, ask the blob-store for it:
                 var key = new BlobKey(digest);
-                path = Attachments.PathForKey(key);
+                path = Attachments.RawPathForKey(key);
             }
 
             Uri retVal = null;
