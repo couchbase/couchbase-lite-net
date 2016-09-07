@@ -46,6 +46,22 @@ namespace Couchbase.Lite.Util
         public byte[] machine;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct SYSTEM_INFO
+    {
+        public short wProcessorArchitecture;
+        public short wReserved;
+        public int dwPageSize;
+        public IntPtr lpMinimumApplicationAddress;
+        public IntPtr lpMaximumApplicationAddress;
+        public IntPtr dwActiveProcessorMask;
+        public int dwNumberOfProcessors;
+        public int dwProcessorType;
+        public int dwAllocationGranularity;
+        public short wProcessorLevel;
+        public short wProcessorRevision;
+    }
+
     #if __IOS__
     // Based on https://github.com/dannycabrera/Get-iOS-Model/blob/master/iOSHardware.cs
     internal static class iOSHardware
@@ -458,9 +474,13 @@ namespace Couchbase.Lite.Util
 
         private static string GetWindowsName()
         {
+            if(Type.GetType("Mono.Runtime") != null) {
+                return $"Mono on Windows ({Environment.OSVersion.VersionString})";
+            } 
+
             string result = string.Empty;
-            using (var searcher = new System.Management.ManagementObjectSearcher("SELECT Caption FROM Win32_OperatingSystem")) {
-                foreach (var os in searcher.Get()) {
+            using(var searcher = new System.Management.ManagementObjectSearcher("SELECT Caption FROM Win32_OperatingSystem")) {
+                foreach(var os in searcher.Get()) {
                     result = os["Caption"].ToString();
                     break;
                 }
@@ -470,28 +490,24 @@ namespace Couchbase.Lite.Util
 
         private static string GetWindowsArchitecture()
         {
-            string result = string.Empty;
-            using (var searcher = new System.Management.ManagementObjectSearcher("SELECT Architecture FROM Win32_Processor")) {
-                foreach (var cpu in searcher.Get()) {
-                    var type = (ushort)cpu["Architecture"];
-                    switch (type) {
-                        case 0:
-                            result = "x86";
-                            break;
-                        case 5:
-                            result = "ARM";
-                            break;
-                        case 9:
-                            result = "x86_64";
-                            break;
-                        default:
-                            result = String.Format("Rare ({0})", type);
-                            break;
-                    }
+            SYSTEM_INFO si = new SYSTEM_INFO();
+            GetNativeSystemInfo(ref si);
+            switch (si.wProcessorArchitecture)
+            {
+                case PROCESSOR_ARCHITECTURE_AMD64:
+                    return "x64";
 
-                    break;
-                }
-                return result;
+                case PROCESSOR_ARCHITECTURE_IA64:
+                    return "IA-64";
+
+                case PROCESSOR_ARCHITECTURE_INTEL:
+                    return "x86";
+
+                case PROCESSOR_ARCHITECTURE_ARM:
+                    return "ARM";
+
+                default:
+                    return $"Unknown ({si.wProcessorArchitecture})"; // that's weird :-)
             }
         }
 
@@ -539,6 +555,14 @@ namespace Couchbase.Lite.Util
 
         [DllImport("libc")]
         private static extern int uname(ref utsname buf);
+
+        [DllImport("kernel32.dll")]
+        private static extern void GetNativeSystemInfo(ref SYSTEM_INFO lpSystemInfo);
+
+        private const int PROCESSOR_ARCHITECTURE_AMD64 = 9;
+        private const int PROCESSOR_ARCHITECTURE_IA64 = 6;
+        private const int PROCESSOR_ARCHITECTURE_ARM = 5;
+        private const int PROCESSOR_ARCHITECTURE_INTEL = 0;
     }
 }
    
