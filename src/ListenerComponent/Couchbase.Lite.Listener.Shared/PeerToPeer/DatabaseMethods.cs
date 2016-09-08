@@ -332,7 +332,8 @@ namespace Couchbase.Lite.Listener
                     Status status = new Status();
                     responseState.ChangesFilter = db.GetFilter(filterName, status);
                     if(responseState.ChangesFilter == null) {
-                        return context.CreateResponse(status.Code);
+                        var code = Database.FilterCompiler == null ? StatusCode.NotImplemented : StatusCode.NotFound;
+                        return context.CreateResponse(code);
                     }
 
                     responseState.FilterParams = context.GetQueryParams();

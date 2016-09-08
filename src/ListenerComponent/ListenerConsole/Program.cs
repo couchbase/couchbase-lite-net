@@ -63,6 +63,7 @@ namespace Listener
             var revsLimit = 0;
 
             View.Compiler = new JSViewCompiler();
+            Database.FilterCompiler = new JSFilterCompiler();
 
             var options = new OptionSet {
                 { "dir=", "Specifies an alternate directory to store databases in", v => alternateDir = v },

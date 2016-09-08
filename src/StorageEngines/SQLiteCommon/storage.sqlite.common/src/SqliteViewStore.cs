@@ -667,7 +667,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                                     view.DeleteIndex();
                                     view.CreateIndex();
-                                } catch (Exception) {
+                                } catch(SQLitePCL.Ugly.ugly.sqlite3_exception e) {
+                                    if(e.errcode == raw.SQLITE_MISUSE) {
+                                        // Somehow, the maps table does not exist
+                                        Log.To.View.I(Tag, "Maps table for view does not exist, trying to recover by creating it...");
+                                        view.CreateIndex();
+                                    } else {
+                                        ok = false;
+                                    }
+                                } 
+                                catch (Exception) {
                                     ok = false;
                                 }
                             } else {
