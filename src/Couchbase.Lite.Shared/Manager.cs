@@ -966,7 +966,7 @@ namespace Couchbase.Lite
             }
 
             if (results.ContainsKey("headers")) {
-                results["headers"] = remoteDict.Get("headers");
+                results["headers"] = remoteDict.Get("headers") ?? new Dictionary<string, string>();
             }
 
             if (results.ContainsKey("authorizer")) {
