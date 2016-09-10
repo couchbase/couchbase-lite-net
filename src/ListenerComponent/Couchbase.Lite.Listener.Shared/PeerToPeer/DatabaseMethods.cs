@@ -240,6 +240,8 @@ namespace Couchbase.Lite.Listener
                                 rev = new RevisionInternal(body);
                                 var history = Database.ParseCouchDBRevisionHistory(doc);
                                 try {
+                                    Log.To.Router.I(TAG, "Inserting revision {0} from _bulk_docs", rev);
+                                    Log.To.Router.V(TAG, "With history {0}", new LogJsonString(history));
                                     db.ForceInsert(rev, history, source);
                                 } catch(CouchbaseLiteException e) {
                                     status = e.Code;

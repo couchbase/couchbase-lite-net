@@ -130,7 +130,7 @@ namespace Couchbase.Lite.Listener
         /// request</param>
         public void HandleRequest(ICouchbaseListenerContext context)
         {
-            Log.To.Router.I(TAG, "Processing {0} request to {1}", context.Method, context.RequestUrl.AbsoluteUri);
+            Log.To.Router.I(TAG, "Processing {0} request to {1}", context.Method, context.RequestUrl.PathAndQuery);
             var method = context.Method;
 
             if (OnAccessCheck != null) {
@@ -215,7 +215,7 @@ namespace Couchbase.Lite.Listener
                     responseObject.WriteHeaders();
                     Log.To.Router.V(TAG, "Writing body...");
                     responseObject.WriteToContext();
-                    Log.To.Router.I(TAG, "Response successfully processed!");
+                    Log.To.Router.I(TAG, "{0} {1} => {2} ({3})", context.Method, context.RequestUrl.PathAndQuery, responseObject.Status, responseObject.StatusMessage);
                 } catch(Exception e) {
                     Log.To.Router.E(TAG, "Exception writing response", e);
                     responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();
