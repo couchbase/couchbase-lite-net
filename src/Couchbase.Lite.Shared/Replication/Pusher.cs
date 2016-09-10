@@ -469,7 +469,7 @@ namespace Couchbase.Lite.Replicator
                             "Unable to load revision body");
                     }
 
-                    properties = new Dictionary<string, object>(rev.GetProperties());
+                    properties = rev.GetProperties();
                 } catch (Exception e1) {
                     Log.To.Sync.E(TAG, String.Format("Couldn't get local contents of {0}, marking revision failed",
                         rev), e1);

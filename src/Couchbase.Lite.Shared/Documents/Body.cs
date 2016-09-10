@@ -47,6 +47,7 @@ using System.Linq;
 using System.Text;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Revisions;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -66,6 +67,7 @@ namespace Couchbase.Lite
 
         private byte[] _json;
         private object _jsonObject;
+        private ReaderWriterLock _lock = new ReaderWriterLock();
 
         #endregion
 
@@ -208,8 +210,12 @@ namespace Couchbase.Lite
         /// <returns>The properties contained in the object</returns>
         public IDictionary<string, object> GetProperties()
         {
-            var currentObj = AsObject();
-            return currentObj.AsDictionary<string, object>();
+            try {
+                _lock.AcquireReaderLock(5000);
+                return new Dictionary<string, object>(AsDictionary());
+            } finally {
+                _lock.ReleaseReaderLock();
+            }
         }
 
         /// <summary>
@@ -229,12 +235,17 @@ namespace Couchbase.Lite
         /// <param name="key">Key.</param>
         public object GetPropertyForKey(string key)
         {
-            IDictionary<string, object> theProperties = GetProperties();
-            if (theProperties == null) {
-                return null;
-            }
+            try {
+                _lock.AcquireReaderLock(5000);
+                IDictionary<string, object> theProperties = AsDictionary();
+                if(theProperties == null) {
+                    return null;
+                }
 
-            return theProperties.Get(key);
+                return theProperties.Get(key);
+            } finally {
+                _lock.ReleaseReaderLock();
+            }
         }
 
         /// <summary>
@@ -246,12 +257,17 @@ namespace Couchbase.Lite
         /// <typeparam name="T">The type to cast to</typeparam>
         public T GetPropertyForKey<T>(string key, T defaultVal = default(T))
         {
-            IDictionary<string, object> theProperties = GetProperties();
-            if (theProperties == null) {
-                return defaultVal;
-            }
+            try {
+                _lock.AcquireReaderLock(5000);
+                IDictionary<string, object> theProperties = AsDictionary();
+                if(theProperties == null) {
+                    return defaultVal;
+                }
 
-            return theProperties.GetCast<T>(key, defaultVal);
+                return theProperties.GetCast<T>(key, defaultVal);
+            } finally {
+                _lock.ReleaseReaderLock();
+            }
         }
 
         /// <summary>
@@ -263,18 +279,23 @@ namespace Couchbase.Lite
         /// <typeparam name="T">The type to cast to</typeparam>
         public bool TryGetPropertyForKey<T>(string key, out T val)
         {
-            val = default(T);
-            IDictionary<string, object> theProperties = GetProperties();
-            if (theProperties == null) {
-                return false;
-            }
+            try {
+                _lock.AcquireReaderLock(5000);
+                val = default(T);
+                IDictionary<string, object> theProperties = GetProperties();
+                if(theProperties == null) {
+                    return false;
+                }
 
-            object valueObj;
-            if (!theProperties.TryGetValue(key, out valueObj)) {
-                return false;
-            }
+                object valueObj;
+                if(!theProperties.TryGetValue(key, out valueObj)) {
+                    return false;
+                }
 
-            return ExtensionMethods.TryCast<T>(valueObj, out val);
+                return ExtensionMethods.TryCast<T>(valueObj, out val);
+            } finally {
+                _lock.ReleaseReaderLock();
+            }
         }
 
         /// <summary>
@@ -284,18 +305,28 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set.</param>
         public void SetPropertyForKey(string key, object value)
         {
-            IDictionary<string, object> theProperties = GetProperties();
-            if (theProperties == null) {
-                Log.To.NoDomain.E(Tag, "{0} unable to parse properties, throwing...", this);
-                throw new InvalidDataException("Cannot parse body properties");
-            }
+            try {
+                _lock.AcquireWriterLock(10000);
+                IDictionary<string, object> theProperties = AsDictionary();
+                if(theProperties == null) {
+                    Log.To.NoDomain.E(Tag, "{0} unable to parse properties, throwing...", this);
+                    throw new InvalidDataException("Cannot parse body properties");
+                }
 
-            theProperties[key] = value;
+                theProperties[key] = value;
+            } finally {
+                _lock.ReleaseWriterLock();
+            }
         }
 
         #endregion
 
         #region Private Methods
+
+        private IDictionary<string, object> AsDictionary()
+        {
+            return AsObject().AsDictionary<string, object>();
+        }
 
         // Attempt to serialize _jsonObject
         private void LazyLoadJsonFromObject()
