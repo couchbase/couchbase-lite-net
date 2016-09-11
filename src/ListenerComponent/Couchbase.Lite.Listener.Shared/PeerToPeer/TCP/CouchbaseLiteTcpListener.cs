@@ -184,8 +184,14 @@ namespace Couchbase.Lite.Listener.Tcp
             var isLocal = System.Net.IPAddress.IsLoopback(context.Request.RemoteEndPoint.Address) ||
                           context.Request.LocalEndPoint == context.Request.RemoteEndPoint;
 
-            Log.To.Listener.I(TAG, "Received new {0} {1} connection", 
-                _usesTLS ? "secure" : "plain", isLocal ? "local" : "remote");
+            if(isLocal) {
+                Log.To.Listener.I(TAG, "Received new {0} local connection",
+                    _usesTLS ? "secure" : "plain");
+            } else {
+                Log.To.Listener.I(TAG, "Received new {0} remote connection from {1}",
+                    _usesTLS ? "secure" : "plain", context.Request.RemoteEndPoint.Address);
+            }
+
             var getContext = Task.Factory.FromAsync<HttpListenerContext>(_listener.BeginGetContext, _listener.EndGetContext, null);
             getContext.ContinueWith(t => ProcessRequest(t.Result));
 

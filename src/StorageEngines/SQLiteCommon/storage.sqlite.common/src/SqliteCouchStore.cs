@@ -1959,7 +1959,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 // Delete the deepest revs in the tree to enforce the MaxRevTreeDepth:
-                if (inRev.Generation > MaxRevTreeDepth) {
+                if (localRevs != null && inRev.Generation > MaxRevTreeDepth) {
                     int minGen = rev.Generation, maxGen = rev.Generation;
                     foreach (var innerRev in localRevs.Values) {
                         var generation = innerRev.Generation;

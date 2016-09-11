@@ -235,7 +235,9 @@ namespace Couchbase.Lite.Listener
                     var source = (castContext != null && !castContext.IsLoopbackRequest) ? castContext.Sender : null;
 
                     try {
-                      db.ForceInsert(rev, history, source);
+                        Log.To.Router.I(TAG, "Force inserting {0}", rev);
+                        Log.To.Router.V(TAG, "With history {0}", new LogJsonString(history));
+                        db.ForceInsert(rev, history, source);
                     } catch(CouchbaseLiteException e) {
                         status = e.CBLStatus;
                     }
@@ -353,8 +355,10 @@ namespace Couchbase.Lite.Listener
                         return StatusCode.BadRequest;
                     }
 
+                    Log.To.Router.I(TAG, "Attempting to insert local {0} on top of {1} from PUT request", rev, prevRevId != null ? prevRevId.ToString() : "<root>");
                     outRev = db.Storage.PutLocalRevision(rev, prevRevId.AsRevID(), true); //TODO: Doesn't match iOS
                 } else {
+                    Log.To.Router.I(TAG, "Attempting to insert {0} on top of {1} from PUT request", rev, prevRevId != null ? prevRevId.ToString() : "<root>");
                     outRev = db.PutRevision(rev, prevRevId.AsRevID(), allowConflict, source);
                     if(hasValue) {
                         db.Storage?.SetDocumentExpiration(rev.DocID, expirationTime);
