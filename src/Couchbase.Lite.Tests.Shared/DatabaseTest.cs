@@ -65,6 +65,28 @@ namespace Couchbase.Lite
         public DatabaseTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestRollbackInvalidatesCache()
+        {
+            var props = new Dictionary<string, object> {
+                ["exists"] = false
+            };
+
+            database.RunInTransaction (() => {
+                database.GetDocument ("rogue").PutProperties (props);
+                return false; // Cancel the transaction
+            });
+
+            props ["exists"] = true;
+            var rev = database.GetDocument ("proper").PutProperties (props);
+
+            Assert.IsNull (database.GetExistingDocument ("rogue"));
+            Assert.AreEqual (1, rev.Sequence);
+
+            rev = database.GetDocument ("rogue").PutProperties (props);
+            Assert.AreEqual (2, rev.Sequence);
+        }
+
+        [Test]
         public void TestFindMissingRevisions()
         {
             var revs = new RevisionList();

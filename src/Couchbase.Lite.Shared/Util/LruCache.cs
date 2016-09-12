@@ -101,6 +101,7 @@ namespace Couchbase.Lite.Util
                 _recents.Clear();
                 _allValues.Clear();
                 _nodes.Clear();
+                Size = 0;
             }
             Log.To.NoDomain.D(Tag, "Exited lock in Clear");
         }
