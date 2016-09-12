@@ -937,6 +937,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public bool RunInTransaction(RunInTransactionDelegate block)
         {
             var retVal = StorageEngine.RunInTransaction(block);
+            if(!retVal) {
+                _docIDs.Clear(); // State of DB unknown, cache is now invalid
+            }
+
             if (!StorageEngine.InTransaction) {
                 Delegate?.StorageExitedTransaction(retVal);
             }
