@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Net;
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite.Util
 {
@@ -39,7 +40,7 @@ namespace Couchbase.Lite.Util
             if (!request.IsFaulted) 
             {
                 var response = request.Result;
-                if (executor.CanContinue && Misc.IsTransientError(response)) {
+                if (executor.CanContinue && ExceptionResolver.IsTransientError(response)) {
                     Log.To.Sync.V(Tag, "Retrying after transient error...");
                     return executor.Retry();
                 }
@@ -67,10 +68,12 @@ namespace Couchbase.Lite.Util
                 return request;
             }
 
-            string statusCode;
-            if (!Misc.IsTransientNetworkError(request.Exception, out statusCode) || !executor.CanContinue)
-            {
-                if (!executor.CanContinue) {
+            var resolution = ExceptionResolver.Solve(request.Exception, new ExceptionResolverOptions {
+                HasRetries = executor.CanContinue
+            });
+
+            if(resolution.Resolution == ErrorResolution.Stop) {
+                if(resolution.ResolutionFlags.HasFlag(ErrorResolutionFlags.OutOfRetries)) {
                     Log.To.Sync.V(Tag, "Out of retries for error, throwing", request.Exception);
                 } else {
                     Log.To.Sync.V(Tag, "Non transient error received (status), throwing", request.Exception);
@@ -79,8 +82,7 @@ namespace Couchbase.Lite.Util
                 // If it's not transient, pass the exception along
                 // for any other handlers to respond to.
                 throw request.Exception;
-            }
-
+            } 
 
             // Retry again.
             Log.To.Sync.V(Tag, "Retrying after transient error...");

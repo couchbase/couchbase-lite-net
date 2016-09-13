@@ -103,15 +103,19 @@ namespace Couchbase.Lite.Internal
                 if (args.Code == (ushort)CloseStatusCode.ProtocolError) {
                     // This is not a valid web socket connection, need to fall back to regular HTTP
                     CanConnect = false;
-                    Stopped();
+                    Stopped(ErrorResolution.RetryNow);
                 } else {
-                    Log.To.ChangeTracker.I(Tag, "{0} remote {1} closed connection ({2} {3})",
-                        this, args.WasClean ? "cleanly" : "forcibly", args.Code, args.Reason);
-                    Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => _client?.ConnectAsync());
+                    if(Backoff.CanContinue) {
+                        Log.To.ChangeTracker.I(Tag, "{0} remote {1} closed connection ({2} {3})",
+                            this, args.WasClean ? "cleanly" : "forcibly", args.Code, args.Reason);
+                        Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => _client?.ConnectAsync());
+                    } else {
+                        Stopped(ErrorResolution.RetryLater);
+                    }
                 }
             } else {
                 Log.To.ChangeTracker.I(Tag, "{0} is closed", this);
-                Stopped();
+                Stopped(ErrorResolution.Stop);
             }
         }
 
@@ -238,7 +242,7 @@ namespace Couchbase.Lite.Internal
             return true;
         }
 
-        public override void Stop()
+        public override void Stop(object resolutionWrapper)
         {
             if (!IsRunning) {
                 return;
@@ -252,9 +256,9 @@ namespace Couchbase.Lite.Internal
             });
         }
 
-        protected override void Stopped()
+        protected override void Stopped(ErrorResolution resolution)
         {
-            Client?.ChangeTrackerStopped(this);
+            Client?.ChangeTrackerStopped(this, resolution);
             Misc.SafeDispose(ref _responseLogic);
         }
 

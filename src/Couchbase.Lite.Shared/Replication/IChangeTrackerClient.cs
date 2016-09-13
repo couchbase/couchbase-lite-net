@@ -57,7 +57,7 @@ namespace Couchbase.Lite.Internal
         CouchbaseLiteHttpClient GetHttpClient();
         CookieContainer GetCookieStore();
         void ChangeTrackerReceivedChange(IDictionary<string, object> change);
-        void ChangeTrackerStopped(ChangeTracker tracker);
+        void ChangeTrackerStopped(ChangeTracker tracker, ErrorResolution resolution);
         void ChangeTrackerCaughtUp(ChangeTracker tracker);
         void ChangeTrackerFinished(ChangeTracker tracker);
     }
