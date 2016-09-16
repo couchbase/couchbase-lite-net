@@ -26,6 +26,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Couchbase.Lite.Util;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -42,6 +43,12 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class CompressedContent : HttpContent
     {
+
+        #region Constants
+
+        private static readonly string Tag = typeof(CompressedContent).Name;
+
+        #endregion
 
         #region Variables
 
@@ -60,10 +67,12 @@ namespace Couchbase.Lite
         public CompressedContent(HttpContent content, string encodingType)
         {
             if (content == null) {
+                Log.To.Sync.E(Tag, "content cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("content");
             }
 
             if (encodingType == null) {
+                Log.To.Sync.E(Tag, "encodingType cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("encodingType");
             }
 
@@ -71,7 +80,9 @@ namespace Couchbase.Lite
             this.encodingType = encodingType.ToLowerInvariant();
 
             if (this.encodingType != "gzip" && this.encodingType != "deflate") {
-                throw new InvalidOperationException(string.Format("Encoding '{0}' is not supported. Only supports gzip or deflate encoding.", this.encodingType));
+                Log.To.Sync.E(Tag, "Encoding '{0}' is not supported. Only supports gzip or deflate encoding, throwing...",
+                    encodingType);
+                throw new ArgumentException("Unsupported encoding", "encodingType");
             }
 
             foreach (KeyValuePair<string, IEnumerable<string>> header in originalContent.Headers) {

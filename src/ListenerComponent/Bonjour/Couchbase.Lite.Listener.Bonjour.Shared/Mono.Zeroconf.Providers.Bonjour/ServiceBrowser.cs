@@ -42,13 +42,13 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
-
-using Couchbase.Lite.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Runtime.InteropServices;
+
+using Couchbase.Lite.Util;
 
 #if __IOS__
 using AOT = ObjCRuntime;
@@ -74,7 +74,9 @@ namespace Mono.Zeroconf.Providers.Bonjour
     {
         private const string TAG = "ServiceBrowser";
 
+        #if __UNITY_ANDROID__
         private static ManualResetEventSlim _primedEvent = new ManualResetEventSlim();
+        #endif
 
         private uint interface_index;
         private AddressProtocol address_protocol;
@@ -158,6 +160,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             this.domain = domain;
             
             if(regtype == null) {
+                Log.To.Discovery.E(TAG, "regtype cannot be null in Configure, throwing...");
                 throw new ArgumentNullException("regtype");
             }
         }
@@ -165,6 +168,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         private void Start(bool @async)
         {
             if(thread != null) {
+                Log.To.Discovery.E(TAG, "Attempt to call start on an already started object, throwing...");
                 throw new InvalidOperationException("ServiceBrowser is already started");
             }
             
@@ -193,7 +197,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 ProcessStart();
             } catch(ThreadAbortException) {
                 Thread.ResetAbort();
-                Log.D("ServiceBrowser", "Browser thread ended");
+                Log.To.Discovery.I(TAG, "Finished");
             }
             
             thread = null;
@@ -204,10 +208,11 @@ namespace Mono.Zeroconf.Providers.Bonjour
             _self = GCHandle.Alloc(this);
             ServiceError error = ServiceError.NoError;
             try {
+                Log.To.Discovery.V(TAG, "{0} Preparing to enter DNSServiceBrowse");
                 error = Native.DNSServiceBrowse(out sd_ref, ServiceFlags.Default,
                     interface_index, regtype, domain, browse_reply_handler, GCHandle.ToIntPtr(_self));
             } catch (DllNotFoundException) {
-                Log.E(TAG, "Unable to find required DLL file:  dnssd.dll\n" +
+                Log.To.Discovery.E(TAG, "Unable to find required DLL file:  dnssd.dll\n" +
                     "(Windows -> Is Bonjour installed?)\n" +
                     "(Linux -> Are the network support files in place?)\n" +
                     "(Others -> Is a dll.config file included?)");
@@ -216,7 +221,9 @@ namespace Mono.Zeroconf.Providers.Bonjour
 
             if(error != ServiceError.NoError) {
                 if ((int)error == -65563) {
-                    Log.E(TAG, "mDNS daemon not started");
+                    Log.To.Discovery.E(TAG, "mDNS daemon not started, throwing...");
+                } else {
+                    Log.To.Discovery.E(TAG, "Got error in DNSServiceBrowse ({0}), throwing...", error);
                 }
 
                 throw new ServiceErrorException(error);
@@ -228,14 +235,14 @@ namespace Mono.Zeroconf.Providers.Bonjour
         public void Stop()
         {
             _self.Free();
-            if(sd_ref != ServiceRef.Zero) {
-                sd_ref.Deallocate();
-                sd_ref = ServiceRef.Zero;
-            }
-
             if(thread != null) {
                 thread.Abort();
                 thread = null;
+            }
+
+            if(sd_ref != ServiceRef.Zero) {
+                sd_ref.Deallocate();
+                sd_ref = ServiceRef.Zero;
             }
         }
         
@@ -273,6 +280,9 @@ namespace Mono.Zeroconf.Providers.Bonjour
             service.ReplyDomain = replyDomain;
             service.InterfaceIndex = interfaceIndex;
             service.AddressProtocol = serviceBrowser.address_protocol;
+
+            Log.To.Discovery.V(TAG, "{0} (0x{1}) entered OnBrowseReply (found={2} flags={3})", 
+                serviceBrowser, sdRef.Raw.ToString("X"), service, flags);
             
             ServiceBrowseEventArgs args = new ServiceBrowseEventArgs(
                 service, (flags & ServiceFlags.MoreComing) != 0);
@@ -304,6 +314,11 @@ namespace Mono.Zeroconf.Providers.Bonjour
 
                 service.Dispose();
             }
+        }
+
+        public override string ToString()
+        {
+            return string.Format("ServiceBrowser[Type={0} Domain={1}]", regtype, domain);
         }
     }
 }

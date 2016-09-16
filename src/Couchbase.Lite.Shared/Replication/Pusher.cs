@@ -53,9 +53,9 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -69,6 +69,8 @@ namespace Couchbase.Lite.Replicator
         #region Constants
 
         private const string TAG = "Pusher";
+        private const int EphemeralPurgeBatchSize = 100;
+        private static readonly TimeSpan EphemeralPurgeDelay = TimeSpan.FromSeconds(1);
 
         #endregion
 
@@ -80,6 +82,7 @@ namespace Couchbase.Lite.Replicator
         private FilterDelegate _filter;
         private SortedDictionary<long, int> _pendingSequences;
         private long _maxPendingSequence;
+        private Batcher<RevisionInternal> _purgeQueue;
 
         #endregion
 
@@ -93,6 +96,7 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
+        //TODO: Why isn't this used?
         private bool CanSendCompressedRequests
         {
             get {
@@ -129,7 +133,7 @@ namespace Couchbase.Lite.Replicator
         /// <returns>The common ancestor.</returns>
         /// <param name="rev">Rev.</param>
         /// <param name="possibleRevIDs">Possible rev I ds.</param>
-        internal static int FindCommonAncestor(RevisionInternal rev, IList<string> possibleRevIDs)
+        internal static int FindCommonAncestor(RevisionInternal rev, IList<RevisionID> possibleRevIDs)
         {
             if (possibleRevIDs == null || possibleRevIDs.Count == 0)
             {
@@ -150,72 +154,19 @@ namespace Couchbase.Lite.Replicator
                 return 0;
             }
 
-            var parsed = RevisionInternal.ParseRevId(ancestorID);
-            return parsed.Item1;
+            return ancestorID.Generation;
         }
 
         #endregion
 
         #region Private Methods
 
-        private MultipartWriter GetMultipartWriter(RevisionInternal rev, string boundary)
-        {
-            // Find all the attachments with "follows" instead of a body, and put 'em in a multipart stream.
-            // It's important to scan the _attachments entries in the same order in which they will appear
-            // in the JSON, because CouchDB expects the MIME bodies to appear in that same order
-            var bodyStream = default(MultipartWriter);
-            var attachments = rev.GetAttachments();
-            foreach (var a in attachments) {
-                var attachment = a.Value.AsDictionary<string, object>();
-                if (attachment != null && attachment.GetCast<bool>("follows")) {
-                    if (bodyStream == null) {
-                        // Create the HTTP multipart stream:
-                        bodyStream = new MultipartWriter("multipart/related", boundary);
-                        bodyStream.SetNextPartHeaders(new Dictionary<string, string> { 
-                            { "Content-Type", "application/json" } 
-                        });
-
-                        // Use canonical JSON encoder so that _attachments keys will be written in the
-                        // same order that this for loop is processing the attachments.
-                        var json = Manager.GetObjectMapper().WriteValueAsBytes(rev.GetProperties(), true);
-                        if (CanSendCompressedRequests) {
-                            bodyStream.AddGZippedData(json);
-                        } else {
-                            bodyStream.AddData(json);
-                        }
-                    }
-
-                    // Add attachment as another MIME part:
-                    var disposition = String.Format("attachment; filename={0}", Misc.QuoteString(a.Key));
-                    var contentType = attachment.GetCast<string>("type");
-                    var contentEncoding = attachment.GetCast<string>("encoding");
-                    bodyStream.SetNextPartHeaders(new NonNullDictionary<string, string> {
-                        { "Content-Disposition", disposition },
-                        { "Content-Type", contentType },
-                        { "Content-Encoding", contentEncoding }
-                    });
-
-                    var attachmentObj = default(AttachmentInternal);
-                    try {
-                        attachmentObj = LocalDatabase.AttachmentForDict(attachment, a.Key);
-                    } catch(CouchbaseLiteException) {
-                        return null;
-                    }
-
-                    bodyStream.AddStream(attachmentObj.ContentStream, attachmentObj.Length);
-                }
-            }
-
-            return bodyStream;
-        }
-
-
         private void StopObserving()
         {
             var localDb = LocalDatabase;
             if (_observing) {
-                _observing = false;
                 if (localDb != null) {
+                    _observing = false;
                     localDb.Changed -= OnChanged;
                 }
             }
@@ -226,6 +177,11 @@ namespace Couchbase.Lite.Replicator
             var changes = args.Changes;
             foreach (DocumentChange change in changes)
             {
+                // Skip expired documents
+                if (change.IsExpiration) {
+                    return;
+                }
+
                 // Skip revisions that originally came from the database I'm syncing to:
                 var source = change.SourceUrl;
                 if (source != null && source.Equals(RemoteUrl)) {
@@ -234,6 +190,7 @@ namespace Couchbase.Lite.Replicator
 
                 var rev = change.AddedRevision;
                 if (LocalDatabase.RunFilter(_filter, FilterParams, rev)) {
+                    Log.To.Sync.V(TAG, "{0} queuing {1} {2}", this, LocalDatabase.GetSequence(rev), rev);
                     AddToInbox(rev);
                 }
             }
@@ -243,7 +200,7 @@ namespace Couchbase.Lite.Replicator
         {
             lock(_pendingSequences)
             {
-                var seq = revisionInternal.GetSequence();
+                var seq = revisionInternal.Sequence;
                 if (!_pendingSequences.ContainsKey(seq)) {
                     _pendingSequences.Add(seq, 0);
                 }
@@ -259,11 +216,10 @@ namespace Couchbase.Lite.Replicator
         {
             lock (_pendingSequences)
             {
-                var seq = revisionInternal.GetSequence();
+                var seq = revisionInternal.Sequence;
                 var wasFirst = (_pendingSequences.Count > 0 && seq == _pendingSequences.ElementAt(0).Key);
-                if (!_pendingSequences.ContainsKey(seq))
-                {
-                    Log.W(TAG, "Remove Pending: Sequence " + seq + " not in set, for rev " + revisionInternal);
+                if (!_pendingSequences.ContainsKey(seq)) {
+                    Log.To.Sync.W(TAG, "Sequence {0} not in set, for rev {1}", seq, revisionInternal);
                 }
 
                 _pendingSequences.Remove(seq);
@@ -283,7 +239,11 @@ namespace Couchbase.Lite.Replicator
                     LastSequence = maxCompleted.ToString();
                 }
 
-                if (_pendingSequences.Count == 0) {
+                if (_purgeQueue != null) {
+                    _purgeQueue.QueueObject(revisionInternal);
+                }
+
+                if (IsSafeToStop && _pendingSequences.Count == 0) {
                     FireTrigger(Continuous ? ReplicationTrigger.WaitingForChanges : ReplicationTrigger.StopGraceful);
                 }
             }
@@ -294,32 +254,29 @@ namespace Couchbase.Lite.Replicator
             // Post the revisions to the destination. "new_edits":false means that the server should
             // use the given _rev IDs instead of making up new ones.
             var numDocsToSend = docsToSend.Count;
-            if (numDocsToSend == 0)
-            {
+            if (numDocsToSend == 0) {
                 return;
             }
 
-            Log.V(TAG, string.Format("{0}: POSTing " + numDocsToSend + " revisions to _bulk_docs: {1}", this, docsToSend));
+            Log.To.Sync.I(TAG, "{0} sending {1} revisions", this, numDocsToSend);
+            Log.To.Sync.V(TAG, "{0} sending {1}", this, revChanges);
 
             var bulkDocsBody = new Dictionary<string, object>();
             bulkDocsBody["docs"] = docsToSend;
             bulkDocsBody["new_edits"] = false;
             SafeAddToChangesCount(numDocsToSend);
 
-            SendAsyncRequest(HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, e) => {
-                if (e == null)
-                {
+            _remoteSession.SendAsyncRequest(HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, e) => {
+                if (e == null) {
                     var failedIds = new HashSet<string>();
                     // _bulk_docs response is really an array not a dictionary
                     var items = result.AsList<object>();
-                    foreach(var item in items)
-                    {
+                    foreach(var item in items) {
                         var itemObject = item.AsDictionary<string, object>();
                         var status = StatusFromBulkDocsResponseItem(itemObject);
-                        if (!status.IsSuccessful)
-                        {
+                        if (!status.IsSuccessful) {
                             // One of the docs failed to save.
-                            Log.W(TAG, "_bulk_docs got an error: " + item);
+                            Log.To.Sync.I(TAG, "_bulk_docs got an error: " + item);
 
                             // 403/Forbidden means validation failed; don't treat it as an error
                             // because I did my job in sending the revision. Other statuses are
@@ -333,24 +290,20 @@ namespace Couchbase.Lite.Replicator
                     }
 
                     // Remove from the pending list all the revs that didn't fail:
-                    foreach (var revisionInternal in revChanges)
-                    {
-                        if (!failedIds.Contains(revisionInternal.GetDocId()))
-                        {
+                    foreach (var revisionInternal in revChanges) {
+                        if (!failedIds.Contains(revisionInternal.DocID)) {
                             RemovePending(revisionInternal);
                         }
                     }
                 }
 
-                if (e != null) 
-                {
+                if (e != null) {
                     LastError = e;
                     RevisionFailed();
-                } 
-                else 
-                {
-                    Log.V(TAG, string.Format("POSTed to _bulk_docs: {0}", docsToSend));
+                } else {
+                    Log.To.Sync.V(TAG, "{0} sent {1}", this, revChanges);
                 }
+
                 SafeAddToCompletedChangesCount(numDocsToSend);
             });
         }
@@ -358,9 +311,14 @@ namespace Couchbase.Lite.Replicator
         private bool UploadMultipartRevision(RevisionInternal revision)
         {
             MultipartContent multiPart = null;
+            var length = default(double);
             var revProps = revision.GetProperties();
 
             var attachments = revProps.Get("_attachments").AsDictionary<string,object>();
+            if(attachments == null) {
+                return false;
+            }
+
             foreach (var attachmentKey in attachments.Keys) {
                 var attachment = attachments.Get(attachmentKey).AsDictionary<string,object>();
                 if (attachment.ContainsKey("follows")) {
@@ -374,8 +332,10 @@ namespace Couchbase.Lite.Replicator
                             var jsonContent = new StringContent(json, utf8charset, "application/json");
                             //jsonContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment");
                             multiPart.Add(jsonContent);
-                        } catch (IOException e) {
-                            throw new ArgumentException("Not able to serialize revision properties into a multipart request content.", e);
+                            length += json.Length;
+                        } catch (Exception e) {
+                            throw Misc.CreateExceptionAndLog(Log.To.Sync, e, TAG,
+                                "Not able to serialize revision properties into a multipart request content.");
                         }
                     }
 
@@ -386,8 +346,9 @@ namespace Couchbase.Lite.Replicator
                     var inputStream = blobStore.BlobStreamForKey(blobKey);
 
                     if (inputStream == null) {
-                        Log.W(TAG, "Unable to find blob file for blobKey: " + blobKey + " - Skipping upload of multipart revision.");
+                        Log.To.Sync.W(TAG, "Unable to find blob file for blobKey: {0} - Skipping upload of multipart revision.", blobKey);
                         multiPart = null;
+                        length = 0;
                     } else {
                         string contentType = null;
                         if (attachment.ContainsKey("content_type")) {
@@ -397,7 +358,7 @@ namespace Couchbase.Lite.Replicator
                                 var message = string.Format("Found attachment that uses content-type"
                                               + " field name instead of content_type (see couchbase-lite-android"
                                               + " issue #80): " + attachment);
-                                Log.W(TAG, message);
+                                Log.To.Sync.W(TAG, message);
                             }
                         }
 
@@ -408,6 +369,7 @@ namespace Couchbase.Lite.Replicator
                         content.Headers.ContentType = new MediaTypeHeaderValue(contentType ?? "application/octet-stream");
 
                         multiPart.Add(content);
+                        length += inputStream.Length;
                     }
                 }
             }
@@ -416,32 +378,32 @@ namespace Couchbase.Lite.Replicator
                 return false;
             }
 
-            var path = string.Format("/{0}?new_edits=false", revision.GetDocId());
+            var path = string.Format("/{0}?new_edits=false", revision.DocID);
 
             // TODO: need to throttle these requests
-            Log.D(TAG, "Uploading multipart request.  Revision: " + revision);
+            Log.To.Sync.D(TAG, "{0} uploading multipart request.  Revision: {1}", this, revision);
             SafeAddToChangesCount(1);
-            SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
+            _remoteSession.SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => 
             {
                 if (e != null) {
-                    var httpError = e as HttpResponseException;
+                    var httpError = Misc.Flatten(e).FirstOrDefault(ex => ex is HttpResponseException) as HttpResponseException;
                     if (httpError != null) {
                         if (httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType) {
                             _dontSendMultipart = true;
                             UploadJsonRevision(revision);
                         }
                     } else {
-                        Log.E (TAG, "Exception uploading multipart request", e);
                         LastError = e;
                         RevisionFailed();
                     }
                 } else {
-                    Log.D (TAG, "Uploaded multipart request.  Result: " + result);
+                    Log.To.Sync.V(TAG, "{0} sent multipart {1}", this, revision);
                     SafeIncrementCompletedChangesCount();
                     RemovePending(revision);
                 }
             });
 
+            Log.To.Sync.V(TAG, "{0} queuing revision (multipart, {1}kb)", this, length / 1024.0);
             return true;
         }
             
@@ -449,7 +411,7 @@ namespace Couchbase.Lite.Replicator
         private void UploadJsonRevision(RevisionInternal originalRev)
         {
             // Expand all attachments inline:
-            var rev = originalRev.CopyWithDocID(originalRev.GetDocId(), originalRev.GetRevId());
+            var rev = originalRev.Copy(originalRev.DocID, originalRev.RevID);
             try {
                 LocalDatabase.ExpandAttachments(rev, 0, false, false);
             } catch(Exception e) {
@@ -458,8 +420,8 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            var path = string.Format("/{0}?new_edits=false", Uri.EscapeUriString(rev.GetDocId()));
-            SendAsyncRequest(HttpMethod.Put, path, rev.GetProperties(), (result, e) =>
+            var path = string.Format("/{0}?new_edits=false", Uri.EscapeUriString(rev.DocID));
+            _remoteSession.SendAsyncRequest(HttpMethod.Put, path, rev.GetProperties(), (result, e) =>
             {
                 if (e != null) 
                 {
@@ -468,11 +430,107 @@ namespace Couchbase.Lite.Replicator
                 } 
                 else 
                 {
-                    Log.V(TAG, "Sent {0} (JSON), response={1}", rev, result);
+                    Log.To.Sync.V(TAG, "{0} sent {1} (JSON), response={2}", this, rev, new LogJsonString(result));
                     SafeIncrementCompletedChangesCount();
                     RemovePending (rev);
                 }
             });
+        }
+
+        private void UploadChanges(IList<RevisionInternal> changes, IDictionary<string, object> revsDiffResults)
+        {
+
+            // Go through the list of local changes again, selecting the ones the destination server
+            // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
+            var docsToSend = new List<object> ();
+            var revsToSend = new RevisionList();
+            IDictionary<string, object> revResults = null;
+            foreach (var rev in changes) {
+                // Is this revision in the server's 'missing' list?
+                if (revsDiffResults != null) {
+                    revResults = revsDiffResults.Get(rev.DocID).AsDictionary<string, object>(); 
+                    if (revResults == null) {
+                        continue;
+                    }
+
+                    var revs = revResults.Get("missing").AsList<string>();
+                    if (revs == null || !revs.Any(id => id.Equals(rev.RevID.ToString()))) {
+                        RemovePending(rev);
+                        continue;
+                    }
+                }
+
+                IDictionary<string, object> properties = null;
+                RevisionInternal loadedRev;
+                try {
+                    loadedRev = LocalDatabase.LoadRevisionBody (rev);
+                    if(loadedRev == null) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.NotFound, TAG,
+                            "Unable to load revision body");
+                    }
+
+                    properties = new Dictionary<string, object>(rev.GetProperties());
+                } catch (Exception e1) {
+                    Log.To.Sync.E(TAG, String.Format("Couldn't get local contents of {0}, marking revision failed",
+                        rev), e1);
+                    RevisionFailed();
+                    continue;
+                }
+
+                if (properties.GetCast<bool> ("_removed")) {
+                    RemovePending (rev);
+                    continue;
+                }
+
+                var populatedRev = TransformRevision(loadedRev);
+                var backTo = revResults?.Get("possible_ancestors")?.AsList<RevisionID>();
+
+                try {
+                    var history = LocalDatabase.GetRevisionHistory(populatedRev, backTo);
+                    if(history == null) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.DbError, TAG,
+                            "Unable to load revision history");
+                    }
+
+                    properties["_revisions"] = TreeRevisionID.MakeRevisionHistoryDict(history);
+                    populatedRev.SetPropertyForKey("_revisions", properties["_revisions"]);
+                } catch(Exception e1) {
+                    Log.To.Sync.E(TAG, "Error getting revision history, marking revision failed", e1);
+                    RevisionFailed();
+                    continue;
+                }
+
+                // Strip any attachments already known to the target db:
+                if (properties.Get("_attachments") != null) {
+                    // Look for the latest common ancestor and stuf out older attachments:
+                    var minRevPos = FindCommonAncestor(populatedRev, backTo);
+                    try {
+                        LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
+                    } catch(Exception ex) {
+                        Log.To.Sync.E(TAG, "Error expanding attachments, marking revision failed", ex);
+                        RevisionFailed();
+                        continue;
+                    }
+
+                    properties = populatedRev.GetProperties();
+                    if (!_dontSendMultipart && UploadMultipartRevision(populatedRev)) {
+                        continue;
+                    }
+                }
+
+                if (properties == null || !properties.ContainsKey("_id")) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.BadParam, TAG,
+                        "properties must contain a document _id");
+                }
+
+                // Add the _revisions list:
+                revsToSend.Add(rev);
+
+                //now add it to the docs to send
+                docsToSend.Add (properties);
+            }
+
+            UploadBulkDocs(docsToSend, revsToSend);
         }
 
         #endregion
@@ -481,7 +539,10 @@ namespace Couchbase.Lite.Replicator
 
         public override IEnumerable<String> DocIds { get; set; }
 
-        public override IDictionary<String, String> Headers { get; set; }
+        public override IDictionary<String, String> Headers {
+            get { return ClientFactory.Headers; }
+            set { ClientFactory.Headers = value; }
+        }
 
         public override Boolean CreateTarget { get; set; }
 
@@ -491,28 +552,23 @@ namespace Couchbase.Lite.Replicator
 
         protected internal override void MaybeCreateRemoteDB()
         {
-            if (!CreateTarget)
-            {
+            if (!CreateTarget) {
                 return;
             }
 
             _creatingTarget = true;
+            Log.To.Sync.I(TAG, "{0} remote db might not exist; creating it...", this);
 
-            Log.V(TAG, "Remote db might not exist; creating it...");
-
-            SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) =>
+            _remoteSession.SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) =>
             {
                 _creatingTarget = false;
-                if (e is HttpResponseException && ((HttpResponseException)e).StatusCode.GetStatusCode() != StatusCode.PreconditionFailed)
-                {
-                    // this is fatal: no db to push to!
-                    Log.E(TAG, "Failed to create remote db", e);
+                if (e is HttpResponseException && ((HttpResponseException)e).StatusCode.GetStatusCode() != StatusCode.PreconditionFailed) {
+                    
+                    Log.To.Sync.I(TAG, String.Format("{0} failed to create remote db", this), e);
                     LastError = e;
-                    Stop();
-                }
-                else
-                {
-                    Log.V(TAG, "Created remote db");
+                    Stop(); // this is fatal: no db to push to!
+                } else {
+                    Log.To.Sync.I(TAG, "{0} created remote db", this);
                     CreateTarget = false;
                     BeginReplicating();
                 }
@@ -521,20 +577,16 @@ namespace Couchbase.Lite.Replicator
 
         internal override void BeginReplicating()
         {
-            Log.D(TAG, "beginReplicating() called");
-
             // If we're still waiting to create the remote db, do nothing now. (This method will be
             // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
             if (_creatingTarget) {
-                Log.D(TAG, "creatingTarget == true, doing nothing");
+                Log.To.Sync.D(TAG, "creatingTarget == true, doing nothing");
                 return;
             }
 
             _pendingSequences = new SortedDictionary<long, int>();
-            try {
-                _maxPendingSequence = Int64.Parse(LastSequence);
-            } catch (Exception e) {
-                Log.W(TAG, "Error converting lastSequence: " + LastSequence + " to long. Using 0", e);
+            if (!Int64.TryParse(LastSequence, out _maxPendingSequence)) {
+                Log.To.Sync.W(TAG, "{0} is not a valid last sequence, using 0", LastSequence);
                 _maxPendingSequence = 0;
             }
 
@@ -553,13 +605,37 @@ namespace Couchbase.Lite.Replicator
             }
 
             if (Filter != null && _filter == null) {
-                Log.W(TAG, string.Format("{0}: No ReplicationFilter registered for filter '{1}'; ignoring", this, Filter));
+                Log.To.Sync.W(TAG, "{0}: No ReplicationFilter registered for filter '{1}'; ignoring", this, Filter);
             }
 
             // Process existing changes since the last push:
             long lastSequenceLong = 0;
             if (LastSequence != null) {
                 lastSequenceLong = long.Parse(LastSequence);
+            }
+                
+            if (ReplicationOptions.PurgePushed) {
+                _purgeQueue = new Batcher<RevisionInternal>(WorkExecutor, EphemeralPurgeBatchSize, 
+                    EphemeralPurgeDelay, (revs) =>
+                {
+                    Log.To.Sync.I(TAG, "Purging {0} docs ('purgePushed' option)", revs.Count);
+                    var toPurge = new Dictionary<string, IList<string>>();
+                    foreach(var rev in revs) {
+                        toPurge[rev.DocID] = new List<string> { rev.RevID.ToString() };
+                    }
+
+                    var localDb = LocalDatabase;
+                    if(localDb != null && localDb.IsOpen) {
+                        var storage = localDb.Storage;
+                        if(storage != null && storage.IsOpen) {
+                            storage.PurgeRevisions(toPurge);
+                        } else {
+                            Log.To.Sync.W(TAG, "{0} storage is closed, cannot purge...", localDb);
+                        }
+                    } else {
+                        Log.To.Sync.W(TAG, "Local database is closed or null, cannot purge...");
+                    }
+                }, CancellationTokenSource);
             }
 
             // Now listen for future changes (in continuous mode):
@@ -583,10 +659,12 @@ namespace Couchbase.Lite.Replicator
 
             if (Continuous) {
                 if (changes.Count == 0) {
+                    Log.To.Sync.V(TAG, "No changes to push, switching to idle...");
                     FireTrigger(ReplicationTrigger.WaitingForChanges);
                 }
             } else {
                 if(changes.Count == 0) {
+                    Log.To.Sync.V(TAG, "No changes to push, firing StopGraceful...");
                     FireTrigger(ReplicationTrigger.StopGraceful);
                 }
             }
@@ -595,27 +673,24 @@ namespace Couchbase.Lite.Replicator
         protected override void StopGraceful()
         {
             StopObserving();
+            if (_purgeQueue != null) {
+                _purgeQueue.FlushAll();
+            }
+
             base.StopGraceful();
+        }
 
-            Action<Task> cont = null;
-            cont = t =>
-            {
-                if(_requests.Count > 0) {
-                    Task.WhenAll(_requests.Values).ContinueWith(cont);
-                    return;
-                }
-
-                FireTrigger(ReplicationTrigger.StopImmediate);
-            };
-
-            Task.WhenAll(_requests.Values).ContinueWith(cont);
+        internal override void Stopping ()
+        {
+            StopObserving (); // Just in case
+            base.Stopping ();
         }
 
         protected override void PerformGoOnline()
         {
             base.PerformGoOnline();
 
-            CheckSession();
+            Login();
         }
 
         protected override void PerformGoOffline()
@@ -627,12 +702,17 @@ namespace Couchbase.Lite.Replicator
         internal override void ProcessInbox(RevisionList inbox)
         {
             if (Status == ReplicationStatus.Offline) {
-                Log.V(TAG, "Offline, so skipping inbox process");
+                Log.To.Sync.I(TAG, "Offline, so skipping inbox process");
                 return;
             }
+                
+            if (ReplicationOptions.AllNew) {
+                // If 'allNew' option is set, upload new revs without checking first:
+                foreach (var rev in inbox) {
+                    AddPending(rev);
+                }
 
-            if(_requests.Count > ManagerOptions.Default.MaxOpenHttpConnections) {
-                Task.Delay(1000).ContinueWith(t => ProcessInbox(inbox), CancellationToken.None, TaskContinuationOptions.None, WorkExecutor.Scheduler);
+                UploadChanges(inbox, null);
                 return;
             }
 
@@ -641,19 +721,19 @@ namespace Couchbase.Lite.Replicator
             var diffs = new Dictionary<String, IList<String>>();
             var inboxCount = inbox.Count;
             foreach (var rev in inbox) {
-                var docID = rev.GetDocId();
+                var docID = rev.DocID;
                 var revs = diffs.Get(docID);
                 if (revs == null) {
                     revs = new List<String>();
                     diffs[docID] = revs;
                 }
-                revs.Add(rev.GetRevId());
+                revs.Add(rev.RevID.ToString());
                 AddPending(rev);
             }
 
             // Call _revs_diff on the target db:
-            Log.D(TAG, "posting to /_revs_diff: {0}", String.Join(Environment.NewLine, new[] { Manager.GetObjectMapper().WriteValueAsString(diffs) }));
-            SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
+            Log.To.Sync.D(TAG, "posting to /_revs_diff: {0}", String.Join(Environment.NewLine, new[] { Manager.GetObjectMapper().WriteValueAsString(diffs) }));
+            _remoteSession.SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
             {
                 try {
                     if(!LocalDatabase.IsOpen) {
@@ -662,7 +742,7 @@ namespace Couchbase.Lite.Replicator
 
                     var results = response.AsDictionary<string, object>();
 
-                    Log.D(TAG, "/_revs_diff response: {0}\r\n{1}", response, results);
+                    Log.To.Sync.D(TAG, "/_revs_diff response: {0}\r\n{1}", response, results);
 
                     if (e != null) {
                         LastError = e;
@@ -677,116 +757,24 @@ namespace Couchbase.Lite.Replicator
                         }
                     } else {
                         if (results.Count != 0)  {
-                            // Go through the list of local changes again, selecting the ones the destination server
-                            // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
-                            var docsToSend = new List<object> ();
-                            var revsToSend = new RevisionList();
-                            foreach (var rev in inbox) {
-                                // Is this revision in the server's 'missing' list?
-                                IDictionary<string, object> properties = null;
-                                var revResults = results.Get(rev.GetDocId()).AsDictionary<string, object>(); 
-                                if (revResults == null) {
-                                    //SafeIncrementCompletedChangesCount();
-                                    continue;
-                                }
-
-                                var revs = revResults.Get("missing").AsList<string>();
-                                if (revs == null || !revs.Any( id => id.Equals(rev.GetRevId(), StringComparison.OrdinalIgnoreCase))) {
-                                    RemovePending(rev);
-                                    //SafeIncrementCompletedChangesCount();
-                                    continue;
-                                }
-
-                                // Get the revision's properties:
-                                var contentOptions = DocumentContentOptions.IncludeAttachments;
-                                if (!_dontSendMultipart && RevisionBodyTransformationFunction == null)
-                                {
-                                    contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
-                                }
-
-                                RevisionInternal loadedRev;
-                                try {
-                                    loadedRev = LocalDatabase.LoadRevisionBody (rev);
-                                    if(loadedRev == null) {
-                                        throw new CouchbaseLiteException("DB is closed", StatusCode.DbError);
-                                    }
-
-                                    properties = new Dictionary<string, object>(rev.GetProperties());
-                                } catch (Exception e1) {
-                                    Log.W(TAG, String.Format("{0} Couldn't get local contents of", rev), e1);
-                                    RevisionFailed();
-                                    continue;
-                                }
-
-                                var populatedRev = TransformRevision(loadedRev);
-                                IList<string> possibleAncestors = null;
-                                if (revResults.ContainsKey("possible_ancestors")) {
-                                    possibleAncestors = revResults["possible_ancestors"].AsList<string>();
-                                }
-
-                                properties = new Dictionary<string, object>(populatedRev.GetProperties());
-
-                                try {
-                                    var history = LocalDatabase.GetRevisionHistory(populatedRev, possibleAncestors);
-                                    if(history == null) {
-                                        throw new CouchbaseLiteException("DB closed", StatusCode.DbError);
-                                    }
-
-                                    properties["_revisions"] = Database.MakeRevisionHistoryDict(history);
-                                } catch(Exception e1) {
-                                    Log.W(TAG, "Error getting revision history", e1);
-                                    RevisionFailed();
-                                    continue;
-                                }
-
-                                populatedRev.SetProperties(properties);
-                                if(properties.GetCast<bool>("_removed")) {
-                                    RemovePending(rev);
-                                    continue;
-                                }
-
-                                // Strip any attachments already known to the target db:
-                                if (properties.ContainsKey("_attachments")) {
-                                    // Look for the latest common ancestor and stuf out older attachments:
-                                    var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
-                                    try {
-                                        LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !_dontSendMultipart, false);
-                                    } catch(Exception ex) {
-                                        Log.W(TAG, "Error expanding attachments!", ex);
-                                        RevisionFailed();
-                                        continue;
-                                    }
-
-                                    properties = populatedRev.GetProperties();
-                                    if (!_dontSendMultipart && UploadMultipartRevision(populatedRev)) {
-                                        continue;
-                                    }
-                                }
-
-                                if (properties == null || !properties.ContainsKey("_id")) {
-                                    throw new InvalidOperationException("properties must contain a document _id");
-                                }
-
-                                // Add the _revisions list:
-                                revsToSend.Add(rev);
-
-                                //now add it to the docs to send
-                                docsToSend.Add (properties);
-                            }
-
-                            UploadBulkDocs(docsToSend, revsToSend);
+                            UploadChanges(inbox, results);
                         } else {
                             foreach (var revisionInternal in inbox) {
                                 RemovePending(revisionInternal);
                             }
 
-                            SafeAddToCompletedChangesCount(inbox.Count);
+                            //SafeAddToCompletedChangesCount(inbox.Count);
                         }
                     }
                 } catch (Exception ex) {
-                    Log.E(TAG, "Unhandled exception in Pusher.ProcessInbox", ex);
+                    Log.To.Sync.E(TAG, "Unhandled exception in Pusher.ProcessInbox, continuing...", ex);
                 }
             });
+        }
+
+        public override string ToString()
+        {
+            return String.Format("Pusher {0}", ReplicatorID);
         }
 
         #endregion

@@ -49,13 +49,8 @@ using System.Security.Cryptography.X509Certificates;
 
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Security;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-
-#if __IOS__ || __ANDROID__
-using ModernHttpClient;
-#endif
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -70,16 +65,23 @@ namespace Couchbase.Lite.Support
     {
         const string Tag = "CouchbaseLiteHttpClientFactory";
 
-#if __IOS__ || __ANDROID__
-        protected NativeMessageHandler nativeHandler = new NativeMessageHandler (false, false, new NativeCookieHandler ());
-#endif
+        public TimeSpan SocketTimeout { get; set; }
 
         public CouchbaseLiteHttpClientFactory()
         {
+            SocketTimeout = ReplicationOptions.DefaultSocketTimeout;
             Headers = new ConcurrentDictionary<string, string>();
+        }
 
+        internal static void SetupSslCallback()
+        {
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
             ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
+
+            if(ServicePointManager.ServerCertificateValidationCallback != null)
+            {
+                return;
+            }
 
             //
             // Source: http://msdn.microsoft.com/en-us/library/office/dd633677(v=exchg.80).aspx
@@ -87,7 +89,7 @@ namespace Couchbase.Lite.Support
             // The certificate is valid and signed with a valid root certificate.
             // The certificate is self-signed by the server that returned the certificate.
             //
-            ServicePointManager.ServerCertificateValidationCallback = 
+            ServicePointManager.ServerCertificateValidationCallback =
             (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
             {
                 // If the certificate is a valid, signed certificate, return true.
@@ -137,17 +139,13 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, bool useRetryHandler)
+        internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, IRetryStrategy retryStrategy)
         {
-#if __IOS__ || __ANDROID__
-            var handler = nativeHandler;
-#else
-
-            var handler = new HttpClientHandler {
+            var handler = new WebRequestHandler {
                 CookieContainer = store,
-                UseCookies = true
+                UseCookies = true,
+                ReadWriteTimeout = (int)SocketTimeout.TotalMilliseconds
             };
-#endif
 
             // For now, we are not using the client cert for identity verification, just to
             // satisfy Mono so it doesn't matter if the user doesn't choose it.
@@ -157,41 +155,47 @@ namespace Couchbase.Lite.Support
                 handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
             }
 
-            Handler = new DefaultAuthHandler (handler, store);
-
-            if (!useRetryHandler) {
-                return Handler;
+            var authHandler = new DefaultAuthHandler (handler, store, SocketTimeout);
+            if (retryStrategy == null) {
+                return authHandler;
             }
 
-            var retryHandler = new TransientErrorRetryHandler(Handler);
+            var retryHandler = new TransientErrorRetryHandler(authHandler, retryStrategy);
             return retryHandler;
         }
 
-        public HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy)
         {
-            var authHandler = BuildHandlerPipeline(cookieStore, useRetryHandler);
+            var authHandler = BuildHandlerPipeline(cookieStore, retryStrategy);
 
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 
             // and disposes of the managed resources.
             var client =  new HttpClient(authHandler, true) 
             {
-                Timeout = ManagerOptions.Default.RequestTimeout
+                Timeout = ReplicationOptions.DefaultRequestTimeout
             };
 
-            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SYNC_PROTOCOL_VERSION, Manager.VersionString));
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SyncProtocolVersion, Manager.VersionString));
+            client.DefaultRequestHeaders.Connection.Add("keep-alive");
 
             foreach(var header in Headers)
             {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
                 if (!success)
-                    Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
+                    Log.To.Sync.W(Tag, String.Format("Unabled to add header to request: {0}: {1}", header.Key, header.Value));
             }
 
-            return client;
-        }
+            var transientHandler = authHandler as TransientErrorRetryHandler;
+            var defaultAuthHandler = default(DefaultAuthHandler);
+            if (transientHandler != null) {
+                defaultAuthHandler = transientHandler.InnerHandler as DefaultAuthHandler;
+            } else {
+                defaultAuthHandler = authHandler as DefaultAuthHandler;
+            }
 
-        public MessageProcessingHandler Handler { get; private set; }
+            return new CouchbaseLiteHttpClient(client, defaultAuthHandler);
+        }
 
         public IDictionary<string, string> Headers { get; set; }
        

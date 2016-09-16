@@ -156,6 +156,11 @@ namespace Couchbase.Lite {
         }
         private EventHandler<QueryCompletedEventArgs> _completed;
 
+        /// <summary>
+        /// The context to fire events on
+        /// </summary>
+        protected readonly TaskFactory _eventContext;
+
         #endregion
 
         #region Properties
@@ -303,6 +308,22 @@ namespace Couchbase.Lite {
         /// </summary>
         public Func<QueryRow, bool> PostFilter { get; set; }
 
+        /// <summary>
+        /// If nonzero, enables prefix matching of string or array keys.
+        /// * A value of 1 treats the endKey itself as a prefix: if it's a string, keys in the index that
+        ///   come after the endKey, but begin with the same prefix, will be matched. (For example, if the
+        ///   endKey is "foo" then the key "foolish" in the index will be matched, but not "fong".) Or if
+        ///   the endKey is an array, any array beginning with those elements will be matched. (For
+        ///   example, if the endKey is [1], then [1, "x"] will match, but not [2].) If the key is any
+        ///   other type, there is no effect.
+        /// * A value of 2 assumes the endKey is an array and treats its final item as a prefix, using the
+        ///   rules above. (For example, an endKey of [1, "x"] will match [1, "xtc"] but not [1, "y"].)
+        /// * A value of 3 assumes the key is an array of arrays, etc.
+        ///   Note that if the .descending property is also set, the search order is reversed and the above
+        ///   discussion applies to the startKey, _not_ the endKey.
+        /// </summary>
+        public int PrefixMatchLevel { get; set; }
+
         internal View View { get; private set; }
 
         private bool TemporaryView { get; set; }
@@ -342,6 +363,7 @@ namespace Couchbase.Lite {
                         return result;
                     };
                 }
+                queryOptions.PrefixMatchLevel = PrefixMatchLevel;
                 return queryOptions;
             }
         }
@@ -356,6 +378,7 @@ namespace Couchbase.Lite {
             Debug.Assert(database != null);
 
             Database = database;
+            _eventContext = database.Manager.CapturedContext;
             View = view;
             Limit = Int32.MaxValue;
             MapOnly = (view != null && view.Reduce == null);
@@ -373,28 +396,6 @@ namespace Couchbase.Lite {
             View.SetMap(mapFunction, string.Empty);
         }
 
-        /// <summary>Constructor</summary>
-        internal Query(Database database, Query query) 
-        : this(database, query.View)
-        {
-            Limit = query.Limit;
-            Skip = query.Skip;
-            StartKey = query.StartKey;
-            EndKey = query.EndKey;
-            Descending = query.Descending;
-            Prefetch = query.Prefetch;
-            Keys = query.Keys;
-            GroupLevel = query.GroupLevel;
-            MapOnly = query.MapOnly;
-            StartKeyDocId = query.StartKeyDocId;
-            EndKeyDocId = query.EndKeyDocId;
-            InclusiveStart = query.InclusiveStart;
-            InclusiveEnd = query.InclusiveEnd;
-            IndexUpdateMode = query.IndexUpdateMode;
-            AllDocsMode = query.AllDocsMode;
-        }
-
-
         #endregion
        
 
@@ -408,6 +409,7 @@ namespace Couchbase.Lite {
         /// </exception>
         public virtual QueryEnumerator Run() 
         {
+            Log.To.Query.I(TAG, "{0} running...", this);
             Database.Open();
 
             ValueTypePtr<long> outSequence = 0;
@@ -423,7 +425,8 @@ namespace Couchbase.Lite {
             });
 
             if (!success) {
-                throw new CouchbaseLiteException("Failed to query view named " + viewName, StatusCode.DbError);
+                throw Misc.CreateExceptionAndLog(Log.To.Query, StatusCode.DbError, TAG,
+                    "Failed to query view named {0}", viewName);
             }
 
             return new QueryEnumerator(Database, rows, outSequence);
@@ -441,21 +444,21 @@ namespace Couchbase.Lite {
             return Database.Manager.RunAsync(run, token)
                     .ContinueWith(runTask=> // Raise the query's Completed event.
                     {
+                        Log.To.Query.V(TAG, "Manager.RunAsync finished, processing results...");
                         var error = runTask.Exception;
-
                         var completed = _completed;
-                        if (completed != null)
-                        {
+                        if (completed != null) {
                             var args = new QueryCompletedEventArgs(runTask.Result, error);
                             completed(this, args);
                         }
 
                         if (error != null) {
-                            Log.E(TAG, "Exception caught in runAsyncInternal", error);
+                            Log.To.Query.E(TAG, String.Format("{0} exception in RunAsync", this), error);
                             throw error; // Rethrow innner exceptions.
                         }
-                        return runTask.Result; // Give additional continuation functions access to the results task.
-                    }, Database.Manager.CapturedContext.Scheduler);
+
+                        return runTask.Result;
+                    }, _eventContext.Scheduler);
         }
 
         /// <summary>
@@ -479,17 +482,40 @@ namespace Couchbase.Lite {
 
         #endregion
 
+        #region Protected Methods
+
+        /// <summary>
+        /// Disposes the resources of this object
+        /// </summary>
+        /// <param name="finalizing">If <c>true</c>, this is the finalizer method.  Otherwise,
+        /// this is the IDisposable.Dispose() method calling.</param>
+        protected virtual void Dispose(bool finalizing)
+        {
+            if(finalizing) {
+                return;
+            }
+
+            if(TemporaryView)
+                View.Delete();
+        }
+
+        #endregion
+
         #region Overrides
-        #pragma warning disable 1591
+#pragma warning disable 1591
 
         public override string ToString()
         {
-            return string.Format("[Query: Database={0}, Limit={1}, Skip={2}, Descending={3}, StartKey={4},{18}" +
-                "EndKey={5}, StartKeyDocId={6}, EndKeyDocId={7}, InclusiveStart={8}, InclusiveEnd={9},{18}" +
-                "IndexUpdateMode={10}, AllDocsMode={11}, Keys={12}, MapOnly={13}, GroupLevel={14}, Prefetch={15},{18}" +
-                "IncludeDeleted={16}, PostFilter={17}]", Database, Limit, Skip, Descending, StartKey, EndKey, StartKeyDocId, 
-                EndKeyDocId, InclusiveStart, InclusiveEnd, IndexUpdateMode, AllDocsMode, Keys, MapOnly, GroupLevel, Prefetch, 
-                IncludeDeleted, PostFilter, Environment.NewLine);
+            return string.Format("[Query: Database={0}, Limit={1}, Skip={2}, Descending={3}, StartKey={4},{19}" +
+                "EndKey={5}, StartKeyDocId={6}, EndKeyDocId={7}, InclusiveStart={8}, InclusiveEnd={9},{19}" +
+                "IndexUpdateMode={10}, AllDocsMode={11}, Keys={12}, MapOnly={13}, GroupLevel={14}, Prefetch={15},{19}" +
+                "IncludeDeleted={16}, PostFilter={17}, PrefixMatchLevel={18}]", Database, Limit, Skip, Descending, 
+                new SecureLogJsonString(StartKey, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogJsonString(EndKey, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogString(StartKeyDocId, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogString(EndKeyDocId, LogMessageSensitivity.PotentiallyInsecure),
+                InclusiveStart, InclusiveEnd, IndexUpdateMode, AllDocsMode, Keys, MapOnly, GroupLevel, Prefetch, 
+                IncludeDeleted, PostFilter, PrefixMatchLevel, Environment.NewLine);
         }
 
         #endregion
@@ -500,14 +526,14 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Releases all resource used by the <see cref="Couchbase.Lite.Query"/> object.
         /// </summary>
-        /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="Couchbase.Lite.Query"/>. The
-        /// <see cref="Dispose"/> method leaves the <see cref="Couchbase.Lite.Query"/> in an unusable state. After
-        /// calling <see cref="Dispose"/>, you must release all references to the <see cref="Couchbase.Lite.Query"/> so
+        /// <remarks>Call <see cref="Dispose()"/> when you are finished using the <see cref="Couchbase.Lite.Query"/>. The
+        /// <see cref="Dispose()"/> method leaves the <see cref="Couchbase.Lite.Query"/> in an unusable state. After
+        /// calling <see cref="Dispose()"/>, you must release all references to the <see cref="Couchbase.Lite.Query"/> so
         /// the garbage collector can reclaim the memory that the <see cref="Couchbase.Lite.Query"/> was occupying.</remarks>
         public void Dispose()
         {
-            if (TemporaryView)
-                View.Delete();
+            Dispose(false);
+            GC.SuppressFinalize(this);
         }
     
         #pragma warning restore 1591

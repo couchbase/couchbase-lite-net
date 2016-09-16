@@ -39,7 +39,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/ddoc/views.html#get--db-_design-ddoc-_view-view
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetDesignView(ICouchbaseListenerContext context)
         {
             return QueryDesignDocument(context, null).AsDefaultState();
@@ -70,9 +70,9 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if(options.Stale == IndexUpdateMode.Before || view.LastSequenceIndexed <= 0) {
-                    view.UpdateIndex();
+                    view.UpdateIndex_Internal();
                 } else if(options.Stale == IndexUpdateMode.After && view.LastSequenceIndexed < db.GetLastSequenceNumber()) {
-                    db.RunAsync(_ => view.UpdateIndex());
+                    db.RunAsync(_ => view.UpdateIndex_Internal());
                 }
 
                 // Check for conditional GET and set response Etag header:

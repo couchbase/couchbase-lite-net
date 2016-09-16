@@ -280,5 +280,39 @@ namespace Couchbase.Lite
             cookieStore = new CookieStore(database, "cookie_store_unit_test");
             Assert.AreEqual(0, cookieStore.Count);
         }
+
+        [Test]
+        public void TestMigration()
+        {
+            var cookie1 = new Cookie {
+                Name = "whitechoco",
+                Domain = ".mycookie.com",
+                Path = "/",
+                Value = "sweet",
+                Expires = DateTime.Now.AddSeconds(3600)
+            };
+
+            var cookie2 = new Cookie {
+                Name = "oatmeal_raisin",
+                Domain = ".mycookie.com",
+                Path = "/",
+                Value = "sweet",
+                Expires = DateTime.Now.AddSeconds(3600),
+                Version = 1
+            };
+
+            const string LocalCheckpointCookiesKey = "cbl_cookie_storage_xxxxx";
+            database.PutLocalCheckpointDoc(LocalCheckpointCookiesKey, new[] { cookie1, cookie2 });
+            var cookies = database.GetLocalCheckpointDocValue(LocalCheckpointCookiesKey).AsList<Cookie>();
+            Assert.AreEqual(2, cookies.Count);
+
+            var cookieStore = new CookieStore(database, null);
+
+            var newCookies = cookieStore.GetCookies(new Uri("http://mycookie.com"));
+            Assert.AreEqual(2, cookieStore.Count);
+            Assert.AreEqual(cookie1, newCookies[0]);
+            Assert.AreEqual(cookie2, newCookies[1]);
+            Assert.IsNull(database.GetLocalCheckpointDocValue(LocalCheckpointCookiesKey));
+        }
     }
 }

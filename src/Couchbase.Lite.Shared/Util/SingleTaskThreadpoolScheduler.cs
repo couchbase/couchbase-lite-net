@@ -20,6 +20,7 @@ namespace Couchbase.Lite.Util
 
         public SingleTaskThreadpoolScheduler()
         {
+            Log.To.TaskScheduling.I(Tag, "New scheduler created");
             _items = new LinkedList<Task>();
         }
 
@@ -27,23 +28,32 @@ namespace Couchbase.Lite.Util
         /// <param name="task">The task to be queued.</param> 
         protected override void QueueTask(Task task) 
         {
+            Log.To.TaskScheduling.V(Tag, "Received task for queue: {0}", task.Id);
+
             // Long-running tasks can deadlock us easily.
             // We want to allow these to run without doing that.
             if (task.CreationOptions.HasFlag(TaskCreationOptions.LongRunning))
             {
+                Log.To.TaskScheduling.V(Tag, "Long running task detected, adding directly to runtime threadpool...");
                 ThreadPool.UnsafeQueueUserWorkItem(s =>
                 {
+                    var submittedTask = (Task)s;
+                    Log.To.TaskScheduling.V(Tag, "Processing long running task {0}", submittedTask.Id);
                     _CurrentThreadIsProcessingItems = true;
                     try {
                         if (((Task)s).Status >= TaskStatus.Running) {
+                            Log.To.TaskScheduling.V(Tag, "Skipping already running task {0}...", submittedTask.Id);
                             return;
                         }
 
                         var success = TryExecuteTask((Task)s);
-                        if (!success)
-                            throw new InvalidOperationException("A spawned task failed to run correctly.");
+                        if (!success) {
+                            if(((Task)s).Status == TaskStatus.Faulted) {
+                                Log.To.TaskScheduling.E(Tag, "A task in the scheduler failed to run", submittedTask.Exception);
+                            }
+                        }
                     } catch (Exception ex) {
-                        Log.E(Tag, "Spawned task throw an unhandled exception.", ex);
+                        Log.To.TaskScheduling.E(Tag, "Spawned task throw an unhandled exception.", ex);
                     } finally {
                         _CurrentThreadIsProcessingItems = false;
                     }
@@ -52,8 +62,10 @@ namespace Couchbase.Lite.Util
             }
 
             lock (_items) {
+                Log.To.TaskScheduling.V(Tag, "Adding task to processing queue...");
                 _items.AddLast(task); 
                 if (Interlocked.CompareExchange(ref _runningTasks, 1, 0) == 0) {
+                    Log.To.TaskScheduling.V(Tag, "Spinning up processing queue...");
                     QueueThreadPoolWorkItem(); 
                 }
             }
@@ -63,32 +75,39 @@ namespace Couchbase.Lite.Util
         { 
             ThreadPool.UnsafeQueueUserWorkItem(s => 
             { 
+                Log.To.TaskScheduling.V(Tag, "Processing queue started...");
                 _CurrentThreadIsProcessingItems = true;
                 try { 
                     while (true) {
                         Task item;
                         lock(_items) {
                             if (_items.Count == 0) {
+                                Log.To.TaskScheduling.V(Tag, "Processing queue finished!");
                                 Interlocked.Decrement(ref _runningTasks);
                                 break; 
                             } 
 
                             item = _items.First.Value;
                             _items.RemoveFirst();
+                            Log.To.TaskScheduling.V(Tag, "Next task to execute: {0}", item.Id);
                         }
 
                         if (item.Status < TaskStatus.Running)
                         {
-                            TryExecuteTask(item);
-                            if (item.Status == TaskStatus.Faulted) {
-                                Log.D(Tag, "Task {0} faulted {1}", item.Id, item.Exception);
+                            Log.To.TaskScheduling.V(Tag, "Executing task...");
+                            var success = TryExecuteTask(item);
+                            if (!success) {
+                                if(((Task)s).Status == TaskStatus.Faulted) {
+                                    Log.To.TaskScheduling.E(Tag, "Task failed to run", ((Task)s).Exception);
+                                }
                             }
+                        } else {
+                            Log.To.TaskScheduling.V(Tag, "Skipping already running task...");
                         }
                     } 
                 }
                 catch (Exception e) {
-                    Log.E(Tag, "Unhandled exception in runloop", e);
-                    throw;
+                    Log.To.TaskScheduling.E(Tag, "Unhandled exception in processing queue, aborting...", e);
                 } finally {
                     _CurrentThreadIsProcessingItems = false;
                 }
@@ -98,20 +117,20 @@ namespace Couchbase.Lite.Util
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) 
         {
             if (!_CurrentThreadIsProcessingItems) {
-                Log.V(Tag, "Thread {0} not processing items, so cannot execute inline", Thread.CurrentThread.ManagedThreadId);
+                Log.To.TaskScheduling.V(Tag, "Thread {0} not processing items, so cannot execute inline", Thread.CurrentThread.ManagedThreadId);
                 return false;
             }
 
             if (taskWasPreviouslyQueued) {
                 if (TryDequeue(task)) {
-                    Log.V(Tag, "Executing previously queued task {0} inline", task.Id);
+                    Log.To.TaskScheduling.V(Tag, "Executing previously queued task {0} inline", task);
                     return TryExecuteTask(task);
                 } else {
-                    Log.V(Tag, "Failed to dequeue task {0}", task.Id);
+                    Log.To.TaskScheduling.V(Tag, "Failed to dequeue task {0}", task);
                     return false;
                 }
             } else {
-                Log.V(Tag, "Executing task {0} inline", task.Id);
+                Log.To.TaskScheduling.V(Tag, "Executing task {0} inline", task);
                 return TryExecuteTask(task);
             }
         } 
@@ -138,7 +157,7 @@ namespace Couchbase.Lite.Util
                 if (lockTaken) {
                     return _items;
                 } else {
-                    throw new NotSupportedException();
+                    return null;
                 }
             }
             finally

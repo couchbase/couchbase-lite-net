@@ -56,12 +56,22 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class ManagerOptions
     {
+
+        /// <summary>
+        /// Sets the default replication options that are set on replications
+        /// created from databases owned by this manager.  If not set, a new
+        /// object will be created with default values (For the 1.x lifecycle
+        /// this includes the relevant settings on ManagerOptions)
+        /// </summary>
+        /// <value>The default replication options.</value>
+        public ReplicationOptions DefaultReplicationOptions { get; set; }
+
         /// <summary>
         /// The maximum number of times to retry
         /// network requests that failed due to
         /// transient network errors.
         /// </summary>
-        /// <value>The max retries.</value>
+        [Obsolete("Moving to the ReplicationOptions class as RetryStrategy")]
         public int MaxRetries { get; set; }
 
         /// <summary>
@@ -72,6 +82,16 @@ namespace Couchbase.Lite
 
         //Make public in the future
         internal static IJsonSerializer SerializationEngine { get; set; }
+
+        /// <summary>
+        /// Gets or sets the values pertaining to serialization and
+        /// deserialization
+        /// </summary>
+        public static JsonSerializationSettings SerializationSettings 
+        {
+            get { return SerializationEngine.Settings; }
+            set { SerializationEngine.Settings = value; }
+        }
 
         #if __IOS__
 
@@ -86,6 +106,7 @@ namespace Couchbase.Lite
 
         static ManagerOptions()
         {
+            SerializationEngine = new NewtonsoftJsonSerializer();
             Default = new ManagerOptions();
         }
 
@@ -99,23 +120,24 @@ namespace Couchbase.Lite
 
         internal void RestoreDefaults()
         {
+            DefaultReplicationOptions = null; // To maintain backwards compatibility until 2.0
+
+#pragma warning disable 618
+
             MaxRetries = 2;
 
-            #if __IOS__ || __ANDROID__
             MaxOpenHttpConnections = 8;
-            #else
-            MaxOpenHttpConnections = 16;
-            #endif
 
             MaxRevsToGetInBulk = 50;
 
-            RequestTimeout = TimeSpan.FromSeconds(90);
+            RequestTimeout = TimeSpan.FromSeconds(60);
 
             DownloadAttachmentsOnSync = true;
+#pragma warning restore 618
 
-            #if __UNITY__
+#if __UNITY__
             CallbackScheduler = Couchbase.Lite.Unity.UnityMainThreadScheduler.TaskScheduler;
-            #else
+#else
             TaskScheduler scheduler = null;
             try {
                 scheduler = TaskScheduler.FromCurrentSynchronizationContext ();
@@ -127,8 +149,7 @@ namespace Couchbase.Lite
             }
             #endif
 
-            ServicePointManager.DefaultConnectionLimit = MaxOpenHttpConnections * 2;
-            SerializationEngine = new NewtonsoftJsonSerializer();
+            ServicePointManager.DefaultConnectionLimit = Environment.ProcessorCount * 12;
         }
             
         /// <summary>Gets or sets, whether changes to databases are disallowed by default.</summary>
@@ -143,19 +164,21 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the default network request timeout.
         /// </summary>
-        /// <value>The request timeout. Defaults to 30 seconds.</value>
+        [Obsolete("Moving to the ReplicationOptions class")]
         public TimeSpan RequestTimeout { get; set; }
 
         /// <summary>
         /// Gets or sets max number of open Http Connections
         /// </summary>
         /// <value>Max number of connections</value>
+        [Obsolete("Moving to the ReplicationOptions class")]
         public int MaxOpenHttpConnections { get; set; }
 
         /// <summary>
         /// Get or sets the max revs to get in a bulk download
         /// </summary>
         /// <value>Max revs to get in bulk download</value>
+        [Obsolete("Moving to the ReplicationOptions class")]
         public int MaxRevsToGetInBulk { get; set; }
 
         /// <summary>
@@ -163,5 +186,11 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>true - download attachments with documents, false - defer attachment downloading until later</value>
         public bool DownloadAttachmentsOnSync { get; set; }
+#pragma warning disable 1591
+        public override string ToString()
+        {
+            return String.Format("ManagerOptions[ReadOnly={0}, CallbackScheduler={1}, DefaultReplicationOptions={2}]", ReadOnly, CallbackScheduler.GetType().Name, DefaultReplicationOptions);
+        }
+#pragma warning restore 1591
     }
 }

@@ -42,6 +42,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 
 namespace Couchbase.Lite {
     
@@ -85,10 +86,12 @@ namespace Couchbase.Lite {
         /// Gets whether the <see cref="Couchbase.Lite.Database"/> has changed since 
         /// the <see cref="Couchbase.Lite.View"/> results were generated.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [Obsolete("This property is heavy and will be replaced by IsStale()")]
         public bool Stale
         { 
             get { 
-                return SequenceNumber < _database.GetLastSequenceNumber(); 
+                return IsStale();
             } 
         }
 
@@ -117,6 +120,17 @@ namespace Couchbase.Lite {
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Returns whether or not this query result set is stale (i.e. the database has been
+        /// updated since the query ran)
+        /// </summary>
+        /// <returns>Whether or not this query result set is stale (i.e. the database has been
+        /// updated since the query ran)</returns>
+        public bool IsStale()
+        {
+            return SequenceNumber < _database.GetLastSequenceNumber(); 
+        }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.QueryRow"/> at the specified index in the results.
@@ -150,7 +164,7 @@ namespace Couchbase.Lite {
 
         public override int GetHashCode ()
         {
-            var idString = String.Format("{0}{1}{2}{3}", _database.DbDirectory, Count, SequenceNumber, Stale);
+            var idString = String.Format("{0}{1}{2}{3}", _database.DbDirectory, Count, SequenceNumber, IsStale());
             return idString.GetHashCode ();
         }
 
@@ -160,13 +174,17 @@ namespace Couchbase.Lite {
         #region IEnumerator
 
         public void Reset() {
-            _enumerator.Reset();
+            _enumerator?.Reset();
         }
 
         public QueryRow Current 
         {
             get {
-                var retVal = _enumerator.Current;
+                var retVal = _enumerator?.Current;
+                if(retVal == null) {
+                    return null;
+                }
+
                 retVal.Database = _database;
                 return retVal;
             }
@@ -174,12 +192,16 @@ namespace Couchbase.Lite {
 
         public bool MoveNext ()
         {
+            if(_enumerator == null) {
+                return false;
+            }
+
             return _enumerator.MoveNext();
         }
 
         public void Dispose ()
         {
-            _enumerator.Dispose();
+            _enumerator?.Dispose();
         }
 
         object System.Collections.IEnumerator.Current { get { return Current; } }

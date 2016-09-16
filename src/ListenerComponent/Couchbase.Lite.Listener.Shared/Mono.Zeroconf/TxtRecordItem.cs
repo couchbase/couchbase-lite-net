@@ -31,6 +31,9 @@ using System.Text;
 
 namespace Mono.Zeroconf
 {
+
+    //Third-party code, so not attempting to document
+#pragma warning disable 1591
     public class TxtRecordItem
     {
         private string key;
@@ -81,4 +84,5 @@ namespace Mono.Zeroconf
             }
         }
     }
+#pragma warning restore 1591
 }

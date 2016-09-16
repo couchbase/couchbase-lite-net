@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>{8E6F8876-64F8-4483-ADB2-D3AAD5672F7C}</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>storage.forestdb.shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)src\ForestDBCouchStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\ForestDBViewStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\JsonC4KeyReader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\JsonC4KeyWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\ForestRevisionInternal.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\CouchbaseBridge.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\AssemblyInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)src\PluginExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.cs">
+      <Link>src\Properties\DynamicAssemblyInfo.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\..\Couchbase.Lite.Shared\Properties\version">
+      <Link>src\Properties\version</Link>
+      <LogicalName>version</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

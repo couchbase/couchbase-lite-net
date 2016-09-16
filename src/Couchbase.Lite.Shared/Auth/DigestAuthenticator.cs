@@ -22,13 +22,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-
-using Sharpen;
 using System.Threading;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Auth
 {
-    //TODO: Make this public in 1.2
     /// <summary>
     /// An authenticator for performing HTTP Digest authentication (RFC 2617)
     /// </summary>
@@ -59,11 +57,27 @@ namespace Couchbase.Lite.Auth
 
         #endregion
 
-        #region IChallengeResponseAuthenticator
+        #region Overrides
         #pragma warning disable 1591
+
+        public override string ToString()
+        {
+            return String.Format("[DigestAuthenticator ({0}:{1})", 
+                new SecureLogString(_username, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogString(_password, LogMessageSensitivity.Insecure));
+        }
+
+        #endregion
+
+        #region IChallengeResponseAuthenticator
+        
 
         public string ResponseFromChallenge(HttpResponseMessage message)
         {
+            if (message == null) {
+                return null;
+            }
+
             var challenge = message.Headers.GetValues("WWW-Authenticate").First();
             _components = DigestCalculator.ParseIntoComponents(challenge);
             if (_components == null) {
@@ -80,7 +94,7 @@ namespace Couchbase.Lite.Auth
 
         public void PrepareWithRequest(HttpRequestMessage request)
         {
-            if (_components == null) {
+            if (_components == null || request == null) {
                 return;
             }
 

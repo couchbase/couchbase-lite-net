@@ -58,7 +58,7 @@ using System.Net;
 
 namespace Couchbase.Lite.Tests
 {
-    public class MockHttpClientFactory : IHttpClientFactory
+    internal class MockHttpClientFactory : IHttpClientFactory
     {
         const string Tag = "MockHttpClientFactory";
 
@@ -69,6 +69,8 @@ namespace Couchbase.Lite.Tests
                 throw new NotImplementedException ();
             }
         }
+
+        public TimeSpan SocketTimeout { get; set; }
 
         public IDictionary<string, string> Headers { get; set; }
 
@@ -84,18 +86,18 @@ namespace Couchbase.Lite.Tests
             Headers = new Dictionary<string,string>();
         }
 
-        public HttpClient GetHttpClient(CookieStore cookieStore, bool useRetryHandler)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy strategy)
         {
-            var handler = useRetryHandler ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler) : (HttpMessageHandler)HttpHandler;
+            var handler = strategy != null ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler, strategy) : HttpHandler;
             var client = new HttpClient(handler, false);
             foreach (var header in Headers) {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
                 if (!success) {
-                    Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
+                    Console.WriteLine("Unable to add header to request: {0}: {1}", header.Key, header.Value);
                 }
             }
 
-            return client;
+            return new CouchbaseLiteHttpClient(client, null);
         }
 
         public void AddCookies(CookieCollection cookies)

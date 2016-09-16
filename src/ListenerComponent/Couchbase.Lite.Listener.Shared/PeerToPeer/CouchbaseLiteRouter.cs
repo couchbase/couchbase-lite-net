@@ -42,25 +42,28 @@ namespace Couchbase.Lite.Listener
         private const string TAG = "CouchbaseLiteRouter";
 
         private static readonly RouteCollection _Get = 
-            new RouteCollection(new Dictionary<string, RestMethod> {
+            new RouteCollection("GET", new Dictionary<string, RestMethod> {
                 { "/", ServerMethods.Greeting },
                 { "/_all_dbs", ServerMethods.GetAllDbs },
                 { "/_session", ServerMethods.GetSession },
                 { "/_uuids", ServerMethods.GetUUIDs },
+                { "/_active_tasks", ServerMethods.GetActiveTasks },
                 { "/{[^_].*}", DatabaseMethods.GetConfiguration },
                 { "/{[^_].*}/_all_docs", DatabaseMethods.GetAllDocuments },
                 { "/{[^_].*}/_changes", DatabaseMethods.GetChanges },
                 { "/{[^_].*}/*", DocumentMethods.GetDocument },
                 { "/{[^_].*}/_local/*", DocumentMethods.GetDocument },
                 { "/{[^_].*}/*/**", DocumentMethods.GetAttachment },
-                { "/{[^_].*}/_design/*/_view/*", ViewMethods.GetDesignView }
+                { "/{[^_].*}/_design/*/_view/*", ViewMethods.GetDesignView },
+                { "/{[^_].*}/_design/*", DocumentMethods.GetDocument }
             });
 
         private static readonly RouteCollection _Post =
-            new RouteCollection(new Dictionary<string, RestMethod> {
+            new RouteCollection("POST", new Dictionary<string, RestMethod> {
                 { "/_replicate", ServerMethods.ManageReplicationSession },
                 { "/{[^_].*}/_revs_diff", DatabaseMethods.RevsDiff },
                 { "/{[^_].*}/_all_docs", DatabaseMethods.GetAllSpecifiedDocuments },
+                { "/{[^_].*}/_changes", DatabaseMethods.GetChangesPost },
                 { "/{[^_].*}/_bulk_docs", DatabaseMethods.ProcessDocumentChangeOperations },
                 { "/{[^_].*}/_compact", DatabaseMethods.Compact },
                 { "/{[^_].*}/_purge", DatabaseMethods.Purge },
@@ -71,7 +74,7 @@ namespace Couchbase.Lite.Listener
             });
 
         private static readonly RouteCollection _Put =
-            new RouteCollection(new Dictionary<string, RestMethod> {
+            new RouteCollection("PUT", new Dictionary<string, RestMethod> {
                 { "/{[^_].*}", DatabaseMethods.UpdateConfiguration },
                 { "/{[^_].*}/*", DocumentMethods.UpdateDocument },
                 { "/{[^_].*}/_local/*", DocumentMethods.UpdateDocument },
@@ -80,7 +83,7 @@ namespace Couchbase.Lite.Listener
             });
 
         private static readonly RouteCollection _Delete =
-            new RouteCollection(new Dictionary<string, RestMethod> {
+            new RouteCollection("DELETE", new Dictionary<string, RestMethod> {
                 { "/{[^_].*}", DatabaseMethods.DeleteConfiguration },
                 { "/{[^_].*}/*", DocumentMethods.DeleteDocument },
                 { "/{[^_].*}/_local/*", DocumentMethods.DeleteDocument },
@@ -120,7 +123,7 @@ namespace Couchbase.Lite.Listener
         /// request</param>
         public void HandleRequest(ICouchbaseListenerContext context)
         {
-            Log.V(TAG, "Processing {0} request to {1}", context.Method, context.RequestUrl.AbsoluteUri);
+            Log.To.Router.I(TAG, "Processing {0} request to {1}", context.Method, context.RequestUrl.AbsoluteUri);
             var method = context.Method;
 
             if (OnAccessCheck != null) {
@@ -129,7 +132,7 @@ namespace Couchbase.Lite.Listener
                     result = OnAccessCheck(method, context.RequestUrl.AbsolutePath);
                 } catch(Exception e) {
                     result = new Status(StatusCode.Exception);
-                    Log.E(TAG, "Unhandled non-Couchbase exception in OnAccessCheck", e);
+                    Log.To.Router.E(TAG, "Unhandled non-Couchbase exception in OnAccessCheck", e);
                 }
 
                 if (result.IsError) {
@@ -156,17 +159,14 @@ namespace Couchbase.Lite.Listener
 
             try {
                 responseState = logic(context);
+            } catch(CouchbaseLiteException e) {
+                // This is in place so that a response can be written simply by throwing a couchbase lite exception
+                // in the routing logic
+                Log.To.Router.I(TAG, "Couchbase exception in routing logic, this message can be ignored if intentional", e);
+                responseState = context.CreateResponse(e.CBLStatus.Code).AsDefaultState();
             } catch(Exception e) {
-                var ce = e as CouchbaseLiteException;
-                if (ce != null) {
-                    // This is in place so that a response can be written simply by throwing a couchbase lite exception
-                    // in the routing logic
-                    Log.I(TAG, "Couchbase exception in routing logic, this message can be ignored if intentional", e);
-                    responseState = context.CreateResponse(ce.CBLStatus.Code).AsDefaultState();
-                } else {
-                    Log.E(TAG, "Unhandled non-Couchbase exception in routing logic", e);
-                    responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();
-                }
+                Log.To.Router.E(TAG, "Unhandled non-Couchbase exception in routing logic", e);
+                responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();
             }
 
             ProcessResponse(context, responseState);
@@ -192,11 +192,16 @@ namespace Couchbase.Lite.Listener
             CouchbaseLiteResponse responseObject = CheckForAltMethod(context, responseState.Response);
             if (!responseState.IsAsync) {
                 try {
+                    Log.To.Router.I(TAG, "Processing response for {0}...", context.RequestUrl.PathAndQuery);
+                    Log.To.Router.V(TAG, "Processing request range...");
                     responseObject.ProcessRequestRanges();
+                    Log.To.Router.V(TAG, "Writing headers...");
                     responseObject.WriteHeaders();
+                    Log.To.Router.V(TAG, "Writing body...");
                     responseObject.WriteToContext();
+                    Log.To.Router.I(TAG, "Response successfully processed!");
                 } catch(Exception e) {
-                    Log.E(TAG, "Exception writing response", e);
+                    Log.To.Router.E(TAG, "Exception writing response", e);
                     responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();
                 }
             } else {
@@ -211,14 +216,18 @@ namespace Couchbase.Lite.Listener
                 return response;
             }
                 
+            Log.To.Router.I(TAG, "{0} method not found for endpoint {1}, searching for alternate...",
+                context.Method, context.RequestUrl.PathAndQuery);
             var request = context.RequestUrl;
             bool hasAltMethod = _Delete.HasLogicForRequest(request) || _Get.HasLogicForRequest(request)
                                 || _Post.HasLogicForRequest(request) || _Put.HasLogicForRequest(request);
 
             if (hasAltMethod) {
+                Log.To.Router.I(TAG, "Suitable method found; returning 406");
                 return context.CreateResponse(StatusCode.MethodNotAllowed);
             }
 
+            Log.To.Router.I(TAG, "No suitable method found; returning 404", context.RequestUrl.PathAndQuery);
             return context.CreateResponse(StatusCode.NotFound);
         }
 

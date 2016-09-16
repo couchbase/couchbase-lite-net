@@ -53,6 +53,10 @@ namespace Couchbase.Lite.Util
             get { return null; }
             set
             { 
+                if (value == null) {
+                    throw new ArgumentNullException("value");
+                }
+
                 if ((value.Length % 2) == 1) {
                     throw new ArgumentException("RequiredKeys needs an even number of entries:  key, type, key, type, ...");
                 }
@@ -61,12 +65,12 @@ namespace Couchbase.Lite.Util
                     var nextKey = value[i] as string;
                     var nextType = value[i + 1] as Type;
                     if (nextKey == null) {
-                        Log.W("ContractedDictionary", "Non-string key found!");
+                        Log.To.NoDomain.W("ContractedDictionary", "Non-string key found!");
                         continue;
                     }
 
                     if (nextType == null) {
-                        Log.W("ContractedDictionary", "Non-Type value found!");
+                        Log.To.NoDomain.W("ContractedDictionary", "Non-Type value found!");
                         continue;
                     }
 
@@ -87,6 +91,10 @@ namespace Couchbase.Lite.Util
             get { return null; }
             set
             { 
+                if (value == null) {
+                    throw new ArgumentNullException("value");
+                }
+
                 if ((value.Length % 2) == 1) {
                     throw new ArgumentException("OptionalKeys needs an even number of entries:  key, type, key, type, ...");
                 }
@@ -95,12 +103,12 @@ namespace Couchbase.Lite.Util
                     var nextKey = value[i] as string;
                     var nextType = value[i + 1] as Type;
                     if (nextKey == null) {
-                        Log.W("ContractedDictionary", "Non-string key found!");
+                        Log.To.NoDomain.W("ContractedDictionary", "Non-string key found!");
                         continue;
                     }
 
                     if (nextType == null) {
-                        Log.W("ContractedDictionary", "Non-Type value found!");
+                        Log.To.NoDomain.W("ContractedDictionary", "Non-Type value found!");
                         continue;
                     }
 
@@ -259,7 +267,7 @@ namespace Couchbase.Lite.Util
                 value = (T)rawValue;
                 return true;
             } catch (InvalidCastException) {
-                Log.W(TAG, "Incorrect type {0} specified for object with type {1}", typeof(T), rawValue.GetType());
+                Log.To.NoDomain.W(TAG, "Incorrect type {0} specified for object with type {1}", typeof(T), rawValue.GetType());
                 return false;
             }
         }

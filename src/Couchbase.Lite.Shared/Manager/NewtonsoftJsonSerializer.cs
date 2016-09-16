@@ -27,10 +27,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Util;
 
-#if FORESTDB
-using CBForest;
-#endif
-
 namespace Couchbase.Lite
 {
     //Eventually split this into another assembly
@@ -39,7 +35,9 @@ namespace Couchbase.Lite
         
         #region Constants
 
-        private static readonly JsonSerializerSettings settings = new JsonSerializerSettings { 
+        private static readonly string Tag = typeof(NewtonsoftJsonSerializer).Name;
+
+        private static JsonSerializerSettings settings = new JsonSerializerSettings { 
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         };
 
@@ -50,10 +48,33 @@ namespace Couchbase.Lite
         #region Variables
 
         private JsonTextReader _textReader;
+        private JsonSerializationSettings _settings = new JsonSerializationSettings();
 
         #endregion
 
         #region Properties
+
+        public JsonSerializationSettings Settings
+        {
+            get { return _settings; }
+            set { 
+                if (_settings == value) {
+                    return;
+                }
+
+                Log.To.Database.I(Tag, "Changing global JSON serialization settings from {0} to {1}", _settings, value);
+                _settings = value;
+                if (_settings.DateTimeHandling == DateTimeHandling.UseDateTimeOffset) {
+                    settings.DateParseHandling = DateParseHandling.DateTimeOffset;
+                    settings.DateTimeZoneHandling = DateTimeZoneHandling.RoundtripKind;
+                } else if(_settings.DateTimeHandling == DateTimeHandling.Ignore) {
+                    settings.DateParseHandling = DateParseHandling.None;
+                } else {
+                    settings.DateParseHandling = DateParseHandling.DateTime;
+                    settings.DateTimeZoneHandling = DateTimeZoneHandling.Local;
+                }
+            }
+        }
 
         public JsonToken CurrentToken
         {
@@ -78,7 +99,8 @@ namespace Couchbase.Lite
             try {
                 item = JsonConvert.DeserializeObject<T>(json, settings);
             } catch(JsonException e) {
-                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, StatusCode.BadJson, TAG, "Error deserializing json ({0})",
+                    new SecureLogString(json, LogMessageSensitivity.PotentiallyInsecure));
             }
 
             return item;
@@ -86,14 +108,15 @@ namespace Couchbase.Lite
 
         public T Deserialize<T>(Stream json) 
         {
-            using (var jsonReader = new JsonTextReader(new StreamReader(json))) 
+            using (var sr = new StreamReader(json))
+            using (var jsonReader = new JsonTextReader(sr)) 
             {
                 var serializer = JsonSerializer.Create(settings);
                 T item;
                 try {
                     item = serializer.Deserialize<T>(jsonReader);
                 } catch (JsonException e) {
-                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, StatusCode.BadJson, TAG, "Error deserializing json from stream");
                 }
 
                 return item;
@@ -114,21 +137,27 @@ namespace Couchbase.Lite
             try {
                 return _textReader != null && _textReader.Read();
             } catch (Exception e) {
-                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                if (e is JsonReaderException) {
+                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, StatusCode.BadJson, TAG, 
+                        "Error reading from streaming parser");
+                }
+
+                throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error reading from streaming parser");
             }
         }
 
-        public IDictionary<string, object> DeserializeNextObject()
+        public T DeserializeNextObject<T>()
         {
             if (_textReader == null) {
-                Log.W(TAG, "DeserializeNextObject is only valid after a call to StartIncrementalParse");
-                return null;
+                Log.To.Sync.W(TAG, "DeserializeNextObject is only valid after a call to StartIncrementalParse, " +
+                    "returning null");
+                return default(T);
             }
 
             try {
-                return JObject.ReadFrom(_textReader).ToObject<IDictionary<string, object>>();
+                return JToken.ReadFrom(_textReader).ToObject<T>();
             } catch(Exception e) {
-                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error deserializing from streaming parser");
             }
         }
 
@@ -156,32 +185,7 @@ namespace Couchbase.Lite
         {
             return new NewtonsoftJsonSerializer();
         }
-
-        #if FORESTDB
-
-        public unsafe C4Key* SerializeToKey(object value)
-        {
-            var retVal = Native.c4key_new();
-            using (var jsonWriter = new JsonC4KeyWriter(retVal)) {
-                var serializer = new JsonSerializer();
-                serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-                serializer.Serialize(jsonWriter, value);
-            }
-
-            return retVal;
-        }
-
-        public T DeserializeKey<T>(C4KeyReader keyReader)
-        {
-            using (var jsonReader = new JsonC4KeyReader(keyReader)) {
-                var serializer = new JsonSerializer();
-                serializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-                return serializer.Deserialize<T>(jsonReader);
-            }
-        }
-
-        #endif
-            
+ 
         #endregion
 
         #region IDisposable

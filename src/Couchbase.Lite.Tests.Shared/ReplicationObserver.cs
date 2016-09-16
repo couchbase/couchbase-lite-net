@@ -66,17 +66,17 @@ namespace Couchbase.Lite
             }
 
             var replicator = args;
-            Log.D(Tag, replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
+            LiteTestCase.WriteDebug(replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
 
             if (replicator.CompletedChangesCount < 0) {
                 var msg = replicator + ": replicator.CompletedChangesCount < 0";
-                Log.E(Tag, msg);
+                Console.WriteLine(msg);
                 throw new Exception(msg);
             }
 
             if (replicator.ChangesCount < 0) {
                 var msg = replicator + ": replicator.ChangesCount < 0";
-                Log.E(Tag, msg);
+                Console.WriteLine(msg);
                 throw new Exception(msg);
             }
 
@@ -84,14 +84,14 @@ namespace Couchbase.Lite
                 var msgStr = "replicator.CompletedChangesCount : " + replicator.CompletedChangesCount +
                              " > replicator.ChangesCount : " + replicator.ChangesCount;
 
-                Log.E(Tag, msgStr);
+                Console.WriteLine(msgStr);
                 throw new Exception(msgStr);
             }
 
-            if (args.Status == ReplicationStatus.Idle || args.Status == ReplicationStatus.Stopped ) {
+            if (args.Status == ReplicationStatus.Stopped || args.Status == ReplicationStatus.Idle) {
                 this.replicationFinished = true;
                 string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
-                Log.D(Tag, msg);
+                LiteTestCase.WriteDebug(msg);
                 if(doneSignal.CurrentCount > 0) {
                     doneSignal.Signal();
                 }
@@ -99,7 +99,7 @@ namespace Couchbase.Lite
                 args.Source.Changed -= Changed;
             } else {
                 string msg = string.Format("ReplicationFinishedObserver.changed called, but replicator still running, so ignore it");
-                Log.D(Tag, msg);
+                LiteTestCase.WriteDebug(msg);
             }
         }
 

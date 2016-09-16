@@ -28,6 +28,7 @@ using System.Threading;
 
 using Couchbase.Lite.Util;
 using System.Threading.Tasks;
+using Microsoft.IO;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -118,7 +119,7 @@ namespace Couchbase.Lite.Support
         /// <param name="stream">The stream to be processed.</param>
         public void AddStream(Stream stream)
         {
-            Log.D(TAG, "Adding stream of unknown length: {0}", stream);
+            Log.To.Database.D(TAG, "Adding stream of unknown length: {0}", stream);
             _inputs.Add(stream);
             Length = -1; // length is now unknown
         }
@@ -143,6 +144,10 @@ namespace Couchbase.Lite.Support
         /// <param name="fileUrl">The file URL to read data from</param>
         public bool AddFileUrl(Uri fileUrl)
         {
+            if (fileUrl == null) {
+                return false;
+            }
+
             FileInfo info;
             try {
                 info = new FileInfo(Uri.UnescapeDataString(fileUrl.AbsolutePath));
@@ -172,6 +177,7 @@ namespace Couchbase.Lite.Support
         public Task<bool> WriteAsync(Stream output)
         {
             if (_isDisposed) {
+                Log.To.Sync.E(TAG, "Attempt to call WriteAsync on a disposed object, throwing...");
                 throw new ObjectDisposedException("MultiStreamWriter");
             }
 
@@ -196,21 +202,21 @@ namespace Couchbase.Lite.Support
             }
 
             _isDisposed = true;
-            Log.D(TAG, "Closed");
+            Log.To.Database.V(TAG, "{0} closing", this);
             if (_output != null) {
-                _output.Close();
+                _output.Dispose();
                 _output = null;
             }
 
             if (_currentInput != null) {
-                _currentInput.Close();
+                _currentInput.Dispose();
                 _currentInput = null;
             }
 
             for (int i = _nextInputIndex; i < _inputs.Count; i++) {
                 var nextStream = _inputs[i] as Stream;
                 if (nextStream != null) {
-                    nextStream.Close();
+                    nextStream.Dispose();
                 }
             }
 
@@ -224,9 +230,9 @@ namespace Couchbase.Lite.Support
         public IEnumerable<byte> AllOutput()
         {
             _nextInputIndex = 0;
-            using (var ms = new MemoryStream()) {
+            using (var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream()) {
                 if (!WriteAsync(ms).Wait(TimeSpan.FromSeconds(30))) {
-                    Log.W(TAG, "Unable to get output!");
+                    Log.To.Database.W(TAG, "{0} unable to get output!", this);
                     return null;
                 }
                     
@@ -237,6 +243,18 @@ namespace Couchbase.Lite.Support
         #endregion
 
         #region Protected Methods
+
+        /// <summary>
+        /// Disposes the resources of the object
+        /// </summary>
+        /// <param name="finalizing">If <c>true</c>, this is the finalizer method, otherwise
+        /// it is the IDisposable Dispose() method.</param>
+        protected virtual void Dispose(bool finalizing)
+        {
+            if(!finalizing) {
+                Close();
+            }
+        }
 
         /// <summary>
         /// Called when the output stream is opened
@@ -282,8 +300,10 @@ namespace Couchbase.Lite.Support
         private Stream StreamForInput(object input)
         {
             var data = input as IEnumerable<byte>;
-            if (data != null) {
-                return new MemoryStream(data.ToArray());
+            var realized = data?.ToArray();
+            if (realized != null) {
+                return RecyclableMemoryStreamManager.SharedInstance.GetStream("MultiStreamWriter", 
+                    realized, 0, realized.Length);
             }
 
             var fileUri = input as Uri;
@@ -318,12 +338,23 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
-        #region IDisposable
+        #region Overrides
         #pragma warning disable 1591
+
+        public override string ToString()
+        {
+            return String.Format("MultiStreamWriter[Length={0}, IsOpen={1}, InputCount={2}]", Length, IsOpen, _inputs.Count);
+        }
+
+        #endregion
+
+        #region IDisposable
+        
 
         public void Dispose()
         {
-            Close();
+            Dispose(false);
+            GC.SuppressFinalize(this);
         }
 
         #pragma warning restore 1591

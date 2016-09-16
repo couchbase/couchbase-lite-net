@@ -101,7 +101,7 @@ namespace Couchbase.Lite.Internal
                 int val;
                 bool found = _openDatabaseNames.TryGetValue(db.Name, out val);
                 if (!found) {
-                    Log.W(TAG, "Attempting to call SharedState.Close() on a non-existent database");
+                    Log.To.Database.W(TAG, "Attempting to call SharedState.Close() on a non-existent database");
                     return;
                 }
 
@@ -113,11 +113,6 @@ namespace Couchbase.Lite.Internal
                     _openDatabaseNames.TryUpdate(db.Name, val - 1, val);
                 }
             }
-        }
-
-        public bool IsDatabaseOpened(Database db)
-        {
-            return _openDatabaseNames.ContainsKey(db.Name);
         }
 
         #endregion

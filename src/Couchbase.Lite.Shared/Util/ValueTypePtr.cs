@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Util
         /// <param name="val">The object to cast to its contained type</param>
         public static implicit operator T(ValueTypePtr<T> val) 
         {
-            return val.Value;
+            return val == null ? default(T) : val.Value;
         }
 
         /// <param name="val">The value to convert to a value type pointer</param>
@@ -70,12 +70,14 @@ namespace Couchbase.Lite.Util
         #endregion
 
         #region Overrides
+        #pragma warning disable 1591
 
         public override string ToString()
         {
             return IsNull ? "<No Value>" : Value.ToString();
         }
 
+        #pragma warning restore 1591
         #endregion
 
     }

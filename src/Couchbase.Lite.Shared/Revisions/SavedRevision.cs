@@ -42,23 +42,33 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+
 using Couchbase.Lite.Internal;
-using Sharpen;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite {
+    
     /// <summary>
     /// A saved Couchbase Lite <see cref="Couchbase.Lite.Document"/> <see cref="Couchbase.Lite.Revision"/>.
     /// </summary>
-    public class SavedRevision : Revision {
+    public sealed class SavedRevision : Revision {
 
-        #region Variables
+        #region Constants
 
-        private string _parentRevID;
+        private static readonly string Tag = typeof(SavedRevision).Name;
 
         #endregion
 
-    #region Constructors
+        #region Variables
+
+        private RevisionID _parentRevID;
+        private bool _checkedProperties;
+
+        #endregion
+
+        #region Constructors
 
         /// <summary>Constructor</summary>
         internal SavedRevision(Document document, RevisionInternal revision)
@@ -66,28 +76,26 @@ namespace Couchbase.Lite {
 
         /// <summary>Constructor</summary>
         internal SavedRevision(Database database, RevisionInternal revision)
-            : this(database.GetDocument(revision == null ? null : revision.GetDocId()), revision) { }
+            : this(database.GetDocument(revision == null ? null : revision.DocID), revision) { }
 
-        internal SavedRevision(Database database, RevisionInternal revision, string parentRevId)
+        internal SavedRevision(Database database, RevisionInternal revision, RevisionID parentRevId)
             : this(database, revision)
         {
             _parentRevID = parentRevId;
         }
 
-    #endregion
+        #endregion
     
-    #region Non-public Members
+        #region Non-public Members
 
         internal RevisionInternal RevisionInternal { get; private set; }
 
-        private  Boolean CheckedProperties { get; set; }
-
         internal override long Sequence {
             get {
-                var sequence = RevisionInternal.GetSequence();
+                var sequence = RevisionInternal.Sequence;
                 if (sequence == 0 && LoadProperties())
                 {
-                    sequence = RevisionInternal.GetSequence();
+                    sequence = RevisionInternal.Sequence;
                 }
                 return sequence;
             }
@@ -100,7 +108,7 @@ namespace Couchbase.Lite {
                 var loadRevision = Database.LoadRevisionBody(RevisionInternal);
                 if (loadRevision == null)
                 {
-                    Log.W(Database.TAG, "Couldn't load body/sequence of {0}" + this);
+                    Log.To.Database.W(Tag, "Couldn't load body/sequence of {0}", this);
                     return false;
                 }
                 RevisionInternal = loadRevision;
@@ -114,9 +122,26 @@ namespace Couchbase.Lite {
             }
         }
 
-    #endregion
+        private IEnumerable<SavedRevision> RevisionHistoryBackTo(IList<RevisionID> ancestors)
+        {
+            var history = new List<SavedRevision>();
+            foreach(var revID in Database.GetRevisionHistory(RevisionInternal, ancestors)) {
+                SavedRevision revision;
+                if(revID.Equals(RevisionInternal.RevID)) {
+                    revision = this;
+                } else {
+                    revision = Document.GetRevisionWithId(revID, false);
+                }
 
-    #region Instance Members
+                history.Insert(0, revision); // reverse into forwards order
+            }
+
+            return history;
+        }
+
+        #endregion
+
+        #region Instance Members
 
         /// <summary>
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>.
@@ -124,6 +149,10 @@ namespace Couchbase.Lite {
         /// <value>The parent.</value>
         public override SavedRevision Parent {
             get {
+                if(_parentRevID != null) {
+                    return Document.GetRevision(_parentRevID.ToString());
+                }
+
                 return Document.GetRevisionFromRev(Database.Storage.GetParentRevision(RevisionInternal));
             }
         }
@@ -132,10 +161,10 @@ namespace Couchbase.Lite {
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>'s Id.
         /// </summary>
         /// <value>The parent.</value>
-        public override String ParentId {
+        public override string ParentId {
             get {
                 if (_parentRevID != null) {
-                    return _parentRevID;
+                    return _parentRevID.ToString();
                 }
 
                 var parRev = Document.Database.Storage.GetParentRevision(RevisionInternal);
@@ -143,7 +172,7 @@ namespace Couchbase.Lite {
                     return null;
                 }
 
-                return parRev.GetRevId();
+                return parRev.RevID.ToString();
             }
         }
 
@@ -153,32 +182,18 @@ namespace Couchbase.Lite {
         /// Older, ancestor, revisions are not guaranteed to have their properties available.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public override IEnumerable<SavedRevision> RevisionHistory {
+        public override IEnumerable<SavedRevision> RevisionHistory 
+        {
             get {
-                var revisions = new List<SavedRevision>();
-                var internalRevisions = Database.Storage.GetRevisionHistory(RevisionInternal, null);
-
-                foreach (var internalRevision in internalRevisions)
-                {
-                    if (internalRevision.GetRevId().Equals(Id))
-                    {
-                        revisions.Add(this);
-                    }
-                    else
-                    {
-                        var revision = Document.GetRevisionFromRev(internalRevision);
-                        revisions.Add(revision);
-                    }
-                }
-                Collections.Reverse(revisions);
-                return Collections.UnmodifiableList(revisions);
+                return RevisionHistoryBackTo(null);
             }
         }
 
         /// <summary>Gets the Revision's id.</summary>
-        public override String Id {
+        public override string Id 
+        {
             get {
-                return RevisionInternal.GetRevId();
+                return RevisionInternal == null ? null : RevisionInternal.RevID.ToString();
             }
         }
 
@@ -190,9 +205,9 @@ namespace Couchbase.Lite {
         /// (In other words, does it have a "_deleted" property?)
         /// </remarks>
         /// <value><c>true</c> if this instance is deletion; otherwise, <c>false</c>.</value>
-        public override Boolean IsDeletion {
+        public override bool IsDeletion {
             get {
-                return RevisionInternal.IsDeleted();
+                return RevisionInternal.Deleted;
             }
         }
 
@@ -204,15 +219,21 @@ namespace Couchbase.Lite {
         /// <returns>contents of this revision of the document.</returns>
         public override IDictionary<String, Object> Properties {
             get {
-                IDictionary<string, object> properties = RevisionInternal == null ? null : RevisionInternal.GetProperties();
-                if (properties == null && !CheckedProperties)
-                {
-                    if (LoadProperties()) {
-                        properties = RevisionInternal == null ? null : RevisionInternal.GetProperties();
+                IDictionary<string, object> properties = RevisionInternal?.GetProperties();
+                if(!_checkedProperties) {
+                    if(properties == null) {
+                        if(LoadProperties()) {
+                            properties = RevisionInternal?.GetProperties();
+                        }
+                    } else if(properties.CblID() == null) {
+                        RevisionInternal = RevisionInternal.AddBasicMetadata();
+                        properties = RevisionInternal?.GetProperties();
                     }
-                    CheckedProperties = true;
+                    
+                    _checkedProperties = true;
                 }
-                return Collections.UnmodifiableMap(properties);
+
+                return properties;
             }
         }
 
@@ -253,7 +274,7 @@ namespace Couchbase.Lite {
         /// Thrown if an error occurs while creating or saving the new <see cref="Couchbase.Lite.Revision"/>.
         /// </exception>
         public SavedRevision CreateRevision(IDictionary<String, Object> properties) {
-            return Document.PutProperties(properties, RevisionInternal.GetRevId(), false);           
+            return Document.PutProperties(properties, RevisionInternal.RevID, false);           
         }
 
         /// <summary>
@@ -268,10 +289,19 @@ namespace Couchbase.Lite {
         /// </exception>
         public SavedRevision DeleteDocument() { return CreateRevision(null); }
 
-    #endregion
-    
-    }
+        #endregion
 
-    
+        #region Overrides
+#pragma warning disable 1591
 
+        public override string ToString()
+        {
+            var docId = Document == null ? "(null)" : Document.Id;
+            return string.Format("[SavedRevision[ID={0}, Rev={1}, Deletion={2}]", 
+                new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure), Id, IsDeletion);
+        }
+
+#pragma warning restore 1591
+        #endregion
+    }
 }

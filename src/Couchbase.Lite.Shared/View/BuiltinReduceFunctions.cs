@@ -32,6 +32,12 @@ namespace Couchbase.Lite.Views
     /// </summary>
     public static class BuiltinReduceFunctions
     {
+        
+        #region Constants
+
+        private static readonly string Tag = typeof(BuiltinReduceFunctions).Name;
+
+        #endregion
 
         #region Member Variables
 
@@ -108,15 +114,16 @@ namespace Couchbase.Lite.Views
         internal static double TotalValues(IList<object> values)
         {
             double total = 0;
-            foreach (object o in values)
-            {
+            foreach (object o in values) {
                 try {
                     double number = Convert.ToDouble(o);
                     total += number;
-                } catch (Exception e) {
-                    Log.W(Database.TAG, "Warning non-numeric value found in totalValues: " + o, e);
+                } catch (Exception) {
+                    Log.To.View.W(Tag, "Non-numeric value found in totalValues: {0}", 
+                        new SecureLogJsonString(o, LogMessageSensitivity.PotentiallyInsecure));
                 }
             }
+
             return total;
         }
 

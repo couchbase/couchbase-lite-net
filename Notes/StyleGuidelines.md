@@ -47,8 +47,8 @@ namespace
 
 - Private variables begin with an underscore and a lowercase letter (a-z) `_privateVar`
 - Private static variables begin with an underscore and an uppercase letter (A-Z) `_StaticVar`
-- Property names begin with an uppercase letter and use camel casing `PropertyName`
-- Contants use all uppercase letters, separated by an underbar `CONSTANT_VALUE`.  This includes static readonly.
+- Property names, constants, and static readonly fields use Pascal casing `PropertyName`
+- All public non-changing fields should be static readonly as opposed to const
 - Code should employ the following `#region` blocks structure (omitted if no items fall into that category)
 ```c#
 #region Constants
@@ -99,5 +99,5 @@ namespace
 
 - All public and protected methods should have documentation comments (i.e. the `///` kind).
 - All modifiers should be written, regardless of their optionality (i.e. private variables should have the `private` keyword, even though it is the default)
-- Use the compiler aliases for primitives (i.e. `bool` not `Boolean`, `int` not `Int32`, etc)
+- Use the compiler aliases for primitives (i.e. `bool` not `Boolean`, `int` not `Int32`, etc), except when using their constants or static methods.
 - The code should include comments where needed, but only ones that make sense.

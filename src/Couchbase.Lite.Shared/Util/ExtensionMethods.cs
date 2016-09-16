@@ -49,9 +49,10 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
-
-using Sharpen;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.IO;
 
 namespace Couchbase.Lite
 {
@@ -59,11 +60,73 @@ namespace Couchbase.Lite
 
     internal static class ExtensionMethods
     {
+        public static void PutAll<T, U> (this IDictionary<T, U> d, IDictionary<T, U> values)
+        {
+            foreach (var val in values) {
+                d[val.Key] = val.Value;
+            }
+        }
+
+        public static void Sort<T> (this IList<T> list, IComparer<T> comparer)
+        {
+            List<T> sorted = new List<T> (list);
+            sorted.Sort (comparer);
+            for (int i = 0; i < list.Count; i++) {
+                list[i] = sorted[i];
+            }
+        }
+
+        public static bool RegionMatches (this string str, int toOffset, string other, int ooffset, int len)
+        {
+            if (toOffset < 0 || ooffset < 0 || toOffset + len > str.Length || ooffset + len > other.Length) {
+                return false;
+            }
+
+            return string.Compare (str, toOffset, other, ooffset, len) == 0;
+        }
+
+        public static string ReplaceAll (this string str, string regex, string replacement)
+        {
+            Regex rgx = new Regex (regex);
+
+            if (replacement.IndexOfAny (new char[] { '\\','$' }) != -1) {
+                // Back references not yet supported
+                StringBuilder sb = new StringBuilder ();
+                for (int n=0; n<replacement.Length; n++) {
+                    char c = replacement [n];
+                    if (c == '$') {
+                        throw new NotSupportedException("Back references not supported");
+                    }
+                    if (c == '\\') {
+                        c = replacement[++n];
+                    }
+
+                    sb.Append (c);
+                }
+                replacement = sb.ToString ();
+            }
+
+            return rgx.Replace (str, replacement);
+        }
+            
+        public static TimeSpan TimeSinceEpoch(this DateTime dt)
+        {
+            return dt - Misc.Epoch;
+        }
+
+        public static U Get<T, U> (this IDictionary<T, U> d, T key)
+        {
+            U val = default(U);
+            d.TryGetValue (key, out val);
+            return val;
+        }
+
         public static IEnumerable<byte> Decompress(this IEnumerable<byte> compressedData)
         {
-
-            using (var ms = new MemoryStream(compressedData.ToArray()))
-            using (var gs = new GZipStream(ms, CompressionMode.Decompress, false)) {
+            var realized = compressedData.ToArray();
+            using (var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream("Decompress", 
+                realized, 0, realized.Length))
+            using (var gs = new GZipStream(ms, CompressionMode.Decompress, true)) {
                 return gs.ReadAllBytes();
             }
         }
@@ -71,8 +134,8 @@ namespace Couchbase.Lite
         public static IEnumerable<byte> Compress(this IEnumerable<byte> data)
         {
             var array = data.ToArray();
-            using (var ms = new MemoryStream()) {
-                using (var gs = new GZipStream(ms, CompressionMode.Compress, false)) {
+            using (var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream("Compress")) {
+                using (var gs = new GZipStream(ms, CompressionMode.Compress, true)) {
                     gs.Write(array, 0, array.Length);
                 }
 
@@ -176,34 +239,32 @@ namespace Couchbase.Lite
             return Manager.GetObjectMapper().ConvertToList<TValue>(value);
         }
 
-        public static IEnumerable ToEnumerable(this IEnumerator enumerator)
+        public static byte[] ReadAllBytes(this Stream stream)
         {
-            while(enumerator.MoveNext()) {
-                yield return enumerator.Current;
+            var ms = stream as MemoryStream;
+            var owner = false;
+            var block = RecyclableMemoryStreamManager.SharedInstance.GetBlock();
+            try {
+                if (ms != null) {
+                    return ms.GetBuffer().Take((int)ms.Length).ToArray();
+                }
+
+                ms = RecyclableMemoryStreamManager.SharedInstance.GetStream();
+                owner = true;
+                var read = 0;
+                while((read = stream.Read(block, 0, block.Length)) > 0) {
+                    ms.Write(block, 0, read);
+                }
+                return ms.GetBuffer().Take((int)ms.Length).ToArray();
+            } finally {
+                if(owner) {
+                    ms?.Dispose();
+                }
+
+                if (block != null) {
+                    RecyclableMemoryStreamManager.SharedInstance.ReturnBlocks(new byte[][] { block }, "ReadAllBytes");
+                }
             }
-        }
-
-        public static String Fmt(this String str, params Object[] vals)
-        {
-            return String.Format(str, vals);
-        }
-
-        public static Byte[] ReadAllBytes(this Stream stream)
-        {
-            var chunkBuffer = new byte[Attachment.DefaultStreamChunkSize];
-            // We know we'll be reading at least 1 chunk, so pre-allocate now to avoid an immediate resize.
-            var ms = new MemoryStream();
-
-            int bytesRead;
-            do {
-                chunkBuffer.Initialize ();
-                // Resets all values back to zero.
-                bytesRead = stream.Read(chunkBuffer, 0, Attachment.DefaultStreamChunkSize);
-                ms.Write(chunkBuffer, 0, bytesRead);
-            }
-            while (bytesRead > 0);
-
-            return ms.ToArray();
         }
 
         public static StatusCode GetStatusCode(this HttpStatusCode code)
@@ -220,7 +281,7 @@ namespace Couchbase.Lite
             return StatusCode.Unknown;
         }
 
-        public static AuthenticationHeaderValue GetAuthenticationHeader(this Uri uri, string scheme)
+        public static string GetAuthenticationHeader(this Uri uri, string scheme)
         {
             Debug.Assert(uri != null);
 
@@ -230,7 +291,7 @@ namespace Couchbase.Lite
 
             var param = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(unescapedUserInfo));
 
-            return new AuthenticationHeaderValue(scheme, param);
+            return $"{scheme} {param}";
         }
 
         public static AuthenticationHeaderValue AsAuthenticationHeader(this string userinfo, string scheme)
@@ -238,33 +299,7 @@ namespace Couchbase.Lite
             Debug.Assert(userinfo != null);
             return new AuthenticationHeaderValue(scheme, userinfo);
         }
-
-        public static string ToQueryString(this IDictionary<string, object> parameters)
-        {
-            var maps = parameters.Select(kvp =>
-            {
-                var key = Uri.EscapeUriString(kvp.Key);
-
-                string value;
-                if (kvp.Value is string) 
-                {
-                    value = Uri.EscapeUriString(kvp.Value as String);
-                }
-                else if (kvp.Value is ICollection)
-                {
-                    value = Uri.EscapeUriString(Manager.GetObjectMapper().WriteValueAsString(kvp.Value));
-                }
-                else
-                {
-                    value = Uri.EscapeUriString(kvp.Value.ToString());
-                }
-
-                return String.Format("{0}={1}", key, value);
-            });
-
-            return String.Join("&", maps.ToArray());
-        }
-
+            
         #if NET_3_5
 
         public static IEnumerable<FileInfo> EnumerateFiles(this DirectoryInfo info, string searchPattern, SearchOption option) {
@@ -285,39 +320,6 @@ namespace Couchbase.Lite
         }
 
         #endif
-
-        private static bool IsNumeric<T>()
-        {
-            Type type = typeof(T);
-            return IsNumeric(type);
-        }
-
-        private static bool IsNumeric(Type type)
-        {
-            switch (Type.GetTypeCode(type)) {
-                case TypeCode.Byte:
-                case TypeCode.Decimal:
-                case TypeCode.Double:
-                case TypeCode.Int16:
-                case TypeCode.Int32:
-                case TypeCode.Int64:
-                case TypeCode.SByte:
-                case TypeCode.Single:
-                case TypeCode.UInt16:
-                case TypeCode.UInt32:
-                case TypeCode.UInt64:
-                    return true;
-
-                case TypeCode.Object:
-                    if ( type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
-                    {
-                        return IsNumeric(Nullable.GetUnderlyingType(type));
-                    }
-                    return false;
-            }
-
-            return false;
-        }
             
     }
 }

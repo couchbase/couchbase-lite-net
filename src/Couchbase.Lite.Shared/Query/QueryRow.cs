@@ -42,15 +42,13 @@
 
 using System;
 using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Sharpen;
+using System.Diagnostics;
+
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Store;
-using System.Diagnostics;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite 
 {
@@ -67,8 +65,7 @@ namespace Couchbase.Lite
         #endregion
 
         #region Variables
-
-        private RevisionInternal _documentRevision;
+        
         private IQueryRowStore _storage;
         private object _parsedKey, _parsedValue;
 
@@ -85,7 +82,7 @@ namespace Couchbase.Lite
             SequenceNumber = sequence;
             _key = key;
             _value = value;
-            _documentRevision = revision;
+            DocumentRevision = revision;
             _storage = storage;
         }
 
@@ -98,6 +95,8 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.QueryRow"/>'s <see cref="Couchbase.Lite.View"/>.</value>
         public Database Database { get; internal set; }
+
+        internal RevisionInternal DocumentRevision { get; private set; }
 
         /// <summary>
         /// Gets the associated <see cref="Couchbase.Lite.Document"/>.
@@ -154,17 +153,17 @@ namespace Couchbase.Lite
         /// Gets the Id of the associated <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <value>The Id of the associated <see cref="Couchbase.Lite.Document"/>.</value>
-        public String DocumentId {
+        public string DocumentId {
             get {
                 // Get the doc id from either the embedded document contents, or the '_id' value key.
                 // Failing that, there's no document linking, so use the regular old SourceDocumentId
-                if (_documentRevision != null) {
-                    return _documentRevision.GetDocId();
+                if (DocumentRevision != null) {
+                    return DocumentRevision.DocID;
                 }
 
                 var valueDic = Value as IDictionary<string, object>;
                 if (valueDic != null) {
-                    var docId = valueDic.GetCast<string>("_id");
+                    var docId = valueDic.CblID();
                     return docId ?? SourceDocumentId;
                 }
 
@@ -184,24 +183,33 @@ namespace Couchbase.Lite
         /// don't correspond to individual <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <value>The source document identifier.</value>
-        public String SourceDocumentId { get; private set; }
+        public string SourceDocumentId { get; private set; }
 
         /// <summary>
         /// Gets the Id of the associated <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
         /// <value>The Id of the associated <see cref="Couchbase.Lite.Revision"/>.</value>
-        public String DocumentRevisionId {
+        public string DocumentRevisionId {
             get {
                 // Get the revision id from either the embedded document contents,
                 // or the '_rev' or 'rev' value key:
-                if (_documentRevision != null) {
-                    return _documentRevision.GetRevId();
+                return DocRevID.ToString();
+            }
+        }
+
+        internal RevisionID DocRevID
+        {
+            get {
+                // Get the revision id from either the embedded document contents,
+                // or the '_rev' or 'rev' value key:
+                if(DocumentRevision != null) {
+                    return DocumentRevision.RevID;
                 }
 
                 var value = Value as IDictionary<string, object>;
-                var rev = value == null ? null : value.GetCast<string>("_rev");
-                if (value != null && rev == null) {
-                    rev = value.GetCast<string>("rev");
+                var rev = value == null ? null : value.CblRev();
+                if(value != null && rev == null) {
+                    rev = value.GetCast<string>("rev").AsRevID();
                 }
 
                 return rev;
@@ -212,9 +220,9 @@ namespace Couchbase.Lite
         /// Gets the properties of the associated <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <value>The properties of the associated <see cref="Couchbase.Lite.Document"/>.</value>
-        public IDictionary<String, Object> DocumentProperties { 
+        public IDictionary<string, object> DocumentProperties { 
             get {
-                return _documentRevision != null ? _documentRevision.GetProperties() : null;
+                return DocumentRevision != null ? DocumentRevision.GetProperties() : null;
             }
         }
 
@@ -222,7 +230,7 @@ namespace Couchbase.Lite
         /// Gets the sequence number of the associated <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
         /// <value>The sequence number.</value>
-        public Int64 SequenceNumber { get; private set; }
+        public long SequenceNumber { get; private set; }
 
         /// <summary>
         /// Returns the value of the QueryRow and interprets it as the given type
@@ -242,13 +250,13 @@ namespace Couchbase.Lite
                     if (storage.RowValueIsEntireDoc(valueData)) {
                         // Value is a placeholder ("*") denoting that the map function emitted "doc" as
                         // the value. So load the body of the revision now:
-                        if (_documentRevision != null) {
-                            value = _documentRevision.GetProperties();
+                        if (DocumentRevision != null) {
+                            value = DocumentRevision.GetProperties();
                         } else {
                             Debug.Assert(SequenceNumber != 0);
                             value = storage.DocumentProperties(SourceDocumentId, SequenceNumber);
                             if (value == null) {
-                                Log.W(TAG, "Couldn't load doc for row value");
+                                Log.To.Query.W(TAG, "Couldn't load doc for row value");
                             }
                         }
                     } else {
@@ -293,18 +301,18 @@ namespace Couchbase.Lite
         {
             var result = new Dictionary<string, object>();
             if (Value != null || SourceDocumentId != null) {
-                result.Put("key", Key);
+                result["key"] = Key;
                 if (Value != null) {
-                    result.Put("value", Value);
+                    result["value"] = Value;
                 }
-                result.Put("id", SourceDocumentId);
+                result["id"] = SourceDocumentId;
                 if (DocumentProperties != null) {
-                    result.Put("doc", DocumentProperties);
+                    result["doc"] = DocumentProperties;
                 }
             }
             else {
-                result.Put("key", Key);
-                result.Put("error", "not_found");
+                result["key"] = Key;
+                result["error"] = "not_found";
             }
 
             return result;

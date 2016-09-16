@@ -184,5 +184,21 @@ namespace Couchbase.Lite.Listener
         CouchbaseLiteResponse CreateResponse(StatusCode code = StatusCode.Ok);
 
     }
+
+    /// <summary>
+    /// An upgrade version of the listener context which contains information about the incoming request
+    /// </summary>
+    public interface ICouchbaseListenerContext2 : ICouchbaseListenerContext
+    {
+        /// <summary>
+        /// Gets whether or not this request came from the same machine (i.e. via localhost)
+        /// </summary>
+        bool IsLoopbackRequest { get; }
+
+        /// <summary>
+        /// Gets the sender of the request
+        /// </summary>
+        Uri Sender { get; }
+    }
 }
 

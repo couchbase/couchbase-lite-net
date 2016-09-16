@@ -50,6 +50,7 @@ using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite.Tests
 {
@@ -58,6 +59,12 @@ namespace Couchbase.Lite.Tests
         #region Global Delegates
 
         public delegate HttpResponseMessage HttpResponseDelegate(HttpRequestMessage request);
+
+        #endregion
+
+        #region Properties
+
+        public bool DefaultFail { get; set; }
 
         #endregion
 
@@ -70,14 +77,12 @@ namespace Couchbase.Lite.Tests
             if(defaultFail)
                 AddDefaultResponders();
 
-            _defaultFail = defaultFail;
+            DefaultFail = defaultFail;
         }
 
         #endregion
 
         #region Instance Members
-
-        private bool _defaultFail;
 
         public Int32 ResponseDelayMilliseconds { get; set; }
 
@@ -98,22 +103,16 @@ namespace Couchbase.Lite.Tests
             }
 
             if (responder != null) {
-                HttpResponseMessage message = null;
-                try {
-                    message = responder(request);
-                } catch(Exception e) {
-                    var tcs = new TaskCompletionSource<HttpResponseMessage>();
-                    tcs.SetException(e);
-                    return tcs.Task;
-                }
+                return Task.Factory.StartNew(() =>
+                {
+                    var message = responder(request);
+                    if(message is RequestCorrectHttpMessage) {
+                        return base.SendAsync(request, cancellationToken).Result;
+                    }
 
-                Task<HttpResponseMessage> retVal = Task.FromResult<HttpResponseMessage>(message);
-                NotifyResponseListeners(request, message);
-                if (message is RequestCorrectHttpMessage)
-                    return base.SendAsync(request, cancellationToken);
-                
-                return retVal;
-            } else if(_defaultFail) {
+                    return message;
+                }, TaskCreationOptions.LongRunning);
+            } else if(DefaultFail) {
                 throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
             }
 
@@ -329,8 +328,7 @@ namespace Couchbase.Lite.Tests
             foreach (JObject doc in docs)
             {
                 IDictionary<string, object> responseListItem = new Dictionary<string, object>();
-                responseListItem["id"] = doc["_id"];
-                responseListItem["rev"] = doc["_rev"];
+                responseListItem.SetDocRevID(doc["_id"].Value<string>(), doc["_rev"].Value<string>());
                 responseList.Add(responseListItem);
             }
 

@@ -41,10 +41,15 @@
 //
 
 using System.Collections.Generic;
-using Couchbase.Lite;
-using NUnit.Framework;
-using Sharpen;
+
 using Couchbase.Lite.Internal;
+using NUnit.Framework;
+using Couchbase.Lite.Revisions;
+using System;
+using System.Linq;
+using Couchbase.Lite.Util;
+using System.Diagnostics;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -53,6 +58,95 @@ namespace Couchbase.Lite
     {
 
         public DocumentTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestExpireDocument()
+        {
+            Log.Domains.Database.Level = Log.LogLevel.None;
+            var future = DateTime.UtcNow.AddSeconds(12345);
+            Trace.WriteLine($"Now is {DateTime.UtcNow}");
+            var doc = CreateDocumentWithProperties(database, new Dictionary<string, object> { { "foo", 17 } });
+            Assert.IsNull(doc.GetExpirationDate());
+            database.RunInTransaction(() =>
+            {
+                doc.ExpireAt(future);
+                return true;
+            });
+            
+            var exp = doc.GetExpirationDate();
+            Trace.WriteLine($"Doc expiration is {exp}");
+            Assert.IsNotNull(exp);
+            Assert.IsTrue(Math.Abs((exp.Value - future).TotalSeconds) < 1.0);
+
+            var next = database.Storage.NextDocumentExpiry();
+            Trace.WriteLine($"Next expiry at {next}");
+
+            database.RunInTransaction(() =>
+            {
+                doc.ExpireAt(null);
+                return true;
+            });
+            Assert.IsNull(doc.GetExpirationDate());
+            Assert.IsNull(database.Storage.NextDocumentExpiry());
+
+            Trace.WriteLine("Creating documents");
+            CreateDocuments(database, 10000);
+
+            var cd = new CountdownEvent(1000);
+            database.Changed += (sender, args) =>
+            {
+                foreach(var change in args.Changes) {
+                    if(change.IsExpiration) {
+                        cd.Signal();
+                    }
+                }
+            };
+
+            Trace.WriteLine("Marking docs for expiration");
+            int total = 0, marked = 0;
+            database.RunInTransaction(() =>
+            {
+                foreach(var row in database.CreateAllDocumentsQuery().Run()) {
+                    var resultDoc = row.Document;
+                    var sequence = resultDoc.GetProperty<long>("sequence");
+                    if((sequence % 10) == 6) {
+                        resultDoc.ExpireAfter(TimeSpan.FromSeconds(2));
+                        ++marked;
+                    } else if((sequence % 10) == 3) {
+                        resultDoc.ExpireAt(future);
+                    }
+
+                    ++total;
+                }
+
+                return true;
+            });
+
+            Assert.AreEqual(10001, total);
+            Assert.AreEqual(1000, marked);
+
+            next = database.Storage.NextDocumentExpiry();
+            Trace.WriteLine($"Next expiration at {next}");
+            //Assert.IsTrue(next - DateTime.UtcNow <= TimeSpan.FromSeconds(2));
+            //Assert.IsTrue(next - DateTime.UtcNow >= TimeSpan.FromSeconds(-10));
+
+            Trace.WriteLine("Waiting for auto expiration");
+            cd.Wait(TimeSpan.FromSeconds(10));
+            Assert.AreEqual(9001, database.GetDocumentCount());
+
+            total = 0;
+            foreach(var row in database.CreateAllDocumentsQuery().Run()) {
+                var resultDoc = row.Document;
+                var sequence = resultDoc.GetProperty<long>("sequence");
+                Assert.AreNotEqual(6, sequence % 10);
+                ++total;
+            }
+            Assert.AreEqual(9001, total);
+
+            next = database.Storage.NextDocumentExpiry();
+            Trace.WriteLine($"Next expiration is {next}");
+            Assert.IsTrue(Math.Abs((next.Value - future).TotalSeconds) < 1.0);
+        }
 
         [Test] // #447
         public void TestDocumentArraysMaintainOrder()
@@ -140,7 +234,7 @@ namespace Couchbase.Lite
 
             var docId = document.Id;
 
-            properties["_rev"] = document.CurrentRevisionId;
+            properties.SetRevID(document.CurrentRevisionId);
             properties["_deleted"] = true;
             properties["mykey"] = "myval";
             var newRev = document.PutProperties(properties);
@@ -214,11 +308,11 @@ namespace Couchbase.Lite
             properties["bar"] = false;
             properties["_id"] = document.Id;
             document.PutProperties(properties);
-            properties["_rev"] = document.CurrentRevisionId;
+            properties.SetRevID(document.CurrentRevisionId);
             Assert.IsNotNull(document.CurrentRevision);
 
             var revisionInternal = new RevisionInternal(
-                document.Id, document.CurrentRevisionId, false);
+                document.Id, document.CurrentRevisionId.AsRevID(), false);
 
             database.LoadRevisionBody(revisionInternal);
             Assert.AreEqual(properties, revisionInternal.GetProperties());

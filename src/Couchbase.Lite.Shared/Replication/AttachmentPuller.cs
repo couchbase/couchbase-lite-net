@@ -13,7 +13,6 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -50,16 +49,6 @@ namespace Couchbase.Lite.Replicator
         #endregion
 
         #region Private Methods
- 
-        private void FinishStopping()
-        {
-            StopRemoteRequests();
-            lock (_locker) {
-                _attachmentsToPull = null;
-            }
-
-            FireTrigger(ReplicationTrigger.StopImmediate);
-        }
 
         /// <summary>Add an attachment to the appropriate queue to individually GET</summary>
         public AttachmentRequest QueueRemoteAttachment(Attachment att)
@@ -143,7 +132,7 @@ namespace Couchbase.Lite.Replicator
 
             var blobWriter = LocalDatabase.AttachmentWriter;
 
-            SendAsyncAttachmentRequest(HttpMethod.Get, pathInside, (buffer, bytesRead, complete, e) =>
+            _remoteSession.SendAsyncAttachmentRequest(HttpMethod.Get, pathInside, (buffer, bytesRead, complete, e) =>
             {
                 try
                 {
@@ -155,7 +144,9 @@ namespace Couchbase.Lite.Replicator
                         Log.V(TAG, string.Format("read {0} bytes", bytesRead));
                         if (bytesRead != buffer.Length)
                         {
-                            blobWriter.AppendData(buffer.SubList(0, bytesRead));
+                            byte[] subBuffer = new byte[bytesRead];
+                            Array.Copy(buffer, subBuffer, bytesRead);
+                            blobWriter.AppendData(subBuffer);
                         }
                         else
                         {
@@ -231,16 +222,18 @@ namespace Couchbase.Lite.Replicator
 
         protected override void StopGraceful()
         {
-            base.StopGraceful();
+            lock (_locker) {
+                _attachmentsToPull = null;
+            }
 
-            FinishStopping();
+            base.StopGraceful();
         }
 
         protected override void PerformGoOffline()
         {
             base.PerformGoOffline();
 
-            StopRemoteRequests();
+            _remoteSession.CancelRequests();
         }
 
         protected override void PerformGoOnline()

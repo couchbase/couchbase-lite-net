@@ -42,10 +42,8 @@
 * and limitations under the License.
 */
 
-using Couchbase.Lite;
 using Couchbase.Lite.Support;
 using NUnit.Framework;
-using Sharpen;
 
 namespace Couchbase.Lite
 {

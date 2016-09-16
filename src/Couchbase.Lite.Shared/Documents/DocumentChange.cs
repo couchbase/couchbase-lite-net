@@ -41,53 +41,51 @@
 //
 
 using System;
-using System.Linq;
-using System.Collections;
-using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Couchbase.Lite.Util;
+
 using Couchbase.Lite.Internal;
-using Sharpen;
+using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite {
 
     /// <summary>
     /// Provides details about a Document change.
     /// </summary>
-    public class DocumentChange
+    public class DocumentChange
     {
         internal RevisionInternal AddedRevision { get; private set; }
 
-        internal DocumentChange(RevisionInternal addedRevision, string winningRevisionId, bool isConflict, Uri sourceUrl)
+        // Used by plugins
+        internal DocumentChange(RevisionInternal addedRevision, RevisionID winningRevisionId, bool isConflict, Uri sourceUrl)
         {
             AddedRevision = addedRevision;
             WinningRevisionId = winningRevisionId;
             IsConflict = isConflict;
             SourceUrl = sourceUrl;
         }
-    
-    #region Instance Members
+
+        #region Instance Members
+
         //Properties
         /// <summary>
         /// Gets the Id of the <see cref="Couchbase.Lite.Document"/> that changed.
         /// </summary>
         /// <value>The Id of the <see cref="Couchbase.Lite.Document"/> that changed.</value>
-        public String DocumentId { get { return AddedRevision.GetDocId(); } }
+        public string DocumentId { get { return AddedRevision.DocID; } }
 
         /// <summary>
         /// Gets the Id of the new Revision.
         /// </summary>
         /// <value>The Id of the new Revision.</value>
-        public String RevisionId { get { return AddedRevision.GetRevId(); } }
+        public string RevisionId { get { return AddedRevision.RevID.ToString(); } }
 
         /// <summary>
         /// Gets a value indicating whether this instance is current revision.
         /// </summary>
         /// <value><c>true</c> if this instance is current revision; otherwise, <c>false</c>.</value>
-        public Boolean IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.GetRevId()); } }
+        public bool IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.RevID.ToString()); } }
 
-        internal string WinningRevisionId { get; private set; }
+        internal RevisionID WinningRevisionId { get; private set; }
 
         /// <summary>
         /// Gets the winning revision.
@@ -110,7 +108,12 @@ namespace Couchbase.Lite {
         /// Gets a value indicating whether this instance is conflict.
         /// </summary>
         /// <value><c>true</c> if this instance is conflict; otherwise, <c>false</c>.</value>
-        public Boolean IsConflict { get; private set; }
+        public bool IsConflict { get; private set; }
+
+        /// <summary>
+        /// Gets whether or not this change is a document expiration (i.e. TTL has passed)
+        /// </summary>
+        public bool IsExpiration { get; internal set; }
 
         /// <summary>
         /// Gets the remote URL of the source Database from which this change was replicated.
@@ -118,8 +121,36 @@ namespace Couchbase.Lite {
         /// <value>The remote URL of the source Database from which this change was replicated.</value>
         public Uri SourceUrl { get; private set; }
 
-    #endregion
+        #endregion
 
-    }
+        #region Overrides
+#pragma warning disable 1591
+
+        public override bool Equals(object obj)
+        {
+            var other = obj as DocumentChange;
+            if(other == null) {
+                return false;
+            }
+
+            return RevisionInternal.Equals(AddedRevision, other.AddedRevision) &&
+                String.Equals(WinningRevisionId, other.WinningRevisionId) &&
+                Uri.Equals(SourceUrl, other.SourceUrl);
+        }
+
+        public override int GetHashCode()
+        {
+            return Hasher.Hash(AddedRevision, WinningRevisionId, SourceUrl);
+        }
+
+        public override string ToString()
+        {
+            return String.Format("DocumentChange[AddedRevision={0}, IsWinner={1}]", AddedRevision, WinningRevisionId == RevisionId.AsRevID());
+        }
+
+#pragma warning restore 1591
+        #endregion
+
+    }
 
 }

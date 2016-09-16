@@ -47,6 +47,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Microsoft.IO;
 
 namespace Couchbase.Lite 
 {
@@ -107,7 +108,9 @@ namespace Couchbase.Lite
 
         public T ReadValue<T> (IEnumerable<byte> json)
         {
-            using (var jsonStream = new MemoryStream(json.ToArray())) 
+            var realized = json.ToArray();
+            using (var jsonStream = RecyclableMemoryStreamManager.SharedInstance.GetStream("ObjectWriter",
+                realized, 0, realized.Length)) 
             {
                 return ReadValue<T>(jsonStream);
             }
@@ -127,20 +130,6 @@ namespace Couchbase.Lite
         {
             return ManagerOptions.SerializationEngine.ConvertToList<T>(obj) ?? obj as IList<T>;
         }
-
-        #if FORESTDB
-
-        internal unsafe CBForest.C4Key* SerializeToKey(object value)
-        {
-            return ManagerOptions.SerializationEngine.SerializeToKey(value);
-        }
-
-        internal T DeserializeKey<T>(CBForest.C4KeyReader keyReader)
-        {
-            return ManagerOptions.SerializationEngine.DeserializeKey<T>(keyReader);
-        }
-
-        #endif
 
         #endregion
 

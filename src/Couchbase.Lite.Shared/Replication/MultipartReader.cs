@@ -44,14 +44,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
-using Couchbase.Lite.Support;
-using Sharpen;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Support
 {
     internal class MultipartReader
     {
+
+        #region Constructors
+
+        private static readonly string Tag = typeof(MultipartReader).Name;
+
+        #endregion
 
         #region Enums
 
@@ -75,7 +79,6 @@ namespace Couchbase.Lite.Support
 
         private MultipartReader.MultipartReaderState state;
         private List<byte> _buffer;
-        private readonly string _contentType;
         private byte[] _boundary;
         private IMultipartReaderDelegate _readerDelegate;
         private IDictionary<string, string> _headers;
@@ -84,7 +87,8 @@ namespace Couchbase.Lite.Support
 
         #region Properties
 
-        public IEnumerable<byte> Boundary
+        // Used in tests
+        internal IEnumerable<byte> Boundary
         {
             get {
                 return _boundary;
@@ -111,11 +115,10 @@ namespace Couchbase.Lite.Support
 
         public MultipartReader(string contentType, IMultipartReaderDelegate readerDelegate)
         {
-            _contentType = contentType;
             _readerDelegate = readerDelegate;
             _buffer = new List<Byte>(1024);
             state = MultipartReader.MultipartReaderState.AtStart;
-            ParseContentType();
+            ParseContentType(contentType);
         }
 
         #endregion
@@ -206,6 +209,7 @@ namespace Couchbase.Lite.Support
                         }
                         break;
                     default:
+                        Log.To.Sync.E(Tag, "Unexpected data after end of MIME body, throwing...");
                         throw new InvalidOperationException("Unexpected data after end of MIME body");
 
                 }
@@ -239,12 +243,14 @@ namespace Couchbase.Lite.Support
                 var tokenizer = headersStr.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var header in tokenizer) {
                     if (!header.Contains (":")) {
-                        throw new ArgumentException ("Missing ':' in header line: " + header);
+                        Log.To.Sync.E(Tag, "Missing ':' in line ({0}), throwing...", header);
+                        throw new ArgumentException("Missing ':' in header line", "headersStr");
                     }
+
                     var headerTokenizer = header.Split(':');
                     var key = headerTokenizer[0].Trim ();
                     var value = headerTokenizer[1].Trim ();
-                    _headers.Put (key, value);
+                    _headers[key] = value;
                 }
             }
         }
@@ -279,18 +285,19 @@ namespace Couchbase.Lite.Support
             _boundary = null;
         }
 
-        private void ParseContentType()
+        private void ParseContentType(string contentType)
         {
             // ContentType will look like "multipart/foo; boundary=bar"
             // But there may be other ';'-separated params, and the boundary string may be quoted.
             // This is really not a full MIME type parser, but should work well enough for our needs.
-            var tokenizer = _contentType.Split(';');
+            var tokenizer = contentType.Split(';');
             bool first = true;
             foreach (var token in tokenizer) {
                 string param = token.Trim();
                 if (first) {
                     if (!param.StartsWith("multipart/", StringComparison.InvariantCultureIgnoreCase)) {
-                        throw new ArgumentException(_contentType + " does not start with multipart/");
+                        Log.To.Sync.E(Tag, "Content type ({0}) does not start with multipart/, throwing...", contentType);
+                        throw new ArgumentException("does not start with multipart/", "contentType");
                     }
 
                     first = false;
@@ -299,14 +306,16 @@ namespace Couchbase.Lite.Support
                         var tempBoundary = param.Substring(9);
                         if (tempBoundary.StartsWith("\"", StringComparison.InvariantCultureIgnoreCase)) {
                             if (tempBoundary.Length < 2 || !tempBoundary.EndsWith("\"", StringComparison.InvariantCultureIgnoreCase)) {
-                                throw new ArgumentException(_contentType + " is not valid");
+                                Log.To.Sync.E(Tag, "Invalid boundary in content type ({0})", tempBoundary);
+                                throw new ArgumentException("contentType");
                             }
 
                             tempBoundary = tempBoundary.Substring(1, tempBoundary.Length - 2);
                         }
 
                         if (tempBoundary.Length < 1) {
-                            throw new ArgumentException(_contentType + " has zero-length boundary");
+                            Log.To.Sync.E(Tag, "Invalid boundary in content type ({0})", tempBoundary);
+                            throw new ArgumentException("contentType");
                         }
 
                         tempBoundary = string.Format("\r\n--{0}", tempBoundary);

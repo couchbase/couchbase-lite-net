@@ -40,11 +40,10 @@
 // and limitations under the License.
 //
 
-using System.IO;
-using Couchbase.Lite;
-using Couchbase.Lite.Util;
-using Sharpen;
 using System;
+using System.IO;
+
+using Couchbase.Lite;
 
 namespace Couchbase.Lite.Util
 {
@@ -56,71 +55,9 @@ namespace Couchbase.Lite.Util
         {
             var name = Path.GetFileNameWithoutExtension(path);
             if (name == null) {
-                Log.E(Database.TAG, "Unable to determine database name from path");
+                Log.To.Database.E(Tag, "Unable to determine database name from {0}", path);
             }
             return name;
-        }
-
-        public static bool RemoveItemIfExists(string path)
-        {
-            FilePath f = new FilePath(path);
-            return f.Delete() || !f.Exists();
-        }
-
-        /// <exception cref="System.IO.IOException"></exception>
-        public static void CopyFile(FileInfo sourceFile, FileInfo destFile)
-        {
-            if (!File.Exists(destFile.FullName))
-            {
-                File.Open (destFile.FullName, FileMode.CreateNew).Close ();
-            }
-
-            sourceFile.CopyTo(destFile.FullName);
-        }
-
-        public static bool DeleteRecursive (FilePath attachmentsFile)
-        {
-            if(!Directory.Exists(attachmentsFile.GetAbsolutePath())) {
-                return true;
-            }
-
-            var success = true;
-            try {
-                Directory.Delete (attachmentsFile.GetPath (), true);
-            } catch (Exception ex) {
-                Log.E(Tag, "Error deleting the '{0}' directory.".Fmt(attachmentsFile.GetAbsolutePath()), ex);
-                success = false;
-            }
-            return success;
-        }
-
-        /// <exception cref="System.IO.IOException"></exception>
-        public static void CopyFolder(FileSystemInfo sourcePath, FileSystemInfo destinationPath)
-        {
-            var sourceDirectory = sourcePath as DirectoryInfo;
-            if (sourceDirectory != null)
-            {
-                var destPath = Path.Combine(Path.GetDirectoryName(destinationPath.FullName), Path.GetFileName(sourceDirectory.Name));
-                var destinationDirectory = new DirectoryInfo(destPath);
-
-                //if directory not exists, create it
-                if (!destinationDirectory.Exists)
-                {
-                    destinationDirectory.Create();
-                }
-                //list all the directory contents
-                var fileInfos = sourceDirectory.GetFileSystemInfos();
-                foreach (var fileInfo in fileInfos)
-                {
-                    //construct the src and dest file structure
-                    //recursive copy
-                    CopyFolder(fileInfo, destinationDirectory);
-                }
-            }
-            else
-            {
-                CopyFile((FileInfo)sourcePath, (FileInfo)destinationPath);
-            }
         }
     }
 }

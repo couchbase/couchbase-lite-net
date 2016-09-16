@@ -107,7 +107,7 @@ namespace CouchbaseSample
         var opts = new DatabaseOptions();
 
         //To use this feature, add the Couchbase.Lite.Storage.ForestDB nuget package
-        //opts.StorageType = DatabaseOptions.FORESTDB_STORAGE;
+        //opts.StorageType = StorageEngineTypes.ForestDB;
 
         // To use this feature, add either the Couchbase.Lite.Storage.SQLCipher nuget package
         // or uncomment the above line and add the Couchbase.Lite.Storage.ForestDB nuget package

@@ -41,9 +41,9 @@
 //
 
 using System;
-using Couchbase.Lite.Util;
-using System.Threading;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
@@ -51,11 +51,124 @@ namespace Couchbase.Lite.Util
     /// Centralized logging facility.
     /// </summary>
     public static class Log
-    {
-        private static object logger = LoggerFactory.CreateLogger();
-        private static ILogger Logger { 
-            get { return (ILogger)logger; }
+    { 
+
+        #region Enums
+
+        /// <summary>
+        /// A level of logging verbosity
+        /// </summary>
+        public enum LogLevel
+        {
+            /// <summary>
+            /// No logs are output
+            /// </summary>
+            None,
+
+            /// <summary>
+            /// Informational logs are output (the default for most)
+            /// </summary>
+            Base,
+
+            /// <summary>
+            /// Verbose logs are output
+            /// </summary>
+            Verbose,
+
+            /// <summary>
+            /// Debugging logs are output (Only applicable in debug builds)
+            /// </summary>
+            Debug
         }
+
+        #endregion
+
+        #region Variables
+
+        internal static readonly LogTo To = new LogTo();
+
+        /// <summary>
+        /// The available logging domains (for use with setting the
+        /// logging level on various domains)
+        /// </summary>
+        public static readonly LogDomains Domains = new LogDomains(To);
+
+        /// <summary>
+        /// Gets or sets a value indicated if logging is disabled (if so,
+        /// nothing will be logged)
+        /// </summary>
+        public static bool Disabled { get; set; }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Gets or sets the level at which the logger will redacted sensivity
+        /// information from the logs.
+        /// </summary>
+        public static LogScrubSensitivity ScrubSensitivity 
+        {
+            get { return _scrubSensitivity; }
+            set { 
+                if (value != _scrubSensitivity) {
+                    if (value == LogScrubSensitivity.AllOK) {
+                        foreach (var logger in Loggers) {
+                            logger.I("Log", "SCRUBBING DISABLED, THIS LOG MAY CONTAIN SENSITIVE INFORMATION");
+                        }
+                    }
+
+                    _scrubSensitivity = value;
+                }
+            }
+        }
+        private static LogScrubSensitivity _scrubSensitivity;
+
+        /// <summary>
+        /// Gets or sets the logging level for Log.* calls (domains
+        /// must be set with their respective interfaces
+        /// </summary>
+        public static LogLevel Level 
+        {
+            get { return To.NoDomain.Level; }
+            set { To.NoDomain.Level = value; }
+        }
+
+        private static List<ILogger> _Loggers = new List<ILogger> { LoggerFactory.CreateLogger() };
+        internal static IEnumerable<ILogger> Loggers { 
+            get { return _Loggers; }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        static Log()
+        {
+            Level = LogLevel.Base;
+            #if !__IOS__ && !__ANDROID__ && !NET_3_5
+            var configSection = System.Configuration.ConfigurationManager.GetSection("couchbaselite")
+                as Couchbase.Lite.Configuration.CouchbaseConfigSection;
+            if(configSection != null && configSection.Logging != null) {
+                Log.Disabled = !configSection.Logging.Enabled;
+                Log.ScrubSensitivity = configSection.Logging.ScrubSensitivity;
+                Log.Level = configSection.Logging.GlobalLevel;
+                foreach(var logSetting in configSection.Logging.VerbositySettings.Values) {
+                    var property = Log.Domains.GetType().GetProperty(logSetting.Key);
+                    if(property == null) {
+                        Log.To.NoDomain.W("Log", "Invalid domain {0} in configuration file", logSetting.Key);
+                        continue;
+                    }
+                    var gotLogger = (IDomainLogging)property.GetValue(Log.Domains);
+                    gotLogger.Level = logSetting.Value;
+                }
+            }
+            #endif
+        }
+
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
         /// Sets the logger.
@@ -64,9 +177,38 @@ namespace Couchbase.Lite.Util
         /// <param name="customLogger">Custom logger.</param>
         public static bool SetLogger(ILogger customLogger)
         {
-            var currentLogger = Logger;
-            Interlocked.CompareExchange(ref logger, customLogger, currentLogger);
-            return Logger == customLogger;
+            var loggers = _Loggers;
+            if (loggers != null) {
+                foreach (var logger in loggers) {
+                    var disposable = logger as IDisposable;
+                    if (disposable != null) {
+                        disposable.Dispose();
+                    }
+                }
+            }
+
+            _Loggers = customLogger != null ? new List<ILogger> { customLogger } : new List<ILogger>();
+            return true;
+        }
+
+        /// <summary>
+        /// Add a logger to the list of loggers to write output to
+        /// </summary>
+        /// <param name="logger">The logger to add</param>
+        public static void AddLogger(ILogger logger)
+        {
+            if (logger != null) {
+                _Loggers.Add (logger);
+            }
+        }
+
+        /// <summary>
+        /// Sets the logger to the library provided logger
+        /// </summary>
+        /// <returns><c>true</c>, if logger was set, <c>false</c> otherwise.</returns>
+        public static bool SetDefaultLogger()
+        {
+            return SetLogger(LoggerFactory.CreateLogger());
         }
 
         /// <summary>
@@ -75,63 +217,65 @@ namespace Couchbase.Lite.Util
         /// </summary>
         /// <returns><c>true</c>, if the logger was changed, <c>false</c> otherwise.</returns>
         /// <param name="level">The levels to log</param>
+        [Obsolete("Use the SetDefaultLogger() with no arguments to restore the default logger," +
+            " and use the Level property to change the verbosity")]
         public static bool SetDefaultLoggerWithLevel(SourceLevels level)
         {
-            return SetLogger(new CustomLogger(level));
+            if (level.HasFlag(SourceLevels.All)) {
+                Level = LogLevel.Debug;
+            } else {
+                if (level.HasFlag(SourceLevels.Information) ||
+                    level.HasFlag(SourceLevels.Warning) ||
+                    level.HasFlag(SourceLevels.Error)) {
+                    Level = LogLevel.Base;
+                }
+                if (level.HasFlag(SourceLevels.Verbose)) {
+                    Level = LogLevel.Verbose;
+                }
+                if (level.HasFlag(SourceLevels.ActivityTracing)) {
+                    Level = LogLevel.Debug;
+                }
+            }
+
+            return SetLogger(LoggerFactory.CreateLogger());
         }
 
         /// <summary>Send a VERBOSE message.</summary>
-        /// <remarks>Send a VERBOSE message.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
         /// <param name="msg">The message you would like logged.</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void V(string tag, string msg)
         {
-            if (Logger != null)
-            {
-                Logger.V(tag, msg);
-            }
+            To.NoDomain.V(tag, msg);
         }
 
         /// <summary>Send a VERBOSE message and log the exception.</summary>
-        /// <remarks>Send a VERBOSE message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
         /// <param name="msg">The message you would like logged.</param>
         /// <param name="tr">An exception to log</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void V(string tag, string msg, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.V(tag, msg, tr);
-            }
+            To.NoDomain.V(tag, msg, tr);
         }
 
-        /// <summary>Send a VERBOSE message and log the exception.</summary>
-        /// <remarks>Send a VERBOSE message and log the exception.</remarks>
+        /// <summary>Send a VERBOSE message</summary>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
-        /// <param name="format">The message you would like logged.</param>
-        /// <param name="args">string format arguments</param>
-        [System.Diagnostics.Conditional("TRACE")]
+        /// <param name="format">The format of the message you would like logged.</param>
+        /// <param name="args">The message format arguments</param>
         public static void V(string tag, string format, params object[] args)
         {
-            if (Logger != null)
-            {
-                Logger.V(tag, format, args);
-            }
+            To.NoDomain.V(tag, format, args);
         }
 
         /// <summary>Send a DEBUG message.</summary>
-        /// <remarks>Send a DEBUG message.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -140,14 +284,10 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string msg)
         {
-            if (Logger != null)
-            {
-                Logger.D(tag, msg);
-            }
+            To.NoDomain.D(tag, msg);
         }
 
         /// <summary>Send a DEBUG message and log the exception.</summary>
-        /// <remarks>Send a DEBUG message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -157,31 +297,23 @@ namespace Couchbase.Lite.Util
         [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string msg, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.D(tag, msg, tr);
-            }
+            To.NoDomain.D(tag, msg, tr);
         }
 
-        /// <summary>Send a DEBUG message and log the exception.</summary>
-        /// <remarks>Send a DEBUG message and log the exception.</remarks>
+        /// <summary>Send a DEBUG message</summary>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
-        /// <param name="format">The message you would like logged.</param>
-        /// <param name="args">string format arguments</param>
+        /// <param name="format">The format of the message you would like logged.</param>
+        /// <param name="args">The message format arguments</param>
         [System.Diagnostics.Conditional("DEBUG")]
-        public static void D(string tag, string  format, params object[] args)
+        public static void D(string tag, string format, params object[] args)
         {
-            if (Logger != null)
-            {
-                Logger.D(tag, format, args);
-            }
+            To.NoDomain.D(tag, format, args);
         }
 
         /// <summary>Send an INFO message.</summary>
-        /// <remarks>Send an INFO message.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -189,14 +321,10 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void I(string tag, string msg)
         {
-            if (Logger != null)
-            {
-                Logger.I(tag, msg);
-            }
+            To.NoDomain.I(tag, msg);
         }
 
         /// <summary>Send a INFO message and log the exception.</summary>
-        /// <remarks>Send a INFO message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -205,30 +333,22 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void I(string tag, string msg, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.I(tag, msg, tr);
-            }
+            To.NoDomain.I(tag, msg, tr);
         }
 
-        /// <summary>Send a INFO message and log the exception.</summary>
-        /// <remarks>Send a INFO message and log the exception.</remarks>
+        /// <summary>Send a INFO message</summary>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
-        /// <param name="format">The message you would like logged.</param>
-        /// <param name="args">string format arguments</param>
-        public static void I(string tag, string  format, params object[] args)
+        /// <param name="format">The format of the message you would like logged.</param>
+        /// <param name="args">The message format arguments</param>
+        public static void I(string tag, string format, params object[] args)
         {
-            if (Logger != null)
-            {
-                Logger.I(tag, format, args);
-            }
+            To.NoDomain.I(tag, format, args);
         }
 
         /// <summary>Send a WARN message.</summary>
-        /// <remarks>Send a WARN message.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -236,26 +356,19 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void W(string tag, string msg)
         {
-            if (Logger != null)
-            {
-                Logger.W(tag, msg);
-            }
+            To.NoDomain.W(tag, msg);
         }
 
         /// <summary>Send a WARN message.</summary>
-        /// <remarks>Send a WARN message.</remarks>
         /// <param name="tag">Tag.</param>
         /// <param name="tr">Exception</param>
+        [Obsolete("This method signature is not like the others and will be removed")]
         public static void W(string tag, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.W(tag, tr);
-            }
+            To.NoDomain.W(tag, "No message, do not call this method");
         }
 
         /// <summary>Send a WARN message and log the exception.</summary>
-        /// <remarks>Send a WARN message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -264,30 +377,22 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void W(string tag, string msg, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.W(tag, msg, tr);
-            }
+            To.NoDomain.W(tag, msg, tr);
         }
 
         /// <summary>Send a WARN message and log the exception.</summary>
-        /// <remarks>Send a WARN message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
-        /// <param name="format">The message you would like logged.</param>
-        /// <param name="args">string format arguments</param>
-        public static void W(string tag, string  format, params object[] args)
+        /// <param name="format">The format of the message you would like logged.</param>
+        /// <param name="args">The message format arguments</param>
+        public static void W(string tag, string format, params object[] args)
         {
-            if (Logger != null)
-            {
-                Logger.W(tag, format, args);
-            }
+            To.NoDomain.I(tag, format, args);
         }
 
         /// <summary>Send an ERROR message.</summary>
-        /// <remarks>Send an ERROR message.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -295,14 +400,10 @@ namespace Couchbase.Lite.Util
         /// <param name="msg">The message you would like logged.</param>
         public static void E(string tag, string msg)
         {
-            if (Logger != null)
-            {
-                Logger.E(tag, msg);
-            }
+            To.NoDomain.E(tag, msg);
         }
 
         /// <summary>Send a ERROR message and log the exception.</summary>
-        /// <remarks>Send a ERROR message and log the exception.</remarks>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
@@ -311,26 +412,22 @@ namespace Couchbase.Lite.Util
         /// <param name="tr">An exception to log</param>
         public static void E(string tag, string msg, Exception tr)
         {
-            if (Logger != null)
-            {
-                Logger.E(tag, msg, tr);
-            }
+            To.NoDomain.E(tag, msg, tr);
         }
 
-        /// <summary>Send a ERROR message and log the exception.</summary>
-        /// <remarks>Send a ERROR message and log the exception.</remarks>
+        /// <summary>Send a ERROR message</summary>
         /// <param name="tag">
         /// Used to identify the source of a log message.  It usually identifies
         /// the class or activity where the log call occurs.
         /// </param>
-        /// <param name="format">The message you would like logged.</param>
-        /// <param name="args">string format arguments</param>
+        /// <param name="format">The format of the message you would like logged.</param>
+        /// <param name="args">The message format arguments</param>
         public static void E(string tag, string format, params object[] args)
         {
-            if (Logger != null)
-            {
-                Logger.E(tag, format, args);
-            }
+            To.NoDomain.E(tag, format, args);
         }
+
+        #endregion
+
     }
 }

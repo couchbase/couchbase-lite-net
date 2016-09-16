@@ -65,7 +65,8 @@ namespace Couchbase.Lite.Util
 
         private const string TAG = "CookieStore";
         private const string FileName = "cookies.json";
-        private const string LOCAL_DOC_KEY_PREFIX = "cbl_cookie_storage";
+        private const string OldCookieStorageKey = "cbl_cookie_storage";
+        private const string CookieStorageKey = "cookies";
 
         #endregion
 
@@ -74,26 +75,21 @@ namespace Couchbase.Lite.Util
         private readonly object locker = new object();
         private readonly DirectoryInfo directory;
         private readonly Database _db;
-        private readonly string _storageKey;
         private HashSet<Uri> _cookieUriReference = new HashSet<Uri>();
 
         #endregion
 
         #region Properties
 
-        private string LocalDocKey 
-        {
-            get {
-                return String.Format("{0}_{1}", LOCAL_DOC_KEY_PREFIX, _storageKey);
-            }
-        }
-
         #pragma warning disable 1591
 
         public new int Count 
         {
             get {
-                PruneExpiredCookies(true);
+                foreach(var uri in _cookieUriReference) {
+                    GetCookies(uri);
+                }
+
                 return base.Count;
             }
         }
@@ -127,14 +123,14 @@ namespace Couchbase.Lite.Util
         /// Default constructor
         /// </summary>
         /// <param name="db">The database to serialize cookies to</param>
-        /// <param name="storageKey">The key inside the database to use (allows for multiple
-        /// replicators to save to the same DB independently of each other)</param>
+        /// <param name="storageKey">deprecated, ignored</param>
         public CookieStore(Database db, string storageKey)
         {
             _db = db;
-            _storageKey = storageKey;
-            DeserializeFromDisk();
-            DeserializeFromDB();
+            if(!MigrateOldCookies()) {
+                DeserializeFromDisk();
+                DeserializeFromDB();
+            }
         }
 
         #endregion
@@ -143,18 +139,16 @@ namespace Couchbase.Lite.Util
 
         #pragma warning disable 1591
 
-        public new CookieCollection GetCookies(Uri uri)
-        {
-            PruneExpiredCookies(false);
-            return base.GetCookies(uri);
-        }
-
         /// <summary>
         /// Add the specified cookies, force overrides CookieCollection
         /// </summary>
         /// <param name="cookies">The cookies to add</param>
         public new void Add(CookieCollection cookies)
         {
+            if (cookies == null) {
+                return;
+            }
+
             foreach (Cookie cookie in cookies) {
                 Add(cookie, false);
             }
@@ -208,12 +202,43 @@ namespace Couchbase.Lite.Util
         }
 
         /// <summary>
+        /// Deletes all cookies for the specified uri
+        /// </summary>
+        /// <param name="uri">The uri of the cookies to be deleted</param>
+        public void Delete(Uri uri)
+        {
+            if(uri == null) {
+                return;
+            }
+
+            lock(locker) {
+                var delete = false;
+                var cookies = GetCookies(uri);
+                foreach(Cookie cookie in cookies) {
+                    cookie.Discard = true;
+                    cookie.Expired = true;
+                    cookie.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(2));
+
+                    if(!delete) {
+                        delete = true;
+                    }
+                }
+
+                if(delete) {
+                    _cookieUriReference.Remove(uri);
+                    // Trigger container cookie list refreshment
+                    GetCookies(uri);
+                    Save();
+                }
+            }
+        }
+
+        /// <summary>
         /// Saves the cookies to disk
         /// </summary>
         public void Save()
         {
             lock (locker) {
-                PruneExpiredCookies(true);
                 if (_db != null) {
                     SerializeToDB();
                 } else {
@@ -225,26 +250,6 @@ namespace Couchbase.Lite.Util
         #endregion
 
         #region Private Methods
-
-        private void PruneExpiredCookies(bool refresh)
-        {
-            foreach (var uri in _cookieUriReference) {
-                var found = false;
-                var collection = base.GetCookies(uri);
-                for (int i = collection.Count - 1; i >= 0; i--) {
-                    var cookie = collection[i];
-                    if (IsNotSessionOnly(cookie) && (cookie.Expired || cookie.Expires < DateTime.Now)) {
-                        cookie.Expired = true;
-                        found = true;
-                    }
-                }
-
-                if (found && refresh) {
-                    //Refresh
-                    GetCookies(uri);
-                }
-            }    
-        }
 
         private void Add(Cookie cookie, bool save)
         {
@@ -347,36 +352,77 @@ namespace Couchbase.Lite.Util
 
         private void SerializeToDB()
         {
-            if (_db == null || _storageKey == null) {
-                Log.V(TAG, "Database or storage key null, so skipping serialization");
+            if (_db == null) {
+                Log.To.Database.I(TAG, "Database null, so skipping serialization");
                 return;
             }
 
-            var key = LocalDocKey;
             List<Cookie> aggregate = new List<Cookie>();
             foreach (var uri in _cookieUriReference) {
                 var collection = GetCookies(uri);
                 aggregate.AddRange(collection.Cast<Cookie>().Where(IsNotSessionOnly));
             }
 
-            _db.PutLocalCheckpointDoc(key, aggregate);
+            _db.Storage.SetInfo(CookieStorageKey, Manager.GetObjectMapper().WriteValueAsString(aggregate));
         }
 
         private void DeserializeFromDB()
         {
-            if (_db == null || _storageKey == null) {
-                Log.V(TAG, "Database or storage key null, so skipping deserialization");
+            if (_db == null) {
+                Log.To.Database.I(TAG, "Database null, so skipping deserialization");
                 return;
             }
 
-            var key = LocalDocKey;
-            var val = _db.GetLocalCheckpointDocValue(key).AsList<Cookie>();
+
+            var val = Manager.GetObjectMapper().ReadValue<IList<Cookie>>(_db.Storage.GetInfo(CookieStorageKey));
             if (val == null) {
                 return;
             }
 
             foreach (var cookie in val) {
                 Add(cookie, false);
+            }
+        }
+
+        private bool MigrateOldCookies()
+        {
+            if(_db == null) {
+                return false;
+            }
+
+            var existing = _db.Storage.GetInfo(CookieStorageKey);
+            if(existing == null) {
+                var result = _db.RunInTransaction(() =>
+                {
+                    var localCheckpointDoc = _db.GetLocalCheckpointDoc() ?? new Dictionary<string, object>();
+                    var newDoc = new Dictionary<string, object>();
+                    foreach(var pair in localCheckpointDoc) {
+                        if(pair.Key.StartsWith(OldCookieStorageKey)) {
+                            LoadCookie(pair.Value.AsList<Cookie>());
+                        } else {
+                            newDoc.Add(pair.Key, pair.Value);
+                        }
+                    }
+
+                    _db.SetLocalCheckpointDoc(newDoc);
+                    Save();
+                    return true;
+                });
+
+                if(!result) {
+                    Log.To.Database.W(TAG, "Cannot migrate cookies!");
+                }
+
+                return result;
+            }
+
+            return false;
+        }
+
+        private void LoadCookie(IList<Cookie> json)
+        {
+            foreach(var cookie in json) {
+                Add(cookie);
             }
         }
 

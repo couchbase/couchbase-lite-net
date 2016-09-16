@@ -41,14 +41,11 @@
 //
 
 using System;
-using System.IO;
-using Couchbase.Lite;
-using Couchbase.Lite.Util;
-using Sharpen;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using Couchbase.Lite.Store;
-using System.Security.Cryptography;
+
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
@@ -57,6 +54,8 @@ namespace Couchbase.Lite
     ///     </remarks>
     internal class BlobStoreWriter
     {
+        private static readonly string Tag = typeof(BlobStoreWriter).Name;
+
         /// <summary>The underlying blob store where it should be stored.</summary>
         /// <remarks>The underlying blob store where it should be stored.</remarks>
         private BlobStore store;
@@ -81,11 +80,11 @@ namespace Couchbase.Lite
 
         private Stream outStream;
 
-        private FileInfo tempFile;
+        private string tempFile;
 
         public string FilePath
         {
-            get { return tempFile == null ? null : tempFile.FullName; }
+            get { return tempFile; }
         }
 
         public BlobStoreWriter(BlobStore store)
@@ -97,18 +96,16 @@ namespace Couchbase.Lite
                 sha1Digest.Reset();
                 md5Digest = MessageDigest.GetInstance("MD5");
                 md5Digest.Reset();
+            } catch (NotSupportedException e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag,
+                    "Could not get an instance of SHA-1 or MD5 for BlobStoreWriter.");
             }
-            catch (NoSuchAlgorithmException e)
-            {
-                throw new InvalidOperationException("Could not get an instance of SHA-1 or MD5." , e);
-            }
-            try
-            {
+
+            try {
                 OpenTempFile();
-            }
-            catch (FileNotFoundException e)
-            {
-                throw new InvalidOperationException("Unable to open temporary file.", e);
+            } catch (FileNotFoundException e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag,
+                    "Unable to open temporary file for BlobStoreWriter.");
             }
         }
 
@@ -117,13 +114,13 @@ namespace Couchbase.Lite
         {
             string uuid = Misc.CreateGUID();
             string filename = string.Format("{0}.blobtmp", uuid);
-            FilePath tempDir = store.TempDir();
-            tempFile = new FilePath(tempDir, filename);
+            var tempDir = store.TempDir();
+            tempFile = Path.Combine(tempDir, filename);
             if (store.EncryptionKey == null) {
-                outStream = new BufferedStream(File.Open (tempFile.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite));
+                outStream = new BufferedStream(File.Open (tempFile, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite));
             } else {
                 outStream = store.EncryptionKey.CreateStream(
-                    new BufferedStream(File.Open(tempFile.FullName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)));
+                    new BufferedStream(File.Open(tempFile, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)));
             }
         }
 
@@ -139,18 +136,19 @@ namespace Couchbase.Lite
             try {
                 outStream.Write(dataVector, 0, dataVector.Length);
             } catch (IOException e) {
-                throw new CouchbaseLiteException("Unable to write to stream.", e) { Code = StatusCode.Exception };
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag,
+                    "Unable to write to stream");
             }
         }
 
-        internal void Read(InputStream inputStream)
+        internal void Read(Stream inputStream)
         {
             byte[] buffer = new byte[16384];
             int len;
             length = 0;
-            try
-            {
-                while ((len = inputStream.Read(buffer)) != -1)
+            inputStream.Reset();
+            try {
+                while ((len = inputStream.Read(buffer, 0, buffer.Length)) > 0)
                 {
                     var dataToWrite = buffer;
 
@@ -159,20 +157,14 @@ namespace Couchbase.Lite
                     md5Digest.Update(buffer, 0, len);
                     length += len;
                 }
-            }
-            catch (IOException e)
-            {
-                throw new RuntimeException("Unable to read from stream.", e);
-            }
-            finally
-            {
-                try
-                {
+            } catch (IOException e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag,
+                    "Unable to read from stream");
+            } finally {
+                try {
                     inputStream.Close();
-                }
-                catch (IOException e)
-                {
-                    Log.W(Database.TAG, "Exception closing input stream", e);
+                } catch (IOException e) {
+                    Log.To.Database.W(Tag, "Exception closing input stream, continuing...", e);
                 }
             }
         }
@@ -182,9 +174,9 @@ namespace Couchbase.Lite
         {
             try {
                 outStream.Flush();
-                outStream.Close();
+                outStream.Dispose();
             } catch (IOException e) {
-                Log.W(Database.TAG, "Exception closing output stream", e);
+                Log.To.Database.W(Tag, "Exception closing output stream, continuing...", e);
             }
 
             blobKey = new BlobKey(sha1Digest.Digest());
@@ -195,12 +187,12 @@ namespace Couchbase.Lite
         public void Cancel()
         {
             try {
-                outStream.Close();
+                outStream.Dispose();
             } catch (IOException e) {
-                Log.W(Database.TAG, "Exception closing output stream", e);
+                Log.To.Database.W(Tag, "Exception closing output stream, continuing...", e);
             }
 
-            tempFile.Delete();
+            File.Delete(tempFile);
         }
 
         /// <summary>Installs a finished blob into the store.</summary>
@@ -213,9 +205,8 @@ namespace Couchbase.Lite
 
             // Move temp file to correct location in blob store:
             string destPath = store.PathForKey(blobKey);
-            FilePath destPathFile = new FilePath(destPath);
             try {
-                tempFile.MoveTo(destPathFile);
+                File.Move(tempFile, destPath);
             } catch(Exception) {
                 // If the move fails, assume it means a file with the same name already exists; in that
                 // case it must have the identical contents, so we're still OK.
@@ -245,6 +236,11 @@ namespace Couchbase.Lite
         public BlobKey GetBlobKey()
         {
             return blobKey;
+        }
+
+        public override string ToString()
+        {
+            return String.Format("BlobStoreWriter len={0}kb, digest={1}, SHA1={2}", (double)length / 1024.0, MD5DigestString(), SHA1DigestString());
         }
     }
 }

@@ -42,11 +42,12 @@
 
 using System;
 using System.Collections.Generic;
-using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using NUnit.Framework;
-using Sharpen;
 using System.Linq;
+using System.Threading;
+
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Revisions;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
@@ -55,7 +56,7 @@ namespace Couchbase.Lite
     {
         private static RevisionInternal Mkrev(string revID)
         {
-            return new RevisionInternal("docid", revID, false);
+            return new RevisionInternal("docid", revID.AsRevID(), false);
         }
 
         public RevisionsTest(string storageType) : base(storageType) {}
@@ -63,74 +64,74 @@ namespace Couchbase.Lite
         [Test]
         public void TestParseRevID()
         {
-            var parsed = RevisionInternal.ParseRevId("1-utiopturoewpt");
-            Assert.AreEqual(1, parsed.Item1);
-            Assert.AreEqual("utiopturoewpt", parsed.Item2);
+            var parsed = "1-utiopturoewpt".AsRevID();
+            Assert.AreEqual(1, parsed.Generation);
+            Assert.AreEqual("utiopturoewpt", parsed.Suffix);
 
-            parsed = RevisionInternal.ParseRevId("321-fdjfdsj-e");
-            Assert.AreEqual(321, parsed.Item1);
-            Assert.AreEqual("fdjfdsj-e", parsed.Item2);
+            parsed = "321-fdjfdsj-e".AsRevID();
+            Assert.AreEqual(321, parsed.Generation);
+            Assert.AreEqual("fdjfdsj-e", parsed.Suffix);
 
-            parsed = RevisionInternal.ParseRevId("0-fdjfdsj-e");
-            Assert.IsTrue(parsed.Item1 == 0 && parsed.Item2 == "fdjfdsj-e");
-            parsed = RevisionInternal.ParseRevId("-4-fdjfdsj-e");
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId("5_fdjfdsj-e");
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId(" 5-fdjfdsj-e");
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId("7 -foo");
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId("7-");
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId("7");
-           
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId("eiuwtiu");
-           
-            Assert.IsTrue(parsed.Item1 < 0);
-            parsed = RevisionInternal.ParseRevId(string.Empty);
-            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = "0-fdjfdsj-e".AsRevID();
+            Assert.IsFalse(parsed.IsValid);
+            parsed = "-4-fdjfdsj-e".AsRevID();
+            Assert.IsFalse(parsed.IsValid);
+            parsed = "5_fdjfdsj-e".AsRevID();
+            Assert.IsFalse(parsed.IsValid);
+            parsed = " 5-fdjfdsj-e".AsRevID();
+            Assert.IsFalse(parsed.IsValid);
+            parsed = "7 -foo".AsRevID();
+            Assert.IsFalse(parsed.IsValid);
+            parsed = "7-".AsRevID();
+            Assert.IsFalse(parsed.IsValid);
+            parsed = "7".AsRevID();
+
+            Assert.IsFalse(parsed.IsValid);
+            parsed = "eiuwtiu".AsRevID();
+
+            Assert.IsFalse(parsed.IsValid);
+            parsed = string.Empty.AsRevID();
+            Assert.IsFalse(parsed.IsValid);
         }
 
         [Test]
         public void TestCBLCompareRevIDs()
         {
             // Single Digit
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("1-foo", "1-foo") == 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("2-bar", "1-foo") > 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("1-foo", "2-bar") < 0);
+            Assert.IsTrue("1-foo".AsRevID().CompareTo("1-foo".AsRevID()) == 0);
+            Assert.IsTrue("2-bar".AsRevID().CompareTo("1-foo".AsRevID()) > 0);
+            Assert.IsTrue("1-foo".AsRevID().CompareTo("2-bar".AsRevID()) < 0);
 
             // Multi-digit:
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("123-bar", "456-foo") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("456-foo", "123-bar") > 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("456-foo", "456-foo") == 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("456-foo", "456-foofoo") < 0);
+            Assert.IsTrue("123-bar".AsRevID().CompareTo("456-foo".AsRevID()) < 0);
+            Assert.IsTrue("456-foo".AsRevID().CompareTo("123-bar".AsRevID()) > 0);
+            Assert.IsTrue("456-foo".AsRevID().CompareTo("456-foo".AsRevID()) == 0);
+            Assert.IsTrue("456-foo".AsRevID().CompareTo("456-foofoo".AsRevID()) < 0);
 
             // Different numbers of digits:
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("89-foo", "123-bar") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("123-bar", "89-foo") > 0);
+            Assert.IsTrue("89-foo".AsRevID().CompareTo("123-bar".AsRevID()) < 0);
+            Assert.IsTrue("123-bar".AsRevID().CompareTo("89-foo".AsRevID()) > 0);
 
             // Edge cases:
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("123-", "89-") > 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("123-a", "123-a") == 0);
+            Assert.IsTrue("123-".AsRevID().CompareTo("89-".AsRevID()) > 0);
+            Assert.IsTrue("123-a".AsRevID().CompareTo("123-a".AsRevID()) == 0);
 
             // Invalid rev IDs:
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("-a", "-b") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("-", "-") == 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs(string.Empty, string.Empty) == 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs(string.Empty, "-b") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("bogus", "yo") < 0);
-            Assert.IsTrue(RevisionInternal.CBLCollateRevIDs("bogus-x", "yo-y") < 0);
+            Assert.IsTrue("-a".AsRevID().CompareTo("-b".AsRevID()) < 0);
+            Assert.IsTrue("-".AsRevID().CompareTo("-".AsRevID()) == 0);
+            Assert.IsTrue(string.Empty.AsRevID().CompareTo(string.Empty.AsRevID()) == 0);
+            Assert.IsTrue(string.Empty.AsRevID().CompareTo("-b".AsRevID()) < 0);
+            Assert.IsTrue("bogus".AsRevID().CompareTo("yo".AsRevID()) < 0);
+            Assert.IsTrue("bogus-x".AsRevID().CompareTo("yo-y".AsRevID()) < 0);
         }
 
         [Test]
         public void TestMakeRevisionHistoryDict()
         {
-            var revs = new List<RevisionInternal>();
-            revs.Add(Mkrev("4-jkl"));
-            revs.Add(Mkrev("3-ghi"));
-            revs.Add(Mkrev("2-def"));
+            var revs = new List<RevisionID>();
+            revs.Add("4-jkl".AsRevID());
+            revs.Add("3-ghi".AsRevID());
+            revs.Add("2-def".AsRevID());
 
             var expectedSuffixes = new List<string>();
             expectedSuffixes.Add("jkl");
@@ -141,12 +142,12 @@ namespace Couchbase.Lite
             expectedHistoryDict["start"] = 4;
             expectedHistoryDict["ids"] = expectedSuffixes;
 
-            var historyDict = Database.MakeRevisionHistoryDict(revs);
+            var historyDict = TreeRevisionID.MakeRevisionHistoryDict(revs);
             Assert.AreEqual(expectedHistoryDict, historyDict);
             
-            revs = new List<RevisionInternal>();
-            revs.Add(Mkrev("4-jkl"));
-            revs.Add(Mkrev("2-def"));
+            revs = new List<RevisionID>();
+            revs.Add("4-jkl".AsRevID());
+            revs.Add("2-def".AsRevID());
             
             expectedSuffixes = new List<string>();
             expectedSuffixes.Add("4-jkl");
@@ -154,12 +155,12 @@ namespace Couchbase.Lite
             
             expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["ids"] = expectedSuffixes;
-            historyDict = Database.MakeRevisionHistoryDict(revs);
+            historyDict = TreeRevisionID.MakeRevisionHistoryDict(revs);
             Assert.AreEqual(expectedHistoryDict, historyDict);
 
-            revs = new List<RevisionInternal>();
-            revs.Add(Mkrev("12345"));
-            revs.Add(Mkrev("6789"));
+            revs = new List<RevisionID>();
+            revs.Add("12345".AsRevID());
+            revs.Add("6789".AsRevID());
             
             expectedSuffixes = new List<string>();
             expectedSuffixes.Add("12345");
@@ -167,7 +168,7 @@ namespace Couchbase.Lite
             
             expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["ids"] = expectedSuffixes;
-            historyDict = Database.MakeRevisionHistoryDict(revs);
+            historyDict = TreeRevisionID.MakeRevisionHistoryDict(revs);
             
             Assert.AreEqual(expectedHistoryDict, historyDict);
         }
@@ -189,7 +190,7 @@ namespace Couchbase.Lite
             var rev10b = CreateRevisionWithRandomProps(rev9b, true);
 
             var revFound = database.GetDocument(doc.Id, null, true);
-            Assert.AreEqual(rev10b.Id, revFound.GetRevId());
+            Assert.AreEqual(rev10b.Id, revFound.RevID);
         }
 
         [Test]
@@ -206,7 +207,7 @@ namespace Couchbase.Lite
             var expectedWinner = rev3b;
 
             var revFound = database.GetDocument(doc.Id, null, true);
-            Assert.AreEqual(expectedWinner.Id, revFound.GetRevId());
+            Assert.AreEqual(expectedWinner.Id, revFound.RevID);
         }
 
         [Test]
@@ -226,18 +227,18 @@ namespace Couchbase.Lite
             }
 
             var revFound = database.GetDocument(doc.Id, null, true);
-            Assert.AreEqual(expectedWinner.Id, revFound.GetRevId());
+            Assert.AreEqual(expectedWinner.Id, revFound.RevID);
         }
 
         [Test]
         public void TestDocumentChangeListener() {
             var doc = database.CreateDocument();
-            var counter = new CountDownLatch(1);
-            doc.Change += (sender, e) => counter.CountDown();
+            var counter = new CountdownEvent(1);
+            doc.Change += (sender, e) => counter.Signal();
 
             doc.CreateRevision().Save();
 
-            var success = counter.Await(TimeSpan.FromSeconds(5));
+            var success = counter.Wait(TimeSpan.FromSeconds(5));
             Assert.IsTrue(success);
         }
 
@@ -337,7 +338,7 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(1, doc.ConflictingRevisions.Count());
             Assert.AreEqual(2, doc.GetLeafRevisions(true).Count);
-            Assert.AreEqual(3, RevisionInternal.GenerationFromRevID(deleteRevision.Id));
+            Assert.AreEqual(3, deleteRevision.Id.AsRevID().Generation);
             Assert.AreEqual(losingRev.Id, doc.CurrentRevisionId);
 
             // Finally create a new revision rev3 based on losing rev
@@ -380,10 +381,10 @@ namespace Couchbase.Lite
                                 {"_deleted", "foo"}
                             });
 
-            Assert.IsFalse(revisionWitDeletedNull.IsDeleted());
-            Assert.IsFalse(revisionWithDeletedFalse.IsDeleted());
-            Assert.IsFalse(revisionWithDeletedString.IsDeleted());
-            Assert.IsTrue(revisionWithDeletedTrue.IsDeleted());
+            Assert.IsFalse(revisionWitDeletedNull.Deleted);
+            Assert.IsFalse(revisionWithDeletedFalse.Deleted);
+            Assert.IsFalse(revisionWithDeletedString.Deleted);
+            Assert.IsTrue(revisionWithDeletedTrue.Deleted);
         }
 
     }

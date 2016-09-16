@@ -56,8 +56,12 @@ namespace Couchbase.Lite.Replicator
         /// </summary>
         /// <param name="transition">The transition object that was created for the state change</param>
         public ReplicationStateTransition(StateMachine<ReplicationState, ReplicationTrigger>.Transition transition)
-            : this(transition.Source, transition.Destination, transition.Trigger)
         {
+            if (transition != null) {
+                Source = transition.Source;
+                Destination = transition.Destination;
+                Trigger = transition.Trigger;
+            }
         }
 
         /// <summary>

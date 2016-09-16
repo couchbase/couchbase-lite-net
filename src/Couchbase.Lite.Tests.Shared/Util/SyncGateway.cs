@@ -19,18 +19,18 @@
 //  limitations under the License.
 //
 using System;
-using System.Net;
-using NUnit.Framework;
-using System.Text;
-using Sharpen;
-using System.IO;
-using Couchbase.Lite.Util;
-using System.Net.Http;
-using System.Threading;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Util;
+using NUnit.Framework;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -103,10 +103,10 @@ namespace Couchbase.Lite.Tests
                         Delete().ContinueWith(t => Create()).Wait();
                         return;
                     } else {
-                        Assert.Fail("Error from remote: {0}", response.StatusCode);
+                        Assert.Inconclusive("Error from remote when trying to create DB: {0}", response.StatusCode);
                     }
                 } else {
-                    Assert.Fail("Error from remote: {0}", e);
+                    Assert.Inconclusive("Error from remote when trying to create DB: {0}", e);
                 }
             }
 
@@ -128,10 +128,10 @@ namespace Couchbase.Lite.Tests
                         if (response != null) {
                             Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
                         } else {
-                            Assert.Fail("Error from remote: {0}", response.StatusCode);
+                            Assert.Inconclusive("Error from remote when trying to delete DB: {0}", response.StatusCode);
                         }
                     } else {
-                        Assert.Fail("Error from remote: {0}", ex);
+                        Assert.Inconclusive("Error from remote when trying to delete DB: {0}", ex);
                     }
                 }
             });
@@ -140,48 +140,37 @@ namespace Couchbase.Lite.Tests
         public void VerifyDocumentExists(string docId) 
         {
             var pathToDoc = _remoteUri.AppendPath(docId);
-            Log.D(Tag, "Send http request to " + pathToDoc);
+            LiteTestCase.WriteDebug("Send http request to " + pathToDoc);
 
             var httpRequestDoneSignal = new CountdownEvent(1);
-            Task.Factory.StartNew(() =>
+            var t = Task.Factory.StartNew(() =>
             {
                 HttpResponseMessage response;
                 string responseString = null;
-                try
-                {
-                    var responseTask = _httpClient.GetAsync(pathToDoc.ToString());
-                    response = responseTask.Result;
-                    var statusLine = response.StatusCode;
+                var responseTask = _httpClient.GetAsync(pathToDoc.ToString());
+                response = responseTask.Result;
+                var statusLine = response.StatusCode;
+                try {
                     Assert.IsTrue(statusLine == HttpStatusCode.OK);
-                    if (statusLine == HttpStatusCode.OK)
-                    {
+                    if(statusLine == HttpStatusCode.OK) {
                         var responseStringTask = response.Content.ReadAsStringAsync();
                         responseStringTask.Wait(TimeSpan.FromSeconds(10));
                         responseString = responseStringTask.Result;
                         Assert.IsTrue(responseString.Contains(docId));
-                        Log.D(Tag, "result: " + responseString);
-                    }
-                    else
-                    {
+                        LiteTestCase.WriteDebug("result: {0}", responseString);
+                    } else {
                         var statusReason = response.ReasonPhrase;
                         response.Dispose();
                         throw new IOException(statusReason);
                     }
+                } finally {
+                    httpRequestDoneSignal.Signal();
                 }
-                catch (ProtocolViolationException e)
-                {
-                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                }
-                catch (IOException e)
-                {
-                    Assert.IsNull(e, "Got IOException: " + e.Message);
-                }
-
-                httpRequestDoneSignal.Signal();
             });
 
             var result = httpRequestDoneSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
+            Assert.IsNull(t.Exception);
         }
 
         public void DisableGuestAccess()
@@ -219,7 +208,7 @@ namespace Couchbase.Lite.Tests
             stream.Write(beginning, 0, beginning.Length);
 
             for (int i = 0; i < count; i++) {
-                var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                var docIdTimestamp = Convert.ToString((ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds);
                 var docId = string.Format("doc{0}-{1}", i, docIdTimestamp);         
 
                 docList.Add(docId);
@@ -261,7 +250,7 @@ namespace Couchbase.Lite.Tests
             // push a document to server
             var replicationUrlTrailingDoc1 = new Uri(string.Format("{0}/{1}", _remoteUri, docId));
             var pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
-            Log.D(Tag, "Send http request to " + pathToDoc1);
+            LiteTestCase.WriteDebug("Send http request to " + pathToDoc1);
             try
             {
                 HttpResponseMessage response;
@@ -271,7 +260,7 @@ namespace Couchbase.Lite.Tests
                 var postTask = _httpClient.PutAsync(pathToDoc1.AbsoluteUri, new StringContent(docJson, Encoding.UTF8, "application/json"));
                 response = postTask.Result;
                 var statusLine = response.StatusCode;
-                Log.D(Tag, "Got response: " + statusLine);
+                LiteTestCase.WriteDebug("Got response: " + statusLine);
                 Assert.IsTrue(statusLine == HttpStatusCode.Created);
             }
             catch (ProtocolViolationException e)
@@ -297,9 +286,9 @@ namespace Couchbase.Lite.Tests
             if (attachmentName != null)
             {
                 // add attachment to document
-                var attachmentStream = (InputStream)GetAsset(attachmentName);
+                var attachmentStream = GetAsset(attachmentName);
                 var baos = new MemoryStream();
-                attachmentStream.Wrapped.CopyTo(baos);
+                attachmentStream.CopyTo(baos);
                 attachmentStream.Dispose();
                 var attachmentBase64 = Convert.ToBase64String(baos.ToArray());
                 baos.Dispose();
@@ -326,8 +315,8 @@ namespace Couchbase.Lite.Tests
         private Stream GetAsset(string name)
         {
             var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
-            Log.D(Tag, "Fetching assembly resource: " + assetPath);
-            var stream = GetType().GetResourceAsStream(assetPath);
+            LiteTestCase.WriteDebug("Fetching assembly resource: " + assetPath);
+            var stream = GetType().Assembly.GetManifestResourceStream(assetPath);
             return stream;
         }
 

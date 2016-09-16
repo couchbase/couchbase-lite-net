@@ -19,13 +19,13 @@
 //  limitations under the License.
 //
 using System;
-using NUnit.Framework;
 using System.Collections.Generic;
-using System.Text;
-using Sharpen;
 using System.IO;
+using System.Text;
+
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
@@ -44,15 +44,15 @@ namespace Couchbase.Lite
         public void OneTimeSetUp()
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            Log.I(TAG, "Generating keys for test, this might take a while...");
+            Console.WriteLine("Generating keys for test, this might take a while...");
             _letmein = SymmetricKey.Create("letmein");
-            Log.I(TAG, "Keys completed (1/3)");
+            Console.WriteLine("Keys completed (1/3)");
             _letmeout = SymmetricKey.Create("letmeout");
-            Log.I(TAG, "Keys completed (2/3)");
+            Console.WriteLine("Keys completed (2/3)");
             _wrong = SymmetricKey.Create("wrong");
-            Log.I(TAG, "Keys completed (3/3)");
+            Console.WriteLine("Keys completed (3/3)");
             sw.Stop();
-            Log.I(TAG, "Created three keys in {0}ms", sw.ElapsedMilliseconds);
+            Console.WriteLine("Created three keys in {0}ms", sw.ElapsedMilliseconds);
         }
 
         [Test]

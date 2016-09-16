@@ -40,6 +40,7 @@
 // and limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite.Auth
@@ -49,6 +50,17 @@ namespace Couchbase.Lite.Auth
     /// </summary>
     public class AuthenticatorFactory
     {
+        
+        /// <summary>
+        /// Creates an authenticator that handles an OpenID authentication flow
+        /// </summary>
+        /// <param name="manager">The manager associated with the replication to be performed</param>
+        /// <param name="callback">The login callback to use</param>
+        /// <returns>An initialized authenticator object</returns>
+        public static IAuthenticator CreateOpenIDAuthenticator(Manager manager, OIDCCallback callback)
+        {
+            return new OpenIDAuthenticator(manager, callback);
+        }
 
         /// <summary>
         /// Creates an object for handling HTTP Basic authentication
@@ -59,6 +71,17 @@ namespace Couchbase.Lite.Auth
         public static IAuthenticator CreateBasicAuthenticator(string username, string password)
         {
             return new BasicAuthenticator(username, password);
+        }
+
+        /// <summary>
+        /// Creates an object for handling HTTP Digest authentication (experimental)
+        /// </summary>
+        /// <param name="username">The username to use</param>
+        /// <param name="password">The password to use</param>
+        /// <returns>The authenticator</returns>
+        public static IAuthenticator CreateDigestAuthenticator(string username, string password)
+        {
+            return new DigestAuthenticator(username, password);
         }
 
         /// <summary>
@@ -84,6 +107,13 @@ namespace Couchbase.Lite.Auth
             var parameters = new Dictionary<string, string>();
             parameters["access_token"] = assertion;
             return new TokenAuthenticator("_persona", parameters);
+        }
+
+        internal static IAuthenticator CreateFromUri(Uri uri)
+        {
+            return (IAuthenticator)FacebookAuthorizer.FromUri(uri) 
+                ?? (IAuthenticator)PersonaAuthorizer.FromUri(uri) 
+                ?? BasicAuthenticator.FromUri(uri);
         }
     }
 }

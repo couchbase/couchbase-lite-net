@@ -26,7 +26,7 @@ namespace Couchbase.Lite.Store
     /// <summary>
     /// Delegate of a ICouchStore instance. Database implements this.
     /// </summary>
-    internal interface ICouchStoreDelegate
+    public interface ICouchStoreDelegate
     {
 
         /// <summary>
@@ -39,14 +39,6 @@ namespace Couchbase.Lite.Store
         /// Called whenever a revision is added to the database (but not for local docs or for purges.) 
         /// </summary>
         void DatabaseStorageChanged(DocumentChange change);
-
-        /// <summary>
-        /// Generates a revision ID for a new revision.
-        /// </summary>
-        /// <param name="json">The canonical JSON of the revision (with metadata properties removed.)</param>
-        /// <param name="deleted"><c>true</c> if this revision is a deletion</param>
-        /// <param name="prevRevId">The parent's revision ID, or nil if this is a new document.</param>
-        string GenerateRevID(IEnumerable<byte> json, bool deleted, string prevRevId);
 
     }
 }

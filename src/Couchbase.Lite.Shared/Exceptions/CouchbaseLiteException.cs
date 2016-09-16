@@ -41,13 +41,15 @@
 //
 
 using System;
+using System.Runtime.Serialization;
 
 namespace Couchbase.Lite {
 
     /// <summary>
     /// The main class of exception used for indicating Couchbase Lite errors
     /// </summary>
-    public class CouchbaseLiteException : ApplicationException {
+    [Serializable]
+    public class CouchbaseLiteException : Exception {
 
         internal StatusCode Code { get; set; }
 
@@ -84,7 +86,10 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <param name="innerException">The exception that was caught before the one being made, if applicable</param>
         /// <param name="status">The object holding the code representing the error for this exception</param>
-        public CouchbaseLiteException (Exception innerException, Status status) : this(innerException, status.Code) { Code = status.Code; }
+        public CouchbaseLiteException (Exception innerException, Status status) : this(innerException, status == null ? StatusCode.Exception : status.Code)
+        {
+
+        }
 
         /// <summary>
         /// Constructor
@@ -114,6 +119,17 @@ namespace Couchbase.Lite {
             : base(String.Format(messageFormat, values)) {  }
 
         /// <summary>
+        /// The constructor for ISerializable
+        /// </summary>
+        /// <param name="info">The serialization info</param>
+        /// <param name="context">The serialization context</param>
+        protected CouchbaseLiteException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
+            Code = (StatusCode)info.GetInt32("CBLStatus");
+        }
+
+        /// <summary>
         /// Gets the Status object holding the error code for this exception
         /// </summary>
         /// <returns>the Status object holding the error code for this exception</returns>
@@ -122,6 +138,17 @@ namespace Couchbase.Lite {
         {
             return new Status(Code);
         }
+
+#pragma warning disable 1591
+
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            base.GetObjectData(info, context);
+
+            info.AddValue("CBLStatus", (int)Code);
+        }
+
+#pragma warning restore 1591
     }
 
 }

@@ -45,30 +45,71 @@ using System.IO;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
-using Sharpen;
 
 namespace Couchbase.Lite {
-    
+
+    /// <summary>
+    /// Contains the keys associated with attachment metadata (i.e. entries in _attachments)
+    /// </summary>
+    public struct AttachmentMetadataDictionaryKeys
+    {
+        /// <summary>
+        /// The key for the type of attachment
+        /// </summary>
+        public static readonly string ContentType = AttachmentMetadataDictionary.ContentType;
+
+        /// <summary>
+        /// The key for the length of the attachment when decoded
+        /// </summary>
+        public static readonly string Length = AttachmentMetadataDictionary.Length;
+
+        /// <summary>
+        /// The key for indicating whether the attachment body is coming later in the request
+        /// </summary>
+        public static readonly string Follows = AttachmentMetadataDictionary.Follows;
+
+        /// <summary>
+        /// The key for the digest of the attachment
+        /// </summary>
+        public static readonly string Digest = AttachmentMetadataDictionary.Digest;
+
+        /// <summary>
+        /// The key for indicating whether or not the attachment is a stub (i.e. doesn't have
+        /// inlined data)
+        /// </summary>
+        public static readonly string Stub = AttachmentMetadataDictionary.Stub;
+
+        /// <summary>
+        /// The key for the length of the attachment when encoded
+        /// </summary>
+        public static readonly string EncodedLength = AttachmentMetadataDictionary.EncodedLength;
+
+        /// <summary>
+        /// The key for the encoding of the attachment
+        /// </summary>
+        public static readonly string Encoding = AttachmentMetadataDictionary.Encoding;
+    }
+
     [DictionaryContract(RequiredKeys=new object[] { 
-        AttachmentMetadataDictionary.CONTENT_TYPE, typeof(string),
-        AttachmentMetadataDictionary.LENGTH, typeof(long),
-        AttachmentMetadataDictionary.DIGEST, typeof(string)
+        AttachmentMetadataDictionary.ContentType, typeof(string),
+        AttachmentMetadataDictionary.Length, typeof(long),
+        AttachmentMetadataDictionary.Digest, typeof(string)
     },
         OptionalKeys=new object[] {
-        AttachmentMetadataDictionary.FOLLOWS, typeof(bool),
-        AttachmentMetadataDictionary.STUB, typeof(bool),
-        AttachmentMetadataDictionary.ENCODED_LENGTH, typeof(long),
-        AttachmentMetadataDictionary.ENCODING, typeof(string)
+        AttachmentMetadataDictionary.Follows, typeof(bool),
+        AttachmentMetadataDictionary.Stub, typeof(bool),
+        AttachmentMetadataDictionary.EncodedLength, typeof(long),
+        AttachmentMetadataDictionary.Encoding, typeof(string)
     })]
     internal sealed class AttachmentMetadataDictionary : ContractedDictionary
     {
-        public const string CONTENT_TYPE = "content_type";
-        public const string LENGTH = "length";
-        public const string FOLLOWS = "follows";
-        public const string DIGEST = "digest";
-        public const string STUB = "stub";
-        public const string ENCODED_LENGTH = "encoded_length";
-        public const string ENCODING = "encoding";
+        internal const string ContentType = "content_type";
+        internal const string Length = "length";
+        internal const string Follows = "follows";
+        internal const string Digest = "digest";
+        internal const string Stub = "stub";
+        internal const string EncodedLength = "encoded_length";
+        internal const string Encoding = "encoding";
 
         public AttachmentMetadataDictionary() : base() {}
 
@@ -83,6 +124,7 @@ namespace Couchbase.Lite {
         #region Constants
 
         internal const int DefaultStreamChunkSize = 8192;
+        private static readonly string Tag = typeof(Attachment).Name;
 
         #endregion
 
@@ -90,9 +132,20 @@ namespace Couchbase.Lite {
 
         internal Attachment(Stream contentStream, string contentType)
         {
+            if(contentStream == null) {
+                Log.To.Database.E(Tag, "null contentStream in Attachment constructor, throwing...");
+                throw new ArgumentNullException("contentStream");
+            }
+
+            if(contentType == null) {
+                Log.To.Database.E(Tag, "null contentType in Attachment constructor, throwing...");
+                throw new ArgumentNullException("contentType");
+            }
+
             Metadata = new Dictionary<String, Object> {
-                { AttachmentMetadataDictionary.CONTENT_TYPE, contentType },
-                { AttachmentMetadataDictionary.FOLLOWS, true }
+                { AttachmentMetadataDictionaryKeys.ContentType, contentType },
+                { AttachmentMetadataDictionaryKeys.Follows, true },
+                { AttachmentMetadataDictionaryKeys.Length, contentStream.Length }
             };
 
             Body = contentStream;
@@ -143,30 +196,30 @@ namespace Couchbase.Lite {
                     {
                         // Copy attachment body into the database's blob store:
                         var writer = BlobStoreWriterForBody(body, database);
-                        metadataMutable[AttachmentMetadataDictionary.LENGTH] = (long)writer.GetLength();
-                        metadataMutable[AttachmentMetadataDictionary.DIGEST] = writer.SHA1DigestString();
-                        metadataMutable[AttachmentMetadataDictionary.FOLLOWS] = true;
+                        metadataMutable[AttachmentMetadataDictionaryKeys.Length] = (long)writer.GetLength();
+                        metadataMutable[AttachmentMetadataDictionaryKeys.Digest] = writer.SHA1DigestString();
+                        metadataMutable[AttachmentMetadataDictionaryKeys.Follows] = true;
                         var errMsg = metadataMutable.Validate();
                         if (errMsg != null) {
-                            throw new CouchbaseLiteException("Error installing attachment body ({0})", errMsg) { Code = StatusCode.BadAttachment };
+                            throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, Tag,
+                                "Error installing attachment body ({0})", errMsg);
                         }
 
-                        database.RememberAttachmentWriter(writer);
+                        database.RememberAttachmentWriter(writer, writer.SHA1DigestString());
                     }
 
                     attachment.Dispose();
                     updatedAttachments[name] = metadataMutable;
-                }
-                else if (value is AttachmentInternal)
-                {
-                    throw new ArgumentException("AttachmentInternal objects not expected here.  Could indicate a bug");
-                }
-                else 
-                {
-                    if (value != null)
+                } else if (value is AttachmentInternal) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadParam, Tag,
+                        "AttachmentInternal objects not expected here.  Could indicate a bug");
+                } else {
+                    if (value != null) {
                         updatedAttachments[name] = value;
+                    }
                 }
             }
+
             return updatedAttachments;
         }
 
@@ -193,14 +246,16 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <value>The owning <see cref="Couchbase.Lite.Document"/></value>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public Document Document {
+        public Document Document
+        {
             get {
-                if (Revision == null) {
-                    throw new CouchbaseLiteException("Revision must not be null.");
+                if(Revision == null) {
+                    Log.To.Database.W(Tag, "Revision null when Document property was called");
+                    return null;
                 }
 
                 return Revision.Document;
-            } 
+            }
         }
 
         /// <summary>
@@ -216,8 +271,9 @@ namespace Couchbase.Lite {
         public string ContentType {
             get {
                 var contentType = default(string);
-                if (!Metadata.TryGetValue<string>(AttachmentMetadataDictionary.CONTENT_TYPE, out contentType)) {
-                    throw new CouchbaseLiteException("Content type of attachment corrupt", StatusCode.BadAttachment);
+                if (!Metadata.TryGetValue<string>(AttachmentMetadataDictionaryKeys.ContentType, out contentType)) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, Tag,
+                        "Content type of attachment corrupt");
                 }
 
                 return contentType;
@@ -239,16 +295,21 @@ namespace Couchbase.Lite {
                     return Body;
                 }
 
-                if (Revision == null)
-                    throw new CouchbaseLiteException("Revision must not be null when retrieving attachment content");
+                if (Revision == null) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InternalServerError, Tag,
+                        "Revision was null when Attachment.ContentStream called");
+                }
 
-                if (Name == null)
-                    throw new CouchbaseLiteException("Name must not be null when retrieving attachment content");
+                if (Name == null) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InternalServerError, Tag,
+                        "Name was null when Attachment.ContentStream called");
+                }
 
                 var attachment = Revision.Database.AttachmentForDict(Metadata, Name);
-
-                if (attachment == null)
-                    throw new CouchbaseLiteException("Could not retrieve an attachment for revision sequence {0}.", Revision.Sequence);
+                if (attachment == null) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InternalServerError, Tag,
+                        "Could not retrieve an attachment for revision sequence {0}.", Revision.Sequence);
+                }
 
                 Body = attachment.ContentStream;
                 Body.Reset();
@@ -270,13 +331,22 @@ namespace Couchbase.Lite {
                     return Body.ReadAllBytes();
                 }
 
-                if (Revision == null)
-                    throw new CouchbaseLiteException("Revision must not be null when retrieving attachment content");
+                if (Revision == null) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InternalServerError, Tag,
+                        "Revision was null when Attachment.ContentStream called");
+                }
 
-                if (Name == null)
-                    throw new CouchbaseLiteException("Name must not be null when retrieving attachment content");
+                if (Name == null) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InternalServerError, Tag,
+                        "Name was null when Attachment.ContentStream called");
+                }
 
                 var attachment = Revision.Database.AttachmentForDict(Metadata, Name);
+                if (attachment == null) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InternalServerError, Tag,
+                        "Could not retrieve an attachment for revision sequence {0}.", Revision.Sequence);
+                }
+
                 return attachment.Content;
             }
         }
@@ -285,11 +355,15 @@ namespace Couchbase.Lite {
         /// Gets the length in bytes of the content.
         /// </summary>
         /// <value>The length in bytes of the content.</value>
-        public Int64 Length {
+        public long Length {
             get {
-                Object length;
-                var success = Metadata.TryGetValue(AttachmentMetadataDictionary.LENGTH, out length);
-                return success ? (Int64)length : 0;
+                long retVal;
+                if (!Metadata.TryGetValue<long>(AttachmentMetadataDictionaryKeys.Length, out retVal)) {
+                    Log.To.Database.W(Tag, "Attachment doesn't contain a length entry, returning 0...");
+                    return 0L;
+                }
+
+                return retVal;
             }
         }
 

@@ -46,14 +46,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
-using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using Couchbase.Lite.Util;
-using NUnit.Framework;
-using Sharpen;
-using Couchbase.Lite.Views;
+
 using Couchbase.Lite.Tests;
+using Couchbase.Lite.Util;
+using Couchbase.Lite.Views;
+using NUnit.Framework;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -69,7 +66,7 @@ namespace Couchbase.Lite
         private bool PerformanceTestsEnabled 
         {
             get {
-                return Convert.ToBoolean(Runtime.GetProperty("enabled"));
+                return Convert.ToBoolean(GetProperty("enabled") as string);
             }
         }
 
@@ -81,22 +78,20 @@ namespace Couchbase.Lite
         protected void InitConfig()
         {
             Log.SetLogger(null);
-            var systemProperties = Runtime.Properties;
-            InputStream mainProperties = GetAsset("perftest.properties");
-            if (mainProperties != null)
-            {
-                systemProperties.Load(mainProperties);
+            var mainProperties = GetAsset("perftest.properties");
+            if (mainProperties != null) {
+                LoadProperties(mainProperties);
             }
             mainProperties.Close();
 
             try {
                 var localProperties = GetAsset("local-perftest.properties");
                 if (localProperties != null) {
-                    systemProperties.Load(localProperties);
+                    LoadProperties(localProperties);
                     localProperties.Close();
                 }
             } catch (IOException) {
-                Log.W(TAG, "Error trying to read from local-perftest.properties, does this file exist?");
+                Console.WriteLine("Error trying to read from local-perftest.properties, does this file exist?");
                 throw;
             }
         }
@@ -104,7 +99,7 @@ namespace Couchbase.Lite
         [TestFixtureTearDown]
         public void FixtureTearDown()
         {
-            Log.SetDefaultLoggerWithLevel(SourceLevels.All);
+            Log.SetDefaultLogger();
         }
 
         [Test]
@@ -128,7 +123,7 @@ namespace Couchbase.Lite
                             var doc = database.CreateDocument();
                             doc.PutProperties(props);
                         } catch(CouchbaseLiteException e) {
-                            Log.E(TAG, "Error creating document", e);
+                            Console.WriteLine("Error creating document", e);
                             return false;
                         }
                     }
@@ -182,7 +177,7 @@ namespace Couchbase.Lite
                         Assert.IsNotNull(doc.PutProperties(props));
                         docIds.Add(doc.Id);
                     } catch(CouchbaseLiteException e) {
-                        Log.E(TAG, "Error creating document", e);
+                        Console.WriteLine("Error creating document", e);
                         return false;
                     }
                 }
@@ -225,7 +220,7 @@ namespace Couchbase.Lite
                             unsaved.Save();
                         }
                     } catch(Exception e) {
-                        Log.E(TAG, "Document create with attachment failed", e);
+                        Console.WriteLine("Document create with attachment failed", e);
                         return false;
                     }
 
@@ -262,7 +257,7 @@ namespace Couchbase.Lite
                         docs[i] = doc;
                     }
                 } catch(Exception e) {
-                    Log.E(TAG, "Document create with attachment failed", e);
+                    Console.WriteLine("Document create with attachment failed", e);
                     return false;
                 }
 
@@ -314,7 +309,7 @@ namespace Couchbase.Lite
                         }
                         Assert.IsNotNull(unsaved.Save());
                     } catch(Exception e) {
-                        Log.E(TAG, "Error creating documents", e);
+                        Console.WriteLine("Error creating documents", e);
                         return false;
                     }
                 }
@@ -363,7 +358,7 @@ namespace Couchbase.Lite
                         }
                         Assert.IsNotNull(unsaved.Save());
                     } catch(Exception e) {
-                        Log.E(TAG, "Error creating documents", e);
+                        Console.WriteLine("Error creating documents", e);
                         return false;
                     }
                 }
@@ -407,7 +402,7 @@ namespace Couchbase.Lite
                         doc.PutProperties(props);
                         docs[i] = doc;
                     } catch(Exception e) {
-                        Log.E(TAG, "Document creation failed", e);
+                        Console.WriteLine("Document creation failed", e);
                         return false;
                     }
                 }
@@ -448,7 +443,7 @@ namespace Couchbase.Lite
                         var doc = database.CreateDocument();
                         doc.PutProperties(props);
                     } catch(CouchbaseLiteException e) {
-                        Log.E(TAG, "Error creating document", e);
+                        Console.WriteLine("Error creating document", e);
                         return false;
                     }
                 }
@@ -487,7 +482,7 @@ namespace Couchbase.Lite
                         var doc = database.CreateDocument();
                         doc.PutProperties(props);
                     } catch(CouchbaseLiteException e) {
-                        Log.E(TAG, "Error creating document", e);
+                        Console.WriteLine("Error creating document", e);
                         return false;
                     }
                 }
@@ -522,7 +517,7 @@ namespace Couchbase.Lite
                         doc.PutProperties(props);
                         docs[i] = doc;
                     } catch(CouchbaseLiteException e) {
-                        Log.E(TAG, "Document creation failed", e);
+                        Console.WriteLine("Document creation failed", e);
                         return false;
                     }
                 }
@@ -539,7 +534,7 @@ namespace Couchbase.Lite
                         try {
                             doc.Delete();
                         } catch(Exception e) {
-                            Log.E(TAG, "Document delete failed", e);
+                            Console.WriteLine("Document delete failed", e);
                             return false;
                         }
                     }
@@ -585,7 +580,7 @@ namespace Couchbase.Lite
                     try {
                         doc.PutProperties(props);
                     } catch(CouchbaseLiteException e) {
-                        Log.E(TAG, "Failed to create doc", e);
+                        Console.WriteLine("Failed to create doc", e);
                         return false;
                     }
                 }
@@ -635,7 +630,7 @@ namespace Couchbase.Lite
                     try {
                         doc.PutProperties(props);
                     } catch(CouchbaseLiteException e) {
-                        Log.E(TAG, "Failed to create doc", e);
+                        Console.WriteLine("Failed to create doc", e);
                         return false;
                     }
                 }
@@ -692,7 +687,7 @@ namespace Couchbase.Lite
                     try {
                         doc.PutProperties(props);
                     } catch(CouchbaseLiteException e) {
-                        Log.E(TAG, "Failed to create doc", e);
+                        Console.WriteLine("Failed to create doc", e);
                         return false;
                     }
                 }
@@ -732,7 +727,7 @@ namespace Couchbase.Lite
                         var doc = database.CreateDocument();
                         doc.PutProperties(props);
                     } catch(CouchbaseLiteException e) {
-                        Log.E("PerformanceTest", "Error when creating document", e);
+                        Console.WriteLine("Error when creating document", e);
                         return false;
                     }
                 }
@@ -753,27 +748,27 @@ namespace Couchbase.Lite
 
         private int GetSizeOfDocument(string testName)
         {
-            return Convert.ToInt32(Runtime.GetProperty(testName + ".sizeOfDocument"));
+            return Convert.ToInt32(GetProperty(testName + ".sizeOfDocument"));
         }
 
         private int GetNumberOfDocuments(string testName)
         {
-            return Convert.ToInt32(Runtime.GetProperty(testName + ".numberOfDocuments"));
+            return Convert.ToInt32(GetProperty(testName + ".numberOfDocuments"));
         }
 
         private int GetSizeOfAttachment(string testName)
         {
-            return Convert.ToInt32(Runtime.GetProperty(testName + ".sizeOfAttachment"));
+            return Convert.ToInt32(GetProperty(testName + ".sizeOfAttachment"));
         }
 
         private int GetNumberOfUpdates(string testName)
         {
-            return Convert.ToInt32(Runtime.GetProperty(testName + ".numberOfUpdates"));
+            return Convert.ToInt32(GetProperty(testName + ".numberOfUpdates"));
         }
 
         private int GetNumberOfRounds(string testName)
         {
-            return Convert.ToInt32(Runtime.GetProperty(testName + ".numberOfRounds"));
+            return Convert.ToInt32(GetProperty(testName + ".numberOfRounds"));
         }
 
         private void TimeBlock(string comment, Action block)

@@ -32,6 +32,12 @@ namespace Couchbase.Lite.Listener
     internal sealed class OneShotCouchbaseResponseState : ICouchbaseResponseState
     {
 
+        #region Constants
+
+        private static readonly string Tag = typeof(OneShotCouchbaseResponseState).Name;
+
+        #endregion
+
         #region Variables
 
         private readonly Replication _replication;
@@ -62,6 +68,7 @@ namespace Couchbase.Lite.Listener
         public OneShotCouchbaseResponseState(Replication replication)
         {
             if (replication == null) {
+                Log.To.Listener.E(Tag, "replication cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("replication");
             }
 
@@ -77,8 +84,8 @@ namespace Couchbase.Lite.Listener
         private void ReplicationChanged (object sender, ReplicationChangeEventArgs e)
         {
             var replication = (Replication)sender;
-            replication.Changed -= ReplicationChanged;
             if (replication.Status == ReplicationStatus.Stopped) {
+                replication.Changed -= ReplicationChanged;
                 Response.InternalStatus = replication.LastError == null ? StatusCode.Ok : StatusCode.InternalServerError;
                 Response.WriteHeaders();
                 Response.JsonBody = new Body(new NonNullDictionary<string, object> {

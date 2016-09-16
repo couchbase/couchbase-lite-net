@@ -24,6 +24,8 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Collections.Generic;
+using Couchbase.Lite.Util;
+using Microsoft.IO;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -53,12 +55,26 @@ namespace Couchbase.Lite.Store
         /// <summary>
         /// Number of bytes in a 256-bit key
         /// </summary>
+        [Obsolete("Use DataSize")]
         public const int DATA_SIZE = 32;
+
+        /// <summary>
+        /// Number of bytes in a 256-bit key
+        /// </summary>
+        public static readonly int DataSize = 32;
 
         /// <summary>
         /// The data type associated with encrypted content
         /// </summary>
+        [Obsolete("Use EncryptedContentType")]
         public const string ENCRYPTED_CONTENT_TYPE = "application/x-beanbag-aes-256";
+
+        /// <summary>
+        /// The data type associated with encrypted content
+        /// </summary>
+        public static readonly string EncryptedContentType = "application/x-beanbag-aes-256";
+
+        private static readonly string Tag = typeof(SymmetricKey).Name;
 
         private const int KEY_SIZE = 32;
         private const int BLOCK_SIZE = 16;
@@ -67,19 +83,11 @@ namespace Couchbase.Lite.Store
         private const string DEFAULT_SALT = "Salty McNaCl";
         private const int DEFAULT_PBKDF_ROUNDS = 64000;
 
-
-
         #endregion
 
         #region Private Members
 
         private Aes _cryptor;
-
-        private struct Header
-        {
-            public byte[] iv;
-            public byte[] encrypted;
-        }
 
         #endregion
 
@@ -127,12 +135,21 @@ namespace Couchbase.Lite.Store
         public SymmetricKey(string password, byte[] salt, int rounds) 
         {
             if(password == null) {
+                Log.To.Database.E(Tag, "password cannot be null in ctor, throwing...");
                 throw new ArgumentNullException("password");
             }
+
+            if (salt == null) {
+                Log.To.Database.E(Tag, "salt cannot be null in ctor, throwing...");
+                throw new ArgumentNullException("salt");
+            }
+
             if(salt.Length <= 4) {
+                Log.To.Database.E(Tag, "salt cannot be less than 4 bytes in ctor, throwing...");
                 throw new ArgumentOutOfRangeException("salt", "Value is too short");
             }
             if(rounds <= 200) {
+                Log.To.Database.E(Tag, "rounds cannot be <= 200 in ctor, throwing...");
                 throw new ArgumentOutOfRangeException("rounds", "Insufficient rounds");
             }
 
@@ -154,7 +171,7 @@ namespace Couchbase.Lite.Store
         public SymmetricKey(byte[] keyData) 
         {
             InitCryptor();
-            if(keyData.Length != KEY_SIZE) {
+            if(keyData == null || keyData.Length != KEY_SIZE) {
                 throw new ArgumentOutOfRangeException("keyData", "Value is incorrect size");
             }
 
@@ -183,6 +200,8 @@ namespace Couchbase.Lite.Store
 
             var data = keyOrPassword as IEnumerable<byte>;
             if (data == null) {
+                Log.To.Database.E(Tag, "Invalid keyOrPassword type ({0}) received, must be string " +
+                "or IEnumerable<byte>, throwing...", keyOrPassword.GetType().FullName);
                 throw new InvalidDataException("keyOrPassword must be either string or IEnumerable<byte>");
             }
 
@@ -196,14 +215,18 @@ namespace Couchbase.Lite.Store
         /// </summary>
         public byte[] EncryptData(byte[] data)
         {
+            if (data == null) {
+                return null;
+            }
+
             byte[] encrypted = null;
             _cryptor.GenerateIV();
-            using(var ms = new MemoryStream())
+            using(var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream())
             using(var cs = new CryptoStream(ms, _cryptor.CreateEncryptor(), CryptoStreamMode.Write)) {
                 ms.Write(_cryptor.IV, 0, IV_SIZE);
                 cs.Write(data, 0, data.Length);
                 cs.FlushFinalBlock();
-                encrypted = ms.ToArray();
+                encrypted = ms.GetBuffer().Take((int)ms.Length).ToArray();
             }
 
             return encrypted;
@@ -215,7 +238,8 @@ namespace Couchbase.Lite.Store
         public byte[] DecryptData(byte[] encryptedData)
         {
             var buffer = new List<byte>();
-            using(var ms = new MemoryStream(encryptedData))
+            using(var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream("SymmetricKey", 
+                encryptedData, 0, encryptedData.Length))
             using(var cs = DecryptStream(ms)) {
                 int next;
                 while((next = cs.ReadByte()) != -1) {
@@ -231,7 +255,8 @@ namespace Couchbase.Lite.Store
         /// </summary>
         public Stream DecryptStream(Stream stream)
         {
-            if(!stream.CanRead) {
+            if(stream == null || !stream.CanRead) {
+                Log.To.Database.E(Tag, "Unable to read from stream, throwing...");
                 throw new ArgumentException("Unable to read from stream", "stream");
             }
 

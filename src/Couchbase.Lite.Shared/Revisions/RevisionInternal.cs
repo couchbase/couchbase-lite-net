@@ -42,12 +42,11 @@
 
 using System;
 using System.Collections.Generic;
+
 using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using Sharpen;
+using Couchbase.Lite.Revisions;
 using System.Text;
-using System.Linq;
-using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -66,155 +65,161 @@ namespace Couchbase.Lite.Internal
 
         #region Variables
 
-        private readonly string _docId;
-        private readonly string _revId;
-        private bool _deleted;
-        private bool _missing;
-        private Body _body;
-        private long _sequence;
+        protected readonly string _docId;
+        protected readonly RevisionID _revId;
+        protected Body _body;
+
+        #endregion
+
+        #region Properties
+
+        public string DocID
+        {
+            get { return _docId; }
+        }
+
+        public RevisionID RevID
+        {
+            get { return _revId; }
+        }
+
+        public long Sequence { get; internal set; }
+
+        public bool Deleted { get; internal set; }
+
+        public int Generation
+        {
+            get { return _revId == null ? 0 : _revId.Generation; }
+        }
+
+        public bool Missing { get; internal set; }
 
         #endregion
 
         #region Constructors
 
-        internal RevisionInternal(String docId, String revId, Boolean deleted)
+        internal RevisionInternal(RevisionInternal other) : this(other.DocID, other.RevID, other.Deleted)
+        {
+            var unmodifiableProperties = other.GetProperties();
+            var properties = new Dictionary<string, object>();
+            if(unmodifiableProperties != null) {
+                properties.PutAll(unmodifiableProperties);
+            }
+
+            SetProperties(properties);
+        }
+
+        internal RevisionInternal(string docId, RevisionID revId, bool deleted)
         {
             // TODO: get rid of this field!
-            this._docId = docId;
-            this._revId = revId;
-            this._deleted = deleted;
+            _docId = docId;
+            _revId = revId;
+            Deleted = deleted;
+        }
+
+        internal RevisionInternal(string docId, RevisionID revId, bool deleted, Body body)
+            : this(docId, revId, deleted)
+        {
+            _body = body;
         }
 
         internal RevisionInternal(Body body)
-            : this(body.GetPropertyForKey<string>("_id"), body.GetPropertyForKey<string>("_rev"), body.GetPropertyForKey<bool>("_deleted"))
+            : this(body.GetProperties().CblID(), body.GetProperties().CblRev(), body.GetProperties().CblDeleted())
         {
-            this._body = body;
+            _body = body;
         }
 
         internal RevisionInternal(IDictionary<String, Object> properties)
             : this(new Body(properties)) { }
 
-        #if FORESTDB
-
-        internal unsafe RevisionInternal(CBForest.C4Document *doc, bool loadBody) 
-        {
-            if (!doc->Exists) {
-                return;
-            }
-
-            _docId = (string)doc->docID;
-            _revId = (string)doc->selectedRev.revID;
-            _deleted = doc->selectedRev.IsDeleted;
-            _sequence = (long)doc->selectedRev.sequence;
-            if (loadBody) {
-                // Important not to lazy load here since we can only assume
-                // doc lives until immediately after this function ends
-                SetBody(new Body(doc->selectedRev.body.ToArray())); 
-            }
-        }
-
-        internal unsafe RevisionInternal(CBForest.CBForestDocStatus docStatus, bool loadBody)
-            : this(docStatus.GetDocument(), loadBody)
-        {
-
-        }
-
-        #endif
 
         #endregion
 
         #region Methods
 
+        // Used by listener
         public static bool IsValid(Body body)
         {
             return body.GetPropertyForKey("_id") != null ||
             (body.GetPropertyForKey("_rev") == null && body.GetPropertyForKey("_deleted") == null);
         }
 
-        internal static Tuple<int, string> ParseRevId(string revId)
-        {
-            if (revId == null || revId.Contains(" ")) {
-                return Tuple.Create(-1, string.Empty); 
-            }
-
-            int dashPos = revId.IndexOf("-", StringComparison.InvariantCulture);
-            if (dashPos == -1) {
-                return Tuple.Create(-1, string.Empty);
-            }
-
-            var genStr = revId.Substring(0, dashPos);
-            int generation;
-            if (!int.TryParse(genStr, out generation)) {
-                return Tuple.Create(-1, string.Empty);
-            }
-
-            var suffix = revId.Substring(dashPos + 1);
-            if (suffix.Length == 0) {
-                return Tuple.Create(-1, string.Empty);
-            }
-
-            return Tuple.Create(generation, suffix);
-        }
-
-        internal IDictionary<String, Object> GetProperties()
+        public IDictionary<string, object> GetProperties()
         {
             IDictionary<string, object> result = null;
-            if (_body != null) {
+            if(_body != null) {
                 IDictionary<string, object> prop;
                 try {
                     prop = _body.GetProperties();
-                } catch (InvalidOperationException) {
+                } catch(InvalidOperationException) {
                     // handle when both object and json are null for this body
                     return null;
                 }
 
-                if (result == null) {
+                if(result == null) {
                     result = new Dictionary<string, object>();
                 }
                 result.PutAll(prop);
 
-                if (_docId != null) {
+                if(_docId != null) {
                     result["_id"] = _docId;
                 }
 
-                if (_revId != null) {
-                    result["_rev"] = _revId;
+                if(_revId != null) {
+                    result.SetRevID(_revId);
                 }
 
-                if (_deleted) {
+                if(Deleted) {
                     result["_deleted"] = true;
                 }
             }
             return result;
         }
 
-        internal RevisionInternal CopyWithoutBody()
+        public RevisionInternal CopyWithoutBody()
         {
-            if (_body == null) {
+            if(_body == null) {
                 return this;
             }
 
-            var rev = new RevisionInternal(_docId, _revId, _deleted);
-            rev.SetSequence(_sequence);
-            rev.SetMissing(_missing);
+            var rev = new RevisionInternal(_docId, _revId, Deleted);
+            rev.Sequence = Sequence;
+            rev.Missing = Missing;
             return rev;
         }
-            
-        internal object GetPropertyForKey(string key)
+
+        public object GetPropertyForKey(string key)
         {
-            if (key == "_id") {
+            if(key == "_id") {
                 return _docId;
             }
 
-            if (key == "_rev") {
+            if(key == "_rev") {
                 return _revId;
             }
 
-            if (key == "_deleted") {
-                return _deleted ? (object)true : null;
+            if(key == "_deleted") {
+                return Deleted ? (object)true : null;
             }
 
-            return _body.GetPropertyForKey(key);
+            return _body?.GetPropertyForKey(key);
+        }
+
+        internal RevisionInternal AddBasicMetadata()
+        {
+            var props = GetProperties();
+            if(props == null) {
+                return null;
+            }
+
+            props.SetDocRevID(DocID, RevID);
+            if(Deleted) {
+                props["_deleted"] = true;
+            }
+
+            var result = new RevisionInternal(props);
+            result.Sequence = Sequence;
+            return result;
         }
 
         internal void SetProperties(IDictionary<string, object> properties)
@@ -222,72 +227,62 @@ namespace Couchbase.Lite.Internal
             _body = new Body(properties);
         }
 
+        // Used by plugins
         internal void SetPropertyForKey(string key, object value)
         {
             _body.SetPropertyForKey(key, value);
         }
 
-        internal IEnumerable<Byte> GetJson()
+        // Unused, but here for balance
+        internal IEnumerable<byte> GetJson()
         {
-            IEnumerable<Byte> result = null;
-            if (_body != null)
-            {
+            IEnumerable<byte> result = null;
+            if(_body != null) {
                 result = _body.AsJson();
             }
+
             return result;
         }
 
-        internal void SetJson(IEnumerable<Byte> json)
+        // Used by plugins
+        internal void SetJson(IEnumerable<byte> json)
         {
-            _body = new Body(json);
+            if(json != null) {
+                _body = new Body(json, DocID, RevID, Deleted);
+                Missing = false;
+            } else {
+                _body = null;
+                Missing = true;
+            }
         }
 
-        internal IDictionary<string, object> GetAttachments()
+        public IDictionary<string, object> GetAttachments()
         {
             var props = GetProperties();
-            if (props == null) {
+            if(props == null) {
                 return null;
             }
 
             return props.Get("_attachments").AsDictionary<string, object>();
         }
 
-        internal string GetDocId()
+        // Used by listener and plugins
+        public Body GetBody()
         {
-            return _docId;
-        }
-
-        internal string GetRevId()
-        {
-            return _revId;
-        }
-
-        internal bool IsDeleted()
-        {
-            return _deleted;
-        }
-
-        internal void SetDeleted(bool deleted)
-        {
-            this._deleted = deleted;
-        }
-
-        internal Body GetBody()
-        {
-            if (_body == null) {
+            if(_body == null) {
                 return _body;
             }
 
             var props = _body.GetProperties();
-            if (_docId != null) {
+            if(_docId != null) {
                 props["_id"] = _docId;
             }
 
-            if (_revId != null) {
-                props["_rev"] = _revId;
+            if(_revId != null) {
+                props.SetRevID(_revId);
             }
 
-            if (_deleted) {
+            if(Deleted) {
                 props["_deleted"] = true;
             }
 
@@ -296,176 +291,51 @@ namespace Couchbase.Lite.Internal
 
         internal void SetBody(Body body)
         {
-            this._body = body;
+            _body = body;
         }
 
-        internal Boolean IsMissing()
-        {
-            return _missing;
-        }
-
-        internal void SetMissing(Boolean isMissing)
-        {
-            _missing = isMissing;
-        }
-
-        internal RevisionInternal CopyWithDocID(String docId, String revId)
+        public RevisionInternal Copy(string docId, RevisionID revId)
         {
             System.Diagnostics.Debug.Assert((docId != null));
-            System.Diagnostics.Debug.Assert(((this._docId == null) || (this._docId.Equals(docId))));
+            System.Diagnostics.Debug.Assert(((_docId == null) || (_docId.Equals(docId))));
 
-            var result = new RevisionInternal(docId, revId, _deleted);
+            var result = new RevisionInternal(docId, revId, Deleted);
             var unmodifiableProperties = GetProperties();
             var properties = new Dictionary<string, object>();
-            if (unmodifiableProperties != null)
-            {
+            if(unmodifiableProperties != null) {
                 properties.PutAll(unmodifiableProperties);
             }
-            properties["_id"] = docId;
-            properties["_rev"] = revId;
+
+            properties.SetDocRevID(docId, revId);
             result.SetProperties(properties);
             return result;
-        }
-
-        internal void SetSequence(long sequence)
-        {
-            this._sequence = sequence;
-        }
-
-        internal long GetSequence()
-        {
-            return _sequence;
-        }
-
-        public override string ToString()
-        {
-            return "{" + this._docId + " #" + this._revId + (_deleted ? "DEL" : string.Empty) + "}";
-        }
-
-        /// <summary>Generation number: 1 for a new document, 2 for the 2nd revision, ...</summary>
-        /// <remarks>
-        /// Generation number: 1 for a new document, 2 for the 2nd revision, ...
-        /// Extracted from the numeric prefix of the revID.
-        /// </remarks>
-        internal int GetGeneration()
-        {
-            return GenerationFromRevID(_revId);
-        }
-
-        internal static int GenerationFromRevID(string revID)
-        {
-            if (revID == null) {
-                return 0;
-            }
-
-            var generation = 0;
-            var dashPos = revID.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
-            if (dashPos > 0)
-            {
-                generation = Convert.ToInt32(revID.Substring(0, dashPos));
-            }
-            return generation;
-        }
-
-        internal static int CBLCollateRevIDs(string revId1, string revId2)
-        {
-            string rev1GenerationStr = null;
-            string rev2GenerationStr = null;
-            string rev1Hash = null;
-            string rev2Hash = null;
-            var st1 = new StringTokenizer(revId1, "-");
-            try
-            {
-                rev1GenerationStr = st1.NextToken();
-                rev1Hash = st1.NextToken();
-            }
-            catch (Exception)
-            {
-            }
-            StringTokenizer st2 = new StringTokenizer(revId2, "-");
-            try
-            {
-                rev2GenerationStr = st2.NextToken();
-                rev2Hash = st2.NextToken();
-            }
-            catch (Exception)
-            {
-            }
-            // improper rev IDs; just compare as plain text:
-            if (rev1GenerationStr == null || rev2GenerationStr == null)
-            {
-                return revId1.CompareToIgnoreCase(revId2);
-            }
-            int rev1Generation;
-            int rev2Generation;
-            try
-            {
-                rev1Generation = System.Convert.ToInt32(rev1GenerationStr);
-                rev2Generation = System.Convert.ToInt32(rev2GenerationStr);
-            }
-            catch (FormatException)
-            {
-                // improper rev IDs; just compare as plain text:
-                return revId1.CompareToIgnoreCase(revId2);
-            }
-            // Compare generation numbers; if they match, compare suffixes:
-            if (rev1Generation.CompareTo(rev2Generation) != 0)
-            {
-                return rev1Generation.CompareTo(rev2Generation);
-            }
-            else
-            {
-                if (rev1Hash != null && rev2Hash != null)
-                {
-                    // compare suffixes if possible
-                    return String.CompareOrdinal(rev1Hash, rev2Hash);
-                }
-                else
-                {
-                    // just compare as plain text:
-                    return revId1.CompareToIgnoreCase(revId2);
-                }
-            }
-        }
-
-        internal static int CBLCompareRevIDs(string revId1, string revId2)
-        {
-            System.Diagnostics.Debug.Assert((revId1 != null));
-            System.Diagnostics.Debug.Assert((revId2 != null));
-            return CBLCollateRevIDs(revId1, revId2);
         }
 
         // Calls the block on every attachment dictionary. The block can return a different dictionary,
         // which will be replaced in the rev's properties. If it returns nil, the operation aborts.
         // Returns YES if any changes were made.
-        internal bool MutateAttachments(Func<string, IDictionary<string, object>, IDictionary<string, object>> mutator)
+        public bool MutateAttachments(Func<string, IDictionary<string, object>, IDictionary<string, object>> mutator)
         {
             var properties = GetProperties();
             IDictionary<string, object> editedProperties = null;
 
             IDictionary<string, object> attachments = null;
-            if (properties.ContainsKey("_attachments"))
-            {
+            if(properties.ContainsKey("_attachments")) {
                 attachments = properties["_attachments"].AsDictionary<string, object>();
             }
 
             IDictionary<string, object> editedAttachments = null;
 
-            if (attachments != null)
-            {
-                foreach(var kvp in attachments)
-                {
+            if(attachments != null) {
+                foreach(var kvp in attachments) {
                     var attachment = new Dictionary<string, object>(kvp.Value.AsDictionary<string, object>());
                     var editedAttachment = mutator(kvp.Key, attachment);
-                    if (editedAttachment == null)
-                    {
+                    if(editedAttachment == null) {
                         return false;
                     }
 
-                    if (editedAttachment != attachment)
-                    {
-                        if (editedProperties == null)
-                        {
+                    if(editedAttachment != attachment) {
+                        if(editedProperties == null) {
                             // Make the document properties and _attachments dictionary mutable:
                             editedProperties = new Dictionary<string, object>(properties);
                             editedAttachments = new Dictionary<string, object>(attachments);
@@ -476,8 +346,7 @@ namespace Couchbase.Lite.Internal
                 }
             }
 
-            if (editedProperties != null)
-            {
+            if(editedProperties != null) {
                 SetProperties(editedProperties);
                 return true;
             }
@@ -489,12 +358,18 @@ namespace Couchbase.Lite.Internal
 
         #region Overrides
 
+        public override string ToString()
+        {
+            return String.Format("{{{0} #{1}{2}}}",
+                new SecureLogString(_docId, LogMessageSensitivity.PotentiallyInsecure), _revId, Deleted ? "DEL" : String.Empty);
+        }
+
         public override bool Equals(object o)
         {
             var other = o as RevisionInternal;
             bool result = false;
-            if (other != null) {
-                if (_docId.Equals(other._docId) && _revId.Equals(other._revId)) {
+            if(other != null) {
+                if(_docId.Equals(other._docId) && _revId.Equals(other._revId)) {
                     result = true;
                 }
             }

@@ -41,17 +41,19 @@
 //
 
 using System;
-using NUnit.Framework;
 using System.Collections.Generic;
-using System.Linq;
-using Sharpen;
-using System.Threading;
-using Newtonsoft.Json.Linq;
-using Couchbase.Lite.Internal;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Store;
-using System.Threading.Tasks;
 using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
+using Couchbase.Lite.Storage.SQLCipher;
+using System.Text;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -61,6 +63,250 @@ namespace Couchbase.Lite
         const String TooLongName = "a11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110";
 
         public DatabaseTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestFindMissingRevisions()
+        {
+            var revs = new RevisionList();
+            database.Storage.FindMissingRevisions(revs);
+
+            var doc1r1 = PutDoc(new Dictionary<string, object> {
+                ["_id"] = "11111",
+                ["key"] = "one"
+            });
+            var doc2r1 = PutDoc(new Dictionary<string, object> {
+                ["_id"] = "22222",
+                ["key"] = "two"
+            });
+            PutDoc(new Dictionary<string, object> {
+                ["_id"] = "33333",
+                ["key"] = "three"
+            });
+            PutDoc(new Dictionary<string, object> {
+                ["_id"] = "44444",
+                ["key"] = "four"
+            });
+            PutDoc(new Dictionary<string, object> {
+                ["_id"] = "55555",
+                ["key"] = "five"
+            });
+
+            var doc1r2 = PutDoc(new Dictionary<string, object> {
+                ["_id"] = "11111",
+                ["_rev"] = doc1r1.RevID.ToString(),
+                ["key"] = "one+"
+            });
+            var doc2r2 = PutDoc(new Dictionary<string, object> {
+                ["_id"] = "22222",
+                ["_rev"] = doc2r1.RevID.ToString(),
+                ["key"] = "two+"
+            });
+
+            PutDoc(new Dictionary<string, object> {
+                ["_id"] = "11111",
+                ["_rev"] = doc1r2.RevID.ToString(),
+                ["_deleted"] = true
+            });
+
+            // Now call FindMissingRevisions
+            var revToFind1 = new RevisionInternal("11111", "3-6060".AsRevID(), false);
+            var revToFind2 = new RevisionInternal("22222", doc2r2.RevID, false);
+            var revToFind3 = new RevisionInternal("99999", "9-4141".AsRevID(), false);
+            revs = new RevisionList(new List<RevisionInternal> { revToFind1, revToFind2, revToFind3 });
+            database.Storage.FindMissingRevisions(revs);
+            CollectionAssert.AreEqual(new List<RevisionInternal> { revToFind1, revToFind3 }, revs);
+
+            // Check the possible ancestors
+            ValueTypePtr<bool> haveBodies = false;
+            CollectionAssert.AreEqual(new List<RevisionID> { doc1r2.RevID, doc1r1.RevID }, database.Storage.GetPossibleAncestors(revToFind1, 0, haveBodies));
+            CollectionAssert.AreEqual(new List<RevisionID> { doc1r2.RevID }, database.Storage.GetPossibleAncestors(revToFind1, 1, haveBodies));
+            CollectionAssert.AreEqual(new List<RevisionID>(), database.Storage.GetPossibleAncestors(revToFind3, 0, haveBodies));
+        }
+
+        [Test]
+        public void TestPruneOnPut()
+        {
+            database.SetMaxRevTreeDepth(5);
+            var lastRev = default(RevisionInternal);
+            var revs = new List<RevisionInternal>();
+            for(int gen = 1; gen <= 10; gen++) {
+                var newRev = new RevisionInternal(new Dictionary<string, object> {
+                    { "_id", "foo" },
+                    { "gen", gen }
+                });
+
+                var rev = database.PutRevision(newRev, lastRev?.RevID, false);
+                revs.Add(rev);
+                lastRev = rev;
+            }
+
+            // Verify that the first five revs are no longer available:
+            for(int gen = 1; gen <= 10; gen++) {
+                var rev = database.GetDocument("foo", revs[gen - 1].RevID, true);
+                if(gen <= 5) {
+                    Assert.IsNull(rev);
+                } else {
+                    Assert.IsNotNull(rev);
+                }
+            }
+        }
+
+        [Test]
+        public void TestPruneOnForceInsert()
+        {
+            database.SetMaxRevTreeDepth(5);
+            var lastRev = default(RevisionInternal);
+            var revs = new List<RevisionInternal>();
+            var history = new List<RevisionID>();
+            for(int gen = 1; gen <= 10; gen++) {
+                var rev = new RevisionInternal(new Dictionary<string, object> {
+                    { "_id", "foo" },
+                    { "_rev", $"{gen}-cafebabe" },
+                    { "gen", gen }
+                });
+
+                database.ForceInsert(rev, history, null);
+                history.Insert(0, rev.RevID);
+                revs.Add(rev);
+                lastRev = rev;
+            }
+
+            // Verify that the first five revs are no longer available:
+            for(int gen = 1; gen <= 10; gen++) {
+                var rev = database.GetDocument("foo", revs[gen - 1].RevID, true);
+                if(gen <= 5) {
+                    Assert.IsNull(rev);
+                } else {
+                    Assert.IsNotNull(rev);
+                }
+            }
+        }
+
+        [Test]
+        public void TestAttachments()
+        {
+            var properties = new Dictionary<string, object> {
+                { "testName", "testAttachments" }
+            };
+            var doc = CreateDocumentWithProperties(database, properties);
+            var rev = doc.CurrentRevision;
+
+            Assert.AreEqual(0, rev.Attachments.Count());
+            Assert.AreEqual(0, rev.AttachmentNames.Count());
+            using(var a = rev.GetAttachment("index.html")) { 
+                Assert.IsNull(a);
+            }
+
+            var body = Encoding.UTF8.GetBytes("This is a test attachment!");
+            var rev2 = doc.CreateRevision();
+            rev2.SetAttachment("index.html", "text/plain; charset=utf-8", body);
+
+            Assert.AreEqual(1, rev2.Attachments.Count());
+            CollectionAssert.AreEqual(new string[] { "index.html" }, rev2.AttachmentNames);
+            var rev2Attach = rev2.GetAttachment("index.html");
+            Assert.IsNull(rev2Attach.Revision);
+            Assert.IsNull(rev2Attach.Document);
+            Assert.AreEqual("index.html", rev2Attach.Name);
+            Assert.AreEqual("text/plain; charset=utf-8", rev2Attach.ContentType);
+            Assert.AreEqual(body, rev2Attach.Content);
+            Assert.AreEqual(body.Length, rev2Attach.Length);
+
+            var rev3 = rev2.Save();
+            rev2.Dispose();
+            Assert.AreEqual(1, rev3.Attachments.Count());
+            Assert.AreEqual(1, rev3.AttachmentNames.Count());
+
+            using(var attach = rev3.GetAttachment("index.html")) {
+                Assert.AreEqual(doc, attach.Document);
+                Assert.AreEqual("index.html", attach.Name);
+                CollectionAssert.AreEqual(new string[] { "index.html" }, rev3.AttachmentNames);
+
+                Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
+                Assert.AreEqual(body, attach.Content);
+                Assert.AreEqual(body.Length, attach.Length);
+
+                var inStream = attach.ContentStream;
+                var data = inStream.ReadAllBytes();
+                Assert.AreEqual(body, data);
+
+                var newRev = rev3.CreateRevision();
+                newRev.RemoveAttachment(attach.Name);
+                var rev4 = newRev.Save();
+                newRev.Dispose();
+                Assert.AreEqual(0, rev4.AttachmentNames.Count());
+            }
+            
+            // Add an attachment with revpos=0 (see #627)
+            var props = rev3.Properties;
+            var atts = props.Get("_attachments").AsDictionary<string, object>();
+            atts["zero.txt"] = new Dictionary<string, object> {
+                { "content_type", "text/plain" },
+                { "revpos", 0 },
+                { "following", true }
+            };
+
+            props["_attachments"] = atts;
+            var success = doc.PutExistingRevision(props, new Dictionary<string, Stream> {
+                { "zero.txt", new MemoryStream(Encoding.UTF8.GetBytes("zero")) }
+            }, new List<string> { "3-0000", rev3.Id, rev.Id }, null);
+            Assert.IsTrue(success);
+
+            var rev5 = doc.GetRevision("3-0000");
+            using(var att = rev5.GetAttachment("zero.txt")) {
+                Assert.IsNotNull(att);
+            }
+        }
+
+        [Test]
+        public void TestAllDocumentsPrefixMatch()
+        {
+            CreateDocumentWithProperties(database, new Dictionary<string, object> { { "_id", "three" } });
+            CreateDocumentWithProperties(database, new Dictionary<string, object> { { "_id", "four" } });
+            CreateDocumentWithProperties(database, new Dictionary<string, object> { { "_id", "five" } });
+            CreateDocumentWithProperties(database, new Dictionary<string, object> { { "_id", "eight" } });
+            CreateDocumentWithProperties(database, new Dictionary<string, object> { { "_id", "fifteen" } });
+
+            database.DocumentCache.Clear();
+
+            var query = database.CreateAllDocumentsQuery();
+            var rows = default(QueryEnumerator);
+
+            // Set prefixMatchLevel = 1, no startKey, ascending:
+            query.Descending = false;
+            query.EndKey = "f";
+            query.PrefixMatchLevel = 1;
+            rows = query.Run();
+            Assert.AreEqual(4, rows.Count);
+            CollectionAssert.AreEqual(new[] { "eight", "fifteen", "five", "four" }, rows.Select(x => x.Key));
+
+            // Set prefixMatchLevel = 1, ascending:
+            query.Descending = false;
+            query.StartKey = "f";
+            query.EndKey = "f";
+            query.PrefixMatchLevel = 1;
+            rows = query.Run();
+            Assert.AreEqual(3, rows.Count);
+            CollectionAssert.AreEqual(new[] { "fifteen", "five", "four" }, rows.Select(x => x.Key));
+
+            // Set prefixMatchLevel = 1, descending:
+            query.Descending = true;
+            query.StartKey = "f";
+            query.EndKey = "f";
+            query.PrefixMatchLevel = 1;
+            rows = query.Run();
+            Assert.AreEqual(3, rows.Count);
+            CollectionAssert.AreEqual(new[] { "four", "five", "fifteen" }, rows.Select(x => x.Key));
+
+            // Set prefixMatchLevel = 1, ascending, prefix = fi:
+            query.Descending = false;
+            query.StartKey = "fi";
+            query.EndKey = "fi";
+            query.PrefixMatchLevel = 1;
+            rows = query.Run();
+            Assert.AreEqual(2, rows.Count);
+            CollectionAssert.AreEqual(new[] { "fifteen", "five" }, rows.Select(x => x.Key));
+
+        }
 
         #if !NET_3_5
         [Test]
@@ -147,8 +393,8 @@ namespace Couchbase.Lite
 
             // Close and re-open the db using SQLite storage type. Should fail if it used to be ForestDB:
             Assert.DoesNotThrow(() => replacedb.Close().Wait(15000));
-            options.StorageType = DatabaseOptions.SQLITE_STORAGE;
-            if (_storageType == DatabaseOptions.SQLITE_STORAGE) {
+            options.StorageType = StorageEngineTypes.SQLite;
+            if (_storageType == StorageEngineTypes.SQLite) {
                 Assert.DoesNotThrow(() => replacedb = manager.OpenDatabase("replacedb", options));
                 Assert.IsNotNull(replacedb);
             } else {
@@ -189,40 +435,6 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        public void TestPruneRevsToMaxDepth()
-        {
-            var sqliteStorage = database.Storage as SqliteCouchStore;
-            if (sqliteStorage == null) {
-                Assert.Inconclusive("This test is only valid on a SQLite store");
-            }
-
-            var properties = new Dictionary<string, object>();
-            properties.Add("testName", "testDatabaseCompaction");
-            properties.Add("tag", 1337);
-
-            var doc = CreateDocumentWithProperties(database, properties);
-            var rev = doc.CurrentRevision;
-            database.SetMaxRevTreeDepth(1);
-
-            for (int i = 0; i < 10; i++)
-            {
-                var properties2 = new Dictionary<string, object>(properties);
-                properties2["tag"] = i;
-                rev = rev.CreateRevision(properties2);
-            }
-
-            var numPruned = sqliteStorage.PruneRevsToMaxDepth(1);
-            Assert.AreEqual(10, numPruned);
-
-            var fetchedDoc = database.GetDocument(doc.Id);
-            var revisions = fetchedDoc.RevisionHistory.ToList();
-            Assert.AreEqual(1, revisions.Count);
-
-            numPruned = sqliteStorage.PruneRevsToMaxDepth(1);
-            Assert.AreEqual(0, numPruned);
-        }
-
-        [Test]
         public void TestPruneRevsToMaxDepthViaCompact()
         {
             var properties = new Dictionary<string, object>();
@@ -257,21 +469,19 @@ namespace Couchbase.Lite
         public void TestChangeListenerNotificationBatching()
         {
             const int numDocs = 50;
-            var atomicInteger = 0;
-            var doneSignal = new CountDownLatch(1);
+            var doneSignal = new CountdownEvent(1);
 
-            database.Changed += (sender, e) => Interlocked.Increment (ref atomicInteger);
+            database.Changed += (sender, e) => doneSignal.Signal(); ;
 
             database.RunInTransaction(() =>
             {
                 CreateDocuments(database, numDocs);
-                doneSignal.CountDown();
+                
                 return true;
             });
 
-            var success = doneSignal.Await(TimeSpan.FromSeconds(30));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(1));
             Assert.IsTrue(success);
-            Assert.AreEqual(1, atomicInteger);
         }
 
         /// <summary>
@@ -282,11 +492,14 @@ namespace Couchbase.Lite
         public void TestChangeListenerNotification()
         {
             const int numDocs = 50;
-            var atomicInteger = 0;
+            var countdownEvent = new CountdownEvent(numDocs);
 
-            database.Changed += (sender, e) => Interlocked.Increment (ref atomicInteger);
+            database.Changed += (sender, e) =>
+            {
+                countdownEvent.Signal(e.Changes.Count());
+            };
             CreateDocuments(database, numDocs);
-            Assert.AreEqual(numDocs, atomicInteger);
+            Assert.IsTrue(countdownEvent.Wait(TimeSpan.FromSeconds(1)));
         }
 
         /// <summary>
@@ -296,7 +509,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestGetActiveReplications()
         {
-            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
             {
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
@@ -322,140 +535,6 @@ namespace Couchbase.Lite
             var passed = doneSignal.WaitOne(TimeSpan.FromSeconds(5));
             Assert.IsTrue(passed);
             Assert.AreEqual(1, database.AllReplications.Count());
-        }
-
-        [Test]
-        public void TestUnsavedRevisionCacheRetainDocument()
-        {
-            var document = database.CreateDocument();
-
-            database.DocumentCache.Remove(document.Id);
-
-            Assert.IsNull(database.DocumentCache.Get(document.Id));
-
-            var cachedDocument = default(WeakReference);
-            database.UnsavedRevisionDocumentCache.TryGetValue(document.Id, out cachedDocument);
-            Assert.IsTrue(cachedDocument.Target == document);
-
-            var checkedDocument = database.GetDocument(document.Id);
-            Assert.IsTrue(document == checkedDocument);
-        }
-
-        [Test]
-        public void TestUnsavedRevisionCacheRemoveDocument()
-        {
-            var document = database.CreateDocument();
-
-            var properties = new Dictionary<string, object>();
-            properties.Add("test", "test");
-            document.PutProperties(properties);
-
-            var cachedDocument = default(WeakReference);
-            database.UnsavedRevisionDocumentCache.TryGetValue(document.Id, out cachedDocument);
-            Assert.IsNull(cachedDocument);
-
-            var checkedDocument = database.GetDocument(document.Id);
-            Assert.IsTrue(document == checkedDocument);
-        }
-
-        [Test]
-        public void TestStubOutAttachmentsInRevBeforeRevPos()
-        {
-            var hello = new JObject();
-            hello["revpos"] = 1;
-            hello["follows"] = true;
-
-            var goodbye = new JObject();
-            goodbye["revpos"] = 2;
-            goodbye["data"] = "squeee";
-
-            var attachments = new JObject();
-            attachments["hello"] = hello;
-            attachments["goodbye"] = goodbye;
-
-            var properties = new Dictionary<string, object>();
-            properties["_attachments"] = attachments;
-
-            IDictionary<string, object> expected = null;
-
-            var rev = new RevisionInternal(properties);
-            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 3, false);
-            var checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
-            var result = (IDictionary<string, object>)checkAttachments["hello"];
-            expected = new Dictionary<string, object>();
-            expected["revpos"] = 1;
-            expected["stub"] = true;
-            AssertPropertiesAreEqual(expected, result);
-            result = (IDictionary<string, object>)checkAttachments["goodbye"];
-            expected = new Dictionary<string, object>();
-            expected["revpos"] = 2;
-            expected["stub"] = true;
-            AssertPropertiesAreEqual(expected, result);
-
-            rev = new RevisionInternal(properties);
-            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 2, false);
-            checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
-            result = checkAttachments["hello"].AsDictionary<string, object>();
-            expected = new Dictionary<string, object>();
-            expected["revpos"] = 1;
-            expected["stub"] = true;
-            AssertPropertiesAreEqual(expected, result);
-            result = checkAttachments["goodbye"].AsDictionary<string, object>();
-            expected = goodbye.AsDictionary<string, object>();
-            AssertPropertiesAreEqual(expected, result);
-
-            rev = new RevisionInternal(properties);
-            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 1, false);
-            checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
-            result = checkAttachments["hello"].AsDictionary<string, object>();
-            expected = hello.AsDictionary<string, object>();
-            AssertPropertiesAreEqual(expected, result);
-            result = checkAttachments["goodbye"].AsDictionary<string, object>();
-            expected = goodbye.AsDictionary<string, object>();
-            AssertPropertiesAreEqual(expected, result);
-
-            //Test the follows mode
-            rev = new RevisionInternal(properties);
-            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 3, true);
-            checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
-            result = checkAttachments["hello"].AsDictionary<string, object>();
-            expected = new Dictionary<string, object>();
-            expected["revpos"] = 1;
-            expected["stub"] = true;
-            AssertPropertiesAreEqual(expected, result);
-            result = checkAttachments["goodbye"].AsDictionary<string, object>();
-            expected = new Dictionary<string, object>();
-            expected["revpos"] = 2;
-            expected["stub"] = true;
-            AssertPropertiesAreEqual(expected, result);
-
-            rev = new RevisionInternal(properties);
-            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 2, true);
-            checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
-            result = checkAttachments["hello"].AsDictionary<string, object>();
-            expected = new Dictionary<string, object>();
-            expected["revpos"] = 1;
-            expected["stub"] = true;
-            AssertPropertiesAreEqual(expected, result);
-            result = checkAttachments["goodbye"].AsDictionary<string, object>();
-            expected = new Dictionary<string, object>();
-            expected["revpos"] = 2;
-            expected["follows"] = true;
-            AssertPropertiesAreEqual(expected, result);
-
-            rev = new RevisionInternal(properties);
-            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 1, true);
-            checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
-            result = checkAttachments["hello"].AsDictionary<string, object>();
-            expected = new Dictionary<string, object>();
-            expected["revpos"] = 1;
-            expected["follows"] = true;
-            AssertPropertiesAreEqual(expected, result);
-            result = checkAttachments["goodbye"].AsDictionary<string, object>();
-            expected = new Dictionary<string, object>();
-            expected["revpos"] = 2;
-            expected["follows"] = true;
-            AssertPropertiesAreEqual(expected, result);
         }
 
         [Test]
@@ -512,13 +591,13 @@ namespace Couchbase.Lite
 
             var docNumericId = sqliteStorage.GetDocNumericID(doc.Id);
             Assert.IsTrue(docNumericId != 0);
-            Assert.AreEqual(rev1.Id, sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
+            Assert.AreEqual(rev1.Id.AsRevID(), sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
             Assert.IsFalse(outIsConflict);
 
             var newRev2a = rev1.CreateRevision();
             newRev2a.SetUserProperties(properties2a);
             var rev2a = newRev2a.Save();
-            Assert.AreEqual(rev2a.Id, sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
+            Assert.AreEqual(rev2a.Id.AsRevID(), sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
             Assert.IsFalse(outIsConflict);
 
             var newRev2b = rev1.CreateRevision();
@@ -538,7 +617,7 @@ namespace Couchbase.Lite
             Assert.IsNotNull(view);
             view.SetMap((doc, emit) =>
             {
-                emit(doc.Get("_id"), null);
+                emit(doc.CblID(), null);
             }, "1.0");
 
             var query = view.CreateQuery();
@@ -547,6 +626,14 @@ namespace Couchbase.Lite
             var rows = default(QueryEnumerator);
             Assert.DoesNotThrow(() => rows = query.Run());
             onComplete(rows);
+        }
+
+        private RevisionInternal PutDoc(IDictionary<string, object> props)
+        {
+            var rev = new RevisionInternal(props);
+            var result = database.PutRevision(rev, props.CblRev(), false);
+            Assert.IsNotNull(result.RevID);
+            return result;
         }
     }
 }

@@ -42,17 +42,15 @@
 
 using System;
 using System.IO;
-using System.Text;
-using Sharpen;
-using Couchbase.Lite;
-using Couchbase.Lite.Util;
 using System.Linq;
+
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
     /// <summary>Key identifying a data blob.</summary>
     /// <remarks>Key identifying a data blob. This happens to be a SHA-1 digest.</remarks>
-    internal class BlobKey
+    internal sealed class BlobKey
     {
         private const string TAG = "BlobKey";
 
@@ -76,7 +74,7 @@ namespace Couchbase.Lite
         {
         }
 
-        public virtual string Base64Digest()
+        public string Base64Digest()
         {
             return string.Format("sha1-{0}", Convert.ToBase64String(Bytes));
         }
@@ -115,7 +113,8 @@ namespace Couchbase.Lite
             try {
                 bytes = StringUtils.ConvertFromUnpaddedBase64String(base64Digest);
             } catch (IOException e) {
-                throw new ArgumentException(String.Format("{0} is not a valid Base64 digest.", base64Digest), e.Message);
+                Log.To.Database.E(TAG, "{0} is not a valid Base64 digest, throwing...", base64Digest);
+                throw new ArgumentException(String.Format("{0} is not a valid Base64 digest.", base64Digest), e);
             }
 
             return bytes;
@@ -133,12 +132,25 @@ namespace Couchbase.Lite
                 return false;
             }
             
-			return Arrays.Equals(Bytes, oBlobKey.Bytes);
+            if (Bytes.Length != oBlobKey.Bytes.Length) {
+                return false;
+            }
+
+            for (int i = 0; i < Bytes.Length; i++) {
+                if (!Bytes[i].Equals (oBlobKey.Bytes[i])) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public override int GetHashCode()
         {
-            return Arrays.HashCode(Bytes);
+            var hashCode = 1;
+            foreach(var item in Bytes) {
+                hashCode = 31 * hashCode + item.GetHashCode();
+            }
+            return hashCode;
         }
 
         public override string ToString()

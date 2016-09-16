@@ -42,12 +42,14 @@
 
 using System;
 using System.Net;
+using System.Runtime.Serialization;
 
 namespace Couchbase.Lite
 {
     /// <summary>
     /// An exception for encapsulating HTTP errors
     /// </summary>
+    [Serializable]
     public class HttpResponseException : Exception
     {
 
@@ -59,14 +61,43 @@ namespace Couchbase.Lite
 
         internal HttpResponseException (HttpStatusCode statusCode) { StatusCode = statusCode; }
 
+        internal HttpResponseException(string message) : this(message, null)
+        {
+            
+        }
+
+        internal HttpResponseException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+            StatusCode = HttpStatusCode.InternalServerError;
+        }
+
         /// <summary>
-        /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.HttpResponseException"/>.
+        /// Constructor for ISerializable
         /// </summary>
-        /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.HttpResponseException"/>.</returns>
+        /// <param name="info">The info passed from the serialization</param>
+        /// <param name="context">The context</param>
+        protected HttpResponseException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
+            StatusCode = (HttpStatusCode)info.GetInt32("HttpResponseStatusCode");
+        }
+
+#pragma warning disable 1591
+
         public override string ToString ()
         {
             return string.Format ("[HttpResponseException: StatusCode = {0}]", StatusCode);
         }
+
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            base.GetObjectData(info, context);
+
+            info.AddValue("HttpResponseStatusCode", (int)StatusCode);
+        }
+
+#pragma warning restore 1591
     }
 }
 

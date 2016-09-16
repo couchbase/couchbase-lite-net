@@ -18,7 +18,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)CollationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)FakeHttpWebResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)LiteTestCase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)LocalDocsTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ManagerTest.cs" />
@@ -52,6 +51,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)EncryptionTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JSViewCompilerTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MultipartTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CouchbaseLiteMockTcpListener.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LogTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\BadWebSocketChangeTracker.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TimeSeriesTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\RemoteLogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\WaitAssert.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Performance\" />

@@ -41,15 +41,10 @@
 //
 
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Sharpen;
-using Couchbase.Lite.Replicator;
 using System.Threading.Tasks;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite 
 {
@@ -166,7 +161,7 @@ namespace Couchbase.Lite
                 var result = new Dictionary<String, Object>();
                 foreach (string key in Properties.Keys) {
                     if (!key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase)) {
-                        result.Put(key, Properties.Get(key));
+                        result[key] = Properties.Get(key);
                     }
                 }
 
@@ -205,10 +200,10 @@ namespace Couchbase.Lite
                 var attachmentMetadata = GetAttachmentMetadata();
                 var result = new List<String>();
 
-                if (attachmentMetadata != null)
-                {
-                    Collections.AddAll(result, attachmentMetadata.Keys);
+                if (attachmentMetadata != null) {
+                    result.AddRange(attachmentMetadata.Keys);
                 }
+
                 return result;
             }
         }
@@ -244,12 +239,19 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to return.</param>
         public Attachment GetAttachment(String name) {
             var attachmentsMetadata = GetAttachmentMetadata();
-            if (attachmentsMetadata == null)
-            {
+            if(attachmentsMetadata == null) {
                 return null;
             }
-            var attachmentMetadata = attachmentsMetadata.Get(name).AsDictionary<string,Object>();
-            return new Attachment(this, name, attachmentMetadata);
+
+
+            var attachmentMetadata = attachmentsMetadata.Get(name);
+            var attachmentMetadataObj = attachmentMetadata as Attachment;
+            if(attachmentMetadataObj != null) {
+                return attachmentMetadataObj;
+            }
+
+            var attachmentMetadataDict = attachmentMetadata.AsDictionary<string, object>();
+            return attachmentMetadataDict == null ? null : new Attachment(this, name, attachmentMetadataDict);
         }
 
         /// <summary>
@@ -279,7 +281,7 @@ namespace Couchbase.Lite
 
                 var req = puller.QueueRemoteAttachment(att);
 
-                RevisionInternal revInt = new RevisionInternal(att.Revision.Document.Id, att.Document.CurrentRevision.Id, false);
+                RevisionInternal revInt = new RevisionInternal(att.Revision.Document.Id, att.Document.CurrentRevision.RevisionInternal.RevID, false);
                 puller.AddToInbox(revInt); // to trigger the batcher thread
 
                 req.WaitForComple();
@@ -287,7 +289,7 @@ namespace Couchbase.Lite
                 att.Body = req.GetStream();
 
                 return att;
-            }, TaskCreationOptions.LongRunning);
+            });
 
             task.Start();
             return task;

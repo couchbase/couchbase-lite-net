@@ -42,20 +42,27 @@
 
 using System;
 using System.Collections.Generic;
-using Couchbase.Lite;
-using Sharpen;
-using Couchbase.Lite.Util;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using NUnit.Framework;
-using System.Security.Permissions;
-using System.Diagnostics;
 using System.Threading.Tasks;
+
+using Couchbase.Lite;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
+using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
+
+    public class Foo
+    {
+        public string Bar { get; set; }
+
+        public List<object> Bar2 { get; set; }
+    }
 
     [TestFixture("ForestDB")]
     public class ApiTest : LiteTestCase
@@ -76,7 +83,7 @@ namespace Couchbase.Lite
             foreach (string dbName in manager.AllDatabaseNames)
             {
                 Database db = manager.GetDatabase(dbName);
-                Log.I(TAG, "Database '" + dbName + "':" + db.GetDocumentCount() + " documents");
+                Console.WriteLine("Database '" + dbName + "':" + db.GetDocumentCount() + " documents");
             }
 
             var options = new ManagerOptions();
@@ -128,13 +135,13 @@ namespace Couchbase.Lite
             Assert.IsTrue(deleteme.Exists());
 
             var dbPath = deleteme.DbDirectory;
-            Assert.IsTrue(new FilePath(dbPath).Exists());
-            Assert.IsTrue(new FilePath(deleteme.AttachmentStorePath).Exists());
+            Assert.IsTrue(Directory.Exists(dbPath));
+            Assert.IsTrue(Directory.Exists(deleteme.AttachmentStorePath));
 
             deleteme.Delete();
             Assert.IsFalse(deleteme.Exists());
-            Assert.IsFalse(new FilePath(dbPath).Exists());
-            Assert.IsFalse(new FilePath(deleteme.AttachmentStorePath).Exists());
+            Assert.IsFalse(Directory.Exists(dbPath));
+            Assert.IsFalse(Directory.Exists(deleteme.AttachmentStorePath));
 
             // delete again, even though already deleted
             deleteme.Delete();          
@@ -235,8 +242,7 @@ namespace Couchbase.Lite
 
             var expectProperties = new Dictionary<String, Object>();
             expectProperties["because"] = "NoSQL";
-            expectProperties["_id"] = doc.Id;
-            expectProperties["_rev"] = rev2.Id;
+            expectProperties.SetDocRevID(doc.Id, rev2.Id);
             Assert.AreEqual(newRev.Properties, expectProperties);
 
             var rev3 = newRev.Save();
@@ -371,13 +377,13 @@ namespace Couchbase.Lite
         public void TestDeleteDocumentViaTombstoneRevision()
         {
             var properties = new Dictionary<string, object>();
-            properties.Put("testName", "testDeleteDocument");
+            properties["testName"] = "testDeleteDocument";
             var doc = CreateDocumentWithProperties(database, properties);
             Assert.IsTrue(!doc.Deleted);
             Assert.IsTrue(!doc.CurrentRevision.IsDeletion);
 
             var props = new Dictionary<string, object>(doc.Properties);
-            props.Put("_deleted", true);
+            props["_deleted"] = true;
             var deletedRevision = doc.PutProperties(props);
             Assert.IsTrue(doc.Deleted);
             Assert.IsTrue(deletedRevision.IsDeletion);
@@ -396,12 +402,12 @@ namespace Couchbase.Lite
             // clear the cache so all documents/revisions will be re-fetched:
             db.DocumentCache.EvictAll();
             
-            Log.I(TAG, "----- all documents -----");
+            Console.WriteLine( "----- all documents -----");
 
             var query = db.CreateAllDocumentsQuery();
             //query.prefetch = YES;
             
-            Log.I(TAG, "Getting all documents: " + query);
+            Console.WriteLine("Getting all documents: " + query);
 
             var rows = query.Run();
 
@@ -410,14 +416,14 @@ namespace Couchbase.Lite
             var n = 0;
             foreach (var row in rows)
             {
-                Log.I(TAG, "    --> " + Manager.GetObjectMapper().WriteValueAsString(row.AsJSONDictionary()));
+                Console.WriteLine("    --> " + Manager.GetObjectMapper().WriteValueAsString(row.AsJSONDictionary()));
 
                 var doc = row.Document;
 
                 Assert.IsNotNull(doc, "Couldn't get doc from query");
                 Assert.IsNotNull(doc.CurrentRevision.PropertiesAvailable, "QueryRow should have preloaded revision contents");
 
-                Log.I(TAG, "        Properties =" + Manager.GetObjectMapper().WriteValueAsString(doc.Properties));
+                Console.WriteLine("        Properties =" + Manager.GetObjectMapper().WriteValueAsString(doc.Properties));
 
                 Assert.IsNotNull(doc.Properties, "Couldn't get doc properties");
                 Assert.AreEqual("testDatabase", doc.GetProperty("testName"));
@@ -471,7 +477,7 @@ namespace Couchbase.Lite
 
             var doc = CreateDocumentWithProperties(db, properties);
             var rev1ID = doc.CurrentRevisionId;
-            Log.I(TAG, "1st revision: " + rev1ID);
+            Console.WriteLine("1st revision: " + rev1ID);
             Assert.IsTrue (rev1ID.StartsWith ("1-", StringComparison.Ordinal), "1st revision looks wrong: " + rev1ID);
             Assert.AreEqual(doc.UserProperties, properties);
 
@@ -481,11 +487,11 @@ namespace Couchbase.Lite
             Assert.IsNotNull(doc.PutProperties(properties));
 
             var rev2ID = doc.CurrentRevisionId;
-            Log.I(TAG, "rev2ID" + rev2ID);
+            Console.WriteLine("rev2ID" + rev2ID);
             Assert.IsTrue(rev2ID.StartsWith("2-", StringComparison.Ordinal), "2nd revision looks wrong:" + rev2ID);
 
             var revisions = doc.RevisionHistory.ToList();
-            Log.I(TAG, "Revisions = " + revisions);
+            Console.WriteLine("Revisions = " + revisions);
             Assert.AreEqual(revisions.Count, 2);
 
             var rev1 = revisions[0];
@@ -513,6 +519,7 @@ namespace Couchbase.Lite
         {
             var prop = new Dictionary<String, Object>();
             prop["foo"] = "bar";
+            prop["_id"] = "conflict_test";
 
             var db = database;
 
@@ -598,7 +605,7 @@ namespace Couchbase.Lite
 
             var latestRevision = doc.CurrentRevision;
             var propertiesUpdated = new Dictionary<string, object>();
-            propertiesUpdated.Put("propertiesUpdated", "testUpdateDocWithAttachments");
+            propertiesUpdated["propertiesUpdated"] = "testUpdateDocWithAttachments";
 
             var newUnsavedRevision = latestRevision.CreateRevision();
             newUnsavedRevision.SetUserProperties(propertiesUpdated);
@@ -863,7 +870,7 @@ namespace Couchbase.Lite
                 doneSignal.Signal();
             }, manager.CapturedContext.Scheduler);
 
-            Log.I(TAG, "Waiting for async query to finish...");
+            Console.WriteLine("Waiting for async query to finish...");
             var success = task.Wait(TimeSpan.FromSeconds(130));
             Assert.IsTrue(success, "Done signal timed out. Query.RunAsync() has never run or returned the result.");
         }
@@ -897,17 +904,16 @@ namespace Couchbase.Lite
             var reduce = view.Reduce;
             var filter = db.GetFilter("phil");
             var validation = db.GetValidation("val");
-            var result = mgr.RunAsync("db", (database)=>
-                {
-                    Assert.IsNotNull(database);
-                    var serverView = database.GetExistingView("view");
-                    Assert.IsNotNull(serverView);
-                    Assert.AreEqual(database.GetFilter("phil"), filter);
-                    Assert.AreEqual(database.GetValidation("val"), validation);
-                    Assert.AreEqual(serverView.Map, map);
-                    Assert.AreEqual(serverView.Reduce, reduce);
-                    return true;
-                });
+            var result = mgr.RunAsync((database)=>
+            {
+                Assert.IsNotNull(database);
+                var serverView = database.GetExistingView("view");
+                Assert.IsNotNull(serverView);
+                Assert.AreEqual(database.GetFilter("phil"), filter);
+                Assert.AreEqual(database.GetValidation("val"), validation);
+                Assert.AreEqual(serverView.Map, map);
+                Assert.AreEqual(serverView.Reduce, reduce);
+            }, db);
             result.Wait(TimeSpan.FromSeconds(5));
             // blocks until async task has run
             db.Close();
@@ -947,14 +953,14 @@ namespace Couchbase.Lite
             Assert.AreEqual(docId, doc.Id);
             doc.PutProperties(properties);
 
-            var revId = doc.CurrentRevisionId;
+            var revId = doc.CurrentRevisionId.AsRevID();
             for (var i = 2; i < 6; i++)
             {
                 properties["tag"] = i;
-                properties["_rev"] = revId;
+                properties.SetRevID(revId);
                 doc.PutProperties(properties);
-                revId = doc.CurrentRevisionId;
-                Assert.IsTrue(revId.StartsWith(i + "-", StringComparison.Ordinal));
+                revId = doc.CurrentRevisionId.AsRevID();
+                Assert.AreEqual(i, revId.Generation);
                 Assert.AreEqual(docId, doc.Id);
             }
 
@@ -1031,7 +1037,7 @@ namespace Couchbase.Lite
             query.StartKey = 23;
             query.EndKey = 33;
 
-            Log.I(TAG, "Created  " + query);
+            Console.WriteLine("Created  " + query);
 
             // these are the keys that we expect to see in the livequery change listener callback
             var expectedKeys = new HashSet<Int64>();
@@ -1046,7 +1052,7 @@ namespace Couchbase.Lite
                 var rows = e.Rows;
                 foreach(var row in rows) {
                     if (expectedKeys.Contains(Convert.ToInt64(row.Key))) {
-                        Log.I(TAG, " doneSignal decremented " + doneSignal.CurrentCount);
+                        Console.WriteLine(" doneSignal decremented " + doneSignal.CurrentCount);
                         doneSignal.Signal();
                     }
                 }

@@ -19,15 +19,15 @@
 //  limitations under the License.
 //
 using System;
-using System.Net.Http.Headers;
 using System.Collections.Generic;
-using Sharpen;
-using System.Text;
 using System.Net;
+
 using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
+#pragma warning disable 1591
+    [Obsolete("This class is no longer needed, and will be removed")]
     public sealed class DigestAuthHeaderValue
     {
         private readonly IDictionary<string, string> _components = new Dictionary<string, string>();
@@ -67,5 +67,6 @@ namespace Couchbase.Lite.Listener.Tcp
             _calculatedResponse = DigestCalculator.Calculate(_components, listener.HashPasswordToDigest);
         }
     }
+#pragma warning restore 1591
 }
 

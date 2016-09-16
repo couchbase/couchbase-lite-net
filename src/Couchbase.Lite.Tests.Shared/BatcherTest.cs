@@ -56,7 +56,7 @@ namespace Couchbase.Lite
         public const string TAG = "BatcherTest";
 
         private int inboxCapacity;
-        private int processorDelay;
+        private TimeSpan processorDelay;
         private CountdownEvent doneSignal = null;
 
         public BatcherTest(string storageType) : base(storageType) {}
@@ -67,7 +67,7 @@ namespace Couchbase.Lite
             doneSignal = new CountdownEvent(10);
 
             inboxCapacity = 10;
-            processorDelay = 1000;
+            processorDelay = TimeSpan.FromSeconds(1);
 
             var scheduler = new SingleTaskThreadpoolScheduler();
             var batcher = new Batcher<string>(new TaskFactory(scheduler), 
@@ -91,7 +91,7 @@ namespace Couchbase.Lite
             doneSignal = new CountdownEvent(10);
 
             inboxCapacity = 10;
-            processorDelay = 1000;
+            processorDelay = TimeSpan.FromSeconds(1);
 
             var scheduler = new SingleTaskThreadpoolScheduler();
             var batcher = new Batcher<string>(new TaskFactory(scheduler), 
@@ -117,7 +117,7 @@ namespace Couchbase.Lite
         {
             var mre = new ManualResetEventSlim();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var batcher = new Batcher<int>(new TaskFactory(scheduler), 5, 500, (inbox) =>
+            var batcher = new Batcher<int>(new TaskFactory(scheduler), 5, TimeSpan.FromMilliseconds(500), (inbox) =>
             {
                 mre.Set();
             });
@@ -136,7 +136,7 @@ namespace Couchbase.Lite
         {
             var evt = new CountdownEvent(1);
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var batcher = new Batcher<int>(new TaskFactory(scheduler), 5, 500, (inbox) =>
+            var batcher = new Batcher<int>(new TaskFactory(scheduler), 5, TimeSpan.FromMilliseconds(500), (inbox) =>
             {
                 evt.Signal();
             });
@@ -154,7 +154,9 @@ namespace Couchbase.Lite
 
         private void TestBatcherSingleBatchProcessor(IList<string> itemsToProcess)
         {
-            Log.V(TAG, "TestBatcherSingleBatchProcessor : process called with : " + itemsToProcess.Count);
+            #if DEBUG
+            Console.WriteLine("TestBatcherSingleBatchProcessor : process called with : " + itemsToProcess.Count);
+            #endif
 
             AssertNumbersConsecutive(itemsToProcess);
 
@@ -163,7 +165,9 @@ namespace Couchbase.Lite
 
         private void TestBatcherBatchSize5Processor(IList<string> itemsToProcess)
         {
-            Log.V(TAG, "TestBatcherBatchSize5 : process called with : " + itemsToProcess.Count);
+            #if DEBUG
+            Console.WriteLine("TestBatcherBatchSize5 : process called with : " + itemsToProcess.Count);
+            #endif
 
             AssertNumbersConsecutive(itemsToProcess);
 

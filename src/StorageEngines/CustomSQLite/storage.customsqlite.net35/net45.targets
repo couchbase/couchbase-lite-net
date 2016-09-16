@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--Automatically generated-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<PropertyGroup>
+    <IsMac>false</IsMac>
+    <IsMac Condition=" '$(OS)' == 'Unix' AND Exists('/Library/Frameworks') ">true</IsMac>
+  </PropertyGroup> 
+  <Target Name="InjectReference_e101bf39-2506-4efb-91a7-f8ea3c40bd65" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup Condition=" '$(OS)' == 'Windows_NT' ">
+      <Content Include="$(MSBuildThisFileDirectory)x86\sqlite3.dll">
+        <Link>x86\sqlite3.dll</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="$(MSBuildThisFileDirectory)x64\sqlite3.dll">
+        <Link>x64\sqlite3.dll</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+    <ItemGroup Condition=" $(IsMac) ">
+      <Content Include="$(MSBuildThisFileDirectory)libsqlite3.dylib">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+    <ItemGroup Condition=" !$(IsMac) AND '$(OS)' != 'Windows_NT' ">
+      <Content Include="$(MSBuildThisFileDirectory)libsqlite3.so">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+  </Target>
+  <PropertyGroup>
+    <ResolveAssemblyReferencesDependsOn>$(ResolveAssemblyReferencesDependsOn);InjectReference_e101bf39-2506-4efb-91a7-f8ea3c40bd65</ResolveAssemblyReferencesDependsOn>
+  </PropertyGroup>
+</Project>

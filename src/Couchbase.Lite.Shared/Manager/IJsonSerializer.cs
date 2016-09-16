@@ -1,5 +1,5 @@
 ﻿//
-//  IObjectMapper.cs
+//  IJsonSerializer.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -110,6 +110,10 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IJsonSerializer : IDisposable
     {
+        /// <summary>
+        /// Gets or sets the settings to apply to the serializer
+        /// </summary>
+        JsonSerializationSettings Settings { get; set; }
 
         /// <summary>
         /// Gets the current token when parsing in streaming mode
@@ -160,7 +164,7 @@ namespace Couchbase.Lite
         /// a .NET object
         /// </summary>
         /// <returns>The deserialized object, or null if unable to deserialize</returns>
-        IDictionary<string, object> DeserializeNextObject();
+        T DeserializeNextObject<T>();
 
         /// <summary>
         /// Converts the object from its intermediary JSON dictionary class to a .NET dictionary,
@@ -187,25 +191,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The cloned object</returns>
         IJsonSerializer DeepClone();
-
-        #if FORESTDB
-
-        /// <summary>
-        /// Deserializes the CBForest key into a .NET object of a given type
-        /// </summary>
-        /// <returns>The deserialized key</returns>
-        /// <param name="keyReader">The CBForest key reader instance to read from</param>
-        /// <typeparam name="T">The type of object to deserialize into</typeparam>
-        T DeserializeKey<T>(CBForest.C4KeyReader keyReader);
-
-        /// <summary>
-        /// Serializes the given object into a CBForest key
-        /// </summary>
-        /// <returns>The serialized key</returns>
-        /// <param name="keyValue">The object to serialize</param>
-        unsafe CBForest.C4Key* SerializeToKey(object keyValue);
-
-        #endif
 
     }
 }

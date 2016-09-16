@@ -27,10 +27,14 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
+    /// <summary>
+    /// A class for compiling javascript functions into filter functions
+    /// </summary>
     public sealed class JSFilterCompiler : IFilterCompiler
     {
 
         #region IFilterCompiler
+#pragma warning disable 1591
 
         public FilterDelegate CompileFilter(string filterSource, string language)
         {
@@ -41,7 +45,7 @@ namespace Couchbase.Lite.Listener
             filterSource = filterSource.Replace("function", "function _f1");
             return (rev, filterParams) =>
             {
-                var engine = new Engine().SetValue("log", new Action<object>((line) => Log.I("JSViewCompiler", line.ToString())));
+                var engine = new Engine().SetValue("log", new Action<object>((line) => Log.To.Router.I("JSFilterCompiler", line.ToString())));
                 var retVal = engine.Execute(filterSource).Invoke("_f1", new NoThrowDictionary(rev.Properties), 
                     new NoThrowDictionary(filterParams));
                 
@@ -57,6 +61,7 @@ namespace Couchbase.Lite.Listener
             };
         }
 
+#pragma warning restore 1591
         #endregion
 
         private class NoThrowDictionary : IDictionary<string, object>

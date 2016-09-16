@@ -53,7 +53,7 @@ namespace Couchbase.Lite
     /// automatically refreshes every time the <see cref="Couchbase.Lite.Database"/> changes 
     /// in a way that would affect the results.
     /// </summary>
-    public sealed class LiveQuery : Query
+    public sealed class LiveQuery : Query
     {
         #region Constants
 
@@ -133,7 +133,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal LiveQuery(Query query) : base(query.Database, query.View) { 
+        internal LiveQuery(Query query) : base(query.Database, query.View) {
             StartKey = query.StartKey;
             EndKey = query.EndKey;
             Descending = query.Descending;
@@ -166,15 +166,17 @@ namespace Couchbase.Lite
             while (true) {
                 try {
                     if (UpdateQueryTask.Status != TaskStatus.Canceled || UpdateQueryTask.Status != TaskStatus.RanToCompletion) {
-                        Log.W(TAG, "Run called white update query task still running.");
+                        Log.To.Query.W(TAG, "Run called white update query task still running.");
                     }
                     WaitForRows();
                     break;
                 } catch (OperationCanceledException) { //TODO: Review
+                    Log.To.Query.V(TAG, "Run() caught OperationCanceledException, retrying...");
                     continue;
                 } catch (Exception e) {
                     LastError = e;
-                    throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+                    _rows = null;
+                    Log.To.Query.W(TAG, "Exception caught during Run(), returning null...", e);
                 }
             }
 
@@ -201,10 +203,10 @@ namespace Couchbase.Lite
         public void Start()
         {
             if (_runningState) {
-                Log.D(TAG, "start() called, but runningState is already true.  Ignoring.");
+                Log.To.Query.D(TAG, "start() called, but runningState is already true.  Ignoring.");
                 return;
             } else {
-                Log.D(TAG, "start() called");
+                Log.To.Query.I(TAG, "{0} starting", this);
                 _runningState = true;
             }
 
@@ -225,10 +227,10 @@ namespace Couchbase.Lite
         public void Stop()
         {
             if (!_runningState) {
-                Log.D(TAG, "stop() called, but runningState is already false.  Ignoring.");
+                Log.To.Query.D(TAG, "stop() called, but runningState is already false.  Ignoring.");
                 return;
             } else {
-                Log.D(TAG, "stop() called");
+                Log.To.Query.I(TAG, "{0} stopping", this);
                 _runningState = false;
             }
 
@@ -242,9 +244,6 @@ namespace Couchbase.Lite
             // with willUpdate set to false.  was needed to make testLiveQueryStop() unit test pass.
             if (UpdateQueryTokenSource != null && UpdateQueryTokenSource.Token.CanBeCanceled) {
                 UpdateQueryTokenSource.Cancel();
-                Log.D(TAG, "canceled update query token Source");
-            } else {
-                Log.D(TAG, "not cancelling update query token source.");
             }
 
             _willUpdate = false;
@@ -271,10 +270,10 @@ namespace Couchbase.Lite
                     }
                     break;
                 } catch (OperationCanceledException e) { //TODO: Review
-                    Log.D(TAG, "Got operation cancel exception waiting for rows", e);
+                    Log.To.Query.D(TAG, "Got operation cancel exception waiting for rows", e);
                     continue;
                 } catch (Exception e) {
-                    Log.E(TAG, "Got interrupted exception waiting for rows", e);
+                    Log.To.Query.E(TAG, "Got exception waiting for rows", e);
                     LastError = e;
                 }
             }
@@ -282,7 +281,7 @@ namespace Couchbase.Lite
 
         #endregion
        
-        #region Private Methods
+        #region Private Methods
 
         private void OnDatabaseChanged (object sender, DatabaseChangeEventArgs e)
         {
@@ -301,7 +300,7 @@ namespace Couchbase.Lite
             _willUpdate = true;
             var updateDelay = ((_lastUpdatedAt + TimeSpan.FromSeconds(updateInterval)) - DateTime.Now).TotalSeconds;
             updateDelay = Math.Max(0, Math.Min(_updateInterval, updateDelay));
-            Log.D(TAG, "Will update after {0} sec...", updateDelay);
+            Log.To.Query.I(TAG, "{0} will update after {1} sec...", this, updateDelay);
             Task.Delay(TimeSpan.FromSeconds(updateDelay)).ContinueWith(t =>
             {
                 if(_willUpdate) {
@@ -314,30 +313,6 @@ namespace Couchbase.Lite
         {
             _lastSequence = 0;
             Update();
-        }
-
-        private void RunUpdateAfterQueryFinishes(Task updateQueryTask, CancellationTokenSource updateQueryTaskTokenSource) 
-        {
-            if (!_runningState) {
-                Log.D(TAG, "ReRunUpdateAfterQueryFinishes() fired, but running state == false. Ignoring.");
-                return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
-            }
-
-            try {
-                Log.D(TAG, "Waiting for Query to finish");
-                updateQueryTask.Wait(DEFAULT_QUERY_TIMEOUT, updateQueryTaskTokenSource.Token);
-                if (_runningState && !updateQueryTaskTokenSource.IsCancellationRequested) {
-                    Log.D(TAG, "Running Update() since Query finished");
-                    Update();
-                } else {
-                    Log.D(TAG, "Update() not called because either !runningState ({0}) or cancelled ({1})", _runningState, updateQueryTaskTokenSource.IsCancellationRequested);
-                }
-            } catch (Exception e)
-            {
-                Log.E(TAG, "Got an exception waiting for Update Query Task to finish", e);
-            } finally {
-                UpdateQueryTask = null;
-            }
         }
 
         /// <summary>
@@ -359,10 +334,10 @@ namespace Couchbase.Lite
                     return;
                 }
             }
-				
+                
 
             if (!_runningState) {
-                Log.W(TAG, "update() called, but running state == false.  Ignoring.");
+                Log.To.Query.D(TAG, "Update called, but running state == false.  Ignoring.");
                 return;
             }
 
@@ -371,8 +346,9 @@ namespace Couchbase.Lite
             _lastUpdatedAt = DateTime.Now;
             UpdateQueryTokenSource = new CancellationTokenSource();
 
+            Log.To.TaskScheduling.V(TAG, "Scheduling query run...");
             UpdateQueryTask = Task.Factory.StartNew<QueryEnumerator>(base.Run, UpdateQueryTokenSource.Token)
-                .ContinueWith(UpdateFinished, Database.Manager.CapturedContext.Scheduler);
+                .ContinueWith(UpdateFinished, _eventContext.Scheduler);
         }
 
         private void UpdateFinished(Task<QueryEnumerator> runTask)
@@ -388,12 +364,12 @@ namespace Couchbase.Lite
             }
 
             if (runTask.Status != TaskStatus.RanToCompletion) {
-                Log.W(String.Format("Query Updated task did not run to completion ({0})", runTask.Status), runTask.Exception);
+                Log.To.Query.W(TAG, String.Format("Query Updated task did not run to completion ({0})", runTask.Status), runTask.Exception);
                 return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
             }
 
             _rows = runTask.Result; // NOTE: Should this be 'append' instead of 'replace' semantics? If append, use a concurrent collection.
-            Log.D(TAG, "UpdateQueryTask results obtained.");
+            Log.To.Query.I(TAG, "{0} async operation finished", this);
             LastError = runTask.Exception;
 
             var evt = _changed;
@@ -401,12 +377,23 @@ namespace Couchbase.Lite
                 return; // No delegates were subscribed, so no work to be done.
 
             var args = new QueryChangeEventArgs (this, _rows, LastError);
-            evt (this, args);
+            evt(this, args);
         }
 
-        #endregion
-    
-    }
+        #endregion
+
+        #region Overrides
+#pragma warning disable 1591
+
+        public override string ToString()
+        {
+            return base.ToString().Insert(1, "Live");
+        }
+
+#pragma warning restore 1591
+        #endregion
+
+    }
 
     /// <summary>
     /// Query change event arguments.
