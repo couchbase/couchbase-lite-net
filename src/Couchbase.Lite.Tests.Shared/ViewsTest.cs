@@ -57,6 +57,7 @@ using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Storage.SQLCipher;
+using FluentAssertions;
 
 namespace Couchbase.Lite
 {
@@ -69,6 +70,42 @@ namespace Couchbase.Lite
         private LiveQuery query;
 
         public ViewsTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestReduceWithSkipAndLimit()
+        {
+            var view = database.GetView("reduceme");
+            view.SetMapReduce((doc, emit) =>
+            {
+                emit(new[] { (long)doc["sequence"] / 5, doc["_id"] }, doc["sequence"]);
+            }, BuiltinReduceFunctions.Sum, "1");
+
+            CreateDocuments(database, 20);
+
+            var query = view.CreateQuery();
+            query.Skip = 2;
+            query.Limit = 2;
+            query.GroupLevel = 1;
+            var result = query.Run();
+            result.Should().HaveCount(2, "because that was the set limit");
+            result.ElementAt(0).ValueAs<int>().Should().Be(10+11+12+13+14, "because the sum function should add");
+            result.ElementAt(1).ValueAs<int>().Should().Be(15+16+17+18+19, "because the sum function should add");
+
+            query.Skip = 3;
+            query.Limit = 2;
+            result = query.Run();
+            result.Should().HaveCount(1, "because after skipping 3 only one should remain");
+            result.ElementAt(0).ValueAs<int>().Should().Be(15 + 16 + 17 + 18 + 19, "because the sum function should add");
+
+            query.Skip = 0;
+            query.Limit = 10;
+            result = query.Run();
+            result.Should().HaveCount(4, "because even though the limit is 10, there are only four rows");
+            result.ElementAt(0).ValueAs<int>().Should().Be(0 + 1 + 2 + 3 + 4, "because the sum function should add");
+            result.ElementAt(1).ValueAs<int>().Should().Be(5 + 6 + 7 + 8 + 9, "because the sum function should add");
+            result.ElementAt(2).ValueAs<int>().Should().Be(10 + 11 + 12 + 13 + 14, "because the sum function should add");
+            result.ElementAt(3).ValueAs<int>().Should().Be(15 + 16 + 17 + 18 + 19, "because the sum function should add");
+        }
 
         [Test]
         public void TestDeleteViews()

@@ -331,8 +331,11 @@ namespace Couchbase.Lite.Storage.ForestDB
                             opts.keysCount = (uint)c4keys.Length;
                         }
 
-                        opts.limit = (ulong)options.Limit;
-                        opts.skip = (ulong)options.Skip;
+                        if(!options.Reduce) {
+                            opts.limit = (ulong)options.Limit;
+                            opts.skip = (ulong)options.Skip;
+                        }
+                        
                         opts.startKey = startEndKey[0];
                         opts.startKeyDocID = startkeydocid_.AsC4Slice();
                         fixed (C4Key** keysPtr = c4keys)
@@ -653,22 +656,30 @@ namespace Couchbase.Lite.Storage.ForestDB
             var enumerator = QueryEnumeratorWithOptions(options);
 
             var row = default(QueryRow);
+            var returnedCount = 0;
+            var skippedCount = 0;
             foreach(var next in enumerator) {
+                if(returnedCount >= options.Limit) {
+                    yield break;
+                }
+
                 var key = CouchbaseBridge.DeserializeKey<object>(next.Key);
                 var value = default(object);
                 if(lastKey != null && (key == null || (group && !GroupTogether(lastKey, key, groupLevel)))) {
                     // key doesn't match lastKey; emit a grouped/reduced row for what came before:
                     row = CreateReducedRow(lastKey, group, groupLevel, reduce, filter, keysToReduce, valsToReduce);
-                    keysToReduce.Clear();
-                    valsToReduce.Clear();
-                    if(row != null) {
+                    if(row != null && skippedCount++ >= options.Skip) {
                         var rowCopy = row;
                         Log.To.Query.V(Tag, "Query {0} reduced row with key={1} value={2}", Name,
                             new SecureLogJsonString(key, LogMessageSensitivity.PotentiallyInsecure),
                             new SecureLogJsonString(value, LogMessageSensitivity.PotentiallyInsecure));
                         row = null;
+                        returnedCount++;
                         yield return rowCopy;
                     }
+
+                    keysToReduce.Clear();
+                    valsToReduce.Clear();
                 }
 
                 if(key != null && reduce != null) {
@@ -692,6 +703,10 @@ namespace Couchbase.Lite.Storage.ForestDB
                 }
 
                 lastKey = key;
+            }
+
+            if(returnedCount >= options.Limit) {
+                yield break;
             }
 
             row = CreateReducedRow(lastKey, group, groupLevel, reduce, filter, keysToReduce, valsToReduce);

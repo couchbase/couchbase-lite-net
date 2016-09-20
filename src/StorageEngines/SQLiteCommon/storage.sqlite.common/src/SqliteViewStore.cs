@@ -489,7 +489,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             {
                 var docId = c.GetString(2);
                 status = action(new Lazy<byte[]>(() => c.GetBlob(0)), new Lazy<byte[]>(() => c.GetBlob(1)), docId, c);
-                if(status.IsError) {
+                if(status.IsError || status.Code == StatusCode.Reserved) {
                     return false;
                 } else if((int)status.Code <= 0) {
                     status.Code = StatusCode.Ok;
@@ -1042,6 +1042,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
             }
 
+            var limit = options.Limit;
+            var skip = options.Skip;
+            options.Limit = QueryOptions.DefaultLimit;
+            options.Skip = 0;
+
             List<object> keysToReduce = null, valuesToReduce = null;
             if (reduce != null) {
                 keysToReduce = new List<object>(100);
@@ -1050,6 +1055,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             Lazy<byte[]> lastKeyData = null;
             List<QueryRow> rows = new List<QueryRow>();
+            var skippedCount = 0;
+            var addedCount = 0;
             RunQuery(options, (keyData, valueData, docID, c) =>
             {
                 var lastKeyValue = lastKeyData != null ? lastKeyData.Value : null;
@@ -1059,9 +1066,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         var key = GroupKey(lastKeyData.Value, groupLevel);
                         var reduced = CallReduce(reduce, keysToReduce, valuesToReduce);
                         var row = new QueryRow(null, 0, key, reduced, null, this);
-                        if(options.Filter == null || options.Filter(row)) {
+                        if((options.Filter == null || options.Filter(row)) && skippedCount++ >= skip) {
+                            addedCount++;
                             rows.Add(row);
-                        }
+                            if(addedCount >= limit) {
+                                return new Status(StatusCode.Reserved);
+                            }
+                        } 
 
                         keysToReduce.Clear();
                         valuesToReduce.Clear();
