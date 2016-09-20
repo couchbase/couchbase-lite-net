@@ -73,7 +73,7 @@ namespace Couchbase.Lite
 
             #region IChangeTrackerClient implementation
 
-            public delegate void ChangeTrackerStoppedDelegate(ChangeTracker tracker);
+            public delegate void ChangeTrackerStoppedDelegate(ChangeTracker tracker, ErrorResolution resolution);
 
             public delegate void ChangeTrackerReceivedChangeDelegate(IDictionary<string, object> change);
 
@@ -112,11 +112,11 @@ namespace Couchbase.Lite
                 
             }
 
-            public void ChangeTrackerStopped(ChangeTracker tracker)
+            public void ChangeTrackerStopped(ChangeTracker tracker, ErrorResolution resolution)
             {
                 if (StoppedDelegate != null) 
                 {
-                    StoppedDelegate(tracker);
+                    StoppedDelegate(tracker, resolution);
                 }
 
                 if (stoppedSignal != null)
@@ -233,7 +233,7 @@ namespace Couchbase.Lite
             var success = changeReceivedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
 
-            changeTracker.Stop();
+            changeTracker.Stop(ErrorResolution.Ignore);
 
             success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
@@ -268,12 +268,11 @@ namespace Couchbase.Lite
             changeTracker.Start();
 
             // sleep for a few seconds
-            Sleep(8 * 1000);
+            Sleep(5 * 1000);
 
             // make sure we got less than 10 requests in those 8 seconds (if it was hammering, we'd get a lot more)
             var handler = client.HttpRequestHandler;
             Assert.Less(handler.CapturedRequests.Count, 10);
-            Assert.Greater(changeTracker.Backoff.NumAttempts, 0, String.Format("Observed attempts: {0}", changeTracker.Backoff.NumAttempts));
 
             handler.ClearResponders();
             handler.AddResponderReturnEmptyChangesFeed();
@@ -288,7 +287,7 @@ namespace Couchbase.Lite
             Sleep(2 * 1000);
             int after = handler.CapturedRequests.Count;
 
-            changeTracker.Stop();
+            changeTracker.Stop(ErrorResolution.Ignore);
 
             // assert that the delta is high, because at this point the change tracker should
             // be hammering away
@@ -365,7 +364,7 @@ namespace Couchbase.Lite
             var success = changeReceivedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
 
-            changeTracker.Stop();
+            changeTracker.Stop(ErrorResolution.Ignore);
 
             success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
@@ -392,7 +391,7 @@ namespace Couchbase.Lite
                     remoteDb.AddDocument("newdoc", new Dictionary<string, object> { { "foo", "bar" } });
                     Assert.IsTrue(changedEvent.Wait(20000));
 
-                    tracker.Stop();
+                    tracker.Stop(ErrorResolution.Ignore);
                     Assert.IsTrue(stoppedEvent.Wait(20000));
                 }
             }

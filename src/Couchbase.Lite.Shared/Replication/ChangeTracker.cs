@@ -215,13 +215,13 @@ namespace Couchbase.Lite.Internal
 
         public abstract bool Start();
 
-        public abstract void Stop();
+        public abstract void Stop(object resolutionWrapper);
 
         #endregion
 
         #region Protected Methods
 
-        protected abstract void Stopped();
+        protected abstract void Stopped(ErrorResolution resolution);
 
  		protected void UpdateServerType(HttpResponseMessage response)
         {

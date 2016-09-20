@@ -169,6 +169,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Linq\DatabaseQueryable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\MapReduceQueryProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\NotSupportedExpressionVisitor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ExceptionResolver.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

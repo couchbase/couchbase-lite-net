@@ -185,48 +185,40 @@ namespace Couchbase.Lite.Internal
             if (!IsRunning) {
                 return;
             }
-                
-            if (e == null) {
-                // No error occurred, keep going if continuous
-                if (Continuous) {
+
+            Log.To.ChangeTracker.I(Tag, "{0} got an exception, analyzing...", this);
+            var resolution = ExceptionResolver.Solve(e, new ExceptionResolverOptions {
+                Continuous = Continuous
+            });
+
+            switch(resolution.Resolution) {
+                case ErrorResolution.RetryLater:
+                    Error = Misc.Flatten(e).FirstOrDefault();
+                    if(resolution.ResolutionFlags.HasFlag(ErrorResolutionFlags.OutOfRetries)) {
+                        Log.To.ChangeTracker.I(Tag, "{0} out of retries", this);
+                    }
+
+                    Log.To.ChangeTracker.I(Tag, "{0} will retry later...", this);
+                    _workExecutor.StartNew(Stop, ErrorResolution.RetryLater);
+                    break;
+                case ErrorResolution.RetryNow:
+                    Log.To.ChangeTracker.V(Tag, "{0} no error detected, continuing...", this);
                     PerformRetry(false);
-                } else {
-                    _workExecutor.StartNew(Stop);
-                }
+                    break;
+                case ErrorResolution.GoOffline:
+                    Error = Misc.Flatten(e).FirstOrDefault();
+                    Log.To.ChangeTracker.I(Tag, "{0} signaling to go offline...", this);
+                    _workExecutor.StartNew(Stop, ErrorResolution.GoOffline);
+                    break;
+                case ErrorResolution.Stop:
+                    Error = Misc.Flatten(e).FirstOrDefault();
+                    if(Error != null) {
+                        Log.To.ChangeTracker.I(Tag, "{0} cannot recover, stopping...", this);
+                    }
 
-                return;
+                    _workExecutor.StartNew(Stop, ErrorResolution.Stop);
+                    break;
             }
-
-            Error = Misc.Flatten(e).First();
-            string statusCode;
-            if (Misc.IsTransientNetworkError(e, out statusCode)) {
-                // Transient error occurred in a replication -> RETRY or STOP
-                if (!Continuous && !Backoff.CanContinue) {
-                    // Give up for non-continuous
-                    Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, giving up NOW...", this,
-                        statusCode);
-                    _workExecutor.StartNew(Stop);
-                    return;
-                } 
-
-                // Keep retrying for continuous
-                Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, sleeping for {2}ms...", this,
-                    statusCode, Backoff.GetSleepTime().TotalMilliseconds);
-
-                Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => PerformRetry(true));
-                return;
-            } 
-
-            if (String.IsNullOrEmpty(statusCode)) {
-                Log.To.ChangeTracker.I(Tag, String.Format
-                    ("{0} got an exception, stopping NOW...", this), e);
-            } else {
-                Log.To.ChangeTracker.I(Tag, String.Format
-                    ("{0} got a non-transient error ({1}), stopping NOW...", this, statusCode));
-            }
-
-            // Non-transient error occurred in a continuous replication -> STOP
-            _workExecutor.StartNew(Stop);
         }
 
         private void RetryOrStopIfNecessary(HttpStatusCode statusCode)
@@ -235,22 +227,27 @@ namespace Couchbase.Lite.Internal
                 return;
             }
 
-            if (!Continuous) {
-                _workExecutor.StartNew(Stop);
-                return;
-            }
+            Log.To.ChangeTracker.I(Tag, "{0} got a bad status code ({1}), analyzing...", this, statusCode);
+            var resolution = ExceptionResolver.Solve(statusCode, new ExceptionResolverOptions {
+                Continuous = Continuous
+            });
 
-            if (!Misc.IsTransientError(statusCode)) {
-                //
-                Log.To.ChangeTracker.I(Tag, String.Format
-                    ("{0} got a non-transient error ({1}), stopping NOW...", this, statusCode));
-                _workExecutor.StartNew(Stop);
-                return;
-            }
+            switch(resolution.Resolution) {
+                case ErrorResolution.RetryLater:
+                    if(resolution.ResolutionFlags.HasFlag(ErrorResolutionFlags.OutOfRetries)) {
+                        Log.To.ChangeTracker.I(Tag, "{0} out of retries", this);
+                    }
 
-            Log.To.ChangeTracker.I(Tag, "{0} transient error ({1}) detected, sleeping for {2}ms...", this,
-                statusCode, Backoff.GetSleepTime().TotalMilliseconds);
-            Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => PerformRetry(true));
+                    Log.To.ChangeTracker.I(Tag, "{0} will retry later...", this);
+                    _workExecutor.StartNew(Stop, ErrorResolution.RetryLater);
+                    break;
+                case ErrorResolution.Stop:
+                    Log.To.ChangeTracker.I(Tag, "{0} cannot recover, stopping...", this);
+                    _workExecutor.StartNew(Stop, ErrorResolution.Stop);
+                    break;
+                default:
+                    break;
+            }
         }
 
         private bool RetryIfFailedPost(Exception e)
@@ -259,7 +256,7 @@ namespace Couchbase.Lite.Internal
                 return false;
             }
 
-            var statusCode = Misc.GetStatusCode(e);
+            var statusCode = ExceptionResolver.GetStatusCode(e);
             return RetryIfFailedPost(statusCode);
         }
 
@@ -338,13 +335,16 @@ namespace Couchbase.Lite.Internal
                     }
                 } catch(CouchbaseLiteException e) {
                     if(e.Code == StatusCode.BadJson) {
-                        Log.To.ChangeTracker.W(Tag, "{0} Couldn't parse JSON from remote, " +
+                        if(Backoff.CanContinue) {
+                            Log.To.ChangeTracker.W(Tag, "{0} Couldn't parse JSON from remote, " +
                             "retrying in {1}ms", this, Backoff.GetSleepTime().TotalMilliseconds);
-                        Backoff.DelayAppropriateAmountOfTime().ContinueWith(t1 =>
-                        {
-                            Log.To.ChangeTracker.I(Tag, "{0} retrying NOW...", this);
-                            _workExecutor.StartNew(Run);
-                        });
+                            Backoff.DelayAppropriateAmountOfTime().ContinueWith(t1 => {
+                                Log.To.ChangeTracker.I(Tag, "{0} retrying NOW...", this);
+                                _workExecutor.StartNew(Run);
+                            });
+                        } else {
+                            RetryOrStopIfNecessary(e);
+                        }
                     }
                 } catch (Exception e) {
                     RetryOrStopIfNecessary(e);
@@ -374,8 +374,9 @@ namespace Couchbase.Lite.Internal
             return true;
         }
 
-        public override void Stop()
+        public override void Stop(object resolutionWrapper)
         {
+            var resolution = (ErrorResolution)resolutionWrapper;
             // Lock to prevent multiple calls to Stop() method from different
             // threads (eg. one from ChangeTracker itself and one from any other
             // consumers).
@@ -404,17 +405,17 @@ namespace Couchbase.Lite.Internal
                     }
                 }
 
-                Stopped();
+                Stopped(resolution);
             }
         }
 
-        protected override void Stopped()
+        protected override void Stopped(ErrorResolution resolution)
         {
             var client = Client;
             Client = null;
             if (client != null) {
                 Log.To.ChangeTracker.V(Tag, "{0} posting stopped to client", this);
-                client.ChangeTrackerStopped(this);
+                client.ChangeTrackerStopped(this, resolution);
             }
 
             Log.To.ChangeTracker.D(Tag, "change tracker client should be null now");

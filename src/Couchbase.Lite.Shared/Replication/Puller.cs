@@ -181,7 +181,7 @@ namespace Couchbase.Lite.Replicator
         }
 
 
-        private void ProcessChangeTrackerStopped(ChangeTracker tracker)
+        private void ProcessChangeTrackerStopped(ChangeTracker tracker, ErrorResolution resolution)
         {
             var webSocketTracker = tracker as WebSocketChangeTracker;
             if (webSocketTracker != null && !webSocketTracker.CanConnect) {
@@ -199,9 +199,16 @@ namespace Couchbase.Lite.Replicator
             }
 
             Batcher.FlushAll();
-            if (ChangesCount == CompletedChangesCount && IsSafeToStop) {
-                Log.To.Sync.V(TAG, "Change tracker stopped, firing StopGraceful...");
-                FireTrigger(ReplicationTrigger.StopGraceful);
+            if(resolution == ErrorResolution.RetryLater) {
+                Log.To.Sync.I(TAG, "Change tracked stopped, entering retry loop...");
+                ScheduleRetryIfReady();
+            } else if(resolution == ErrorResolution.GoOffline) {
+                GoOffline();
+            } else if(resolution == ErrorResolution.Stop) {
+                if(Continuous || (ChangesCount == CompletedChangesCount && IsSafeToStop)) {
+                    Log.To.Sync.V(TAG, "Change tracker stopped, firing StopGraceful...");
+                    FireTrigger(ReplicationTrigger.StopGraceful);
+                }
             }
         }
 
@@ -738,7 +745,7 @@ namespace Couchbase.Lite.Replicator
         protected override void Retry()
         {
             if (_changeTracker != null) {
-                _changeTracker.Stop();
+                _changeTracker.Stop(ErrorResolution.Ignore);
             }
 
             base.Retry();
@@ -752,7 +759,7 @@ namespace Couchbase.Lite.Replicator
 
                 changeTrackerCopy.Client = null;
                 // stop it from calling my changeTrackerStopped()
-                changeTrackerCopy.Stop();
+                changeTrackerCopy.Stop(ErrorResolution.Ignore);
                 _changeTracker = null;
             }
 
@@ -773,7 +780,7 @@ namespace Couchbase.Lite.Replicator
         {
             base.PerformGoOffline();
             if (_changeTracker != null) {
-                _changeTracker.Stop();
+                _changeTracker.Stop(ErrorResolution.GoOffline);
             }
 
             _remoteSession.CancelRequests();
@@ -995,9 +1002,9 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        public void ChangeTrackerStopped(ChangeTracker tracker)
+        public void ChangeTrackerStopped(ChangeTracker tracker, ErrorResolution resolution)
         {
-            WorkExecutor.StartNew(() => ProcessChangeTrackerStopped(tracker));
+            WorkExecutor.StartNew(() => ProcessChangeTrackerStopped(tracker, resolution));
         }
 
         public CouchbaseLiteHttpClient GetHttpClient()
