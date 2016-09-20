@@ -54,14 +54,14 @@ using Couchbase.Lite.Tests;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
 using Newtonsoft.Json.Linq;
-using NUnit.Framework;
 using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Storage.SQLCipher;
 using FluentAssertions;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
-    [TestFixture("ForestDB")]
+    [NUnit.Framework.TestFixture("ForestDB")]
     public class ViewsTest : LiteTestCase
     {
         public const string Tag = "Views";
@@ -71,7 +71,7 @@ namespace Couchbase.Lite
 
         public ViewsTest(string storageType) : base(storageType) {}
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestReduceWithSkipAndLimit()
         {
             var view = database.GetView("reduceme");
@@ -107,7 +107,7 @@ namespace Couchbase.Lite
             result.ElementAt(3).ValueAs<int>().Should().Be(15 + 16 + 17 + 18 + 19, "because the sum function should add");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestDeleteViews()
         {
             var views = database.GetAllViews();
@@ -115,22 +115,22 @@ namespace Couchbase.Lite
                 v.Delete();
             }
 
-            Assert.AreEqual(0, database.GetAllViews().Count);
-            Assert.IsNull(database.GetExistingView("viewToDelete"));
+            database.GetAllViews().Should().BeEmpty("because we should start with no views");
+            database.GetExistingView("viewToDelete").Should().BeNull("because there should be no existing views");
 
             var view = database.GetView("viewToDelete");
-            Assert.IsNotNull(view);
-            Assert.AreEqual(database, view.Database);
-            Assert.AreEqual("viewToDelete", view.Name);
-            Assert.IsNull(view.Map);
-            Assert.AreEqual(view, database.GetExistingView("viewToDelete"));
+            view.Should().NotBeNull("because GetView creates non-existent views");
+            view.Database.Should().Be(view.Database, "because that is the database it was created from");
+            view.Name.Should().BeEquivalentTo("viewToDelete", "because that is the name it was given");
+            view.Map.Should().BeNull("beacuse no map has been assigned yet");
+            database.GetExistingView("viewToDelete").Should().Be(view, "because after a view is created subsequent calls should return the same instance");
 
             // Note: ForestDB view storage created view db when constructor is called
             // but SQLite view storage does not
             if(_storageType == StorageEngineTypes.ForestDB) {
-                Assert.AreEqual(1, database.GetAllViews().Count);
+                database.GetAllViews().Should().HaveCount(1, "because there should only be one view created so far");
             } else {
-                Assert.AreEqual(0, database.GetAllViews().Count);
+                database.GetAllViews().Should().HaveCount(0, "because the view should not be fully created until the map is set");
             }
 
             view.SetMap((doc, emit) =>
@@ -138,16 +138,16 @@ namespace Couchbase.Lite
                 // no-op 
             }, "1");
 
-            Assert.AreEqual(1, database.GetAllViews().Count);
-            Assert.AreEqual(view, database.GetAllViews()[0]);
-            view.Delete();
-            Assert.AreEqual(0, database.GetAllViews().Count);
 
-            var nullView = database.GetExistingView("viewToDelete");
-            Assert.IsNull(nullView);
+            database.GetAllViews().Should().HaveCount(1, "because there should only be one view created so far");
+            database.GetAllViews()[0].Should().Be(view, "because only one instance of the view should exist");
+            view.Delete();
+            database.GetAllViews().Should().BeEmpty("because the view was deleted");
+
+            var nullView = database.GetExistingView("viewToDelete").Should().BeNull("because the view was deleted");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestQueryParams()
         {
             CreateDocuments(database, 50);
@@ -159,9 +159,9 @@ namespace Couchbase.Lite
             var query = view.CreateQuery();
             var completionWait = new WaitAssert();
             query.Completed += (sender, e) => {
-                Assert.IsNull(e.ErrorInfo);
-                Assert.IsNotNull(e.Rows);
-                completionWait.RunAssert(() => Assert.AreEqual(50, e.Rows.Count));
+                e.ErrorInfo.Should().BeNull("because there should not be an error completing the query");
+                e.Rows.Should().NotBeNull("because the completed query should have a Rows object");
+                completionWait.RunAssert(() => e.Rows.Should().NotBeNull().And.HaveCount(50, "because the query should return the correct number of results"));
             };
 
             query.RunAsync();
@@ -171,9 +171,9 @@ namespace Couchbase.Lite
             query.InclusiveEnd = false;
             completionWait = new WaitAssert();
             query.Completed += (sender, e) => {
-                Assert.IsNull(e.ErrorInfo);
-                Assert.IsNotNull(e.Rows);
-                completionWait.RunAssert(() => Assert.AreEqual(48, e.Rows.Count));
+                e.ErrorInfo.Should().BeNull("because there should not be an error completing the query");
+                e.Rows.Should().NotBeNull("because the completed query should have a Rows object");
+                completionWait.RunAssert(() => e.Rows.Should().NotBeNull().And.HaveCount(48, "because the query should return the correct number of results"));
             };
 
             query.RunAsync();
@@ -185,7 +185,7 @@ namespace Couchbase.Lite
             var allDocsQuery = database.CreateAllDocumentsQuery();
             allDocsQuery.AllDocsMode = AllDocsMode.BySequence;
             var allDocs = allDocsQuery.Run();
-            Assert.AreEqual(50, allDocs.Count);
+            allDocs.Should().HaveCount(50, "because there are 50 documents");
             var delete = true;
             foreach(var row in allDocs) {
                 if(delete) {
@@ -197,17 +197,17 @@ namespace Couchbase.Lite
 
             allDocsQuery.AllDocsMode = AllDocsMode.AllDocs;
             allDocs = allDocsQuery.Run();
-            Assert.AreEqual(25, allDocs.Count);
+            allDocs.Should().HaveCount(25, "because there are 25 documents after deleting half");
 
             allDocsQuery.AllDocsMode = AllDocsMode.IncludeDeleted;
-            Assert.AreEqual(50, allDocsQuery.Run().Count);
+            allDocs.Should().HaveCount(50, "because there are 50 documents when deleted ones are included");
 
             allDocsQuery.AllDocsMode = AllDocsMode.BySequence;
             allDocs = allDocsQuery.Run();
-            Assert.AreEqual(2, allDocs.First().SequenceNumber);
+            allDocs.FirstOrDefault().Should().NotBeNull().And.Match<QueryRow>(x => x.SequenceNumber == 2, "because the first non-deleted document by sequence has a sequence number of 2");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestLinq ()
         {
             CreateDocuments (database, 10);
@@ -221,7 +221,7 @@ namespace Couchbase.Lite
 
             var lastSequence = -1L;
             foreach(var docSequence in allDocsResult) {
-                Assert.Greater(docSequence, lastSequence);
+                docSequence.Should().BeGreaterThan(lastSequence, "because the results should be in order by sequence");
             }
 
             var allDocsOrderByResults = from row in database.AsQueryable()
@@ -231,7 +231,7 @@ namespace Couchbase.Lite
             var lastId = default(string);
             foreach(var docId in allDocsOrderByResults) {
                 if(lastId != null) {
-                    Assert.IsTrue(docId.CompareTo(lastId) >= 0);
+                    docId.CompareTo(lastId).Should().BeGreaterOrEqualTo(0, "because the results should be in order by document ID");
                 }
 
                 lastId = docId;
@@ -244,7 +244,7 @@ namespace Couchbase.Lite
             lastId = null;
             foreach(var docId in allDocsOrderByResults) {
                 if(lastId != null) {
-                    Assert.IsTrue(docId.CompareTo(lastId) <= 0);
+                    docId.CompareTo(lastId).Should().BeLessOrEqualTo(0, "because the results should be in descending order by document ID");
                 }
 
                 lastId = docId;
@@ -254,50 +254,46 @@ namespace Couchbase.Lite
                         where row.DocumentProperties.ContainsKey("testName")
                         select (long)row.DocumentProperties["sequence"];
 
-            CollectionAssert.AreEqual(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, query);
-            CollectionAssert.AreEqual(new[] { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }, query.Reverse());
-            CollectionAssert.AreEqual(new[] { 5, 6, 7, 8, 9 }, query.Skip(5));
-            CollectionAssert.AreEqual(new[] { 0, 1, 2, 3, 4 }, query.Take(5));
+            query.ShouldBeEquivalentTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, "because the results of the LINQ query should be correct");
+            query.Reverse().ShouldBeEquivalentTo(new[] { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }, "because the results should be reversable");
+            query.Skip(5).ShouldBeEquivalentTo(new[] { 5, 6, 7, 8, 9 }, "because the results should be skippable");
+            query.Take(5).ShouldBeEquivalentTo(new[] { 0, 1, 2, 3, 4 }, "because the results should be limitable");
 
             var reduce = query.Aggregate((x, y) => x + y);
-            Assert.AreEqual(45, reduce);
+            reduce.Should().Be(45, "because the results should be reducable");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestEmitNullKey()
         {
             var view = database.GetView("vu");
-            Assert.IsNotNull(view);
+            view.Should().NotBeNull("because the database should create views on demand");
             view.SetMap((doc, emit) =>
             {
                 // null key -> ignored
                 emit(null, null);
             }, "1");
 
-            Assert.IsNotNull(view.Map);
-            Assert.AreEqual(0, view.TotalRows);
+            view.Should().Match<View>(v => v.Map != null && view.TotalRows == 0, "because the view should start empty");
 
             // insert 1 doc
-            var props = new Dictionary<string, object> {
-                { "_id", "11111" }
-            };
-            Assert.DoesNotThrow(() => PutDoc(database, props));
+            PutDoc(database, new Dictionary<string, object> {
+                ["_id"] = "11111"
+            });
 
             // regular query
             var testQuery = view.CreateQuery();
-            Assert.IsNotNull(testQuery);
+            testQuery.Should().NotBeNull("because queries should never return null");
             var e = testQuery.Run();
-            Assert.IsNotNull(e);
-            Assert.AreEqual(0, e.Count);
+            testQuery.Run().Should().NotBeNull().And.HaveCount(0, "because the view should ignore null keys");
 
             // query with null key. it should be ignored.
             testQuery.Keys = new string[] { null };
             e = testQuery.Run();
-            Assert.IsNotNull(e);
-            Assert.AreEqual(0, e.Count);
+            testQuery.Run().Should().NotBeNull().And.HaveCount(0, "because the view should ignore null keys");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestCustomFilter()
         {
             var view = database.GetView("vu");
@@ -306,7 +302,7 @@ namespace Couchbase.Lite
                 emit(doc["name"], doc["skin"]);
             }, "1");
 
-            Assert.IsNotNull(view.Map);
+            view.Map.Should().NotBeNull("because it was just set");
 
             database.RunInTransaction(() =>
             {
@@ -330,34 +326,33 @@ namespace Couchbase.Lite
             query.PostFilter = row => (row.Value as string).EndsWith("y");
             var rows = query.Run();
 
-            Assert.AreEqual(2, rows.Count);
-            CollectionAssert.AreEqual(new[] { "furry", "scaly" }, rows.Select(x => x.Value));
+            query.Run().Should().HaveCount(2, "because only the values of two rows end in 'y'");
+            rows.Select(x => x.Value).Should().BeEquivalentTo(new[] { "furry", "scaly" }, "because those two values end in 'y'");
 
             query = view.CreateQuery();
             query.PostFilter = row => (row.Value as string).EndsWith("y");
             query.Limit = 1;
             rows = query.Run();
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual("furry", rows.ElementAt(0).Value);
+            rows.Should().HaveCount(1, "because the query was limited to 1 row");
+            rows.ElementAt(0).Value.Should().Be("furry", "because that is the first result");
 
             query.Limit = 0;
-            rows = query.Run();
-            Assert.AreEqual(0, rows.Count);
+            query.Run().Should().BeEmpty("because the limit is 0");
 
             query = view.CreateQuery();
             query.PostFilter = row => (row.Value as string).EndsWith("y");
             query.Skip = 1;
             rows = query.Run();
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual("scaly", rows.ElementAt(0).Value);
+            rows.Should().HaveCount(1, "because there are two rows and one was skipped");
+            rows.ElementAt(0).Value.Should().Be("scaly", "because that is the second result");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestPrefixMatchingString()
         {
             PutDocs(database);
             var view = CreateView(database);
-            Assert.AreEqual(StatusCode.Ok, view.UpdateIndex_Internal().Code);
+            view.UpdateIndex_Internal().Code.Should().Be(StatusCode.Ok, "because this index update should succeed");
 
             // Keys with prefix "f":
             var options = new QueryOptions();
@@ -365,31 +360,19 @@ namespace Couchbase.Lite
             options.EndKey = "f";
             options.PrefixMatchLevel = 1;
             var rows = RowsToDicts(view.QueryWithOptions(options));
-            Assert.AreEqual(2, rows.Count);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "55555" },
-                { "key", "five" }
-            }, rows[0]);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "44444" },
-                { "key", "four" }
-            }, rows[1]);
+            rows.Should().HaveCount(2, "because only two keys start with 'f'");
+            rows[0].Should().Match(x => x["id"] as string == "55555" && x["key"] as string == "five", "because five comes before four in the alphabet");
+            rows[1].Should().Match(x => x["id"] as string == "44444" && x["key"] as string == "four", "because four comes after five in the alphabet");
 
             // ...descending:
             options.Descending = true;
             rows = RowsToDicts(view.QueryWithOptions(options));
-            Assert.AreEqual(2, rows.Count);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "55555" },
-                { "key", "five" }
-            }, rows[1]);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "44444" },
-                { "key", "four" }
-            }, rows[0]);
+            rows.Should().HaveCount(2, "because only two keys start with 'f'");
+            rows[0].Should().Match(x => x["id"] as string == "44444" && x["key"] as string == "four", "because four comes after five in the alphabet");
+            rows[1].Should().Match(x => x["id"] as string == "55555" && x["key"] as string == "five", "because five comes before four in the alphabet");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestPrefixMatchingArray()
         {
             PutDocs(database);
@@ -401,38 +384,30 @@ namespace Couchbase.Lite
                 emit(new List<object> { doc.Get("key"), Int32.Parse(i) / 100 }, null);
             }, "1");
 
-            Assert.AreEqual(StatusCode.Ok, view.UpdateIndex_Internal().Code);
+            view.UpdateIndex_Internal().Code.Should().Be(StatusCode.Ok, "because the index update should succeed");
 
             // Keys starting with "one":
             var options = new QueryOptions();
             options.StartKey = options.EndKey = new List<object> { "one" };
             options.PrefixMatchLevel = 1;
             var rows = RowsToDicts(view.QueryWithOptions(options));
-            Assert.AreEqual(2, rows.Count);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "11111" },
-                { "key", new List<object> { "one", 111 } }
-            }, rows[0]);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "11111" },
-                { "key", new List<object> { "one", 11111 } }
-            }, rows[1]);
+         
+            rows.Should().HaveCount(2, "because only two rows start with 'one'");
+            rows[0].Should().ContainKey("id").WhichValue.Should().Be("11111");
+            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 111L });
+            rows[1].Should().ContainKey("id").WhichValue.Should().Be("11111");
+            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 11111L });
 
             options.Descending = true;
             rows = RowsToDicts(view.QueryWithOptions(options));
-            Assert.AreEqual(2, rows.Count);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "11111" },
-                { "key", new List<object> { "one", 111 } }
-            }, rows[1]);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "11111" },
-                { "key", new List<object> { "one", 11111 } }
-            }, rows[0]);
+            rows[1].Should().ContainKey("id").WhichValue.Should().Be("11111");
+            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 111L });
+            rows[0].Should().ContainKey("id").WhichValue.Should().Be("11111");
+            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 11111L });
         }
 
         #if !NET_3_5
-        [Test]
+        [NUnit.Framework.Test]
         public void TestParallelViewQueries()
         {
             var vu = database.GetView("prefix/vu");
@@ -457,8 +432,8 @@ namespace Couchbase.Lite
                 var queryObj = gotVu.CreateQuery();
                 queryObj.Keys = new object[] { new object[] { "sequence", x } };
                 var rows = queryObj.Run();
-                Assert.AreEqual(expectCount * 500, gotVu.LastSequenceIndexed);
-                Assert.AreEqual(expectCount, rows.Count);
+                gotVu.LastSequenceIndexed.Should().Be(expectCount * 500);
+                rows.Count.Should().Be(expectCount);
             };
 
             Action queryAction2 = () =>
@@ -468,8 +443,8 @@ namespace Couchbase.Lite
                 var queryObj = gotVu.CreateQuery();
                 queryObj.Keys = new object[] { new object[] { "sequence", "FAKE" } };
                 var rows = queryObj.Run();
-                Assert.AreEqual(expectCount * 500, gotVu.LastSequenceIndexed);
-                Assert.AreEqual(expectCount * 500, rows.Count);
+                gotVu.LastSequenceIndexed.Should().Be(expectCount * 500);
+                rows.Count.Should().Be(expectCount * 500);
             };
 
             Parallel.Invoke(() => queryAction(42), () => queryAction(184), 
@@ -504,8 +479,8 @@ namespace Couchbase.Lite
         }
         #endif
 
-        [Test] 
-        public void TestIssue490()
+        [NUnit.Framework.Test] 
+        public async Task TestIssue490()
         {
             var sg = new CouchDB("http", GetReplicationServer());
             using (var remoteDb = sg.CreateDatabase("issue490")) {
@@ -514,19 +489,18 @@ namespace Couchbase.Lite
                 CreateFilteredDocuments(database, 30);
                 CreateNonFilteredDocuments (database, 10);
                 RunReplication(push);
-                Assert.IsTrue(push.ChangesCount==40);
-                Assert.IsTrue(push.CompletedChangesCount==40);
-
-                Assert.IsNull(push.LastError);
-                Assert.AreEqual(40, database.GetDocumentCount());
+                push.ChangesCount.Should().Be(40, "because there should be 40 documents");
+                push.CompletedChangesCount.Should().Be(40, "because there should be 40 documents");
+                push.LastError.Should().BeNull("because the push should succeed");
+                database.GetDocumentCount().Should().Be(40, "because there should be 40 documents");
 
                 for (int i = 0; i <= 5; i++) {
                     pull = database.CreatePullReplication(remoteDb.RemoteUri);
                     pull.Continuous = true;
                     pull.Start ();
-                    Task.Delay (1000).Wait();
+                    await Task.Delay(1000);
                     CallToView ();
-                    Task.Delay (2000).Wait();
+                    await Task.Delay(2000);
                     RecreateDatabase ();
                 }
             }
@@ -545,7 +519,7 @@ namespace Couchbase.Lite
         private void CallToView ()
         {
             var the_view = database.GetView ("testView");
-            the_view.SetMap (delegate(IDictionary<string, object> document, EmitDelegate emit) {
+            the_view.SetMap ((document, emit) => {
                 try{
                     emit (null, document);
                 } catch(Exception ex){
@@ -561,29 +535,35 @@ namespace Couchbase.Lite
 
         private void CreateNonFilteredDocuments(Database db, int n)
         {
-            //TODO should be changed to use db.runInTransaction
-            for (int i = 0; i < n; i++)
+            db.RunInTransaction(() =>
             {
-                IDictionary<string, object> properties = new Dictionary<string, object>();
-                properties.Add("testName", "unimportant");
-                properties.Add("sequence", i);
-                CreateDocumentWithProperties(db, properties);
-            }
+                for(int i = 0; i < n; i++) {
+                    IDictionary<string, object> properties = new Dictionary<string, object>();
+                    properties.Add("testName", "unimportant");
+                    properties.Add("sequence", i);
+                    CreateDocumentWithProperties(db, properties);
+                }
+
+                return true;
+            });
         }
 
         private void CreateFilteredDocuments(Database db, int n)
         {
-            //TODO should be changed to use db.runInTransaction
-            for (int i = 0; i < n; i++)
+            db.RunInTransaction(() =>
             {
-                IDictionary<string, object> properties = new Dictionary<string, object>();
-                properties.Add("testName", "important");
-                properties.Add("sequence", i);
-                CreateDocumentWithProperties(db, properties);
-            }
+                for(int i = 0; i < n; i++) {
+                    IDictionary<string, object> properties = new Dictionary<string, object>();
+                    properties.Add("testName", "important");
+                    properties.Add("sequence", i);
+                    CreateDocumentWithProperties(db, properties);
+                }
+
+                return true;
+            });
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewValueIsEntireDoc()
         {
             var view = database.GetView("vu");
@@ -591,14 +571,12 @@ namespace Couchbase.Lite
             CreateDocuments(database, 10);
             var rows = view.CreateQuery().Run();
             foreach (var row in rows) {
-                Assert.IsNotNull(row.Value);
-                var dict = row.Value.AsDictionary<string, object>();
-                Assert.IsNotNull(dict);
-                Assert.AreEqual(row.Key, dict.CblID());
+                row.Value.AsDictionary<string, object>().Should().NotBeNull()
+                    .And.Subject.CblID().Should().Be(row.Key as string);
             }
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestLiveQueryUpdateWhenOptionsChanged()
         {
             var view = database.GetView("vu");
@@ -609,49 +587,33 @@ namespace Couchbase.Lite
 
             var query = view.CreateQuery();
             var result = query.Run();
-            Assert.AreEqual(5, result.Count);
-
-            int expectedKey = 0;
-            foreach (var row in result) {
-                Assert.AreEqual(expectedKey++, row.Key);
-            }
+            query.Run().Should().HaveCount(5).And.Subject.Select(x => x.Key).Should().Equal(0L, 1L, 2L, 3L, 4L);
 
             var liveQuery = view.CreateQuery().ToLiveQuery();
-            var changeCount = 0;
-            liveQuery.Changed += (sender, e) => changeCount++;
+            liveQuery.MonitorEvents();
             liveQuery.Start();
             Sleep(1000);
-
-            Assert.AreEqual(1, changeCount);
-            Assert.AreEqual(5, liveQuery.Rows.Count);
-            expectedKey = 0;
-            foreach (var row in liveQuery.Rows) {
-                Assert.AreEqual(expectedKey++, row.Key);
-            }
+            liveQuery.ShouldRaise("Changed");
+            liveQuery.Rows.Should().HaveCount(5).And.Subject.Select(x => x.Key).Should().Equal(0L, 1L, 2L, 3L, 4L);
 
             liveQuery.StartKey = 2;
             liveQuery.QueryOptionsChanged();
             Sleep(1000);
-
-            Assert.AreEqual(2, changeCount);
-            Assert.AreEqual(3, liveQuery.Rows.Count);
-            expectedKey = 2;
-            foreach (var row in liveQuery.Rows) {
-                Assert.AreEqual(expectedKey++, row.Key);
-            }
+            liveQuery.ShouldRaise("Changed");
+            liveQuery.Rows.Should().HaveCount(3).And.Subject.Select(x => x.Key).Should().Equal(2L, 3L, 4L);
 
             liveQuery.Stop();
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestQueryDefaultIndexUpdateMode()
         {
             View view = database.GetView("aview");
             Query query = view.CreateQuery();
-            Assert.AreEqual(IndexUpdateMode.Before, query.IndexUpdateMode);
+            query.IndexUpdateMode.Should().Be(IndexUpdateMode.Before, "because that is the default");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewCreation()
         {
             Assert.IsNull(database.GetExistingView("aview"));
@@ -786,7 +748,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewIndex()
         {
             int numTimesMapFunctionInvoked = 0;
@@ -892,7 +854,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewQuery()
         {
             PutDocs(database);
@@ -998,7 +960,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewQueryWithDictSentinel()
         {
             var key1 = new List<string>();
@@ -1094,7 +1056,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestLiveQueryStartEndKey()
         {
             var view = CreateView(database);
@@ -1115,7 +1077,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, liveQuery.Rows.Count);
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestAllDocsLiveQuery()
         {
             var query = database.CreateAllDocumentsQuery().ToLiveQuery();
@@ -1165,7 +1127,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestAllDocsQuery()
         {
             var docs = PutDocs(database);
@@ -1315,7 +1277,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewReduce()
         {
             var docProperties1 = new Dictionary<string, object>();
@@ -1369,7 +1331,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestIndexUpdateMode()
         {
             View view = CreateView(database);
@@ -1411,7 +1373,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewGrouped()
         {
             IDictionary<string, object> docProperties1 = new Dictionary<string, object>();
@@ -1592,7 +1554,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewGroupedStrings()
         {
             IDictionary<string, object> docProperties1 = new Dictionary<string, object>();
@@ -1651,7 +1613,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewCollation()
         {
             IList<object> list1 = new List<object>();
@@ -1721,7 +1683,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewCollationRaw()
         {
             IList<object> list1 = new List<object>();
@@ -1872,7 +1834,7 @@ namespace Couchbase.Lite
             }
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewUpdateIndexWithLiveQuery()
         {
             var view = database.GetView("TestViewUpdateWithLiveQuery");
@@ -1912,7 +1874,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(rowCountAlwaysOne);
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestRunLiveQueriesWithReduce()
         {
             var view = database.GetView("vu");
@@ -1968,7 +1930,7 @@ namespace Couchbase.Lite
             Assert.AreEqual((2 * numDocs) + 5, database.GetDocumentCount());
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewIndexSkipsDesignDocs() 
         {
             var view = CreateView(database);
@@ -1985,7 +1947,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(0, rows.Count());
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewNumericKeys() {
             var dict = new Dictionary<string, object>()
             { 
@@ -2013,7 +1975,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(33547239, rows.ElementAt(0).Key);
         }
             
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewQueryStartKeyDocID()
         {
             PutDocs(database);
@@ -2073,7 +2035,7 @@ namespace Couchbase.Lite
             return unsavedRev.Save();
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewWithConflict() {
             // Create doc and add some revs
             var doc = database.CreateDocument();
@@ -2115,7 +2077,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(row.Key, "3");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestMultipleQueriesOnSameView()
         {
             var view = database.GetView("view1");
@@ -2160,7 +2122,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(60, view.LastSequenceIndexed);
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestMapConflicts()
         {
             var view = database.GetView("vu");
@@ -2211,13 +2173,13 @@ namespace Couchbase.Lite
             CollectionAssert.AreEquivalent(conflicts, row.ValueAs<IEnumerable<string>>());
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewWithDocDeletion()
         {
             TestViewWithDocRemoval(false);
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewWithDocPurge()
         {
             TestViewWithDocRemoval(true);
@@ -2305,7 +2267,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(doc1.Id, rows.ElementAt(1).DocumentId);
         }
 
-        [Test] // Issue 710
+        [NUnit.Framework.Test] // Issue 710
         public void TestViewsInTransaction ()
         {
             if (_storageType != "SQLite") {
