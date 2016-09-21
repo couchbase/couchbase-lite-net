@@ -631,14 +631,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                         int totalRows = view.TotalRows;
                         viewTotalRows[viewId] = totalRows;
-
-
                         viewLastSequence[i++] = last;
                         if (last < 0) {
                             throw Misc.CreateExceptionAndLog(Log.To.View, StatusCode.DbError, Tag,
                                 "Invalid last sequence indexed ({0}) received from {1}", last, view);
                         }
 
+                        view.CreateIndex();
                         if (last < dbMaxSequence) {
                             minLastSequence = Math.Min(minLastSequence, last);
                             Log.To.View.V(Tag, "    {0} last indexed at #{1}", view.Name, last);
@@ -667,16 +666,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                                     view.DeleteIndex();
                                     view.CreateIndex();
-                                } catch(SQLitePCL.Ugly.ugly.sqlite3_exception e) {
-                                    if(e.errcode == raw.SQLITE_MISUSE) {
-                                        // Somehow, the maps table does not exist
-                                        Log.To.View.I(Tag, "Maps table for view does not exist, trying to recover by creating it...");
-                                        view.CreateIndex();
-                                    } else {
-                                        ok = false;
-                                    }
-                                } 
-                                catch (Exception) {
+                                } catch (Exception) {
                                     ok = false;
                                 }
                             } else {
