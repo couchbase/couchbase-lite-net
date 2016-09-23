@@ -23,6 +23,7 @@
 	<AndroidSdkBuildToolsVersion>23.0.3</AndroidSdkBuildToolsVersion>
     <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
     <RestorePackages>true</RestorePackages>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
