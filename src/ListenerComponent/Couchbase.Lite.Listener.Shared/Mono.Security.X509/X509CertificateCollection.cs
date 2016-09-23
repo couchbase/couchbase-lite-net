@@ -34,12 +34,7 @@ using System.Collections;
 namespace Mono.Security.X509 {
 
 	[Serializable]
-#if INSIDE_CORLIB
-	internal
-#else
-	public 
-#endif
-	class X509CertificateCollection : CollectionBase, IEnumerable {
+ internal class X509CertificateCollection : CollectionBase, IEnumerable {
 		
 		public X509CertificateCollection () 
 		{
