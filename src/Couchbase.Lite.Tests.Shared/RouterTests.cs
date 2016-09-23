@@ -414,6 +414,19 @@ namespace Couchbase.Lite
                 { "total_rows", 1L }
             });
 
+            // Make sure stale=false is accepted
+            endpoint += "?stale=false";
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
+                { "rows", new List<object> { new Dictionary<string, object> {
+                            { "id", "doc1" },
+                            { "key", "hello" }
+                        }
+                    }
+                },
+                { "total_rows", 1L }
+            });
+
             // Update database:
             endpoint = String.Format("/{0}/doc2", database.Name);
             SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
