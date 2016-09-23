@@ -24,10 +24,11 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;INSIDE_CORLIB;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -36,6 +37,8 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <DebugSymbols>true</DebugSymbols>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>INSIDE_CORLIB;</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,6 +47,8 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>INSIDE_CORLIB;</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -58,7 +63,8 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net45" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb);$(OutputPath)Mono.Security.Couchbase.dll;$(OutputPath)Mono.Security.Couchbase.$(mdb);" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net45" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb)"
+    DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net45" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
@@ -69,10 +75,6 @@
       <Project>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</Project>
       <Name>Couchbase.Lite.Net45</Name>
       <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj">
-      <Project>{D68D4FED-CA32-4800-A628-58BAE485562C}</Project>
-      <Name>Mono.Security-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
