@@ -42,12 +42,7 @@ using Mono.Security.Cryptography;
 
 namespace Mono.Security.X509 {
 
-#if INSIDE_CORLIB
-    internal
-#else
-    public 
-#endif
-    class PKCS5 {
+internal class PKCS5 {
 
         public const string pbeWithMD2AndDESCBC = "1.2.840.113549.1.5.1";
         public const string pbeWithMD5AndDESCBC = "1.2.840.113549.1.5.3";
@@ -59,12 +54,7 @@ namespace Mono.Security.X509 {
         public PKCS5 () {}
     }
 
-#if INSIDE_CORLIB
-    internal
-#else
-    public 
-#endif
-    class PKCS9 {
+internal class PKCS9 {
 
         public const string friendlyName = "1.2.840.113549.1.9.20";
         public const string localKeyId = "1.2.840.113549.1.9.21";
@@ -92,12 +82,7 @@ namespace Mono.Security.X509 {
     }
 
 
-#if INSIDE_CORLIB
-    internal
-#else
-    public 
-#endif
-    class PKCS12 : ICloneable {
+internal class PKCS12 : ICloneable {
 
         public const string pbeWithSHAAnd128BitRC4 = "1.2.840.113549.1.12.1.1";
         public const string pbeWithSHAAnd40BitRC4 = "1.2.840.113549.1.12.1.2";

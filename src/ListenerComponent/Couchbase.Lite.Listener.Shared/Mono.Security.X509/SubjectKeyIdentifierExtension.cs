@@ -45,12 +45,7 @@ namespace Mono.Security.X509.Extensions {
 	 * KeyIdentifier ::= OCTET STRING
 	 */
 
-#if INSIDE_CORLIB
-	internal
-#else
-	public 
-#endif
-	class SubjectKeyIdentifierExtension : X509Extension {
+internal class SubjectKeyIdentifierExtension : X509Extension {
 
 		private byte[] ski;
 

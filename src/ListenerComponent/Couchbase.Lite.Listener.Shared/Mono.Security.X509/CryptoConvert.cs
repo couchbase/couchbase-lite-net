@@ -34,12 +34,7 @@ using System.Text;
 
 namespace Mono.Security.Cryptography {
 
-#if INSIDE_CORLIB
-	internal
-#else
-	public
-#endif
-	sealed class CryptoConvert {
+ internal sealed class CryptoConvert {
 
 		private CryptoConvert () 
 		{

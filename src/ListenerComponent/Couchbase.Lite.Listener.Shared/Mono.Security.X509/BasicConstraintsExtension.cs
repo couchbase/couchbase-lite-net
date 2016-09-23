@@ -47,12 +47,7 @@ namespace Mono.Security.X509.Extensions {
 	 * 	pathLenConstraint       INTEGER (0..MAX) OPTIONAL 
 	 * }
 	 */
-#if INSIDE_CORLIB
-	internal
-#else
-	public 
-#endif
-	class BasicConstraintsExtension : X509Extension {
+ internal class BasicConstraintsExtension : X509Extension {
 
 		public const int NoPathLengthConstraint = -1;
 

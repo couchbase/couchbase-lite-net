@@ -49,12 +49,7 @@ namespace Mono.Security.X509 {
 	 * 
 	 * RelativeDistinguishedName ::= SET OF AttributeTypeAndValue
 	 */
-#if INSIDE_CORLIB
-	internal
-#else
-	public 
-#endif
-	sealed class X501 {
+internal sealed class X501 {
 
 		static byte[] countryName = { 0x55, 0x04, 0x06 };
 		static byte[] organizationName = { 0x55, 0x04, 0x0A };

@@ -45,12 +45,7 @@ namespace Mono.Security.X509.Extensions {
 	// c.	2.16.840.1.113730.1.1 - Netscape certificate type
 	//	http://www.alvestrand.no/objectid/2.16.840.1.113730.1.1.html
 
-#if INSIDE_SYSTEM
-	internal
-#else
-	public
-#endif
-	class NetscapeCertTypeExtension : X509Extension {
+internal class NetscapeCertTypeExtension : X509Extension {
 
 		/*
 		 * bit-0 SSL client - this cert is certified for SSL client authentication use 

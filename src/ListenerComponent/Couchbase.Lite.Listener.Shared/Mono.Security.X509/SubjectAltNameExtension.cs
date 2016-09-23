@@ -68,12 +68,7 @@ namespace Mono.Security.X509.Extensions {
 	 */
 
 	// TODO: Directories not supported
-#if INSIDE_SYSTEM
-	internal
-#else
-	public
-#endif
-	class SubjectAltNameExtension : X509Extension {
+internal class SubjectAltNameExtension : X509Extension {
 
 		private GeneralNames _names;
 

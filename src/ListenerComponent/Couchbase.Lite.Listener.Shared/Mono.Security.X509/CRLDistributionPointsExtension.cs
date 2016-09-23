@@ -71,7 +71,7 @@ namespace Mono.Security.X509.Extensions {
 	 *    aACompromise            (8) }
 	 */
 
-	public class CRLDistributionPointsExtension : X509Extension {
+	internal class CRLDistributionPointsExtension : X509Extension {
 
 		public class DistributionPoint {
 			public string Name { get; private set; }

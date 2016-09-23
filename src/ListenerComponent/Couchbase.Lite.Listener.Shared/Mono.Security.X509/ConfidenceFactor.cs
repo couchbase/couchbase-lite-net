@@ -34,12 +34,7 @@ namespace Mono.Math.Prime {
 	/// <summary>
 	/// A factor of confidence.
 	/// </summary>
-#if INSIDE_CORLIB
-	internal
-#else
-	public
-#endif
-	enum ConfidenceFactor {
+ internal enum ConfidenceFactor {
 		/// <summary>
 		/// Only suitable for development use, probability of failure may be greater than 1/2^20.
 		/// </summary>

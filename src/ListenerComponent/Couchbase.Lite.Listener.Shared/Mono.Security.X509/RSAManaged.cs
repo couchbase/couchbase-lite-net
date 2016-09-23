@@ -48,12 +48,7 @@ using Mono.Math;
 
 namespace Mono.Security.Cryptography {
 
-#if INSIDE_CORLIB
-	internal
-#else
-	public
-#endif
-	class RSAManaged : RSA {
+internal class RSAManaged : RSA {
 
 		private const int defaultKeySize = 1024;
 

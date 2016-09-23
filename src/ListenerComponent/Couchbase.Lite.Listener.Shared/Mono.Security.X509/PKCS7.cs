@@ -37,12 +37,7 @@ using Mono.Security.X509;
 
 namespace Mono.Security {
 
-#if INSIDE_CORLIB
-	internal
-#else
-	public
-#endif
-	sealed class PKCS7 {
+internal sealed class PKCS7 {
 
 		public class Oid {
 			// pkcs 1

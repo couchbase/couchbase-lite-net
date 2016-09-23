@@ -40,12 +40,7 @@ namespace Mono.Security.X509 {
 	 * 
 	 * Note: 1..MAX -> There shouldn't be 0 Extensions in the ASN1 structure
 	 */
-#if INSIDE_CORLIB
-	internal
-#else
-	public 
-#endif
-	sealed class X509ExtensionCollection : CollectionBase, IEnumerable {
+internal sealed class X509ExtensionCollection : CollectionBase, IEnumerable {
 
 		private bool readOnly;
 

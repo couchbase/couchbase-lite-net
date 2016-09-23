@@ -89,7 +89,7 @@ namespace Mono.Security.X509.Extensions {
 	 */
 
 	// note: partial implementation (only policyIdentifier OID are supported)
-	public class CertificatePoliciesExtension : X509Extension {
+	internal class CertificatePoliciesExtension : X509Extension {
 
 		private Hashtable policies;
 

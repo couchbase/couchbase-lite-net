@@ -37,7 +37,7 @@ using Mono.Security;
 
 namespace Mono.Security.X509 {
 
-	public abstract class X509Builder {
+	internal abstract class X509Builder {
 
 		private const string defaultHash = "SHA1";
 		private string hashName;

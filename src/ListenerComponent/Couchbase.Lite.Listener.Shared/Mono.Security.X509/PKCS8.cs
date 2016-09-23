@@ -37,10 +37,7 @@ using Mono.Security.X509;
 
 namespace Mono.Security.Cryptography {
 
-#if !INSIDE_CORLIB
-	public 
-#endif
-	sealed class PKCS8 {
+internal sealed class PKCS8 {
 
 		public enum KeyInfo {
 			PrivateKey,

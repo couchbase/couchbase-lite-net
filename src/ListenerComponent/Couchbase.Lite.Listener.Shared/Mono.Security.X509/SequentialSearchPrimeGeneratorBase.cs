@@ -29,12 +29,7 @@
 
 namespace Mono.Math.Prime.Generator {
 
-#if INSIDE_CORLIB
-	internal
-#else
-	public
-#endif
-	class SequentialSearchPrimeGeneratorBase : PrimeGeneratorBase {
+internal class SequentialSearchPrimeGeneratorBase : PrimeGeneratorBase {
 
 		protected virtual BigInteger GenerateSearchBase (int bits, object context)
 		{

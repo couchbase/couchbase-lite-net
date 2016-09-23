@@ -37,7 +37,7 @@ using Mono.Security;
 using Mono.Security.X509;
 
 namespace Mono.Security.X509.Extensions {	
-	public class KeyAttributesExtension : X509Extension {
+	internal class KeyAttributesExtension : X509Extension {
 
 		private byte[] keyId;
 		private int kubits;

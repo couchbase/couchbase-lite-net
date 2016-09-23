@@ -42,12 +42,7 @@ using Mono.Math.Prime;
 
 namespace Mono.Math {
 
-#if INSIDE_CORLIB
-    internal
-#else
-    public
-#endif
-    class BigInteger {
+internal class BigInteger {
 
         #region Data Storage
 

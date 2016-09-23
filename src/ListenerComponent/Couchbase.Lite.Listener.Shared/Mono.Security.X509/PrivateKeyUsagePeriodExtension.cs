@@ -45,7 +45,7 @@ namespace Mono.Security.X509.Extensions {
 	 *    notAfter        [1]     GeneralizedTime OPTIONAL 
 	 * }
 	 */
-	public class PrivateKeyUsagePeriodExtension : X509Extension {
+	internal class PrivateKeyUsagePeriodExtension : X509Extension {
 
 		private DateTime notBefore;
 		private DateTime notAfter;

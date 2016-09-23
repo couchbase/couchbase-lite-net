@@ -66,7 +66,7 @@ namespace Mono.Security.X509 {
      *      generalTime    GeneralizedTime 
      * }
      */
-    public class X509CertificateBuilder : X509Builder {
+    internal class X509CertificateBuilder : X509Builder {
  
         private byte version;
         private byte[] sn;

@@ -32,19 +32,9 @@ using System;
 
 namespace Mono.Math.Prime {
 
-#if INSIDE_CORLIB
-	internal
-#else
-	public
-#endif
-	delegate bool PrimalityTest (BigInteger bi, ConfidenceFactor confidence);
+internal delegate bool PrimalityTest (BigInteger bi, ConfidenceFactor confidence);
 
-#if INSIDE_CORLIB
-	internal
-#else
-	public
-#endif
-	sealed class PrimalityTests {
+internal sealed class PrimalityTests {
 
 		private PrimalityTests ()
 		{

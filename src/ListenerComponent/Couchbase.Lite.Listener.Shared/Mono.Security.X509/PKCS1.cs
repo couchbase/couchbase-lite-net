@@ -37,12 +37,7 @@ namespace Mono.Security.Cryptography {
 	// a.	PKCS#1: RSA Cryptography Standard 
 	//	http://www.rsasecurity.com/rsalabs/pkcs/pkcs-1/index.html
 	
-#if INSIDE_CORLIB
-	internal
-#else
-	public
-#endif
-	sealed class PKCS1 {
+internal sealed class PKCS1 {
 
 		private PKCS1 () 
 		{
