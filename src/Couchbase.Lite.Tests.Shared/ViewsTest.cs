@@ -196,11 +196,10 @@ namespace Couchbase.Lite
             }
 
             allDocsQuery.AllDocsMode = AllDocsMode.AllDocs;
-            allDocs = allDocsQuery.Run();
-            allDocs.Should().HaveCount(25, "because there are 25 documents after deleting half");
+            allDocsQuery.Run().Should().HaveCount(25, "because there are 25 documents after deleting half");
 
             allDocsQuery.AllDocsMode = AllDocsMode.IncludeDeleted;
-            allDocs.Should().HaveCount(50, "because there are 50 documents when deleted ones are included");
+            allDocsQuery.Run().Should().HaveCount(50, "because there are 50 documents when deleted ones are included");
 
             allDocsQuery.AllDocsMode = AllDocsMode.BySequence;
             allDocs = allDocsQuery.Run();
@@ -361,15 +360,20 @@ namespace Couchbase.Lite
             options.PrefixMatchLevel = 1;
             var rows = RowsToDicts(view.QueryWithOptions(options));
             rows.Should().HaveCount(2, "because only two keys start with 'f'");
-            rows[0].Should().Match(x => x["id"] as string == "55555" && x["key"] as string == "five", "because five comes before four in the alphabet");
-            rows[1].Should().Match(x => x["id"] as string == "44444" && x["key"] as string == "four", "because four comes after five in the alphabet");
+            rows[0].Should().ContainKey("id").WhichValue.Should().Be("55555", "because five comes before four in the alphabet");
+            rows[0].Should().ContainKey("key").WhichValue.Should().Be("five", "because five comes before four in the alphabet");
+            rows[1].Should().ContainKey("id").WhichValue.Should().Be("44444", "because four comes after five in the alphabet");
+            rows[1].Should().ContainKey("key").WhichValue.Should().Be("four", "because four comes after five in the alphabet");
+
 
             // ...descending:
             options.Descending = true;
             rows = RowsToDicts(view.QueryWithOptions(options));
             rows.Should().HaveCount(2, "because only two keys start with 'f'");
-            rows[0].Should().Match(x => x["id"] as string == "44444" && x["key"] as string == "four", "because four comes after five in the alphabet");
-            rows[1].Should().Match(x => x["id"] as string == "55555" && x["key"] as string == "five", "because five comes before four in the alphabet");
+            rows[1].Should().ContainKey("id").WhichValue.Should().Be("55555", "because five comes before four in the alphabet");
+            rows[1].Should().ContainKey("key").WhichValue.Should().Be("five", "because five comes before four in the alphabet");
+            rows[0].Should().ContainKey("id").WhichValue.Should().Be("44444", "because four comes after five in the alphabet");
+            rows[0].Should().ContainKey("key").WhichValue.Should().Be("four", "because four comes after five in the alphabet");
         }
 
         [NUnit.Framework.Test]
@@ -394,16 +398,20 @@ namespace Couchbase.Lite
          
             rows.Should().HaveCount(2, "because only two rows start with 'one'");
             rows[0].Should().ContainKey("id").WhichValue.Should().Be("11111");
-            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 111L });
+            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 111L }, 
+                "because 111 comes before 11111");
             rows[1].Should().ContainKey("id").WhichValue.Should().Be("11111");
-            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 11111L });
+            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 11111L },
+                 "because 111 comes before 11111");
 
             options.Descending = true;
             rows = RowsToDicts(view.QueryWithOptions(options));
             rows[1].Should().ContainKey("id").WhichValue.Should().Be("11111");
-            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 111L });
+            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 111L },
+                 "because 111 comes before 11111");
             rows[0].Should().ContainKey("id").WhichValue.Should().Be("11111");
-            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 11111L });
+            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 11111L },
+                 "because 111 comes before 11111");
         }
 
         #if !NET_3_5
@@ -509,9 +517,6 @@ namespace Couchbase.Lite
 
         private void RecreateDatabase ()
         {
-            query.Stop ();
-            pull.Stop ();
-            //database.Manager.ForgetDatabase(database);
             database.Delete ();
             database = Manager.SharedInstance.GetDatabase ("test");
         }
@@ -616,27 +621,27 @@ namespace Couchbase.Lite
         [NUnit.Framework.Test]
         public void TestViewCreation()
         {
-            Assert.IsNull(database.GetExistingView("aview"));
+            database.GetExistingView("aview").Should().BeNull("because the view should not exist yet");
             var view = database.GetView("aview");
-            Assert.IsNotNull(view);
-            Assert.AreEqual(database, view.Database);
-            Assert.AreEqual("aview", view.Name);
-            Assert.IsNull(view.Map);
-            Assert.AreEqual(view, database.GetExistingView("aview"));
+            view.Should().NotBeNull("because the view should be created via GetView");
+            view.Database.Should().BeSameAs(database, "because the view should reference the DB it was created from");
+            view.Name.Should().Be("aview", "because that was the name it was given");
+            view.Map.Should().BeNull("because the map has not been assigned yet");
+            view.Should().BeSameAs(database.GetExistingView("aview"), "because the next call should return the same view");
+
+            view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=> { }, null, "1")
+                .Should().BeTrue("because otherwise setting the map function failed");
+
+            database.GetAllViews().Should().HaveCount(1, "because the view should be in the all view collection now")
+                .And.Subject.AsList<View>()[0].Should().BeSameAs(view, "because the returned view should be the same as the existing one");
 
             //no-op
-            var changed = view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=> { }, null, "1");
-            Assert.IsTrue(changed);
-            Assert.AreEqual(1, database.GetAllViews().Count);
-            Assert.AreEqual(view, database.GetAllViews()[0]);
+            view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=> { }, null, "1")
+                .Should().BeFalse("beacuse the version number did not change");
 
-            //no-op
-            changed = view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=> { }, null, "1");
-            Assert.IsFalse(changed);
-            changed = view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=> { }, null, "2");
 
-            //no-op
-            Assert.IsTrue(changed);
+            view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter) => { }, null, "2")
+                .Should().BeTrue("because the version number changed");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -737,8 +742,8 @@ namespace Couchbase.Lite
             var view = db.GetView("aview");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
                 {
-                    Assert.IsNotNull(document.CblID());
-                    Assert.IsNotNull(document.CblRev());
+                    document.CblID().Should().NotBeNull("because nothing should enter the map function without an ID");
+                    document.CblRev().Should().NotBeNull("because nothing should enter the map function without a rev ID");
                     if (document["key"] != null)
                     {
                         emitter(document["key"], null);
@@ -776,8 +781,8 @@ namespace Couchbase.Lite
             {
                 numTimesInvoked += 1;
 
-                Assert.IsNotNull(document.CblID());
-                Assert.IsNotNull(document.CblRev());
+                document.CblID().Should().NotBeNull("because nothing should enter the map function without an ID");
+                document.CblRev().Should().NotBeNull("because nothing should enter the map function without a rev ID");
 
                 if (document.ContainsKey("key") && document["key"] != null)
                 {
@@ -787,22 +792,21 @@ namespace Couchbase.Lite
             view.SetMap(mapBlock, "1");
 
 
-            //Assert.AreEqual(1, view.Id);
-            Assert.IsTrue(view.IsStale);
+            view.IsStale.Should().BeTrue("beacuse the view has not been updated yet");
             view.UpdateIndex_Internal();
 
             IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
             WriteDebug("View dump: " + dumpResult);
-            Assert.AreEqual(3, dumpResult.Count);
-            Assert.AreEqual("\"one\"", dumpResult[0]["key"]);
-            Assert.AreEqual(1, dumpResult[0]["seq"]);
-            Assert.AreEqual("\"two\"", dumpResult[2]["key"]);
-            Assert.AreEqual(2, dumpResult[2]["seq"]);
-            Assert.AreEqual("\"three\"", dumpResult[1]["key"]);
-            Assert.AreEqual(3, dumpResult[1]["seq"]);
+            dumpResult.Should().HaveCount(3, "beacuse three items have the 'key' property");
+            dumpResult[0].Should().Contain("key", "\"one\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 1L);
+            dumpResult[1].Should().Contain("key", "\"three\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 3L);
+            dumpResult[2].Should().Contain("key", "\"two\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 2L);
 
             //no-op reindex
-            Assert.IsFalse(view.IsStale);
+            view.IsStale.Should().BeFalse("beacuse the view was updated");
             view.UpdateIndex_Internal();
 
             // Now add a doc and update a doc:
@@ -816,11 +820,10 @@ namespace Couchbase.Lite
             rev3 = database.PutRevision(threeUpdated, rev3.RevID, false);
 
             // Reindex again:
-            Assert.IsTrue(view.IsStale);
+            view.IsStale.Should().BeTrue("beacuse a new document was added but the view was not updated");
             view.UpdateIndex_Internal();
-
-            // Make sure the map function was only invoked one more time (for the document that was added)
-            Assert.AreEqual(numTimesMapFunctionInvoked + 1, numTimesInvoked);
+            
+            numTimesInvoked.Should().Be(numTimesMapFunctionInvoked + 1, "because we only added one document");
 
             var dict4 = new Dictionary<string, object>();
             dict4["key"] = "four";
@@ -829,27 +832,27 @@ namespace Couchbase.Lite
             database.PutRevision(twoDeleted, rev2.RevID, false);
 
             // Reindex again:
-            Assert.IsTrue(view.IsStale);
+            view.IsStale.Should().BeTrue("because documents were updated but the view was not");
             view.UpdateIndex_Internal();
             dumpResult = view.Storage.Dump().ToList();
             WriteDebug("View dump: " + dumpResult);
-            Assert.AreEqual(3, dumpResult.Count);
-            Assert.AreEqual("\"one\"", dumpResult[2]["key"]);
-            Assert.AreEqual(1, dumpResult[2]["seq"]);
-            Assert.AreEqual("\"3hree\"", dumpResult[0]["key"]);
-            Assert.AreEqual(5, dumpResult[0]["seq"]);
-            Assert.AreEqual("\"four\"", dumpResult[1]["key"]);
-            Assert.AreEqual(6, dumpResult[1]["seq"]);
+            dumpResult.Should().HaveCount(3, "beacuse three items have the 'key' property");
+            dumpResult[0].Should().Contain("key", "\"3hree\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 5L);
+            dumpResult[1].Should().Contain("key", "\"four\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 6L);
+            dumpResult[2].Should().Contain("key", "\"one\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 1L);
 
             // Now do a real query:
             IList<QueryRow> rows = view.QueryWithOptions(null).ToList();
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual("one", rows[2].Key);
-            Assert.AreEqual(rev1.DocID, rows[2].DocumentId);
-            Assert.AreEqual("3hree", rows[0].Key);
-            Assert.AreEqual(rev3.DocID, rows[0].DocumentId);
-            Assert.AreEqual("four", rows[1].Key);
-            Assert.AreEqual(rev4.DocID, rows[1].DocumentId);
+            rows.Should().HaveCount(3, "because there are only three documents with the 'key' property");
+            rows[0].Key.As<string>().Should().Be("3hree", "because the ordering should be correct");
+            rows[0].DocumentId.Should().Be(rev3.DocID, "because the row should have the correct document ID");
+            rows[1].Key.As<string>().Should().Be("four", "because the ordering should be correct");
+            rows[1].DocumentId.Should().Be(rev4.DocID, "because the row should have the correct document ID");
+            rows[2].Key.As<string>().Should().Be("one", "because the ordering should be correct");
+            rows[2].DocumentId.Should().Be(rev1.DocID, "because the row should have the correct document ID");
             view.DeleteIndex();
         }
 
@@ -863,86 +866,58 @@ namespace Couchbase.Lite
 
             // Query all rows:
             QueryOptions options = new QueryOptions();
-            IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
-
-            var expectedRows = new List<object>();
-
             var dict5 = new Dictionary<string, object>();
             dict5["id"] = "55555";
             dict5["key"] = "five";
-            expectedRows.Add(dict5);
 
             var dict4 = new Dictionary<string, object>();
             dict4["id"] = "44444";
             dict4["key"] = "four";
-            expectedRows.Add(dict4);
 
             var dict1 = new Dictionary<string, object>();
             dict1["id"] = "11111";
             dict1["key"] = "one";
-            expectedRows.Add(dict1);
 
             var dict3 = new Dictionary<string, object>();
             dict3["id"] = "33333";
             dict3["key"] = "three";
-            expectedRows.Add(dict3);
 
             var dict2 = new Dictionary<string, object>();
             dict2["id"] = "22222";
             dict2["key"] = "two";
-            expectedRows.Add(dict2);
-            Assert.AreEqual(5, rows.Count);
-            Assert.AreEqual(dict5["key"], rows[0].Key);
-            Assert.AreEqual(dict4["key"], rows[1].Key);
-            Assert.AreEqual(dict1["key"], rows[2].Key);
-            Assert.AreEqual(dict3["key"], rows[3].Key);
-            Assert.AreEqual(dict2["key"], rows[4].Key);
-
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict5["key"], dict4["key"], dict1["key"], dict3["key"], dict2["key"] }, String.Equals,
+                "because the rows should be in the correct order");
+            
             // Start/end key query:
             options = new QueryOptions();
             options.StartKey = "a";
             options.EndKey = "one";
 
-            rows = view.QueryWithOptions(options).ToList();
-            expectedRows = new List<object>();
-            expectedRows.Add(dict5);
-            expectedRows.Add(dict4);
-            expectedRows.Add(dict1);
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual(dict5["key"], rows[0].Key);
-            Assert.AreEqual(dict4["key"], rows[1].Key);
-            Assert.AreEqual(dict1["key"], rows[2].Key);
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict5["key"], dict4["key"], dict1["key"] }, String.Equals,
+                "because only three rows fall in the range of 'a' to 'one'");
 
             // Start/end query without inclusive end:
             options.InclusiveEnd = false;
-            rows = view.QueryWithOptions(options).ToList();
-            expectedRows = new List<object>();
-            expectedRows.Add(dict5);
-            expectedRows.Add(dict4);
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(dict5["key"], rows[0].Key);
-            Assert.AreEqual(dict4["key"], rows[1].Key);
-
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict5["key"], dict4["key"] }, String.Equals,
+                "because the last row should be excluded");
+           
             // Reversed:
             options.Descending = true;
             options.StartKey = "o";
             options.EndKey = "five";
             options.InclusiveEnd = true;
-            rows = view.QueryWithOptions(options).ToList();
-            expectedRows = new List<object>();
-            expectedRows.Add(dict4);
-            expectedRows.Add(dict5);
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(dict4["key"], rows[0].Key);
-            Assert.AreEqual(dict5["key"], rows[1].Key);
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict4["key"], dict5["key"] }, String.Equals,
+                "because the results should be reversed and only contain applicable rows");
 
             // Reversed, no inclusive end:
             options.InclusiveEnd = false;
-            rows = view.QueryWithOptions(options).ToList();
-            expectedRows = new List<object>();
-            expectedRows.Add(dict4);
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual(dict4["key"], rows[0].Key);
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict4["key"] }, String.Equals,
+                "because the last row should be excluded");
 
             // Specific keys: (note that rows should be in same order as input keys, not sorted)
             options = new QueryOptions();
@@ -950,13 +925,9 @@ namespace Couchbase.Lite
             keys.Add("two");
             keys.Add("four");
             options.Keys = keys;
-            rows = view.QueryWithOptions(options).ToList();
-            expectedRows = new List<object>();
-            expectedRows.Add(dict4);
-            expectedRows.Add(dict2);
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(dict2["key"], rows[0].Key);
-            Assert.AreEqual(dict4["key"], rows[1].Key);
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict2["key"], dict4["key"] }, String.Equals,
+                "because the results should be the specified keys in the specified order");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -1001,48 +972,58 @@ namespace Couchbase.Lite
 
             // Query all rows:
             QueryOptions options = new QueryOptions();
-            IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
+            var expected = new[] { new[] { "green", "model1" }, new[] { "red", "model1" },
+                new[] { "red", "model2" }, new[] { "yellow", "model2" } };
 
-            Assert.AreEqual(4, rows.Count);
-            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[0].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[2].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "yellow", "model2" }, ((JArray)rows[3].Key).ToObject<object[]>());
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because the rows should contain the correct data in the correct order");
 
             // Start/end key query:
             options = new QueryOptions();
             options.StartKey = "a";
             options.EndKey = new List<object> { "red", new Dictionary<string, object>() };
-            rows = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[0].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[2].Key).ToObject<object[]>());
+            expected = new[] { new[] { "green", "model1" }, new[] { "red", "model1" },
+                new[] { "red", "model2" } };
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because only three rows should fall in the given range");
 
             // Start/end query without inclusive end:
             options.EndKey = new List<object> { "red", "model1" };
             options.InclusiveEnd = false;
-            rows = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(1, rows.Count); //1
-            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[0].Key).ToObject<object[]>());
+            expected = new[] { new[] { "green", "model1" } };
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because only two rows fall into the given range and the last row is excluded");
 
             // Reversed:
             options = new QueryOptions();
             options.StartKey = new List<object> { "red", new Dictionary<string, object>() };
             options.EndKey = new List<object> { "green", "model1" };
             options.Descending = true;
-            rows = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[0].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[2].Key).ToObject<object[]>());
+            expected = new[] { new[] { "red", "model2" }, new[] { "red", "model1" },
+                new[] { "green", "model1" } };
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because the three applicable rows should be reversed now");
 
             // Reversed, no inclusive end:
             options.InclusiveEnd = false;
-            rows = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[0].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
+            expected = new[] { new[] { "red", "model2" }, new[] { "red", "model1" } };
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because the last row should be excluded");
 
             // Specific keys:
             options = new QueryOptions();
@@ -1050,10 +1031,11 @@ namespace Couchbase.Lite
             keys.Add(new object[] { "red", "model2" });
             keys.Add(new object[] { "red", "model1" });
             options.Keys = keys;
-            rows = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[0].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because the given keys should appear in the given order");
         }
 
         [NUnit.Framework.Test]
