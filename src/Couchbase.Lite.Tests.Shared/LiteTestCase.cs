@@ -608,7 +608,7 @@ namespace Couchbase.Lite
                 while (enumerator1.MoveNext() && enumerator2.MoveNext())
                 {
                     var obj1 = enumerator1.Current;
-                    var obj2 = enumerator1.Current;
+                    var obj2 = enumerator2.Current;
 
                     if (obj1 is IDictionary<string, object> && obj2 is IDictionary<string, object>) 
                     {
