@@ -19,6 +19,7 @@
 // limitations under the License.
 //
 using System;
+using System.Collections.Generic;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
@@ -30,6 +31,8 @@ namespace Couchbase.Lite
     {
 
         #region Constants
+
+        private const string Tag = nameof(ReplicationOptions);
 
         /// <summary>
         /// The default value for Heartbeat (5 minutes)
@@ -192,6 +195,35 @@ namespace Couchbase.Lite
             MaxRevsToGetInBulk = DefaultMaxRevsToGetInBulk;
             RetryStrategy = DefaultRetryStrategy.Copy();
             ReplicationRetryDelay = DefaultReplicationRetryDelay;
+        }
+
+        internal ReplicationOptions(IDictionary<string, object> dictionary)
+            : this()
+        {
+            long heartbeatMs;
+            if(dictionary.TryGetValue<long>("heartbeat", out heartbeatMs)) {
+                Heartbeat = TimeSpan.FromMilliseconds(heartbeatMs);
+            }
+
+            long requestTimeoutMs;
+            if(dictionary.TryGetValue<long>("connection_timeout", out requestTimeoutMs)) {
+                RequestTimeout = TimeSpan.FromMilliseconds(requestTimeoutMs);
+            }
+
+            long pollIntervalMs;
+            if(dictionary.TryGetValue<long>("poll", out pollIntervalMs)) {
+                if(pollIntervalMs >= 30000) {
+                    PollInterval = TimeSpan.FromMilliseconds(pollIntervalMs);
+                } else {
+                    Log.To.Sync.W(Tag, $"poll interval of {pollIntervalMs} seconds is too short!");
+                }
+            }
+
+            UseWebSocket = dictionary.GetCast<bool>("websocket");
+            RemoteUUID = dictionary.GetCast<string>("remoteUUID");
+            PurgePushed = dictionary.GetCast<bool>("purgePushed");
+            AllNew = dictionary.GetCast<bool>("allNew");
+            Reset = dictionary.GetCast<bool>("reset");
         }
 
         #endregion

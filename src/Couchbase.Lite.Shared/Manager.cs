@@ -852,6 +852,7 @@ namespace Couchbase.Lite
             rep.FilterParams = properties.Get("query_params").AsDictionary<string, object>();
             rep.DocIds = properties.Get("doc_ids").AsList<string>();
             rep.Headers = new Dictionary<string, string>();
+            rep.ReplicationOptions = new ReplicationOptions(properties);
             foreach(var header in results.Get("headers").AsDictionary<string, string>()) {
                 if(header.Key.ToLowerInvariant() == "cookie") {
                     var cookie = default(Cookie);
@@ -986,6 +987,8 @@ namespace Couchbase.Lite
                     }
                 }
             }
+
+
 
             // Can't specify both a filter and doc IDs
             if (properties.ContainsKey("filter") && properties.ContainsKey("doc_ids")) {
