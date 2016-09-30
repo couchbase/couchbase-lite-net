@@ -27,6 +27,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.cs">
       <Link>src\Properties\DynamicAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)src\ConnectionPool.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\..\Couchbase.Lite.Shared\Properties\version">

@@ -65,6 +65,33 @@ namespace Couchbase.Lite
         public DatabaseTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestQueryIndependence()
+        {
+            if(_storageType != "SQLite") {
+                return;
+            }
+
+            CreateDocuments (database, 10);
+
+            var engine = (database.Storage as SqliteCouchStore).StorageEngine;
+            var are = new AutoResetEvent (false);
+            Task.Factory.StartNew (async () => {
+                var c = engine.RawQuery ("SELECT * FROM revs");
+                c.MoveToNext ();
+                are.Set ();
+                await Task.Delay (3000);
+                c.Close ();
+            });
+
+            are.WaitOne ();
+            database.GetDocument ("ghost").PutProperties (new Dictionary<string, object> {
+                ["line"] = "boo"
+            });
+
+            Assert.IsNotNull (database.GetExistingDocument ("ghost"));
+        }
+
+        [Test]
         public void TestRollbackInvalidatesCache()
         {
             var props = new Dictionary<string, object> {

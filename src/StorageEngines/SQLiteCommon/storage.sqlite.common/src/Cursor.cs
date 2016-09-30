@@ -40,6 +40,7 @@
 // and limitations under the License.
 //
 using System;
+using Couchbase.Lite.Storage;
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 
@@ -70,6 +71,7 @@ namespace Couchbase.Lite
         /// </remarks>
         public static object StmtDisposeLock = new object();
 
+        private readonly Connection _connection;
         private sqlite3_stmt _statement;
         private int _currentStep = -1;
         private long _currentRow;
@@ -89,11 +91,12 @@ namespace Couchbase.Lite
         #region Constructors
 
         //NOTE.JHB: Can throw an exception
-        internal Cursor (sqlite3_stmt stmt)
+        internal Cursor (sqlite3_stmt stmt, Connection connection)
         {
             this._statement = stmt;
             _currentRow = -1;
             _currentStep = _statement.step();
+            _connection = connection;
 
             if (_currentStep != raw.SQLITE_OK && _currentStep != raw.SQLITE_ROW && _currentStep != raw.SQLITE_DONE) {
                 Log.E ("Cursor", "currentStep: " + _currentStep);
@@ -202,6 +205,8 @@ namespace Couchbase.Lite
                 _statement.Dispose ();
                 _statement = null;
             }
+
+            _connection?.Dispose ();
         }
 
         #endregion
