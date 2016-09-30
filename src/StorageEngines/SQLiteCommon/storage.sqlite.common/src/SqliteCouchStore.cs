@@ -1026,6 +1026,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             });
 
             // Overwrite the old db file with the new one:
+            action.AddLogic (AtomicAction.DeleteFile (Path.Combine (_directory, DB_FILENAME + "-wal")));
+            action.AddLogic (AtomicAction.DeleteFile (Path.Combine (_directory, DB_FILENAME + "-shm")));
             action.AddLogic(AtomicAction.MoveFile(tempPath, Path.Combine(_directory, DB_FILENAME)));
 
             return action;
