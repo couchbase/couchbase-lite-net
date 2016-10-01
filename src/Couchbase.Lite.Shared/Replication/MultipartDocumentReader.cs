@@ -208,12 +208,12 @@ namespace Couchbase.Lite.Support
                 long length = 0;
                 var lengthValue = attachment.Get("length");
                 if (lengthValue != null) {
-                    length = (long)lengthValue;
+                    length = Convert.ToInt64(lengthValue);
                 }
 
                 var encodedLengthValue = attachment.Get("encoded_length");
                 if (encodedLengthValue != null) {
-                    length = (long)encodedLengthValue;
+                    length = Convert.ToInt64(encodedLengthValue);
                 }
 
                 var followsValue = attachment.GetCast<bool>("follows");

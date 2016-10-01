@@ -1602,7 +1602,12 @@ namespace Couchbase.Lite
                 var revPos = attachment.GetCast<long>("revpos");
                 if(revPos < minRevPos && revPos != 0) {
                     //Stub:
-                    return new Dictionary<string, object> { { "stub", true }, { "revpos", revPos } };
+                    return new NonNullDictionary<string, object> {
+                        ["stub"] = true,
+                        ["revpos"] = revPos,
+                        ["digest"] = attachment.GetCast<string>("digest"),
+                        ["length"] = attachment.GetCast<long>("length")
+                    };
                 }
 
                 var expanded = new Dictionary<string, object>(attachment);
@@ -1769,7 +1774,12 @@ namespace Couchbase.Lite
         internal IDictionary<string, object> GetAttachmentsFromDoc(string docId, RevisionID revId)
         {
             var rev = new RevisionInternal(docId, revId, false);
-            LoadRevisionBody(rev);
+            try {
+                LoadRevisionBody(rev);
+            } catch(Exception) {
+                return null;
+            }
+
             return rev.GetAttachments();
         }
 
