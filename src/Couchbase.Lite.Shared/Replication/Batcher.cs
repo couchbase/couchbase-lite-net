@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Support
         private bool _scheduled;
         private DateTime _lastProcessedTime;
         private CancellationTokenSource _cancellationSource;
-        private ConcurrentQueue<T> _inbox = new ConcurrentQueue<T>();
+        private UniqueQueue<T> _inbox = new UniqueQueue<T>();
         
         private object _scheduleLocker = new object();
 
@@ -137,10 +137,8 @@ namespace Couchbase.Lite.Support
             Log.To.NoDomain.V(TAG, "QueueObjects called with {0} objects", objects.Count);
             int added = 0;
             foreach (var obj in objects) {
-                if (!_inbox.Contains (obj)) {
-                    added++;
-                    _inbox.Enqueue (obj);
-                }
+                added++;
+                _inbox.Enqueue(obj);
             }
 
             ScheduleWithDelay(DelayToUse());
@@ -188,7 +186,8 @@ namespace Couchbase.Lite.Support
             Unschedule();
 
             var itemCount = _inbox.Count;
-            _inbox = new ConcurrentQueue<T>();
+            Misc.SafeDispose(ref _inbox);
+            _inbox = new UniqueQueue<T>();
 
             Log.To.NoDomain.D(TAG, "Discarded {0} items", itemCount);
         }
