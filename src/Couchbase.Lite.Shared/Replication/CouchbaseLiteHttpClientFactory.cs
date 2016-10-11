@@ -142,15 +142,18 @@ namespace Couchbase.Lite.Support
         /// </summary>
         internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, IRetryStrategy retryStrategy)
         {
+            #if __MOBILE__
+            var handler = new HttpClientHandler {
+                CookieContainer = store,
+                UseCookies = true
+            };
+            #else
             var handler = new WebRequestHandler {
                 CookieContainer = store,
                 UseCookies = true,
                 ReadWriteTimeout = (int)SocketTimeout.TotalMilliseconds
             };
-
-            // For now, we are not using the client cert for identity verification, just to
-            // satisfy Mono so it doesn't matter if the user doesn't choose it.
-            //handler.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
+            #endif
 
             if(handler.SupportsAutomaticDecompression) {
                 handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;

@@ -90,9 +90,9 @@ namespace Couchbase.Lite
         /// Gets or sets the socket timeout for requests during
         /// the replication process (i.e. if the client cannot
         /// read data from the server response for longer than
-        /// X it is considered timed out)
+        /// X it is considered timed out).  This property is not supported
+        /// on Xamarin.iOS and Xamarin.Android
         /// </summary>
-        /// <value>The socket timeout.</value>
         public TimeSpan SocketTimeout { get; set; }
 
         /// <summary>
