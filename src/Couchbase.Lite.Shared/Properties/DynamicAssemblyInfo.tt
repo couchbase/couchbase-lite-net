@@ -5,7 +5,10 @@ using System.Reflection;
 <#
 string envAssembly =  System.Environment.GetEnvironmentVariable("VERSION") ?? "0.0.0";
 string nugetVersion = System.Environment.GetEnvironmentVariable("NUGET_VERSION") ?? envAssembly;
-string assemblyVersion = envAssembly + ".0";
+string assemblyVersion = envAssembly;
+while(assemblyVersion.Split('.').Length < 4) {
+    assemblyVersion = assemblyVersion + ".0";
+}
 #>
 
 [assembly: AssemblyVersion ("<#= assemblyVersion#>")]
