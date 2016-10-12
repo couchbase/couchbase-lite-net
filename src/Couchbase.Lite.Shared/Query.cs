@@ -449,7 +449,7 @@ namespace Couchbase.Lite {
                         var error = runTask.Exception;
                         var completed = _completed;
                         if (completed != null) {
-                            var args = new QueryCompletedEventArgs(runTask.Result, error);
+                            var args = new QueryCompletedEventArgs(error == null ? runTask.Result : null, error);
                             completed(this, args);
                         }
 

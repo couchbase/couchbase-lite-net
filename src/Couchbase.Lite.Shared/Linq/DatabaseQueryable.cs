@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Linq
 
         IEnumerator IEnumerable.GetEnumerator ()
         {
-            return (Provider.Execute<IEnumerable> (Expression)).GetEnumerator ();
+            return GetEnumerator();
         }
     }
 }

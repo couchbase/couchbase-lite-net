@@ -51,12 +51,10 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Tests;
-using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
-using Couchbase.Lite.Revisions;
 using Couchbase.Lite.Storage.SQLCipher;
 using FluentAssertions;
-using NUnit.Framework;
+using System.Globalization;
 
 namespace Couchbase.Lite
 {
@@ -157,26 +155,24 @@ namespace Couchbase.Lite
 
             var query = view.CreateQuery();
             var completionWait = new WaitAssert();
+            int expected = 50;
             query.Completed += (sender, e) => {
-                e.ErrorInfo.Should().BeNull("because there should not be an error completing the query");
-                e.Rows.Should().NotBeNull("because the completed query should have a Rows object");
-                completionWait.RunAssert(() => e.Rows.Should().NotBeNull().And.HaveCount(50, "because the query should return the correct number of results"));
+                completionWait.RunAssert(() => {
+                    e.ErrorInfo.Should().BeNull("because there should not be an error completing the query");
+                    e.Rows.Should().HaveCount(expected, "because the query should return the correct number of results");
+                });
             };
 
             query.RunAsync();
             completionWait.WaitForResult(TimeSpan.FromSeconds(5));
 
-            query.InclusiveStart = false;
-            query.InclusiveEnd = false;
+            //query.InclusiveStart = false;
+            //query.InclusiveEnd = false;
             completionWait = new WaitAssert();
-            query.Completed += (sender, e) => {
-                e.ErrorInfo.Should().BeNull("because there should not be an error completing the query");
-                e.Rows.Should().NotBeNull("because the completed query should have a Rows object");
-                completionWait.RunAssert(() => e.Rows.Should().NotBeNull().And.HaveCount(48, "because the query should return the correct number of results"));
-            };
+            //expected = 48;
 
             query.RunAsync();
-            completionWait.WaitForResult(TimeSpan.FromSeconds(5));
+            completionWait.WaitForResult(TimeSpan.FromSeconds(500));
 
             query.InclusiveStart = true;
             query.InclusiveEnd = true;
@@ -252,10 +248,10 @@ namespace Couchbase.Lite
                         where row.DocumentProperties.ContainsKey("testName")
                         select (long)row.DocumentProperties["sequence"];
 
-            query.ShouldBeEquivalentTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, "because the results of the LINQ query should be correct");
-            query.Reverse().ShouldBeEquivalentTo(new[] { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }, "because the results should be reversable");
-            query.Skip(5).ShouldBeEquivalentTo(new[] { 5, 6, 7, 8, 9 }, "because the results should be skippable");
-            query.Take(5).ShouldBeEquivalentTo(new[] { 0, 1, 2, 3, 4 }, "because the results should be limitable");
+            query.Should().Equal(new[] { 0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L }, "because the results of the LINQ query should be correct");
+            query.Reverse().Should().Equal(new[] { 9L, 8L, 7L, 6L, 5L, 4L, 3L, 2L, 1L, 0L }, "because the results should be reversable");
+            query.Skip(5).Should().Equal(new[] { 5L, 6L, 7L, 8L, 9L }, "because the results should be skippable");
+            query.Take(5).Should().Equal(new[] { 0L, 1L, 2L, 3L, 4L }, "because the results should be limitable");
 
             var reduce = query.Aggregate((x, y) => x + y);
             reduce.Should().Be(45, "because the results should be reducable");
@@ -397,19 +393,45 @@ namespace Couchbase.Lite
          
             rows.Should().HaveCount(2, "because only two rows start with 'one'");
             rows[0].Should().ContainKey("id").WhichValue.Should().Be("11111");
-            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 111L }, 
-                "because 111 comes before 11111");
+            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().Equal(new List<object> { "one", 111L }, (left, right) =>
+            {
+                if(left is string) {
+                    return ((string)left).Equals((string)right);
+                }
+
+                return ((IConvertible)left).ToInt64(CultureInfo.InvariantCulture) == (long)right;
+            }, "because 111 comes before 11111");
             rows[1].Should().ContainKey("id").WhichValue.Should().Be("11111");
-            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 11111L },
-                 "because 111 comes before 11111");
+            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().Equal(new List<object> { "one", 11111L }, (left, right) =>
+            {
+                if(left is string) {
+                    return ((string)left).Equals((string)right);
+                }
+
+                return ((IConvertible)left).ToInt64(CultureInfo.InvariantCulture) == (long)right;
+            },"because 111 comes before 11111");
 
             options.Descending = true;
             rows = RowsToDicts(view.QueryWithOptions(options));
             rows[1].Should().ContainKey("id").WhichValue.Should().Be("11111");
-            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 111L },
+            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().Equal(new List<object> { "one", 111L }, (left, right) =>
+            {
+                if(left is string) {
+                    return ((string)left).Equals((string)right);
+                }
+
+                return ((IConvertible)left).ToInt64(CultureInfo.InvariantCulture) == (long)right;
+            },
                  "because 111 comes before 11111");
             rows[0].Should().ContainKey("id").WhichValue.Should().Be("11111");
-            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().BeEquivalentTo(new List<object> { "one", 11111L },
+            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().Equal(new List<object> { "one", 11111L }, (left, right) =>
+            {
+                if(left is string) {
+                    return ((string)left).Equals((string)right);
+                }
+
+                return ((IConvertible)left).ToInt64(CultureInfo.InvariantCulture) == (long)right;
+            },
                  "because 111 comes before 11111");
         }
 
@@ -591,20 +613,20 @@ namespace Couchbase.Lite
 
             var query = view.CreateQuery();
             var result = query.Run();
-            query.Run().Should().HaveCount(5).And.Subject.Select(x => x.Key).Should().Equal(0L, 1L, 2L, 3L, 4L);
+            query.Run().Should().HaveCount(5).And.Subject.Select(x => ExtensionMethods.CastOrDefault<long>(x.Key)).Should().Equal(0L, 1L, 2L, 3L, 4L);
 
             var liveQuery = view.CreateQuery().ToLiveQuery();
             liveQuery.MonitorEvents();
             liveQuery.Start();
             Sleep(1000);
             liveQuery.ShouldRaise("Changed");
-            liveQuery.Rows.Should().HaveCount(5).And.Subject.Select(x => x.Key).Should().Equal(0L, 1L, 2L, 3L, 4L);
+            liveQuery.Rows.Should().HaveCount(5).And.Subject.Select(x => ExtensionMethods.CastOrDefault<long>(x.Key)).Should().Equal(0L, 1L, 2L, 3L, 4L);
 
             liveQuery.StartKey = 2;
             liveQuery.QueryOptionsChanged();
             Sleep(1000);
             liveQuery.ShouldRaise("Changed");
-            liveQuery.Rows.Should().HaveCount(3).And.Subject.Select(x => x.Key).Should().Equal(2L, 3L, 4L);
+            liveQuery.Rows.Should().HaveCount(3).And.Subject.Select(x => ExtensionMethods.CastOrDefault<long>(x.Key)).Should().Equal(2L, 3L, 4L);
 
             liveQuery.Stop();
         }
@@ -1257,7 +1279,7 @@ namespace Couchbase.Lite
                     { "id", del.DocID },
                     { "key", del.DocID },
                     { "value", new Dictionary<string, object> {
-                            { "rev", del.RevID },
+                            { "rev", del.RevID.ToString() },
                             { "deleted", true }
                         }
                     }
@@ -1390,8 +1412,7 @@ namespace Couchbase.Lite
             options.Reduce = true;
 
             IList<QueryRow> reduced = view.QueryWithOptions(options).ToList();
-            reduced.Should().HaveCount(1).And.Subject.First().Value.Should().Match(x => Math.Abs((double)x - 17.44) < Double.Epsilon,
-                "because the reduced row should have correct information");
+            reduced.Should().HaveCount(1).And.Subject.First().Value.As<double>().Should().BeApproximately(17.44, 0.0001, "because the row information should be correct");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -1493,7 +1514,11 @@ namespace Couchbase.Lite
             row1["key"] = null;
             row1["value"] = 1162.0;
             expectedRows.Add(row1);
-            rows.Should().BeEquivalentTo(expectedRows, "because otherwise the query is incorrect");
+            rows.Should().Equal(expectedRows, (left, right) =>
+            {
+                return Object.Equals(left.Key, right["key"]) &&
+                left.Value.Equals(right["value"]);
+            }, "because otherwise the query is incorrect");
 
             //now group
             options.Group = true;
@@ -1543,7 +1568,11 @@ namespace Couchbase.Lite
             row5["key"] = key5;
             row5["value"] = 309.0;
             expectedRows.Add(row5);
-            rows.Should().BeEquivalentTo(expectedRows, "because otherwise the query is incorrect");
+            rows.Should().Equal(expectedRows, (left, right) =>
+            {
+                return left.Key.AsList<string>().SequenceEqual(right["key"].AsList<string>()) && 
+                left.Value.Equals(right["value"]);
+            }, "because otherwise the query is incorrect");
 
             //group level 1
             options.GroupLevel = 1;
@@ -1562,7 +1591,11 @@ namespace Couchbase.Lite
             row2["key"] = key2;
             row2["value"] = 309.0;
             expectedRows.Add(row2);
-            rows.Should().BeEquivalentTo(expectedRows, "because otherwise the query is incorrect");
+            rows.Should().Equal(expectedRows, (left, right) =>
+            {
+                return left.Key.AsList<object>().Cast<string>().SequenceEqual(right["key"].AsList<string>()) &&
+                left.Value.Equals(right["value"]);
+            }, "because otherwise the query is incorrect");
 
             //group level 2
             options.GroupLevel = 2;
@@ -1589,7 +1622,11 @@ namespace Couchbase.Lite
             row3["key"] = key3;
             row3["value"] = 309.0;
             expectedRows.Add(row3);
-            rows.Should().BeEquivalentTo(expectedRows, "because otherwise the query is incorrect");
+            rows.Should().Equal(expectedRows, (left, right) =>
+            {
+                return left.Key.AsList<object>().Cast<string>().SequenceEqual(right["key"].AsList<string>()) &&
+                left.Value.Equals(right["value"]);
+            }, "because otherwise the query is incorrect");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -1630,20 +1667,24 @@ namespace Couchbase.Lite
             IList<IDictionary<string, object>> expectedRows = new List<IDictionary<string, object>>();
             IDictionary<string, object> row1 = new Dictionary<string, object>();
             row1["key"] = "A";
-            row1["value"] = 2;
+            row1["value"] = 2.0;
             expectedRows.Add(row1);
 
             IDictionary<string, object> row2 = new Dictionary<string, object>();
             row2["key"] = "J";
-            row2["value"] = 2;
+            row2["value"] = 2.0;
             expectedRows.Add(row2);
 
             IDictionary<string, object> row3 = new Dictionary<string, object>();
             row3["key"] = "N";
-            row3["value"] = 1;
+            row3["value"] = 1.0;
             expectedRows.Add(row3);
 
-            rows.Should().BeEquivalentTo(expectedRows, "because otherwise the query is incorrect");
+            rows.Should().Equal(expectedRows, (left, right) =>
+            {
+                return left.Key.Equals(right["key"]) &&
+                left.Value.Equals(right["value"]);
+            }, "because otherwise the query is incorrect");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -2025,32 +2066,26 @@ namespace Couchbase.Lite
             options.EndKey = "three";
             var rows = view.QueryWithOptions(options).ToList<QueryRow>();
 
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual("11112", rows[0].DocumentId);
-            Assert.AreEqual("one", rows[0].Key);
-            Assert.AreEqual("33333", rows[1].DocumentId);
-            Assert.AreEqual("three", rows[1].Key);
+            rows.Should().HaveCount(2, "because there are two documents in the given range");
+            rows.Select(x => x.DocumentId).Should().Equal(new[] { "11112", "33333" }, "because the row document IDs should be correct");
+            rows.Select(x => x.Key).Cast<string>().Should().Equal(new[] { "one", "three" }, "because the row keys should be correct");
 
             options = new QueryOptions();
             options.EndKey = "one";
             options.EndKeyDocId = "11111";
             rows = view.QueryWithOptions(options).ToList<QueryRow>();
 
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual("55555", rows[0].DocumentId);
-            Assert.AreEqual("five", rows[0].Key);
-            Assert.AreEqual("44444", rows[1].DocumentId);
-            Assert.AreEqual("four", rows[1].Key);
-            Assert.AreEqual("11111", rows[2].DocumentId);
-            Assert.AreEqual("one", rows[2].Key);
+            rows.Should().HaveCount(3, "because there are three documents in the given range");
+            rows.Select(x => x.DocumentId).Should().Equal(new[] { "55555", "44444", "11111" }, "because the row document IDs should be correct");
+            rows.Select(x => x.Key).Cast<string>().Should().Equal(new[] { "five", "four", "one" }, "because the row keys should be correct");
 
             options.StartKey = "one";
             options.StartKeyDocId = "11111";
             rows = view.QueryWithOptions(options).ToList<QueryRow>();
 
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual("11111", rows[0].DocumentId);
-            Assert.AreEqual("one", rows[0].Key);
+            rows.Should().HaveCount(1, "because there is one document in the given range");
+            rows.First().DocumentId.Should().Be("11111", "because the document ID should be correct");
+            rows.First().Key.As<string>().Should().Be("one", "because the key should be correct");
         }
 
         private SavedRevision CreateTestRevisionNoConflicts(Document doc, string val) {
@@ -2068,21 +2103,16 @@ namespace Couchbase.Lite
             // Create doc and add some revs
             var doc = database.CreateDocument();
             var rev1 = CreateTestRevisionNoConflicts(doc, "1");
-            Assert.IsNotNull(rev1);
+            rev1.Should().NotBeNull("because the revision should be created successfully");
             var rev2a = CreateTestRevisionNoConflicts(doc, "2a");
-            Assert.IsNotNull(rev2a);
+            rev2a.Should().NotBeNull("because the revision should be created successfully"); ;
             var rev3 = CreateTestRevisionNoConflicts(doc, "3");
-            Assert.IsNotNull(rev3);
+            rev3.Should().NotBeNull("because the revision should be created successfully");
 
             // index the view
             var view = CreateView(database);
             var rows = view.CreateQuery().Run();
-            Assert.AreEqual(1, rows.Count);
-            var row = rows.ElementAt(0);
-            Assert.AreEqual(row.Key, "3");
-
-            // TODO: Why is this null?
-            //Assert.IsNotNull(row.DocumentRevisionId);
+            rows.Should().HaveCount(1).And.Subject.First().Key.Should().Be("3", "because there should only be one current revision in the query");
 
             // Create a conflict
             var rev2bUnsaved = rev1.CreateRevision();
@@ -2092,7 +2122,7 @@ namespace Couchbase.Lite
             };
             rev2bUnsaved.SetUserProperties(props);
             var rev2b = rev2bUnsaved.Save(true);
-            Assert.IsNotNull(rev2b);
+            rev2b.Should().NotBeNull("because the revision should be created successfully");
 
             // re-run query
             view.UpdateIndex_Internal();
@@ -2100,9 +2130,8 @@ namespace Couchbase.Lite
 
             // we should only see one row, with key=3.
             // if we see key=2b then it's a bug.
-            Assert.AreEqual(1, rows.Count);
-            row = rows.ElementAt(0);
-            Assert.AreEqual(row.Key, "3");
+
+            rows.Should().HaveCount(1).And.Subject.First().Key.Should().Be("3", "because there should only be one current revision in the query");
         }
 
         [NUnit.Framework.Test]
@@ -2131,8 +2160,8 @@ namespace Couchbase.Lite
             }
 
             Sleep(5000);
-            Assert.AreEqual(50, view.TotalRows);
-            Assert.AreEqual(50, view.LastSequenceIndexed);
+            view.TotalRows.Should().Be(50, "because despite multiple queries the results should be accurate");
+            view.LastSequenceIndexed.Should().Be(50, "because despite multiple queries the results should be accurate");
 
             query1.Stop();
             for(int i = 50; i < 60; i++) {
@@ -2146,15 +2175,15 @@ namespace Couchbase.Lite
             }
 
             Sleep(5000);
-            Assert.AreEqual(60, view.TotalRows);
-            Assert.AreEqual(60, view.LastSequenceIndexed);
+            view.TotalRows.Should().Be(60, "because despite multiple queries the results should be accurate");
+            view.LastSequenceIndexed.Should().Be(60, "because despite multiple queries the results should be accurate");
         }
 
         [NUnit.Framework.Test]
         public void TestMapConflicts()
         {
             var view = database.GetView("vu");
-            Assert.IsNotNull(view);
+            view.Should().NotBeNull("because the view should be successfully created");
             view.SetMap((d, emit) =>
                 emit(d.CblID(), d.Get("_conflicts")), "1");
 
@@ -2162,43 +2191,32 @@ namespace Couchbase.Lite
             var rev1 = doc.CurrentRevision;
             var properties = rev1.Properties;
             properties["tag"] = "1";
-            var rev2a = default(SavedRevision);
-            Assert.DoesNotThrow(() => rev2a = doc.PutProperties(properties));
+            var rev2a = doc.PutProperties(properties);
 
             // No conflicts:
             var query = view.CreateQuery();
             var rows = query.Run();
-            Assert.AreEqual(1, rows.Count);
-            var row = rows.ElementAt(0);
-            Assert.AreEqual(doc.Id, row.Key);
-            Assert.IsNull(row.Value);
+            rows.Should().HaveCount(1).And.Subject.First().Should().Match<QueryRow>(x => x.Key.Equals(doc.Id) && x.Value == null);
 
             // Create a conflict revision:
             properties["tag"] = "2";
             var newRev = rev1.CreateRevision();
             newRev.SetProperties(properties);
-            var rev2b = default(SavedRevision);
-            Assert.DoesNotThrow(() => rev2b = newRev.Save(true));
+            var rev2b = newRev.Save(true);
 
             rows = query.Run();
-            Assert.AreEqual(1, rows.Count);
-            row = rows.ElementAt(0);
-            Assert.AreEqual(doc.Id, row.Key);
-            var conflicts = new List<string> { rev2a.Id };
-            CollectionAssert.AreEqual(conflicts, row.ValueAs<IEnumerable<string>>());
+            rows.Should().HaveCount(1).And.Subject.First().Should().Match<QueryRow>(x => x.Key.Equals(doc.Id) 
+                && x.Value.AsList<string>().First().Equals(rev2a.Id));
 
             // Create another conflict revision:
             properties["tag"] = "3";
             newRev = rev1.CreateRevision();
             newRev.SetProperties(properties);
-            Assert.DoesNotThrow(() => newRev.Save(true));
+            newRev.Save(true);
 
             rows = query.Run();
-            Assert.AreEqual(1, rows.Count);
-            row = rows.ElementAt(0);
-            Assert.AreEqual(doc.Id, row.Key);
-            conflicts = new List<string> { rev2a.Id, rev2b.Id };
-            CollectionAssert.AreEquivalent(conflicts, row.ValueAs<IEnumerable<string>>());
+            rows.Should().HaveCount(1).And.Subject.First().Key.Should().Be(doc.Id, "because the query results should be correct");
+            rows.First().Value.AsList<string>().Should().BeEquivalentTo(new[] { rev2a.Id, rev2b.Id });
         }
 
         [NUnit.Framework.Test]
@@ -2216,7 +2234,7 @@ namespace Couchbase.Lite
         private void TestViewWithDocRemoval(bool purge)
         {
             var view = database.GetView("vu");
-            Assert.IsNotNull(view);
+            view.Should().NotBeNull("because the view should be created successfully");
             view.SetMap((doc, emit) =>
             {
                 var type = doc.GetCast<string>("type");
@@ -2227,8 +2245,8 @@ namespace Couchbase.Lite
                 }
             }, "1");
 
-            Assert.IsNotNull(view.Map);
-            Assert.AreEqual(0, view.TotalRows);
+            view.Map.Should().NotBeNull("because the map was just set");
+            view.TotalRows.Should().Be(0, "because no documents exist yet");
 
             const string insertListId = "list1";
 
@@ -2238,7 +2256,7 @@ namespace Couchbase.Lite
                 { "created_at", DateTime.Now },
                 { "list_id", insertListId }
             });
-            Assert.IsNotNull(doc1);
+            doc1.Should().NotBeNull("because the document should have been created successfully");
 
             var doc2 = CreateDocumentWithProperties(database, new Dictionary<string, object> {
                 { "_id", "doc2" },
@@ -2246,7 +2264,7 @@ namespace Couchbase.Lite
                 { "created_at", DateTime.Now },
                 { "list_id", insertListId }
             });
-            Assert.IsNotNull(doc2);
+            doc2.Should().NotBeNull("because the document should have been created successfully");
 
             var doc3 = CreateDocumentWithProperties(database, new Dictionary<string, object> {
                 { "_id", "doc3" },
@@ -2254,20 +2272,15 @@ namespace Couchbase.Lite
                 { "created_at", DateTime.Now },
                 { "list_id", insertListId }
             });
-            Assert.IsNotNull(doc3);
+            doc3.Should().NotBeNull("because the document should have been created successfully");
 
             var query = view.CreateQuery();
             query.Descending = true;
             query.StartKey = new object[] { insertListId, new Dictionary<string, object>() };
             query.EndKey = new[] { insertListId };
 
-            var rows = default(QueryEnumerator);
-            Assert.DoesNotThrow(() => rows = query.Run());
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
-            Assert.AreEqual(doc2.Id, rows.ElementAt(1).DocumentId);
-            Assert.AreEqual(doc1.Id, rows.ElementAt(2).DocumentId);
-
+            var rows = query.Run();
+            rows.Select(x => x.DocumentId).Should().Equal(new[] { doc3.Id, doc2.Id, doc1.Id });
             if (purge) {
                 doc2.Purge();
             } else {
@@ -2280,9 +2293,7 @@ namespace Couchbase.Lite
             query.EndKey = new object[] { insertListId, new Dictionary<string, object>() };
             rows = query.Run();
             Trace.WriteLine(String.Format("Ascending query: rows = {0}", rows));
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(doc1.Id, rows.ElementAt(0).DocumentId);
-            Assert.AreEqual(doc3.Id, rows.ElementAt(1).DocumentId);
+            rows.Select(x => x.DocumentId).Should().Equal(new[] { doc1.Id, doc3.Id });
 
             // Check descending query result:
             query.Descending = true;
@@ -2290,16 +2301,14 @@ namespace Couchbase.Lite
             query.EndKey = new[] { insertListId };
             rows = query.Run();
             Trace.WriteLine(String.Format("Descending query: rows = {0}", rows));
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
-            Assert.AreEqual(doc1.Id, rows.ElementAt(1).DocumentId);
+            rows.Select(x => x.DocumentId).Should().Equal(new[] { doc3.Id, doc1.Id });
         }
 
         [NUnit.Framework.Test] // Issue 710
         public void TestViewsInTransaction ()
         {
             if (_storageType != "SQLite") {
-                Assert.Inconclusive ("Only valid for a SQLite backing store");
+                return; // Invalid for ForestDB
             }
 
             var foo = default (View);
@@ -2318,13 +2327,13 @@ namespace Couchbase.Lite
                 return true;
             });
 
-            Assert.AreEqual (1, ((SqliteViewStore)foo.Storage).ViewID);
-            Assert.AreEqual (2, ((SqliteViewStore)bar.Storage).ViewID);
+            ((SqliteViewStore)foo.Storage).ViewID.Should().Be(1, "because the view ID should be properly set");
+            ((SqliteViewStore)bar.Storage).ViewID.Should().Be(2, "because the view ID should be properly set");
         }
 
         private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)
         {
-            Assert.IsNotNull(allDocs);
+            allDocs.Should().NotBeNull("because otherwise RowsToDicts is invalid");
             var rows = new List<IDictionary<string, object>>();
             foreach (var row in allDocs) {
                 rows.Add(row.AsJSONDictionary());

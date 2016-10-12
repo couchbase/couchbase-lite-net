@@ -24,6 +24,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Revisions;
@@ -144,8 +145,27 @@ namespace Couchbase.Lite.Linq
                 return tmp;
             }
 
-            var methodInfo = typeof(Enumerable).GetMethod("Cast").MakeGenericMethod(genericTypeArgs[0]);
+            var ienum = tmp.GetType().GetInterface(typeof(IEnumerable<>).Name);
+            var inType = ienum?.GetGenericArguments().FirstOrDefault() ?? typeof(object);
+            var methodInfo = typeof(MapReduceQueryProvider).GetMethod("Convert", BindingFlags.Static|BindingFlags.NonPublic).MakeGenericMethod(inType, genericTypeArgs[0]);
             return methodInfo.Invoke(null, new[] { tmp });
+        }
+
+        private static IEnumerable<TOut> Convert<TIn, TOut>(IEnumerable<TIn> input)
+        {
+            if(typeof(TOut) == typeof(TIn)) {
+                return (IEnumerable<TOut>)input;
+            }
+
+            return input.Select(x =>
+            {
+                var newObj = default(TOut);
+                if(ExtensionMethods.TryCast<TOut>(x, out newObj)) {
+                    return newObj;
+                }
+
+                throw new InvalidCastException();
+            });
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
@@ -194,7 +214,7 @@ namespace Couchbase.Lite.Linq
             return base.VisitConstant(node);
         }
 
-        private IEnumerable Map(IEnumerable<QueryRow> rows)
+        private IEnumerable<object> Map(IEnumerable<QueryRow> rows)
         {
             var selectFunction = _select.Compile();
             foreach(var row in rows) {
@@ -216,8 +236,12 @@ namespace Couchbase.Lite.Linq
         {
             var reduceFunction = _reduce.Compile();
             var type = keys.FirstOrDefault()?.GetType();
-            object reduced = (type != null && type.IsValueType) ? Activator.CreateInstance(type) : null;
-            foreach(var k in keys) {
+            var functionType = reduceFunction.GetType().GetGenericArguments().FirstOrDefault();
+            var methodInfo = typeof(MapReduceQueryProvider).GetMethod("Convert", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(typeof(object), functionType);
+            var newKeys = (IEnumerable)(methodInfo.Invoke(null, new[] { keys }));
+
+            object reduced = (functionType != null && functionType.IsValueType) ? Activator.CreateInstance(functionType) : null;
+            foreach(var k in newKeys) {
                 reduced = reduceFunction.DynamicInvoke(reduced, k);
             }
 
