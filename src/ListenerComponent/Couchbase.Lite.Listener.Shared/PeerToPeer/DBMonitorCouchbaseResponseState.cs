@@ -211,7 +211,7 @@ namespace Couchbase.Lite.Listener
             if (ChangesFeedMode == ChangesFeedMode.LongPoll && _changes.Count > 0) {
                 var body = new Body(DatabaseMethods.ResponseBodyForChanges(_changes, 0, this));
                 Response.WriteData(body.AsJson(), true);
-                CouchbaseLiteRouter.ResponseFinished(this);
+                Terminate ();
             }
         }
 

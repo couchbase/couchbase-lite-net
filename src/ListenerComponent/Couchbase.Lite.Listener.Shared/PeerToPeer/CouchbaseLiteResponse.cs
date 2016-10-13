@@ -532,7 +532,13 @@ namespace Couchbase.Lite.Listener
             }
 
             try {
-                _writeLock.WaitOne();
+                _writeLock.WaitOne ();
+            } catch(Exception e) {
+                Log.To.Router.W (TAG, "Error acquiring write lock for response", e);
+                   return false;
+            }
+
+            try {
                 _responseWriter.OutputStream.Write(data, 0, data.Length);
                 _responseWriter.OutputStream.Flush();
                 return true;
