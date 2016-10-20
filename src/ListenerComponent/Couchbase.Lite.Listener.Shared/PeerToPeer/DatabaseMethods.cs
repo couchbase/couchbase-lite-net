@@ -361,7 +361,7 @@ namespace Couchbase.Lite.Listener
                         }
                     }
 
-                    responseState.SubscribeToDatabase(db);
+                    responseState.SubscribeToDatabase(db, since, options);
                     string heartbeatParam = context.GetQueryParam("heartbeat");
                     if(heartbeatParam != null) {
                         int heartbeat;
@@ -437,37 +437,32 @@ namespace Couchbase.Lite.Listener
                 }
 
 
-                RevisionList changes = db.ChangesSince(since, options, responseState.ChangesFilter, responseState.FilterParams);
-                if((responseState.ChangesFeedMode >= ChangesFeedMode.Continuous) || 
-                    (responseState.ChangesFeedMode == ChangesFeedMode.LongPoll && changes.Count == 0)) {
+                if(responseState.ChangesFeedMode >= ChangesFeedMode.LongPoll) {
                     // Response is going to stay open (continuous, or hanging GET):
                     response.Chunked = true;
                     if(responseState.ChangesFeedMode == ChangesFeedMode.EventSource) {
                         response["Content-Type"] = "text/event-stream; charset=utf-8";
                     }
 
-                    if(responseState.ChangesFeedMode >= ChangesFeedMode.Continuous) {
-                        response.WriteHeaders();
-                        foreach(var rev in changes) {
-                            response.SendContinuousLine(ChangesDictForRev(rev, responseState), context.ChangesFeedMode);
+                    response.WriteHeaders();
+                    responseState.SubscribeToDatabase(db, since, options);
+                    if(responseState.IsAsync) {
+                        int heartbeat = body.GetCast<int>("heartbeat", Int32.MinValue);
+                        if(heartbeat != Int32.MinValue) {
+                            if(heartbeat <= 0) {
+                                responseState.IsAsync = false;
+                                return context.CreateResponse(StatusCode.BadParam);
+                            }
+
+                            heartbeat = Math.Max(heartbeat, (int)MinHeartbeat.TotalMilliseconds);
+                            string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
+                            responseState.StartHeartbeat(heartbeatResponse, TimeSpan.FromMilliseconds(heartbeat));
                         }
                     }
 
-                    responseState.SubscribeToDatabase(db);
-                    int heartbeat = body.GetCast<int>("heartbeat", Int32.MinValue);
-                    if(heartbeat != Int32.MinValue) {
-                        if(heartbeat <= 0) {
-                            responseState.IsAsync = false;
-                            return context.CreateResponse(StatusCode.BadParam);
-                        }
-
-                        heartbeat = Math.Max(heartbeat, (int)MinHeartbeat.TotalMilliseconds);
-                        string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
-                        responseState.StartHeartbeat(heartbeatResponse, TimeSpan.FromMilliseconds(heartbeat));
-                    }
-
-                    return context.CreateResponse();
+                    return responseState.Response;
                 } else {
+                    RevisionList changes = db.ChangesSince(since, options, responseState.ChangesFilter, responseState.FilterParams);
                     if(responseState.ChangesIncludeConflicts) {
                         response.JsonBody = new Body(ResponseBodyForChanges(changes, since, options.Limit, responseState));
                     } else {
@@ -859,7 +854,7 @@ namespace Couchbase.Lite.Listener
         }
 
         //Create a response body for an HTTP response from a given list of DB changes, including all conflicts
-        private static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, int limit, DBMonitorCouchbaseResponseState state)
+        internal static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, int limit, DBMonitorCouchbaseResponseState state)
         {
             string lastDocId = null;
             IDictionary<string, object> lastEntry = null;

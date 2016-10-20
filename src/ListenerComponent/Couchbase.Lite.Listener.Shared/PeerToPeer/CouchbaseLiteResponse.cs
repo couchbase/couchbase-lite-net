@@ -542,6 +542,9 @@ namespace Couchbase.Lite.Listener
                 _responseWriter.OutputStream.Write(data, 0, data.Length);
                 _responseWriter.OutputStream.Flush();
                 return true;
+            } 
+            catch(ObjectDisposedException) {
+                return false;
             } catch(Exception e) {
                 Log.To.Router.W(TAG, "Error writing to HTTP response stream", e);
                 return false;
