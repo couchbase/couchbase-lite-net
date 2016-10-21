@@ -47,15 +47,10 @@ namespace Couchbase.Lite.Listener
 
             source = source.Replace("function", "function _f1");
             var engine = new Engine().SetValue("log", new Action<object>((line) => Log.To.Router.I("JSViewCompiler", line.ToString())));
-            bool emitSet = false;
 
             return (doc, emit) =>
             {
-                if(!emitSet) {
-                    engine.SetValue("emit", emit);
-                    emitSet = true;
-                }
-
+                engine.SetValue("emit", emit);
                 engine.Execute(source).Invoke("_f1", doc);
             };
         }
