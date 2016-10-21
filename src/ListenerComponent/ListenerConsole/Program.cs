@@ -43,6 +43,10 @@ namespace Listener
 
         public static void Main(string[] args)
         {
+            // INTERNAL API
+            CouchbaseLiteRouter.InsecureMode = true;
+            // INTERNAL API
+
             Couchbase.Lite.Util.Log.SetLogger(Logger);
             var alternateDir = default(string);
             var pullUrl = default(Uri);

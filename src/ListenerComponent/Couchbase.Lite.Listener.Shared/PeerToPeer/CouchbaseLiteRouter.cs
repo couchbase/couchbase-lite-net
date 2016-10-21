@@ -109,6 +109,9 @@ namespace Couchbase.Lite.Listener
         private static readonly RestMethod FORBIDDEN =
             context => context.CreateResponse(StatusCode.Forbidden).AsDefaultState();
 
+        // Used for functional tests
+        internal static bool InsecureMode = false;
+
         #endregion
 
         #region Properties
@@ -150,7 +153,7 @@ namespace Couchbase.Lite.Listener
             }
 
             var c = context as ICouchbaseListenerContext2;
-            var allowPrivate = c != null && c.IsLoopbackRequest;
+            var allowPrivate = InsecureMode || c?.IsLoopbackRequest == true;
 
             RestMethod logic = null;
             if (method.Equals("GET") || method.Equals("HEAD")) {
