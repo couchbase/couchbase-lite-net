@@ -337,7 +337,7 @@ namespace Couchbase.Lite.Replicator
 
                 var rev = props.CblID() != null
                     ? new RevisionInternal(props)
-                    : new RevisionInternal(props.CblID(), props.CblRev(), false);
+                    : new RevisionInternal(props.GetCast<string>("id"), props.GetCast<string>("rev").AsRevID(), false);
 
 
                 var pos = remainingRevs.IndexOf(rev);
