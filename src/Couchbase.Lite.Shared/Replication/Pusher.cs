@@ -366,7 +366,9 @@ namespace Couchbase.Lite.Replicator
                         content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") {
                             FileName = attachmentKey
                         };
-                        content.Headers.ContentType = new MediaTypeHeaderValue(contentType ?? "application/octet-stream");
+                        if(!String.IsNullOrEmpty(contentType)) {
+                            content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+                        }
 
                         multiPart.Add(content);
                         length += inputStream.Length;

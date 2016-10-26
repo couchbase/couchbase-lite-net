@@ -70,6 +70,28 @@ namespace Couchbase.Lite
         public AttachmentsTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestEmptyContentType()
+        {
+            var doc = database.CreateDocument();
+            var unsaved = doc.CreateRevision();
+
+            var data = Enumerable.Repeat<byte>((byte)80, 2500);
+            unsaved.SetAttachment("attach", "", data);
+            unsaved.Save();
+            database.GetDocumentCount().Should().Be(1, "because a document was added");
+
+            var push = database.CreatePushReplication(GetReplicationURL());
+            push.Start();
+            var now = DateTime.UtcNow;
+            while(push.CompletedChangesCount < 1) {
+                Sleep(500);
+                if(DateTime.UtcNow - now > TimeSpan.FromSeconds(10)) {
+                    throw new TimeoutException("Test timed out");
+                }
+            }
+        }
+
+        [Test]
         public void TestAttachmentMetadata()
         {
             var doc = database.CreateDocument();
