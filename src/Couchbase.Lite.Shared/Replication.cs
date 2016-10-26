@@ -1883,7 +1883,7 @@ namespace Couchbase.Lite
                 CompletedChangesCount, ChangesCount,
                 _stateMachine.State, Batcher == null ? 0 : Batcher.Count(), _remoteSession.RequestCount);
 
-            var lastSequencePushed = (IsPull && LastSequence == null) ? -1L : Int64.Parse(LastSequence);
+            var lastSequencePushed = (IsPull || LastSequence == null) ? -1L : Int64.Parse(LastSequence);
             if(_lastSequencePushed != lastSequencePushed) {
                 _lastSequencePushed = lastSequencePushed;
                 _pendingDocumentIDs = null;
