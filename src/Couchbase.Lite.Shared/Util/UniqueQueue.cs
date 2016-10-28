@@ -47,12 +47,12 @@ namespace Couchbase.Lite.Util
         {
         }
 
-        public void Enqueue(T obj)
+        public bool Enqueue(T obj)
         {
             _lock.EnterWriteLock();
             try {
                 if(_used.Contains(obj)) {
-                    return;
+                    return false;
                 }
 
                 _used.Add(obj);
@@ -60,6 +60,8 @@ namespace Couchbase.Lite.Util
             } finally {
                 _lock.ExitWriteLock();
             }
+
+            return true;
         }
 
         public T Dequeue()

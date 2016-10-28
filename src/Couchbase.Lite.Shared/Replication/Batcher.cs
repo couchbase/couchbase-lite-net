@@ -137,8 +137,9 @@ namespace Couchbase.Lite.Support
             Log.To.NoDomain.V(TAG, "QueueObjects called with {0} objects", objects.Count);
             int added = 0;
             foreach (var obj in objects) {
-                added++;
-                _inbox.Enqueue(obj);
+                if(_inbox.Enqueue(obj)) {
+                    added++;
+                }
             }
 
             ScheduleWithDelay(DelayToUse());

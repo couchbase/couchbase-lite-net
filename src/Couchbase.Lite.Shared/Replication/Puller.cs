@@ -360,7 +360,10 @@ namespace Couchbase.Lite.Replicator
                     RevisionFailed();
                     SafeIncrementCompletedChangesCount();
                     if(IsDocumentError(error)) {
+                        Log.To.Sync.W(TAG, $"Error is permanent, {rev} will NOT be downloaded!");
                         _pendingSequences.RemoveSequence(rev.Sequence);
+                    } else {
+                        Log.To.Sync.I(TAG, $"Will try again later to get {rev}");
                     }
                 }
             };
