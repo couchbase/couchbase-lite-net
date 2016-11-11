@@ -20,6 +20,7 @@
 //
 
 using System;
+using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Diagnostics;
@@ -467,6 +468,8 @@ namespace Couchbase.Lite.Util
 
     internal static class Platform
     {
+        private const string Tag = nameof(Platform);
+
         public static readonly string Name;
         public static readonly string Architecture;
 
@@ -476,16 +479,22 @@ namespace Couchbase.Lite.Util
         {
             if(Type.GetType("Mono.Runtime") != null) {
                 return $"Mono on Windows ({Environment.OSVersion.VersionString})";
-            } 
-
-            string result = string.Empty;
-            using(var searcher = new System.Management.ManagementObjectSearcher("SELECT Caption FROM Win32_OperatingSystem")) {
-                foreach(var os in searcher.Get()) {
-                    result = os["Caption"].ToString();
-                    break;
-                }
-                return result;
             }
+
+            try {
+                string result = string.Empty;
+                using(var searcher = new System.Management.ManagementObjectSearcher("SELECT Caption FROM Win32_OperatingSystem")) {
+                    foreach(var os in searcher.Get()) {
+                        result = os["Caption"].ToString();
+                        break;
+                    }
+                    return result;
+                }
+            } catch(Exception e) {
+                Log.To.NoDomain.W(Tag, "Unable to query specific Windows information", e);
+            }
+
+            return "Unknown Windows OS";
         }
 
         private static string GetWindowsArchitecture()
