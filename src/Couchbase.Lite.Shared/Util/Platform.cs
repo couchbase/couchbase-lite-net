@@ -20,7 +20,6 @@
 //
 
 using System;
-using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Diagnostics;
