@@ -26,6 +26,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Util;
+using System.Net.Sockets;
 
 namespace Couchbase.Lite
 {
@@ -132,6 +133,12 @@ namespace Couchbase.Lite
             _textReader = new JsonTextReader(new StreamReader(json));
         }
 
+        public void StopIncrementalParse()
+        {
+            _textReader?.Close();
+            Misc.SafeDispose(ref _textReader);
+        }
+
         public bool Read()
         {
             try {
@@ -140,6 +147,12 @@ namespace Couchbase.Lite
                 if (e is JsonReaderException) {
                     throw Misc.CreateExceptionAndLog(Log.To.NoDomain, StatusCode.BadJson, TAG, 
                         "Error reading from streaming parser");
+                }
+
+                var se = e.InnerException as SocketException;
+                if(se?.SocketErrorCode == SocketError.Interrupted) {
+                    Log.To.NoDomain.I(Tag, "Streaming read cancelled, returning false for Read()...");
+                    return false;
                 }
 
                 throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, TAG, "Error reading from streaming parser");

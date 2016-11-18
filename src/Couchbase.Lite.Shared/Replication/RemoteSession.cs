@@ -132,6 +132,7 @@ namespace Couchbase.Lite.Internal
                 return;
             }
 
+            Disposed = true;
             _remoteRequestCancellationSource?.Cancel();
             _client.Dispose();
         }
@@ -274,6 +275,7 @@ namespace Couchbase.Lite.Internal
                     Task dummy;
                     _requests.TryRemove(message, out dummy);
                     message.Dispose();
+                    response?.Dispose();
                 }
             }, token);
 

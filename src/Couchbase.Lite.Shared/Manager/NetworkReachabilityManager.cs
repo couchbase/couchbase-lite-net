@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using Couchbase.Lite.Support;
+using Couchbase.Lite.Internal;
 
 #if __ANDROID__
 using Android.App;
@@ -46,30 +47,17 @@ namespace Couchbase.Lite
 
         public Exception LastError { get; private set; }
 
-        public bool CanReach(string remoteUri, TimeSpan timeout)
+        public bool CanReach(RemoteSession session, string remoteUri, TimeSpan timeout)
         {
             CouchbaseLiteHttpClientFactory.SetupSslCallback();
-            HttpWebRequest request;
-
-            var uri = new Uri (remoteUri);
-            var credentials = uri.UserInfo;
-            if (!String.IsNullOrEmpty(credentials)) {
-                remoteUri = string.Format ("{0}://{1}{2}", uri.Scheme, uri.Authority, uri.PathAndQuery);
-                request = WebRequest.CreateHttp (remoteUri);
-                request.Headers.Add ("Authorization", "Basic " + Convert.ToBase64String (Encoding.UTF8.GetBytes (credentials)));
-                request.PreAuthenticate = true;
-            }
-            else {
-                request = WebRequest.CreateHttp (remoteUri);
-            }
-
-            request.AllowWriteStreamBuffering = true;
-            request.Timeout = (int)timeout.TotalMilliseconds;
-            request.Method = "HEAD";
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Head, remoteUri); 
 
             try {
-                using(var response = (HttpWebResponse)request.GetResponse()) {
-                    return true; //We only care that the server responded
+                using(var cts = new CancellationTokenSource()) {
+                    cts.CancelAfter(timeout);
+                    using(var response = session.SendAsyncRequest(request, HttpCompletionOption.ResponseContentRead, cts.Token)) {
+                        return true; //We only care that the server responded
+                    }
                 }
             } catch(Exception e) {
                 var we = e as WebException;

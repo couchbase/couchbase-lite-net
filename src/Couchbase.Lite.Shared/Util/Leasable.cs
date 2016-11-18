@@ -26,7 +26,7 @@ namespace Couchbase.Lite.Internal
     // This class is used to mitigate race conditions between checking for a valid state
     // of a variable and then using it.  It's basically reference counting for .NET objects,
     // except releasing to zero only disposes if a dispose flag has been set.
-    internal sealed class Leasable<T> : IDisposable
+    internal sealed class Leasable<T> : IDisposable where T : class
     {
         public static readonly TimeSpan DefaultLeasePeriod = TimeSpan.FromMilliseconds(200);
         private int _leaseCount;
@@ -136,13 +136,8 @@ namespace Couchbase.Lite.Internal
 
         private void DisposeInternal()
         {
-            Disposed = true;
-            var disposable = _value as IDisposable;
-            if(disposable != null) {
-                disposable.Dispose();
-            }
-
-            _value = default(T);
+            var disposable = Interlocked.Exchange<T>(ref _value, default(T)) as IDisposable;
+            disposable?.Dispose();
         }
 
         public static implicit operator Leasable<T>(T input)

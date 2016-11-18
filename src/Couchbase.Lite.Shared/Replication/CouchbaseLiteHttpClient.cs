@@ -104,6 +104,7 @@ namespace Couchbase.Lite
             #if !NET_3_5
             })?.Unwrap()?.ContinueWith(t =>
             {
+                message.Dispose();
                 _sendSemaphore?.Release();
                 if(t.IsFaulted) {
                     var e = t.Exception;

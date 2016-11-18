@@ -144,6 +144,7 @@ namespace Couchbase.Lite.Internal
             }
                 
             try {
+                Misc.SafeDispose(ref changesFeedRequestTokenSource);
                 changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
                 var info = _remoteSession.SendAsyncRequest(
                     Request, 
@@ -322,12 +323,15 @@ namespace Couchbase.Lite.Internal
                 throw Misc.CreateExceptionAndLog(Log.To.ChangeTracker, response.StatusCode.GetStatusCode(), Tag,
                     "Got empty change tracker response");
             }
-                        
+
+            var cts = changesFeedRequestTokenSource;
+            var responseStream = default(Stream); 
             Log.To.ChangeTracker.D(Tag, "Getting stream from change tracker response");
             return response.Content.ReadAsStreamAsync().ContinueWith((Task<Stream> t) =>
             {
                 try {
-                    var result = _responseLogic.ProcessResponseStream(t?.Result, changesFeedRequestTokenSource == null ? CancellationToken.None : changesFeedRequestTokenSource.Token);
+                    responseStream = t?.Result;
+                    var result = _responseLogic.ProcessResponseStream(responseStream, cts == null ? CancellationToken.None : cts.Token);
                     Backoff.ResetBackoff();
                     if(result == ChangeTrackerResponseCode.ChangeHeartbeat) {
                         Heartbeat = _responseLogic.Heartbeat;
@@ -345,12 +349,17 @@ namespace Couchbase.Lite.Internal
                         } else {
                             RetryOrStopIfNecessary(e);
                         }
+                    } else {
+                        RetryOrStopIfNecessary(e);
                     }
                 } catch (Exception e) {
                     RetryOrStopIfNecessary(e);
                 } finally {
-                    Misc.SafeDispose(ref changesFeedRequestTokenSource);
+                    cts?.Dispose();
+                    responseStream?.Close();
+                    responseStream?.Dispose();
                     response.Dispose();
+                    Request.Dispose();
                 }
             });
         }
