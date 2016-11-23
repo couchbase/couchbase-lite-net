@@ -612,20 +612,18 @@ namespace Couchbase.Lite
             CreateDocuments(database, 5);
 
             var query = view.CreateQuery();
-            var result = query.Run();
             query.Run().Should().HaveCount(5).And.Subject.Select(x => ExtensionMethods.CastOrDefault<long>(x.Key)).Should().Equal(0L, 1L, 2L, 3L, 4L);
 
             var liveQuery = view.CreateQuery().ToLiveQuery();
-            liveQuery.MonitorEvents();
+            var are = new AutoResetEvent(false);
+            liveQuery.Changed += (sender, e) => are.Set();
             liveQuery.Start();
-            Sleep(1000);
-            liveQuery.ShouldRaise("Changed");
+            are.WaitOne(1000, true).Should().BeTrue();
             liveQuery.Rows.Should().HaveCount(5).And.Subject.Select(x => ExtensionMethods.CastOrDefault<long>(x.Key)).Should().Equal(0L, 1L, 2L, 3L, 4L);
 
             liveQuery.StartKey = 2;
             liveQuery.QueryOptionsChanged();
-            Sleep(1000);
-            liveQuery.ShouldRaise("Changed");
+            are.WaitOne(1000, true).Should().BeTrue();
             liveQuery.Rows.Should().HaveCount(3).And.Subject.Select(x => ExtensionMethods.CastOrDefault<long>(x.Key)).Should().Equal(2L, 3L, 4L);
 
             liveQuery.Stop();
