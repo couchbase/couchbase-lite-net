@@ -11,9 +11,9 @@ This is the source repo of Couchbase Lite C#. It is originally a port of Couchba
 
 * [Official Documentation](http://developer.couchbase.com/mobile/develop/guides/couchbase-lite/index.html)
 
-## Getting Couchbase Lite from Nuget
+## Getting Couchbase Lite
 
-These are the packages that are created by this repo:  [Couchbase.Lite](https://www.nuget.org/packages/Couchbase.Lite/), [Couchbase.Lite.Listener](https://www.nuget.org/packages/Couchbase.Lite.Listener/), [Couchbase.Lite.Listener.Bonjour](https://www.nuget.org/packages/Couchbase.Lite.Listener.Bonjour/), [Couchbase.Lite.Storage.SystemSQLite](https://www.nuget.org/packages/Couchbase.Lite.Storage.SystemSQLite/), [Couchbase.Lite.Storage.SQLCipher](https://www.nuget.org/packages/Couchbase.Lite.Storage.SQLCipher/), [Couchbase.Lite.Storage.ForestDB](https://www.nuget.org/packages/Couchbase.Lite.Storage.ForestDB/).  For more information about the last three, see [StorageEngineOverview.md](https://github.com/couchbase/couchbase-lite-net/blob/release/1.2/Notes/StorageEngineOverview.md)
+These are the official packages that are created by this repo:  [Couchbase.Lite](https://www.nuget.org/packages/Couchbase.Lite/), [Couchbase.Lite.Listener](https://www.nuget.org/packages/Couchbase.Lite.Listener/), [Couchbase.Lite.Listener.Bonjour](https://www.nuget.org/packages/Couchbase.Lite.Listener.Bonjour/), [Couchbase.Lite.Storage.SystemSQLite](https://www.nuget.org/packages/Couchbase.Lite.Storage.SystemSQLite/), [Couchbase.Lite.Storage.SQLCipher](https://www.nuget.org/packages/Couchbase.Lite.Storage.SQLCipher/), [Couchbase.Lite.Storage.ForestDB](https://www.nuget.org/packages/Couchbase.Lite.Storage.ForestDB/).  For more information about the last three, see [StorageEngineOverview.md](https://github.com/couchbase/couchbase-lite-net/blob/master/Notes/StorageEngineOverview.md).  For information about our CI server, see [CIAndVersions.md](https://github.com/couchbase/couchbase-lite-net/blob/master/Notes/CIAndVersions.md)
 
 ## Building Couchbase Lite master branch from source
 
@@ -21,8 +21,8 @@ Please use `git` to clone the repo, rather than downloading it from a zip file. 
 
 You can build Couchbase Lite using either of the following:
 
-* Visual Studio 2015 Pro, Premium, or Ultimate or later.
-* Xamarin Studio 5 or later.
+* Visual Studio 2015 or later.
+* Xamarin Studio 6 or later.
 
 There are solution files per platform and the projects included can be identified in the following way:
 
@@ -49,7 +49,7 @@ There are solution files per platform and the projects included can be identifie
 * UnityAndroid - Unity Android Player
 * UnityApple - Unity iOS and OS X Standalone
 
-If you simply build the solution file that will cause a build of *all* projects by default.  You can change which projects get built in the solution options of Xamarin Studio, or the Configuration Manager of Visual Studio.  Alternatively, you could build the projects you want instead of the whole solution.  
+If you simply build the solution file that will cause a build of *all* projects by default.  You can change which projects get built in the solution options of Xamarin Studio, or the Configuration Manager of Visual Studio.  Alternatively, you could build the projects you want instead of the whole solution.
 
 Note that the Unity project needs rebasing, and likely does not build correctly on master.  There is a release/unity-ga branch currently tracking the state of Unity.  So far this has not been an issue, but I'd like to wait for Unity to upgrade their .NET runtime before attempting a rebase.  This will allow the removal of ***a lot*** of cruft code around ancient .NET profiles.  To build any of the Unity projects you must supply the UnityEngine.dll file to the project.  If your Unity install is in the default location, then the project will copy it as part of the build.  Otherwise, it needs to go in the src/Couchbase.Lite.Unity/vendor/Unity folder.  If you can't build the project then file an issue here.
 
@@ -69,5 +69,5 @@ The replication unit tests currently require a running instance of `sync_gateway
 	* Beginner example
 * [Couchbase Connect](https://github.com/FireflyLogic/couchbase-connect-14)
 	* Advanced example
-	
+
 [![GitHub license](https://img.shields.io/github/license/couchbase/couchbase-lite-net.svg?style=plastic)]()
