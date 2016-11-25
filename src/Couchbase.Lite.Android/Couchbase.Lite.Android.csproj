@@ -72,10 +72,8 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Mono.Android" />
-    <Reference Include="System.Json" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Web.Services" />
     <Reference Include="Stateless">
       <HintPath>..\packages\Stateless.2.5.53.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
       <Private>False</Private>

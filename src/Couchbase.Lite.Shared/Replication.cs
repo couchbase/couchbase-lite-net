@@ -1211,7 +1211,6 @@ namespace Couchbase.Lite
             }
 
             var newCount = Interlocked.Add(ref _completedChangesCount, value);
-            Log.To.Sync.I(Tag, "{0} progress {1} / {2}", this, newCount, _changesCount);
             NotifyChangeListeners();
             if (newCount == _changesCount && IsSafeToStop) {
                 if(Continuous) {
@@ -1234,7 +1233,6 @@ namespace Couchbase.Lite
             }
 
             var newCount = Interlocked.Add(ref _changesCount, value);
-            Log.To.Sync.I(Tag, "{0} progress {1} / {2}", this, _completedChangesCount, newCount);
             if(Continuous) {
                 FireTrigger(ReplicationTrigger.Resume);
             }
@@ -1879,7 +1877,7 @@ namespace Couchbase.Lite
 
         private void NotifyChangeListeners(ReplicationStateTransition transition = null) 
         {
-            Log.To.Sync.I(Tag, "NotifyChangeListeners ({0}/{1}, state={2} (batch={3}, net={4}))",
+            Log.To.Sync.V(Tag, "NotifyChangeListeners ({0}/{1}, state={2} (batch={3}, net={4}))",
                 CompletedChangesCount, ChangesCount,
                 _stateMachine.State, Batcher == null ? 0 : Batcher.Count(), _remoteSession.RequestCount);
 
