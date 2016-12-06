@@ -4,7 +4,7 @@ using System.Reflection;
 
 <#
 string assemblyVersion =  System.Environment.GetEnvironmentVariable("VERSION") ?? "0.0.0";
-string nugetVersion = System.Environment.GetEnvironmentVariable("NUGET_VERSION") ?? envAssembly;
+string nugetVersion = System.Environment.GetEnvironmentVariable("NUGET_VERSION") ?? assemblyVersion;
 #>
 
 [assembly: AssemblyVersion ("<#= assemblyVersion#>")]
