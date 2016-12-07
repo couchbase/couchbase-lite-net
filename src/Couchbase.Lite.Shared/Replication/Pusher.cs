@@ -371,7 +371,7 @@ namespace Couchbase.Lite.Replicator
                         }
 
                         multiPart.Add(content);
-                        length += inputStream.Length;
+                        length += attachment.GetCast<double>("length");
                     }
                 }
             }
@@ -405,7 +405,7 @@ namespace Couchbase.Lite.Replicator
                 }
             });
 
-            Log.To.Sync.V(TAG, "{0} queuing revision (multipart, {1}kb)", this, length / 1024.0);
+            Log.To.Sync.V(TAG, "{0} queuing revision (multipart, ~{1}kb)", this, length / 1024.0);
             return true;
         }
             
