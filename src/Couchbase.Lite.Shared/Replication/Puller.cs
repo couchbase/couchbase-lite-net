@@ -156,6 +156,7 @@ namespace Couchbase.Lite.Replicator
                 RemoteSession = _remoteSession,
                 RetryStrategy = ReplicationOptions.RetryStrategy,
                 WorkExecutor = WorkExecutor,
+                UsePost = CheckServerCompatVersion("0.9.3")
             };
             _changeTracker = ChangeTrackerFactory.Create(changeTrackerOptions);
             _changeTracker.ActiveOnly = initialSync;
