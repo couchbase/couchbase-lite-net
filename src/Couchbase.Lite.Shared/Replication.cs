@@ -1685,10 +1685,9 @@ namespace Couchbase.Lite
                 return (StatusCode)httpException.StatusCode;
             }
 
-            var webException = e as WebException;
-            if (webException != null)
-            {
-                return (StatusCode)(webException.Response as HttpWebResponse).StatusCode;
+            var webResponse = (e as WebException)?.Response as HttpWebResponse;
+            if (webResponse != null) {
+                return (StatusCode)webResponse.StatusCode;
             }
 
             return StatusCode.Unknown;
