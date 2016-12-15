@@ -20,6 +20,7 @@
 //
 
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -47,7 +48,9 @@ namespace Couchbase.Lite.Listener
         #region Variables
 
         private Timer _heartbeatTimer;
-        private RevisionList _changes = new RevisionList();
+        private long _since;
+        private ChangesOptions _options;
+        private bool _filled;
 
         #endregion
 
@@ -55,7 +58,15 @@ namespace Couchbase.Lite.Listener
 
         public ICouchbaseListenerContext Context { get; set; }
 
-        public Database Db { get; set; }
+        public Database Db 
+        {
+            get {
+                return _db;
+            } set {
+                _db = value;
+            }
+        }
+        private Database _db;
 
         /// <summary>
         /// The changes feed mode being used to listen to the database
@@ -124,15 +135,30 @@ namespace Couchbase.Lite.Listener
         /// processing
         /// </summary>
         /// <param name="db">Db.</param>
-        public void SubscribeToDatabase(Database db)
+        public void SubscribeToDatabase(Database db, long since, ChangesOptions options)
         {
-            if (db == null) {
+            if(db == null) {
                 return;
             }
 
-            IsAsync = true;
+
             Db = db;
-            Db.Changed += DatabaseChanged;
+            IsAsync = true;
+            _since = since;
+            _options = options;
+            if(ChangesFeedMode == ChangesFeedMode.LongPoll) {
+                var currentChanges = Db.ChangesSince(since, options, ChangesFilter, FilterParams);
+                IsAsync = !currentChanges.Any();
+                if(!IsAsync) {
+                    if(ChangesIncludeConflicts) {
+                        Response.JsonBody = new Body(DatabaseMethods.ResponseBodyForChanges(currentChanges, since, options.Limit, this));
+                    } else {
+                        Response.JsonBody = new Body(DatabaseMethods.ResponseBodyForChanges(currentChanges, since, this));
+                    }
+                } else {
+                    Db.Changed += DatabaseChanged;
+                }
+            }
         }
 
         /// <summary>
@@ -174,6 +200,13 @@ namespace Couchbase.Lite.Listener
         // Processes a change in the subscribed database
         private void DatabaseChanged(object sender, DatabaseChangeEventArgs args)
         {
+            if(!_filled) {
+                _filled = true;
+                WriteChanges(Db.ChangesSince(_since, _options, ChangesFilter, FilterParams));
+                return;
+            }
+
+            var changesToSend = new RevisionList();
             foreach (var change in args.Changes) {
                 var rev = change.AddedRevision;
                 var winningRev = change.WinningRevisionId;
@@ -198,39 +231,44 @@ namespace Couchbase.Lite.Listener
                     continue;
                 }
 
-                if (ChangesFeedMode == ChangesFeedMode.LongPoll) {
-                    _changes.Add(rev);
-                } else {
-                    var written = Response.SendContinuousLine(DatabaseMethods.ChangesDictForRev(rev, this), ChangesFeedMode);
-                    if (!written) {
-                        Terminate();
-                    }
-                }
+                changesToSend.Add(rev);
             }
 
-            if (ChangesFeedMode == ChangesFeedMode.LongPoll && _changes.Count > 0) {
-                var body = new Body(DatabaseMethods.ResponseBodyForChanges(_changes, 0, this));
-                Response.WriteData(body.AsJson(), true);
-                Terminate ();
+            WriteChanges(changesToSend);
+        }
+
+        private void WriteChanges(RevisionList changes)
+        {
+            if(changes.Count > 0) {
+                if(ChangesFeedMode == ChangesFeedMode.LongPoll) {
+                    var body = new Body(DatabaseMethods.ResponseBodyForChanges(changes, 0, this));
+                    Response.WriteData(body.AsJson(), true);
+                    Terminate();
+                } else {
+                    foreach(var rev in changes) {
+                        var written = Response.SendContinuousLine(DatabaseMethods.ChangesDictForRev(rev, this), ChangesFeedMode);
+                        if(!written) {
+                            Terminate();
+                            break;
+                        }
+                    }
+                }
             }
         }
 
         // Tear down this object because an error occurred
         private void Terminate()
         {
-            if (Db == null) {
+            var db = Interlocked.Exchange(ref _db, null);
+            if (db == null) {
                 return;
             }
 
             Log.To.Router.I(TAG, "Shutting down DBMonitorCouchbaseState");
-            Db.Changed -= DatabaseChanged;
+            db.Changed -= DatabaseChanged;
             CouchbaseLiteRouter.ResponseFinished(this);
-            Db = null;
-
-            if (_heartbeatTimer != null) {
-                _heartbeatTimer.Dispose();
-                _heartbeatTimer = null;
-            }
+            _heartbeatTimer?.Dispose();
+            _heartbeatTimer = null;
         }
 
         #endregion
