@@ -1314,13 +1314,6 @@ namespace Couchbase.Lite.Storage.ForestDB
                     "Attempting to write to a readonly database (PutRevision)");
             }
 
-            var json = default(string);
-            if(properties != null) {
-                json = Manager.GetObjectMapper().WriteValueAsString(Database.StripDocumentJSON(properties), true);
-            } else {
-                json = "{}";
-            }
-
             if(inDocId == null) {
                 inDocId = Misc.CreateGUID();
             }
@@ -1331,8 +1324,35 @@ namespace Couchbase.Lite.Storage.ForestDB
             var success = RunInTransaction(() =>
             {
                 try {
+                    
                     var docId = inDocId;
                     var prevRevId = inPrevRevId;
+
+                    // https://github.com/couchbase/couchbase-lite-net/issues/749
+                    // Need to ensure revpos is correct for a revision inserted on top
+                    // of a deletion
+                    var existing = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_getForPut(Forest, docId, prevRevId?.ToString(), deleting,
+                        allowConflict, err));
+
+                    if(existing->IsDeleted) {
+                        var attachments = properties.CblAttachments();
+                        if(attachments != null) {
+                            foreach(var attach in attachments) {
+                                var metadata = attach.Value.AsDictionary<string, object>();
+                                if(metadata != null) {
+                                    metadata["revpos"] = existing->revID.AsRevID().Generation + 1;
+                                }
+                            }
+                        }
+                    }
+
+                    var json = default(string);
+                    if(properties != null) {
+                        json = Manager.GetObjectMapper().WriteValueAsString(Database.StripDocumentJSON(properties), true);
+                    } else {
+                        json = "{}";
+                    }
+
                     C4DocPutRequest rq = new C4DocPutRequest {
                         body = json,
                         docID = docId,

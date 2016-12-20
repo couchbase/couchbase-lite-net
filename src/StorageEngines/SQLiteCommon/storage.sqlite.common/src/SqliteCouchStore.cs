@@ -1635,18 +1635,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public RevisionInternal PutRevision(string inDocId, RevisionID inPrevRevId, IDictionary<string, object> properties,
             bool deleting, bool allowConflict, Uri source, StoreValidation validationBlock)
         {
-            IEnumerable<byte> json = null;
-            if (properties != null) {
-                try {
-                    json = Manager.GetObjectMapper().WriteValueAsBytes(Database.StripDocumentJSON(properties), true);
-                } catch (Exception e) {
-                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
-                        "Unable to serialize document properties in PutRevision");
-                }
-            } else {
-                json = Encoding.UTF8.GetBytes("{}");
-            }
-
             RevisionInternal newRev = null;
             RevisionID winningRevID = null;
             bool inConflict = false;
@@ -1742,6 +1730,33 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 inConflict = wasConflicted || (!deleting && prevRevId != oldWinningRevId);
 
                 //// PART II: In which we prepare for insertion...
+
+                // https://github.com/couchbase/couchbase-lite-net/issues/749
+                // Need to ensure revpos is correct for a revision inserted on top
+                // of a deletion
+                if(oldWinnerWasDeletion) {
+                    var attachments = properties.CblAttachments();
+                    if(attachments != null) {
+                        foreach(var attach in attachments) {
+                            var metadata = attach.Value.AsDictionary<string, object>();
+                            if(metadata != null) {
+                                metadata["revpos"] = prevRevId.Generation + 1;
+                            }
+                        }
+                    }
+                }
+
+                IEnumerable<byte> json = null;
+                if(properties != null) {
+                    try {
+                        json = Manager.GetObjectMapper().WriteValueAsBytes(Database.StripDocumentJSON(properties), true);
+                    } catch(Exception e) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                            "Unable to serialize document properties in PutRevision");
+                    }
+                } else {
+                    json = Encoding.UTF8.GetBytes("{}");
+                }
 
                 // Bump the revID and update the JSON:
                 var newRevId = TreeRevisionID.RevIDForJSON(json, deleting, prevRevId);
