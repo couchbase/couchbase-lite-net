@@ -64,6 +64,7 @@ using NUnit.Framework;
 using System.Net.Sockets;
 using Couchbase.Lite.Revisions;
 using System.Diagnostics;
+using FluentAssertions;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -226,6 +227,53 @@ namespace Couchbase.Lite
 
             base.TearDown();
         }*/
+
+        [Test]
+        public void TestRejectedDocument()
+        {
+            var push = database.CreatePushReplication(GetReplicationURL());
+            var wait = new WaitAssert();
+            push.Changed += (sender, e) => {
+                var err = e.LastError as HttpResponseException;
+                if(err != null) {
+                    wait.RunAssert(() => err.StatusCode.Should().Be(HttpStatusCode.Forbidden,
+                                                                    "because the document should be rejected"));
+                }
+
+                var err2 = e.LastError as CouchbaseLiteException;
+                if(err2 != null) {
+                    wait.RunAssert(() => err2.Code.Should().Be(StatusCode.Forbidden,
+                                                                    "because the document should be rejected"));
+                }
+            };
+
+            database.CreateDocument().PutProperties(new Dictionary<string, object> {
+                ["reject"] = false
+            });
+
+            database.CreateDocument().PutProperties(new Dictionary<string, object> {
+                ["reject"] = true
+            });
+
+            push.Start();
+
+            wait.WaitForResult(TimeSpan.FromSeconds(5));
+
+            var docWithAttach = database.CreateDocument();
+            docWithAttach.Update(rev => {
+                rev.SetUserProperties(new Dictionary<string, object> {
+                    ["reject"] = true
+                });
+
+                rev.SetAttachment("foo", "foo/bar", Enumerable.Repeat<byte>((byte)'a', 100000));
+                return true;
+            });
+
+            wait = new WaitAssert();
+            push.Start();
+
+            wait.WaitForResult(TimeSpan.FromSeconds(5));
+        }
 
         [Test]
         public void TestUnauthorized()

@@ -281,10 +281,12 @@ namespace Couchbase.Lite.Replicator
                             // 403/Forbidden means validation failed; don't treat it as an error
                             // because I did my job in sending the revision. Other statuses are
                             // actual replication errors.
-                            if (status.Code != StatusCode.Forbidden)
-                            {
+                            if(status.Code != StatusCode.Forbidden) {
                                 var docId = itemObject.GetCast<string>("id");
                                 failedIds.Add(docId);
+                            } else {
+                                LastError = Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.Forbidden, TAG,
+                                    $"{itemObject["id"]} was rejected by the endpoint with message: {itemObject["reason"]}");
                             }
                         }
                     }
@@ -390,9 +392,12 @@ namespace Couchbase.Lite.Replicator
                 if (e != null) {
                     var httpError = Misc.Flatten(e).FirstOrDefault(ex => ex is HttpResponseException) as HttpResponseException;
                     if (httpError != null) {
-                        if (httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType) {
+                        if(httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType) {
                             _dontSendMultipart = true;
                             UploadJsonRevision(revision);
+                        } else if(httpError.StatusCode == System.Net.HttpStatusCode.Forbidden) {
+                            LastError = Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.Forbidden, TAG,
+                                                                       $"{revision.DocID} was rejected by the endpoint with message");
                         }
                     } else {
                         LastError = e;
@@ -427,8 +432,14 @@ namespace Couchbase.Lite.Replicator
             {
                 if (e != null) 
                 {
-                    LastError = e;
-                    RevisionFailed();
+                    var httpError = Misc.Flatten(e).FirstOrDefault(ex => ex is HttpResponseException) as HttpResponseException;
+                    if(httpError != null) {
+                        LastError = Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.Forbidden, TAG,
+                                                                       $"{rev.DocID} was rejected by the endpoint");
+                    } else {
+                        LastError = e;
+                        RevisionFailed();
+                    }
                 } 
                 else 
                 {
