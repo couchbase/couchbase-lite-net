@@ -286,7 +286,7 @@ namespace Couchbase.Lite.Replicator
                                 failedIds.Add(docId);
                             } else {
                                 LastError = Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.Forbidden, TAG,
-                                                                       $"{itemObject["id"]} was rejected by the endpoint");
+                                    $"{itemObject["id"]} was rejected by the endpoint with message: {itemObject["reason"]}");
                             }
                         }
                     }
@@ -397,7 +397,7 @@ namespace Couchbase.Lite.Replicator
                             UploadJsonRevision(revision);
                         } else if(httpError.StatusCode == System.Net.HttpStatusCode.Forbidden) {
                             LastError = Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.Forbidden, TAG,
-                                                                       $"{revision.DocID} was rejected by the endpoint");
+                                                                       $"{revision.DocID} was rejected by the endpoint with message");
                         }
                     } else {
                         LastError = e;
