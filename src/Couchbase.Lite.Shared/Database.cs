@@ -1245,6 +1245,16 @@ namespace Couchbase.Lite
             return Storage.ChangesSince(lastSeq, options, revFilter);
         }
 
+        internal IEnumerable<RevisionInternal> ChangesSinceStreaming(long lastSeq, ChangesOptions options, FilterDelegate filter, IDictionary<string, object> filterParams)
+        {
+            RevisionFilter revFilter = null;
+            if(filter != null) {
+                revFilter = (rev => RunFilter(filter, filterParams, rev));
+            }
+
+            return Storage.ChangesSinceStreaming(lastSeq, options, revFilter);
+        }
+
         internal bool RunFilter(FilterDelegate filter, IDictionary<string, object> filterParams, RevisionInternal rev)
         {
             if(filter == null) {

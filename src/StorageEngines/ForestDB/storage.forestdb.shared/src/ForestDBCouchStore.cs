@@ -209,7 +209,7 @@ namespace Couchbase.Lite.Storage.ForestDB
         }
 
         #endregion
-
+         
         #region Public Methods
 
         public RevisionInternal GetDocument(string docId, long sequence)
@@ -904,6 +904,11 @@ namespace Couchbase.Lite.Storage.ForestDB
             }
 
             return changes;
+        }
+
+        public IEnumerable<RevisionInternal> ChangesSinceStreaming(long lastSequence, ChangesOptions options, RevisionFilter filter)
+        {
+            throw new NotImplementedException();
         }
 
         public IEnumerable<QueryRow> GetAllDocs(QueryOptions options)
