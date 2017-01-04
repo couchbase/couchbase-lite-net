@@ -50,21 +50,12 @@ namespace Couchbase.Lite
         public bool CanReach(RemoteSession session, string remoteUri, TimeSpan timeout)
         {
             CouchbaseLiteHttpClientFactory.SetupSslCallback();
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Head, remoteUri); 
-
+            var uri = new Uri(remoteUri);
             try {
-                using(var cts = new CancellationTokenSource()) {
-                    cts.CancelAfter(timeout);
-                    using(var response = session.SendAsyncRequest(request, HttpCompletionOption.ResponseContentRead, cts.Token)) {
-                        return true; //We only care that the server responded
-                    }
+                using(var c = new TcpClient(uri.Host, uri.Port)) {
+                    return true;
                 }
             } catch(Exception e) {
-                var we = e as WebException;
-                if(we != null && we.Status == WebExceptionStatus.ProtocolError) {
-                    return true; //Getting an HTTP error technically means we can connect
-                }
-
                 Log.To.Sync.I(TAG, "Didn't get successful connection to {0}", remoteUri);
                 Log.To.Sync.V(TAG, "   Cause: ", e);
                 LastError = e;

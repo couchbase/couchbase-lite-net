@@ -54,7 +54,6 @@ namespace Couchbase.Lite.Internal
 {
     internal interface IChangeTrackerClient
     {
-        CouchbaseLiteHttpClient GetHttpClient();
         CookieContainer GetCookieStore();
         void ChangeTrackerReceivedChange(IDictionary<string, object> change);
         void ChangeTrackerStopped(ChangeTracker tracker, ErrorResolution resolution);

@@ -324,7 +324,7 @@ namespace Couchbase.Lite.Replicator
             Log.To.SyncPerf.I(TAG, "{0} bulk-getting {1} remote revisions...", ReplicatorID, nRevs);
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
             BulkDownloader dl = new BulkDownloader(new BulkDownloaderOptions {
-                ClientFactory = ClientFactory,
+                Session = _remoteSession,
                 DatabaseUri = RemoteUrl,
                 Revisions = bulkRevs,
                 Database = LocalDatabase,
@@ -393,7 +393,6 @@ namespace Couchbase.Lite.Replicator
 
                 SafeAddToCompletedChangesCount(remainingRevs.Count);
                 LastSequence = _pendingSequences.GetCheckpointedValue();
-                Misc.SafeDispose(ref dl);
 
                 PullRemoteRevisions();
             };
@@ -1014,11 +1013,6 @@ namespace Couchbase.Lite.Replicator
         public void ChangeTrackerStopped(ChangeTracker tracker, ErrorResolution resolution)
         {
             WorkExecutor.StartNew(() => ProcessChangeTrackerStopped(tracker, resolution));
-        }
-
-        public CouchbaseLiteHttpClient GetHttpClient()
-        {
-            return ClientFactory.GetHttpClient(CookieContainer, ReplicationOptions.RetryStrategy);
         }
 
         public CookieContainer GetCookieStore()
