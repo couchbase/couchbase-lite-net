@@ -2,17 +2,17 @@
 
 using Android.App;
 using Android.OS;
-using Xamarin.Android.NUnitLite;
+using Android.NUnitLite.UI;
 
 namespace Couchbase.Lite.Android.Tests
 {
     [Activity (Label = "Couchbase.Lite.Android.Tests", MainLauncher = true)]
-    public class MainActivity : TestSuiteActivity
+    public class MainActivity : RunnerActivity
     {
         protected override void OnCreate (Bundle bundle)
         {
             // tests can be inside the main assembly
-            AddTest (Assembly.GetExecutingAssembly ());
+            Add (Assembly.GetExecutingAssembly ());
             // or in any reference assemblies
             // AddTest (typeof (Your.Library.TestClass).Assembly);
 

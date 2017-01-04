@@ -19,7 +19,6 @@ local-test.properties
 # Build results
 [Dd]ebug/
 [Rr]elease/
-x64/
 *_i.c
 *_p.c
 *.ilk
@@ -144,6 +143,9 @@ samples/CouchbaseSample.Android/Resources/Resource.designer.cs
 UnityEngine.dll
 version
 src/Build.proj
+src/StorageEngines/CustomSQLite/vendor/sqlite/*
+!src/StorageEngines/CustomSQLite/vendor/sqlite/download_native.sh
+!src/StorageEngines/CustomSQLite/vendor/sqlite/download_native.ps1
 
 #Unity generated
 Temp/
@@ -156,3 +158,4 @@ UnityDemo.sln
 *.walrus
 tmp/
 sync_gateway
+staging

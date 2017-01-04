@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <mdb>dll.mdb</mdb>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <mdb>pdb</mdb>
+  </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{8BFA15B7-957D-4AD1-9019-9DF98F1EE9EB}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Listener.Bonjour.Net45</RootNamespace>
-    <AssemblyName>Couchbase.Lite.Listener.Bonjour</AssemblyName>
-    <ReleaseVersion>1.1</ReleaseVersion>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <AssemblyName>Couchbase.Lite.Listener.Bonjour</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -29,19 +35,34 @@
     <ConsolePause>false</ConsolePause>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Packaging</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
+    <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\net45" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll;$(OutputPath)Couchbase.Lite.Listener.Bonjour.$(mdb);$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll.config" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\net45" />
+  </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\Couchbase.Lite.Listener.Net45\Couchbase.Lite.Listener.Net45.csproj">
       <Project>{9AD3BADD-4F48-4208-B601-E63987C12049}</Project>
       <Name>Couchbase.Lite.Listener.Net45</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj">
       <Project>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</Project>
       <Name>Couchbase.Lite.Net45</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
 </Project>

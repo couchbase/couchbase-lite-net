@@ -28,6 +28,7 @@ using System.Threading;
 
 using Couchbase.Lite.Util;
 using System.Threading.Tasks;
+using Microsoft.IO;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -55,8 +56,9 @@ namespace Couchbase.Lite.Support
         private int _nextInputIndex;
         private Stream _currentInput;
         private Stream _output;
-        private ManualResetEventSlim _mre;
         private bool _isDisposed;
+        private readonly int _bufferSize;
+
 
         /// <summary>
         /// The total bytes written so far.
@@ -79,11 +81,25 @@ namespace Couchbase.Lite.Support
         /// <value><c>true</c> if this instance is open; otherwise, <c>false</c>.</value>
         public bool IsOpen { 
             get {
-                return _mre != null && !_mre.IsSet && !_isDisposed;
+                return _output != null && !_isDisposed;
             }
         }
 
         #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        /// <param name="bufferSize">The size of the buffer to use when copying from streams</param>
+        public MultiStreamWriter(int bufferSize = DEFAULT_BUFFER_SIZE)
+        {
+            _bufferSize = bufferSize;
+        }
+
+        #endregion
+
 
         #region Public Methods
 
@@ -103,7 +119,7 @@ namespace Couchbase.Lite.Support
         /// <param name="stream">The stream to be processed.</param>
         public void AddStream(Stream stream)
         {
-            Log.D(TAG, "Adding stream of unknown length: {0}", stream);
+            Log.To.Database.D(TAG, "Adding stream of unknown length: {0}", stream);
             _inputs.Add(stream);
             Length = -1; // length is now unknown
         }
@@ -128,9 +144,13 @@ namespace Couchbase.Lite.Support
         /// <param name="fileUrl">The file URL to read data from</param>
         public bool AddFileUrl(Uri fileUrl)
         {
+            if (fileUrl == null) {
+                return false;
+            }
+
             FileInfo info;
             try {
-                info = new FileInfo(fileUrl.AbsolutePath);
+                info = new FileInfo(Uri.UnescapeDataString(fileUrl.AbsolutePath));
             } catch(Exception) {
                 return false;
             }
@@ -157,17 +177,17 @@ namespace Couchbase.Lite.Support
         public Task<bool> WriteAsync(Stream output)
         {
             if (_isDisposed) {
+                Log.To.Sync.E(TAG, "Attempt to call WriteAsync on a disposed object, throwing...");
                 throw new ObjectDisposedException("MultiStreamWriter");
             }
 
             Debug.Assert(output != null);
-            Debug.Assert(_output == null, "Already open");
             _output = output;
-            Opened();
-
+            var mre = new ManualResetEventSlim();
             var tcs = new TaskCompletionSource<bool>();
-            ThreadPool.RegisterWaitForSingleObject(_mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
+            ThreadPool.RegisterWaitForSingleObject(mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
                 null, TimeSpan.FromSeconds(30), true);
+            Opened(mre);
 
             return tcs.Task;
         }
@@ -182,21 +202,21 @@ namespace Couchbase.Lite.Support
             }
 
             _isDisposed = true;
-            Log.D(TAG, "Closed");
+            Log.To.Database.V(TAG, "{0} closing", this);
             if (_output != null) {
-                _output.Close();
+                _output.Dispose();
                 _output = null;
             }
 
             if (_currentInput != null) {
-                _currentInput.Close();
+                _currentInput.Dispose();
                 _currentInput = null;
             }
 
             for (int i = _nextInputIndex; i < _inputs.Count; i++) {
                 var nextStream = _inputs[i] as Stream;
                 if (nextStream != null) {
-                    nextStream.Close();
+                    nextStream.Dispose();
                 }
             }
 
@@ -209,12 +229,13 @@ namespace Couchbase.Lite.Support
         /// <returns>All the accumulated data</returns>
         public IEnumerable<byte> AllOutput()
         {
-            using (var ms = new MemoryStream()) {
+            _nextInputIndex = 0;
+            using (var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream()) {
                 if (!WriteAsync(ms).Wait(TimeSpan.FromSeconds(30))) {
-                    Log.W(TAG, "Unable to get output!");
+                    Log.To.Database.W(TAG, "{0} unable to get output!", this);
                     return null;
                 }
-
+                    
                 return ms.ToArray();
             }
         }
@@ -224,13 +245,23 @@ namespace Couchbase.Lite.Support
         #region Protected Methods
 
         /// <summary>
+        /// Disposes the resources of the object
+        /// </summary>
+        /// <param name="finalizing">If <c>true</c>, this is the finalizer method, otherwise
+        /// it is the IDisposable Dispose() method.</param>
+        protected virtual void Dispose(bool finalizing)
+        {
+            if(!finalizing) {
+                Close();
+            }
+        }
+
+        /// <summary>
         /// Called when the output stream is opened
         /// </summary>
         protected virtual void Opened()
         {
-            _totalBytesWritten = 0;
-            _mre = new ManualResetEventSlim();
-            StartWriting();
+
         }
 
         /// <summary>
@@ -248,27 +279,36 @@ namespace Couchbase.Lite.Support
 
         #region Private Methods
 
-        private void StartWriting()
+        private void Opened(ManualResetEventSlim doneSignal)
+        {
+            Opened();
+            _totalBytesWritten = 0;
+            StartWriting(doneSignal);
+        }
+
+        private void StartWriting(ManualResetEventSlim doneSignal)
         {
             var gotInput = OpenNextInput();
             if (gotInput) {
-                _currentInput.CopyToAsync(_output).ContinueWith(t => StartWriting());
+                _currentInput.CopyToAsync(_output, _bufferSize).ContinueWith(t => StartWriting(doneSignal));
             } else {
-                _mre.Set();
-                _mre = null;
+                doneSignal.Set();
+                doneSignal.Dispose();
             }
         }
 
         private Stream StreamForInput(object input)
         {
             var data = input as IEnumerable<byte>;
-            if (data != null) {
-                return new MemoryStream(data.ToArray());
+            var realized = data?.ToArray();
+            if (realized != null) {
+                return RecyclableMemoryStreamManager.SharedInstance.GetStream("MultiStreamWriter", 
+                    realized, 0, realized.Length);
             }
 
             var fileUri = input as Uri;
             if (fileUri != null && fileUri.IsFile) {
-                return new FileStream(fileUri.AbsolutePath, FileMode.Open, FileAccess.Read);
+                return new FileStream(Uri.UnescapeDataString(fileUri.AbsolutePath), FileMode.Open, FileAccess.Read);
             }
 
             var stream = input as Stream;
@@ -298,12 +338,23 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
-        #region IDisposable
+        #region Overrides
         #pragma warning disable 1591
+
+        public override string ToString()
+        {
+            return String.Format("MultiStreamWriter[Length={0}, IsOpen={1}, InputCount={2}]", Length, IsOpen, _inputs.Count);
+        }
+
+        #endregion
+
+        #region IDisposable
+        
 
         public void Dispose()
         {
-            Close();
+            Dispose(false);
+            GC.SuppressFinalize(this);
         }
 
         #pragma warning restore 1591

@@ -42,89 +42,178 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
-using Sharpen;
+using System.Collections.Concurrent;
+using System.Text;
+using System.Collections;
+using System.Net.Http.Headers;
+
+#if !NET_3_5
+using StringEx = System.String;
+#endif
 
 namespace Couchbase.Lite.Auth
 {
-    internal class FacebookAuthorizer : Authorizer
+    internal class FacebookAuthorizer : Authorizer, ISessionCookieAuthorizer
     {
-        public const string LoginParameterAccessToken = "access_token";
+        private static readonly string Tag = typeof(FacebookAuthorizer).Name;
+        private const string LoginParameterAccessToken = "access_token";
+        private const string QueryParameter = "facebookAccessToken";
+        private const string QueryParameterEmail = "email";
 
-        public const string QueryParameter = "facebookAccessToken";
+        private readonly static ConcurrentDictionary<string[], string> _AccessTokens =
+            new ConcurrentDictionary<string[], string>(new StringArrayComparer());
 
-        public const string QueryParameterEmail = "email";
+        private readonly string _emailAddress;
 
-        private static IDictionary<IList<string>, string> accessTokens;
+        public override string UserInfo
+        {
+            get {
+                throw new NotImplementedException();
+            }
+        }
 
-        private string emailAddress;
+        public override string Scheme
+        {
+            get {
+                throw new NotImplementedException();
+            }
+        }
+
+        public override bool UsesCookieBasedLogin
+        {
+            get {
+                throw new NotImplementedException();
+            }
+        }
 
         public FacebookAuthorizer(string emailAddress)
         {
-            this.emailAddress = emailAddress;
+            if(emailAddress == null) {
+                Log.To.Sync.E(Tag, "Null email address in constructor, throwing...");
+                throw new ArgumentNullException("emailAddress");
+            }
+
+            _emailAddress = emailAddress;
         }
 
-        public override string UserInfo { get { return null; } }
-
-        public override string Scheme { get { return null; } }
-
-        public override bool UsesCookieBasedLogin { get { return true; } }
-
-        public override IDictionary<string, string> LoginParametersForSite(Uri site)
+        public static FacebookAuthorizer FromUri(Uri uri)
         {
-            IDictionary<string, string> loginParameters = new Dictionary<string, string>();
-            string accessToken = AccessTokenForEmailAndSite(this.emailAddress, site);
-            if (accessToken != null)
-            {
-                loginParameters[LoginParameterAccessToken] = accessToken;
-                return loginParameters;
+            var facebookAccessToken = URIUtils.GetQueryParameter(uri, QueryParameter);
+
+            if(facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken)) {
+                var email = URIUtils.GetQueryParameter(uri, QueryParameterEmail);
+                var authorizer = new FacebookAuthorizer(email);
+                Uri remoteWithQueryRemoved = null;
+
+                try {
+                    remoteWithQueryRemoved = new UriBuilder(uri.Scheme, uri.Host, uri.Port, uri.AbsolutePath).Uri;
+                } catch(UriFormatException e) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag,
+                        "Invalid URI format for remote endpoint");
+                }
+
+                RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved);
+                return authorizer;
             }
-            else
-            {
+
+            return null;
+        }
+
+        public static bool RegisterAccessToken(string accessToken, string email, Uri
+             origin)
+        {
+            var key = new[] { email, origin.Host };
+            Log.To.Sync.I(Tag, "Registering Facebook key [{0}, {1}]", 
+                new SecureLogString(email, LogMessageSensitivity.PotentiallyInsecure),
+                origin.Host);
+            _AccessTokens.AddOrUpdate(key, k => accessToken, (k, v) => accessToken);
+            return true;
+        }
+
+        public string GetToken()
+        {
+            var key = new[] { _emailAddress, RemoteUrl.Host };
+            Log.To.Sync.V(Tag, "Searching for Facebook key [{0}, {1}]",
+                new SecureLogString(_emailAddress, LogMessageSensitivity.PotentiallyInsecure),
+                RemoteUrl.Host);
+
+            var accessToken = default(string);
+            if (!_AccessTokens.TryGetValue(key, out accessToken)) {
                 return null;
             }
+
+            return accessToken;
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder("[FacebookAuthorizer (");
+            foreach (var pair in _AccessTokens) {
+                if (pair.Key[0] == _emailAddress) {
+                    sb.AppendFormat("key={0} value={1}, ", 
+                        new SecureLogJsonString(pair.Key, LogMessageSensitivity.PotentiallyInsecure), 
+                        new SecureLogString(pair.Value, LogMessageSensitivity.Insecure));
+                }
+            }
+
+            sb.Remove(sb.Length - 2, 2);
+            sb.Append(")]");
+            return sb.ToString();
+        }
+
+        public IList LoginRequest()
+        {
+            var token = GetToken();
+            if(token == null) {
+                return null;
+            }
+
+            return new ArrayList { "POST", "_facebook", new Dictionary<string, string> {
+                [LoginParameterAccessToken] = token
+            }};
+        }
+
+        public void ProcessLoginResponse(IDictionary<string, object> jsonResponse, HttpRequestHeaders headers, Exception error, Action<bool, Exception> continuation)
+        {
+            continuation(false, error);
         }
 
         public override string LoginPathForSite(Uri site)
         {
-            return new Uri(site.AbsolutePath + "/_facebook").AbsoluteUri;
+            throw new NotImplementedException();
         }
 
-        public static bool RegisterAccessToken(string accessToken, string email, string
-             origin)
+        public override IDictionary<string, string> LoginParametersForSite(Uri site)
         {
-            lock (typeof(FacebookAuthorizer))
+            throw new NotImplementedException();
+        }
+
+        private class StringArrayComparer : IEqualityComparer<string[]>
+        {
+            #region IEqualityComparer
+
+            public bool Equals(string[] x, string[] y)
             {
-                IList<string> key = new List<string>();
-                key.AddItem(email);
-                key.AddItem(origin);
-                if (accessTokens == null)
-                {
-                    accessTokens = new Dictionary<IList<string>, string>();
+                return x.SequenceEqual(y);
+            }
+
+            public int GetHashCode(string[] obj)
+            {
+                int hc = obj.Length;
+                for (int i = 0; i < obj.Length; ++i) {
+                    hc = unchecked(hc * 17 + obj[i].GetHashCode());
                 }
-                Log.D(Database.TAG, "FacebookAuthorizer registering key: " + key);
-                accessTokens[key] = accessToken;
-                return true;
-            }
-        }
 
-        public static string AccessTokenForEmailAndSite(string email, Uri site)
-        {
-            try
-            {
-                IList<string> key = new List<string>();
-                key.AddItem(email);
-                key.AddItem(site.ToString().ToLower());
-                Log.D(Database.TAG, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");
-                return accessTokens.Get(key);
+                return hc;
             }
-            catch (Exception e)
-            {
-                Log.E(Database.TAG, "Error looking up access token", e);
-            }
-            return null;
+
+            #endregion
+
+
         }
     }
 }

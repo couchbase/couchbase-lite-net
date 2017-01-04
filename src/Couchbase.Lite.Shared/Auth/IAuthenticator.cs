@@ -53,16 +53,19 @@ namespace Couchbase.Lite.Auth
         /// <summary>
         /// Gets info about the user, if applicable
         /// </summary>
+        [Obsolete("Not intended for outside use")]
         string UserInfo { get; }
 
         /// <summary>
         /// Get the authentication scheme, if applicable
         /// </summary>
+        [Obsolete("Not intended for outside use")]
         string Scheme { get; }
 
         /// <summary>
         /// Gets whether or not this login method uses cookies
         /// </summary>
+        [Obsolete("Not intended for outside use")]
         bool UsesCookieBasedLogin { get; }
 
         /// <summary>
@@ -70,6 +73,7 @@ namespace Couchbase.Lite.Auth
         /// </summary>
         /// <returns>The login path</returns>
         /// <param name="site">The site uri</param>
+        [Obsolete("Not intended for outside use")]
         string LoginPathForSite(Uri site);
 
         /// <summary>
@@ -78,8 +82,8 @@ namespace Couchbase.Lite.Auth
         /// </summary>
         /// <returns>The authentication headers</returns>
         /// <param name="site">The uri of the site</param>
+        [Obsolete("Not intended for outside use")]
         IDictionary<string, string> LoginParametersForSite(Uri site);
-
     }
 
     /// <summary>

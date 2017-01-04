@@ -1,9 +1,31 @@
-[submodule "src/Couchbase.Lite.Net35/vendor/Rackspace"]
-	path = src/Couchbase.Lite.Net35/vendor/Rackspace
-url=https://github.com/couchbasedeps/dotnet-httpclient35.git
-[submodule "src/Couchbase.Lite.Net35/vendor/Stateless"]
-	path = src/Couchbase.Lite.Net35/vendor/Stateless
+[submodule "src/StorageEngines/ForestDB/CBForest"]
+	path = src/StorageEngines/ForestDB/CBForest
+	url = https://github.com/couchbaselabs/cbforest
+	branch = release/1.2-net
+[submodule "vendor/Rackspace"]
+	path = vendor/Rackspace
+	url = https://github.com/couchbasedeps/dotnet-httpclient35.git
+[submodule "vendor/Stateless"]
+	path = vendor/Stateless
 	url = https://github.com/couchbasedeps/stateless.git
-[submodule "src/Couchbase.Lite.Unity/vendor/JSON.NET"]
-	path = src/Couchbase.Lite.Unity/vendor/JSON.NET
+[submodule "vendor/websocket-sharp"]
+	path = vendor/websocket-sharp
+	url = https://github.com/couchbasedeps/websocket-sharp
+[submodule "vendor/JSON.NET"]
+	path = vendor/JSON.NET
 	url = https://github.com/couchbasedeps/Newtonsoft.Json.git
+[submodule "vendor/Jint"]
+	path = vendor/Jint
+	url = https://github.com/Nogrod/jint
+[submodule "vendor/MonoDroid.Dialog"]
+	path = vendor/MonoDroid.Dialog
+	url = https://github.com/couchbaselabs/MonoDroid.Dialog
+[submodule "vendor/Andr.Unit"]
+	path = vendor/Andr.Unit
+	url = https://github.com/couchbaselabs/Andr.Unit
+[submodule "vendor/NUnitLite"]
+	path = vendor/NUnitLite
+	url = https://github.com/couchbasedeps/NUnitLite
+[submodule "vendor/Touch.Unit"]
+	path = vendor/Touch.Unit
+	url = https://github.com/couchbasedeps/Touch.Unit.git

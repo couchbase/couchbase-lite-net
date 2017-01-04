@@ -5,7 +5,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>Couchbase.Lite.iOS.Tests</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.your-company.Couchbase.Lite.iOS.Tests</string>
+	<string>com.couchbase.Couchbase.Lite.iOS.Tests</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
@@ -13,7 +13,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>MinimumOSVersion</key>
-	<string>6.1</string>
+	<string>7.0</string>
 	<key>UIDeviceFamily</key>
 	<array>
 		<integer>1</integer>
@@ -36,5 +36,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>CFBundleName</key>
+	<string>Couchbase.Lite.iOS.Tests</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

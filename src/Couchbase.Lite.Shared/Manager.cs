@@ -39,7 +39,6 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -51,13 +50,13 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Db;
+using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Store;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using ICSharpCode.SharpZipLib.Zip;
-using Sharpen;
-using Couchbase.Lite.Internal;
-using System.Diagnostics;
+using System.Reflection;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -70,7 +69,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// The top-level object that manages Couchbase Lite <see cref="Couchbase.Lite.Database"/>s.
     /// </summary>
-    public sealed class Manager
+    public sealed class Manager
     {
 
     #region Constants
@@ -79,22 +78,26 @@ namespace Couchbase.Lite
         /// The version of Couchbase Lite that is running
         /// </summary>
         public static readonly string VersionString;
-        private const string TAG = "Manager";
+        private const int DefaultMaxRevs = 20;
 
-        /// <summary>
-        /// The error domain used for HTTP status codes.
-        /// </summary>
+        internal static readonly string PLATFORM = Platform.Name;
+
+        private const string TAG = "Manager";
         private const string HttpErrorDomain = "CBLHTTP";
 
         internal const string DatabaseSuffixv0 = ".touchdb";
-        internal const string DatabaseSuffix = ".cblite";
+        internal const string DatabaseSuffixv1 = ".cblite";
+        internal const string DatabaseSuffix = ".cblite2";
 
         // FIXME: Not all of these are valid Windows file chars.
         private const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
+        private static readonly HashSet<string> AllKnownPrefixes = new HashSet<string> {
+            DatabaseSuffixv0, DatabaseSuffixv1, DatabaseSuffix
+        };
 
     #endregion
 
-    #region Static Members
+    #region Static Members
 
         /// <summary>
         /// Gets the default options for creating a manager
@@ -106,9 +109,14 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The shared instance.</value>
         // FIXME: SharedInstance lifecycle is undefined, so returning default manager for now.
-        public static Manager SharedInstance { 
+        public static Manager SharedInstance { 
             get { 
-                return sharedManager ?? (sharedManager = new Manager(defaultDirectory, ManagerOptions.Default)); 
+                if (sharedManager == null) {
+                    sharedManager = new Manager(defaultDirectory, ManagerOptions.Default);
+                    Log.To.Database.I(TAG, "{0} is the SharedInstance", sharedManager);
+                }
+
+                return sharedManager;
             }
             set { 
                 sharedManager = value;
@@ -123,8 +131,12 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns><c>true</c> if the given name is a valid <see cref="Couchbase.Lite.Database"/> name, otherwise <c>false</c>.</returns>
         /// <param name="name">The Database name to validate.</param>
-        public static Boolean IsValidDatabaseName(String name) 
+        public static bool IsValidDatabaseName(string name) 
         {
+            if (name == null) {
+                return false;
+            }
+
             if (name.Length > 0 && name.Length < 240 && ContainsOnlyLegalCharacters(name) && Char.IsLower(name[0])) {
                 return true;
             }
@@ -132,9 +144,9 @@ namespace Couchbase.Lite
             return name.Equals(Replication.REPLICATOR_DATABASE_NAME);
         }
 
-    #endregion
-    
-    #region Constructors
+        #endregion
+
+        #region Constructors
 
         static Manager()
         {
@@ -157,26 +169,45 @@ namespace Couchbase.Lite
                 defaultDirectory = new DirectoryInfo(defaultDirectoryPath);
             }
 
-            #if !OFFICIAL
-            string gitVersion= String.Empty;
-            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly()
-                .GetManifestResourceStream("version")) {
-                if(stream != null) {
-                    using (StreamReader reader = new StreamReader(stream))
-                    {
-                        gitVersion= reader.ReadToEnd();
-                    }
-                } else {
-                    gitVersion = "No git information";
-                }
+
+            var gitVersion= String.Empty;
+            var branchName = String.Empty;
+            ReadVersion(Assembly.GetExecutingAssembly(), out branchName, out gitVersion);
+
+            var infoVersion = Attribute.GetCustomAttribute(Assembly.GetExecutingAssembly(), typeof(AssemblyInformationalVersionAttribute))
+                as AssemblyInformationalVersionAttribute;
+            
+            bool unofficial = infoVersion == null || infoVersion.InformationalVersion.StartsWith("0.0.0");
+            #if DEBUG
+            var versionNumber = infoVersion == null || infoVersion.InformationalVersion.StartsWith("0.0.0") ?
+                "Unofficial Debug" : infoVersion.InformationalVersion + " Debug";
+            #else
+            var versionNumber = infoVersion == null || infoVersion.InformationalVersion.StartsWith("0.0.0") ?
+                "Unofficial" : infoVersion.InformationalVersion;
+            #endif
+
+            if (unofficial) {
+                VersionString = String.Format(".NET {0}/{1} {2} ({3})/{4}", PLATFORM, Platform.Architecture, versionNumber, branchName.Replace('/', '\\'), 
+                    gitVersion.TrimEnd());
+            } else {
+                VersionString = String.Format(".NET {0}/{1} {2}/{3}", PLATFORM, Platform.Architecture, versionNumber, gitVersion.TrimEnd());
             }
 
-            VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
-            #elif __UNITY__
-            VersionString = "1.0";
-            #else
-            VersionString = "1.1";
-            #endif
+            Log.To.NoDomain.I(TAG, "Starting Manager version: {0}", VersionString);
+            AppDomain.CurrentDomain.AssemblyLoad += (sender, args) => 
+            {
+                if (ReadVersion(args.LoadedAssembly, out branchName, out gitVersion)) {
+                    Log.To.NoDomain.I("AssemblyLoad", "Loaded assembly {0} was built at commit {1}",
+                        args.LoadedAssembly.FullName, gitVersion);
+                }
+            };
+
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+                if (ReadVersion(assembly, out branchName, out gitVersion)) {
+                    Log.To.NoDomain.I("AssemblyLoad", "Loaded assembly {0} was built at commit {1}",
+                        assembly.FullName, gitVersion);
+                }
+            }
         }
 
         /// <summary>
@@ -192,25 +223,30 @@ namespace Couchbase.Lite
         /// <exception cref="T:System.IO.DirectoryNotFoundException">Thrown when there is an error while accessing or creating the given directory.</exception>
         public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
-            Log.I(TAG, "Starting Manager version: " + VersionString);
+            if (directoryFile == null) {
+                Log.To.Database.E(TAG, "directoryFile cannot be null in ctor, throwing...");
+                throw new ArgumentNullException("directoryFile");
+            }
 
             this.directoryFile = directoryFile;
-            this.options = options ?? DefaultOptions;
+            Options = options ?? DefaultOptions;
             this.databases = new Dictionary<string, Database>();
             this.replications = new List<Replication>();
+            Shared = new SharedState();
 
             //create the directory, but don't fail if it already exists
             if (!directoryFile.Exists) {
                 directoryFile.Create();
                 directoryFile.Refresh();
                 if (!directoryFile.Exists) {
-                    throw new  DirectoryNotFoundException("Unable to create directory " + directoryFile);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.InternalServerError, TAG,
+                        "Unable to create directory {0}", directoryFile);
                 }
             }
 
             UpgradeOldDatabaseFiles(directoryFile);
 
-            #if __IOS__
+#if __IOS__
 
             Foundation.NSString protection;
             switch(options.FileProtection & Foundation.NSDataWritingOptions.FileProtectionMask) {
@@ -232,45 +268,50 @@ namespace Couchbase.Lite
             Foundation.NSError error;
             Foundation.NSFileManager.DefaultManager.SetAttributes(attributes, directoryFile.FullName, out error);
 
-            #endif
+#endif
 
             var scheduler = options.CallbackScheduler;
             CapturedContext = new TaskFactory(scheduler);
+            Log.To.TaskScheduling.I(TAG, "Callbacks will be scheduled on {0}", scheduler);
             workExecutor = new TaskFactory(new SingleTaskThreadpoolScheduler());
-            Log.D(TAG, "New Manager uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
-
-            this.NetworkReachabilityManager = new NetworkReachabilityManager();
-
-            SharedCookieStore = new CookieStore(this.directoryFile.FullName);
+            _networkReachabilityManager = new NetworkReachabilityManager();
+            _networkReachabilityManager.StartListening();
             StorageType = "SQLite";
-            Shared = new SharedState();
+            Log.To.Database.I(TAG, "Created {0}", this);
         }
 
-    #endregion
+#endregion
 
-    #region Instance Members
+#region Instance Members
         //Properties
         /// <summary>
         /// Gets the directory where the <see cref="Couchbase.Lite.Manager"/> stores <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
         /// <value>The directory.</value>
-        public String Directory { get { return directoryFile.FullName; } }
+        public String Directory { get { return directoryFile.FullName; } }
+
+        /// <summary>
+        /// Default storage type for newly created databases.
+        /// There are two options, StorageEngineTypes.SQLite (the default) or 
+        /// StorageEngineTypes.ForestDB.
+        /// </summary>
+        public string StorageType { get; set; }
 
         /// <summary>
         /// Gets the names of all existing <see cref="Couchbase.Lite.Database"/>s.
         /// </summary>
         /// <value>All database names.</value>
-        public IEnumerable<String> AllDatabaseNames 
+        public IEnumerable<String> AllDatabaseNames 
         { 
             get 
             { 
-                var databaseFiles = directoryFile.GetFiles("*" + Manager.DatabaseSuffix, SearchOption.AllDirectories);
+                var databaseFiles = directoryFile.GetDirectories("*" + Manager.DatabaseSuffix);
                 var result = new List<String>();
                 foreach (var databaseFile in databaseFiles) {
                     var path = Path.GetFileNameWithoutExtension(databaseFile.FullName);
                     var replaced = path.Replace('.', '/');
                     replaced = replaced.Replace(':', '/'); //For backwards compatibility
-                    result.AddItem(replaced);
+                    result.Add(replaced);
                 }
 
                 result.Sort();
@@ -291,9 +332,15 @@ namespace Couchbase.Lite
         /// <summary>
         /// Releases all resources used by the <see cref="Couchbase.Lite.Manager"/> and closes all its <see cref="Couchbase.Lite.Database"/>s.
         /// </summary>
-        public void Close() 
+        public void Close() 
         {
-            Log.I(TAG, "Closing " + this);
+            if (this == SharedInstance) {
+                Log.To.Database.E(TAG, "Calling close on Manager.SharedInstance is not allowed, throwing InvalidOperationException"); 
+                throw new InvalidOperationException("Calling close on Manager.SharedInstance is not allowed");
+            }
+
+            Log.To.Database.I(TAG, "CLOSING {0}", this);
+            _networkReachabilityManager.StopListening();
             foreach (var database in databases.Values.ToArray()) {
                 var replicators = database.AllReplications;
 
@@ -307,7 +354,49 @@ namespace Couchbase.Lite
             }
 
             databases.Clear();
-            Log.I(TAG, "Manager is Closed");
+            Log.To.Database.I(TAG, "CLOSED {0}", this);
+        }
+
+        /// <summary>
+        /// Registers an encryption key for use when a given database is requested via GetDatabase
+        /// </summary>
+        /// <param name="dbName">The name of the database to register</param>
+        /// <param name="key">The key object to register</param>
+        [Obsolete("This method is superceded by OpenDatabase")]
+        public void RegisterEncryptionKey(string dbName, SymmetricKey key)
+        {
+            Shared.SetValue("encryptionKey", "", dbName, key);
+        }
+
+        /// <summary>
+        /// Returns the database with the given name. If the database is not yet open, the options given
+        /// will be applied; if it's already open, the options are ignored.
+        /// Multiple calls with the same name will return the same CBLDatabase instance.
+        /// </summary>
+        /// <param name="name">The name of the database. May NOT contain capital letters!</param>
+        /// <param name="options">ptions to use when opening, such as the encryption key; if nil, a default
+        /// set of options will be used.</param>
+        /// <returns>The opened database, or null if it doesn't exist and options.Create is false</returns>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an error occurs opening
+        /// the database</exception>
+        public Database OpenDatabase(string name, DatabaseOptions options)
+        {
+            if (name == null) {
+                Log.To.Database.E(TAG, "name cannot be null in OpenDatabase, throwing...");
+                throw new ArgumentNullException("name");
+            }
+
+            if (options == null) {
+                options = new DatabaseOptions();
+            }
+
+            var db = GetDatabase(name, !options.Create);
+            if (db != null && !db.IsOpen) {
+                db.OpenWithOptions(options);
+                Shared.SetValue("encryptionKey", "", name, options.EncryptionKey);
+            }
+
+            return db;
         }
 
         /// <summary>
@@ -316,18 +405,11 @@ namespace Couchbase.Lite
         /// <returns>The database.</returns>
         /// <param name="name">Name.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while gettings or createing the <see cref="Couchbase.Lite.Database"/>.</exception>
-        public Database GetDatabase(String name) 
+        public Database GetDatabase(String name) 
         {
-            var db = GetDatabaseWithoutOpening(name, false);
-            if (db != null) {
-                var opened = db.Open();
-                if (!opened) {
-                    return null;
-                }
-
-                Shared.OpenedDatabase(db);
-            }
-            return db;
+            var options = DefaultOptionsFor(name);
+            options.Create = true;
+            return OpenDatabase(name, options);
         }
 
         /// <summary>
@@ -336,15 +418,10 @@ namespace Couchbase.Lite
         /// <returns>The <see cref="Couchbase.Lite.Database"/> with the given name if it exists, otherwise null.</returns>
         /// <param name="name">The name of the Database to get.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while getting the <see cref="Couchbase.Lite.Database"/>.</exception>
-        public Database GetExistingDatabase(String name)
+        public Database GetExistingDatabase(string name)
         {
-            var db = GetDatabaseWithoutOpening(name, true);
-            if (db != null) {
-                db.Open();
-                Shared.OpenedDatabase(db);
-            }
-
-            return db;
+            var options = DefaultOptionsFor(name);
+            return OpenDatabase(name, options);
         }
 
         /// <summary>Replaces or installs a database from a file.</summary>
@@ -364,34 +441,45 @@ namespace Couchbase.Lite
         /// will be honoured.
         /// </param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public void ReplaceDatabase(String name, Stream databaseStream, IDictionary<String, Stream> attachmentStreams)
+        [Obsolete("This will only work for v1 (.cblite) databases")]
+        public void ReplaceDatabase(string name, Stream databaseStream, IDictionary<string, Stream> attachmentStreams)
         {
+            if (name == null) {
+                Log.To.Database.E(TAG, "name cannot be null in ReplaceDatabase, throwing...");
+                throw new ArgumentNullException("name");
+            }
+
+            if (databaseStream == null) {
+                Log.To.Database.E(TAG, "databaseStream cannot be null in ReplaceDatabase, throwing...");
+                throw new ArgumentNullException("databaseStream");
+            }
+
             try {
-                using(var database = GetDatabaseWithoutOpening (name, false)) {
-                    var dstAttachmentsPath = database.AttachmentStorePath;
+                var tempPath = Path.Combine(Path.GetTempPath(), name + "-upgrade");
+                if(System.IO.Directory.Exists(tempPath)) {
+                    System.IO.Directory.Delete(tempPath, true);
+                }
 
-                    using(var destStream = File.OpenWrite(database.Path)) {
-                        databaseStream.CopyTo(destStream);
-                    }
+                System.IO.Directory.CreateDirectory(tempPath);
+                var fileStream = File.OpenWrite(Path.Combine(tempPath, name + DatabaseSuffixv1));
+                databaseStream.CopyTo(fileStream);
+                fileStream.Dispose();
+                var success = UpgradeDatabase(new FileInfo(Path.Combine(tempPath, name + DatabaseSuffixv1)));
+                if(!success) {
+                    Log.To.Upgrade.W(TAG, "Unable to replace database (upgrade failed)");
+                    System.IO.Directory.Delete(tempPath, true);
+                    return;
+                }
+                   
+                System.IO.Directory.Delete(tempPath, true);
 
-                    UpgradeDatabase(new FileInfo(database.Path));
-
-                    if (System.IO.Directory.Exists(dstAttachmentsPath)) 
-                    {
-                        System.IO.Directory.Delete (dstAttachmentsPath, true);
-                    }
-                    System.IO.Directory.CreateDirectory(dstAttachmentsPath);
-
-                    var attachmentsFile = new FilePath(dstAttachmentsPath);
-
-                    if (attachmentStreams != null) {
-                        StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsFile);
-                    }
-                    database.Open();
+                var db = GetDatabase(name, true);
+                var attachmentsPath = db.AttachmentStorePath;
+                if(attachmentStreams != null) {
+                    StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsPath);
                 }
             } catch (Exception e) {
-                Log.E(Database.TAG, string.Empty, e);
-                throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error replacing database");
             }
         }
 
@@ -408,19 +496,32 @@ namespace Couchbase.Lite
         /// </remarks>
         public void ReplaceDatabase(string name, Stream compressedStream, bool autoRename)
         {
-            var zipDbName = GetDbNameFromZip(compressedStream);
+            if (name == null) {
+                Log.To.Database.E(TAG, "name cannot be null in ReplaceDatabase, throwing...");
+                throw new ArgumentNullException("name");
+            }
+
+            if (compressedStream == null) {
+                Log.To.Database.E(TAG, "compressedStream cannot be null in ReplaceDatabase, throwing...");
+                throw new ArgumentNullException("compressedStream");
+            }
+
+            var zipInfo = GetDbNameAndExtFromZip(compressedStream);
+            var zipDbName = zipInfo.Item1;
+            var extension = zipInfo.Item2;
             bool namesMatch = name.Equals(zipDbName);
             if (!namesMatch && !autoRename) {
-                throw new ArgumentException("Names of db file in zip and name passed to function differ", "compressedStream");
+                Log.To.Database.E(TAG, "Given name ({0}) does not match name given in zip file ({1}) " +
+                    "and autoRename is false, throwing...", name, zipDbName);
+                throw new ArgumentException("Does not match name in zip file", "name");
             }
 
-            var database = GetDatabaseWithoutOpening(name, false);
-            var dstAttachmentsPath = database.AttachmentStorePath;
-            if (System.IO.Directory.Exists(dstAttachmentsPath)) {
-                System.IO.Directory.Delete(dstAttachmentsPath, true);
+            var tempPath = Path.Combine(Path.GetTempPath(), name + "-upgrade");
+            if (System.IO.Directory.Exists(tempPath)) {
+                System.IO.Directory.Delete(tempPath, true);
             }
 
-            System.IO.Directory.CreateDirectory(dstAttachmentsPath);
+            System.IO.Directory.CreateDirectory(tempPath);
 
             ZipEntry entry = null;
             using (var zipStream = new ZipInputStream(compressedStream) { IsStreamOwner = false }) {
@@ -433,38 +534,84 @@ namespace Couchbase.Lite
                     }
 
                     if (entry.IsDirectory) {
-                        System.IO.Directory.CreateDirectory(Path.Combine(Directory, entryName));
+                        System.IO.Directory.CreateDirectory(Path.Combine(tempPath, entryName));
                         continue;
                     }
 
 
-                    var path = Path.Combine(Directory, entryName);
+                    var path = Path.Combine(tempPath, entryName);
                     if (File.Exists(path)) {
                         File.Delete(path);
                     }
 
                     using (var destStream = File.OpenWrite(path)) {
-                        if (entry.CompressedSize > 0) {
+                        if (entry.CompressedSize != 0) {
                             zipStream.CopyTo(destStream);
                         }
                     }
                 }
             }
 
+            var db = GetDatabase(name, false);
+            if (db.Exists()) {
+                System.IO.Directory.Move(db.DbDirectory, db.DbDirectory + "-old");
+            }
 
-            UpgradeDatabase(new FileInfo(database.Path));
-            database.Open();
+            var success = true;
+            if (extension == Manager.DatabaseSuffixv0 || extension == Manager.DatabaseSuffixv1) {
+                success = UpgradeDatabase(new FileInfo(Path.Combine(tempPath, name + extension)));
+            } else {
+                var folderPath = Path.Combine(tempPath, Path.GetFileName(db.DbDirectory));
+                System.IO.Directory.Move(folderPath, db.DbDirectory);
+            }
+
+            if (!success) {
+                db.Delete();
+                System.IO.Directory.Move(db.DbDirectory + "-old", db.DbDirectory);
+                Log.To.Upgrade.W(TAG, "Unable to replace database (upgrade failed), returning early...");
+                System.IO.Directory.Delete(tempPath, true);
+                return;
+            }
+
+            if (System.IO.Directory.Exists(db.DbDirectory + "-old")) {
+                System.IO.Directory.Delete(db.DbDirectory + "-old", true);
+            }
+
+            System.IO.Directory.Delete(tempPath, true);
         }
 
-    #endregion
-    
-    #region Non-public Members
+        /// <summary>
+        /// Deletes a database that can no longer be opened by other means (lost password, etc).
+        /// Note: will only work for databases created with version 1.2 or later.
+        /// </summary>
+        /// <param name="name">The name of the database to delete</param>
+        public void DeleteDatabase(string name)
+        {
+            var info = new DirectoryInfo(Directory);
+            var folder = info.GetDirectories($"{name}.cblite2").FirstOrDefault();
+            if(folder == null) {
+                Log.To.Database.I(TAG, "{0} does not exist and cannot be deleted, returning...", name);
+                return;
+            }
+
+            try {
+                folder.Delete(true);
+            } catch(Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error deleting {0}", name);
+            }
+        }
+
+#endregion
+
+#region Non-public Members
 
         // Static Fields
         private static readonly ObjectWriter mapper;
         private static          Manager sharedManager;
         private static readonly DirectoryInfo defaultDirectory;
         private static readonly Regex illegalCharactersPattern;
+
+        internal int DefaultMaxRevTreeDepth { get; set; } = DefaultMaxRevs;
 
         // Static Methods
         internal static ObjectWriter GetObjectMapper ()
@@ -479,47 +626,43 @@ namespace Couchbase.Lite
         }
 
         // Instance Fields
-        private readonly ManagerOptions options;
+        internal readonly ManagerOptions Options;
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;
         private readonly List<Replication> replications;
+        private readonly NetworkReachabilityManager _networkReachabilityManager;
         internal readonly TaskFactory workExecutor;
 
         // Instance Properties
         internal TaskFactory CapturedContext { get; private set; }
         internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
-        internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
-        internal CookieStore SharedCookieStore { get; set; } 
-        internal string StorageType { get; set; } // @"SQLite" (default) or @"ForestDB"
+        internal INetworkReachabilityManager NetworkReachabilityManager { get { return _networkReachabilityManager; } }
         internal SharedState Shared { get; private set; }
 
         // Instance Methods
-        internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
+        internal Database GetDatabase(string name, bool mustExist)
         {
             var db = databases.Get(name);
             if (db == null) {
                 if (!IsValidDatabaseName(name)) {
-                    throw new ArgumentException("Invalid database name: " + name);
+                    Log.To.Database.E(TAG, "Invalid database name '{0}' passed to GetDatabase", name);
+                    throw new ArgumentException("Invalid name", "name");
                 }
 
-                if (options.ReadOnly) {
+                if (Options.ReadOnly) {
                     mustExist = true;
                 }
 
                 var path = PathForName(name);
-                if (path == null) {
-                    return null;
-                }
-
-                db = new Database(path, name, this);
+                db = new Database(path, name, this, Options.ReadOnly);
                 if (mustExist && !db.Exists()) {
-                    var msg = string.Format("mustExist is true and db ({0}) does not exist", name);
-                    Log.W(Database.TAG, msg);
+                    Log.To.Database.I(TAG, "{0} does not exist, returning null", name);
                     return null;
                 }
 
                 db.Name = name;
-                databases.Put(name, db);
+                databases[name] = db;
+                Shared.OpenedDatabase(db);
             }
 
             return db;
@@ -531,6 +674,10 @@ namespace Couchbase.Lite
         /// <param name="database">The database to remove</param>
         public void ForgetDatabase (Database database)
         {
+            if (database == null) {
+                return;
+            }
+
             // remove from cached list of dbs
             databases.Remove(database.Name);
             if (Shared != null) {
@@ -552,71 +699,121 @@ namespace Couchbase.Lite
             }
         }
 
-        private string GetDbNameFromZip(Stream compressedStream) {
+        private static bool ReadVersion(Assembly assembly, out string branch, out string hash)
+        {
+            branch = "No branch";
+            hash = "No git information";
+#if !NET_3_5
+            if(assembly.IsDynamic) {
+                return false;
+            }
+#endif
+
+            try {
+                using(Stream stream = assembly.GetManifestResourceStream("version")) {
+                    if(stream != null) {
+                        using(StreamReader reader = new StreamReader(stream)) {
+                            hash = reader.ReadToEnd();
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+
+                var colonPos = hash.IndexOf(':');
+                if(colonPos != -1) {
+                    branch = hash.Substring(0, colonPos);
+                    hash = hash.Substring(colonPos + 2);
+                }
+
+                return true;
+            } catch(NotSupportedException) {
+                Log.To.NoDomain.I(TAG, "Loaded assembly {0} but unable to read commit hash", assembly.FullName);
+            }
+
+            return false;
+        }
+
+        private bool ContainsExtension(string name)
+        {
+            return AllKnownPrefixes.Any(name.Contains);
+        }
+
+        private Tuple<string, string> GetDbNameAndExtFromZip(Stream compressedStream) {
             string dbName = null;
+            string extension = null;
             using (var zipStream = new ZipInputStream(compressedStream) { IsStreamOwner = false }) {
                 ZipEntry next;
                 while ((next = zipStream.GetNextEntry()) != null) {
-                    if (next.IsDirectory) {
-                        continue;
-                    }
-
-                    var fileInfo = new FileInfo(next.Name);
-                    if (DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES.Contains(fileInfo.Extension.TrimStart('.'))) {
+                    var fileInfo = next.IsDirectory ? 
+                        (FileSystemInfo)new DirectoryInfo(next.Name) : (FileSystemInfo)new FileInfo(next.Name);
+                    if (ContainsExtension(fileInfo.Name)) {
                         dbName = Path.GetFileNameWithoutExtension(fileInfo.Name);
+                        extension = Path.GetExtension(fileInfo.Name);
                         break;
                     }
                 }
             }
 
             if (dbName == null) {
-                throw new ArgumentException("No database found in zip file", "compressedStream");
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadParam, TAG,
+                    "No database found in zip file");
             }
 
             compressedStream.Seek(0, SeekOrigin.Begin);
-            return dbName;
+            return Tuple.Create(dbName, extension);
         }
 
         private void UpgradeOldDatabaseFiles(DirectoryInfo dirInfo)
         {
-            var extensions = DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES;
-            var files = dirInfo.GetFiles().Where(f => extensions.Contains(f.Extension.TrimStart('.')));
+            var files = dirInfo.GetFiles("*" + DatabaseSuffixv1);
             foreach (var file in files) {
                 UpgradeDatabase(file);
             }
         }
 
-        private void UpgradeDatabase(FileInfo path)
+        private bool UpgradeDatabase(FileInfo path)
         {
-            var oldFilename = path.FullName;
-            var newFilename = Path.ChangeExtension(oldFilename, DatabaseSuffix);
-            var newFile = new FileInfo(newFilename);
+            var previousStorageType = StorageType;
+            try {
+                StorageType = "SQLite";
+                var oldFilename = path.FullName;
+                var newFilename = Path.ChangeExtension(oldFilename, DatabaseSuffix);
+                var newFile = new DirectoryInfo(newFilename);
 
-            if (!oldFilename.Equals(newFilename) && newFile.Exists) {
-                var msg = String.Format("Cannot rename {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
-                Log.W(Database.TAG, msg);
-                return;
+                if (!oldFilename.Equals(newFilename) && newFile.Exists) {
+                    var msg = String.Format("Cannot move {0} to {1}, {2} already exists, returning false...",
+                        oldFilename, newFilename, newFilename);
+                    Log.To.Upgrade.W(TAG, msg);
+                    return false;
+                }
+
+                var name = Path.GetFileNameWithoutExtension(Path.Combine(path.DirectoryName, newFilename));
+                var db = GetDatabase(name, false);
+                if (db == null) {
+                    Log.To.Upgrade.W(TAG, "Upgrade failed for {0} (Creating new DB failed), returning false...", path.Name);
+                    return false;
+                }
+                db.Dispose();
+
+                var upgrader = Database.CreateUpgrader(db, oldFilename);
+                try {
+                    upgrader.Import();
+                } catch(CouchbaseLiteException e) {
+                    Log.To.Upgrade.W(TAG, "Upgrade failed for {0} (Status {1}), aborting...", path.Name, e.CBLStatus);
+                    upgrader.Backout();
+                    return false;
+                }
+
+                Log.To.Upgrade.I(TAG, "...Success!");
+                return true;
+            } finally {
+                StorageType = previousStorageType;
             }
-
-            var name = Path.GetFileNameWithoutExtension(Path.Combine(path.Directory.FullName, newFilename));
-            var db = GetDatabaseWithoutOpening(name, false);
-            if (db == null) {
-                Log.W(TAG, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
-                return;
-            }
-            db.Dispose();
-
-            var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
-            var status = upgrader.Import();
-            if (status.IsError) {
-                Log.W(TAG, "Upgrade failed for {0} (Status {1})", path.Name, status);
-                upgrader.Backout();
-                return;
-            }
-
-            Log.D(TAG, "...Success!");
         }
 
+
+        // This is used by the listener
         internal Replication ReplicationWithProperties(IDictionary<string, object> properties)
         {
             // Extract the parameters from the JSON request body:
@@ -632,7 +829,7 @@ namespace Couchbase.Lite
 
             Status result = ParseReplicationProperties(properties, out push, out createTarget, results);
             if (result.IsError) {
-                throw new CouchbaseLiteException(result.Code);
+                throw Misc.CreateExceptionAndLog(Log.To.Listener, result.Code, TAG, "Failed to create replication");
             }
 
             object continuousObj = properties.Get("continuous");
@@ -650,9 +847,9 @@ namespace Couchbase.Lite
             }
 
             rep.Filter = properties.Get("filter") as string;
-            rep.FilterParams = properties.Get("query_params") as IDictionary<string, object>;
-            rep.DocIds = properties.Get("doc_ids") as IEnumerable<string>;
-            rep.RequestHeaders = results.Get("headers") as IDictionary<string, object>;
+            rep.FilterParams = properties.Get("query_params").AsDictionary<string, object>();
+            rep.DocIds = properties.Get("doc_ids").AsList<string>();
+            rep.RequestHeaders = results.Get("headers").AsDictionary<string, object>();
             rep.Authenticator = results.Get("authorizer") as IAuthenticator;
             if (push) {
                 ((Pusher)rep).CreateTarget = createTarget;
@@ -661,50 +858,39 @@ namespace Couchbase.Lite
             var db = (Database)results["database"];
 
             // If this is a duplicate, reuse an existing replicator:
-            var existing = db.ActiveReplicators.FirstOrDefault(x => x.LocalDatabase == rep.LocalDatabase
-                && x.RemoteUrl == rep.RemoteUrl && x.IsPull == rep.IsPull &&
-                x.RemoteCheckpointDocID().Equals(rep.RemoteCheckpointDocID()));
+            var activeReplicators = default(IList<Replication>);
+            var existing = default(Replication);
+            if(db.ActiveReplicators.AcquireTemp(out activeReplicators)) {
+                existing = activeReplicators.FirstOrDefault(x => x.LocalDatabase == rep.LocalDatabase
+                    && x.RemoteUrl == rep.RemoteUrl && x.IsPull == rep.IsPull &&
+                    x.RemoteCheckpointDocID().Equals(rep.RemoteCheckpointDocID()));
+            }
 
 
             return existing ?? rep;
         }
 
-        private Status ParseReplicationProperties(IDictionary<string, object> properties, out bool isPush, out bool createTarget,
-            IDictionary<string, object> results)
+        private Status ParseReplicationProperties(IDictionary<string, object> properties, out bool isPush, out bool createTarget, IDictionary<string, object> results)
         {
             // http://wiki.apache.org/couchdb/Replication
             isPush = false;
             createTarget = false;
-
             var sourceDict = ParseSourceOrTarget(properties, "source");
             var targetDict = ParseSourceOrTarget(properties, "target");
-            var source = sourceDict.Get("url") as string;
-            var target = targetDict.Get("url") as string;
+            var source = sourceDict.GetCast<string>("url");
+            var target = targetDict.GetCast<string>("url");
             if (source == null || target == null) {
                 return new Status(StatusCode.BadRequest);
             }
 
-            createTarget = properties.Get("create_target") is bool && (bool)properties.Get("create_target");
-
+            createTarget = properties.GetCast<bool>("create_target", false);
             IDictionary<string, object> remoteDict = null;
             bool targetIsLocal = Manager.IsValidDatabaseName(target);
             if (Manager.IsValidDatabaseName(source)) {
                 //Push replication
                 if (targetIsLocal) {
-                    // This is a local-to-local replication. Turn the remote into a full URL to keep the
-                    // replicator happy:
-                    Database targetDb;
-                    if (createTarget) {
-                        targetDb = Manager.SharedInstance.GetDatabase(target);
-                    } else {
-                        targetDb = Manager.SharedInstance.GetExistingDatabase(target);
-                    }
-
-                    if (targetDb == null) {
-                        return new Status(StatusCode.BadRequest);
-                    }
-
-                    targetDict["url"] = "http://localhost:20000" + targetDb.Path;
+                    // This is a local-to-local replication. It is not supported on .NET.
+                    return new Status(StatusCode.NotImplemented);
                 }
 
                 remoteDict = targetDict;
@@ -732,8 +918,26 @@ namespace Couchbase.Lite
                 return new Status(StatusCode.BadId);
             }
 
-            Uri remote = new Uri(remoteDict["url"] as string);
-            if (!remote.Scheme.Equals("http") && !remote.Scheme.Equals("https") && !remote.Scheme.Equals("cbl")) {
+            Uri remote;
+            if(!Uri.TryCreate(remoteDict.GetCast<string>("url"), UriKind.Absolute, out remote)) {
+                Log.To.Router.W(TAG, "Unparseable replication URL <{0}> received", remoteDict.GetCast<string>("url"));
+                return new Status(StatusCode.BadRequest);
+            }
+
+            if (!remote.Scheme.Equals("http") && !remote.Scheme.Equals("https") && !remote.Scheme.Equals("ws") &&!remote.Scheme.Equals("wss")) {
+                Log.To.Router.W(TAG, "Replication URL <{0}> has unsupported scheme", remote);
+                return new Status(StatusCode.BadRequest);
+            }
+
+            var split = remote.PathAndQuery.Split('?');
+            if(split.Length != 1) {
+                Log.To.Router.W(TAG, "Replication URL <{0}> must not contain a query", remote);
+                return new Status(StatusCode.BadRequest);
+            }
+
+            var path = split[0];
+            if(String.IsNullOrEmpty(path) || path == "/") {
+                Log.To.Router.W(TAG, "Replication URL <{0}> missing database name", remote);
                 return new Status(StatusCode.BadRequest);
             }
 
@@ -753,18 +957,8 @@ namespace Couchbase.Lite
             if (results.ContainsKey("authorizer")) {
                 var auth = remoteDict.Get("auth") as IDictionary<string, object>;
                 if (auth != null) {
-                    //var oauth = auth["oauth"] as IDictionary<string, object>;
                     var persona = auth.Get("persona") as IDictionary<string, object>;
                     var facebook = auth.Get("facebook") as IDictionary<string, object>;
-                    //TODO: OAuth
-                    /*if (oauth != null) {
-                        string consumerKey = oauth.Get("consumer_key") as string;
-                        string consumerSec = oauth.Get("consumer_secret") as string;
-                        string token = oauth.Get("token") as string;
-                        string tokenSec = oauth.Get("token_secret") as string;
-                        string sigMethod = oauth.Get("signature_method") as string;
-                        results["authorizer"] = 
-                    }*/
                     if (persona != null) {
                         string email = persona.Get("email") as string;
                         results["authorizer"] = new PersonaAuthorizer(email);
@@ -772,7 +966,8 @@ namespace Couchbase.Lite
                         string email = facebook.Get("email") as string;
                         results["authorizer"] = new FacebookAuthorizer(email);
                     } else {
-                        Log.W(TAG, "Invalid authorizer settings {0}", auth);
+                        Log.To.Sync.W(TAG, "Invalid authorizer settings {0}", 
+                            new SecureLogJsonString(auth, LogMessageSensitivity.Insecure));
                     }
                 }
             }
@@ -788,8 +983,9 @@ namespace Couchbase.Lite
         private static IDictionary<string, object> ParseSourceOrTarget(IDictionary<string, object> properties, string key)
         {
             object val = properties.Get(key);
-            if (val is IDictionary<string, object>) {
-                return (IDictionary<string, object>)val;
+            var parsedVal = val.AsDictionary<string, object>();
+            if (parsedVal != null) {
+                return parsedVal;
             }
 
             if (val is string) {
@@ -801,46 +997,18 @@ namespace Couchbase.Lite
             return new Dictionary<string, object>();
         }
 
-
-        internal Replication ReplicationWithDatabase (Database database, Uri url, bool push, bool create, bool start)
-        {
-            foreach (var replication in replications)
-            {
-                if (replication.LocalDatabase == database 
-                    && replication.RemoteUrl.Equals(url) 
-                    && replication.IsPull == !push)
-                {
-                    return replication;
-                }
-            }
-            if (!create)
-            {
-                return null;
-            }
-
-            var replicator = push 
-                ? (Replication)new Pusher (database, url, true, new TaskFactory(new SingleTaskThreadpoolScheduler()))
-                : (Replication)new Puller (database, url, true, new TaskFactory(new SingleTaskThreadpoolScheduler()));
-
-            replications.AddItem(replicator);
-            if (start)
-            {
-                replicator.Start();
-            }
-            return replicator;
-        }
-
         private string PathForName(string name)
         {
             if (String.IsNullOrEmpty(name) || illegalCharactersPattern.IsMatch(name)) {
-                return null;
+                Log.To.Database.E(TAG, "\"{0}\" in PathForName is empty or contains illegal characters", name);
+                throw new ArgumentException("Invalid name", "name");
             }
 
             //Backwards compatibility
             var oldStyleName = name.Replace('/', ':');
             var fileName = oldStyleName + Manager.DatabaseSuffix;
             var result = Path.Combine(directoryFile.FullName, fileName);
-            if (new FilePath(result).Exists()) {
+            if (System.IO.Directory.Exists(result)) {
                 return result;
             }
             
@@ -851,60 +1019,47 @@ namespace Couchbase.Lite
         }
 
         // Concurrency Management
-        internal Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action) 
-        {
-            return RunAsync(action, CancellationToken.None);
-        }
 
-        internal Task<Boolean> RunAsync(String databaseName, Func<Database, Boolean> action) 
+        internal Task<T> RunAsync<T>(Func<T> action, CancellationToken token) 
         {
-            var db = GetDatabase(databaseName);
-            return RunAsync<Boolean>(() => action (db));
-        }
-
-        internal Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action, CancellationToken token) 
-        {
+            Log.To.TaskScheduling.V(TAG, "Scheduling async action in manager...");
             var task = token == CancellationToken.None 
-                   ? workExecutor.StartNew<QueryEnumerator>(action) 
-                    : workExecutor.StartNew<QueryEnumerator>(action, token);
+                   ? workExecutor.StartNew<T>(action) 
+                    : workExecutor.StartNew<T>(action, token);
 
             return task;
         }
 
         internal Task RunAsync(RunAsyncDelegate action, Database database)
         {
-            return RunAsync(()=>{ action(database); });
-        }
-
-        internal Task RunAsync(Action action)
-        {
-            var task = workExecutor.StartNew(action);
+            var task = workExecutor.StartNew(()=>{ action(database); });
             return task;
         }
 
-        internal Task RunAsync(Action action, CancellationToken token)
+        internal DatabaseOptions DefaultOptionsFor(string dbName)
         {
-            var task = token == CancellationToken.None ?
-                workExecutor.StartNew(action) :
-                    workExecutor.StartNew(action, token);
-            return task;
+            var options = new DatabaseOptions();
+            var encryptionKey = default(SymmetricKey);
+            if (Shared.TryGetValue("encryptionKey", "", dbName, out encryptionKey)) {
+                options.EncryptionKey = encryptionKey;
+            }
+
+            return options;
         }
 
-        internal Task<T> RunAsync<T>(Func<T> action)
+#endregion
+
+#region Overrides
+#pragma warning disable 1591
+
+        public override string ToString()
         {
-            return workExecutor.StartNew(action);
+            return String.Format("Manager[Dir={0} Options={1}]", Directory, Options);
         }
 
-        internal Task<T> RunAsync<T>(Func<T> action, CancellationToken token)
-        {
-            var task = token == CancellationToken.None 
-                ? workExecutor.StartNew(action) 
-                  : workExecutor.StartNew(action, token);
-            return task;
-        }
-
-    #endregion
-    }
+#pragma warning restore 1591
+#endregion
+    }
 
 }
 

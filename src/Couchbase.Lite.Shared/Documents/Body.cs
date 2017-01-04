@@ -45,8 +45,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-
-using Sharpen;
+using Couchbase.Lite.Util;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
@@ -56,9 +56,15 @@ namespace Couchbase.Lite
     public sealed class Body
     {
 
+        #region Constants
+
+        private static readonly string Tag = typeof(Body).Name;
+
+        #endregion
+
         #region Variables
 
-        private IEnumerable<byte> _json;
+        private byte[] _json;
         private object _jsonObject;
 
         #endregion
@@ -69,9 +75,9 @@ namespace Couchbase.Lite
         /// Constructor
         /// </summary>
         /// <param name="json">An enumerable collection of bytes storing JSON</param>
-        public Body(IEnumerable<Byte> json)
+        public Body(IEnumerable<byte> json)
         {
-            _json = json;
+            _json = json.ToArray();
         }
 
         /// <summary>
@@ -92,6 +98,25 @@ namespace Couchbase.Lite
             _jsonObject = array;
         }
 
+        internal Body(IEnumerable<byte> json, string docID, RevisionID revID, bool deleted)
+        {
+            var count = json.Count();
+            if(json != null && count < 2) {
+                _jsonObject = new NonNullDictionary<string, object> {
+                    { "_id", docID },
+                    { "_rev", revID.ToString() },
+                    { "_deleted", deleted ? (object)true : null }
+                };
+                return;
+            }
+
+            var stringToAdd = String.Format("{{\"_id\":\"{0}\",\"_rev\":\"{1}\",{2}}}", docID, revID,
+                deleted ? "\"_deleted\":true," : String.Empty);
+            var bytes = Encoding.UTF8.GetBytes(stringToAdd).ToList();
+            bytes.InsertRange(bytes.Count - 1, json.Skip(1).Take(count - 2));
+            _json = bytes.ToArray();
+        }
+
         #endregion
 
         #region Public Methods
@@ -104,12 +129,13 @@ namespace Couchbase.Lite
         {
             if (_jsonObject == null) {
                 if (_json == null) {
-                    throw new InvalidOperationException("Both object and json are null for this body: " + this);
+                    return false;
                 }
 
                 try {
                     _jsonObject = Manager.GetObjectMapper().ReadValue<object>(_json);
-                } catch (IOException) {
+                } catch (Exception e) {
+                    Log.To.NoDomain.W(Tag, "Exception during deserialization, returning false...", e);
                 }
             }
             return _jsonObject != null;
@@ -134,16 +160,19 @@ namespace Couchbase.Lite
         /// of this object in human readable form.
         /// </summary>
         /// <returns>JSON bytes</returns>
-        public IEnumerable<Byte> AsPrettyJson()
+        public IEnumerable<byte> AsPrettyJson()
         {
             object properties = AsObject();
             if (properties != null) {
                 ObjectWriter writer = Manager.GetObjectMapper().WriterWithDefaultPrettyPrinter();
 
                 try {
-                    _json = writer.WriteValueAsBytes(properties);
-                } catch (IOException e) {
-                    throw new InvalidDataException("The array or dictionary stored is corrupt", e);
+                    _json = writer.WriteValueAsBytes(properties).ToArray();
+                } catch(CouchbaseLiteException) {
+                    Log.To.NoDomain.E(Tag, "Error writing body as pretty JSON, rethrowing...");
+                } catch (Exception e) {
+                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, Tag, 
+                        "Error writing body as pretty JSON");
                 }
             }
 
@@ -248,6 +277,22 @@ namespace Couchbase.Lite
             return ExtensionMethods.TryCast<T>(valueObj, out val);
         }
 
+        /// <summary>
+        /// Sets the property for a given key.
+        /// </summary>
+        /// <param name="key">The key to set.</param>
+        /// <param name="value">The value to set.</param>
+        public void SetPropertyForKey(string key, object value)
+        {
+            IDictionary<string, object> theProperties = GetProperties();
+            if (theProperties == null) {
+                Log.To.NoDomain.E(Tag, "{0} unable to parse properties, throwing...", this);
+                throw new InvalidDataException("Cannot parse body properties");
+            }
+
+            theProperties[key] = value;
+        }
+
         #endregion
 
         #region Private Methods
@@ -256,13 +301,16 @@ namespace Couchbase.Lite
         private void LazyLoadJsonFromObject()
         {
             if (_jsonObject == null) {
-                throw new InvalidOperationException("Both json and object are null for this body: " + this);
+                Log.To.NoDomain.E(Tag, "Both json and object are null for this body, throwing... {0}",
+                    Environment.StackTrace);
+                throw new InvalidOperationException("Attempt to lazy load from a body with no data");
             }
 
             try {
-                _json = Manager.GetObjectMapper().WriteValueAsBytes(_jsonObject);
-            } catch (IOException e) {
-                throw new InvalidDataException("The array or dictionary stored is corrupt", e);
+                _json = Manager.GetObjectMapper().WriteValueAsBytes(_jsonObject).ToArray();
+            } catch (Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, Tag, 
+                    "Error writing body as pretty JSON");
             }
         }
           
@@ -270,17 +318,37 @@ namespace Couchbase.Lite
         private void LazyLoadObjectFromJson()
         {
             if (_json == null) {
-                throw new InvalidOperationException("Both object and json are null for this body: "
-                + this);
+                Log.To.NoDomain.E(Tag, "Both json and object are null for this body, throwing... {0}", Environment.StackTrace);
+                throw new InvalidOperationException("Attempt to lazy load from a body with no data");
             }
 
             try {
                 _jsonObject = Manager.GetObjectMapper().ReadValue<IDictionary<string,object>>(_json);
-            } catch (IOException e) {
-                throw new InvalidDataException("The JSON stored is corrupt", e);
+            } catch (Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.NoDomain, e, Tag, 
+                    "Error deserializing {0}", this);
             }
         }
 
+        #endregion
+
+        #region Overrides
+#pragma warning disable 1591
+
+        public override string ToString()
+        {
+            if (_json == null && _jsonObject == null) {
+                return String.Format("Body[Invalid!]");
+            }
+
+            if (_json != null) {
+                return String.Format("Body[{0}]", new SecureLogString(_json, LogMessageSensitivity.PotentiallyInsecure));
+            } else {
+                return String.Format("Body[{0}]", new SecureLogJsonString(_jsonObject, LogMessageSensitivity.PotentiallyInsecure));
+            }
+        }
+
+#pragma warning restore 1591
         #endregion
     }
 }

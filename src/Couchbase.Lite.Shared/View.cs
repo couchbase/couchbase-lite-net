@@ -41,18 +41,15 @@
 //
 
 using System;
-using System.Collections.Generic;
-
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Store;
-using Sharpen;
-using System.Threading;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
+
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite {
-
     // TODO: Either remove or update the API defs to indicate the enum value changes, and global scope.
     /// <summary>
     /// Indicates the collation to use for sorted items in the view
@@ -89,8 +86,12 @@ namespace Couchbase.Lite {
 
         #region Variables
 
-        internal event TypedEventHandler<View, EventArgs> Changed;
-        private ConcurrentQueue<UpdateJob> _updateQueue = new ConcurrentQueue<UpdateJob>();
+        private TypedEventHandler<View, EventArgs> _changed;
+        internal event TypedEventHandler<View, EventArgs> Changed
+        {
+            add { _changed = (TypedEventHandler<View, EventArgs>)Delegate.Combine(_changed, value); }
+            remove { _changed = (TypedEventHandler<View, EventArgs>)Delegate.Remove(_changed, value); }
+        }
 
         #endregion
 
@@ -116,7 +117,7 @@ namespace Couchbase.Lite {
         /// Gets if the <see cref="Couchbase.Lite.View"/>'s indices are currently out of date.
         /// </summary>
         /// <value><c>true</c> if this instance is stale; otherwise, <c>false</c>.</value>
-        public bool IsStale { get { return (LastSequenceIndexed < Database.LastSequenceNumber); } }
+        public bool IsStale { get { return (LastSequenceIndexed < Database.GetLastSequenceNumber()); } }
 
         /// <summary>
         /// Gets the last sequence number indexed so far.
@@ -245,8 +246,8 @@ namespace Couchbase.Lite {
 
             if (changed) {
                 Storage.SetVersion(version);
-                if (Changed != null) {
-                    Changed(this, null);
+                if (_changed != null) {
+                    _changed(this, null);
                 }
             }
 
@@ -263,12 +264,28 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>
+        /// Updates the <see cref="Couchbase.Lite.View"/>'s persistent index.  Indexing
+        /// scans all documents that have changed since the last time the index was updated.
+        /// The body of each document is passed to the view's map callback, and any emitted
+        /// rows are added to the index.  Any existing rows previously emitted by those documents,
+        /// that weren't re-emitted this time, are removed.
+        /// </summary>
+        public void UpdateIndex()
+        {
+            var status = UpdateIndex_Internal();
+            if(status.IsError) {
+                Log.To.View.W(TAG, "Error updating index of {0} ({1})", Name, status);
+            }
+        }
+
+        /// <summary>
         /// Deletes the <see cref="Couchbase.Lite.View"/>.
         /// </summary>
         public void Delete()
         { 
             Storage.DeleteView();
             Database.ForgetView(Name);
+            //_updateQueueLock.Release();
             Close();
         }
 
@@ -293,25 +310,22 @@ namespace Couchbase.Lite {
             Database = null;
         }
 
-        internal Status UpdateIndex()
+        internal Status UpdateIndex_Internal()
         {
-            //TODO: View grouping
-            var viewsToUpdate = new List<IViewStore> { Storage };
-
-            UpdateJob proposedJob = Storage.CreateUpdateJob(viewsToUpdate);
-            UpdateJob nextJob = null;
-            if (_updateQueue.TryPeek(out nextJob)) {
-                if (!nextJob.LastSequences.SequenceEqual(proposedJob.LastSequences)) {
-                    QueueUpdate(proposedJob);
-                    nextJob = proposedJob;
-                } 
-            } else {
-                QueueUpdate(proposedJob);
-                nextJob = proposedJob;
+            var status = new Status(StatusCode.Unknown);
+            try {
+                status.Code = Storage.UpdateIndexes(ViewsInGroup().Select(x => x.Storage)) ? StatusCode.Ok :
+                    StatusCode.DbError;
+            } catch(Exception e) {
+                var innerException = Misc.Flatten(e).First() as CouchbaseLiteException;
+                if (innerException != null) {
+                    status.Code = innerException.Code;
+                } else {
+                    status.Code = StatusCode.Exception;
+                }
             }
 
-            nextJob.Wait();
-            return nextJob.Result;
+            return status;
         }
 
         /// <summary>Queries the view.</summary>
@@ -335,48 +349,12 @@ namespace Couchbase.Lite {
             }
 
             if (iterator != null) {
-                Log.D(TAG, "Query {0}: Returning iterator", Name);
+                Log.To.Query.I(TAG, "Query {0}: Returning iterator", Name);
             } else {
-                Log.D(TAG, "Query {0}: Failed", Name);
+                Log.To.Query.I(TAG, "Query {0}: Failed", Name);
             }
 
             return iterator;
-        }
-
-        /// <summary>Indexing</summary>
-        internal string ToJSONString(object obj)
-        {
-            if (obj == null)
-                return null;
-
-            string result = null;
-            try
-            {
-                result = Manager.GetObjectMapper().WriteValueAsString(obj);
-            }
-            catch (Exception e)
-            {
-                Log.W(Database.TAG, "Exception serializing object to json: " + obj, e);
-            }
-            return result;
-        }
-
-        internal object FromJSON(IEnumerable<byte> json)
-        {
-            if (json == null)
-            {
-                return null;
-            }
-            object result = null;
-            try
-            {
-                result = Manager.GetObjectMapper().ReadValue<object>(json);
-            }
-            catch (Exception e)
-            {
-                Log.W(Database.TAG, "Exception parsing json", e);
-            }
-            return result;
         }
 
         internal Status CompileFromDesignDoc()
@@ -392,7 +370,7 @@ namespace Couchbase.Lite {
                 return new Status(StatusCode.NotFound);
             }
 
-            Log.D(TAG, "{0}: Attempting to compile {1} from design doc", Name, language);
+            Log.To.View.I(TAG, "{0}: Attempting to compile {1} from design doc", Name, language);
             if (Compiler == null) {
                 return new Status(StatusCode.NotImplemented);
             }
@@ -410,7 +388,8 @@ namespace Couchbase.Lite {
 
             MapDelegate mapDelegate = Compiler.CompileMap(mapSource, language);
             if (mapDelegate == null) {
-                Log.W(TAG, "View {0} could not compile {1} map fn: {2}", Name, language, mapSource);
+                Log.To.View.W(TAG, "{0} could not compile {1} map fn: {2}", Name, language, 
+                    new SecureLogString(mapSource, LogMessageSensitivity.PotentiallyInsecure));
                 return new Status(StatusCode.CallbackError);
             }
 
@@ -419,7 +398,8 @@ namespace Couchbase.Lite {
             if (reduceSource != null) {
                 reduceDelegate = Compiler.CompileReduce(reduceSource, language);
                 if (reduceDelegate == null) {
-                    Log.W(TAG, "View {0} could not compile {1} reduce fn: {2}", Name, language, mapSource);
+                    Log.To.View.W(TAG, "{0} could not compile {1} reduce fn: {2}", Name, language, 
+                        new SecureLogString(reduceSource, LogMessageSensitivity.PotentiallyInsecure));
                     return new Status(StatusCode.CallbackError);
                 }
             }
@@ -444,22 +424,24 @@ namespace Couchbase.Lite {
 
         #region Private Methods
 
-        private UpdateJob QueueUpdate(UpdateJob job)
+        private IEnumerable<View> ViewsInGroup()
         {
-            job.Finished += (sender, e) => {
-                UpdateJob nextJob;
-                _updateQueue.TryDequeue(out nextJob);
-                if(_updateQueue.TryPeek(out nextJob)) {
-                    nextJob.Run();
-                }
-            };
+            var groupName = GroupName();
+            if(groupName != null) {
+                return Database.GetAllViews().Where(v => v.Name.StartsWith(groupName));
+            } else {
+                return new List<View> { this };
+            }
+        }
 
-            _updateQueue.Enqueue(job);
-            if (_updateQueue.Count == 1) {
-                job.Run();
+        private string GroupName()
+        {
+            var slash = Name.IndexOf('/');
+            if (slash != -1) {
+                return Name.Substring(0, slash);
             }
 
-            return job;
+            return null;
         }
 
         private bool GroupOrReduce(QueryOptions options) {

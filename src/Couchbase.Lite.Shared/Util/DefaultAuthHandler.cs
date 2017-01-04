@@ -41,13 +41,18 @@
 //
 
 using System;
+using System.Collections.Concurrent;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
-using System.Net;
-using System.Linq;
+
+#if NET_3_5
+using Cookie = System.Net.Couchbase.Cookie;
+#endif
 
 namespace Couchbase.Lite.Replicator
 {
@@ -57,13 +62,12 @@ namespace Couchbase.Lite.Replicator
 
         #region Variables
 
-        private bool _chunkedMode = false;
         private object _locker = new object();
-        private readonly HttpClientHandler _context;
+        private TimeSpan _timeout;
         private readonly CookieStore _cookieStore;
+        private readonly ConcurrentDictionary<HttpResponseMessage, int> _retryMessages = new ConcurrentDictionary<HttpResponseMessage,int>();
 
         #endregion
-
 
         #region Properties
 
@@ -73,12 +77,11 @@ namespace Couchbase.Lite.Replicator
 
         #region Constructors
 
-        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore, bool chunkedMode)
+        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore, TimeSpan timeout)
         {
-            _chunkedMode = chunkedMode;
-            _context = context;
             _cookieStore = cookieStore;
-            InnerHandler = _context;
+            _timeout = timeout;
+            InnerHandler = context;
         }
 
         #endregion
@@ -87,47 +90,58 @@ namespace Couchbase.Lite.Replicator
 
         protected override HttpResponseMessage ProcessResponse(HttpResponseMessage response, CancellationToken cancellationToken)
         {
-            if (response.Content != null && !_chunkedMode) {
-                var mre = new ManualResetEvent(false);
-                response.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
-                if (!mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true)) {
-                    Log.E("DefaultAuthHandler", "mre.WaitOne timed out");
-                }
-            }
+            int retryCount;
+            do {
+                if (Authenticator != null && response.StatusCode == HttpStatusCode.Unauthorized) {
+                    retryCount = _retryMessages.GetOrAdd(response, 0);
+                    if(retryCount >= 5) {
+                        // Multiple concurrent requests means that the Nc can sometimes get out of order
+                        // so try again, but within reason.
+                        break;
+                    }
 
-            if (Authenticator != null && response.StatusCode == HttpStatusCode.Unauthorized 
-                && !response.RequestMessage.Headers.Contains("Authorization")) {
-                //Challenge received for the first time
-                var newRequest = new HttpRequestMessage(response.RequestMessage.Method, response.RequestMessage.RequestUri);
-                foreach (var header in response.RequestMessage.Headers) {
-                    newRequest.Headers.Add(header.Key, header.Value);
-                }
+                    _retryMessages.TryUpdate(response, retryCount + 1, retryCount);
+                    var newRequest = new HttpRequestMessage(response.RequestMessage.Method, response.RequestMessage.RequestUri);
+                    foreach (var header in response.RequestMessage.Headers) {
+                        if(header.Key != "Authorization") {
+                            newRequest.Headers.Add(header.Key, header.Value);
+                        }
+                    }
 
-                newRequest.Content = response.RequestMessage.Content;
-                var challengeResponse = Authenticator.ResponseFromChallenge(response);
-                if (challengeResponse != null) {
-                    newRequest.Headers.Add("Authorization", challengeResponse);
-                    return ProcessResponse(SendAsync(newRequest, cancellationToken).Result, cancellationToken);
+                    newRequest.Content = response.RequestMessage.Content;
+                    var challengeResponse = Authenticator.ResponseFromChallenge(response);
+                    if (challengeResponse != null) {
+                        newRequest.Headers.Add("Authorization", challengeResponse);
+                        return ProcessResponse(SendAsync(newRequest, cancellationToken).Result, cancellationToken);
+                    }
                 }
-            }
+            }  while(false);
 
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie) {
-                lock (_locker) {
-                    _cookieStore.Save();
+                var cookie = default(Cookie);
+                if(CookieParser.TryParse(response.Headers.GetValues("Set-Cookie").ElementAt(0), response.RequestMessage.RequestUri.Host,
+                    out cookie)) {
+                    lock (_locker) {
+                        _cookieStore.Add(cookie);
+                        _cookieStore.Save();
+                    }
                 }
             }
 
+            _retryMessages.TryRemove(response, out retryCount);
             return response;
         }
 
-        /// <exception cref="System.IO.IOException"></exception>
         protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (request.Content != null) {
+            if(request.Content != null && !(request.Content is CompressedContent)) {
+                // This helps work around .NET 3.5's tendency to read from filestreams
+                // multiple times (the second time will be zero length since the filestream
+                // is already at the end)
                 var mre = new ManualResetEvent(false);
                 request.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
-                mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
+                mre.WaitOne(_timeout, true);
             }
 
             return request;

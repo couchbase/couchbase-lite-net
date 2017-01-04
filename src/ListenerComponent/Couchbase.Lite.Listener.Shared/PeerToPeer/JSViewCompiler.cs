@@ -37,6 +37,7 @@ namespace Couchbase.Lite.Listener
     {
 
         #region IViewCompiler
+#pragma warning disable 1591
 
         public MapDelegate CompileMap(string source, string language)
         {
@@ -48,7 +49,7 @@ namespace Couchbase.Lite.Listener
 
             return (doc, emit) =>
             {
-                var engine = new Engine().SetValue("log", new Action<object>((line) => Log.I("JSViewCompiler", line.ToString())));
+                var engine = new Engine().SetValue("log", new Action<object>((line) => Log.To.Router.I("JSViewCompiler", line.ToString())));
                 engine.SetValue("emit", emit);
                 engine.Execute(source).Invoke("_f1", doc);
             };
@@ -65,34 +66,17 @@ namespace Couchbase.Lite.Listener
             }
 
             source = source.Replace("function", "function _f2");
-            var engine = new Engine().Execute(source).SetValue("log", new Action<object>((line) => Log.I("JSViewCompiler", line.ToString())));
+            var engine = new Engine().Execute(source).SetValue("log", new Action<object>((line) => Log.To.Router.I("JSViewCompiler", line.ToString())));
 
             return (keys, values, rereduce) => {
-                var jsKeys = ToJSArray(keys, engine);
-                var jsVals = ToJSArray(values, engine);
-
-                var result = engine.Invoke("_f2", jsKeys, jsVals, rereduce);
+                var result = engine.Invoke("_f2", keys, values, rereduce);
                 return result.ToObject();
             };
         }
 
+#pragma warning restore 1591
         #endregion
 
-        #region Private Methods
-
-        //Arrays cannot simply be passed into the Javascript engine, they must be allocated
-        //according to Javascript rules
-        private static ArrayInstance ToJSArray(IEnumerable list, Engine engine)
-        {
-            List<JsValue> wrappedVals = new List<JsValue>();
-            foreach (object x in list) {
-                wrappedVals.Add(JsValue.FromObject(engine, x));
-            }
-
-            return (ArrayInstance)engine.Array.Construct(wrappedVals.ToArray());
-        }
-
-        #endregion
     }
 }
 

@@ -48,12 +48,21 @@ namespace Couchbase.Lite
     /// <summary>
     /// Standard query options for views.
     /// </summary>
-    public class QueryOptions
+    public sealed class QueryOptions
     {
 
         #region Constants
 
-        internal const int DEFAULT_LIMIT = int.MaxValue;
+        /// <summary>
+        /// The default limit to use when querying (i.e. unlimited)
+        /// </summary>
+        [Obsolete("Use DefaultLimit instead")]
+        public const int DEFAULT_LIMIT = Int32.MaxValue;
+
+        /// <summary>
+        /// The default limit to use when querying (i.e. unlimited)
+        /// </summary>
+        public static readonly int DefaultLimit = Int32.MaxValue;
 
         #endregion
 
@@ -194,7 +203,7 @@ namespace Couchbase.Lite
         /// </summary>
         public QueryOptions()
         {
-            Limit = DEFAULT_LIMIT;
+            Limit = DefaultLimit;
             InclusiveEnd = true;
             InclusiveStart = true;
         }
@@ -202,6 +211,15 @@ namespace Couchbase.Lite
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Create a copy of a given QueryOptions object
+        /// </summary>
+        /// <returns>A copy of a given QueryOptions object</returns>
+        public QueryOptions Copy()
+        {
+            return (QueryOptions)MemberwiseClone();
+        }
 
         /// <summary>
         /// Gets the start key for the query

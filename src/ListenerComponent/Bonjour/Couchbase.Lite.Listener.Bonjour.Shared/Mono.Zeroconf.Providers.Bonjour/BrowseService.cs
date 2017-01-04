@@ -48,6 +48,7 @@ using System.Net;
 using System.Text;
 using System.Collections;
 using System.Runtime.InteropServices;
+using Couchbase.Lite.Util;
 
 #if __IOS__
 using AOT = ObjCRuntime;
@@ -55,8 +56,22 @@ using AOT = ObjCRuntime;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
+    public sealed class ServiceErrorEventArgs : EventArgs
+    {
+        public readonly ServiceError ErrorCode;
+
+        public readonly string Stage;
+
+        internal ServiceErrorEventArgs(string stage, ServiceError errorCode)
+        {
+            Stage = stage;
+            ErrorCode = errorCode;
+        }
+    }
+
     public sealed class BrowseService : Service, IResolvableService, IDisposable
     {
+        private static readonly string Tag = typeof(BrowseService).Name;
         private bool is_resolved = false;
         private bool resolve_pending = false;
         
@@ -71,6 +86,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
         }
         private event ServiceResolvedEventHandler _resolved;
 
+        public event EventHandler<ServiceErrorEventArgs> Error;
+
         public BrowseService()
         {
             SetupCallbacks();
@@ -83,6 +100,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         
         private void SetupCallbacks()
         {
+            Log.To.Discovery.D(Tag, "Initializing {0}", this);
             resolve_reply_handler = new Native.DNSServiceResolveReply(OnResolveReply);
             query_record_reply_handler = new Native.DNSServiceQueryRecordReply(OnQueryRecordReply);
         }
@@ -97,7 +115,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             if(resolve_pending) {
                 return;
             }
-        
+    
             is_resolved = false;
             resolve_pending = true;
             
@@ -110,14 +128,20 @@ namespace Mono.Zeroconf.Providers.Bonjour
             }
 
             ServiceRef sd_ref;
+            Log.To.Discovery.V(Tag, "{0} preparing to enter DNSServiceResolve", this);
             ServiceError error = Native.DNSServiceResolve(out sd_ref, ServiceFlags.None, 
                 InterfaceIndex, Name, RegType, ReplyDomain, resolve_reply_handler, GCHandle.ToIntPtr(_self));
                 
             if(error != ServiceError.NoError) {
-                throw new ServiceErrorException(error);
+                Log.To.Discovery.W(Tag, "Error from DNSServiceResolve {0}", error);
+                if (Error != null) {
+                    Error(this, new ServiceErrorEventArgs("Resolve", error));
+                    sd_ref.Deallocate();
+                    return;
+                }
             }
 
-            sd_ref.Process();
+            sd_ref.ProcessSingle();
         }
         
         public void RefreshTxtRecord()
@@ -133,10 +157,12 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 fullname, ServiceType.TXT, ServiceClass.IN, query_record_reply_handler, GCHandle.ToIntPtr(_self));
                 
             if(error != ServiceError.NoError) {
-                throw new ServiceErrorException(error);
+                Error(this, new ServiceErrorEventArgs("RefreshTxtRecord", error));
+                sd_ref.Deallocate();
+                return;
             }
             
-            sd_ref.Process(ServiceParams.Timeout);
+            sd_ref.ProcessSingle(ServiceParams.Timeout);
         }
 
         #if __IOS__ || __UNITY_APPLE__
@@ -148,6 +174,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
         {
             var handle = GCHandle.FromIntPtr(context);
             var browseService = handle.Target as BrowseService;
+            Log.To.Discovery.V(Tag, "Resolve reply received for {0} (0x{1}), entering DNSServiceQueryRecord next", 
+                browseService, sdRef.Raw.ToString("X"));
             browseService.is_resolved = true;
             browseService.resolve_pending = false;
             
@@ -155,21 +183,24 @@ namespace Mono.Zeroconf.Providers.Bonjour
             browseService.FullName = fullname;
             browseService.Port = (ushort)IPAddress.NetworkToHostOrder((short)port);
             browseService.TxtRecord = new TxtRecord(txtLen, txtRecord);
-
             sdRef.Deallocate();
             
             // Run an A query to resolve the IP address
             ServiceRef sd_ref;
             
             if (browseService.AddressProtocol == AddressProtocol.Any || browseService.AddressProtocol == AddressProtocol.IPv4) {
+                
                 ServiceError error = Native.DNSServiceQueryRecord(out sd_ref, ServiceFlags.None, interfaceIndex,
                     hosttarget, ServiceType.A, ServiceClass.IN, browseService.query_record_reply_handler, context);
                 
                 if(error != ServiceError.NoError) {
-                    throw new ServiceErrorException(error);
+                    Log.To.Discovery.W(Tag, "Error in DNSServiceQueryRecord {0}", error);
+                    browseService.Error(browseService, new ServiceErrorEventArgs("ResolveReply (IPv4)", error));
+                    sd_ref.Deallocate();
+                    return;
                 }
             
-                sd_ref.Process(ServiceParams.Timeout);
+                sd_ref.ProcessSingle(ServiceParams.Timeout);
             }
             
             if (browseService.AddressProtocol == AddressProtocol.Any || browseService.AddressProtocol == AddressProtocol.IPv6) {
@@ -177,10 +208,15 @@ namespace Mono.Zeroconf.Providers.Bonjour
                     hosttarget, ServiceType.AAAA, ServiceClass.IN, browseService.query_record_reply_handler, context);
                 
                 if(error != ServiceError.NoError) {
-                    throw new ServiceErrorException(error);
+                    if(error != ServiceError.NoError) {
+                        Log.To.Discovery.W(Tag, "Error in DNSServiceQueryRecord {0}", error);
+                        browseService.Error(browseService, new ServiceErrorEventArgs("ResolveReply (IPv6)", error));
+                        sd_ref.Deallocate();
+                        return;
+                    }
                 }
             
-                sd_ref.Process(ServiceParams.Timeout);
+                sd_ref.ProcessSingle(ServiceParams.Timeout);
             }
         }
      
@@ -225,7 +261,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
                     } else {
                         browseService.hostentry.AddressList = new IPAddress [] { address };
                     }
-                    
+
+                    Log.To.Discovery.V(Tag, "Query record reply received for {0} (0x{1})", browseService, sdRef.Raw.ToString("X"));
                     ServiceResolvedEventHandler handler = browseService._resolved;
                     if(handler != null) {
                         handler(browseService, new ServiceResolvedEventArgs(browseService));
@@ -248,6 +285,16 @@ namespace Mono.Zeroconf.Providers.Bonjour
         
         public bool IsResolved {
             get { return is_resolved; }
+        }
+
+        public override string ToString()
+        {
+            if (IsResolved) {
+                return string.Format("BrowseService[IsResolved=True Name={0} IPAddresses={1} Port={2}]", 
+                    Name, new LogJsonString(hostentry == null ? new string[0] : hostentry.AddressList.ToStringArray()), Port);
+            }
+
+            return "BrowseService[IsResolved=False]";
         }
 
         public void Dispose() {

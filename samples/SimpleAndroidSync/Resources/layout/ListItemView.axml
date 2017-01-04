@@ -22,7 +22,7 @@
             android:layout_weight="1"
             android:layout_gravity="center_vertical"
             android:singleLine="false" />
-        <CheckBox
+        <couchbase.simpleandroidsync.views.ContextCheckBox
             android:id="@+id/check"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

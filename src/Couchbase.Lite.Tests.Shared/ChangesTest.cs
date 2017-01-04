@@ -42,25 +42,29 @@
 * and limitations under the License.
 */
 
+using System;
 using System.Collections.Generic;
-using Couchbase.Lite;
+
 using Couchbase.Lite.Internal;
 using NUnit.Framework;
-using Sharpen;
-using System;
+using Couchbase.Lite.Revisions;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class ChangesTest : LiteTestCase
     {
+
+        public ChangesTest(string storageType) : base(storageType) {}
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
         public void TestChangeNotification()
         {
-            var changeNotifications = 0;
-
+            var countDown = new CountdownEvent(1);
             EventHandler<DatabaseChangeEventArgs> handler
-                = (sender, e) => changeNotifications++;
+                = (sender, e) => countDown.Signal();
 
             database.Changed += handler;
 
@@ -72,11 +76,11 @@ namespace Couchbase.Lite
             
             var body = new Body(documentProperties);
             var rev1 = new RevisionInternal(body);
+
+            database.PutRevision(rev1, null, false);
+            Sleep(500);
             
-            var status = new Status();
-            database.PutRevision(rev1, null, false, status);
-            
-            Assert.AreEqual(1, changeNotifications);
+            Assert.IsTrue(countDown.Wait(TimeSpan.FromSeconds(1)));
 
             // Analysis disable once DelegateSubtraction
             database.Changed -= handler;
@@ -85,11 +89,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestLocalChangesAreNotExternal()
         {
-            var changeNotifications = 0;
+            var countDown = new CountdownEvent(1);
 
             EventHandler<DatabaseChangeEventArgs> handler = (sender, e) =>
             {
-                changeNotifications++;
+                countDown.Signal();
                 Assert.IsFalse(e.IsExternal);
             };
 
@@ -100,7 +104,7 @@ namespace Couchbase.Lite
             document.CreateRevision().Save();
 
             // Make sure that the assertion in changeListener was called.
-            Assert.AreEqual(1, changeNotifications);
+            Assert.IsTrue(countDown.Wait(TimeSpan.FromSeconds(1)));
 
             // Analysis disable once DelegateSubtraction
             database.Changed -= handler;
@@ -109,28 +113,27 @@ namespace Couchbase.Lite
         [Test]
         public void TestPulledChangesAreExternal()
         {
-            var changeNotifications = 0;
+            var countDown = new CountdownEvent(1);
 
             EventHandler<DatabaseChangeEventArgs> handler = (sender, e) =>
             {
-                changeNotifications++;
-                Assert.IsTrue(e.IsExternal);
+                countDown.Signal();
+                Assert.IsFalse(e.IsExternal);
             };
 
             database.Changed += handler;
 
             // Insert a dcoument as if it came from a remote source.
-            var rev = new RevisionInternal("docId", "1-rev", false);
+            var rev = new RevisionInternal("docId", "1-abcd".AsRevID(), false);
             var properties = new Dictionary<string, object>();
-            properties["_id"] = rev.GetDocId();
-            properties["_rev"] = rev.GetRevId();
+            properties.SetDocRevID(rev.DocID, rev.RevID);
             rev.SetProperties(properties);
 
-            var history = new List<string>();
-            history.Add(rev.GetRevId());
+            var history = new List<RevisionID>();
+            history.Add(rev.RevID);
             database.ForceInsert(rev, history, GetReplicationURL());
 
-            Assert.AreEqual(1, changeNotifications);
+            Assert.IsTrue(countDown.Wait(TimeSpan.FromSeconds(1)));
 
             // Analysis disable once DelegateSubtraction
             database.Changed -= handler;

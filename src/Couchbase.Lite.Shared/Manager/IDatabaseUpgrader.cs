@@ -22,16 +22,37 @@ using System;
 
 namespace Couchbase.Lite.Db
 {
-    internal interface IDatabaseUpgrader
+    /// <summary>
+    /// An interface describing a class that can upgrade a database between
+    /// versions of Couchbase Lite
+    /// </summary>
+    public interface IDatabaseUpgrader
     {
+        /// <summary>
+        /// Gets the document count of the database
+        /// </summary>
         int NumDocs { get; }
 
+        /// <summary>
+        /// Gets the revision count of the database
+        /// </summary>
         int NumRevs { get; }
 
+        /// <summary>
+        /// Gets or sets whether or not the upgrader is allowed to remove
+        /// a previous attachment directory (if it has changed)
+        /// </summary>
         bool CanRemoveOldAttachmentsDir { get; set; }
 
-        Status Import();
+        /// <summary>
+        /// Executes the import of an old Couchbase Lite database into a newer
+        /// version
+        /// </summary>
+        void Import();
 
+        /// <summary>
+        /// Backs out of a failed upgrade
+        /// </summary>
         void Backout();
     }
 }

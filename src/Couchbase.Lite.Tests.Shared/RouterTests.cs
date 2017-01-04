@@ -47,14 +47,16 @@ using WebHeaderCollection = System.Net.Couchbase.WebHeaderCollection;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class RouterTests : LiteTestCase
     {
         private const string TAG = "RouterTests";
 
-        private int _savedMinHeartbeat;
-        private int _minHeartbeat = 5000;
+        private TimeSpan _savedMinHeartbeat;
         private CouchbaseLiteTcpListener _listener;
         private HttpWebResponse _lastResponse;
+
+        public RouterTests(string storageType) : base(storageType) {}
 
         [Test]
         public void TestServer()
@@ -238,7 +240,7 @@ namespace Couchbase.Lite
             var revId3 = result.GetCast<string>("rev");
 
             endpoint = String.Format("/{0}/_all_docs?include_docs=true", database.Name);
-            result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);
+            result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);;
             Assert.AreEqual(3, result.GetCast<long>("total_rows", 0));
             Assert.AreEqual(0, result.GetCast<long>("offset", -1));
             var expectedResult = new List<object>();
@@ -286,6 +288,8 @@ namespace Couchbase.Lite
                     }
                 }
             });
+
+            CollectionAssert.AreEquivalent(expectedResult, result["rows"] as IEnumerable);
         }
 
         [Test]
@@ -346,7 +350,7 @@ namespace Couchbase.Lite
             }, null, false, r =>
             {
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
-                var parsedResponse = ParseJsonResponse<IDictionary<string, object>>(r);
+                var parsedResponse = ParseJsonResponse(r).AsDictionary<string, object>();
                 Assert.AreEqual(parsedResponse.GetCast<long>("total_rows"), 4L);
             });
 
@@ -444,7 +448,7 @@ namespace Couchbase.Lite
             });
 
             // Check if the current last sequence indexed has been changed:
-            Thread.Sleep(8000);
+            Sleep(8000);
             Assert.IsTrue(prevSequenceIndexed < view.LastSequenceIndexed);
 
             // Confirm the result with stale = ok:
@@ -473,8 +477,10 @@ namespace Couchbase.Lite
         [Test]
         public void TestJSViews()
         {
+
+            Log.Domains.Query.Level = Log.LogLevel.Debug;
             View.Compiler = new JSViewCompiler();
-           // Database.FilterCompiler = new JSFilterCompiler();
+            Database.FilterCompiler = new JSFilterCompiler();
 
             string endpoint = String.Format("/{0}/doc1", database.Name);
             SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
@@ -553,9 +559,8 @@ namespace Couchbase.Lite
                 },
                 { "total_rows", 4L }
             });
-
-            //TODO.JHB: Should .NET also implement views so that groups are updated at once like iOS?
-            //Assert.IsFalse(database.GetView("design/view").IsStale);
+                
+            Assert.IsFalse(database.GetView("design/view").IsStale);
             Assert.IsFalse(database.GetView("design/view2").IsStale);
 
             //NOTE.JHB: The _rev property differs from iOS.  Should investigate later.
@@ -567,7 +572,7 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
+                                    { "_rev", "1-cfdd78e822bbcbc25c91e9deb9537c4b" },
                                     { "message", "hi" }
                                 }
                             }
@@ -585,10 +590,10 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
+                                    { "_rev", "1-cfdd78e822bbcbc25c91e9deb9537c4b" },
                                     { "_revisions", new Dictionary<string, object> {
                                             { "start", 1L },
-                                            { "ids", new List<object> { "66d2a05927e5851025c6d204956afff4" } }
+                                            { "ids", new List<object> { "cfdd78e822bbcbc25c91e9deb9537c4b" } }
                                         }
                                     },
                                     { "message", "hi" }
@@ -746,9 +751,9 @@ namespace Couchbase.Lite
                                     { "_revisions", new Dictionary<string, object> {
                                             { "start", 3L },
                                             { "ids", new List<object> { 
-                                                    "849ef0cb3227570b179053f30435c834",
-                                                    "f4aa17f89f2d613c362f23148b74b794",
-                                                    "73f49cb1381a29e8d6d50e840c51cfa5"
+                                                    "69e1c04b38d144220169834e4a1d6b65",
+                                                    "641a9554032af9bcb2351b2780161a4d",
+                                                    "9c7ff8308d0c89a7f1fe0f4b683655c2"
                                                 } 
                                             }
                                         }
@@ -804,7 +809,7 @@ namespace Couchbase.Lite
                         }
                     }
                 }
-            }, ConvertResponse(body.GetProperties()));
+            }, JsonUtility.ConvertToNetObject(body.GetProperties()));
 
             mre.Dispose();
         }
@@ -824,7 +829,7 @@ namespace Couchbase.Lite
                     while (stream.Read(data, 0, data.Length) > 0)
                     {
                         if(data[0] == 13 && data[1] == 10) {
-                            Log.D(TAG, "Heartbeat came at {0} seconds", (DateTime.Now - start).TotalSeconds);
+                            WriteDebug("Heartbeat came at {0} seconds", (DateTime.Now - start).TotalSeconds);
                             heartbeat += 1;
                         }
                     }
@@ -833,7 +838,7 @@ namespace Couchbase.Lite
                 });
 
             Assert.IsFalse(mre.IsSet);
-            Thread.Sleep(2500);
+            Sleep(2500);
             Assert.IsFalse(mre.IsSet);
             Assert.AreEqual(2, heartbeat);
 
@@ -874,7 +879,7 @@ namespace Couchbase.Lite
                 });
 
                 // Should initially have a response and one line of output:
-                Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                Sleep(TimeSpan.FromMilliseconds(500));
                 Assert.IsNotNull(response);
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
                 Assert.IsTrue(body.Count > 0);
@@ -886,7 +891,7 @@ namespace Couchbase.Lite
                     { "message", "hej" } 
                 }), HttpStatusCode.Created, null);
 
-                Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                Sleep(TimeSpan.FromMilliseconds(500));
 
                 Assert.IsTrue(body.Count > 0);
                 Assert.IsFalse(mre.IsSet);
@@ -925,7 +930,7 @@ namespace Couchbase.Lite
                     mre.Set();
                 });
 
-                Thread.Sleep(2500);
+                Sleep(2500);
                 Assert.IsNotNull(response);
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
                 Assert.IsTrue(body.Count > 0);
@@ -966,7 +971,7 @@ namespace Couchbase.Lite
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 var data = r.GetResponseStream().ReadAllBytes();
                 Assert.AreEqual(data, attach1);
-                Assert.AreEqual("text/plain", r.ContentType);
+                Assert.AreEqual("text/plain; charset=utf-8", r.ContentType);
                 var etag = r.GetResponseHeader("Etag");
                 Assert.IsTrue(etag.Length > 0);
             });
@@ -978,7 +983,7 @@ namespace Couchbase.Lite
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 var data = r.GetResponseStream().ReadAllBytes();
                 Assert.AreEqual(data, attach2);
-                Assert.AreEqual("text/plain", r.ContentType);
+                Assert.AreEqual("text/plain; charset=utf-8", r.ContentType);
                 var etag = r.GetResponseHeader("Etag");
                 Assert.IsTrue(etag.Length > 0);
             });
@@ -1008,7 +1013,7 @@ namespace Couchbase.Lite
             {
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 var body = new Body(r.GetResponseStream().ReadAllBytes());
-                var attachments = ConvertResponse(body.GetPropertyForKey("_attachments"));
+                var attachments = JsonUtility.ConvertToNetObject(body.GetPropertyForKey("_attachments"));
                 Assert.AreEqual(new Dictionary<string, object> { 
                     { "attach", new Dictionary<string, object> {
                             { "data", Convert.ToBase64String(attach1) },
@@ -1110,7 +1115,7 @@ namespace Couchbase.Lite
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 var body = new Body(r.GetResponseStream().ReadAllBytes());
                 Assert.AreEqual(attach1, body.AsJson());
-                Assert.AreEqual("text/plain", r.GetResponseHeader("Content-Type"));
+                Assert.AreEqual("text/plain; charset=utf-8", r.GetResponseHeader("Content-Type"));
                 var etag = r.GetResponseHeader("Etag");
                 Assert.IsTrue(etag.Length > 0);
             });
@@ -1120,7 +1125,7 @@ namespace Couchbase.Lite
             {
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 Assert.AreEqual(attach2, r.GetResponseStream().ReadAllBytes());
-                Assert.AreEqual("application/json", r.GetResponseHeader("Content-Type"));
+                Assert.AreEqual("application/json; charset=utf-8", r.GetResponseHeader("Content-Type"));
                 var etag = r.GetResponseHeader("Etag");
                 Assert.IsTrue(etag.Length > 0);
             });
@@ -1308,6 +1313,23 @@ namespace Couchbase.Lite
             _listener.Start();
             var basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:borden"));
             _listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
+
+            SendRequest("GET", "/cblitetest", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
+            });
+
+            basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:bogus"));
+            SendRequest("GET", "/cblitetest", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+            });
+
+            SendRequest("GET", "/cblitetest", null, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+            });
+
             SendRequest("GET", "/", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
             {
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
@@ -1316,12 +1338,12 @@ namespace Couchbase.Lite
             basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:bogus"));
             SendRequest("GET", "/", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
             {
-                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
             });
 
             SendRequest("GET", "/", null, null, false, (r) =>
             {
-                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
             });
 
             _listener.Stop();
@@ -1329,9 +1351,97 @@ namespace Couchbase.Lite
             _listener.Start();
         }
 
+        [Test]
+        public void TestExpiration()
+        {
+            // Create doc without expiration:
+            var result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["message"] = "hello"
+            }), HttpStatusCode.Created, null);
+            var revID = result["rev"];
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["_rev"] = revID,
+                ["message"] = "hello"
+            });
+
+            // Set expiration as string:
+            result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["_exp"] = "2016-12-31T21:21:18Z",
+                ["_rev"] = revID
+            }), HttpStatusCode.Created, null);
+            revID = result["rev"];
+            var expectedExp = new DateTime(2016, 12, 31, 21, 21, 18, 0);
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["_rev"] = revID,
+                ["_exp"] = expectedExp
+            });
+            Assert.AreEqual(expectedExp, database.Storage.GetDocumentExpiration("doc1"));
+
+            // Update without changing expiration:
+            result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["foo"] = 17,
+                ["_rev"] = revID
+            }), HttpStatusCode.Created, null);
+            revID = result["rev"];
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["foo"] = 17,
+                ["_rev"] = revID,
+                ["_exp"] = expectedExp
+            });
+            Assert.AreEqual(expectedExp, database.Storage.GetDocumentExpiration("doc1"));
+
+            // Set expiration as number:
+            result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["_exp"] = 1234567890,
+                ["_rev"] = revID
+            }), HttpStatusCode.Created, null);
+            revID = result["rev"];
+            expectedExp = new DateTime(2009, 02, 13, 23, 31, 30, 0);
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["_rev"] = revID,
+                ["_exp"] = expectedExp
+            });
+            Assert.AreEqual(expectedExp, database.Storage.GetDocumentExpiration("doc1"));
+
+            // Set expiration as DateTime:
+            expectedExp = new DateTime(1985, 07, 23, 19, 16, 00, DateTimeKind.Utc);
+            result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["_exp"] = expectedExp,
+                ["_rev"] = revID
+            }), HttpStatusCode.Created, null);
+            revID = result["rev"];
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["_rev"] = revID,
+                ["_exp"] = expectedExp
+            });
+            Assert.AreEqual(expectedExp, database.Storage.GetDocumentExpiration("doc1"));
+
+            // Clear expiration:
+            result = SendBody<IDictionary<string, object>>("PUT", $"/{database.Name}/doc1", new Body(new Dictionary<string, object> {
+                ["_exp"] = null,
+                ["_rev"] = revID
+            }), HttpStatusCode.Created, null);
+            revID = result["rev"];
+            Send("GET", $"/{database.Name}/doc1?show_exp=true", HttpStatusCode.OK, new Dictionary<string, object> {
+                ["_id"] = "doc1",
+                ["_rev"] = revID
+            });
+            Assert.IsNull(database.Storage.GetDocumentExpiration("doc1"));
+        }
+
         [TestFixtureSetUp]
         protected void OneTimeSetUp()
         {
+            if(!_storageEngineSet) {
+                _storageEngineSet = true;
+                Storage.SQLCipher.Plugin.Register();
+                Storage.ForestDB.Plugin.Register();
+            }
             ServicePointManager.DefaultConnectionLimit = 10;
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
@@ -1353,33 +1463,33 @@ namespace Couchbase.Lite
         protected override void SetUp()
         {
             foreach (var name in manager.AllDatabaseNames) {
-                var db = manager.GetDatabaseWithoutOpening(name, true);
+                var db = manager.GetDatabase(name, true);
                 db.Delete();
             }
 
             StartDatabase();
-            _savedMinHeartbeat = _minHeartbeat;
-            _minHeartbeat = 0;
+            _savedMinHeartbeat = DatabaseMethods.MinHeartbeat;
+            DatabaseMethods.MinHeartbeat = TimeSpan.Zero;
         }
 
         [TearDown]
         protected override void TearDown()
         {
             StopDatabase();
-            _minHeartbeat = _savedMinHeartbeat;
+            DatabaseMethods.MinHeartbeat = _savedMinHeartbeat;
             _listener._router.OnAccessCheck = null;
             _listener.SetPasswords(new Dictionary<string, string>());
         }
 
         private void ReopenDatabase()
         {
-            Log.D(TAG, "----- CLOSING DB -----");
+            WriteDebug("----- CLOSING DB -----");
             Assert.IsNotNull(database);
             var dbName = database.Name;
-            Assert.IsTrue(database.Close(), "Couldn't close DB");
+            Assert.DoesNotThrow(() => database.Close().Wait(15000), "Couldn't close DB");
             database = null;
 
-            Log.D(TAG, "----- REOPENING DB -----");
+            WriteDebug("----- REOPENING DB -----");
             var db2 = manager.GetDatabase(dbName);
             Assert.IsNotNull(db2, "Couldn't make a new database instance");
             database = db2;
@@ -1461,13 +1571,13 @@ namespace Couchbase.Lite
                         }
                         throw;
                     } else {
-                        Log.D(TAG, "{0} {1} --> {2}", method, path, ((HttpWebResponse)e.Response).StatusCode);
+                        WriteDebug("{0} {1} --> {2}", method, path, ((HttpWebResponse)e.Response).StatusCode);
                     }
                     response = (HttpWebResponse)e.Response;
                 }
 
                 Assert.IsNotNull(response);
-                Log.D(TAG, "{0} {1} --> {2}", method, path, response.StatusCode);
+                WriteDebug("{0} {1} --> {2}", method, path, response.StatusCode);
 
                 callback(response);
                 if (!keepAlive) {
@@ -1476,34 +1586,11 @@ namespace Couchbase.Lite
             }
         }
 
-        private T ParseJsonResponse<T>(HttpWebResponse response)
+        private object ParseJsonResponse(HttpWebResponse response)
         {
             var foo = Encoding.UTF8.GetString(response.GetResponseStream().ReadAllBytes());
-            var responseObj = Manager.GetObjectMapper().ReadValue<T>(foo);
-            return (T)ConvertResponse(responseObj);
-        }
-
-        private object ConvertResponse(object obj) {
-            var list = obj.AsList<object>();
-            if (list != null) {
-                for (int i = 0; i < list.Count; i++) {
-                    list[i] = ConvertResponse(list[i]);
-                }
-
-                return list;
-            } 
-
-            var dictionary = obj.AsDictionary<string, object>();
-            if (dictionary != null) {
-                var retVal = new Dictionary<string, object>(dictionary.Count);
-                foreach (var key in dictionary.Keys) {
-                    retVal[(string)key] = ConvertResponse(dictionary[key]);
-                }
-
-                return retVal;
-            }
-
-            return obj;
+            var responseObj = Manager.GetObjectMapper().ReadValue<object>(foo);
+            return JsonUtility.ConvertToNetObject(responseObj);
         }
 
         private T SendBody<T>(string method, string path, Body bodyObj, HttpStatusCode expectedStatus, T expectedResult)
@@ -1528,13 +1615,13 @@ namespace Couchbase.Lite
                 false, true, r =>
             {
                 _lastResponse = r;
-                result = ParseJsonResponse<object>(_lastResponse);
+                result = ParseJsonResponse(_lastResponse);
 
                 Assert.IsNotNull(result);
                 Assert.AreEqual(expectedStatus, _lastResponse.StatusCode);
 
                 if (expectedResult != null) {
-                    Assert.AreEqual(expectedResult, result);
+                    AssertAreEqual(expectedResult, result);
                 }
             });
 
@@ -1572,7 +1659,7 @@ namespace Couchbase.Lite
                 { "message", "goodbye" },
                 { "_rev", revId }
             }), HttpStatusCode.Created, null);
-            Log.D(TAG, "PUT returned {0}", result);
+            WriteDebug("PUT returned {0}", result);
             revId = result.GetCast<string>("rev");
             Assert.IsNotNull(revId);
             Assert.IsTrue(revId.StartsWith("2-"));
@@ -1593,7 +1680,7 @@ namespace Couchbase.Lite
             result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);
             Assert.AreEqual(3, result.GetCast<long>("total_rows", 0));
             Assert.AreEqual(0, result.GetCast<long>("offset", -1));
-            var rows = ConvertResponse(result["rows"]);
+            var rows = JsonUtility.ConvertToNetObject(result["rows"]);
             var expectedResult = new List<object>();
             expectedResult.Add(new Dictionary<string, object> {
                 { "id", "doc1" },

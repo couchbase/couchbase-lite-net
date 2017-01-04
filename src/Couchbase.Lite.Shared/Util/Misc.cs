@@ -50,9 +50,9 @@ using System.Net.Sockets;
 using System.Text;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
-using Sharpen;
+using System.Collections;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -64,24 +64,169 @@ namespace Couchbase.Lite
 
     internal static class Misc
     {
-        
+        internal static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        public static DateTime OffsetFromEpoch(TimeSpan timeSinceEpoch)
+        {
+            return Epoch.Add(timeSinceEpoch);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, string tag, string message)
+        {
+            return CreateExceptionAndLog(domain, StatusCode.Exception, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, StatusCode code, string tag, string message)
+        {
+            domain.E(tag, "{0}, throwing CouchbaseLiteException ({1})", message, code);
+            return new CouchbaseLiteException(message, code);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, StatusCode code, string tag, 
+            string format, params object[] args)
+        {
+            var message = String.Format(format, args);
+            return CreateExceptionAndLog(domain, code, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, string tag, string message)
+        {
+            return CreateExceptionAndLog(domain, inner, StatusCode.Exception, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, 
+            StatusCode code, string tag, string message)
+        {
+            domain.E(tag, String.Format("{0}, throwing CouchbaseLiteException", 
+                message), inner);
+            return new CouchbaseLiteException(message, inner) { Code = code };
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, 
+            string tag, string format, params object[] args)
+        {
+            var message = String.Format(format, args);
+            return CreateExceptionAndLog(domain, inner, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, 
+            StatusCode code, string tag, string format, params object[] args)
+        {
+            var message = String.Format(format, args);
+            return CreateExceptionAndLog(domain, inner, code, tag, message);
+        }
+
+        public static IEnumerable<Exception> Flatten(Exception inE)
+        {
+            if (inE == null) {
+                return new Exception[0];
+            }
+
+            return new ExceptionEnumerable(inE);
+        }
+
+        public static Exception UnwrapAggregate(Exception inE)
+        {
+            if (inE == null) {
+                return null;
+            }
+
+            var ae = inE as AggregateException;
+            if (ae == null) {
+                return inE;
+            }
+
+            return ae.Flatten().InnerException;
+        }
+
+        public static object KeyForPrefixMatch(object key, int depth)
+        {
+            if(depth < 1) {
+                return key;
+            }
+
+            var keyStr = key as string;
+            if (keyStr != null) {
+                // Kludge: prefix match a string by appending max possible character value to it
+                return keyStr + "\U0010FFFD";
+            }
+
+            var keyList = key as IList;
+            if (keyList != null) {
+                var nuKey = new List<object>();
+                foreach (var entry in keyList) {
+                    nuKey.Add(entry);
+                }
+
+                if (depth == 1) {
+                    nuKey.Add(new Dictionary<string, object>());
+                } else {
+                    var lastObject = KeyForPrefixMatch(nuKey.Last(), depth - 1);
+                    nuKey[keyList.Count - 1] = lastObject;
+                }
+
+                return nuKey;
+            }
+
+            return key;
+        }
+
+        public static void SafeNull<T>(ref T obj, Action<T> action) where T : class
+        {
+            #if !__UNITY__
+            var copy = Interlocked.Exchange<T>(ref obj, null);
+            #else
+            var copy = obj;
+            obj = null;
+            #endif
+
+            if (copy != null && action != null) {
+                action(copy);
+            }
+        }
+
+        public static void SafeDispose<T>(ref T obj, Action<T> action = null) where T : class, IDisposable
+        {
+            #if !__UNITY__
+            var tmp = Interlocked.Exchange<T>(ref obj, null);
+            #else
+            var tmp = obj;
+            obj = null;
+            #endif
+
+            if (action != null) {
+                action(tmp);
+            }
+
+            if (tmp != null) {
+                tmp.Dispose();
+            }
+        }
+
         public static string CreateGUID()
         {
-            return Guid.NewGuid().ToString().ToLower();
+            var sb = new StringBuilder(Convert.ToBase64String(Guid.NewGuid().ToByteArray()).TrimEnd('='));
+           
+            // URL-safe character set per RFC 4648 sec. 5:
+            sb.Replace('/', '_');
+            sb.Replace('+', '-');
+
+            // prefix a '-' to make it more clear where this string came from and prevent having a leading
+            // '_' character:
+            sb.Insert(0, '-');
+            return sb.ToString();
         }
 
         public static string HexSHA1Digest(IEnumerable<Byte> input)
         {
             MessageDigest md;
-            try
-            {
+            try {
                 md = MessageDigest.GetInstance("SHA-1");
-            }
-            catch (NoSuchAlgorithmException)
-            {
-                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
+            } catch (NotSupportedException) {
+                Log.To.NoDomain.E("Misc", "SHA-1 digest is unavailable.");
                 return null;
             }
+
             byte[] sha1hash;
             var inputArray = input.ToArray();
 
@@ -91,10 +236,14 @@ namespace Couchbase.Lite
             return ConvertToHex(sha1hash);
         }
 
-        public static string ConvertToHex(byte[] data)
+        public static string ConvertToHex(byte[] data, int numBytes = -1)
         {
             StringBuilder buf = new StringBuilder();
-            for (int i = 0; i < data.Length; i++)
+            if (numBytes == -1) {
+                numBytes = data.Length;
+            }
+
+            for (int i = 0; i < numBytes; i++)
             {
                 int halfbyte = (data[i] >> 4) & unchecked((0x0F));
                 int two_halfs = 0;
@@ -126,19 +275,81 @@ namespace Couchbase.Lite
             return param.Replace("\"", string.Empty);
         }
 
-        public static bool IsTransientNetworkError(Exception error)
+        public static bool IsUnauthorizedError(Exception e)
         {
-            return error is IOException
-                || error is TimeoutException
-                || error is WebException
-                || error is SocketException;
-                //|| error is WebSocketException;
+            var ex = e as HttpResponseException;
+            if(ex == null) {
+                return false;
+            }
+
+            return ex.StatusCode == HttpStatusCode.Unauthorized || ex.StatusCode == HttpStatusCode.ProxyAuthenticationRequired;
+        }
+
+        public static HttpStatusCode? GetStatusCode(Exception e)
+        {
+            var attempt = ((HttpWebResponse)(e as WebException)?.Response)?.StatusCode;
+            if(attempt.HasValue) {
+                return attempt;
+            }
+
+            return (e as HttpResponseException)?.StatusCode;
+        }
+
+        public static bool IsTransientNetworkError(Exception e, out string code)
+        {
+            const string Tag = "IsTransientNetworkError";
+            code = String.Empty;
+            foreach (var exception in Misc.Flatten(e)) {
+                if (exception is IOException
+                    || exception is TimeoutException
+                    || exception is SocketException) {
+                    code = e.GetType().Name;
+                    Log.To.Sync.V(Tag, "Rule #1: Exception is IOException, TimeoutException, or SocketException, " +
+                    "ruling transient...", exception);
+                    return true;
+                }
+
+                var we = exception as WebException;
+                if (we == null) {
+                    Log.To.Sync.V(Tag, "No further information can be gained from this exception, " +
+                    "attempting to find other nested exceptions...", exception);
+                    if (!String.IsNullOrEmpty(code)) {
+                        code = e.GetType().Name;
+                    }
+                    continue;
+                }
+
+                if (we.Status == WebExceptionStatus.ConnectFailure || we.Status == WebExceptionStatus.Timeout ||
+                    we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled) {
+                    Log.To.Sync.V(Tag, "Rule #2: Exception is WebException and status is ConnectFailure, Timeout, " +
+                    "ConnectionClosed, or RequestCanceled, ruling transient...", we);
+                    code = we.Status.ToString();
+                    return true;
+                }
+
+                var statusCode = GetStatusCode(we);
+                if (!statusCode.HasValue) {
+                    Log.To.Sync.V(Tag, "No further information can be gained from this WebException (missing response?), " +
+                    "attempting to find other nested exceptions...", we);
+                    code = we.Status.ToString();
+                    continue;
+                }
+
+                if (IsTransientError(((HttpWebResponse)we.Response).StatusCode)) {
+                    Log.To.Sync.V(Tag, "Rule #3: {0} is considered a transient error code, ruling transient...", 
+                        ((HttpWebResponse)we.Response).StatusCode);
+                    code = statusCode.Value.ToString();
+                    return true;
+                }
+            }
+
+            Log.To.Sync.V(Tag, "No transient exceptions found, ruling fatal...");
+            return false;
         }
 
         public static bool IsTransientError(HttpResponseMessage response)
         {
-            if (response == null)
-            {
+            if (response == null) {
                 return false;
             }
 
@@ -147,30 +358,12 @@ namespace Couchbase.Lite
 
         public static bool IsTransientError(HttpStatusCode status)
         {
-            if (status == HttpStatusCode.InternalServerError || 
+            return status == HttpStatusCode.InternalServerError || 
                 status == HttpStatusCode.BadGateway || 
                 status == HttpStatusCode.ServiceUnavailable || 
-                status == HttpStatusCode.GatewayTimeout)
-            {
-                return true;
-            }
-            return false;
+                status == HttpStatusCode.GatewayTimeout ||
+                status == HttpStatusCode.RequestTimeout;
         }
-
-        /// <exception cref="Couchbase.Lite.Store.SQLException"></exception>
-        public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
-        {
-            byte[] result = null;
-            using (var cursor = database.IntransactionRawQuery(query, args))
-            {
-                if (cursor.MoveToNext())
-                {
-                    result = cursor.GetBlob(0);
-                }
-                return result;
-            }
-        }
-
 
         /// <summary>Like equals, but works even if either/both are null</summary>
         /// <param name="obj1">object1 being compared</param>

@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+VisualStudioVersion = 12.0
+MinimumVisualStudioVersion = 12.0
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Platform", "Platform", "{1BB542F6-A1CC-4067-8868-43FCE504EADF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "platform.unity.standalone", "platform.unity.standalone.csproj", "{0E3578A2-D15E-4183-8F0F-638EC8D437B8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "platform.unity.android", "platform.unity.android.csproj", "{0FD46D98-E943-4E51-94BD-DFC52F4878B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "platform.unity.ios", "platform.unity.ios.csproj", "{1F97ED56-DA26-4802-8EBE-1D052814F920}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Vendor", "Vendor", "{184C1AF9-196F-4B41-B41F-9AD53A5F0053}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Threading.Tasks.Net35", "..\..\..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj", "{DCB5D745-525C-46A1-BFC0-E12F87AB6165}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ugly", "Ugly", "{5C5A6775-8608-4894-AD70-5CE818D1B4AF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ugly_net35", "..\..\..\Couchbase.Lite.Net35\vendor\SQLitePCL\bld\ugly_net35.csproj", "{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0E3578A2-D15E-4183-8F0F-638EC8D437B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E3578A2-D15E-4183-8F0F-638EC8D437B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E3578A2-D15E-4183-8F0F-638EC8D437B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E3578A2-D15E-4183-8F0F-638EC8D437B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FD46D98-E943-4E51-94BD-DFC52F4878B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FD46D98-E943-4E51-94BD-DFC52F4878B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FD46D98-E943-4E51-94BD-DFC52F4878B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FD46D98-E943-4E51-94BD-DFC52F4878B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F97ED56-DA26-4802-8EBE-1D052814F920}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F97ED56-DA26-4802-8EBE-1D052814F920}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F97ED56-DA26-4802-8EBE-1D052814F920}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F97ED56-DA26-4802-8EBE-1D052814F920}.Release|Any CPU.Build.0 = Release|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCB5D745-525C-46A1-BFC0-E12F87AB6165}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCB5D745-525C-46A1-BFC0-E12F87AB6165}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCB5D745-525C-46A1-BFC0-E12F87AB6165}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCB5D745-525C-46A1-BFC0-E12F87AB6165}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{0E3578A2-D15E-4183-8F0F-638EC8D437B8} = {1BB542F6-A1CC-4067-8868-43FCE504EADF}
+		{0FD46D98-E943-4E51-94BD-DFC52F4878B9} = {1BB542F6-A1CC-4067-8868-43FCE504EADF}
+		{1F97ED56-DA26-4802-8EBE-1D052814F920} = {1BB542F6-A1CC-4067-8868-43FCE504EADF}
+		{DCB5D745-525C-46A1-BFC0-E12F87AB6165} = {184C1AF9-196F-4B41-B41F-9AD53A5F0053}
+		{237DD22C-0BF1-469A-9BF8-C90D2CDE6A5D} = {5C5A6775-8608-4894-AD70-5CE818D1B4AF}
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

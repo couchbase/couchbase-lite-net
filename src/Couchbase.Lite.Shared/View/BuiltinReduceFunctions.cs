@@ -32,23 +32,14 @@ namespace Couchbase.Lite.Views
     /// </summary>
     public static class BuiltinReduceFunctions
     {
+        
+        #region Constants
+
+        private static readonly string Tag = typeof(BuiltinReduceFunctions).Name;
+
+        #endregion
 
         #region Member Variables
-
-        //For JSViewCompiler
-        private static readonly Dictionary<string, ReduceDelegate> MAP = new Dictionary<string, ReduceDelegate>
-        {
-            //NOTE: None of these support rereduce! They'll need to be reimplemented when we add
-            // rereduce support to View.
-            { "count", Count },
-            { "sum", Sum },
-            { "min", Min },
-            { "max", Max },
-            { "average", Average },
-            { "median", Median},
-            { "stddev", StdDev },
-            { "stats", Stats }
-        };
 
         /// <summary>
         /// A function that counts the number of documents contained in the map
@@ -90,6 +81,21 @@ namespace Couchbase.Lite.Views
         /// </summary>
         public static readonly ReduceDelegate Stats = (k, v, r) => CalcuateStats(v);
 
+        //For JSViewCompiler
+        private static readonly Dictionary<string, ReduceDelegate> MAP = new Dictionary<string, ReduceDelegate>
+        {
+            //NOTE: None of these support rereduce! They'll need to be reimplemented when we add
+            // rereduce support to View.
+            { "count", Count },
+            { "sum", Sum },
+            { "min", Min },
+            { "max", Max },
+            { "average", Average },
+            { "median", Median},
+            { "stddev", StdDev },
+            { "stats", Stats }
+        };
+
         #endregion
 
         #region Internal Methods
@@ -108,15 +114,16 @@ namespace Couchbase.Lite.Views
         internal static double TotalValues(IList<object> values)
         {
             double total = 0;
-            foreach (object o in values)
-            {
+            foreach (object o in values) {
                 try {
                     double number = Convert.ToDouble(o);
                     total += number;
-                } catch (Exception e) {
-                    Log.W(Database.TAG, "Warning non-numeric value found in totalValues: " + o, e);
+                } catch (Exception) {
+                    Log.To.View.W(Tag, "Non-numeric value found in totalValues: {0}", 
+                        new SecureLogJsonString(o, LogMessageSensitivity.PotentiallyInsecure));
                 }
             }
+
             return total;
         }
 

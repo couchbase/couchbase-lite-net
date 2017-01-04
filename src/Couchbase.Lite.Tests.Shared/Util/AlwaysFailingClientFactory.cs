@@ -46,6 +46,7 @@ using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Util;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -55,7 +56,7 @@ using System.Net;
 
 namespace Couchbase.Lite.Tests
 {
-    public class AlwaysFailingClientFactory : IHttpClientFactory
+    internal class AlwaysFailingClientFactory : IHttpClientFactory
     {
         public IDictionary<string, string> Headers { get; set; }
 
@@ -67,16 +68,18 @@ namespace Couchbase.Lite.Tests
             }
         }
 
+        public TimeSpan SocketTimeout { get; set; }
+
         public AlwaysFailingClientFactory()
         {
             Headers = new Dictionary<string,string>();
             HttpHandler = new FailEveryRequestHandler();
         }
 
-        public HttpClient GetHttpClient(bool chunkedMode)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy strategy)
         {
             var mockHttpClient = new HttpClient(HttpHandler);
-            return mockHttpClient;
+            return new CouchbaseLiteHttpClient(mockHttpClient, null);
         }
 
         public void AddCookies(CookieCollection cookies)

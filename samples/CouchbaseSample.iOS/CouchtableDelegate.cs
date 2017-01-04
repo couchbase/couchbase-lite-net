@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Linq;
 using Couchbase.Lite.iOS;
 using Couchbase.Lite;
-using System.Json;
 using Newtonsoft.Json.Linq;
 
 namespace CouchbaseSample
@@ -74,7 +73,7 @@ namespace CouchbaseSample
             var docContent = doc.Properties;
             object checkedVal;
             docContent.TryGetValue (RootViewController.CheckboxPropertyName, out checkedVal);
-            var wasChecked = (bool)checkedVal;
+            var wasChecked = Convert.ToBoolean(checkedVal);
             docContent[RootViewController.CheckboxPropertyName] = !wasChecked;
 
             SavedRevision newRevision = null;
@@ -103,11 +102,11 @@ namespace CouchbaseSample
           cell.TextLabel.Font = UIFont.FromName ("Helvetica", 18f);
           cell.TextLabel.BackgroundColor = UIColor.Clear;
 
-            var props = (JObject)row.Value;
-            var isChecked = (bool)props[RootViewController.CheckboxPropertyName];
+            var props = (IDictionary<string, object>)row.Value;
+            var isChecked = Convert.ToBoolean(props[RootViewController.CheckboxPropertyName]);
 //          props.TryGetValue (RootViewController.CheckboxPropertyName, out isChecked);
-          cell.TextLabel.TextColor = (bool)isChecked ? UIColor.Gray : UIColor.Black;
-          cell.ImageView.Image = UIImage.FromBundle ((bool)isChecked 
+            cell.TextLabel.TextColor = (bool)isChecked ? UIColor.Gray : UIColor.Black;
+            cell.ImageView.Image = UIImage.FromBundle ((bool)isChecked 
                 ? "list_area___checkbox___checked" 
                 : "list_area___checkbox___unchecked");
         }

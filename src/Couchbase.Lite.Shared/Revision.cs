@@ -41,13 +41,10 @@
 //
 
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Sharpen;
+using System.Threading.Tasks;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite 
 {
@@ -164,7 +161,7 @@ namespace Couchbase.Lite
                 var result = new Dictionary<String, Object>();
                 foreach (string key in Properties.Keys) {
                     if (!key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase)) {
-                        result.Put(key, Properties.Get(key));
+                        result[key] = Properties.Get(key);
                     }
                 }
 
@@ -203,10 +200,10 @@ namespace Couchbase.Lite
                 var attachmentMetadata = GetAttachmentMetadata();
                 var result = new List<String>();
 
-                if (attachmentMetadata != null)
-                {
-                    Collections.AddAll(result, attachmentMetadata.Keys);
+                if (attachmentMetadata != null) {
+                    result.AddRange(attachmentMetadata.Keys);
                 }
+
                 return result;
             }
         }
@@ -218,11 +215,10 @@ namespace Couchbase.Lite
         public IEnumerable<Attachment> Attachments {
             get {
                 var result = new List<Attachment>();
-
-                foreach (var attachmentName in AttachmentNames)
-                {
-                    result.AddItem(GetAttachment(attachmentName));
+                foreach (var attachmentName in AttachmentNames) {
+                    result.Add(GetAttachment(attachmentName));
                 }
+
                 return result;
             } 
         }
@@ -243,12 +239,60 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to return.</param>
         public Attachment GetAttachment(String name) {
             var attachmentsMetadata = GetAttachmentMetadata();
-            if (attachmentsMetadata == null)
-            {
+            if(attachmentsMetadata == null) {
                 return null;
             }
-            var attachmentMetadata = attachmentsMetadata.Get(name).AsDictionary<string,Object>();
-            return new Attachment(this, name, attachmentMetadata);
+
+
+            var attachmentMetadata = attachmentsMetadata.Get(name);
+            var attachmentMetadataObj = attachmentMetadata as Attachment;
+            if(attachmentMetadataObj != null) {
+                return attachmentMetadataObj;
+            }
+
+            var attachmentMetadataDict = attachmentMetadata.AsDictionary<string, object>();
+            return attachmentMetadataDict == null ? null : new Attachment(this, name, attachmentMetadataDict);
+        }
+
+        /// <summary>
+        /// Returns the <see cref="Task"/> with the specified name if it exists, otherwise null.
+        /// If a local copy of the attachment is not available, it will then attempt to download the attachment from the server
+        /// </summary>
+        /// <returns>The <see cref="Task"/> with the specified name if it exists, otherwise null.</returns>
+        /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to return.</param>
+        /// <param name="replicator">The puller to use when downloading attachments</param>
+        public Task<Attachment> GetDeferedAttachment (String name, Replication replicator)
+        {
+            var task = new Task<Attachment>(() => {
+                var att = GetAttachment (name);
+                if (att == null) {
+                    return null;
+                }
+
+                if (att.ContentStream != null) {
+                    return att;
+                }
+
+                if (replicator.IsAttachmentPull ==  false) {
+                    return att;
+                }
+
+                var puller = (AttachmentPuller)replicator;
+
+                var req = puller.QueueRemoteAttachment(att);
+
+                RevisionInternal revInt = new RevisionInternal(att.Revision.Document.Id, att.Document.CurrentRevision.RevisionInternal.RevID, false);
+                puller.AddToInbox(revInt); // to trigger the batcher thread
+
+                req.WaitForComple();
+
+                att.Body = req.GetStream();
+
+                return att;
+            });
+
+            task.Start();
+            return task;
         }
 
     #endregion

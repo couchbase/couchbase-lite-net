@@ -41,22 +41,18 @@
 //
 
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Sharpen;
+
 using Couchbase.Lite.Util;
-using Couchbase.Lite.Storage;
 using Couchbase.Lite.Internal;
-using Couchbase.Lite;
 
 namespace Couchbase.Lite
 {
 
     internal class ValidationContext : IValidationContext
     {
+        private const string Tag = "ValidationContext";
+
         IList<String> changedKeys;
 
         private RevisionInternal InternalRevision { get; set; }
@@ -75,31 +71,27 @@ namespace Couchbase.Lite
 
         #region IValidationContext implementation
 
-        public void Reject ()
+        public void Reject()
         {
-            if (RejectMessage == null)
-            {
+            if(RejectMessage == null) {
                 Reject("invalid document");
             }
         }
 
-        public void Reject (String message)
+        public void Reject(String message)
         {
-            if (RejectMessage == null)
-            {
+            if(RejectMessage == null) {
                 RejectMessage = message;
             }
         }
 
-        public bool ValidateChanges (ValidateChangeDelegate changeValidator)
+        public bool ValidateChanges(ValidateChangeDelegate changeValidator)
         {
             var cur = CurrentRevision.Properties;
             var nuu = NewRevision.GetProperties();
 
-            foreach (var key in ChangedKeys)
-            {
-                if (!changeValidator(key, cur.Get(key), nuu.Get(key)))
-                {
+            foreach(var key in ChangedKeys) {
+                if(!changeValidator(key, cur.Get(key), nuu.Get(key))) {
                     Reject(String.Format("Illegal change to '{0}' property", key));
                     return false;
                 }
@@ -107,18 +99,19 @@ namespace Couchbase.Lite
             return true;
         }
 
-        public SavedRevision CurrentRevision {
+        public SavedRevision CurrentRevision
+        {
             get {
-                if (InternalRevision != null)
-                {
-                    try
-                    {
+                if(InternalRevision != null) {
+                    try {
                         InternalRevision = Database.LoadRevisionBody(InternalRevision);
                         return new SavedRevision(Database, InternalRevision);
-                    }
-                    catch (CouchbaseLiteException e)
-                    {
-                        throw new RuntimeException(e);
+                    } catch(CouchbaseLiteException) {
+                        Log.To.Validation.E(Tag, "Failed to get CurrentRevision, rethrowing...");
+                        throw;
+                    } catch(Exception e) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Validation, e, Tag,
+                            "Error getting CurrentRevision");
                     }
                 }
                 return null;
@@ -126,27 +119,23 @@ namespace Couchbase.Lite
             }
         }
 
-        public IEnumerable<String> ChangedKeys {
+        public IEnumerable<string> ChangedKeys
+        {
             get {
-                if (changedKeys == null)
-                {
+                if(changedKeys == null) {
                     changedKeys = new List<String>();
                     var cur = CurrentRevision.Properties;
                     var nuu = NewRevision.GetProperties();
 
-                    foreach (var key in cur.Keys)
-                    {
-                        if (!cur.Get(key).Equals(nuu.Get(key)) && !key.Equals("_rev"))
-                        {
-                            changedKeys.AddItem(key);
+                    foreach(var key in cur.Keys) {
+                        if(!cur.Get(key).Equals(nuu.Get(key)) && !key.Equals("_rev")) {
+                            changedKeys.Add(key);
                         }
                     }
 
-                    foreach (var key in nuu.Keys)
-                    {
-                        if (cur.Get(key) == null && !key.Equals("_rev") && !key.Equals("_id"))
-                        {
-                            changedKeys.AddItem(key);
+                    foreach(var key in nuu.Keys) {
+                        if(cur.Get(key) == null && !key.Equals("_rev") && !key.Equals("_id")) {
+                            changedKeys.Add(key);
                         }
                     }
                 }

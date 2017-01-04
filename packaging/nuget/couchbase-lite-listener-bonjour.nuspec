@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package >
+<package>
   <metadata>
     <id>Couchbase.Lite.Listener.Bonjour</id>
     <title>Couchbase Lite - Bonjour P2P Discovery Service</title>
-    <version>1.1.0</version>
+    <version>$version$</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,24 +12,28 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Enables Bonjour/DNS-SD Discovery for Peer-to-Peer Couchbase Lite applications.</description>
     <releaseNotes>
-      During the developer preview this bundled directly into our HttpListener assembly.
-      We moved it to this new package so that those not using Bonjour could have smaller
-      assemblies. This also lets us update our Bonjour support without having to bump
-      the Listener version.
+This is a feature release, with a focus on performance. Noteworthy changes:
 
-      By adding this one package, you'll also get the Listener and core Couchbase Lite packages.
+- Support for OpenID Connect authentication, so you can log into Sync Gateway using a 3rd-party identity like a Google or Yahoo ID.
+- Timed expiration of documents can help keep your database from growing indefinitely.
+- Better performance with docs that have many revisions. Replication is faster, and older revisions are now automatically cleaned up in SQLite storage.
+- Clearer error messages and better logging, including customizable domains and app.config support
+- And of course many smaller optimizations, and lots of bug fixes.
+
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.3-pre1
     </releaseNotes>
-    <copyright>Copyright 2015</copyright>
+    <copyright>Copyright 2015-2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database bonjour dns-sd p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <dependency id="Couchbase.Lite" version="1.1.0" />
-      <dependency id="Couchbase.Lite.Listener" version="1.1.0" />
+      <dependency id="Couchbase.Lite" version="$version$" />
+      <dependency id="Couchbase.Lite.Listener" version="$version$" />
     </dependencies>
   </metadata>
   <files>
-    <file target="lib/net45" src="src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Net45/bin/Release/Couchbase.Lite.Listener.Bonjour.*" />
-    <file target="lib/MonoAndroid" src="src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.Android/bin/Release/Couchbase.Lite.Listener.Bonjour.*" />
-    <file target="lib/Xamarin.iOS10" src="src/ListenerComponent/Bonjour/Couchbase.Lite.Listener.Bonjour.iOS/bin/Release/Couchbase.Lite.Listener.Bonjour.*" />
+    <file target="lib/net45" src="staging/Couchbase.Lite.Listener.Bonjour/net45/*" />
+    <file target="lib/MonoAndroid" src="staging/Couchbase.Lite.Listener.Bonjour/MonoAndroid/*" />
+    <file target="lib/Xamarin.iOS10" src="staging/Couchbase.Lite.Listener.Bonjour/Xamarin.iOS10/*" />
+    <file target="lib/net35" src="staging/Couchbase.Lite.Listener.Bonjour/net35/*" />
   </files>
 </package>

@@ -42,15 +42,16 @@
 * and limitations under the License.
 */
 
-using Couchbase.Lite;
 using Couchbase.Lite.Support;
 using NUnit.Framework;
-using Sharpen;
 
 namespace Couchbase.Lite
 {
     public class SequenceMapTest : LiteTestCase
     {
+
+        public SequenceMapTest(string storageType) : base(storageType) {}
+
         [Test]
         public void TestSequenceMap()
         {

@@ -25,6 +25,7 @@ using System.IO;
 using System.Linq;
 
 using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
@@ -33,8 +34,14 @@ namespace Couchbase.Lite.Listener
     /// A base class implementation of ICouchbaseListenerContext, for common logic like
     /// parsing URLs
     /// </summary>
-    public abstract class CouchbaseListenerContext : ICouchbaseListenerContext
+    public abstract class CouchbaseListenerContext : ICouchbaseListenerContext2
     {
+
+        #region Constants
+
+        private static readonly string Tag = typeof(CouchbaseListenerContext).Name;
+
+        #endregion
 
         #region Variables
 
@@ -47,6 +54,13 @@ namespace Couchbase.Lite.Listener
         #endregion
 
         #region Properties
+#pragma warning disable 1591
+
+        // ICouchbaseListenerContext2
+        public bool IsLoopbackRequest { get;  set; }
+
+        // ICouchbaseListenerContext2
+        public Uri Sender { get; set; }
 
         // ICouchbaseListenerContext
         public Manager DbManager { get; private set; }
@@ -57,7 +71,8 @@ namespace Couchbase.Lite.Listener
                 //Must do this twice because Unity3D requires double escaping of encoded slashes in URL
                 var name = Uri.UnescapeDataString(Uri.UnescapeDataString(UrlComponentAt(0)));
                 if (!Manager.IsValidDatabaseName(name)) {
-                    throw new CouchbaseLiteException(StatusCode.BadId);
+                    throw Misc.CreateExceptionAndLog(Log.To.Listener, StatusCode.BadId, Tag,
+                        "Invalid database name ({0}) requested", name);
                 }
 
                 return name;
@@ -129,9 +144,9 @@ namespace Couchbase.Lite.Listener
                 }
 
                 _queryOptions.UpdateSeq = GetQueryParam<bool>("update_seq", bool.TryParse, false);
-                _queryOptions.InclusiveEnd = GetQueryParam<bool>("inclusive_end", bool.TryParse, false);
-                //TODO: InclusiveStart
-                //TODO: PrefixMatchLevel
+                _queryOptions.InclusiveEnd = GetQueryParam<bool>("inclusive_end", bool.TryParse, _queryOptions.InclusiveEnd);
+                _queryOptions.InclusiveStart = GetQueryParam<bool>("inclusive_start", bool.TryParse, _queryOptions.InclusiveStart); // non-standard
+                _queryOptions.PrefixMatchLevel = GetQueryParam<int>("prefix_match_level", int.TryParse, _queryOptions.PrefixMatchLevel); // non-standard
                 _queryOptions.ReduceSpecified = GetQueryParam("reduce") != null;
                 _queryOptions.Reduce = GetQueryParam<bool>("reduce", bool.TryParse, false);
                 _queryOptions.Group = GetQueryParam<bool>("group", bool.TryParse, false);
@@ -209,6 +224,10 @@ namespace Couchbase.Lite.Listener
                     _contentOptions |= DocumentContentOptions.IncludeRevsInfo;
                 }
 
+                if(GetQueryParam<bool>("show_exp", bool.TryParse, false)) {
+                    _contentOptions |= DocumentContentOptions.IncludeExpiration;
+                }
+
                 return _contentOptions.Value;
             }
         }
@@ -254,6 +273,7 @@ namespace Couchbase.Lite.Listener
         // ICouchbaseListenerContext
         public abstract long ContentLength { get; }
 
+#pragma warning restore 1591
         #endregion
 
         #region Constructors
@@ -270,6 +290,7 @@ namespace Couchbase.Lite.Listener
         #endregion
 
         #region ICouchbaseListenerContext
+#pragma warning disable 1591
 
         public object GetJsonQueryParam(string key)
         {
@@ -326,6 +347,8 @@ namespace Couchbase.Lite.Listener
                     return body;
                 } catch(CouchbaseLiteException) {
                     return null;
+                } catch(IOException e) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Router, e, StatusCode.RequestTimeout, Tag, "IOException when attempting to read body");
                 }
             }
 
@@ -340,6 +363,7 @@ namespace Couchbase.Lite.Listener
 
         public abstract bool CacheWithEtag(string etag);
 
+#pragma warning restore 1591
         #endregion
 
         #region Private Methods

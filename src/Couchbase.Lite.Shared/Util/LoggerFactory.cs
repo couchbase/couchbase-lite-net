@@ -41,8 +41,6 @@
 //
 
 using Couchbase.Lite.Util;
-using Sharpen;
-using System;
 using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
@@ -51,11 +49,7 @@ namespace Couchbase.Lite.Util
     {
         public static ILogger CreateLogger()
         {
-#if VERBOSE
-            return new CustomLogger(SourceLevels.All);
-#else
-            return new CustomLogger(SourceLevels.Information);
-#endif
+            return new TraceLogger();
         }
     }
 }

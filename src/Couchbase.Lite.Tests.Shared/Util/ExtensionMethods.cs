@@ -42,7 +42,7 @@
 
 using System;
 using System.Collections;
-using Sharpen;
+using System.IO;
 using System.Text;
 
 #if !NET_3_5
@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Tests
             if (stream == null) {
                 return;
             }
-            using (var reader = new InputStreamReader((InputStream)stream, Encoding.UTF8))
+            using (var reader = new StreamReader(stream, Encoding.UTF8))
             {
                 while (!reader.EndOfStream)
                 {

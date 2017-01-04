@@ -41,7 +41,7 @@ namespace Couchbase.Lite.Support
         #region Variables
 
         private IEnumerable<byte> _finalBoundary;
-        private IDictionary<string, string> _nextPartsHeaders;
+        private SortedDictionary<string, string> _nextPartsHeaders;
         private string _contentType;
 
         #endregion
@@ -93,7 +93,7 @@ namespace Couchbase.Lite.Support
         /// <param name="nextPartHeaders">The next headers</param>
         public void SetNextPartHeaders(IDictionary<string, string> nextPartHeaders)
         {
-            _nextPartsHeaders = nextPartHeaders;
+            _nextPartsHeaders = nextPartHeaders != null ? new SortedDictionary<string, string>(nextPartHeaders) : null;
         }
 
         /// <summary>
@@ -102,9 +102,10 @@ namespace Couchbase.Lite.Support
         /// <param name="data">The uncompressed data</param>
         public void AddGZippedData(IEnumerable<byte> data)
         {
-            if (data.Count() >= MIN_DATA_LENGTH_TO_COMPRESS) {
-                var compressed = data.Compress();
-                if (compressed.Count() < data.Count()) {
+            var realized = data.ToArray();
+            if (realized.Length >= MIN_DATA_LENGTH_TO_COMPRESS) {
+                var compressed = realized.Compress();
+                if (compressed.Count() < realized.Length) {
                     data = compressed;
                     _nextPartsHeaders["Content-Encoding"] = "gzip";
                 }
@@ -135,10 +136,12 @@ namespace Couchbase.Lite.Support
         {
             StringBuilder headers = new StringBuilder(String.Format("\r\n--{0}\r\n", Boundary));
             headers.AppendFormat("Content-Length: {0}\r\n", length);
-            foreach (var entry in _nextPartsHeaders) {
-                // Strip any CR or LF in the header value. This isn't real quoting, just enough to ensure
-                // a spoofer can't add bogus headers by putting CRLF into a header value!
-                headers.AppendFormat("{0}: {1}\r\n", entry.Key, entry.Value.Replace("\r", string.Empty).Replace("\n", string.Empty));
+            if (_nextPartsHeaders != null) {
+                foreach (var entry in _nextPartsHeaders) {
+                    // Strip any CR or LF in the header value. This isn't real quoting, just enough to ensure
+                    // a spoofer can't add bogus headers by putting CRLF into a header value!
+                    headers.AppendFormat("{0}: {1}\r\n", entry.Key, entry.Value.Replace("\r", string.Empty).Replace("\n", string.Empty));
+                }
             }
 
             headers.Append("\r\n");

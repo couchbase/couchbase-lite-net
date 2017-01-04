@@ -7,12 +7,15 @@ using System.Net;
 using System.Net.Sockets;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
+using Couchbase.Lite.Support;
 
 #if __ANDROID__
 using Android.App;
 using Android.Net;
 using Android.Content;
 using Android.Webkit;
+using Uri = System.Uri;
 #endif
 
 #if NET_3_5
@@ -38,15 +41,35 @@ namespace Couchbase.Lite
     /// </summary>
     internal sealed class NetworkReachabilityManager : INetworkReachabilityManager
     {
-        private int _startCount = 0;
         private const string TAG = "NetworkReachabilityManager";
+        internal static bool AllowLoopback = false; // For unit tests
 
-        public bool CanReach(string remoteUri)
+        public Exception LastError { get; private set; }
+
+        public bool CanReach(string remoteUri, TimeSpan timeout)
         {
-            HttpWebRequest request = WebRequest.CreateHttp(remoteUri);
+            if (remoteUri [remoteUri.Length - 1] != '/') {
+                remoteUri += "/";
+            }
+
+            CouchbaseLiteHttpClientFactory.SetupSslCallback();
+            HttpWebRequest request;
+
+            var uri = new Uri (remoteUri);
+            var credentials = uri.UserInfo;
+            if (!String.IsNullOrEmpty(credentials)) {
+                remoteUri = string.Format ("{0}://{1}{2}", uri.Scheme, uri.Authority, uri.PathAndQuery);
+                request = WebRequest.CreateHttp (remoteUri);
+                request.Headers.Add ("Authorization", "Basic " + Convert.ToBase64String (Encoding.UTF8.GetBytes (credentials)));
+                request.PreAuthenticate = true;
+            }
+            else {
+                request = WebRequest.CreateHttp (remoteUri);
+            }
+
             request.AllowWriteStreamBuffering = true;
-            request.Timeout = 5000;
-            request.Method = "GET";
+            request.Timeout = (int)timeout.TotalMilliseconds;
+            request.Method = "HEAD";
 
             try {
                 using(var response = (HttpWebResponse)request.GetResponse()) {
@@ -58,13 +81,14 @@ namespace Couchbase.Lite
                     return true; //Getting an HTTP error technically means we can connect
                 }
 
-                Log.I(TAG, "Didn't get successful connection to {0}", remoteUri);
-                Log.D(TAG, "   Cause: ", e);
+                Log.To.Sync.I(TAG, "Didn't get successful connection to {0}", remoteUri);
+                Log.To.Sync.V(TAG, "   Cause: ", e);
+                LastError = e;
                 return false;
             }
         }
 
-        #if __ANDROID__
+#if __ANDROID__
         private class AndroidNetworkChangeReceiver : BroadcastReceiver
         {
             const string Tag = "AndroidNetworkChangeReceiver";
@@ -87,15 +111,15 @@ namespace Couchbase.Lite
 
             public override void OnReceive(Context context, Intent intent)
             {
-                Log.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
+                Log.To.Sync.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
 
                 if (_ignoreNotifications) {
-                    Log.D(Tag + ".OnReceive", "Ignoring received intent: {0}", intent.ToString());
+                    Log.To.Sync.D(Tag + ".OnReceive", "Ignoring received intent: {0}", intent.ToString());
                     _ignoreNotifications = false;
                     return;
                 }
 
-                Log.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
+                Log.To.Sync.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
 
                 var manager = (ConnectivityManager)context.GetSystemService(Context.ConnectivityService);
                 var networkInfo = manager.ActiveNetworkInfo;
@@ -127,9 +151,9 @@ namespace Couchbase.Lite
 
         private AndroidNetworkChangeReceiver _receiver;
 
-        #endif
+#endif
 
-        #region INetworkReachabilityManager implementation
+#region INetworkReachabilityManager implementation
 
         public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged
         {
@@ -142,83 +166,111 @@ namespace Couchbase.Lite
         /// <remarks>This method starts listening for network connectivity state changes.</remarks>
         public void StartListening()
         {
-            Interlocked.Increment(ref _startCount);
-
-            #if __ANDROID__
+#if __ANDROID__
             if (_receiver != null) {
                 return; // We only need one handler.
             }
             var intent = new IntentFilter(ConnectivityManager.ConnectivityAction);
             _receiver = new AndroidNetworkChangeReceiver(InvokeNetworkChangeEvent);
             Application.Context.RegisterReceiver(_receiver, intent);
-            #else
+#else
             if (_isListening) {
                 return;
             }
-            NetworkChange.NetworkAvailabilityChanged += OnNetworkChange;
+            NetworkChange.NetworkAddressChanged += OnNetworkChange;
             _isListening = true;
-            #endif
+#endif
         }
 
         /// <summary>This method stops this class from listening for network changes.</summary>
         /// <remarks>This method stops this class from listening for network changes.</remarks>
         public void StopListening()
         {
-            var count = Interlocked.Decrement(ref _startCount);
-            if (count > 0) {
-                return;
-            }
-
-            if (count < 0) {
-                Log.W(TAG, "Too many calls to INetworkReachabilityManager.StopListening()");
-                Interlocked.Exchange(ref _startCount, 0);
-                return;
-            }
-
-            #if __ANDROID__
+#if __ANDROID__
             if (_receiver == null) {
                 return;
             }
             _receiver.DisableListening();
             Application.Context.UnregisterReceiver(_receiver);
             _receiver = null;
-            #else
+#else
             if (!_isListening) {
                 return;
             }
-            NetworkChange.NetworkAvailabilityChanged -= OnNetworkChange;          
-            #endif
+            NetworkChange.NetworkAddressChanged -= OnNetworkChange;          
+#endif
         }
-        #endregion
 
-        #region Private Members
+#endregion
 
-        #if !__ANDROID__
+#region Private Members
+
+#if !__ANDROID__
         private volatile Boolean _isListening;
-        #endif
+#endif
 
-        #endregion
+#endregion
 
-        /// <summary>Notify listeners that the network is now reachable/unreachable.</summary>
-        internal void OnNetworkChange(Object sender, NetworkAvailabilityEventArgs args)
+        
+        internal void OnNetworkChange(object sender, EventArgs args)
         {
-            var status = args.IsAvailable
-                ? NetworkReachabilityStatus.Reachable
-                : NetworkReachabilityStatus.Unreachable;
+            Log.To.Sync.I(TAG, "Network change detected, analyzing connection status...");
+            var status = NetworkReachabilityStatus.Unknown;
+                       // https://social.msdn.microsoft.com/Forums/vstudio/en-US/a6b3541b-b7de-49e2-a7a6-ba0687761af5/networkavailabilitychanged-event-does-not-fire
+            if(!NetworkInterface.GetIsNetworkAvailable()) {
+                Log.To.Sync.I(TAG, "NetworkInterface.GetIsNetworkAvailable() indicated no network available");
+                status = NetworkReachabilityStatus.Unreachable;
+            } else {
+                var firstValidIP = NetworkInterface.GetAllNetworkInterfaces().Where(IsInterfaceValid)
+                    .SelectMany(x => x.GetIPProperties().UnicastAddresses)
+                    .Select(x => x.Address).FirstOrDefault();
+
+                if(firstValidIP == null) {
+                    Log.To.Sync.I(TAG, "No acceptable IP addresses found, signaling network unreachable");
+                    status = NetworkReachabilityStatus.Unreachable;
+                } else {
+                    Log.To.Sync.I(TAG, "At least one acceptable IP address found ({0}), signaling network reachable", new SecureLogString(firstValidIP, LogMessageSensitivity.PotentiallyInsecure));
+                    status = NetworkReachabilityStatus.Reachable;
+                }
+            }
             
             InvokeNetworkChangeEvent(status);
         }
 
-        void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
+        internal void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
         {
             var evt = _statusChanged;
-            if (evt == null)
-            {
+            if(evt == null) {
                 return;
             }
+
             var eventArgs = new NetworkReachabilityChangeEventArgs(status);
             evt(this, eventArgs);
         }
+
+        private static bool IsInterfaceValid(NetworkInterface ni)
+        {
+            Log.To.Sync.V(TAG, "    Testing {0} ({1})...", ni.Name, ni.Description);
+            if(ni.OperationalStatus != OperationalStatus.Up) {
+                Log.To.Sync.V(TAG, "    NIC invalid (not up)");
+                return false;
+            }
+
+            if((!AllowLoopback && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) || ni.NetworkInterfaceType == NetworkInterfaceType.Tunnel
+                || ni.Description.IndexOf("Loopback", StringComparison.OrdinalIgnoreCase) >= 0) {
+                Log.To.Sync.V(TAG, "    NIC invalid (not outward facing)");
+                return false;
+            }
+
+            if(ni.Description.IndexOf("virtual", StringComparison.OrdinalIgnoreCase) >= 0) {
+                Log.To.Sync.V(TAG, "    NIC invalid (virtual)");
+                return false;
+            }
+
+            Log.To.Sync.I(TAG, "Found Acceptable NIC {0} ({1})", ni.Name, ni.Description);
+            return true;
+        }
+
     }
 }
 

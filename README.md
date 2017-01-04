@@ -1,6 +1,6 @@
 [![Stories in Ready](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=ready&title=Scheduled)](https://waffle.io/couchbase/couchbase-lite-net)
 [![Stories in Progress](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=in%20progress&title=In%20Progress)](https://waffle.io/couchbase/couchbase-lite-net)
-Couchbase Lite for .NET
+Couchbase Lite for .NET [![GitHub release](https://img.shields.io/github/release/couchbase/couchbase-lite-net.svg?style=plastic)]()
 ==================
 
 Couchbase Lite is a lightweight embedded NoSQL database that has built-in sync to larger backend structures, such as Couchbase Server.
@@ -10,6 +10,10 @@ This is the source repo of Couchbase Lite C#. It is originally a port of Couchba
 ## Documentation Overview
 
 * [Official Documentation](http://developer.couchbase.com/mobile/develop/guides/couchbase-lite/index.html)
+
+## Getting Couchbase Lite from Nuget
+
+These are the packages that are created by this repo:  [Couchbase.Lite](https://www.nuget.org/packages/Couchbase.Lite/), [Couchbase.Lite.Listener](https://www.nuget.org/packages/Couchbase.Lite.Listener/), [Couchbase.Lite.Listener.Bonjour](https://www.nuget.org/packages/Couchbase.Lite.Listener.Bonjour/), [Couchbase.Lite.Storage.SystemSQLite](https://www.nuget.org/packages/Couchbase.Lite.Storage.SystemSQLite/), [Couchbase.Lite.Storage.SQLCipher](https://www.nuget.org/packages/Couchbase.Lite.Storage.SQLCipher/), [Couchbase.Lite.Storage.ForestDB](https://www.nuget.org/packages/Couchbase.Lite.Storage.ForestDB/).  For more information about the last three, see [StorageEngineOverview.md](https://github.com/couchbase/couchbase-lite-net/blob/release/1.2/Notes/StorageEngineOverview.md)
 
 ## Building Couchbase Lite master branch from source
 
@@ -21,7 +25,7 @@ You can build Couchbase Lite using either of the following:
     * Must also have the [Shared Project Reference Manager](https://visualstudiogallery.msdn.microsoft.com/315c13a7-2787-4f57-bdf7-adae6ed54450) extension.
 * Xamarin Studio 5 or later.
 
-The solution files ending in **VS2013** are for use in Visual Studio, while the ones that do not are meant for Xamarin Studio.  There are a number of projects and platforms so here are the key parts to look for.  Currently there are three "projects" and five "platforms" and you can identify them as in the following:
+There are solution files per platform and the projects included can be identified in the following way:
 
 \<Name>.\<Platform>
 
@@ -30,6 +34,9 @@ The solution files ending in **VS2013** are for use in Visual Studio, while the 
 * Couchbase.Lite - The core Couchbase Lite library
 * Couchbase.Lite.Listener - The Couchbase Lite P2P REST API server implementation
 * Couchbase.Lite.Listener.Bonjour - The optional Bonjour service discover mechanism for P2P
+* storage.systemsqlite - Couchbase Lite system SQLite storage engine
+* storage.sqlcipher - Couchbase Lite SQLCipher storage engine
+* storage.forestdb - Couchbase Lite ForestDB storage engine
 
 \<Platform> is one of the following:
 
@@ -41,7 +48,9 @@ The solution files ending in **VS2013** are for use in Visual Studio, while the 
 * UnityAndroid - Unity Android Player
 * UnityApple - Unity iOS and OS X Standalone
 
-Note that you must have a Xamarin paid license to build for iOS or Android.  Furthermore, to build any of the Unity projects you must supply the UnityEngine.dll file to the project.  If your Unity install is in the default location, then the project will copy it as part of the build.  Otherwise, it needs to go in the src/Couchbase.Lite.Unity/vendor/Unity folder.  If you can't build the project then file an issue here.
+Note that the Unity project needs rebasing, and likely does not build correctly on master.  There is a release/unity-ga branch currently tracking the state of Unity.  So far this has not been an issue, but I'd like to wait for Unity to upgrade their .NET runtime before attempting a rebase.  This will allow the removal of ***a lot*** of cruft code around ancient .NET profiles.  To build any of the Unity projects you must supply the UnityEngine.dll file to the project.  If your Unity install is in the default location, then the project will copy it as part of the build.  Otherwise, it needs to go in the src/Couchbase.Lite.Unity/vendor/Unity folder.  If you can't build the project then file an issue here.
+
+ForestDB requires native components to be built for each platform you want to target.  Those need to be put in `src/Couchbase.Lite.Shared/vendor/cbforest/prebuilt`.  You can either download the binaries from a GitHub release page (starting with 1.2) or build them yourself.  Building instructions can be found [here](https://github.com/couchbaselabs/cbforest/blob/release/1.2-net/CSharp/README.md).
 
 ## Other Notes
 
@@ -58,6 +67,4 @@ The replication unit tests currently require a running instance of `sync_gateway
 * [Couchbase Connect](https://github.com/FireflyLogic/couchbase-connect-14)
 	* Advanced example
 	
-## License
-
-Apache License 2.0
+[![GitHub license](https://img.shields.io/github/license/couchbase/couchbase-lite-net.svg?style=plastic)]()

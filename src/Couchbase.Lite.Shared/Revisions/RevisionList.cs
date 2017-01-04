@@ -41,88 +41,71 @@
 //
 
 using System.Collections.Generic;
-using Couchbase.Lite;
+using System.Linq;
+
 using Couchbase.Lite.Internal;
-using Sharpen;
+using Couchbase.Lite.Util;
+using System.Text;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite
 {
     [System.Serializable]
-    internal class RevisionList : List<RevisionInternal>
+    internal sealed class RevisionList : List<RevisionInternal>
     {
         
         public RevisionList() : base()
         {
         }
             
-        public RevisionList(IList<RevisionInternal> list) : base(list)
+        public RevisionList(IList<RevisionInternal> list) : base(list.Distinct())
         {
         }
 
-        public virtual RevisionInternal RevWithDocIdAndRevId(string docId, string revId)
+        // Used by plugins
+        public RevisionInternal RevWithDocIdAndRevId(string docId, string revId)
         {
-            IEnumerator<RevisionInternal> iterator = GetEnumerator();
-            while (iterator.MoveNext())
-            {
-                var rev = iterator.Current;
-                if (docId.Equals(rev.GetDocId()) && revId.Equals(rev.GetRevId()))
-                {
-                    return rev;
-                }
-            }
-            return null;
+            return this.FirstOrDefault(x =>
+                x.DocID.Equals(docId) && x.RevID.ToString().Equals(revId));
         }
 
-        public virtual IList<string> GetAllDocIds()
+        public IList<string> GetAllDocIds()
         {
-            IList<string> result = new List<string>();
-            IEnumerator<RevisionInternal> iterator = GetEnumerator();
-            while (iterator.MoveNext())
-            {
-                RevisionInternal rev = iterator.Current;
-                result.AddItem(rev.GetDocId());
-            }
-            return result;
+            return this.Select(x => x.DocID).ToList();
         }
 
-        public virtual IList<string> GetAllRevIds()
+        // Used by plugins
+        public IList<RevisionID> GetAllRevIds()
         {
-            IList<string> result = new List<string>();
-            IEnumerator<RevisionInternal> iterator = GetEnumerator();
-            while (iterator.MoveNext())
-            {
-                RevisionInternal rev = iterator.Current;
-                result.AddItem(rev.GetRevId());
-            }
-            return result;
+            return this.Select(x => x.RevID).ToList();
         }
 
-        public virtual void SortBySequence(bool ascending = false)
+        // Used by plugins
+        public void SortBySequence(bool ascending = false)
         {
-            this.Sort(new SortBySequenceImpl(ascending));
+            Sort((r1, r2) => Misc.TDSequenceCompare(r1.Sequence, r2.Sequence, ascending));
         }
 
-        private sealed class SortBySequenceImpl : IComparer<RevisionInternal>
+        // Used by plugins
+        public void Limit(int limit)
         {
-            private readonly bool _ascending;
-
-            public SortBySequenceImpl(bool ascending = false)
-            {
-                _ascending = ascending;
-            }
-
-            public int Compare(RevisionInternal rev1, RevisionInternal rev2)
-            {
-                return Misc.TDSequenceCompare(rev1.GetSequence(), rev2.GetSequence(), _ascending);
+            if (Count > limit) {
+                RemoveRange(limit, Count - limit);
             }
         }
 
-        public virtual void Limit(int limit)
+        public override string ToString()
         {
-            if (Count > limit)
-            {
-                RemoveRange(limit, Count);
+            var sb = new StringBuilder("[");
+            foreach(var rev in this) { 
+                sb.AppendFormat("{0}, ", rev);
             }
+
+            sb.Remove(sb.Length - 2, 2);
+            sb.Append("]");
+
+            return sb.ToString();
         }
+
     }
 }

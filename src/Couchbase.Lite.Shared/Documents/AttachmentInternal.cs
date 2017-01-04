@@ -40,16 +40,15 @@
 // and limitations under the License.
 //
 
-using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using Sharpen;
-using System.Collections.Generic;
-using System.IO;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.IO.Compression;
+
+using Couchbase.Lite;
 using Couchbase.Lite.Util;
+using Microsoft.IO;
 
 namespace Couchbase.Lite.Internal
 {
@@ -129,10 +128,10 @@ namespace Couchbase.Lite.Internal
                 }
 
                 if (data == null) {
-                    Log.W(TAG, "Unable to decode attachment!");
+                    Log.To.Database.W(TAG, "Unable to decode attachment!");
                 }
 
-                return data;
+                return data ?? new byte[0];
             }
         }
 
@@ -142,12 +141,13 @@ namespace Couchbase.Lite.Internal
                     return Database.Attachments.BlobStreamForKey(_blobKey);
                 }
 
-                var ms = new MemoryStream(_data.ToArray());
-                return new GZipStream(ms, CompressionMode.Decompress, true);
+                var data = Content.ToArray();
+                return RecyclableMemoryStreamManager.SharedInstance.GetStream("AttachmentInternal", 
+                    data, 0, data.Length);
             }
         }
 
-        // only if already stored in db blob-store
+        // only if already stored in db blob-store (used by listener)
         public Uri ContentUrl { 
             get {
                 string path = Database.Attachments.PathForKey(_blobKey);
@@ -201,7 +201,8 @@ namespace Couchbase.Lite.Internal
                 if (encodingString.Equals("gzip")) {
                     Encoding = AttachmentEncoding.GZIP;
                 } else {
-                    throw new CouchbaseLiteException(StatusCode.BadEncoding);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadEncoding, TAG,
+                        "Invalid encoding type ({0}) in ctor", encodingString);
                 }
             }
 
@@ -215,16 +216,18 @@ namespace Couchbase.Lite.Internal
                 }
 
                 if (_data == null) {
-                    throw new CouchbaseLiteException(StatusCode.BadEncoding);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadEncoding, TAG,
+                        "Invalid data type ({0}) in ctor", data.GetType().Name);
                 }
 
                 SetPossiblyEncodedLength(_data.LongCount());
             } else if (info.GetCast<bool>("stub", false)) {
                 // This item is just a stub; validate and skip it
                 if(info.ContainsKey("revpos")) {
-                    var revPos = info.GetCast<int>("revpos");
-                    if (revPos <= 0) {
-                        throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                    var revPos = info.GetCast("revpos", -1);  // PouchDB has a bug that generates "revpos":0; allow this (#627)
+                    if (revPos < 0) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                            "Invalid revpos ({0}) in ctor", revPos);
                     }
 
                     RevPos = revPos;
@@ -232,19 +235,22 @@ namespace Couchbase.Lite.Internal
             } else if (info.GetCast<bool>("follows", false)) {
                 // I can't handle this myself; my caller will look it up from the digest
                 if (Digest == null) {
-                    throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                        "follows is true, but the attachment digest is null in ctor");
                 }
 
                 if(info.ContainsKey("revpos")) {
-                    var revPos = info.GetCast<int>("revpos");
-                    if (revPos <= 0) {
-                        throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                    var revPos = info.GetCast("revpos", -1);  // PouchDB has a bug that generates "revpos":0; allow this (#627)
+                    if (revPos < 0) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                            "Invalid revpos ({0}) in ctor", revPos);
                     }
 
                     RevPos = revPos;
                 }
             } else {
-                throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadAttachment, TAG,
+                    "Neither data nor stub nor follows was specified on the attachment data");
             }
         }
             

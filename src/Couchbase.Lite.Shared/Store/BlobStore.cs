@@ -43,9 +43,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Couchbase.Lite;
+
+using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
-using Sharpen;
 
 namespace Couchbase.Lite
 {
@@ -56,21 +56,43 @@ namespace Couchbase.Lite
     /// </remarks>
     internal class BlobStore
     {
+        private const string ENCRYPTION_MARKER_FILENAME = "_encryption";
+        private const string ENCRYPTION_ALGORITHM = "AES";
+        private const string TAG = "BlobStore";
+
         public static string FileExtension = ".blob";
 
         public static string TmpFileExtension = ".blobtmp";
 
         public static string TmpFilePrefix = "tmp";
 
-        private readonly string path;
+        private readonly string _path;
 
-        public BlobStore(string path)
+        public SymmetricKey EncryptionKey { get; private set; }
+
+        public BlobStore(string path, SymmetricKey encryptionKey)
         {
-            this.path = path;
-            FilePath directory = new FilePath(path);
-            directory.Mkdirs();
-            if (!directory.IsDirectory()) {
-                throw new InvalidOperationException(string.Format("Unable to create directory for: {0}", directory));
+            if (path == null) {
+                Log.To.Database.E(TAG, "path cannot be null in ctor, throwing...");
+                throw new ArgumentNullException("path");
+            }
+
+            _path = path;
+            EncryptionKey = encryptionKey;
+            if (Directory.Exists(path)) {
+                // Existing blob-store.
+                VerifyExistingStore();
+            } else {
+                // New blob store; create directory:
+                Directory.CreateDirectory(path);
+                if (!Directory.Exists(path)) {
+                    Log.To.Database.E(TAG, "Unable to create directory for: {0}", path);
+                    throw new InvalidOperationException(string.Format("Unable to create directory for: {0}", path));
+                }
+
+                if (encryptionKey != null) {
+                    MarkEncrypted(true);
+                }
             }
         }
 
@@ -79,8 +101,8 @@ namespace Couchbase.Lite
             MessageDigest md;
             try {
                 md = MessageDigest.GetInstance("SHA-1");
-            } catch (NoSuchAlgorithmException) {
-                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
+            } catch (NotSupportedException) {
+                Log.To.Database.E(TAG, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
 
@@ -91,29 +113,30 @@ namespace Couchbase.Lite
             return result;
         }
 
-        public static BlobKey KeyForBlobFromFile(FileInfo file)
+        public static BlobKey KeyForBlobFromFile(string file)
         {
             MessageDigest md;
             try {
                 md = MessageDigest.GetInstance("SHA-1");
-            } catch (NoSuchAlgorithmException) {
-                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
+            } catch (NotSupportedException) {
+                Log.To.Database.E(TAG, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
 
             byte[] sha1hash = new byte[40];
             try {
-                var fis = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                byte[] buffer = new byte[65536];
-                int lenRead = fis.Read(buffer, 0, buffer.Length);
-                while (lenRead > 0)
-                {
-                    md.Update(buffer, 0, lenRead);
-                    lenRead = fis.Read(buffer, 0, buffer.Length);
+                using(var fis = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                    byte[] buffer = new byte[65536];
+                    int lenRead = fis.Read(buffer, 0, buffer.Length);
+                    while (lenRead > 0)
+                    {
+                        md.Update(buffer, 0, lenRead);
+                        lenRead = fis.Read(buffer, 0, buffer.Length);
+                    }
                 }
-                fis.Close();
-            } catch (IOException) {
-                Log.E(Database.TAG, "Error readin tmp file to compute key");
+            } catch (IOException e) {
+                Log.To.Database.E(TAG, "Error reading tmp file to compute key (returning null)", e);
+                return null;
             }
 
             sha1hash = md.Digest();
@@ -121,16 +144,21 @@ namespace Couchbase.Lite
             return result;
         }
 
+        public bool HasBlobForKey(BlobKey key)
+        {
+            return File.Exists(PathForKey(key));
+        }
+
         public string PathForKey(BlobKey key)
         {
-            return path + FilePath.separator + key + FileExtension;
+            return _path + Path.DirectorySeparatorChar + key + FileExtension;
         }
 
         public long GetSizeOfBlob(BlobKey key)
         {
             string path = PathForKey(key);
-            FilePath file = new FilePath(path);
-            return file.Length();
+            var info = new FileInfo(path);
+            return info.Exists ? info.Length : 0;
         }
 
         public bool GetKeyForFilename(BlobKey outKey, string filename)
@@ -140,157 +168,91 @@ namespace Couchbase.Lite
             }
 
             //trim off extension
-            string rest = filename.Substring(path.Length + 1, filename.Length - FileExtension.Length - (path.Length + 1));
+            string rest = filename.Substring(_path.Length + 1, filename.Length - FileExtension.Length - (_path.Length + 1));
             outKey.Bytes = BlobKey.ConvertFromHex(rest);
             return true;
         }
 
         public byte[] BlobForKey(BlobKey key)
         {
+            using (var blobStream = BlobStreamForKey(key)) {
+                if (blobStream == null) {
+                    return null;
+                }
+
+                return blobStream.ReadAllBytes();
+            }
+        }
+
+        public Stream BlobStreamForKey(BlobKey key)
+        {
             if (key == null) {
                 return null;
             }
 
             string keyPath = PathForKey(key);
-            FilePath file = new FilePath(keyPath);
-            byte[] result = null;
+            var fileStream = default(Stream);
             try {
-                result = GetBytesFromFile(file);
+                fileStream = File.Open(keyPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                if(EncryptionKey != null) {
+                    fileStream = EncryptionKey.DecryptStream(fileStream);
+                }
             } catch (IOException e) {
-                Log.E(Database.TAG, "Error reading file", e);
+                if (ManagerOptions.Default.DownloadAttachmentsOnSync == true)
+                {
+                    Log.To.Database.E(TAG, "Error reading file (returning null)", e);
+                }
+                return null;
             }
-            return result;
+
+            return fileStream;
         }
 
-        public Stream BlobStreamForKey(BlobKey key)
-        {
-            var keyPath = PathForKey(key);
-            Log.D(Database.TAG, "Blob Path : " + keyPath);
-            var file = new FilePath(keyPath);
-            if (file.CanRead()) {
-                try {
-                    return new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
-                }
-                catch (FileNotFoundException e) {
-                    Log.E(Database.TAG, "Unexpected file not found in blob store", e);
-                    return null;
-                }
-                catch (Exception e) {
-                    Log.E(Database.TAG, "Cannot new FileStream", e);
-                }
-            }
-
-            return null;
-        }
-
-        public bool StoreBlobStream(Stream inputStream, out BlobKey outKey)
-        {
-            FilePath tmp = null;
-            try {
-                tmp = FilePath.CreateTempFile(TmpFilePrefix, TmpFileExtension, new FilePath(this.path));
-                FileOutputStream fos = new FileOutputStream(tmp);
-                byte[] buffer = new byte[65536];
-                int lenRead = ((InputStream)inputStream).Read(buffer);
-                while (lenRead > 0)  {
-                    fos.Write(buffer, 0, lenRead);
-                    lenRead = ((InputStream)inputStream).Read(buffer);
-                }
-
-                inputStream.Close();
-                fos.Close();
-            } catch (IOException e) {
-                Log.E(Database.TAG, "Error writing blog to tmp file", e);
-                outKey = null;
-                return false;
-            }
-
-            outKey = KeyForBlobFromFile(tmp);
-            var keyPath = PathForKey(outKey);
-            var file = new FilePath(keyPath);
-            if (file.CanRead()) {
-                // object with this hash already exists, we should delete tmp file and return true
-                tmp.Delete();
-            }
-            else {
-                // does not exist, we should rename tmp file to this name
-                tmp.RenameTo(file);
-            }
-
-            return true;
-        }
-
-        public bool StoreBlob(byte[] data, BlobKey outKey)
+        public void StoreBlob(byte[] data, BlobKey outKey)
         {
             BlobKey newKey = KeyForBlob(data);
             outKey.Bytes = newKey.Bytes;
             string keyPath = PathForKey(outKey);
-            FilePath file = new FilePath(keyPath);
-            if (file.CanRead()) {
-                return true;
+            if (File.Exists(keyPath) && ((File.GetAttributes (keyPath) & FileAttributes.Offline) == 0)) {
+                Log.To.Database.V(TAG, "Blob {0} already exists in store, no action needed", newKey.Base64Digest());
+                return;
             }
 
-            FileOutputStream fos = null;
+            var fos = default(Stream);
             try {
-                fos = new FileOutputStream(file);
-                fos.Write(data);
+                fos = File.Open(keyPath, FileMode.Create);
+                if(EncryptionKey != null) {
+                    fos = EncryptionKey.CreateStream(fos);
+                }
+                fos.Write(data, 0, data.Length);
             } catch (FileNotFoundException e) {
-                Log.E(Database.TAG, "Error opening file for output", e);
-                return false;
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.AttachmentError, TAG,
+                    "Unable to get file for output");
             }  catch (IOException ioe) {
-                Log.E(Database.TAG, "Error writing to file", ioe);
-                return false;
+                throw Misc.CreateExceptionAndLog(Log.To.Database, ioe, StatusCode.AttachmentError, TAG,
+                    "Unable to write to output file");
             } finally {
                 if (fos != null) {
                     try {
-                        fos.Close();
-                    }
-                    catch (IOException) {
+                        fos.Dispose();
+                    } catch (IOException) {
+                        // ignore
                     }
                 }
             }
-            // ignore
-            return true;
-        }
-
-        /// <exception cref="System.IO.IOException"></exception>
-        private static byte[] GetBytesFromFile(FilePath file)
-        {
-            InputStream @is = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            // Get the size of the file
-            long length = file.Length();
-            // Create the byte array to hold the data
-            byte[] bytes = new byte[(int)length];
-            // Read in the bytes
-            int offset = 0;
-            int numRead = 0;
-            while (offset < bytes.Length && (numRead = @is.Read(bytes, offset, bytes.Length -
-                   offset)) >= 0) {
-                offset += numRead;
-            }
-
-            // Ensure all the bytes have been read in
-            if (offset < bytes.Length) {
-                throw new IOException("Could not completely read file " + file.GetName());
-            }
-
-            // Close the input stream and return bytes
-            @is.Close();
-            return bytes;
         }
 
         public ICollection<BlobKey> AllKeys()
         {
-            ICollection<BlobKey> result = new HashSet<BlobKey>();
-            FilePath file = new FilePath(path);
-            FilePath[] contents = file.ListFiles();
-            foreach (FilePath attachment in contents) {
-                if (attachment.IsDirectory()) {
+            ICollection<BlobKey> result = new HashSet<BlobKey>();;
+            foreach (var attachment in Directory.GetFileSystemEntries(_path)) {
+                if (File.GetAttributes(attachment).HasFlag(FileAttributes.Directory)) {
                     continue;
                 }
 
                 BlobKey attachmentKey = new BlobKey();
-                GetKeyForFilename(attachmentKey, attachment.GetPath());
-                result.AddItem(attachmentKey);
+                GetKeyForFilename(attachmentKey, attachment);
+                result.Add(attachmentKey);
             }
 
             return result;
@@ -298,37 +260,20 @@ namespace Couchbase.Lite
 
         public int Count()
         {
-            FilePath file = new FilePath(path);
-            FilePath[] contents = file.ListFiles();
-            return contents.Length;
-        }
-
-        public long TotalDataSize()
-        {
-            long total = 0;
-            FilePath file = new FilePath(path);
-            FilePath[] contents = file.ListFiles();
-            foreach (FilePath attachment in contents) {
-                total += attachment.Length();
-            }
-
-            return total;
+            return Directory.GetFiles(_path).Length;
         }
 
         public int DeleteBlobsExceptWithKeys(ICollection<BlobKey> keysToKeep)
         {
             int numDeleted = 0;
-            FilePath file = new FilePath(path);
-            FilePath[] contents = file.ListFiles();
-            foreach (FilePath attachment in contents) {
+            foreach (var attachment in Directory.GetFiles(_path)) {
                 BlobKey attachmentKey = new BlobKey();
-                if (GetKeyForFilename(attachmentKey, attachment.GetPath()) && !keysToKeep.Contains(attachmentKey)) {
-                    bool result = attachment.Delete();
-                    if (result) {
+                if (GetKeyForFilename(attachmentKey, attachment) && !keysToKeep.Contains(attachmentKey)) {
+                    try {
+                        File.Delete(attachment);
                         ++numDeleted;
-                    }
-                    else {
-                        Log.E(Database.TAG, "Error deleting attachment");
+                    } catch(Exception e) {
+                        Log.To.Database.W(TAG, "Error deleting attachment, continuing...", e);
                     }
                 }
             }
@@ -336,41 +281,164 @@ namespace Couchbase.Lite
             return numDeleted;
         }
 
-        public int DeleteBlobs()
+        public string TempDir()
         {
-            return DeleteBlobsExceptWithKeys(new List<BlobKey>());
+            var path = Path.Combine(_path, "temp_attachments");
+            try {
+                Directory.CreateDirectory(path);
+            } catch(Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, 
+                    "Unable to create directory for: {0}", path);
+            }
+
+            if (!Directory.Exists(path)) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.DbError, TAG, 
+                    "Unable to create directory for: {0}", path);
+            }
+
+            Log.To.Database.I(TAG, "{0} created temporary directory {1}", this, path);
+            return path;
         }
 
-        public bool IsGZipped(BlobKey key)
+        public AtomicAction ActionToChangeEncryptionKey(SymmetricKey newKey)
         {
-            var magic = 0;
-            var path = PathForKey(key);
-            var file = new FilePath(path);
-            if (file.CanRead()) {
+            var action = new AtomicAction();
+
+            // Find all the blob files:
+            var blobs = default(string[]);
+            var oldKey = EncryptionKey;
+            blobs = Directory.GetFiles(_path, "*" + FileExtension);
+            if (blobs.Length == 0) {
+                // No blobs, so nothing to encrypt. Just add/remove the encryption marker file:
+                action.AddLogic(() =>
+                {
+                    Log.To.NoDomain.D(TAG, "{0} {1}", (newKey != null) ? "encrypting" : "decrypting", _path);
+                    Log.To.NoDomain.D(TAG, "    No blobs to copy; done.");
+                    EncryptionKey = newKey;
+                    MarkEncrypted(newKey != null);
+                }, () =>
+                {
+                    EncryptionKey = oldKey;
+                    MarkEncrypted(oldKey != null);
+                }, null);
+                return action;
+            }
+
+            // Create a new directory for the new blob store. Have to do this now, before starting the
+            // action, because farther down we create an action to move it...
+            var tempPath = Path.Combine(Path.GetTempPath(), String.Format("CouchbaseLite-Temp-{0}", Misc.CreateGUID()));
+            action.AddLogic(() => 
+            {
+                Log.To.NoDomain.D(TAG, "{0} {1}", (newKey != null) ? "encrypting" : "decrypting", _path);
+                Directory.CreateDirectory(tempPath);
+            }, () => Directory.Delete(tempPath, true), null);
+
+            var tempStore = default(BlobStore);
+            action.AddLogic(() =>
+            {
+                tempStore = new BlobStore(tempPath, newKey);
+                tempStore.MarkEncrypted(true);
+            }, null, null);
+
+            // Copy each of my blobs into the new store (which will update its encryption):
+            action.AddLogic(() =>
+            {
+                foreach(var blobName in blobs) {
+                    // Copy file by reading with old key and writing with new one:
+                    Log.To.NoDomain.D(TAG, "    Copying {0}", blobName);
+                    Stream readStream = File.Open(blobName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    if(EncryptionKey != null) {
+                        readStream = EncryptionKey.DecryptStream(readStream);
+                    }
+
+                    var writer = new BlobStoreWriter(tempStore);
+                    try {
+                        writer.Read(readStream);
+                        writer.Finish();
+                        writer.Install();
+                    } catch(Exception) {
+                        writer.Cancel();
+                        throw;
+                    } finally {
+                        readStream.Dispose();
+                    }
+                }
+            }, null, null);
+
+            // Replace the attachment dir with the new one:
+            action.AddLogic(AtomicAction.MoveDirectory(tempPath, _path));
+
+            // Finally update EncryptionKey:
+            action.AddLogic(() =>
+            {
+                EncryptionKey = newKey;
+            }, () =>
+            {
+                EncryptionKey = oldKey;
+            }, null);
+
+            return action;
+        }
+
+        public void ChangeEncryptionKey(SymmetricKey newKey)
+        {
+            ActionToChangeEncryptionKey(newKey).Run();
+        }
+
+        internal void MarkEncrypted(bool encrypted)
+        {
+            var encMarkerPath = Path.Combine(_path, ENCRYPTION_MARKER_FILENAME);
+            if (encrypted) {
                 try {
-                    var raf = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    magic = raf.ReadByte() & unchecked((0xff)) | ((raf.ReadByte() << 8) & unchecked((0xff00)));
-                    raf.Close();
+                    File.WriteAllText(encMarkerPath, ENCRYPTION_ALGORITHM);
+                } catch(Exception e) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error enabling attachment encryption");
                 }
-                catch (Exception e) {
-                    Runtime.PrintStackTrace(e, Console.Error);
+            } else {
+                try {
+                    File.Delete(encMarkerPath);
+                } catch(Exception e) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error disabling attachment encryption");
                 }
             }
-
-            return magic == 0;
         }
 
-        public FileInfo TempDir()
+        private void VerifyExistingStore()
         {
-            FilePath directory = new FilePath(path);
-            FilePath tempDirectory = new FilePath(directory, "temp_attachments");
-            tempDirectory.Mkdirs();
-            if (!tempDirectory.IsDirectory()) {
-                throw new InvalidOperationException(string.Format("Unable to create directory for: {0}"
-                    , tempDirectory));
+            var markerPath = Path.Combine(_path, ENCRYPTION_MARKER_FILENAME);
+            var fileExists = File.Exists(markerPath);
+            var encryptionAlg = default(string);
+            try {
+                encryptionAlg = fileExists ? File.ReadAllText(markerPath) : null;
+            } catch(Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error verifying blob store");
             }
 
-            return tempDirectory;
+            if (encryptionAlg != null) {
+                // "_encryption" file is present, so make sure we support its format & have a key:
+                if (EncryptionKey == null) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Unauthorized, TAG,
+                        "Opening encrypted blob-store without providing a key");
+                } else if (ENCRYPTION_ALGORITHM != encryptionAlg) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Unauthorized, TAG,
+                        "Blob-store uses unrecognized encryption '{0}'", encryptionAlg);
+                }
+            } else if (!fileExists) {
+                // No "_encryption" file was found, so on-disk store isn't encrypted:
+                var encryptionKey = EncryptionKey;
+                if (encryptionKey != null) {
+                    // This store was created before the db encryption fix, so its files are not
+                    // encrypted, even though they should be. Remedy that:
+                    Log.To.NoDomain.I(TAG, "**** BlobStore should be encrypted; fixing it now...");
+                    EncryptionKey = null;
+                    ChangeEncryptionKey(encryptionKey);
+                }
+            }
+        }
+
+        public override string ToString()
+        {
+            return String.Format("[BlobStore{0}: {1}]", EncryptionKey == null ? String.Empty : " (encrypted)", _path);
         }
     }
 }

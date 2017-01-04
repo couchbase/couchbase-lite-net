@@ -49,6 +49,8 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
+using System.Collections.Concurrent;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite.Tests
 {
@@ -60,23 +62,27 @@ namespace Couchbase.Lite.Tests
 
         #endregion
 
+        #region Properties
+
+        public bool DefaultFail { get; set; }
+
+        #endregion
+
         #region Constructors
 
         public MockHttpRequestHandler(bool defaultFail = true)
         {
             responders = new Dictionary<string, HttpResponseDelegate>();
-            CapturedRequests = new List<HttpRequestMessage>();
+            CapturedRequests = new ConcurrentBag<HttpRequestMessage>();
             if(defaultFail)
                 AddDefaultResponders();
 
-            _defaultFail = defaultFail;
+            DefaultFail = defaultFail;
         }
 
         #endregion
 
         #region Instance Members
-
-        private bool _defaultFail;
 
         public Int32 ResponseDelayMilliseconds { get; set; }
 
@@ -97,22 +103,16 @@ namespace Couchbase.Lite.Tests
             }
 
             if (responder != null) {
-                HttpResponseMessage message = null;
-                try {
-                    message = responder(request);
-                } catch(Exception e) {
-                    var tcs = new TaskCompletionSource<HttpResponseMessage>();
-                    tcs.SetException(e);
-                    return tcs.Task;
-                }
+                return Task.Factory.StartNew(() =>
+                {
+                    var message = responder(request);
+                    if(message is RequestCorrectHttpMessage) {
+                        return base.SendAsync(request, cancellationToken).Result;
+                    }
 
-                Task<HttpResponseMessage> retVal = Task.FromResult<HttpResponseMessage>(message);
-                NotifyResponseListeners(request, message);
-                if (message is RequestCorrectHttpMessage)
-                    return base.SendAsync(request, cancellationToken);
-                
-                return retVal;
-            } else if(_defaultFail) {
+                    return message;
+                }, TaskCreationOptions.LongRunning);
+            } else if(DefaultFail) {
                 throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
             }
 
@@ -126,7 +126,7 @@ namespace Couchbase.Lite.Tests
 
         public void ClearCapturedRequests() 
         {
-            capturedRequests.Clear();
+            capturedRequests = new ConcurrentBag<HttpRequestMessage>();
         }
 
         public void AddDefaultResponders()
@@ -163,7 +163,7 @@ namespace Couchbase.Lite.Tests
         public void AddResponderThrowExceptionAllRequests() 
         {
             HttpResponseDelegate responder = (request) => {
-                throw new WebException("Test WebException", WebExceptionStatus.UnknownError);
+                throw new WebException("Test WebException", WebExceptionStatus.ConnectionClosed);
             };
             SetResponder("*", responder);
         }
@@ -199,15 +199,15 @@ namespace Couchbase.Lite.Tests
 
         private IDictionary <string, HttpResponseDelegate> responders;
 
-        private IList <HttpRequestMessage> capturedRequests;
+        private ConcurrentBag <HttpRequestMessage> capturedRequests;
 
-        internal IList<HttpRequestMessage> CapturedRequests
+        internal ConcurrentBag<HttpRequestMessage> CapturedRequests
         {
             private set { 
                 capturedRequests = value; 
             }
             get {
-                var snapshot = new List<HttpRequestMessage>(capturedRequests);
+                var snapshot = new ConcurrentBag<HttpRequestMessage>(capturedRequests);
                 return snapshot;
             }
         }
@@ -328,8 +328,7 @@ namespace Couchbase.Lite.Tests
             foreach (JObject doc in docs)
             {
                 IDictionary<string, object> responseListItem = new Dictionary<string, object>();
-                responseListItem["id"] = doc["_id"];
-                responseListItem["rev"] = doc["_rev"];
+                responseListItem.SetDocRevID(doc["_id"].Value<string>(), doc["_rev"].Value<string>());
                 responseList.Add(responseListItem);
             }
 

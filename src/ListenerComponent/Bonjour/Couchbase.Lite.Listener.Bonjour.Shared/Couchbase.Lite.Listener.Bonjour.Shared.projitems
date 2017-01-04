@@ -28,10 +28,19 @@
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\TxtRecord.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\TxtRecordEnumerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Properties\AssemblyInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.cs">
+      <Link>Properties\DynamicAssemblyInfo.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Couchbase.Lite.Listener.Bonjour.dll.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\..\Couchbase.Lite.Shared\Properties\version">
+      <Link>Properties\version</Link>
+      <LogicalName>version</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

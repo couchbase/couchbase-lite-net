@@ -25,47 +25,91 @@ using Couchbase.Lite.Store;
 using System.Threading.Tasks;
 using System.Linq;
 
-namespace Couchbase.Lite.Internal
+namespace Couchbase.Lite
 {
     internal sealed class UpdateJob
     {
-        private readonly Func<IList<IViewStore>, Status> _logic;
+        private readonly Func<IList<IViewStore>, bool> _logic;
         private readonly IEnumerable<IViewStore> _args;
-        private Task<Status> _task;
+        private Task<bool> _task;
         public readonly long[] LastSequences;
+        public readonly string[] Names;
 
         public Status Result 
         {
             get {
-                return _task.IsCompleted ? _task.Result : new Status(StatusCode.Unknown);
+                if (_task.IsFaulted) {
+                    var ce = _task.Exception.InnerException as CouchbaseLiteException;
+                    if (ce != null) {
+                        return ce.CBLStatus;
+                    }
+
+                    return new Status(StatusCode.Exception);
+                }
+
+                if (_task.IsCompleted) {
+                    return _task.Result ? new Status(StatusCode.Ok) : new Status(StatusCode.DbError);
+                }
+
+                return new Status(StatusCode.Unknown);
             }
         }
 
         public event EventHandler Finished;
 
-        public UpdateJob(Func<IList<IViewStore>, Status> logic, IEnumerable<IViewStore> args, IEnumerable<long> lastSequences)
+        public UpdateJob(Func<IList<IViewStore>, bool> logic, IEnumerable<IViewStore> args, IEnumerable<long> lastSequences)
         {
             _logic = logic;
             _args = args;
+            Names = args.Select(x => x.Name).ToArray();
             LastSequences = lastSequences.ToArray();
+            _task = new Task<bool>(() => _logic(_args.ToList()));
         }
 
         public void Run()
         {
-            if (_task == null) {
-                _task = Task.Factory.StartNew<Status>(() => _logic(_args.ToList()));
+            if (_task.Status <= TaskStatus.Running) {
+                _task.Start(TaskScheduler.Default);
                 _task.ContinueWith(t =>
                 {
                     if(Finished != null) {
                         Finished(this, null);
                     }
-                });
+                }, TaskScheduler.Default);
             }
         }
 
         public void Wait()
         {
             _task.Wait();
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+
+                foreach (var name in Names) {
+                    hash = hash * 23 + name.GetHashCode();
+                }
+
+                foreach (var sequence in LastSequences) {
+                    hash = hash * 23 + sequence.GetHashCode();
+                }
+    
+                return hash;
+            }
+        }
+
+        public override bool Equals(object obj)
+        {
+            var other = obj as UpdateJob;
+            if (other == null) {
+                return false;
+            }
+
+            return other.LastSequences.SequenceEqual(LastSequences) && other.Names.SequenceEqual(Names);
         }
     }
 }

@@ -30,11 +30,13 @@ using System;
 using System.Text;
 using System.Collections;
 using System.Runtime.InteropServices;
+using Couchbase.Lite.Util;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
     internal class TxtRecord : ITxtRecord
     {
+        private static readonly string Tag = typeof(TxtRecord).Name;
         private IntPtr handle = IntPtr.Zero;
         private ushort length;
         private IntPtr buffer;
@@ -74,6 +76,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         public void Add(TxtRecordItem item)
         {
             if(handle == IntPtr.Zero) {
+                Log.To.Discovery.E(Tag, "Attempt to call Add() on a readonly object, throwing...");
                 throw new InvalidOperationException("This TXT Record is read only");
             }
         
@@ -86,6 +89,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 (sbyte)item.ValueRaw.Length, item.ValueRaw);
                 
             if(error != ServiceError.NoError) {
+                Log.To.Discovery.E(Tag, "Got error in TXTRecordSetValue ({0}), throwing...", error);
                 throw new ServiceErrorException(error);
             }        
         }
@@ -93,12 +97,14 @@ namespace Mono.Zeroconf.Providers.Bonjour
         public void Remove(string key)
         {
             if(handle == IntPtr.Zero) {
+                Log.To.Discovery.E(Tag, "Attempt to call Remove() on a readonly object, throwing...");
                 throw new InvalidOperationException("This TXT Record is read only");
             }
             
             ServiceError error = Native.TXTRecordRemoveValue(handle, encoding.GetBytes(key));
             
             if(error != ServiceError.NoError) {
+                Log.To.Discovery.E(Tag, "Got error in TXTRecordRemoveValue ({0}), throwing...", error);
                 throw new ServiceErrorException(error);
             }
         }
@@ -110,6 +116,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
             IntPtr value_raw = IntPtr.Zero;
             
             if(index < 0 || index >= Count) {
+                Log.To.Discovery.E(Tag, "GetItemAt() received invalid index {0} (not between 0 and {1}), throwing...",
+                    index, Count - 1);
                 throw new IndexOutOfRangeException();
             }
             
@@ -117,6 +125,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 (ushort)key.Length, key, out value_length, out value_raw);
                 
             if(error != ServiceError.NoError) {
+                Log.To.Discovery.E(Tag, "Got error in TXTRecordGetItemAtIndex ({0}), throwing...", error);
                 throw new ServiceErrorException(error);
             }
             

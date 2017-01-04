@@ -40,7 +40,7 @@
 // and limitations under the License.
 //
 
-using System;
+/*using System;
 using NUnit.Framework;
 using Couchbase.Lite.Util;
 
@@ -48,6 +48,7 @@ namespace Couchbase.Lite
 {
     public class CollationTest : LiteTestCase
     {
+        public CollationTest(string storageType) : base(storageType) {}
 
         private static void TestStrtodEquals(string input, double expectedValue)
         {
@@ -289,4 +290,4 @@ namespace Couchbase.Lite
         }
     }
 }
-
+*/

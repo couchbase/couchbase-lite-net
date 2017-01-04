@@ -20,13 +20,13 @@
 //
 using System;
 using System.Collections.Generic;
-using Couchbase.Lite.Util;
-using System.Security;
-using Sharpen;
-using System.Runtime.InteropServices;
-using System.Text;
-using Couchbase.Lite.Listener.Tcp;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
+using System.Security;
+using System.Text;
+
+using Couchbase.Lite.Listener.Tcp;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
@@ -36,12 +36,14 @@ namespace Couchbase.Lite.Listener
     /// </summary>
     public abstract class CouchbaseLiteServiceListener : IDisposable
     {
-
+        
         #region Variables
 
+        private static readonly string Tag = typeof(CouchbaseLiteServiceListener).Name;
         internal readonly CouchbaseLiteRouter _router = new CouchbaseLiteRouter();
         private bool _disposed;
-        private Dictionary<string, SecureString> _passwordMap = new Dictionary<string, SecureString>();
+        private Dictionary<string, string> _passwordMap = new Dictionary<string, string>();
+        private Dictionary<string, SecureString> _passwordMapSecure = new Dictionary<string, SecureString>();
 
         #endregion
 
@@ -89,18 +91,27 @@ namespace Couchbase.Lite.Listener
         /// <summary>
         /// Start listening and processing requests
         /// </summary>
-        public abstract void Start();
+        public virtual void Start()
+        {
+            Log.To.Listener.I(Tag, "Starting {0}", this);
+        }
 
         /// <summary>
         /// Stop listening and processing requests, but handle
         /// the currently received ones
         /// </summary>
-        public abstract void Stop();
+        public virtual void Stop()
+        {
+            Log.To.Listener.I(Tag, "Stopping {0}", this);
+        }
 
         /// <summary>
         /// Stop listening and processing requests immediately
         /// </summary>
-        public abstract void Abort();
+        public virtual void Abort()
+        {
+            Log.To.Listener.I(Tag, "Aborting {0}", this);
+        }
 
         /// <summary>
         /// Sets up passwords for HTTP authentication
@@ -109,11 +120,13 @@ namespace Couchbase.Lite.Listener
         public void SetPasswords(IDictionary<string, string> usersAndPasswords)
         {
             _passwordMap.Clear();
+            _passwordMapSecure.Clear();
             if (usersAndPasswords == null) {
                 RequiresAuth = false;
                 return;
             }
 
+            _passwordMap.PutAll(usersAndPasswords);
             foreach (var pair in usersAndPasswords) {
                 var secureString = new SecureString();
                 foreach (var c in pair.Value) {
@@ -121,7 +134,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 secureString.MakeReadOnly();
-                _passwordMap[pair.Key] = secureString;
+                _passwordMapSecure[pair.Key] = secureString;
             }
 
             RequiresAuth = _passwordMap.Count > 0;
@@ -131,18 +144,20 @@ namespace Couchbase.Lite.Listener
         /// Sets up passwords for HTTP authentication
         /// </summary>
         /// <param name="usersAndPasswords">A dictionary containing the users and their passwords</param>
+        [Obsolete("This method is no longer supported")]
         public void SetPasswords(IDictionary<string, SecureString> usersAndPasswords)
         {
             _passwordMap.Clear();
+            _passwordMapSecure.Clear();
             if (usersAndPasswords == null) {
                 RequiresAuth = false;
                 return;
             }
 
-            _passwordMap = new Dictionary<string, SecureString>();
+            _passwordMapSecure = new Dictionary<string, SecureString>();
             foreach (var pair in usersAndPasswords) {
                 pair.Value.MakeReadOnly();
-                _passwordMap[pair.Key] = pair.Value;
+                _passwordMapSecure[pair.Key] = pair.Value;
             }
 
             RequiresAuth = _passwordMap.Count > 0;
@@ -162,6 +177,7 @@ namespace Couchbase.Lite.Listener
         /// </summary>
         /// <returns><c>true</c>, if user was validated, <c>false</c> otherwise.</returns>
         /// <param name="headerValue">The header value received from the HTTP request</param>
+        [Obsolete("This method is no longer supported")]
         protected bool ValidateUser(string headerValue)
         {
             var parsed = AuthenticationHeaderValue.Parse(headerValue);
@@ -190,9 +206,27 @@ namespace Couchbase.Lite.Listener
             return successful && equal;
         }
 
+#pragma warning disable 1591
+        [Obsolete("This method is no longer supported")]
         protected bool ValidateUser(DigestAuthHeaderValue headerValue)
         {
             return headerValue.ValidateAgainst(this);
+        }
+#pragma warning restore 1591
+
+        /// <summary>
+        /// Tries to get the password for the user.
+        /// </summary>
+        /// <returns><c>true</c>, if the password was found, <c>false</c> otherwise.</returns>
+        /// <param name="user">The user to lookup.</param>
+        /// <param name="password">The password that was found.</param>
+        /// <remarks>
+        /// This will only work for passwords set with the SetPasswords(IDictionary&lt;string,string&gt;)
+        /// method
+        /// </remarks>
+        protected bool TryGetPassword(string user, out string password)
+        {
+            return _passwordMap.TryGetValue(user, out password);
         }
 
         #endregion
@@ -206,6 +240,7 @@ namespace Couchbase.Lite.Listener
                 digest.Update(b);
                 return true;
             });
+
         }
 
         #endregion
@@ -215,7 +250,7 @@ namespace Couchbase.Lite.Listener
         private bool IteratePassword(string user, Func<byte, bool> func)
         {
             SecureString securedPass;
-            if (!_passwordMap.TryGetValue(user, out securedPass)) {
+            if (!_passwordMapSecure.TryGetValue(user, out securedPass)) {
                 return false;
             }
 
@@ -227,13 +262,14 @@ namespace Couchbase.Lite.Listener
                 keepGoing = func(next);
             }
 
-            Marshal.ZeroFreeGlobalAllocUnicode(marshaled);
+            Marshal.ZeroFreeGlobalAllocAnsi(marshaled);
             return true;
         }
 
         #endregion
 
         #region IDisposable
+#pragma warning disable 1591
 
         public void Dispose()
         {
@@ -245,6 +281,7 @@ namespace Couchbase.Lite.Listener
             _disposed = true;
         }
 
+#pragma warning restore 1591
         #endregion
     }
 }

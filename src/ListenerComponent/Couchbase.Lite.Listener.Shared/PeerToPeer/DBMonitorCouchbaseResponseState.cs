@@ -26,6 +26,7 @@ using System.Threading;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
+using System;
 
 namespace Couchbase.Lite.Listener
 {
@@ -34,7 +35,7 @@ namespace Couchbase.Lite.Listener
     /// This class will wait for the database to change before writing to and
     /// possibly closing the HTTP response
     /// </summary>
-    internal class DBMonitorCouchbaseResponseState : ICouchbaseResponseState
+    internal sealed class DBMonitorCouchbaseResponseState : ICouchbaseResponseState
     {
 
         #region Constants
@@ -95,7 +96,7 @@ namespace Couchbase.Lite.Listener
 
         #endregion
 
-        #region COnstructors
+        #region Constructors
 
         /// <summary>
         /// Constructor
@@ -139,14 +140,15 @@ namespace Couchbase.Lite.Listener
         /// </summary>
         /// <param name="response">The message to write</param>
         /// <param name="interval">The interval at which to write the message (in milliseconds)</param>
-        public void StartHeartbeat(string response, int interval)
+        public void StartHeartbeat(string response, TimeSpan interval)
         {
-            if (interval <= 0 || _heartbeatTimer != null) {
+            if (interval.TotalMilliseconds <= 0 || _heartbeatTimer != null) {
                 return;
             }
 
             IsAsync = true;
             Response.WriteHeaders();
+            Log.To.Router.V(TAG, "Starting heartbeat at intervals of {0}", interval);
             _heartbeatTimer = new Timer(SendHeartbeatResponse, Encoding.UTF8.GetBytes(response), interval, interval);
         }
 
@@ -157,12 +159,15 @@ namespace Couchbase.Lite.Listener
         // Attempts to write the heartbeat message to the client
         private void SendHeartbeatResponse(object state)
         {
-            Log.D(TAG, "Sending heartbeat to client");
+            Log.To.Router.I(TAG, "Sending heartbeat to client");
             if (!Response.WriteData((byte[])state, false)) {
+                Log.To.Router.W(TAG, "Failed to write heartbeat");
                 if (_heartbeatTimer != null) {
                     _heartbeatTimer.Dispose();
                     _heartbeatTimer = null;
                 }
+
+                Terminate();
             }
         }
 
@@ -196,7 +201,6 @@ namespace Couchbase.Lite.Listener
                 if (ChangesFeedMode == ChangesFeedMode.LongPoll) {
                     _changes.Add(rev);
                 } else {
-                    Log.D(TAG, "Sending continuous change chunk");
                     var written = Response.SendContinuousLine(DatabaseMethods.ChangesDictForRev(rev, this), ChangesFeedMode);
                     if (!written) {
                         Terminate();
@@ -207,7 +211,7 @@ namespace Couchbase.Lite.Listener
             if (ChangesFeedMode == ChangesFeedMode.LongPoll && _changes.Count > 0) {
                 var body = new Body(DatabaseMethods.ResponseBodyForChanges(_changes, 0, this));
                 Response.WriteData(body.AsJson(), true);
-                CouchbaseLiteRouter.ResponseFinished(this);
+                Terminate ();
             }
         }
 
@@ -218,6 +222,7 @@ namespace Couchbase.Lite.Listener
                 return;
             }
 
+            Log.To.Router.I(TAG, "Shutting down DBMonitorCouchbaseState");
             Db.Changed -= DatabaseChanged;
             CouchbaseLiteRouter.ResponseFinished(this);
             Db = null;

@@ -9,7 +9,8 @@
     <RootNamespace>Couchbase.Lite.Listener.Bonjour.iOS</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <AssemblyName>Couchbase.Lite.Listener.Bonjour</AssemblyName>
-    <ReleaseVersion>1.1</ReleaseVersion>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,6 +32,14 @@
     <DebugSymbols>true</DebugSymbols>
     <DefineConstants>__IOS__;</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Packaging</OutputPath>
+    <WarningLevel>4</WarningLevel>
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>__IOS__;</DefineConstants>
+    <DebugType>pdbonly</DebugType>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
@@ -42,18 +51,23 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
-      <Project>{443e1bee-43b3-45a1-acea-f7ba71bdaab1}</Project>
+      <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
       <Name>Couchbase.Lite.iOS</Name>
-      <IsAppExtension>false</IsAppExtension>
-      <IsWatchApp>false</IsWatchApp>
+      <IsAppExtension>False</IsAppExtension>
+      <IsWatchApp>False</IsWatchApp>
     </ProjectReference>
     <ProjectReference Include="..\..\Couchbase.Lite.Listener.iOS\Couchbase.Lite.Listener.iOS.csproj">
-      <Project>{1f2ad9a3-58d5-46a2-8aa5-5863b705921d}</Project>
+      <Project>{1F2AD9A3-58D5-46A2-8AA5-5863B705921D}</Project>
       <Name>Couchbase.Lite.Listener.iOS</Name>
-      <IsAppExtension>false</IsAppExtension>
-      <IsWatchApp>false</IsWatchApp>
+      <IsAppExtension>False</IsAppExtension>
+      <IsWatchApp>False</IsWatchApp>
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
+    <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\Xamarin.iOS10" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll;&#xA;    $(OutputPath)Couchbase.Lite.Listener.Bonjour.dll.mdb;$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll.config" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\Xamarin.iOS10" />
+  </Target>
 </Project>

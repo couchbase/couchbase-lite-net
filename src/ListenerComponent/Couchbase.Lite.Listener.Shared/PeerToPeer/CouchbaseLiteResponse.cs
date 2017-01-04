@@ -23,15 +23,13 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-
+using System.Threading;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
-using System.Net;
-
 
 namespace Couchbase.Lite.Listener
 {
@@ -55,6 +53,7 @@ namespace Couchbase.Lite.Listener
         private readonly NameValueCollection _requestHeaders;
         private readonly string _requestMethod;
         private bool _headersWritten;
+        private readonly Mutex _writeLock = new Mutex();
 
         #endregion
 
@@ -72,7 +71,7 @@ namespace Couchbase.Lite.Listener
             get { return _responseWriter.IsChunked; }
             set { 
                 if (_headersWritten) {
-                    Log.E(TAG, "Attempting to changed Chunked after headers written, ignoring");
+                    Log.To.Router.W(TAG, "Attempting to changed Chunked after headers written, ignoring");
                     return;
                 }
 
@@ -171,7 +170,9 @@ namespace Couchbase.Lite.Listener
                 _binaryBody = null;
                 _jsonBody = null;
                 _multipartWriter = value;
-                Headers["Content-Type"] = value.ContentType;
+                if (value != null) {
+                    Headers["Content-Type"] = value.ContentType;
+                }
             }
         }
         private MultipartWriter _multipartWriter;
@@ -230,52 +231,62 @@ namespace Couchbase.Lite.Listener
         public bool WriteToContext()
         {
             bool syncWrite = true;
-            if (JsonBody != null) {
-                if (!Chunked && !Headers.ContainsKey("Content-Type")) {
-                    var accept = _requestHeaders["Accept"];
-                    if (accept != null) {
-                        if (accept.Contains("*/*") || accept.Contains("application/json")) {
-                            _responseWriter.AddHeader("Content-Type", "application/json");
-                        } else if (accept.Contains("text/plain")) {
-                            _responseWriter.AddHeader("Content-Type", "text/plain; charset=utf-8");
-                        } else {
-                            Reset();
-                            _responseWriter.AddHeader("Content-Type", "application/json");
-                            InternalStatus = StatusCode.NotAcceptable;
+            if (_requestMethod != "HEAD") { 
+                if (JsonBody != null) {
+                    if (!Chunked && !Headers.ContainsKey("Content-Type")) {
+                        var accept = _requestHeaders["Accept"];
+                        if (accept != null) {
+                            if (accept.Contains("*/*") || accept.Contains("application/json")) {
+                                _responseWriter.AddHeader("Content-Type", "application/json");
+                            } else if (accept.Contains("text/plain")) {
+                                _responseWriter.AddHeader("Content-Type", "text/plain; charset=utf-8");
+                            } else {
+                                Reset();
+                                _responseWriter.AddHeader("Content-Type", "application/json");
+                                InternalStatus = StatusCode.NotAcceptable;
+                            }
                         }
                     }
-                }
-                    
-                var json = JsonBody.AsJson().ToArray();
-                if (!Chunked) {
-                    _responseWriter.ContentEncoding = Encoding.UTF8;
-                    _responseWriter.ContentLength = json.Length;
-                }
 
-                if(!WriteToStream(json)) {
-                    return false;
-                }
-            } else if (BinaryBody != null) {
-                this["Content-Type"] = BaseContentType;
-                _responseWriter.ContentEncoding = Encoding.UTF8;
-                var data = BinaryBody.ToArray();
-                if (!Chunked) {
-                    _responseWriter.ContentLength = data.LongLength;
-                }
-
-                if (!WriteToStream(data)) {
-                    return false;
-                }
-            } else if (MultipartWriter != null) {
-                MultipartWriter.WriteAsync(_responseWriter.OutputStream).ContinueWith(t =>
-                {
-                    if(t.IsCompleted && t.Result) {
-                        TryClose();
-                    } else {
-                        Log.I(TAG, "Multipart async write did not finish properly");
+                    var json = default(byte[]);
+                    try {
+                        json = JsonBody.AsJson().ToArray();
+                    } catch(Exception e) {
+                        Log.To.Router.E(TAG, "Invalid body on response", e);
+                        json = null;
                     }
-                });
-                syncWrite = false;
+
+                    if (!Chunked) {
+                        _responseWriter.ContentEncoding = Encoding.UTF8;
+                        _responseWriter.ContentLength = json.Length;
+                    }
+
+                    if(!WriteToStream(json)) {
+                        return false;
+                    }
+                } else if (BinaryBody != null) {
+                    this["Content-Type"] = BaseContentType;
+                    _responseWriter.ContentEncoding = Encoding.UTF8;
+                    var data = BinaryBody.ToArray();
+                    if (!Chunked) {
+                        _responseWriter.ContentLength = data.LongLength;
+                    }
+
+                    if (!WriteToStream(data)) {
+                        return false;
+                    }
+                } else if (MultipartWriter != null) {
+                    _responseWriter.ContentLength = MultipartWriter.Length;
+                    MultipartWriter.WriteAsync(_responseWriter.OutputStream).ContinueWith(t =>
+                    {
+                        if(t.IsCompleted && t.Result) {
+                            TryClose();
+                        } else {
+                            Log.To.Router.I(TAG, "Multipart async write did not finish properly");
+                        }
+                    });
+                    syncWrite = false;
+                }
             }
 
             if (syncWrite) {
@@ -294,15 +305,19 @@ namespace Couchbase.Lite.Listener
         public bool WriteData(IEnumerable<byte> data, bool finished)
         {
             if (!Chunked) {
-                Log.W(TAG, "Attempt to send streaming data when not in chunked mode");
+                Log.To.Router.W(TAG, "Attempt to send streaming data when not in chunked mode");
                 return false;
             }
 
+            Log.To.Router.V(TAG, "Attempting to send data over the wire: {0}", new SecureLogString(data.ToArray(),
+                LogMessageSensitivity.PotentiallyInsecure));
             if (!WriteToStream(data.ToArray())) {
+                TryClose();
                 return false;
             }
 
             if (finished) {
+                Log.To.Router.V(TAG, "Data sent, closing connectioned!");
                 TryClose();
             }
 
@@ -319,7 +334,7 @@ namespace Couchbase.Lite.Listener
         public bool SendContinuousLine(IDictionary<string, object> changesDict, ChangesFeedMode mode)
         {
             if (!Chunked) {
-                Log.W(TAG, "Attempt to send streaming data when not in chunked mode");
+                Log.To.Router.W(TAG, "Attempt to send streaming data when not in chunked mode");
                 return false;
             }
 
@@ -332,6 +347,8 @@ namespace Couchbase.Lite.Listener
                 json.AddRange(Encoding.UTF8.GetBytes("\n"));
             }
 
+            Log.To.Router.V(TAG, "Sending continous change chunk: {0}", new SecureLogJsonString(changesDict,
+                LogMessageSensitivity.PotentiallyInsecure));
             bool written = WriteData(json, false);
             return written;
         }
@@ -365,7 +382,7 @@ namespace Couchbase.Lite.Listener
 
             var match = RANGE_HEADER_REGEX.Match(rangeHeader);
             if (match == null) {
-                Log.W(TAG, "Invalid request Range header value: '{0}'", rangeHeader);
+                Log.To.Router.W(TAG, "Invalid request Range header value: '{0}'", rangeHeader);
                 return;
             }
 
@@ -412,7 +429,7 @@ namespace Couchbase.Lite.Listener
             var contentRange = String.Format("bytes {0}-{1}/{2}", start, end, bodyLength);
             Headers["Content-Range"] = contentRange;
             Status = 206; // Partial Content
-            Log.D(TAG, "Content-Range: {0}", contentRange);
+            Log.To.Router.D(TAG, "Content-Range: {0}", contentRange);
         }
 
         /// <summary>
@@ -498,7 +515,7 @@ namespace Couchbase.Lite.Listener
             if (accept != null && !accept.Contains("*/*")) {
                 var responseType = BaseContentType;
                 if (responseType != null && !accept.Contains(responseType)) {
-                    Log.D(TAG, "Unacceptable type {0} (Valid: {1})", BaseContentType, _requestHeaders["Accept"]);
+                    Log.To.Router.I(TAG, "Unacceptable type {0} (Valid: {1})", BaseContentType, _requestHeaders["Accept"]);
                     Reset();
                     InternalStatus = StatusCode.NotAcceptable;
                     return false;
@@ -510,19 +527,20 @@ namespace Couchbase.Lite.Listener
 
         //Attempt to write to the response stream
         private bool WriteToStream(byte[] data) {
+            if(data == null) {
+                return true;
+            }
+
             try {
+                _writeLock.WaitOne();
                 _responseWriter.OutputStream.Write(data, 0, data.Length);
                 _responseWriter.OutputStream.Flush();
                 return true;
-            } catch(IOException) {
-                Log.W(TAG, "Error writing to HTTP response stream");
+            } catch(Exception e) {
+                Log.To.Router.W(TAG, "Error writing to HTTP response stream", e);
                 return false;
-            } catch(HttpListenerException) {
-                Log.W(TAG, "Error writing to HTTP response stream");
-                return false;
-            } catch(ObjectDisposedException) {
-                Log.I(TAG, "Data written after disposal"); // This is normal for hanging connections who write until the client disconnects
-                return false;
+            } finally {
+                _writeLock.ReleaseMutex();
             }
         }
 
@@ -530,14 +548,20 @@ namespace Couchbase.Lite.Listener
         private void TryClose() {
             try {
                 _responseWriter.Close();
+                Log.To.Router.I(TAG, "Response closed");
             } catch(IOException) {
-                Log.W(TAG, "Error closing HTTP response stream");
+                Log.To.Router.W(TAG, "Error closing HTTP response stream");
             } catch(ObjectDisposedException) {
                 //swallow (already closed)
             }
+#if !NET_3_5
+            finally {
+                _writeLock.Dispose();
+            }
+#endif
         }
 
-        #endregion
+#endregion
     }
 }
 

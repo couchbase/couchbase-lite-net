@@ -43,22 +43,24 @@
 */
 
 using System.IO;
-using Couchbase.Lite;
+
 using NUnit.Framework;
-using Sharpen;
-using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class BlobStoreWriterTest : LiteTestCase
     {
+
+        public BlobStoreWriterTest(string storageType) : base(storageType) {}
+
         /// <exception cref="System.Exception"></exception>
         [Test]
         public void TestBasicOperation()
         {
-            var attachmentStream = (InputStream)GetAsset("attachment.png");
+            var attachmentStream = GetAsset("attachment.png");
             var memoryStream = new MemoryStream();
-            attachmentStream.Wrapped.CopyTo(memoryStream);
+            attachmentStream.CopyTo(memoryStream);
             var bytes = memoryStream.ToArray();
 
             var attachments = database.Attachments;
@@ -77,7 +79,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestBlobStoreWriterForBody()
         {
-            var attachmentStream = (InputStream)GetAsset("attachment.png");
+            var attachmentStream = GetAsset("attachment.png");
 
             var blobStoreWriter = Attachment.BlobStoreWriterForBody(attachmentStream, database);
 

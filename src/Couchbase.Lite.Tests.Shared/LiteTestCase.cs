@@ -44,35 +44,39 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-
-using System.Net;
-using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using Couchbase.Lite.Util;
-using NUnit.Framework;
-using Sharpen;
-using Couchbase.Lite.Tests;
-using System.Threading.Tasks;
+using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
-using System.Reflection;
-using System.IO.Compression;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Tests;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
+using System.Diagnostics;
+using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
-    [TestFixture]
+    [TestFixture("SQLite")]
     public abstract class LiteTestCase
     {
-        private const string Tag = "LiteTestCase";
+        private const string TAG = "LiteTestCase";
+        protected static bool _storageEngineSet = false;
+        private Hashtable _runtimeTestProperties = 
+            new Hashtable();
 
-        public const string FacebookAppId = "78255794086";
+        public const string FacebookAppId = "127107807637855";
 
          ObjectWriter mapper = new ObjectWriter();
 
         protected Manager manager = null;
 
         protected Database database = null;
+
+        protected readonly string _storageType;
 
         protected string DefaultTestDb = "cblitetest";
 
@@ -92,23 +96,74 @@ namespace Couchbase.Lite
             }
         }
 
+        protected LiteTestCase(string storageType)
+        {
+            _storageType = storageType;
+        }
+
+        protected object GetProperty(string key)
+        {
+            return _runtimeTestProperties[key];
+        }
+
+        protected void LoadProperties(Stream stream)
+        {
+            _runtimeTestProperties.Load(stream);
+        }
+
+        [Conditional("DEBUG")]
+        public static void WriteDebug(string message, params object[] args)
+        {
+            Console.WriteLine(message, args);
+        }
 
         [SetUp]
         protected virtual void SetUp()
         {
-            Log.V(Tag, "SetUp");
-            ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
+            var nunitListener = Debug.Listeners.Cast<TraceListener>().Where(tl => tl.Name == "NUnit").FirstOrDefault();
+            if(nunitListener != null) {
+                Debug.Listeners.Remove(nunitListener);
+            }
 
+            WriteDebug("SetUp");
+            if(!_storageEngineSet) {
+                _storageEngineSet = true;
+                Storage.SQLCipher.Plugin.Register();
+                Storage.ForestDB.Plugin.Register();
+            }
+
+            ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
+            Log.ScrubSensitivity = LogScrubSensitivity.AllOK;
+            Log.Domains.All.Level = Log.LogLevel.Base;
             LoadCustomProperties();
             StartCBLite();
             StartDatabase();
         }
 
+        protected void Sleep(int milliseconds)
+        {
+            if (milliseconds < 1000) {
+                Thread.Sleep(milliseconds);
+                return;
+            }
+
+            while (milliseconds > 0) {
+                Console.WriteLine("Sleeping...");
+                Thread.Sleep(Math.Min(milliseconds, 1000));
+                milliseconds -= 1000;
+            }
+        }
+
+        protected void Sleep(TimeSpan timespan)
+        {
+            Sleep((int)timespan.TotalMilliseconds);
+        }
+
         protected Stream GetAsset(string name)
         {
-            var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
-            Log.D(Tag, "Fetching assembly resource: " + assetPath);
-            var stream = GetType().GetResourceAsStream(assetPath);
+            var assetPath = Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
+            WriteDebug("Fetching assembly resource: " + assetPath);
+            var stream = GetType().Assembly.GetManifestResourceStream(assetPath);
             return stream;
         }
 
@@ -131,6 +186,7 @@ namespace Couchbase.Lite
 
             var testPath = path.CreateSubdirectory("tests");
             manager = new Manager(testPath, Manager.DefaultOptions);
+            manager.StorageType = _storageType;
         }
 
         protected void StopCBLite()
@@ -157,7 +213,7 @@ namespace Couchbase.Lite
         {
             if (database != null)
             {
-                database.Close();
+                database.Close().Wait();
             }
         }
 
@@ -173,7 +229,7 @@ namespace Couchbase.Lite
                     db.Close();
                     status = true;
                 } catch (Exception e) { 
-                    Log.E(Tag, "Cannot delete database " + e.Message);
+                    Console.WriteLine("Cannot delete database " + e.Message);
                 }
 
                 Assert.IsTrue(status);
@@ -185,59 +241,55 @@ namespace Couchbase.Lite
         /// <exception cref="System.IO.IOException"></exception>
         protected void LoadCustomProperties()
         {
-            var systemProperties = Runtime.Properties;
-            InputStream mainProperties = GetAsset("test.properties");
-            if (mainProperties != null)
-            {
-                systemProperties.Load(mainProperties);
+            var mainProperties = GetAsset("test.properties");
+            if (mainProperties != null) {
+                _runtimeTestProperties.Load(mainProperties);
             }
-            try
-            {
+
+            try {
                 var localProperties = GetAsset("local-test.properties");
                 if (localProperties != null)
                 {
-                    systemProperties.Load(localProperties);
+                    _runtimeTestProperties.Load(localProperties);
                 }
-            }
-            catch (IOException)
-            {
-                Log.W(Tag, "Error trying to read from local-test.properties, does this file exist?");
+            } catch (IOException) {
+                Console.WriteLine("Error trying to read from local-test.properties, does this file exist?");
             }
         }
 
         protected string GetReplicationProtocol()
         {
-            return Runtime.GetProperty("replicationProtocol");
+            return _runtimeTestProperties["replicationProtocol"] as string;
         }
 
         protected string GetReplicationServer()
         {
-            return Runtime.GetProperty("replicationServer").Trim();
+            return (_runtimeTestProperties["replicationServer"] as string).Trim();
         }
 
         protected int GetReplicationPort()
         {
-            return Convert.ToInt32(Runtime.GetProperty("replicationPort"));
+            return Convert.ToInt32(_runtimeTestProperties["replicationPort"]);
         }
 
         protected int GetReplicationAdminPort()
         {
-            return Convert.ToInt32(Runtime.GetProperty("replicationAdminPort"));
+            return Convert.ToInt32(_runtimeTestProperties["replicationAdminPort"]);
         }
 
         protected string GetReplicationAdminUser()
         {
-            return Runtime.GetProperty("replicationAdminUser");
+            return _runtimeTestProperties["replicationAdminUser"] as string;
         }
 
         protected string GetReplicationAdminPassword()
         {
-            return Runtime.GetProperty("replicationAdminPassword");
+            return _runtimeTestProperties["replicationAdminPassword"] as string;
         }
 
         protected string GetReplicationDatabase()
         {
-            return Runtime.GetProperty("replicationDatabase");
+            return _runtimeTestProperties["replicationDatabase"] as string;
         }
 
         protected Uri GetReplicationURL()
@@ -270,19 +322,53 @@ namespace Couchbase.Lite
             return GetReplicationPort() == 4984;
         }
 
+        private void AssertAreEqual(object first, object second, bool nestedCall)
+        {
+            if (!nestedCall) {
+                WriteDebug("Starting equality comparison");
+            }
+
+            var firstNet = JsonUtility.ConvertToNetObject(first);
+            var secondNet = JsonUtility.ConvertToNetObject(second);
+            var firstDic = firstNet as IDictionary<string, object>;
+            var secondDic = secondNet as IDictionary<string, object>;
+            if(firstDic != null && secondDic != null) {
+                AssertDictionariesAreEqual(firstDic, secondDic);
+            } else {
+                Assert.AreEqual(firstNet, secondNet);
+            }
+        }
+
+        protected void AssertAreEqual(object first, object second)
+        {
+            AssertAreEqual(first, second, false);
+        }
+
         protected void AssertDictionariesAreEqual(IDictionary<string, object> first, IDictionary<string, object> second)
         {
             //I'm tired of NUnit misunderstanding that objects are dictionaries and trying to compare them as collections...
-            Assert.IsTrue(first.Keys.Count == second.Keys.Count);
+            Assert.AreEqual(first.Keys.Count, second.Keys.Count, "Differing number of keys in dictionary");
             foreach (var key in first.Keys) {
+                WriteDebug("Analyzing key {0}", key);
                 var firstObj = first[key];
                 var secondObj = second[key];
-                var firstDic = firstObj.AsDictionary<string, object>();
-                var secondDic = secondObj.AsDictionary<string, object>();
-                if (firstDic != null && secondDic != null) {
-                    AssertDictionariesAreEqual(firstDic, secondDic);
+                AssertAreEqual(firstObj, secondObj, true);
+            }
+        }
+
+        protected void AssertEnumerablesAreEquivalent(IEnumerable first, IEnumerable second)
+        {
+            var firstEnum = first.GetEnumerator();
+            var secondEnum = second.GetEnumerator();
+            while(true) {
+                var firstMoved = firstEnum.MoveNext();
+                var secondMoved = secondEnum.MoveNext();
+                if (firstMoved && secondMoved) {
+                    AssertAreEqual(firstEnum.Current, secondEnum.Current, true);
+                } else if (!firstMoved && !secondMoved) {
+                    return;
                 } else {
-                    Assert.AreEqual(firstObj, secondObj);
+                    Assert.Fail("Differing number of array elements");
                 }
             }
         }
@@ -301,10 +387,16 @@ namespace Couchbase.Lite
         [TearDown]
         protected virtual void TearDown()
         {
-            Log.V(Tag, "tearDown");
+            WriteDebug("tearDown");
             StopDatabase();
             StopCBLite();
             Manager.DefaultOptions.RestoreDefaults();
+
+            #if !NET_3_5
+            if (_storageType == "ForestDB") {
+                CBForest.Native.CheckMemoryLeaks();
+            }
+            #endif
         }
 
         protected virtual void RunReplication(Replication replication)
@@ -313,7 +405,7 @@ namespace Couchbase.Lite
             var observer = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += observer.Changed;
             replication.Start();
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(60));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(100));
             Assert.IsTrue(success);
 
             replication.Changed -= observer.Changed;
@@ -327,7 +419,7 @@ namespace Couchbase.Lite
             {
                 if (!key.StartsWith ("_", StringComparison.Ordinal))
                 {
-                    result.Put(key, properties[key]);
+                    result[key] = properties[key];
                 }
             }
             return result;
@@ -379,7 +471,7 @@ namespace Couchbase.Lite
         {
             IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
             IDictionary<string, object> targetProperties = new Dictionary<string, object>();
-            targetProperties.Put("url", GetReplicationURL().ToString());
+            targetProperties["url"] = GetReplicationURL().ToString();
             targetProperties["auth"] = authProperties;
             IDictionary<string, object> properties = new Dictionary<string, object>();
             properties["source"] = DefaultTestDb;
@@ -392,7 +484,7 @@ namespace Couchbase.Lite
         {
             IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
             IDictionary<string, object> sourceProperties = new Dictionary<string, object>();
-            sourceProperties.Put("url", GetReplicationURL().ToString());
+            sourceProperties["url"] = GetReplicationURL().ToString();
             sourceProperties["auth"] = authProperties;
             IDictionary<string, object> properties = new Dictionary<string, object>();
             properties["source"] = sourceProperties;
@@ -402,12 +494,17 @@ namespace Couchbase.Lite
 
         internal static void CreateDocuments(Database db, int n)
         {
-            for (int i = 0; i < n; i++) {
-                var properties = new Dictionary<string, object>();
-                properties.Add("testName", "testDatabase");
-                properties.Add("sequence", i);
-                CreateDocumentWithProperties(db, properties);
-            }
+            db.RunInTransaction(() =>
+            {
+                for(int i = 0; i < n; i++) {
+                    var properties = new Dictionary<string, object>();
+                    properties.Add("testName", "testDatabase");
+                    properties.Add("sequence", i);
+                    CreateDocumentWithProperties(db, properties);
+                }
+
+                return true;
+            });
         }
 
         internal static Task CreateDocumentsAsync(Database database, int n)
@@ -424,22 +521,15 @@ namespace Couchbase.Lite
 
         internal static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties) 
         {
-            var doc = db.CreateDocument();
+            var id = properties.CblID();
+            var doc = id != null ? db.GetDocument(id) : db.CreateDocument();
 
             Assert.IsNotNull(doc);
             Assert.IsNull(doc.CurrentRevisionId);
             Assert.IsNull(doc.CurrentRevision);
             Assert.IsNotNull(doc.Id, "Document has no ID");
 
-            try
-            {
-                doc.PutProperties(properties);
-            } 
-            catch (Exception e)
-            {
-                Log.E(Tag, "Error creating document", e);
-                Assert.IsTrue(false, "can't create new document in db:" + db.Name + " with properties:" + properties.ToString());
-            }
+            doc.PutProperties(properties);
 
             Assert.IsNotNull(doc.Id);
             Assert.IsNotNull(doc.CurrentRevisionId);
@@ -455,7 +545,7 @@ namespace Couchbase.Lite
         internal static Document CreateDocWithAttachment(Database database, string attachmentName, string content)
         {
             var properties = new Dictionary<string, object>();
-            properties.Put("foo", "bar");
+            properties["foo"] = "bar";
 
             var doc = CreateDocumentWithProperties(database, properties);
             var rev = doc.CurrentRevision;
@@ -479,7 +569,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(attachmentName, attachment.Name);
 
             var attNames = new List<string>();
-            attNames.AddItem(attachmentName);
+            attNames.Add(attachmentName);
             Assert.AreEqual(rev3.AttachmentNames, attNames);
             Assert.AreEqual("text/plain; charset=utf-8", attachment.ContentType);
             Assert.AreEqual(Encoding.UTF8.GetString(attachment.Content.ToArray()), content);
@@ -491,16 +581,20 @@ namespace Couchbase.Lite
             
         public void StopReplication(Replication replication)
         {
+            if (replication.Status == ReplicationStatus.Stopped) {
+                return;
+            }
+
             var replicationDoneSignal = new CountdownEvent(1);
-            var replicationStoppedObserver = new ReplicationObserver(replicationDoneSignal);
+            var replicationStoppedObserver = new ReplicationStoppedObserver(replicationDoneSignal);
             replication.Changed += replicationStoppedObserver.Changed;
             replication.Stop();
 
-            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(30));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
 
             // give a little padding to give it a chance to save a checkpoint
-            System.Threading.Thread.Sleep(2 * 1000);
+            Sleep(2 * 1000);
         }
 
         protected void AssertEnumerablesAreEqual(
@@ -510,22 +604,34 @@ namespace Couchbase.Lite
             var enumerator1 = list1.GetEnumerator();
             var enumerator2 = list2.GetEnumerator();
 
-            while (enumerator1.MoveNext() && enumerator2.MoveNext())
-            {
-                var obj1 = enumerator1.Current;
-                var obj2 = enumerator1.Current;
+            try {
+                while (enumerator1.MoveNext() && enumerator2.MoveNext())
+                {
+                    var obj1 = enumerator1.Current;
+                    var obj2 = enumerator1.Current;
 
-                if (obj1 is IDictionary<string, object> && obj2 is IDictionary<string, object>) 
-                {
-                    AssertPropertiesAreEqual((IDictionary<string, object>)obj1, (IDictionary<string, object>)obj2);
+                    if (obj1 is IDictionary<string, object> && obj2 is IDictionary<string, object>) 
+                    {
+                        AssertPropertiesAreEqual((IDictionary<string, object>)obj1, (IDictionary<string, object>)obj2);
+                    }
+                    else if (obj1 is IEnumerable && obj2 is IEnumerable)
+                    {
+                        AssertEnumerablesAreEqual((IEnumerable)obj1, (IEnumerable)obj2);
+                    }
+                    else
+                    {
+                        Assert.AreEqual(obj1, obj2);
+                    }
                 }
-                else if (obj1 is IEnumerable && obj2 is IEnumerable)
-                {
-                    AssertEnumerablesAreEqual((IEnumerable)obj1, (IEnumerable)obj2);
+            } finally {
+                var disp1 = enumerator1 as IDisposable;
+                var disp2 = enumerator2 as IDisposable;
+                if (disp1 != null) {
+                    disp1.Dispose();
                 }
-                else
-                {
-                    Assert.AreEqual(obj1, obj2);
+
+                if (disp2 != null) {
+                    disp2.Dispose();
                 }
             }
         }
@@ -560,7 +666,7 @@ namespace Couchbase.Lite
         public static SavedRevision CreateRevisionWithRandomProps(SavedRevision createRevFrom, bool allowConflict)
         {
             var properties = new Dictionary<string, object>();
-            properties.Put(Misc.CreateGUID(), "val");
+            properties[Misc.CreateGUID()] = "val";
 
             var unsavedRevision = createRevFrom.CreateRevision();
             unsavedRevision.SetUserProperties(properties);
@@ -571,28 +677,27 @@ namespace Couchbase.Lite
 
     internal class ReplicationStoppedObserver
     {
-        private readonly CountDownLatch doneSignal;
+        private readonly CountdownEvent doneSignal;
 
-        public ReplicationStoppedObserver(CountDownLatch doneSignal)
+        public ReplicationStoppedObserver(CountdownEvent doneSignal)
         {
             this.doneSignal = doneSignal;
         }
 
-        public void Changed(ReplicationChangeEventArgs args)
+        public void Changed(object sender, ReplicationChangeEventArgs args)
         {
-            var replicator = args.Source;
-            if (replicator.Status == ReplicationStatus.Stopped)
+            if (args.Status == ReplicationStatus.Stopped && doneSignal.CurrentCount > 0)
             {
-                doneSignal.CountDown();
+                doneSignal.Signal();
             }
         }
     }
 
     internal class ReplicationErrorObserver
     {
-        private readonly CountDownLatch doneSignal;
+        private readonly CountdownEvent doneSignal;
 
-        public ReplicationErrorObserver(CountDownLatch doneSignal)
+        public ReplicationErrorObserver(CountdownEvent doneSignal)
         {
             this.doneSignal = doneSignal;
         }
@@ -600,9 +705,8 @@ namespace Couchbase.Lite
         public void Changed(ReplicationChangeEventArgs args)
         {
             var replicator = args.Source;
-            if (replicator.LastError != null)
-            {
-                doneSignal.CountDown();
+            if (replicator.LastError != null) {
+                doneSignal.Signal();
             }
         }
     }

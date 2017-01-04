@@ -24,12 +24,19 @@ using System.Collections.Concurrent;
 using DbDict = System.Collections.Concurrent.ConcurrentDictionary<string, System.Collections.Concurrent.ConcurrentDictionary<string, object>>;
 
 using Couchbase.Lite;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal
 {
     // Container for shared state between Database instances that represent the same database file. API is thread-safe.
     internal sealed class SharedState
     {
+
+        #region Constants
+
+        private const string TAG = "SharedState";
+
+        #endregion
 
         #region Variables
 
@@ -43,9 +50,16 @@ namespace Couchbase.Lite.Internal
 
         public void SetValue<T>(string type, string name, string dbName, T value)
         {
-            DbDict dbDict = _databases.GetOrAdd(dbName, k => new DbDict());
-            ConcurrentDictionary<string, object> typeDict = dbDict.GetOrAdd(type, k => new ConcurrentDictionary<string, object>());
-            typeDict.AddOrUpdate(name, k => value, (k, v) => value);
+            if (!(value is ValueType) && (object)value == null) {
+                object dummy;
+                DbDict dbDict = _databases.GetOrAdd(dbName, k => new DbDict());
+                ConcurrentDictionary<string, object> typeDict = dbDict.GetOrAdd(type, k => new ConcurrentDictionary<string, object>());
+                typeDict.TryRemove(name, out dummy);
+            } else {
+                DbDict dbDict = _databases.GetOrAdd(dbName, k => new DbDict());
+                ConcurrentDictionary<string, object> typeDict = dbDict.GetOrAdd(type, k => new ConcurrentDictionary<string, object>());
+                typeDict.AddOrUpdate(name, k => value, (k, v) => value);
+            }
         }
 
         public bool TryGetValue<T>(string type, string name, string dbName, out T result)
@@ -85,18 +99,20 @@ namespace Couchbase.Lite.Internal
         {
             lock(_locker) {
                 int val;
-                if (_openDatabaseNames.TryGetValue(db.Name, out val) && val == 1) {
-                    DbDict dummy;
-                    _databases.TryRemove(db.Name, out dummy);
+                bool found = _openDatabaseNames.TryGetValue(db.Name, out val);
+                if (!found) {
+                    Log.To.Database.W(TAG, "Attempting to call SharedState.Close() on a non-existent database");
+                    return;
                 }
 
-                _openDatabaseNames.AddOrUpdate(db.Name, k => 1, (k, v) => v - 1);
+                if (val <= 1) {
+                    DbDict dummy;
+                    _databases.TryRemove(db.Name, out dummy);
+                    _openDatabaseNames.TryRemove(db.Name, out val);
+                } else {
+                    _openDatabaseNames.TryUpdate(db.Name, val - 1, val);
+                }
             }
-        }
-
-        public bool IsDatabaseOpened(Database db)
-        {
-            return _openDatabaseNames.ContainsKey(db.Name);
         }
 
         #endregion

@@ -156,7 +156,7 @@ namespace Couchbase.Lite.iOS
         /// <param name="index">The index to grab</param>
         public virtual QueryRow RowAtIndex (int index)
         {
-            return Rows.GetRow(index);
+            return Rows.ElementAt(index);
         }
 
         /// <summary>
@@ -186,7 +186,7 @@ namespace Couchbase.Lite.iOS
         {
             if (path.Section == 0)
             {
-                return Rows.GetRow(path.Row);
+                return Rows.ElementAt(path.Row);
             }
             return null;
         }

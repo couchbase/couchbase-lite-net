@@ -40,43 +40,57 @@
 // and limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Couchbase.Lite;
-using NUnit.Framework;
-using Sharpen;
+
 using Couchbase.Lite.Db;
-using System;
+using NUnit.Framework;
+using Couchbase.Lite.Storage.SQLCipher;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
+    [TestFixture("ForestDB")]
     public class ManagerTest : LiteTestCase
     {
+
+        public ManagerTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestDeleteDatabase()
+        {
+            var db = manager.GetDatabase("deleteme");
+            db.Close();
+            manager.DeleteDatabase("deleteme");
+            Assert.IsNull(manager.GetExistingDatabase("deleteme"));
+        }
+
         [Test]
         public void TestServer()
         {
             //to ensure this test is easily repeatable we will explicitly remove
             //any stale foo.cblite
             var mustExist = true;
-            Database old = manager.GetDatabaseWithoutOpening("foo", mustExist);
+            Database old = manager.GetDatabase("foo", mustExist);
             if (old != null)
             {
                 old.Delete();
             }
 
             mustExist = false;
-            var db = manager.GetDatabaseWithoutOpening("foo", mustExist);
+            var db = manager.GetDatabase("foo", mustExist);
             Assert.IsNotNull(db);
             Assert.AreEqual("foo", db.Name);
-            Assert.IsTrue(db.Path.StartsWith(GetServerPath()));
+            Assert.IsTrue(db.DbDirectory.StartsWith(GetServerPath()));
             Assert.IsFalse(db.Exists());
 
             // because foo doesn't exist yet
             List<string> databaseNames = manager.AllDatabaseNames.ToList();
 
             Assert.IsTrue(!databaseNames.Contains("foo"));
-            Assert.IsTrue(db.Open());
+            Assert.DoesNotThrow(db.Open);
             Assert.IsTrue(db.Exists());
             
             databaseNames = manager.AllDatabaseNames.ToList();
@@ -89,13 +103,13 @@ namespace Couchbase.Lite
         [Test]
         public void TestUpgradeOldDatabaseFiles()
         {
-            var testDirName = "test-directory-" + Runtime.CurrentTimeMillis();
+            var testDirName = "test-directory-" + (ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds;
             var rootDirPath = RootDirectory.FullName;
             var testDirPath = Path.Combine(rootDirPath, testDirName);
             var testDirInfo = Directory.CreateDirectory(testDirPath);
 
             var dbStream = GetAsset("withattachments.cblite");
-            var destStream = File.OpenWrite(Path.Combine(testDirPath, "withattachments" + Manager.DatabaseSuffix));
+            var destStream = File.OpenWrite(Path.Combine(testDirPath, "withattachments" + Manager.DatabaseSuffixv1));
             dbStream.CopyTo(destStream);
             dbStream.Dispose();
             destStream.Dispose();
@@ -109,11 +123,11 @@ namespace Couchbase.Lite
 
             StopCBLite();
             manager = new Manager(testDirInfo, Manager.DefaultOptions);
-            var db = manager.GetDatabaseWithoutOpening("withattachments", true);
-            int version = DatabaseUpgraderFactory.SchemaVersion(db.Path);
+            var db = manager.GetDatabase("withattachments", true);
+            int version = DatabaseUpgraderFactory.SchemaVersion(Path.Combine(db.DbDirectory, "db.sqlite3"));
             Assert.IsTrue(version >= 101, "Upgrade failed");
             Assert.IsFalse(Directory.Exists(Path.Combine(testDirPath, "withattachments/attachments")), "Failed to remove old attachments dir");
-            Assert.IsTrue(Directory.Exists(Path.Combine(testDirPath, "withattachments attachments")), "Failed to create new attachments dir");
+            Assert.IsTrue(Directory.Exists(db.AttachmentStorePath), "Failed to create new attachments dir");
         }
 
         [Test]
@@ -121,12 +135,14 @@ namespace Couchbase.Lite
             //Copy database from assets to local storage
             var dbStream = GetAsset("noattachments.cblite");
 
-             manager.ReplaceDatabase("replaced", dbStream, null);
+#pragma warning disable 618
+            manager.ReplaceDatabase("replaced", dbStream, null);
+#pragma warning restore 618
             dbStream.Dispose();
 
             //Now validate the number of files in the DB
             var db = manager.GetDatabase("replaced");
-            Assert.AreEqual(10, db.DocumentCount);
+            Assert.AreEqual(10, db.GetDocumentCount());
             db.Dispose();
         }
 
@@ -135,10 +151,12 @@ namespace Couchbase.Lite
             var dbStream = GetAsset("withattachments.cblite");
             var attachments = new Dictionary<string, Stream>();
             attachments["356a192b7913b04c54574d18c28d46e6395428ab.blob"] = GetAsset("attachment.blob");
+#pragma warning disable 618
             manager.ReplaceDatabase("replaced", dbStream, attachments);
+#pragma warning restore 618
             dbStream.Dispose();
             //Validate the number of files in the DB
-            Assert.AreEqual(1, manager.GetDatabase("replaced").DocumentCount);
+            Assert.AreEqual(1, manager.GetDatabase("replaced").GetDocumentCount());
 
             var doc = manager.GetDatabase("replaced").GetExistingDocument("168e0c56-4588-4df4-8700-4d5115fa9c74");
             Assert.IsNotNull(doc);
@@ -148,97 +166,28 @@ namespace Couchbase.Lite
 
         [Test]
         public void TestReplaceWithIosDatabase() {
-            using (var assetStream = GetAsset("ios104.zip")) {
-                manager.ReplaceDatabase("iosdb", assetStream, true);
+            if (_storageType == "SQLite") {
+                TestReplaceDatabase("ios", "104", 2, "BC38EA44-E153-429A-A698-0CBE6B0090C4");
+                TestReplaceDatabase("ios", "110", 2, "-iTji_n2zmHpmgYecaRHqZE");
+                TestReplaceDatabase("ios", "120", 2, "doc1");
+                TestReplaceDatabase("ios", "130", 1, "doc1", "doc2", "_local/local1");
+            } else {
+                TestReplaceDatabase("ios", "120-forestdb", 1, "doc1", "doc2");
+                TestReplaceDatabase("ios", "130-forestdb", 1, "doc1", "doc2");
             }
-
-            var db = manager.GetExistingDatabase("iosdb");
-            Assert.IsNotNull(db, "Failed to import database");
-            var doc = db.GetExistingDocument("BC38EA44-E153-429A-A698-0CBE6B0090C4");
-            Assert.IsNotNull(doc, "Failed to get doc from imported database");
-            Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 2, "Failed to get attachments from imported database");
-            using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
-                Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
-            }
-
-            var view = db.GetView("view");
-            view.SetMap((d, emit) => {
-                if(d["_id"].Equals("BC38EA44-E153-429A-A698-0CBE6B0090C4")) {
-                    emit(d["_id"], null);
-                }
-            }, "1");
-            var result = view.CreateQuery().Run();
-            Assert.AreEqual(1, result.Count);
-
-            db.Dispose();
-            using (var assetStream = GetAsset("ios110.zip")) {
-                manager.ReplaceDatabase("iosdb", assetStream, true);
-            }
-            db = manager.GetExistingDatabase("iosdb");
-            Assert.IsNotNull(db, "Failed to import database");
-            doc = db.GetExistingDocument("-iTji_n2zmHpmgYecaRHqZE");
-            Assert.IsNotNull(doc, "Failed to get doc from imported database");
-            Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 2, "Failed to get attachments from imported database");
-            using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
-                Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
-            }
-
-            view = db.GetView("view");
-            view.SetMap((d, emit) => {
-                if(d["_id"].Equals("-iTji_n2zmHpmgYecaRHqZE")) {
-                    emit(d["_id"], null);
-                }
-            }, "1");
-            result = view.CreateQuery().Run();
-            Assert.AreEqual(1, result.Count);
         }
 
         [Test]
         public void TestReplaceWithAndroidDatabase() {
-            using (var assetStream = GetAsset("android104.zip")) {
-                manager.ReplaceDatabase("androiddb", assetStream, true);
+            if (_storageType == "SQLite") {
+                TestReplaceDatabase("android", "104", 1, "66ac306d-de93-46c8-b60f-946c16ac4a1d");
+                TestReplaceDatabase("android", "110", 1, "d3e80747-2568-47c8-81e8-a04ba1b5c5d4");
+                TestReplaceDatabase("android", "120", 1, "doc1", "doc2", "_local/local1");
+                TestReplaceDatabase("android", "130", 1, "doc1", "doc2", "_local/local1");
+            } else {
+                TestReplaceDatabase("android", "120-forestdb", 1, "doc1", "doc2");
+                TestReplaceDatabase("android", "130-forestdb", 1, "doc1", "doc2");
             }
-
-            var db = manager.GetExistingDatabase("androiddb");
-            Assert.IsNotNull(db, "Failed to import database");
-            var doc = db.GetExistingDocument("66ac306d-de93-46c8-b60f-946c16ac4a1d");
-            Assert.IsNotNull(doc, "Failed to get doc from imported database");
-            Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 1, "Failed to get attachments from imported database");
-            using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
-                Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
-            }
-
-            var view = db.GetView("view");
-            view.SetMap((d, emit) => {
-                if(d["_id"].Equals("66ac306d-de93-46c8-b60f-946c16ac4a1d")) {
-                    emit(d["_id"], null);
-                }
-            }, "1");
-            var result = view.CreateQuery().Run();
-            Assert.AreEqual(1, result.Count);
-            db.Dispose();
-
-            using (var assetStream = GetAsset("android110.zip")) {
-                manager.ReplaceDatabase("androiddb", assetStream, true);
-            }
-
-            db = manager.GetExistingDatabase("androiddb");
-            Assert.IsNotNull(db, "Failed to import database");
-            doc = db.GetExistingDocument("d3e80747-2568-47c8-81e8-a04ba1b5c5d4");
-            Assert.IsNotNull(doc, "Failed to get doc from imported database");
-            Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 1, "Failed to get attachments from imported database");
-            using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
-                Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
-            }
-
-            view = db.GetView("view");
-            view.SetMap((d, emit) => {
-                if(d["_id"].Equals("d3e80747-2568-47c8-81e8-a04ba1b5c5d4")) {
-                    emit(d["_id"], null);
-                }
-            }, "1");
-            result = view.CreateQuery().Run();
-            Assert.AreEqual(1, result.Count);
         }
 
         [Test]
@@ -260,6 +209,40 @@ namespace Couchbase.Lite
             doc = database.GetExistingDocument(doc.Id);
             Assert.IsNotNull(doc, "Failed to get original document");
             Assert.AreEqual("bar", doc.UserProperties["foo"]);
+        }
+
+        private void TestReplaceDatabase(string platform, string version, int attachmentCount, params string[] docNames)
+        {
+            using(var assetStream = GetAsset($"{platform}{version}.zip")) {
+                manager.ReplaceDatabase($"{platform}db", assetStream, true);
+            }
+
+            var db = manager.GetExistingDatabase($"{platform}db");
+            Assert.IsNotNull(db, "Failed to import database");
+            foreach(var docName in docNames) {
+                if(docName.StartsWith("_local/")) {
+                    Assert.IsNotNull(db.GetExistingLocalDocument(docName.Substring(7)));
+                } else {
+                    var doc = db.GetExistingDocument(docName);
+                    Assert.IsNotNull(doc, $"Failed to get doc {docName} from imported database");
+                    Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), attachmentCount, "Failed to get attachments from imported database");
+                    using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
+                        Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
+                    }
+                }
+            }
+
+            var view = db.GetView("view");
+            view.SetMap((d, emit) =>
+            {
+                if(d.CblID().Equals(docNames[0])) {
+                    emit(d.CblID(), null);
+                }
+            }, "1");
+            var result = view.CreateQuery().Run();
+            Assert.AreEqual(1, result.Count);
+
+            db.Dispose();
         }
     }
 }

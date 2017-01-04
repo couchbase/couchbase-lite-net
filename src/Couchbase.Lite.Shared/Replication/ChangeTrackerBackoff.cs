@@ -41,57 +41,46 @@
 //
 
 using System;
-using Couchbase.Lite.Util;
 using System.Threading;
+using System.Threading.Tasks;
+using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Replicator
+namespace Couchbase.Lite.Internal
 {
     internal class ChangeTrackerBackoff
     {
-        internal const int MaxSleepMilliseconds = 5 * 60 * 1000;
         private const string Tag = "ChangeTrackerBackoff";
 
- // 5 Mins
+        private readonly IRetryStrategy _retryStrategy;
 
-        public Int32 NumAttempts { get; private set; }
+        public bool CanContinue
+        {
+            get { return _retryStrategy.RetriesRemaining > 0; }
+        }
+
+        public int NumAttempts { get; private set; }
+
+        public ChangeTrackerBackoff(IRetryStrategy strategy)
+        {
+            _retryStrategy = strategy;
+        }
 
         public void ResetBackoff()
         {
             NumAttempts = 0;
+            _retryStrategy.Reset();
         }
 
-        public long GetSleepMilliseconds()
+        public TimeSpan GetSleepTime()
         {
-            var result = (long)(Math.Pow(NumAttempts, 2) - 1) / 2;
-            result *= 100;
-
-            if (result < MaxSleepMilliseconds)
-            {
-                IncreaseBackoff();
-            }
-
-            result = Math.Abs(result);
-
-            return result;
+            return _retryStrategy.NextDelay(false);
         }
 
-        public void SleepAppropriateAmountOfTime()
+        public Task DelayAppropriateAmountOfTime()
         {
-            try
-            {
-                var sleepMilliseconds = GetSleepMilliseconds();
-                if (sleepMilliseconds > 0)
-                {
-                    Log.D(Tag, "Sleeping for {0} milliseconds.", sleepMilliseconds);
-                    Thread.Sleep(TimeSpan.FromMilliseconds(sleepMilliseconds));
-                }
-            }
-            catch (Exception) { }
+            NumAttempts++;
+            return Task.Delay(_retryStrategy.NextDelay(true));
         }
-
-        private void IncreaseBackoff()
-        {
-            NumAttempts += 1;
-        }
+            
     }
 }

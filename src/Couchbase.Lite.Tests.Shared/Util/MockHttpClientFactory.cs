@@ -48,6 +48,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
+using System.Net.Http.Headers;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -57,11 +58,9 @@ using System.Net;
 
 namespace Couchbase.Lite.Tests
 {
-    public class MockHttpClientFactory : IHttpClientFactory
+    internal class MockHttpClientFactory : IHttpClientFactory
     {
         const string Tag = "MockHttpClientFactory";
-
-        private readonly CookieStore cookieStore;
 
         public MockHttpRequestHandler HttpHandler { get; private set;}
 
@@ -71,50 +70,49 @@ namespace Couchbase.Lite.Tests
             }
         }
 
+        public TimeSpan SocketTimeout { get; set; }
+
         public IDictionary<string, string> Headers { get; set; }
 
-        public MockHttpClientFactory(bool defaultFail = true) : this (null, defaultFail) { }
+        public MockHttpClientFactory(bool defaultFail = true) : this(null, defaultFail){}
 
-        public MockHttpClientFactory(DirectoryInfo cookieStoreDirectory, bool defaultFail = true)
+        public MockHttpClientFactory(Database db, bool defaultFail = true)
         {
-            cookieStore = new CookieStore(cookieStoreDirectory != null 
-                ? cookieStoreDirectory.FullName
-                : null);
             HttpHandler = new MockHttpRequestHandler(defaultFail);
-            HttpHandler.CookieContainer = cookieStore;
+            HttpHandler.CookieContainer = new CookieStore(db, "MockHttpClient");
             HttpHandler.UseCookies = true;
+            HttpHandler.AutomaticDecompression = System.Net.DecompressionMethods.Deflate | System.Net.DecompressionMethods.GZip;
 
             Headers = new Dictionary<string,string>();
         }
 
-        public HttpClient GetHttpClient(bool chunkedMode)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy strategy)
         {
-            var client = new HttpClient(HttpHandler, false);
-
-            foreach(var header in Headers)
-            {
+            var handler = strategy != null ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler, strategy) : HttpHandler;
+            var client = new HttpClient(handler, false);
+            foreach (var header in Headers) {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
-                if (!success)
-                {
-                    Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
+                if (!success) {
+                    Console.WriteLine("Unable to add header to request: {0}: {1}", header.Key, header.Value);
                 }
             }
-            return client;
+
+            return new CouchbaseLiteHttpClient(client, null);
         }
 
         public void AddCookies(CookieCollection cookies)
         {
-            cookieStore.Add(cookies);
+            HttpHandler.CookieContainer.Add(cookies);
         }
 
         public void DeleteCookie(Uri uri, string name)
         {
-            cookieStore.Delete(uri, name);
+            (HttpHandler.CookieContainer as CookieStore).Delete(uri, name);
         }
 
         public CookieContainer GetCookieContainer()
         {
-            return cookieStore;
+            return HttpHandler.CookieContainer;
         }
     }
 }

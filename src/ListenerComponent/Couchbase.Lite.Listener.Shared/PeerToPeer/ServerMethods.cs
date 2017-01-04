@@ -23,7 +23,8 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite.Replicator;
-using Sharpen;
+using System.IO;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
@@ -43,7 +44,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/common.html#get--
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState Greeting(ICouchbaseListenerContext context)
         {
             var info = new Dictionary<string, object> {
@@ -70,16 +71,19 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/common.html#get--_active_tasks
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetActiveTasks(ICouchbaseListenerContext context)
         {
             // Get the current task info of all replicators:
             var activity = new List<object>();
             var replicators = new List<Replication>();
             foreach (var db in context.DbManager.AllOpenDatabases()) {
-                foreach (var repl in db.ActiveReplicators) {
-                    replicators.Add(repl);
-                    activity.Add(repl.ActiveTaskInfo);
+                var activeReplicators = default(IList<Replication>);
+                if(db.ActiveReplicators.AcquireTemp(out activeReplicators)) {
+                    foreach(var repl in activeReplicators) {
+                        replicators.Add(repl);
+                        activity.Add(repl.ActiveTaskInfo);
+                    }
                 }
             }
 
@@ -111,7 +115,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/common.html#get--_all_dbs
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetAllDbs(ICouchbaseListenerContext context)
         {
             var names = context.DbManager.AllDatabaseNames.Cast<object>().ToList();
@@ -129,7 +133,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/authn.html#get--_session
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetSession(ICouchbaseListenerContext context)
         {
             // Even though CouchbaseLite doesn't support user logins, it implements a generic response to the
@@ -154,7 +158,7 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/common.html#get--_uuids
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState GetUUIDs(ICouchbaseListenerContext context)
         {
             int count = context.GetQueryParam<int>("count", int.TryParse, 1);
@@ -179,12 +183,18 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
         /// http://docs.couchdb.org/en/latest/api/server/common.html#post--_replicate
-        /// <remarks>
+        /// </remarks>
         public static ICouchbaseResponseState ManageReplicationSession(ICouchbaseListenerContext context)
         {
-            byte[] buffer = new byte[context.ContentLength];
-            context.BodyStream.Read(buffer, 0, buffer.Length);
-            var body = new Body(buffer).GetProperties() ?? new Dictionary<string, object>();
+            var body = default(IDictionary<string, object>);
+            try {
+                byte[] buffer = new byte[context.ContentLength];
+                context.BodyStream.Read(buffer, 0, buffer.Length);
+                body = new Body(buffer).GetProperties() ?? new Dictionary<string, object>();
+            } catch(IOException e) {
+                Log.To.Router.E("_replicate", "IOException while reading POST body", e);
+                return context.CreateResponse(StatusCode.RequestTimeout).AsDefaultState();
+            }
 
             Replication rep =  context.DbManager.ReplicationWithProperties(body);
             var response = context.CreateResponse();

@@ -22,16 +22,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-
-using Sharpen;
+using System.Threading;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Auth
 {
-
     /// <summary>
     /// An authenticator for performing HTTP Digest authentication (RFC 2617)
     /// </summary>
-    public sealed class DigestAuthenticator : IChallengeResponseAuthenticator
+    internal sealed class DigestAuthenticator : IChallengeResponseAuthenticator
     {
 
         #region Variables
@@ -58,11 +57,27 @@ namespace Couchbase.Lite.Auth
 
         #endregion
 
-        #region IChallengeResponseAuthenticator
+        #region Overrides
         #pragma warning disable 1591
+
+        public override string ToString()
+        {
+            return String.Format("[DigestAuthenticator ({0}:{1})", 
+                new SecureLogString(_username, LogMessageSensitivity.PotentiallyInsecure), 
+                new SecureLogString(_password, LogMessageSensitivity.Insecure));
+        }
+
+        #endregion
+
+        #region IChallengeResponseAuthenticator
+        
 
         public string ResponseFromChallenge(HttpResponseMessage message)
         {
+            if (message == null) {
+                return null;
+            }
+
             var challenge = message.Headers.GetValues("WWW-Authenticate").First();
             _components = DigestCalculator.ParseIntoComponents(challenge);
             if (_components == null) {
@@ -79,7 +94,7 @@ namespace Couchbase.Lite.Auth
 
         public void PrepareWithRequest(HttpRequestMessage request)
         {
-            if (_components == null) {
+            if (_components == null || request == null) {
                 return;
             }
 
@@ -108,7 +123,7 @@ namespace Couchbase.Lite.Auth
                     return null;
                 }
 
-                _components["nc"] = (++_nc).ToString();
+                _components["nc"] = Interlocked.Increment(ref _nc).ToString();
                 var response = DigestCalculator.Calculate(_components);
                 return String.Format("username=\"{0}\", realm=\"{1}\", nonce=\"{2}\", uri=\"{3}\", " +
                     "qop={4}, nc={5}, cnonce=\"{6}\", response=\"{7}\", opaque=\"0\"", _username,

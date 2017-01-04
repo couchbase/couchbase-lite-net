@@ -46,19 +46,21 @@ using System.IO;
 using System.Linq;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
     internal class MultipartDocumentReader : IMultipartReaderDelegate
     {
+        private const string TAG = "MultipartDocumentReader";
+
         private MultipartReader multipartReader;
 
         private BlobStoreWriter curAttachment;
 
         private List<Byte> jsonBuffer;
+
+        private bool _jsonCompressed;
 
         private IDictionary<String, Object> document;
 
@@ -73,21 +75,76 @@ namespace Couchbase.Lite.Support
             this.database = database;
         }
 
+        // Convenience method for testing
+        internal static IDictionary<string, object> ReadToDatabase(IEnumerable<byte> data, IDictionary<string, string> headers, 
+            Database db)
+        {
+            var realized = data.ToArray();
+            if (realized.Length == 0) {
+                throw new CouchbaseLiteException(StatusCode.BadJson);
+            }
+
+            var reader = new MultipartDocumentReader(db);
+            reader.SetHeaders(headers);
+            reader.AppendData(data);
+            reader.Finish();
+
+            return reader.document;
+        }
+
         public IDictionary<String, Object> GetDocumentProperties()
         {
             return document;
         }
 
+        public void SetHeaders(IDictionary<string, string> headers)
+        {
+            var contentType = headers.Get("Content-Type");
+            if (contentType != null && contentType.StartsWith("multipart/")) {
+                // Multipart, so initialize the parser:
+                Log.To.Sync.V(TAG, "{0} has attachments, {1}", this, contentType);
+                try {
+                    multipartReader = new MultipartReader(contentType, this);
+                } catch (ArgumentException e) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, StatusCode.NotAcceptable, TAG,
+                        "Unable to create MultipartReader");
+                }
+
+                attachmentsByName = new Dictionary<string, BlobStoreWriter>();
+                attachmentsBySHA1Digest = new Dictionary<string, BlobStoreWriter>();
+                return;
+            } else if (contentType == null || contentType.StartsWith("application/json") ||
+                contentType.StartsWith("text/plain")) {
+                // No multipart, so no attachments. Body is pure JSON. (We allow text/plain because CouchDB
+                // sends JSON responses using the wrong content-type.)
+                StartJsonBuffer(headers);
+                return;
+            }
+
+            Log.To.Sync.E(TAG, "Invalid Content-Type header ({0}) received in SetHeaders, throwing...", contentType);
+            throw new ArgumentException("Invalid Content-Type header", "headers");
+        }
+
         public void ParseJsonBuffer()
         {
             try {
-                document = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(jsonBuffer.ToArray());
-            } catch (IOException e) {
-                throw new InvalidOperationException("Failed to parse json buffer", e);
-            } catch(CouchbaseLiteException e) {
-                throw new InvalidOperationException("Failed to parse json buffer", e);
-            }
-            jsonBuffer = null;
+                var json = jsonBuffer;
+                jsonBuffer = null;
+                if(_jsonCompressed) {
+                    json = json.Decompress().ToList();
+                    if(json == null) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.UpStreamError, TAG,
+                            "Received corrupt gzip encoded JSON part");
+                    }
+                }
+                document = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(json.ToArray());
+            } catch(CouchbaseLiteException) {
+                Log.To.Sync.W(TAG, "Failed to parse multipart JSON, rethrowing...");
+                throw;
+            } catch (Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, StatusCode.BadJson, TAG,
+                    "Failed to parse json buffer");
+            } 
         }
 
         public void SetContentType(String contentType)
@@ -103,34 +160,33 @@ namespace Couchbase.Lite.Support
                 attachmentsByName = new Dictionary<String, BlobStoreWriter>();
                 attachmentsBySHA1Digest = new Dictionary<String, BlobStoreWriter>();
             }  else {
-                throw new ArgumentException("contentType must start with multipart/");
+                Log.To.Sync.E(TAG, "Invalid contentType in SetContentType ({0}); does not start with multipart/, throwing...",
+                    contentType);
+                throw new ArgumentException("Does not start with multipart/", "contentType");
             }
         }
 
         public void AppendData(IEnumerable<byte> data)
         {
-            if (multipartReader != null)
-            {
+            if (multipartReader != null) {
                 multipartReader.AppendData(data);
-            }
-            else
-            {
+            } else {
                 jsonBuffer.AddRange(data);
             }
         }
 
         public void Finish()
         {
-            if (multipartReader != null)
-            {
-                if (!multipartReader.Finished())
-                {
-                    throw new InvalidOperationException("received incomplete MIME multipart response");
+            Log.To.Sync.V(TAG, "{0} finished loading ({1} attachments)", 
+                this, attachmentsBySHA1Digest == null ? 0 : attachmentsBySHA1Digest.Count);
+            if (multipartReader != null) {
+                if (!multipartReader.Finished) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.UpStreamError, TAG,
+                        "{0} received incomplete MIME response", this);
                 }
+
                 RegisterAttachments();
-            }
-            else
-            {
+            } else {
                 ParseJsonBuffer();
             }
         }
@@ -140,98 +196,89 @@ namespace Couchbase.Lite.Support
             var numAttachmentsInDoc = 0;
 
             var attachments = document.Get("_attachments").AsDictionary<string, object>();
-            if (attachments == null)
-            {
+            if (attachments == null) {
                 return;
             }
 
             var nuAttachments = new Dictionary<string, object>(attachments.Count);
-            foreach (var attmt in attachments)
-            {
+            foreach (var attmt in attachments) {
                 var attachmentName = attmt.Key;
                 var attachment = attmt.Value.AsDictionary<string, object>();
 
                 long length = 0;
                 var lengthValue = attachment.Get("length");
-                if (lengthValue != null)
-                {
+                if (lengthValue != null) {
                     length = (long)lengthValue;
                 }
+
                 var encodedLengthValue = attachment.Get("encoded_length");
-                if (encodedLengthValue != null)
-                {
+                if (encodedLengthValue != null) {
                     length = (long)encodedLengthValue;
                 }
 
                 var followsValue = attachment.GetCast<bool>("follows");
-                if (followsValue)
-                {
+                if (followsValue) {
                     var digest = attachment.GetCast<string>("digest");
-                    var writer =  attachmentsByName.Get(attachmentName);
-                    if (writer != null)
-                    {
+                    var writer = attachmentsByName.Get(attachmentName);
+                    if (writer != null) {
                         // Identified the MIME body by the filename in its Disposition header:
                         var actualDigest = writer.SHA1DigestString();
-                        if (digest != null && !digest.Equals(actualDigest) && !digest.Equals(writer.MD5DigestString()))
-                        {
-                            var errMsg = String.Format("Attachment '{0}' has incorrect MD5 digest ({1}; should be either {2} or {3})", attachmentName, digest, actualDigest, writer.MD5DigestString());
+                        if (digest != null && !digest.Equals(actualDigest) && !digest.Equals(writer.MD5DigestString())) {
+                            var errMsg = String.Format("Attachment '{0}' has incorrect digest ({1}; should be either {2} or {3})", 
+                                new SecureLogString(attachmentName, LogMessageSensitivity.PotentiallyInsecure),
+                                digest, actualDigest, writer.MD5DigestString());
+                            Log.To.Sync.E(TAG, errMsg + ", throwing...");
                             throw new InvalidOperationException(errMsg);
                         }
 
                         attachment["digest"] = actualDigest;
-                    }
-                    else
-                    {
-                        if (digest != null)
-                        {
+                    } else {
+                        if (digest != null) {
                             writer = attachmentsBySHA1Digest.Get(digest);
-                            if (writer == null)
-                            {
-                                var errMsg = String.Format("Attachment '{0}' does not appear in MIME body ", attachmentName);
+                            if (writer == null) {
+                                var errMsg = String.Format("Attachment '{0}' does not appear in MIME body ", 
+                                    new SecureLogString(attachmentName, LogMessageSensitivity.PotentiallyInsecure));
+                                Log.To.Sync.E(TAG, errMsg);
                                 throw new InvalidOperationException(errMsg);
                             }
-                        }
-                        else
-                        {
-                            if (attachments.Count == 1 && attachmentsBySHA1Digest.Count == 1)
-                            {
+                        } else {
+                            if (attachments.Count == 1 && attachmentsBySHA1Digest.Count == 1) {
                                 // Else there's only one attachment, so just assume it matches & use it:
                                 writer = attachmentsBySHA1Digest.Values.First();
                                 attachment["digest"] = writer.SHA1DigestString();
-                            }
-                            else
-                            {
+                            } else {
                                 // No digest metatata, no filename in MIME body; give up:
-                                var errMsg = String.Format("Attachment '{0}' has no digest metadata; cannot identify MIME body", attachmentName);
+                                var errMsg = String.Format("Attachment '{0}' has no digest metadata; cannot identify MIME body", 
+                                    new SecureLogString(attachmentName, LogMessageSensitivity.PotentiallyInsecure));
+                                Log.To.Sync.E(TAG, errMsg);
                                 throw new InvalidOperationException(errMsg);
                             }
                         }
                     }
 
                     // Check that the length matches:
-                    if (writer.GetLength() != length)
-                    {
-                        var errMsg = String.Format("Attachment '{0}' has incorrect length field {1} (should be {2})", attachmentName, length, writer.GetLength());
+                    if (writer.GetLength() != length) {
+                        var errMsg = String.Format("Attachment '{0}' has incorrect length field {1} (should be {2})", 
+                            new SecureLogString(attachmentName, LogMessageSensitivity.PotentiallyInsecure),
+                            length, writer.GetLength());
+                        Log.To.Sync.E(TAG, errMsg);
                         throw new InvalidOperationException(errMsg);
                     }
 
                     nuAttachments[attachmentName] = attachment;
                     ++numAttachmentsInDoc;
-                }
-                else
-                {
-                    if (attachment.Get("data") != null && length > 1000)
-                    {
+                } else {
+                    if (attachment.Get("data") != null && length > 1000) {
                         var msg = String.Format("Attachment '{0}' sent inline (len={1}).  Large attachments "
-                            + "should be sent in MIME parts for reduced memory overhead.", attachmentName);
-                        Log.W(Database.TAG, msg);
+                                  + "should be sent in MIME parts for reduced memory overhead.", attachmentName, length);
+                        Log.To.Sync.W(TAG, msg);
                     }
                 }
             }
 
-            if (numAttachmentsInDoc < attachmentsBySHA1Digest.Count)
-            {
+            if (numAttachmentsInDoc < attachmentsBySHA1Digest.Count) {
                 var msg = String.Format("More MIME bodies ({0}) than attachments ({1}) ", attachmentsBySHA1Digest.Count, numAttachmentsInDoc);
+                Log.To.Sync.E(TAG, msg);
                 throw new InvalidOperationException(msg);
             }
 
@@ -242,54 +289,80 @@ namespace Couchbase.Lite.Support
 
         public void StartedPart(IDictionary<String, String> headers)
         {
-            if (document == null)
-            {
-                jsonBuffer = new List<Byte>(1024);
-            }
-            else
-            {
+            if (document == null) {
+                StartJsonBuffer(headers);
+            } else {
+                Log.To.Sync.V(TAG, "{0} starting attachment #{1}...", this, attachmentsBySHA1Digest.Count + 1);
                 curAttachment = database.AttachmentWriter;
+                if (curAttachment == null) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG,
+                        "Cannot create blob store writer for the attachment");
+                }
+
+                var name = default(string);
                 var contentDisposition = headers.Get("Content-Disposition");
-                if (contentDisposition != null && contentDisposition.StartsWith("attachment; filename="))
-                {
+                if (contentDisposition != null && contentDisposition.StartsWith("attachment; filename=")) {
                     // TODO: Parse this less simplistically. Right now it assumes it's in exactly the same
                     // format generated by -[CBL_Pusher uploadMultipartRevision:]. CouchDB (as of 1.2) doesn't
                     // output any headers at all on attachments so there's no compatibility issue yet.
                     var contentDispositionUnquoted = Misc.UnquoteString(contentDisposition);
-                    var name = contentDispositionUnquoted.Substring(21);
-                    if (name != null)
-                    {
-                        attachmentsByName.Put(name, curAttachment);
+                    name = contentDispositionUnquoted.Substring(21);
+                    if (name != null) {
+                        attachmentsByName[name] = curAttachment;
                     }
+                }
+
+                var contentEncoding = headers.Get("Content-Encoding");
+                if (contentEncoding == "gzip") {
+                    if (name != null) {
+                        try {
+                            var attachEncoding = document.GetCast<IDictionary<string, object>>("_attachments").
+                            GetCast <IDictionary<string, object>>(name).GetCast<string>("encoding");
+                            if (attachEncoding != "gzip") {
+                                throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.UnsupportedType, TAG,
+                                    "Attachment '{0}' MIME body is gzipped but attachment isn't",
+                                    new SecureLogString(name, LogMessageSensitivity.PotentiallyInsecure));
+                            }
+                        } catch (NullReferenceException) {
+                            throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.UnsupportedType, TAG,
+                                "NullReferenceException caught; _attachments was not present or encoding was " +
+                                "not present in _attachments");
+                        }
+                    }
+                } else if (contentEncoding != null) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.UnsupportedType, TAG,
+                        "Received unsupported Content-Encoding '{0}'", contentEncoding);
                 }
             }
         }
 
         public void AppendToPart(IEnumerable<Byte> data)
         {
-            if (jsonBuffer != null)
-            {
+            if (jsonBuffer != null) {
                 jsonBuffer.AddRange(data);
-            }
-            else
-            {
+            } else if (curAttachment != null) {
                 curAttachment.AppendData(data.ToArray());
             }
         }
 
         public void FinishedPart()
         {
-            if (jsonBuffer != null)
-            {
+            if (jsonBuffer != null) {
                 ParseJsonBuffer();
-            }
-            else
-            {
+            } else {
                 curAttachment.Finish();
-                String sha1String = curAttachment.SHA1DigestString();
-                attachmentsBySHA1Digest.Put(sha1String, curAttachment);
+                var sha1String = curAttachment.SHA1DigestString();
+                Log.To.Sync.V(TAG, "{0} finished attachment #{1}: {2}", this, attachmentsBySHA1Digest.Count + 1, curAttachment);
+                attachmentsBySHA1Digest[sha1String] = curAttachment;
                 curAttachment = null;
             }
+        }
+
+        private void StartJsonBuffer(IDictionary<string, string> headers)
+        {
+            jsonBuffer = new List<Byte>(1024);
+            var contentEncoding = headers.Get("Content-Encoding");
+            _jsonCompressed = contentEncoding != null && contentEncoding.Contains("gzip");
         }
     }
 }

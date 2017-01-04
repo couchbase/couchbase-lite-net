@@ -25,7 +25,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-
+#pragma warning disable 1591
 using System;
 
 namespace Mono.Zeroconf
@@ -63,3 +63,4 @@ namespace Mono.Zeroconf
         }
     }
 }
+#pragma warning restore 1591

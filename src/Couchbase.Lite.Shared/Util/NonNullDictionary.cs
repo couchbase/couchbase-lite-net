@@ -23,6 +23,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 
 namespace Couchbase.Lite.Util
 {
@@ -79,6 +80,15 @@ namespace Couchbase.Lite.Util
         #endregion
 
         #pragma warning disable 1591
+        #region Overrides
+
+        public override string ToString()
+        {
+            return Manager.GetObjectMapper().WriteValueAsString(this);
+        }
+
+        #endregion
+
         #region IEnumerable
 
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()

@@ -21,6 +21,7 @@
 using System;
 
 using Mono.Zeroconf;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
@@ -88,6 +89,7 @@ namespace Couchbase.Lite.Listener
         public CouchbaseLiteServiceBroadcaster(IRegisterService registerService, ushort port)
         {
             if (registerService == null) {
+                Log.To.Discovery.E(TAG, "registerService null in ctor, throwing...");
                 throw new ArgumentNullException("registerService");
             }
 
@@ -115,8 +117,10 @@ namespace Couchbase.Lite.Listener
             if (_running) {
                 return;
             }
+
             _running = true;
             _registerService.Register();
+            Log.To.Discovery.I(TAG, "Started {0}", this);
         }
 
         /// <summary>
@@ -130,6 +134,17 @@ namespace Couchbase.Lite.Listener
 
             _running = false;
             _registerService.Unregister();
+            Log.To.Discovery.I(TAG, "Stopped {0}", this);
+        }
+
+        #endregion
+
+        #region Overrides
+#pragma warning disable 1591
+
+        public override string ToString()
+        {
+            return string.Format("CouchbaseLiteServiceBroadcaster[Name={0}, Type={1}, Port={2}]", Name, Type, Port);
         }
 
         #endregion
@@ -146,6 +161,7 @@ namespace Couchbase.Lite.Listener
             _registerService.Dispose();
         }
 
+#pragma warning restore 1591
         #endregion
     }
 }

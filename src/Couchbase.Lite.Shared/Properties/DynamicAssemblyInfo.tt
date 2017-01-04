@@ -1,0 +1,12 @@
+﻿<#@ template language="C#" hostspecific="false" #>
+
+using System.Reflection;
+
+<#
+string envAssembly =  System.Environment.GetEnvironmentVariable("VERSION") ?? "0.0.0";
+string nugetVersion = System.Environment.GetEnvironmentVariable("NUGET_VERSION") ?? envAssembly;
+string assemblyVersion = envAssembly + ".0";
+#>
+
+[assembly: AssemblyVersion ("<#= assemblyVersion#>")]
+[assembly: AssemblyInformationalVersion("<#= nugetVersion#>")] // Used by nuget for semver detection.

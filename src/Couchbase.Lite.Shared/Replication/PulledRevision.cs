@@ -40,20 +40,11 @@
 // and limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
-using System.Text;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Storage;
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
-using Sharpen;
-using System.Threading.Tasks;
-using System.Net.Http;
-using System.Diagnostics;
-using System.Web;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -69,7 +60,7 @@ namespace Couchbase.Lite.Replicator
         {
         }
 
-        public PulledRevision(string docId, string revId, bool deleted, Database database
+        public PulledRevision(string docId, RevisionID revId, bool deleted, Database database
             ) : base(docId, revId, deleted)
         {
         }

@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Mono.Zeroconf;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
@@ -32,6 +33,12 @@ namespace Couchbase.Lite.Listener
     /// </summary>
     public sealed class CouchbaseLiteServiceBrowser : IDisposable
     {
+
+        #region Constants
+
+        private static readonly string Tag = typeof(CouchbaseLiteServiceBrowser).Name;
+
+        #endregion
 
         #region Members 
 
@@ -81,13 +88,16 @@ namespace Couchbase.Lite.Listener
         public CouchbaseLiteServiceBrowser(IServiceBrowser browser)
         {
             if (browser == null) {
+                Log.To.Discovery.E(Tag, "browser null in ctor, throwing...");
                 throw new ArgumentNullException("browser");
             }
 
             _browser = browser;
             _browser.ServiceAdded += (o, args) =>
             {
-                args.Service.Resolved += (_, __) => {
+                Log.To.Discovery.I(Tag, "Found service {0}, attempting to resolve...", args.Service);
+                args.Service.Resolved += (_, args2) => {
+                    Log.To.Discovery.I(Tag, "Resolved service {0}", args2.Service);
                     if(_serviceResolved != null) {
                         _serviceResolved(this, new ServiceResolvedEventArgs(args.Service));
                     }
@@ -134,6 +144,7 @@ namespace Couchbase.Lite.Listener
 
             _running = true;
             _browser.Browse(0, AddressProtocol.IPv4, Type, "local");
+            Log.To.Discovery.I(Tag, "Started {0}", this);
         }
 
         /// <summary>
@@ -147,6 +158,17 @@ namespace Couchbase.Lite.Listener
 
             _running = false;
             _browser.Stop();
+            Log.To.Discovery.I(Tag, "Stopped {0}", this);
+        }
+
+        #endregion
+
+        #region Overrides
+#pragma warning disable 1591
+
+        public override string ToString()
+        {
+            return string.Format("CouchbaseLiteServiceBrowser[Type={0}]", Type);
         }
 
         #endregion
@@ -162,6 +184,7 @@ namespace Couchbase.Lite.Listener
             _browser.Dispose();
         }
 
+#pragma warning restore 1591
         #endregion
 
     }

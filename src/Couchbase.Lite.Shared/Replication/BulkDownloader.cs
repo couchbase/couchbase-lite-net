@@ -32,31 +32,65 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//using System;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
+
 using Couchbase.Lite;
+using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
-using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
-using System.Threading;
+using Couchbase.Lite.Revisions;
 
 namespace Couchbase.Lite.Replicator
 {
-    internal class BulkDownloader : RemoteRequest, IMultipartReaderDelegate
+    internal sealed class BulkDownloaderOptions : ConstructorOptions
     {
-        const string Tag = "BulkDownloader";
+        [RequiredProperty]
+        public IHttpClientFactory ClientFactory { get; set; }
 
+        [RequiredProperty]
+        public Uri DatabaseUri { get; set; }
+
+        [RequiredProperty]
+        public IList<RevisionInternal> Revisions { get; set; }
+
+        [RequiredProperty]
+        public Database Database { get; set; }
+
+        [RequiredProperty(CreateDefault=true, ConcreteType=typeof(Dictionary<string, object>))]
+        public IDictionary<string, object> RequestHeaders { get; set; }
+
+        [RequiredProperty]
+        public IRetryStrategy RetryStrategy { get; set; }
+
+        [RequiredProperty(CreateDefault=true)]
+        public CancellationTokenSource TokenSource { get; set; }
+
+        [RequiredProperty]
+        public CookieStore CookieStore { get; set; }
+    }
+
+    internal class BulkDownloader : IMultipartReaderDelegate, IDisposable
+    {
+        internal static readonly string Tag = typeof(BulkDownloader).Name;
+
+        private Uri _bulkGetUri;
+        private IDictionary<string, object> _requestHeaders;
         private MultipartReader _topReader;
-
+        private CancellationTokenSource _tokenSource;
         private MultipartDocumentReader _docReader;
+        private Database _db;
+        private readonly CouchbaseLiteHttpClient _httpClient;
+        private readonly object _body;
 
         private int _docCount;
 
@@ -67,182 +101,182 @@ namespace Couchbase.Lite.Replicator
         }
         private EventHandler<BulkDownloadEventArgs> _documentDownloaded;
 
+        public event EventHandler<RemoteRequestEventArgs> Complete
+        {
+            add { _complete = (EventHandler<RemoteRequestEventArgs>)Delegate.Combine(_complete, value); }
+            remove { _complete = (EventHandler<RemoteRequestEventArgs>)Delegate.Remove(_complete, value); }
+        }
+        private EventHandler<RemoteRequestEventArgs> _complete;
+
+        internal IAuthenticator Authenticator { get; set; }
+
         /// <exception cref="System.Exception"></exception>
-        public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
-            : base(workExecutor, clientFactory, "POST", new Uri(AppendRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true")), HelperMethod(revs, database), database, requestHeaders, tokenSource)
-        { }
-
-        public override void Run()
+        public BulkDownloader(BulkDownloaderOptions options)
         {
-            HttpClient httpClient = null;
-            try 
-            {
-                httpClient = clientFactory.GetHttpClient(false);
-                requestMessage.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("multipart/related"));
+            options.Validate();
+            _bulkGetUri = new Uri(AppendRelativeURLString(options.DatabaseUri, string.Format("/_bulk_get?revs=true&attachments={0}", ManagerOptions.Default.DownloadAttachmentsOnSync.ToString().ToLower())));
+            _db = options.Database;
+            _httpClient = options.ClientFactory.GetHttpClient(options.CookieStore, options.RetryStrategy);
+            _requestHeaders = options.RequestHeaders;
+            _tokenSource = options.TokenSource ?? new CancellationTokenSource();
+            _body = CreatePostBody(options.Revisions, _db);
+        }
 
-                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
-                if (authHeader != null)
-                {
-                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
-                }
+        public void Start()
+        {
+            var requestMessage = CreateConcreteRequest();
 
-                //TODO: implement gzip support for server response see issue #172
-                //request.addHeader("X-Accept-Part-Encoding", "gzip");
-                AddRequestHeaders(requestMessage);
-                SetBody(requestMessage);
-                ExecuteRequest(httpClient, requestMessage);
+            if(!requestMessage.Headers.Contains("User-Agent")) {
+                requestMessage.Headers.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SyncProtocolVersion, Manager.VersionString));
             }
-            finally
+
+            requestMessage.Headers.Add("Accept", "multipart/related, application/json");           
+            foreach (string requestHeaderKey in _requestHeaders.Keys) {
+                
+                requestMessage.Headers.TryAddWithoutValidation(requestHeaderKey, _requestHeaders[requestHeaderKey].ToString());
+            }
+
+            SetBody(requestMessage);
+
+            ExecuteRequest(_httpClient, requestMessage).ContinueWith(t => 
             {
-                if (httpClient != null) 
-                {
-                    httpClient.Dispose();
+                Log.To.Sync.V(Tag, "RemoteRequest run() finished, url: {0}", _bulkGetUri);
+                if(_httpClient != null) {
+                    _httpClient.Dispose();
                 }
+
+                requestMessage.Dispose();
+            });
+        }
+
+        private void SetBody(HttpRequestMessage request)
+        {
+            // set body if appropriate
+            if (_body != null)  {
+                byte[] bodyBytes = null;
+                try {
+                    bodyBytes = Manager.GetObjectMapper().WriteValueAsBytes(_body).ToArray();
+                } catch (Exception e) {
+                    Log.To.Sync.E(Tag, "Error serializing body of request", e);
+                }
+
+                HttpContent entity = new ByteArrayContent(bodyBytes);
+                entity.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                if (bodyBytes.Length > 100) {
+                    entity = new CompressedContent(entity, "gzip");
+                }
+
+                request.Content = entity;
+
+            } else {
+                Log.To.Sync.W(Tag, "No body found for this request to {0}", request.RequestUri);
             }
         }
 
-        private string Description()
+        private HttpRequestMessage CreateConcreteRequest()
         {
-            return this.GetType().FullName + "[" + url.AbsolutePath + "]";
+            var httpMethod = HttpMethod.Post;
+            var newRequest = new HttpRequestMessage(httpMethod, _bulkGetUri.AbsoluteUri);
+            return newRequest;
         }
 
-        protected override internal void ExecuteRequest(HttpClient httpClient, HttpRequestMessage request)
+        private Task ExecuteRequest(CouchbaseLiteHttpClient httpClient, HttpRequestMessage request)
         {
             object fullBody = null;
             Exception error = null;
             HttpResponseMessage response = null;
-            try
+            if (_tokenSource.IsCancellationRequested) {
+                RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, request)), response);
+                var tcs = new TaskCompletionSource<bool>();
+                tcs.SetCanceled();
+                return tcs.Task;
+            }
+                
+            request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+            request.Headers.Add("X-Accept-Part-Encoding", "gzip");
+
+            Log.To.Sync.V(Tag, "Sending request: {0}", request);
+            var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
+            httpClient.Authenticator = Authenticator;
+            return httpClient.SendAsync(request, requestTokenSource.Token).ContinueWith(t =>
             {
-                if (_tokenSource.IsCancellationRequested)
-                {
-                    RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, request)), response);
+                requestTokenSource.Dispose();
+                try {
+                    response = t.Result;
+                } catch(Exception e) {
+                    var err = Misc.Flatten(e).First();
+                    Log.To.Sync.E(Tag, "Unhandled exception while getting bulk documents", err);
+                    error = err;
+                    RespondWithResult(fullBody, err, response);
                     return;
                 }
 
-                Log.D(Tag + ".ExecuteRequest", "Sending request: {0}", request);
-                var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
-                var responseTask = httpClient.SendAsync(request, requestTokenSource.Token);
-                if (!responseTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, requestTokenSource.Token))
-                {
-                    Log.E(Tag, "Response task timed out: {0}, {1}, {2}", responseTask, TaskScheduler.Current, Description());
-                    throw new HttpResponseException(HttpStatusCode.RequestTimeout);
-                }
-                requestTokenSource.Dispose();
-                response = responseTask.Result;
-            }
-            catch (Exception e)
-            {
-                var err = (e is AggregateException) ? ((AggregateException)e).InnerException : e;
-                Log.E(Tag, "Unhandled Exception", err);
-                error = err;
-                RespondWithResult(fullBody, err, response);
-                return;
-            }
+                try {
+                    if (response == null) {
+                        Log.To.Sync.I(Tag, "Didn't get response for {0}", request);
 
-            try
-            {
-                if (response == null)
-                {
-                    Log.E(Tag, "Didn't get response for {0}", request);
+                        error = new HttpRequestException();
+                        RespondWithResult(fullBody, error, response);
+                    } else if (!response.IsSuccessStatusCode)  {
+                        HttpStatusCode status = response.StatusCode;
 
-                    error = new HttpRequestException();
-                    RespondWithResult(fullBody, error, response);
-                }
-                else if (!response.IsSuccessStatusCode)
-                {
-                    HttpStatusCode status = response.StatusCode;
+                        Log.To.Sync.I(Tag, "Got error status: {0} for {1}.  Reason: {2}", status.GetStatusCode(), request, response.ReasonPhrase);
+                        error = new HttpResponseException(status);
 
-                    Log.E(Tag, "Got error status: {0} for {1}.  Reason: {2}", status.GetStatusCode(), request, response.ReasonPhrase);
-                    error = new HttpResponseException(status);
-
-                    RespondWithResult(fullBody, error, response);
-                }
-                else
-                {
-                    Log.D(Tag, "Processing response: {0}", response);
-                    var entity = response.Content;
-                    var contentTypeHeader = entity.Headers.ContentType;
-                    Stream inputStream = null;
-                    if (contentTypeHeader != null && contentTypeHeader.ToString().Contains("multipart/"))
-                    {
-                        Log.V(Tag, "contentTypeHeader = {0}", contentTypeHeader.ToString());
-                        try
+                        RespondWithResult(fullBody, error, response);
+                    } else {
+                        Log.To.Sync.D(Tag, "Processing response: {0}", response);
+                        var entity = response.Content;
+                        var contentTypeHeader = entity.Headers.ContentType;
+                        Stream inputStream = null;
+                        if (contentTypeHeader != null && contentTypeHeader.ToString().Contains("multipart/"))
                         {
-                            _topReader = new MultipartReader(contentTypeHeader.ToString(), this);
-                            inputStream = entity.ReadAsStreamAsync().Result;
-                            const int bufLen = 1024;
-                            var buffer = new byte[bufLen];
-                            var numBytesRead = 0;
-                            while ((numBytesRead = inputStream.Read(buffer, 0, bufLen)) > 0)
-                            {
-                                if (numBytesRead != bufLen)
-                                {
-                                    var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<byte>(buffer, 0, numBytesRead).ToArray();
-                                    _topReader.AppendData(bufferToAppend);
-                                }
-                                else
-                                {
-                                    _topReader.AppendData(buffer);
-                                }
-                            }
-                            _topReader.Finished();
-                            RespondWithResult(fullBody, error, response);
-                        }
-                        finally
-                        {
-                            try
-                            {
-                                inputStream.Close();
-                            }
-                            catch (IOException)
-                            {
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Log.V(Tag, "contentTypeHeader is not multipart = {0}", contentTypeHeader.ToString());
-                        if (entity != null)
-                        {
-                            try
-                            {
+                            Log.To.Sync.D(Tag, "contentTypeHeader = {0}", contentTypeHeader.ToString());
+                            try {
+                                _topReader = new MultipartReader(contentTypeHeader.ToString(), this);
                                 inputStream = entity.ReadAsStreamAsync().Result;
-                                fullBody = Manager.GetObjectMapper().ReadValue<object>(inputStream);
-                                RespondWithResult(fullBody, error, response);
-                            }
-                            finally
-                            {
-                                try
-                                {
-                                    inputStream.Close();
+                                const int bufLen = 1024;
+                                var buffer = new byte[bufLen];
+                                var numBytesRead = 0;
+                                while ((numBytesRead = inputStream.Read(buffer, 0, bufLen)) > 0) {
+                                    if (numBytesRead != bufLen) {
+                                        var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<byte>(buffer, 0, numBytesRead).ToArray();
+                                        _topReader.AppendData(bufferToAppend);
+                                    } else {
+                                        _topReader.AppendData(buffer);
+                                    }
                                 }
-                                catch (IOException)
-                                {
+
+                                RespondWithResult(fullBody, error, response);
+                            } finally {
+                                try { 
+                                    inputStream.Close();
+                                } catch (IOException) { }
+                            }
+                        } else {
+                            Log.To.Sync.D(Tag, "contentTypeHeader is not multipart = {0}", contentTypeHeader.ToString());
+                            if (entity != null) {
+                                try {
+                                    inputStream = entity.ReadAsStreamAsync().Result;
+                                    fullBody = Manager.GetObjectMapper().ReadValue<object>(inputStream);
+                                    RespondWithResult(fullBody, error, response);
+                                } finally {
+                                    try {
+                                        inputStream.Close();
+                                    } catch (IOException) {  }
                                 }
                             }
                         }
                     }
                 }
-            }
-            catch (AggregateException e)
-            {
-                var err = e.InnerException;
-                Log.E(Tag, "Unhandled Exception", err);
-                error = err;
-                RespondWithResult(fullBody, err, response);
-            }
-            catch (IOException e)
-            {
-                Log.E(Tag, "IO Exception", e);
-                error = e;
-                RespondWithResult(fullBody, e, response);
-            }
-            catch (Exception e)
-            {
-                Log.E(Tag, "ExecuteRequest Exception: ", e);
-                error = e;
-                RespondWithResult(fullBody, e, response);
-            }
+                catch (Exception e)
+                {
+                    var err = (e is AggregateException) ? e.InnerException : e;
+                    Log.To.Sync.E(Tag, "Exception while processing bulk download response", err);
+                    error = err;
+                    RespondWithResult(fullBody, err, response);
+                }
+            });
         }
 
         /// <summary>This method is called when a part's headers have been parsed, before its data is parsed.
@@ -251,13 +285,13 @@ namespace Couchbase.Lite.Replicator
         ///     </remarks>
         public void StartedPart(IDictionary<string, string> headers)
         {
-            if (_docReader != null)
-            {
-                throw new InvalidOperationException("_docReader is already defined");
+            if (_docReader != null) {
+                Log.To.Sync.E(Tag, "StartedPart called on an already started object");
+                throw new InvalidOperationException("StartedPart called on an already started object");
             }
-            Log.V(Tag, "{0}: Starting new document; headers ={1}", this, headers);
-            Log.V(Tag, "{0}: Starting new document; ID={1}".Fmt(this, headers.Get("X-Doc-Id")));
-            _docReader = new MultipartDocumentReader(db);
+
+            Log.To.Sync.V(Tag, "{0}: Starting new document; ID={1}", this, headers.Get("X-Doc-ID"));
+            _docReader = new MultipartDocumentReader(_db);
             _docReader.SetContentType(headers.Get ("Content-Type"));
             _docReader.StartedPart(headers);
         }
@@ -266,10 +300,11 @@ namespace Couchbase.Lite.Replicator
         /// <remarks>This method is called to append data to a part's body.</remarks>
         public void AppendToPart (IEnumerable<byte> data)
         {
-            if (_docReader == null)
-            {
-                throw new InvalidOperationException("_docReader is not defined");
+            if (_docReader == null) {
+                Log.To.Sync.E(Tag, "AppendPart called on a non-started object");
+                throw new InvalidOperationException("AppendPart called on a non-started object");
             }
+
             _docReader.AppendData(data);
         }
 
@@ -277,11 +312,12 @@ namespace Couchbase.Lite.Replicator
         /// <remarks>This method is called when a part is complete.</remarks>
         public virtual void FinishedPart()
         {
-            Log.V(Tag, "{0}: Finished document".Fmt(this));
-            if (_docReader == null)
-            {
-                throw new InvalidOperationException("_docReader is not defined");
+            if (_docReader == null) {
+                Log.To.Sync.E(Tag, "FinishedPart called on a non-started object");
+                throw new InvalidOperationException("FinishedPart called on a non-started object");
             }
+
+            Log.To.Sync.V(Tag, "{0} Finished document", this);
             _docReader.Finish();
             ++_docCount;
             OnDocumentDownloaded(_docReader.GetDocumentProperties());
@@ -295,34 +331,66 @@ namespace Couchbase.Lite.Replicator
                 handler (this, new BulkDownloadEventArgs(props));
         }
 
-        private static IDictionary<string, object> HelperMethod(IEnumerable<RevisionInternal> revs, Database database)
+        private void RespondWithResult(object result, Exception error, HttpResponseMessage response)
         {
-            Func<RevisionInternal, IDictionary<String, Object>> invoke = source =>
+            Log.To.Sync.V(Tag, "{0} finished loading ({1} documents)", this, _docCount);
+            OnEvent(_complete, result, error);
+            if (response != null) {
+                response.Dispose();
+            }
+        }
+
+        private void OnEvent(EventHandler<RemoteRequestEventArgs> evt, Object result, Exception error)
+        {
+            if (evt == null)
+                return;
+            var args = new RemoteRequestEventArgs(result, error);
+            evt(this, args);
+        }
+
+        private IDictionary<string, object> CreatePostBody(IEnumerable<RevisionInternal> revs, Database database)
+        {
+            var maxRevTreeDepth = database.GetMaxRevTreeDepth();
+            Func<RevisionInternal, IDictionary<string, object>> invoke = source =>
             {
-                var attsSince = database.Storage.GetPossibleAncestors(source, Puller.MAX_ATTS_SINCE, true);
+                if(!database.IsOpen) {
+                    return null;
+                }
 
+                //TODO: Deferred attachments
+                ValueTypePtr<bool> haveBodies = false;
+                var possibleAncestors = database.Storage.GetPossibleAncestors(source, Puller.MaxAttsSince, haveBodies);
+                
+                var key = new Dictionary<string, object> {
+                    ["id"] = source.DocID,
+                    ["rev"] = source.RevID.ToString()
+                };
 
-                var mapped = new Dictionary<string, object> ();
-                mapped.Put ("id", source.GetDocId ());
-                mapped.Put ("rev", source.GetRevId ());
-                mapped.Put ("atts_since", attsSince);
+                if(possibleAncestors != null) {
+                    var bodyKey = haveBodies ? "atts_since" : "revs_from";
+                    key[bodyKey] = possibleAncestors;
+                } else {
+                    if(source.Generation > maxRevTreeDepth) {
+                        key["revs_limit"] = maxRevTreeDepth;
+                    }
+                }
 
-                return mapped;
+                return key;
             };
 
-                // Build up a JSON body describing what revisions we want:
-            IEnumerable<IDictionary<string, object>> keys = null;
-            try
-            {
-                keys = revs.Select(invoke);
-            } 
-            catch (Exception ex)
-            {
-                Log.E(Tag, "Error generating bulk request data.", ex);
-            }       
+            // Build up a JSON body describing what revisions we want:
             
+            IEnumerable<IDictionary<string, object>> keys = null;
+            try {
+                keys = revs.Select(invoke).Where(x => x != null);
+            } catch(Exception ex) {
+                Log.To.Sync.E(Tag, "Error generating bulk request data.", ex);
+            }
+
             var retval = new Dictionary<string, object>();
-            retval.Put("docs", keys);
+            retval["docs"] = keys;
+            Log.To.Sync.V(Tag, "Created bulk download request {0}{1}Body: {2}", _bulkGetUri, Environment.NewLine,
+                new LogJsonString(keys));
             return retval;
         }
 
@@ -330,6 +398,16 @@ namespace Couchbase.Lite.Replicator
         {
             var uri = remote.AppendPath(relativePath);
             return uri.AbsoluteUri;
+        }
+
+        public override string ToString()
+        {
+            return String.Format("BulkDownloader ({0})", new SecureLogUri(_bulkGetUri));
+        }
+
+        public void Dispose()
+        {
+            _httpClient.Dispose();
         }
     }
 }

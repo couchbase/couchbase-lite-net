@@ -1,0 +1,167 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{04A267E1-6CB5-4BD5-9987-1A09BA1349CA}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Todo.WPF</RootNamespace>
+    <AssemblyName>Todo.WPF</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">.\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+    <TargetFrameworkProfile />
+    <ReleaseVersion>1.1</ReleaseVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="SimpleModel.cs" />
+    <Compile Include="SimpleViewModel.cs" />
+    <Page Include="ConfigWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="MainPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ConfigWindow.xaml.cs">
+      <DependentUpon>ConfigWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="MainPage.xaml.cs">
+      <DependentUpon>MainPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <AppDesigner Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\src\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\src\packages\SQLitePCL.raw.0.9.1\lib\net45\SQLitePCL.raw.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\src\packages\SQLitePCL.ugly.0.9.1\lib\net35\SQLitePCL.ugly.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCLPlugin_esqlite3, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\src\packages\SQLitePCL.plugin.sqlite3.net45.0.9.1\lib\net45\SQLitePCLPlugin_esqlite3.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCLPlugin_sqlcipher, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\src\packages\SQLitePCL.plugin.sqlcipher.net45.0.9.1\lib\net45\SQLitePCLPlugin_sqlcipher.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Stateless, Version=2.5.62.0, Culture=neutral, PublicKeyToken=93038f0927583c9a, processorArchitecture=MSIL">
+      <HintPath>..\..\src\packages\Stateless.2.5.62.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj">
+      <Project>{c87e0c01-aad6-46da-9935-c772c112bb18}</Project>
+      <Name>Couchbase.Lite.Net45</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\StorageEngines\ForestDB\storage.forestdb.net45\storage.forestdb.net45.csproj">
+      <Project>{666b3f9b-dc39-421e-9e4e-c5b666023fb0}</Project>
+      <Name>storage.forestdb.net45</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\StorageEngines\SQLCipher\storage.sqlcipher.net45\storage.sqlcipher.net45.csproj">
+      <Project>{3eee8883-b6a9-4b71-b70e-67973f7687d5}</Project>
+      <Name>storage.sqlcipher.net45</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\StorageEngines\SystemSQLite\storage.systemsqlite.net45\storage.systemsqlite.net45.csproj">
+      <Project>{88bb6717-85c9-46f0-923b-c263c08a189b}</Project>
+      <Name>storage.systemsqlite.net45</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+    <Error Condition="!Exists('..\..\src\packages\SQLitePCL.native.sqlite3.v110_xp.0.9.1\build\SQLitePCL.native.sqlite3.v110_xp.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\src\packages\SQLitePCL.native.sqlite3.v110_xp.0.9.1\build\SQLitePCL.native.sqlite3.v110_xp.targets'))" />
+    <Error Condition="!Exists('..\..\src\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\src\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets'))" />
+    <Error Condition="!Exists('..\..\src\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\src\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets'))" />
+    <Error Condition="!Exists('..\..\src\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\src\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets'))" />
+  </Target>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Import Project="..\..\src\packages\SQLitePCL.native.sqlite3.v110_xp.0.9.1\build\SQLitePCL.native.sqlite3.v110_xp.targets" Condition="Exists('..\..\src\packages\SQLitePCL.native.sqlite3.v110_xp.0.9.1\build\SQLitePCL.native.sqlite3.v110_xp.targets')" />
+  <Import Project="..\..\src\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets" Condition="Exists('..\..\src\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets')" />
+  <Import Project="..\..\src\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets" Condition="Exists('..\..\src\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets')" />
+  <Import Project="..\..\src\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets" Condition="Exists('..\..\src\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

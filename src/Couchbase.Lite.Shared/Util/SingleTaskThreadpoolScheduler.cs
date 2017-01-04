@@ -11,113 +11,159 @@ namespace Couchbase.Lite.Util
     sealed internal class SingleTaskThreadpoolScheduler : TaskScheduler 
     {
         private const string Tag = "SingleTaskThreadpoolScheduler";
-        private const int maxConcurrency = 1;
 
-        private readonly BlockingCollection<Task> queue;
-        private int runningTasks;
+        [ThreadStatic]
+        private static bool _CurrentThreadIsProcessingItems;
+
+        private readonly LinkedList<Task> _items;
+        private int _runningTasks;
 
         public SingleTaskThreadpoolScheduler()
         {
-            queue = new BlockingCollection<Task>(new ConcurrentQueue<Task>());
-            runningTasks = 0;
+            Log.To.TaskScheduling.I(Tag, "New scheduler created");
+            _items = new LinkedList<Task>();
         }
 
         /// <summary>Queues a task to the scheduler.</summary> 
         /// <param name="task">The task to be queued.</param> 
         protected override void QueueTask(Task task) 
         {
+            Log.To.TaskScheduling.V(Tag, "Received task for queue: {0}", task.Id);
+
             // Long-running tasks can deadlock us easily.
             // We want to allow these to run without doing that.
             if (task.CreationOptions.HasFlag(TaskCreationOptions.LongRunning))
             {
-                var thread = new Thread((t)=>
+                Log.To.TaskScheduling.V(Tag, "Long running task detected, adding directly to runtime threadpool...");
+                ThreadPool.UnsafeQueueUserWorkItem(s =>
                 {
+                    var submittedTask = (Task)s;
+                    Log.To.TaskScheduling.V(Tag, "Processing long running task {0}", submittedTask.Id);
+                    _CurrentThreadIsProcessingItems = true;
                     try {
-                        var success = TryExecuteTask((Task)t);
-                        if (!success)
-                            throw new InvalidOperationException("A spawned task failed to run correctly.");
+                        if (((Task)s).Status >= TaskStatus.Running) {
+                            Log.To.TaskScheduling.V(Tag, "Skipping already running task {0}...", submittedTask.Id);
+                            return;
+                        }
+
+                        var success = TryExecuteTask((Task)s);
+                        if (!success) {
+                            if(((Task)s).Status == TaskStatus.Faulted) {
+                                Log.To.TaskScheduling.E(Tag, "A task in the scheduler failed to run", submittedTask.Exception);
+                            }
+                        }
                     } catch (Exception ex) {
-                        Log.E(Tag, "Spawned task throw an unhandled exception.", ex);
+                        Log.To.TaskScheduling.E(Tag, "Spawned task throw an unhandled exception.", ex);
+                    } finally {
+                        _CurrentThreadIsProcessingItems = false;
                     }
-                }) { IsBackground = true };
-                thread.Start(task);
+                }, task);
                 return;
             }
-            queue.Add (task); 
-            if (runningTasks < maxConcurrency)
-            {
-                Thread.MemoryBarrier();
-                Interlocked.Increment(ref runningTasks);
-                QueueThreadPoolWorkItem (); 
+
+            lock (_items) {
+                Log.To.TaskScheduling.V(Tag, "Adding task to processing queue...");
+                _items.AddLast(task); 
+                if (Interlocked.CompareExchange(ref _runningTasks, 1, 0) == 0) {
+                    Log.To.TaskScheduling.V(Tag, "Spinning up processing queue...");
+                    QueueThreadPoolWorkItem(); 
+                }
             }
         } 
 
         private void QueueThreadPoolWorkItem() 
         { 
-            ThreadPool.QueueUserWorkItem(s => 
+            ThreadPool.UnsafeQueueUserWorkItem(s => 
             { 
-                try 
-                { 
-                    while (true) 
-                    {
-                        if (queue.Count == 0) 
+                Log.To.TaskScheduling.V(Tag, "Processing queue started...");
+                _CurrentThreadIsProcessingItems = true;
+                try { 
+                    while (true) {
+                        Task item;
+                        lock(_items) {
+                            if (_items.Count == 0) {
+                                Log.To.TaskScheduling.V(Tag, "Processing queue finished!");
+                                Interlocked.Decrement(ref _runningTasks);
+                                break; 
+                            } 
+
+                            item = _items.First.Value;
+                            _items.RemoveFirst();
+                            Log.To.TaskScheduling.V(Tag, "Next task to execute: {0}", item.Id);
+                        }
+
+                        if (item.Status < TaskStatus.Running)
                         {
-                            Interlocked.Decrement(ref runningTasks);
-                            break; 
-                        } 
-                        var task = queue.Take();
-                        if (task.Status < TaskStatus.Running)
-                        {
-                            TryExecuteTask(task);
-                            if (task.Status == TaskStatus.Faulted)
-                                Log.E(Tag, "Scheduled task faulted", task.Exception);
+                            Log.To.TaskScheduling.V(Tag, "Executing task...");
+                            var success = TryExecuteTask(item);
+                            if (!success) {
+                                if(((Task)s).Status == TaskStatus.Faulted) {
+                                    Log.To.TaskScheduling.E(Tag, "Task failed to run", ((Task)s).Exception);
+                                }
+                            }
+                        } else {
+                            Log.To.TaskScheduling.V(Tag, "Skipping already running task...");
                         }
                     } 
                 }
-                catch (Exception e)
-                {
-                    Log.E(Tag, "Unhandled exception in runloop", e);
-                    throw;
+                catch (Exception e) {
+                    Log.To.TaskScheduling.E(Tag, "Unhandled exception in processing queue, aborting...", e);
+                } finally {
+                    _CurrentThreadIsProcessingItems = false;
                 }
             }, null);
         } 
 
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) 
         {
+            if (!_CurrentThreadIsProcessingItems) {
+                Log.To.TaskScheduling.V(Tag, "Thread {0} not processing items, so cannot execute inline", Thread.CurrentThread.ManagedThreadId);
+                return false;
+            }
+
             if (taskWasPreviouslyQueued) {
-                TryDequeue(task); 
+                if (TryDequeue(task)) {
+                    Log.To.TaskScheduling.V(Tag, "Executing previously queued task {0} inline", task);
+                    return TryExecuteTask(task);
+                } else {
+                    Log.To.TaskScheduling.V(Tag, "Failed to dequeue task {0}", task);
+                    return false;
+                }
+            } else {
+                Log.To.TaskScheduling.V(Tag, "Executing task {0} inline", task);
+                return TryExecuteTask(task);
             }
-
-            var success = TryExecuteTask(task);
-            if (!success && (task.Status != TaskStatus.Running && task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
-                Log.E(Tag, "Scheduled task faulted", task.Exception);
-
-            if (success && !task.IsCompleted) {
-                //Mono (Android & iOS, at least) will throw an exception if this method returns true
-                //before the task is complete
-                success = task.Wait(TimeSpan.FromSeconds(10));
-            }
-
-            return success;
         } 
 
         protected override bool TryDequeue(Task task) 
         {
-            // Our concurrent collection does not let
-            // use efficiently re-order the queue,
-            // so we won't try to.
-            return false;
+            lock (_items) {
+                return _items.Remove(task);
+            }
         } 
 
         public override int MaximumConcurrencyLevel { 
             get { 
-                return maxConcurrency; 
+                return 1; 
             } 
         } 
 
         protected override IEnumerable<Task> GetScheduledTasks() 
         { 
-            return queue.ToArray(); 
+            bool lockTaken = false;
+            try
+            {
+                lockTaken = Monitor.TryEnter(_items);
+                if (lockTaken) {
+                    return _items;
+                } else {
+                    return null;
+                }
+            }
+            finally
+            {
+                if (lockTaken) Monitor.Exit(_items);
+            }
         }
 
         internal IEnumerable<Task> ScheduledTasks { get { return GetScheduledTasks(); } }

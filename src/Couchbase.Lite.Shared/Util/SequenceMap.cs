@@ -41,7 +41,6 @@
 //
 
 using System.Collections.Generic;
-using Sharpen;
 using System.Threading;
 
 namespace Couchbase.Lite.Support
@@ -56,7 +55,7 @@ namespace Couchbase.Lite.Support
     /// </remarks>
     internal class SequenceMap
     {
-        private TreeSet<long> sequences;
+        private List<long> sequences;
 
         private long lastSequence;
 
@@ -77,7 +76,7 @@ namespace Couchbase.Lite.Support
             // last generated sequence
             // values of remaining sequences
             // sequence # of first item in _values
-            sequences = new TreeSet<long>();
+            sequences = new List<long>();
             values = new List<string>(100);
             firstValueSequence = 1;
             lastSequence = 0;
@@ -91,8 +90,8 @@ namespace Couchbase.Lite.Support
         public long AddValue(string value)
         {
             _lock.EnterWriteLock();
-            sequences.AddItem(++lastSequence);
-            values.AddItem(value);
+            sequences.Add(++lastSequence);
+            values.Add(value);
             _lock.ExitWriteLock();
             return lastSequence;
         }
@@ -106,10 +105,11 @@ namespace Couchbase.Lite.Support
             _lock.ExitWriteLock();
         }
 
+        // Used by tests
         public bool IsEmpty()
         {
             _lock.EnterReadLock();
-            var retVal = sequences.IsEmpty();
+            var retVal = sequences.Count == 0;
             _lock.ExitReadLock();
             return retVal;
         }
@@ -128,8 +128,8 @@ namespace Couchbase.Lite.Support
             }
 
             long sequence = lastSequence;
-            if (!sequences.IsEmpty()) {
-                sequence = sequences.First() - 1;
+            if (sequences.Count != 0) {
+                sequence = sequences[0] - 1;
             }
 
             if (sequence > firstValueSequence) {
@@ -137,7 +137,7 @@ namespace Couchbase.Lite.Support
                 // Garbage-collect inaccessible values:
                 int numToRemove = (int)(sequence - firstValueSequence);
                 for (int i = 0; i < numToRemove; i++) {
-                    values.Remove(0);
+                    values.RemoveAt(0);
                 }
                 firstValueSequence += numToRemove;
                 _lock.ExitWriteLock();

@@ -42,18 +42,135 @@
 * and limitations under the License.
 */
 
-using Couchbase.Lite;
-using NUnit.Framework;
-using Sharpen;
-using Couchbase.Lite.Util;
-using System.Net.Http;
+using System;
 using System.Collections.Generic;
+using System.Net.Http;
+
+using Couchbase.Lite.Auth;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
+using NUnit.Framework;
+using Couchbase.Lite.Storage.ForestDB;
+using System.IO;
+using System.Text;
+using System.Threading;
+using System.Net.Sockets;
+using System.Linq;
+using System.Collections;
 
 namespace Couchbase.Lite
 {
-    public class MiscTest
+
+    public class MiscTest : LiteTestCase
     {
         const string Tag = "MiscTest";
+
+        public MiscTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestRoundTripDateTimeOffset()
+        {
+            var expectedTime = new DateTimeOffset (2016, 01, 01, 12, 0, 0, new TimeSpan (-9, 0, 0));
+            var expectedTime2 = expectedTime.LocalDateTime;
+            var props = new Dictionary<string, object> {
+                { "text", "This is text" },
+                { "time", expectedTime }
+            };
+            var json = Manager.GetObjectMapper().WriteValueAsString(props);
+            var deserialized = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(json);
+            var resultObj = deserialized.Get("time");
+            Assert.IsInstanceOf(typeof(DateTime), resultObj);
+            Assert.AreEqual(expectedTime2, resultObj);
+
+            ManagerOptions.SerializationSettings = new JsonSerializationSettings { DateTimeHandling = DateTimeHandling.UseDateTimeOffset };
+            json = Manager.GetObjectMapper().WriteValueAsString(props);
+            deserialized = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(json);
+            resultObj = deserialized.Get("time");
+            Assert.IsInstanceOf(typeof(DateTimeOffset), resultObj);
+            Assert.AreEqual(expectedTime, resultObj);
+            Assert.AreEqual(expectedTime.Offset, ((DateTimeOffset)resultObj).Offset);
+        }
+
+        [Test]
+        public void TestExceptionEnumerable()
+        {
+            var innerException = new SocketException();
+            var nextException = new HttpRequestException("Socket exception", innerException);
+            var otherNextException = new CouchbaseLiteException();
+            var aggregate = new AggregateException("OMG", nextException, otherNextException);
+
+            string statusCode;
+            Assert.IsTrue(Misc.IsTransientNetworkError(aggregate, out statusCode));
+            CollectionAssert.AreEqual(new Exception[] { innerException, nextException, otherNextException  }, 
+                new ExceptionEnumerable(aggregate).ToArray());
+        }
+
+
+        [Test]
+        public void TestNetworkAvailabilityChanged()
+        {
+            var countdown = 2;
+            var handler = new NetworkReachabilityManager();
+            handler.StatusChanged += (sender, args) => {
+                if(args.Status == NetworkReachabilityStatus.Reachable) {
+                    countdown -= 1;
+                }
+            };
+
+            handler.InvokeNetworkChangeEvent(NetworkReachabilityStatus.Unreachable);
+            handler.InvokeNetworkChangeEvent(NetworkReachabilityStatus.Reachable);
+            handler.InvokeNetworkChangeEvent(NetworkReachabilityStatus.Reachable);
+            Assert.AreEqual(0, countdown);
+        }
+
+        [Test]
+        public void TestServerVersionParsing()
+        {
+            var oldVersion = new RemoteServerVersion("Couchbase Sync Gateway/1.1.0");
+            Assert.IsTrue(oldVersion.IsSyncGateway);
+            Assert.AreEqual("Couchbase Sync Gateway", oldVersion.Name);
+            Assert.AreEqual("1.1.0", oldVersion.Version);
+            Assert.AreEqual(String.Empty, oldVersion.Branch);
+            Assert.AreEqual(String.Empty, oldVersion.Commit);
+
+            var nonSGVersion = new RemoteServerVersion("CouchDB/1.6.1");
+            Assert.IsFalse(nonSGVersion.IsSyncGateway);
+            Assert.AreEqual("CouchDB", nonSGVersion.Name);
+            Assert.AreEqual("1.6.1", nonSGVersion.Version);
+            Assert.AreEqual(String.Empty, nonSGVersion.Branch);
+            Assert.AreEqual(String.Empty, nonSGVersion.Commit);
+
+            var newVersion = new RemoteServerVersion("Couchbase Sync Gateway/1.2 branch/fix/server_header commit/5bfcf79");
+            Assert.IsTrue(newVersion.IsSyncGateway);
+            Assert.AreEqual("Couchbase Sync Gateway", newVersion.Name);
+            Assert.AreEqual("1.2", newVersion.Version);
+            Assert.AreEqual("fix/server_header", newVersion.Branch);
+            Assert.AreEqual("5bfcf79", newVersion.Commit);
+        }
+
+        [Test]
+        public void TestFacebookAuthorizer()
+        {
+            const string token = "pyrzqxgl";
+            var site = new Uri("https://example.com/database");
+            const string email = "jimbo@example.com";
+
+            // Register and retrieve the sample token:
+            var auth = new FacebookAuthorizer(email);
+            auth.RemoteUrl = site;
+            Assert.IsTrue(FacebookAuthorizer.RegisterAccessToken(token, email, site));
+            var gotToken = auth.GetToken();
+            Assert.AreEqual(token, gotToken);
+
+            // Try a variant form
+            var auth2 = new FacebookAuthorizer(email);
+            auth2.RemoteUrl = new Uri("HttpS://example.com:443/some/other/path");
+            gotToken = auth2.GetToken();
+            Assert.AreEqual(token, gotToken);
+            CollectionAssert.AreEqual(new ArrayList { "POST", "_facebook", new Dictionary<string, object> {
+                ["access_token"] = token
+            } }, auth.LoginRequest());
+        }
 
         [Test]
         public void TestUnquoteString()
@@ -65,12 +182,23 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestForestDBViewNameEscaping()
+        {
+            var invalidName = "#@vuName!!/crazy:��";
+            var escapedName = ForestDBViewStore.ViewNameToFilename(invalidName);
+            Assert.AreEqual("@23@40vuName@21@21@2fcrazy@3a��.viewindex", escapedName);
+
+            var unescapedName = ForestDBViewStore.FileNameToViewName(escapedName);
+            Assert.AreEqual(invalidName, unescapedName);
+        }
+
+        [Test]
         public void TestTransientRetryHandler()
         {
             Assert.Inconclusive("Need to implement a scriptable http service, like Square's MockWebServer.");
 
             // Arrange
-            var handler = new TransientErrorRetryHandler(new HttpClientHandler());
+            var handler = new TransientErrorRetryHandler(new HttpClientHandler(), new ExponentialBackoffStrategy(2));
             var client = new HttpClient(handler);
             var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost/foo");
 
@@ -82,7 +210,7 @@ namespace Couchbase.Lite
                     Assert.Pass();
                 });
             } catch (HttpRequestException e) {
-                Log.E(Tag, "Transient exception not handled", e);
+                Console.WriteLine("Transient exception not handled {0}", e);
                 Assert.Fail("Transient exception not handled");
             }
         }

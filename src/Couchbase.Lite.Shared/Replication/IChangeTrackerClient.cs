@@ -41,22 +41,24 @@
 //
 
 using System.Collections.Generic;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Support;
-using Sharpen;
 using System.Net.Http;
-using System;
-using Couchbase.Lite.Auth;
+using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Replicator
+#if NET_3_5
+using System.Net.Couchbase;
+#else
+using System.Net;
+#endif
+
+namespace Couchbase.Lite.Internal
 {
     internal interface IChangeTrackerClient
     {
-        HttpClient GetHttpClient(bool longPoll);
+        CouchbaseLiteHttpClient GetHttpClient();
+        CookieContainer GetCookieStore();
         void ChangeTrackerReceivedChange(IDictionary<string, object> change);
         void ChangeTrackerStopped(ChangeTracker tracker);
-
-        //TODO: Socket and web socket
-        //void ChangeTrackerFinished(ChangeTracker tracker);
+        void ChangeTrackerCaughtUp(ChangeTracker tracker);
+        void ChangeTrackerFinished(ChangeTracker tracker);
     }
 }

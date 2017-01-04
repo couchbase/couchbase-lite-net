@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<package >
+<package>
   <metadata>
     <id>Couchbase.Lite.Listener</id>
     <title>Couchbase Lite - HTTP Listener</title>
-    <version>1.1.0</version>
+    <version>$version$</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,23 +12,37 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Provides Couchbase Lite with a self-hosted REST API.</description>
     <releaseNotes>
-      Enables:
-        * Interprocess communication via HTTP.
-        * Peer-to-Peer Sync.
-        * Integration with apps deployed inside web containers.
-        * Integration with other HTTP-capable languages and services.
+This is a feature release, with a focus on performance. Noteworthy changes:
+
+- Support for OpenID Connect authentication, so you can log into Sync Gateway using a 3rd-party identity like a Google or Yahoo ID.
+- Timed expiration of documents can help keep your database from growing indefinitely.
+- Better performance with docs that have many revisions. Replication is faster, and older revisions are now automatically cleaned up in SQLite storage.
+- Clearer error messages and better logging, including customizable domains and app.config support
+- And of course many smaller optimizations, and lots of bug fixes.
+
+For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.3-pre1
     </releaseNotes>
-    <copyright>Copyright 2015</copyright>
+    <copyright>Copyright 2015-2016</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <dependency id="Couchbase.Lite" version="1.1.0" />
-      <dependency id="Jint" version="2.4.0" />
+      <group targetFramework="net35">
+        <dependency id="Couchbase.Lite" version="$version$" />
+      </group>
+      <group targetFramework="net45">
+        <dependency id="Couchbase.Lite" version="$version$" />
+        <dependency id="Jint" version="2.7.1" />
+      </group>
+      <group>
+        <dependency id="Couchbase.Lite" version="$version$" />
+        <dependency id="Jint" version="2.7.1" />
+      </group>
     </dependencies>
   </metadata>
   <files>
-    <file target="lib/net45" src="src/ListenerComponent/Couchbase.Lite.Listener.Net45/bin/Release/Couchbase.Lite.Listener.*" />
-    <file target="lib/MonoAndroid" src="src/ListenerComponent/Couchbase.Lite.Listener.Android/bin/Release/Couchbase.Lite.Listener.*" />
-    <file target="lib/xamarinios10" src="src/ListenerComponent/Couchbase.Lite.Listener.iOS/bin/Release/Couchbase.Lite.Listener.*" />
+    <file target="lib/net45" src="staging/Couchbase.Lite.Listener/net45/*"/>
+    <file target="lib/MonoAndroid" src="staging/Couchbase.Lite.Listener/MonoAndroid/*" />
+    <file target="lib/xamarinios10" src="staging/Couchbase.Lite.Listener/Xamarin.iOS10/*" />
+    <file target="lib/net35" src="staging/Couchbase.Lite.Listener/net35/*" />
   </files>
 </package>

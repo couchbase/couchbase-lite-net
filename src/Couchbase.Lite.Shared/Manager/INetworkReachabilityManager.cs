@@ -7,7 +7,7 @@ namespace Couchbase.Lite
     /// The interface governing an object which can check network reachability
     /// and react to changes in reachability
     /// </summary>
-    public interface INetworkReachabilityManager
+    internal interface INetworkReachabilityManager
     {
         /// <summary>
         /// Occurs when reachability changes.
@@ -15,21 +15,17 @@ namespace Couchbase.Lite
         event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
 
         /// <summary>
+        /// Gets the last error that occured while trying to connect
+        /// </summary>
+        Exception LastError { get; }
+
+        /// <summary>
         /// Returns whether or not a given endpoint is reachable
         /// </summary>
         /// <returns><c>true</c> if this instance can reach the specified endpoint; otherwise, <c>false</c>.</returns>
         /// <param name="remoteUri">The endpoint to test</param>
-        bool CanReach(string remoteUri);
-
-        /// <summary>
-        /// Start listening for changes in network reachability
-        /// </summary>
-        void StartListening();
-
-        /// <summary>
-        /// Stop listening for changes in network reachability
-        /// </summary>
-        void StopListening();
+        /// <param name="timeout">The amount of time to wait for a response</param>
+        bool CanReach(string remoteUri, TimeSpan timeout);
     }
 
     #region Enum

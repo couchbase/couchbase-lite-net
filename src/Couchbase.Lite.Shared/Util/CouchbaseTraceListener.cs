@@ -46,58 +46,49 @@
 #endif
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
 {
-    class CouchbaseTraceListener : DefaultTraceListener
+    internal class CouchbaseTraceListener : DefaultTraceListener
     {
-        const string Indent = "    ";
-        const string Category = "Trace";
-        
-        SourceLevels Level;
+        private const string Indent = "    ";
+        private const string Category = "Trace";
+        #if __DEBUGGER__
+        private SourceLevels Level;
+        #endif
 
-        public CouchbaseTraceListener() { }
-
-        public CouchbaseTraceListener(SourceLevels logLevel)
+        public CouchbaseTraceListener()
         {
-            Level = logLevel;
             Name = "Couchbase";
-            TraceOutputOptions = Level.HasFlag(SourceLevels.All)
-                ? TraceOptions.ThreadId | TraceOptions.DateTime /*| TraceOptions.Timestamp*/
-                :  TraceOptions.None;
+            TraceOutputOptions = TraceOptions.ThreadId | TraceOptions.DateTime;
         }
 
         void WriteOptionalTraceInfo()
         {
-            #if !__MOBILE__ && !NET_3_5
             var traceInfo = new TraceEventCache();
-            if (TraceOutputOptions.HasFlag(TraceOptions.ThreadId))
-            {
-                PrintThreadId(traceInfo);
-            }
-            if (TraceOutputOptions.HasFlag(TraceOptions.DateTime))
-            {
+            #if !NET_3_5
+            if (TraceOutputOptions.HasFlag(TraceOptions.DateTime)) {
                 PrintDateTime(traceInfo);
             }
-            if (TraceOutputOptions.HasFlag(TraceOptions.Timestamp))
-            {
-                PrintTimeStamp(traceInfo);
+            if (TraceOutputOptions.HasFlag(TraceOptions.ThreadId)) {
+                PrintThreadId(traceInfo);
             }
             #endif
         }
 
-        #if !__MOBILE__ && !NET_3_5
+        #if !NET_3_5
         void PrintThreadId(TraceEventCache info)
         {
             #if __DEBUGGER__
             Debugger.Log((int)SourceLevels.Critical, Category, "Thread Name: " + info.ThreadId + Environment.NewLine);
             #endif
             #if __CONSOLE__
-            WriteIndent();
-            Console.Out.Write("Thread Name: ");
+            Console.Out.Write("[");
             Console.Out.Write(info.ThreadId);
-            Console.Out.Write(Environment.NewLine);
+            Console.Out.Write("]");
+            Console.Out.Write(" ");
             #endif
         }
 
@@ -107,30 +98,37 @@ namespace Couchbase.Lite.Util
             Debugger.Log((int)SourceLevels.Critical, Category, "Date Time: " + info.DateTime + Environment.NewLine);
             #endif
             #if __CONSOLE__
-            WriteIndent();
-            Console.Out.Write("Date Time:   ");
-            Console.Out.Write(info.DateTime);
-            Console.Out.Write(Environment.NewLine);
+            Console.Out.Write(info.DateTime.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK"));
+            Console.Out.Write(" ");
             #endif
         }
 
-        void PrintTimeStamp(TraceEventCache info)
+        #endif
+
+        static string LevelToString(SourceLevels level)
         {
-            #if __DEBUGGER__
-            Debugger.Log((int)SourceLevels.Critical, Category, "Timestamp: " + info.Timestamp + Environment.NewLine);
-            #endif
-            #if __CONSOLE__
-            WriteIndent();
-            Console.Out.Write("Timestamp:   ");
-            Console.Out.Write(info.Timestamp);
-            Console.Out.Write(Environment.NewLine);
-            #endif
+            switch (level) {
+                case SourceLevels.ActivityTracing:
+                    return "DEBUG)";
+                case SourceLevels.Verbose:
+                    return "VERBOSE)";
+                case SourceLevels.Information:
+                    return "INFO)";
+                case SourceLevels.Warning:
+                    return "WARN)";
+                case SourceLevels.Error:
+                    return "ERROR)";
+                default:
+                    return "UNKNOWN LEVEL)";
+            }
         }
-    #endif
+
         public void WriteLine(SourceLevels level, string message, string category)
         {
+            #if __DEBUGGER__
             Level = level;
-            WriteLine(message, category);
+            #endif
+            WriteLine(message, String.Format("{0} {1}", LevelToString(level), category));
         }
 
 
@@ -160,13 +158,14 @@ namespace Couchbase.Lite.Util
             Debugger.Log((int)Level, category, message + Environment.NewLine);
             #endif
             #if __CONSOLE__
+            WriteOptionalTraceInfo();
             Console.Out.Write(category);
             Console.Out.Write(": ");
             Console.Out.Write(message);
             Console.Out.Write(Environment.NewLine);
             Console.Out.Flush();
             #endif
-            WriteOptionalTraceInfo();
+
         }      
 
         public override void Write(object o)
@@ -213,10 +212,10 @@ namespace Couchbase.Lite.Util
             Debugger.Log((int)SourceLevels.Critical, Category, message + Environment.NewLine);
             #endif
             #if __CONSOLE__
+            WriteOptionalTraceInfo();
             Console.Out.Write(message);
             Console.Out.Write(Environment.NewLine);
             #endif
-            WriteOptionalTraceInfo();
         }
 
         public override void Fail (string message, string detailMessage)
@@ -230,6 +229,7 @@ namespace Couchbase.Lite.Util
                 Write(Environment.NewLine);
             }
         }
+
         #endregion
     }
 }

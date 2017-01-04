@@ -1,51 +1,81 @@
 using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
-
-    internal class ExponentialBackoffStrategy : IRetryStrategy
+    internal sealed class ExponentialBackoffStrategy : IRetryStrategy
     {
-        readonly HttpRequestMessage _request;
-        readonly int _maxTries;
+        
+        #region Constants
 
-        int _tries;
-        int _millis = 20;
+        private static readonly string Tag = typeof(ExponentialBackoffStrategy).Name;
 
-        public ExponentialBackoffStrategy(HttpRequestMessage request, Int32 maxTries, CancellationToken token)
+        #endregion
+
+        #region Variables
+
+        private readonly int _maxTries;
+        private int _tries;
+        private TimeSpan _currentDelay = TimeSpan.FromSeconds(2); // Wil be multiplied by 2 prior to use, so actually 4
+
+        #endregion
+
+        #region Properties
+
+        public int RetriesRemaining { get { return _maxTries - _tries; } }
+
+        public int MaxRetries
         {
-            Token = token;
+            get { return 2; }
+        }
 
-            _request = request;
+        #endregion
+
+        #region Constructors
+
+        public ExponentialBackoffStrategy(int maxTries)
+        {
+            if (maxTries <= 0) {
+                Log.To.Database.E(Tag, "maxTries <= 0 in ctor, throwing...");
+                throw new ArgumentOutOfRangeException("maxTries", maxTries, "Max tries must be at least 1");
+            }
+
             _maxTries = maxTries;
             _tries = 0;
         }
 
-        public Int32 RetriesRemaining { get { return _maxTries - _tries; } }
+        #endregion
 
-        public SendMessageAsyncDelegate Send;
+        #region IRetryStrategy
 
-        #region IRetryStrategy implementation
-
-        public CancellationToken Token { get; private set; }
-
-        public Task<HttpResponseMessage> Retry()
+        public TimeSpan NextDelay(bool increment)
         {
-            _tries++;
-            _millis *= 2; // Double the wait backoff.
-            return Task
-                .Delay(WaitInterval)
-                .ContinueWith(t => Send(_request, Token))
-                .Unwrap();
+            var retVal = _currentDelay;
+            if (increment) {
+                _currentDelay = _currentDelay.Add(_currentDelay);
+                _tries++;
+            }
+
+            return retVal;
         }
 
-        public TimeSpan WaitInterval
+        public void Reset()
         {
-            get {
-                return TimeSpan.FromMilliseconds(_millis); 
-            }
+            _tries = 0;
+            _currentDelay = TimeSpan.FromSeconds(2);
+        }
+
+        public IRetryStrategy Copy()
+        {
+            return new ExponentialBackoffStrategy(_maxTries);
+        }
+
+        #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            return String.Format("ExponentialBackoffStrategy[StartTime={0} MaxRetries={1}]", TimeSpan.FromSeconds(4), _maxTries);
         }
 
         #endregion

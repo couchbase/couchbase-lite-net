@@ -82,16 +82,24 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Don't include the JSON properties
         /// </summary>
+        [Obsolete("No longer used, will be removed")]
         NoBody = 64,
 
         /// <summary>
         /// Attachments over a certain size are sent via a multipart response
         /// </summary>
+        [Obsolete("No longer used, will be removed")]
         BigAttachmentsFollow = 128,
 
         /// <summary>
         /// Don't include attachments
         /// </summary>
-        NoAttachments = 256
+        [Obsolete("No longer used, will be removed")]
+        NoAttachments = 256,
+
+        /// <summary>
+        /// Includes the document's expiration time, if it has any
+        /// </summary>
+        IncludeExpiration = 512
     }
 }

@@ -3,11 +3,15 @@ using System.Threading.Tasks;
 using System.Threading;
 using NUnit.Framework;
 using Couchbase.Lite.Store;
+using Couchbase.Lite.Storage.SQLCipher;
 
 namespace Couchbase.Lite
 {
     public class StorageEngineTest : LiteTestCase
     {
+
+        public StorageEngineTest(string storageType) : base(storageType) {}
+
         [Test]
         [Description("If the delegate returns true, the transaction should be committed.")]
         public void TestRunInTransactionCommits()
