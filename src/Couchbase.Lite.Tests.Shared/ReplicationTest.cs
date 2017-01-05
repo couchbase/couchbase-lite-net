@@ -703,10 +703,10 @@ namespace Couchbase.Lite
                 pusher.Changed += rso.Changed;
                 pusher.Start();
                 Sleep(500);
-                Assert.IsTrue(database.Close().Wait(15000));
-                Assert.IsFalse(database.IsOpen);
-                Assert.IsNull(database.Storage);
-                Assert.IsTrue(signal.Wait(10000));
+                database.Close().Wait(15000).Should().BeTrue("because otherwise the database close operation timed out");
+                database.IsOpen.Should().BeFalse("because the database is now closed");
+                database.Storage.Should().BeNull("because the database storage is null when a database is closed");
+                signal.Wait(10000).Should().BeTrue("because otherwise the replication failed to stop");
             }
         }
 
@@ -2587,7 +2587,7 @@ namespace Couchbase.Lite
             }
 
             // Create a bunch (InboxCapacity * 2) local documents
-            var numDocsToSend = Replication.INBOX_CAPACITY * 2;
+            var numDocsToSend = Replication.InboxCapacity * 2;
             for (var i = 0; i < numDocsToSend; i++)
             {
                 var properties = new Dictionary<string, object>();

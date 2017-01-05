@@ -546,6 +546,28 @@ namespace Couchbase.Lite.Replicator
             UploadBulkDocs(docsToSend, revsToSend);
         }
 
+        private void PurgeRevs(IList<RevisionInternal> revs)
+        {
+
+            Log.To.Sync.I(TAG, "Purging {0} docs ('purgePushed' option)", revs.Count);
+            var toPurge = new Dictionary<string, IList<string>>();
+            foreach(var rev in revs) {
+                toPurge[rev.DocID] = new List<string> { rev.RevID.ToString() };
+            }
+
+            var localDb = LocalDatabase;
+            if(localDb != null && localDb.IsOpen) {
+                var storage = localDb.Storage;
+                if(storage != null && storage.IsOpen) {
+                    storage.PurgeRevisions(toPurge);
+                } else {
+                    Log.To.Sync.W(TAG, "{0} storage is closed, cannot purge...", localDb);
+                }
+            } else {
+                Log.To.Sync.W(TAG, "Local database is closed or null, cannot purge...");
+            }
+        }
+
         #endregion
 
         #region Overrides
@@ -626,27 +648,13 @@ namespace Couchbase.Lite.Replicator
             }
                 
             if (ReplicationOptions.PurgePushed) {
-                _purgeQueue = new Batcher<RevisionInternal>(WorkExecutor, EphemeralPurgeBatchSize, 
-                    EphemeralPurgeDelay, (revs) =>
-                {
-                    Log.To.Sync.I(TAG, "Purging {0} docs ('purgePushed' option)", revs.Count);
-                    var toPurge = new Dictionary<string, IList<string>>();
-                    foreach(var rev in revs) {
-                        toPurge[rev.DocID] = new List<string> { rev.RevID.ToString() };
-                    }
-
-                    var localDb = LocalDatabase;
-                    if(localDb != null && localDb.IsOpen) {
-                        var storage = localDb.Storage;
-                        if(storage != null && storage.IsOpen) {
-                            storage.PurgeRevisions(toPurge);
-                        } else {
-                            Log.To.Sync.W(TAG, "{0} storage is closed, cannot purge...", localDb);
-                        }
-                    } else {
-                        Log.To.Sync.W(TAG, "Local database is closed or null, cannot purge...");
-                    }
-                }, CancellationTokenSource);
+                _purgeQueue = new Batcher<RevisionInternal>(new BatcherOptions<RevisionInternal> {
+                    WorkExecutor = WorkExecutor,
+                    Capacity = EphemeralPurgeBatchSize,
+                    Delay = EphemeralPurgeDelay,
+                    Processor = PurgeRevs,
+                    TokenSource = CancellationTokenSource
+                });
             }
 
             // Now listen for future changes (in continuous mode):
@@ -662,19 +670,23 @@ namespace Couchbase.Lite.Replicator
 
             var options = ChangesOptions.Default;
             options.IncludeConflicts = true;
-            var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, _filter, FilterParams);
-            if (changes.Count > 0) {
-                Batcher.QueueObjects(changes);
+            var changes = LocalDatabase.ChangesSinceStreaming(lastSequenceLong, options, _filter, FilterParams);
+            bool hasItems = changes.Any();
+            foreach(var change in changes) {
+                Batcher.QueueObject(change);
+            }
+
+            if (hasItems) {
                 Batcher.Flush();
             }
 
             if (Continuous) {
-                if (changes.Count == 0) {
+                if (!hasItems) {
                     Log.To.Sync.V(TAG, "No changes to push, switching to idle...");
                     FireTrigger(ReplicationTrigger.WaitingForChanges);
                 }
             } else {
-                if(changes.Count == 0) {
+                if(!hasItems) {
                     Log.To.Sync.V(TAG, "No changes to push, firing StopGraceful...");
                     FireTrigger(ReplicationTrigger.StopGraceful);
                 }

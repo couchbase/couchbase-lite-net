@@ -192,10 +192,10 @@ namespace Couchbase.Lite
         /// </summary>
         public static readonly string SyncProtocolVersion = "1.3";
 
-        internal const string CHANNELS_QUERY_PARAM = "channels";
-        internal const string BY_CHANNEL_FILTER_NAME = "sync_gateway/bychannel";
-        internal const string REPLICATOR_DATABASE_NAME = "_replicator";
-        internal const int INBOX_CAPACITY = 100;
+        internal const string ChannelsQueryParam = "channels";
+        internal const string ByChannelFilterName = "sync_gateway/bychannel";
+        internal const string ReplicatorDatabaseName = "_replicator";
+        internal const int InboxCapacity = 100;
         private static readonly TimeSpan ProcessorDelay = TimeSpan.FromMilliseconds(500);
         private static readonly TimeSpan SaveLastSequenceDelay = TimeSpan.FromSeconds(5);
         private const string Tag = nameof(Replication);
@@ -348,10 +348,10 @@ namespace Couchbase.Lite
                     return new List<string>();
                 }
 
-                var p = FilterParams.ContainsKey(CHANNELS_QUERY_PARAM)
-                    ? (string)FilterParams[CHANNELS_QUERY_PARAM]
+                var p = FilterParams.ContainsKey(ChannelsQueryParam)
+                    ? (string)FilterParams[ChannelsQueryParam]
                     : null;
-                if (!IsPull || Filter == null || !Filter.Equals(BY_CHANNEL_FILTER_NAME) || StringEx.IsNullOrWhiteSpace(p))
+                if (!IsPull || Filter == null || !Filter.Equals(ByChannelFilterName) || StringEx.IsNullOrWhiteSpace(p))
                 {
                     return new List<string>();
                 }
@@ -369,12 +369,12 @@ namespace Couchbase.Lite
                         return;
                     }
 
-                    Filter = BY_CHANNEL_FILTER_NAME;
+                    Filter = ByChannelFilterName;
                     var filterParams = new Dictionary<string, object>();
-                    filterParams[CHANNELS_QUERY_PARAM] = String.Join(",", value.ToStringArray());
+                    filterParams[ChannelsQueryParam] = String.Join(",", value.ToStringArray());
                     FilterParams = filterParams;
                 }
-                else if (Filter != null && Filter.Equals(BY_CHANNEL_FILTER_NAME))
+                else if (Filter != null && Filter.Equals(ByChannelFilterName))
                 {
                     Filter = null;
                     FilterParams = null;
@@ -704,25 +704,14 @@ namespace Couchbase.Lite
                 }
             }
 
-            Batcher = new Batcher<RevisionInternal>(workExecutor, INBOX_CAPACITY, ProcessorDelay, inbox =>
-            {
-                try {
-                    Log.To.Sync.V(Tag, "*** {0} BEGIN ProcessInbox ({1} sequences)", this, inbox.Count);
-                    if(Continuous) {
-                        FireTrigger(ReplicationTrigger.Resume);
-                    }
-
-                    ProcessInbox (new RevisionList(inbox));
-
-                    Log.To.Sync.V(Tag, "*** {0} END ProcessInbox (lastSequence={1})", this, LastSequence);
-                } catch(Exception e) {
-                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag, 
-                        "{0} ProcessInbox failed", this);
-                }
+            Batcher = new Batcher<RevisionInternal>(new BatcherOptions<RevisionInternal> {
+                WorkExecutor = workExecutor,
+                Capacity = InboxCapacity,
+                Delay = ProcessorDelay,
+                Processor = BatcherCallback
             });
-
+                
             ClientFactory = clientFactory;
-
             _stateMachine = new StateMachine<ReplicationState, ReplicationTrigger>(ReplicationState.Initial);
             InitializeStateMachine();
         }
@@ -1459,6 +1448,23 @@ namespace Couchbase.Lite
         #endregion
 
         #region Private Methods
+
+        private void BatcherCallback(IList<RevisionInternal> inbox)
+        {
+            try {
+                Log.To.Sync.V(Tag, "*** {0} BEGIN ProcessInbox ({1} sequences)", this, inbox.Count);
+                if(Continuous) {
+                    FireTrigger(ReplicationTrigger.Resume);
+                }
+
+                ProcessInbox(new RevisionList(inbox));
+
+                Log.To.Sync.V(Tag, "*** {0} END ProcessInbox (lastSequence={1})", this, LastSequence);
+            } catch(Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag,
+                    "{0} ProcessInbox failed", this);
+            }
+        }
 
         private void WaitForStopped (object sender, ReplicationChangeEventArgs e)
         {
