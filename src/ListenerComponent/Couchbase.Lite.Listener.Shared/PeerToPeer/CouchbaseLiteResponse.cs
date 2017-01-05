@@ -124,6 +124,25 @@ namespace Couchbase.Lite.Listener
         /// <value>The headers.</value>
         public IDictionary<string, string> Headers { get; set; }
 
+        public Action<CouchbaseLiteResponse, object> WriteBodyCallback
+        {
+            get {
+                return _writeBodyCallback;
+            }
+            set {
+                _binaryBody = null;
+                _jsonBody = null;
+                _multipartWriter = null;
+                _writeBodyCallback = value;
+            }
+        }
+        private Action<CouchbaseLiteResponse, object> _writeBodyCallback;
+
+        public object WriteBodyContext
+        {
+            get; set;
+        }
+
         /// <summary>
         /// The body of the response, as JSON (will clear
         /// the values of the other body objects)
@@ -134,6 +153,7 @@ namespace Couchbase.Lite.Listener
             }
             set {
                 _binaryBody = null;
+                _writeBodyCallback = null;
                 _jsonBody = value;
                 _multipartWriter = null;
             }
@@ -150,6 +170,7 @@ namespace Couchbase.Lite.Listener
             }
             set { 
                 _binaryBody = value;
+                _writeBodyCallback = null;
                 _jsonBody = null;
                 _multipartWriter = null;
             }
@@ -168,6 +189,7 @@ namespace Couchbase.Lite.Listener
             }
             set { 
                 _binaryBody = null;
+                _writeBodyCallback = null;
                 _jsonBody = null;
                 _multipartWriter = value;
                 if (value != null) {
@@ -286,6 +308,8 @@ namespace Couchbase.Lite.Listener
                         }
                     });
                     syncWrite = false;
+                } else {
+                    WriteBodyCallback?.Invoke(this, WriteBodyContext);
                 }
             }
 

@@ -888,9 +888,14 @@ namespace Couchbase.Lite.Replicator
                 this);
 
             if (_downloadsToInsert == null) {
-                const int capacity = INBOX_CAPACITY * 2;
+                const int capacity = InboxCapacity * 2;
                 TimeSpan delay = TimeSpan.FromSeconds(1);
-                _downloadsToInsert = new Batcher<RevisionInternal>(WorkExecutor, capacity, delay, InsertDownloads);
+                _downloadsToInsert = new Batcher<RevisionInternal>(new BatcherOptions<RevisionInternal> {
+                    WorkExecutor = WorkExecutor,
+                    Capacity = capacity,
+                    Delay = delay,
+                    Processor = InsertDownloads
+                });
             }
 
             if (_pendingSequences == null) {

@@ -143,7 +143,7 @@ namespace Couchbase.Lite
                 return true;
             }
 
-            return name.Equals(Replication.REPLICATOR_DATABASE_NAME);
+            return name.Equals(Replication.ReplicatorDatabaseName);
         }
 
         #endregion
@@ -687,7 +687,6 @@ namespace Couchbase.Lite
             }
 
             // remove from list of replications
-            // TODO: should there be something that actually stops the replication(s) first?
             if (replications.Count == 0) {
                 return;
             }

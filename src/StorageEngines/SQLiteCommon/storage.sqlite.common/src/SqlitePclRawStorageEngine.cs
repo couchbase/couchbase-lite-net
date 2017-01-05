@@ -718,13 +718,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         static void Close(ref sqlite3 db)
         {
-            if (db == null)
-            {
+            var dbCopy = Interlocked.Exchange(ref db, null);
+            if (dbCopy == null) {
                 return;
             }
-
-            var dbCopy = db;
-            db = null;
 
             try
             {
@@ -747,8 +744,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 dbCopy.close();
             }
 
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
             try {
                 dbCopy.Dispose();
             } catch (Exception ex) {

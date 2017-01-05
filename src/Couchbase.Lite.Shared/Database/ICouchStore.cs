@@ -234,6 +234,8 @@ namespace Couchbase.Lite.Store
         /// will be skipped.</param>
         RevisionList ChangesSince(long lastSequence, ChangesOptions options, RevisionFilter filter);
 
+        IEnumerable<RevisionInternal> ChangesSinceStreaming(long lastSequence, ChangesOptions options, RevisionFilter filter);
+
         #endregion
 
         #region Insertion / Deletion

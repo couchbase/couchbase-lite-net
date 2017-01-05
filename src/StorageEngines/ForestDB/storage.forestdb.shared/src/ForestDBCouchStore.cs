@@ -209,7 +209,7 @@ namespace Couchbase.Lite.Storage.ForestDB
         }
 
         #endregion
-
+         
         #region Public Methods
 
         public RevisionInternal GetDocument(string docId, long sequence)
@@ -523,6 +523,21 @@ namespace Couchbase.Lite.Storage.ForestDB
             }
 
             return value;
+        }
+
+        private ForestRevisionInternal CreateRevision(CBForestDocStatus s, bool loadBody)
+        {
+            return new ForestRevisionInternal(s.GetDocument(), loadBody);
+        }
+
+        private CBForestDocEnumerator EnumeratorFromSequence(long lastSequence, C4EnumeratorOptions options)
+        {
+            return new CBForestDocEnumerator(Forest, lastSequence, options); ;
+        }
+
+        private CBForestHistoryEnumerator EnumeratorUsingDoc(CBForestDocStatus doc, bool onlyLeaf, bool owner)
+        {
+            return new CBForestHistoryEnumerator(doc.GetDocument(), onlyLeaf, owner);
         }
 
         #endregion
@@ -865,45 +880,101 @@ namespace Couchbase.Lite.Storage.ForestDB
                     "(see https://github.com/couchbase/couchbase-lite-ios/issues/641)");
             }
 
-            var forestOps = C4EnumeratorOptions.DEFAULT;
-            forestOps.flags |= C4EnumeratorFlags.IncludeDeleted | C4EnumeratorFlags.IncludeNonConflicted;
-            if(options.IncludeDocs || options.IncludeConflicts || filter != null) {
-                forestOps.flags |= C4EnumeratorFlags.IncludeBodies;
+            var revsWithBodies = (options.IncludeDocs || filter != null);
+            var loadC4Doc = (revsWithBodies || options.IncludeConflicts);
+            var limit = options.Limit;
+
+            var c4Opts = C4EnumeratorOptions.DEFAULT;
+            c4Opts.flags |= C4EnumeratorFlags.IncludeDeleted;
+            if(!loadC4Doc) {
+                c4Opts.flags &= ~C4EnumeratorFlags.IncludeBodies;
             }
 
+            var e = new CBForestDocEnumerator(Forest, lastSequence, c4Opts);
             var changes = new RevisionList();
-            var e = new CBForestDocEnumerator(Forest, lastSequence, forestOps);
-            foreach (var next in e) {
-                var revs = default(IEnumerable<RevisionInternal>);
+            foreach(var doc in e) {
                 if(options.IncludeConflicts) {
-                    using(var enumerator = new CBForestHistoryEnumerator(next.GetDocument(), true, false)) {
-                        var includeBody = forestOps.flags.HasFlag(C4EnumeratorFlags.IncludeBodies);
-                        revs = enumerator.Select<CBForestDocStatus, RevisionInternal>(x => new ForestRevisionInternal(x.GetDocument(), includeBody)).ToList();
+                    using(var enumerator = new CBForestHistoryEnumerator(doc.GetDocument(), true, false)) {
+                        var includeBody = c4Opts.flags.HasFlag(C4EnumeratorFlags.IncludeBodies);
+                        var selection = enumerator.Select<CBForestDocStatus, RevisionInternal>(x => new ForestRevisionInternal(x.GetDocument(), includeBody));
+                        if(filter != null) {
+                            selection = selection.Where(x => filter(x));
+                        }
+
+                        foreach(var rev in selection) {
+                            if(!options.IncludeDocs) {
+                                rev.SetBody(null);
+                            }
+
+                            changes.Add(rev);
+                        }
                     }
                 } else {
-                    revs = new List<RevisionInternal> { new ForestRevisionInternal(next.GetDocument(), forestOps.flags.HasFlag(C4EnumeratorFlags.IncludeBodies)) };
-                }
-
-                foreach(var rev in revs) {
-                    Debug.Assert(rev != null);
+                    var rev = new ForestRevisionInternal(doc.GetDocument(), c4Opts.flags.HasFlag(C4EnumeratorFlags.IncludeBodies));
                     if(filter == null || filter(rev)) {
                         if(!options.IncludeDocs) {
                             rev.SetBody(null);
                         }
 
-                        if(filter == null || filter(rev)) {
-                            changes.Add(rev);
-                        }
+                        changes.Add(rev);
                     }
                 }
             }
 
-            if(options.SortBySequence) {
-                changes.SortBySequence(!options.Descending);
-                changes.Limit(options.Limit);
+            return changes;
+        }
+
+        public IEnumerable<RevisionInternal> ChangesSinceStreaming(long lastSequence, ChangesOptions options, RevisionFilter filter)
+        {
+            // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
+            // Translate options to ForestDB:
+            if(options.Descending) {
+                // https://github.com/couchbase/couchbase-lite-ios/issues/641
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotImplemented, TAG,
+                    "Descending ChangesSince is not currently implemented " +
+                    "(see https://github.com/couchbase/couchbase-lite-ios/issues/641)");
             }
 
-            return changes;
+            var revsWithBodies = (options.IncludeDocs || filter != null);
+            var loadC4Doc = (revsWithBodies || options.IncludeConflicts);
+            var limit = options.Limit;
+
+            var c4Opts = C4EnumeratorOptions.DEFAULT;
+            c4Opts.flags |= C4EnumeratorFlags.IncludeDeleted;
+            if(!loadC4Doc) {
+                c4Opts.flags &= ~C4EnumeratorFlags.IncludeBodies;
+            }
+
+            var e = EnumeratorFromSequence(lastSequence, c4Opts);
+            var changes = new RevisionList();
+            foreach(var doc in e) {
+                if(options.IncludeConflicts) {
+                    using(var enumerator = EnumeratorUsingDoc(doc, true, false)) {
+                        var includeBody = c4Opts.flags.HasFlag(C4EnumeratorFlags.IncludeBodies);
+                        var selection = enumerator.Select<CBForestDocStatus, RevisionInternal>(x => CreateRevision(x, includeBody));
+                        if(filter != null) {
+                            selection = selection.Where(x => filter(x));
+                        }
+
+                        foreach(var rev in selection) {
+                            if(!options.IncludeDocs) {
+                                rev.SetBody(null);
+                            }
+
+                            yield return rev;
+                        }
+                    }
+                } else {
+                    var rev = CreateRevision(doc, c4Opts.flags.HasFlag(C4EnumeratorFlags.IncludeBodies));
+                    if(filter == null || filter(rev)) {
+                        if(!options.IncludeDocs) {
+                            rev.SetBody(null);
+                        }
+
+                        yield return rev;
+                    }
+                }
+            }
         }
 
         public IEnumerable<QueryRow> GetAllDocs(QueryOptions options)

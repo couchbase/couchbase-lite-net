@@ -221,13 +221,6 @@ namespace Couchbase.Lite
             _sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
         }
 
-        /*protected override void TearDown()
-        {
-            Sleep(2000); // Give the replicators a chance to finish up before moving to the next test
-
-            base.TearDown();
-        }*/
-
         [Test]
         public void TestRejectedDocument()
         {
@@ -416,11 +409,11 @@ namespace Couchbase.Lite
                 pull.Restart();
                 push.Restart();
                 pull.Restart();
-                
-                Assert.IsTrue(pushMRE.WaitOne(TimeSpan.FromSeconds(10)));
-                Assert.IsTrue(pullMRE.WaitOne(TimeSpan.FromSeconds(10)));
-                Assert.AreEqual(ReplicationStatus.Idle, push.Status);
-                Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
+
+                pushMRE.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue("because otherwise the pusher never caught up");
+                pullMRE.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue("because otherwise the puller never caught up");
+                push.Status.Should().Be(ReplicationStatus.Idle, "because the pusher should be idle since it finished its changes");
+                pull.Status.Should().Be(ReplicationStatus.Idle, "because the puller should be idle since it finished its changes");
                 StopReplication(push);
                 StopReplication(pull);
 
@@ -435,8 +428,8 @@ namespace Couchbase.Lite
 
                 Sleep(1000);
 
-                Assert.AreEqual(ReplicationStatus.Idle, push.Status);
-                Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
+                push.Status.Should().Be(ReplicationStatus.Idle, "because the pusher should still be idle");
+                pull.Status.Should().Be(ReplicationStatus.Idle, "because the puller should still be idle");
                 StopReplication(push);
                 StopReplication(pull);
             }
@@ -597,10 +590,10 @@ namespace Couchbase.Lite
                 push.Restart();
                 pull.Restart();
 
-                Assert.IsTrue(pushMRE.WaitOne(TimeSpan.FromSeconds(10)));
-                Assert.IsTrue(pullMRE.WaitOne(TimeSpan.FromSeconds(10)));
-                Assert.AreEqual(ReplicationStatus.Idle, push.Status);
-                Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
+                pushMRE.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue("because otherwise the pusher never caught up");
+                pullMRE.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue("because otherwise the puller never caught up");
+                push.Status.Should().Be(ReplicationStatus.Idle, "because the pusher should be idle since it finished its changes");
+                pull.Status.Should().Be(ReplicationStatus.Idle, "because the puller should be idle since it finished its changes");
                 StopReplication(push);
                 StopReplication(pull);
             }
@@ -638,10 +631,10 @@ namespace Couchbase.Lite
                 push.Restart();
                 pull.Restart();
 
-                Assert.IsTrue(pushMRE.WaitOne(TimeSpan.FromSeconds(10)));
-                Assert.IsTrue(pullMRE.WaitOne(TimeSpan.FromSeconds(10)));
-                Assert.AreEqual(ReplicationStatus.Idle, push.Status);
-                Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
+                pushMRE.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue("because otherwise the pusher never caught up");
+                pullMRE.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue("because otherwise the puller never caught up");
+                push.Status.Should().Be(ReplicationStatus.Idle, "because the pusher should be idle since it finished its changes");
+                pull.Status.Should().Be(ReplicationStatus.Idle, "because the puller should be idle since it finished its changes");
                 StopReplication(push);
                 StopReplication(pull);
             }
@@ -698,15 +691,15 @@ namespace Couchbase.Lite
             var rso = new ReplicationStoppedObserver(signal);
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
-                CreateDocuments(database, 100);
+                CreateDocuments(database, 1000);
                 var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
                 pusher.Changed += rso.Changed;
                 pusher.Start();
                 Sleep(500);
-                Assert.IsTrue(database.Close().Wait(15000));
-                Assert.IsFalse(database.IsOpen);
-                Assert.IsNull(database.Storage);
-                Assert.IsTrue(signal.Wait(10000));
+                database.Close().Wait(15000).Should().BeTrue("because otherwise the database close operation timed out");
+                database.IsOpen.Should().BeFalse("because the database is now closed");
+                database.Storage.Should().BeNull("because the database storage is null when a database is closed");
+                signal.Wait(10000).Should().BeTrue("because otherwise the replication failed to stop");
             }
         }
 
@@ -1892,8 +1885,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestAllLeafRevisionsArePushed()
         {
-            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
-            {
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled"))) {
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
@@ -1916,13 +1908,13 @@ namespace Couchbase.Lite
             unsaved.SetUserProperties(new Dictionary<string, object> { { "foo", "bar" } });
             var rev2b = unsaved.Save(true);
 
-            Assert.AreEqual(rev2b.Id, doc.CurrentRevisionId);
+            doc.CurrentRevisionId.Should().Be(rev2b.Id, "because the current revision should sort in a way that 2b wins");
 
             using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 // sync with remote DB -- should push both leaf revisions
                 var pusher = database.CreatePushReplication(remoteDb.RemoteUri);
                 RunReplication(pusher);
-                Assert.IsNull(pusher.LastError);
+                pusher.LastError.Should().BeNull("because otherwise the pusher encountered an error");
 
                 var foundRevsDiff = false;
                 var capturedRequests = httpHandler.CapturedRequests;
@@ -1932,13 +1924,12 @@ namespace Couchbase.Lite
                         foundRevsDiff = true;
                         var jsonMap = MockHttpRequestHandler.GetJsonMapFromRequest(httpRequest);
                         var revisionIds = ((JArray)jsonMap.Get(doc.Id)).Values<string>().ToList();
-                        Assert.AreEqual(2, revisionIds.Count);
-                        Assert.IsTrue(revisionIds.Contains(rev4a.Id));
-                        Assert.IsTrue(revisionIds.Contains(rev2b.Id));
+                        revisionIds.Should().HaveCount(2, "because there are two revisions");
+                        revisionIds.Should().Contain(rev4a.Id).And.Contain(rev2b.Id, "because those are the two leaf revision IDs");
                     }
                 }
 
-                Assert.IsTrue(foundRevsDiff);
+                foundRevsDiff.Should().BeTrue("because otherwise a _revs_diff request was never sent");
             }
         }
 
@@ -2587,7 +2578,7 @@ namespace Couchbase.Lite
             }
 
             // Create a bunch (InboxCapacity * 2) local documents
-            var numDocsToSend = Replication.INBOX_CAPACITY * 2;
+            var numDocsToSend = Replication.InboxCapacity * 2;
             for (var i = 0; i < numDocsToSend; i++)
             {
                 var properties = new Dictionary<string, object>();
@@ -2806,7 +2797,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Assert.AreEqual(0, database.GetLastSequenceNumber());
+            database.GetLastSequenceNumber().Should().Be(0, "because the database is empty");
 
             var properties1 = new Dictionary<string, object>() {
                 { "dynamic", 1 }
@@ -2820,7 +2811,7 @@ namespace Couchbase.Lite
             unsavedRev2.SetAttachment("attachment.png", "image/png", attachmentStream);
             var rev2 = unsavedRev2.Save();
             attachmentStream.Dispose();
-            Assert.IsNotNull(rev2);
+            rev2.Should().NotBeNull("because otherwise the revision failed to save");
             unsavedRev2.Dispose();
 
             var httpClientFactory = new MockHttpClientFactory();
@@ -2869,10 +2860,10 @@ namespace Couchbase.Lite
                     if (request.Method == HttpMethod.Put && request.RequestUri.PathAndQuery.Contains(doc.Id)) {
                         var isMultipartContent = (request.Content is MultipartContent);
                         if (count == 0) {
-                            Assert.IsTrue(isMultipartContent);
+                            isMultipartContent.Should().BeTrue("because the first attempt will try multipart");
                         }
                         else {
-                            Assert.IsFalse(isMultipartContent);
+                            isMultipartContent.Should().BeFalse("because the second attempt will fall back to non-multipart");
                         }
                         count++;
                     }

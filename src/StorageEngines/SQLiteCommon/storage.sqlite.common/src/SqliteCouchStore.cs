@@ -1549,11 +1549,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
 
             bool includeDocs = options.IncludeDocs || filter != null;
+            var orderby = options.SortBySequence ? options.Descending ? "sequence DESC" : "sequence" : "revs.doc_id, deleted, revid DESC";
             var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
                 "WHERE sequence > ? AND current=1 " +
                 "AND revs.doc_id = docs.doc_id " +
-                "ORDER BY revs.doc_id, revid DESC",
-                (includeDocs ? @", json" : @""));
+                "ORDER BY {1} " +
+                "LIMIT {2}",
+                (includeDocs ? @", json" : @""), orderby, options.Limit);
 
             var changes = new RevisionList();
             long lastDocId = 0L;
@@ -1585,12 +1587,49 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return true;
             }, sql, lastSequence);
 
-            if (options.SortBySequence) {
-                changes.SortBySequence(!options.Descending);
-                changes.Limit(options.Limit);
-            }
-
             return changes;
+        }
+
+        public IEnumerable<RevisionInternal> ChangesSinceStreaming(long lastSequence, ChangesOptions options, RevisionFilter filter)
+        {
+            bool includeDocs = options.IncludeDocs || filter != null;
+            var orderby = options.SortBySequence ? options.Descending ? "sequence DESC" : "sequence" : "revs.doc_id, deleted, revid DESC";
+            var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
+                "WHERE sequence > ? AND current=1 " +
+                "AND revs.doc_id = docs.doc_id " +
+                "ORDER BY {1} " +
+                "LIMIT {2}",
+                (includeDocs ? @", json" : @""), orderby, options.Limit);
+
+            var changes = new RevisionList();
+            long lastDocId = 0L;
+
+            using(var c = StorageEngine.RawQuery(sql, lastSequence)) {
+                while(c.MoveToNext()) {
+                    if(!options.IncludeConflicts) {
+                        // Only count the first rev for a given doc (the rest will be losing conflicts):
+                        var docNumericId = c.GetLong(1);
+                        if(docNumericId == lastDocId) {
+                            continue;
+                        }
+
+                        lastDocId = docNumericId;
+                    }
+
+                    string docId = c.GetString(2);
+                    var revId = c.GetString(3).AsRevID();
+                    bool deleted = c.GetInt(4) != 0;
+                    var rev = new RevisionInternal(docId, revId, deleted);
+                    rev.Sequence = c.GetLong(0);
+                    if(includeDocs) {
+                        rev.SetJson(c.GetBlob(5));
+                    }
+
+                    if(filter == null || filter(rev)) {
+                        yield return rev;
+                    }
+                }
+            }
         }
 
         public RevisionInternal PutRevision(string inDocId, RevisionID inPrevRevId, IDictionary<string, object> properties,

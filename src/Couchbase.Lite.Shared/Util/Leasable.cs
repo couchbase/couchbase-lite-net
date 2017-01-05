@@ -156,6 +156,7 @@ namespace Couchbase.Lite.Internal
                 return;
             }
 
+            Disposed = true;
             if(_leaseCount == 0) {
                 DisposeInternal();
             }

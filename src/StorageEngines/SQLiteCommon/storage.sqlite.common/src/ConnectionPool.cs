@@ -74,6 +74,8 @@ namespace Couchbase.Lite.Storage
                 var c = connection;
                 _disposer (ref c);
             }
+
+            _pool.Dispose();
         }
 
     }
