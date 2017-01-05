@@ -1604,32 +1604,32 @@ namespace Couchbase.Lite.Storage.SQLCipher
             var changes = new RevisionList();
             long lastDocId = 0L;
 
-            var c = StorageEngine.RawQuery(sql, lastSequence);
-            while(c.MoveToNext()) {
-                if(!options.IncludeConflicts) {
-                    // Only count the first rev for a given doc (the rest will be losing conflicts):
-                    var docNumericId = c.GetLong(1);
-                    if(docNumericId == lastDocId) {
-                        continue;
+            using(var c = StorageEngine.RawQuery(sql, lastSequence)) {
+                while(c.MoveToNext()) {
+                    if(!options.IncludeConflicts) {
+                        // Only count the first rev for a given doc (the rest will be losing conflicts):
+                        var docNumericId = c.GetLong(1);
+                        if(docNumericId == lastDocId) {
+                            continue;
+                        }
+
+                        lastDocId = docNumericId;
                     }
 
-                    lastDocId = docNumericId;
-                }
+                    string docId = c.GetString(2);
+                    var revId = c.GetString(3).AsRevID();
+                    bool deleted = c.GetInt(4) != 0;
+                    var rev = new RevisionInternal(docId, revId, deleted);
+                    rev.Sequence = c.GetLong(0);
+                    if(includeDocs) {
+                        rev.SetJson(c.GetBlob(5));
+                    }
 
-                string docId = c.GetString(2);
-                var revId = c.GetString(3).AsRevID();
-                bool deleted = c.GetInt(4) != 0;
-                var rev = new RevisionInternal(docId, revId, deleted);
-                rev.Sequence = c.GetLong(0);
-                if(includeDocs) {
-                    rev.SetJson(c.GetBlob(5));
-                }
-
-                if(filter == null || filter(rev)) {
-                    yield return rev;
+                    if(filter == null || filter(rev)) {
+                        yield return rev;
+                    }
                 }
             }
-
         }
 
         public RevisionInternal PutRevision(string inDocId, RevisionID inPrevRevId, IDictionary<string, object> properties,

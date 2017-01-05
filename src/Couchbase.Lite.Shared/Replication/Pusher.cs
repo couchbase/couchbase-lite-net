@@ -674,6 +674,10 @@ namespace Couchbase.Lite.Replicator
             bool hasItems = changes.Any();
             foreach(var change in changes) {
                 Batcher.QueueObject(change);
+                if(Status == ReplicationStatus.Stopped) {
+                    Batcher.Clear();
+                    return;
+                }
             }
 
             if (hasItems) {
