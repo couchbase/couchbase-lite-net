@@ -77,10 +77,10 @@ namespace Couchbase.Lite.Support
         internal static void SetupSslCallback()
         {
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
-            ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
+            ServicePointManager.SecurityProtocol &= ~System.Net.SecurityProtocolType.Ssl3;
+            ServicePointManager.SecurityProtocol |= System.Net.SecurityProtocolType.Tls;
 
-            if(ServicePointManager.ServerCertificateValidationCallback != null)
-            {
+            if(ServicePointManager.ServerCertificateValidationCallback != null) {
                 return;
             }
 
@@ -143,10 +143,23 @@ namespace Couchbase.Lite.Support
         internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, IRetryStrategy retryStrategy)
         {
             #if __MOBILE__
-            var handler = new HttpClientHandler {
-                CookieContainer = store,
-                UseCookies = true
-            };
+            var handler = default(HttpClientHandler);
+            #if __ANDROID__
+            if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.Lollipop) {
+                handler = new Xamarin.Android.Net.AndroidClientHandler
+                {
+                    CookieContainer = store,
+                    UseCookies = true
+                };
+            } else
+            #endif
+            {
+                handler = new HttpClientHandler
+                {
+                    CookieContainer = store,
+                    UseCookies = true
+                };
+            }
             #else
             var handler = new WebRequestHandler {
                 CookieContainer = store,
