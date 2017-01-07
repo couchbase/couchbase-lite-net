@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Net.Http;
 using System.Net.NetworkInformation;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
@@ -25,7 +27,7 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if this instance can reach the specified endpoint; otherwise, <c>false</c>.</returns>
         /// <param name="remoteUri">The endpoint to test</param>
         /// <param name="timeout">The amount of time to wait for a response</param>
-        bool CanReach(string remoteUri, TimeSpan timeout);
+        bool CanReach(RemoteSession session, string remoteUri, TimeSpan timeout);
     }
 
     #region Enum

@@ -572,11 +572,15 @@ namespace Couchbase.Lite.Replicator
 
         #region Overrides
 
-        public override IEnumerable<String> DocIds { get; set; }
+        public override IEnumerable<string> DocIds { get; set; }
 
-        public override IDictionary<String, String> Headers {
-            get { return ClientFactory.Headers; }
-            set { ClientFactory.Headers = value; }
+        public override IDictionary<string, string> Headers {
+            get {
+                return _remoteSession.RequestHeaders;
+            }
+            set {
+                _remoteSession.RequestHeaders = value;
+            }
         }
 
         public override Boolean CreateTarget { get; set; }

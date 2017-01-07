@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Internal
 
         public RemoteServerVersion ServerType { get; set; }
 
-        public IDictionary<string, object> RequestHeaders { get; set; } = new Dictionary<string, object>();
+        public IDictionary<string, string> RequestHeaders { get; set; } = new Dictionary<string, string>();
 
         public bool Disposed { get; private set; }
 
@@ -132,6 +132,7 @@ namespace Couchbase.Lite.Internal
                 return;
             }
 
+            Disposed = true;
             _remoteRequestCancellationSource?.Cancel();
             _client.Dispose();
         }
@@ -274,6 +275,7 @@ namespace Couchbase.Lite.Internal
                     Task dummy;
                     _requests.TryRemove(message, out dummy);
                     message.Dispose();
+                    response?.Dispose();
                 }
             }, token);
 

@@ -100,10 +100,19 @@ namespace Couchbase.Lite
 
 
                 (Authenticator as ICustomHeadersAuthorizer)?.AuthorizeRequest(message);
-                return httpClient.SendAsync(message, option, token);
-            #if !NET_3_5
+                return httpClient.SendAsync(message, option, token)
+#if NET_3_5
+                .ContinueWith(t =>
+                {
+                    Interlocked.Decrement(ref _connectionCount);
+                    return t.Result;
+                })
+#endif
+                ;
+#if !NET_3_5
             })?.Unwrap()?.ContinueWith(t =>
             {
+                message.Dispose();
                 _sendSemaphore?.Release();
                 if(t.IsFaulted) {
                     var e = t.Exception;
@@ -116,16 +125,16 @@ namespace Couchbase.Lite
 
                 return t.Result;
             });
-            #endif
+#endif
         }
 
         public void Dispose()
         {
             _httpClient.Dispose();
             _authHandler.Dispose();
-            #if !NET_3_5
+#if !NET_3_5
             Misc.SafeDispose(ref _sendSemaphore);
-            #endif
+#endif
         }
     }
 }

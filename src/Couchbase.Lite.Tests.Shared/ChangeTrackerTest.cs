@@ -157,11 +157,6 @@ namespace Couchbase.Lite
 
             #region IHttpClientFactory implementation
 
-            public CouchbaseLiteHttpClient GetHttpClient()
-            {
-                return HttpClientFactory.GetHttpClient(null, null);
-            }
-
             public CookieContainer GetCookieStore()
             {
                 return HttpClientFactory.GetCookieContainer();

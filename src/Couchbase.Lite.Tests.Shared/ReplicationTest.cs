@@ -1830,55 +1830,92 @@ namespace Couchbase.Lite
         [Test]
         public void TestHeaders()
         {
-            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
-            {
+            if(!Boolean.Parse((string)GetProperty("replicationTestsEnabled"))) {
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
 
-            var mockHttpClientFactory = new MockHttpClientFactory(false);
-            manager.DefaultHttpClientFactory = mockHttpClientFactory;
+            database.GetDocument("doc1").PutProperties(new Dictionary<string, object> {
+                ["jim"] = "borden"
+            });
 
-            var mockHttpHandler = mockHttpClientFactory.HttpHandler;
+            database.GetDocument("doc2").PutProperties(new Dictionary<string, object> {
+                ["foo"] = "bar"
+            });
 
-            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var remote = remoteDb.RemoteUri;
                 var puller = database.CreatePullReplication(remote);
-                var headers = new Dictionary<string, string>();
-                headers["foo"] = "bar";
 
-                var pusher = database.CreatePushReplication (remote);
-                pusher.Headers = headers;
-                pusher.Start ();
-                Sleep (5000);
-                pusher.Stop ();
+                var mockHttpClientFactory = new MockHttpClientFactory(false);
+                var mockHttpHandler = mockHttpClientFactory.HttpHandler;
+                var pusher = database.CreatePushReplication(remote);
+                pusher.ClientFactory = mockHttpClientFactory;
+                pusher.Headers.Add("foo", "bar");
+                pusher.Start();
+                Sleep(2000);
+                pusher.Stop();
 
-                ValidateHttpHeaders (mockHttpHandler);
-                mockHttpHandler.ClearCapturedRequests ();
+                ValidateHttpHeaders(mockHttpHandler);
+                mockHttpHandler.ClearCapturedRequests();
 
-                puller.Headers = headers;
+                mockHttpClientFactory = new MockHttpClientFactory(false);
+                mockHttpHandler = mockHttpClientFactory.HttpHandler;
+                puller.ClientFactory = mockHttpClientFactory;
+                puller.Headers.Add("foo", "bar");
                 puller.Start();
-                Sleep(5000);
+                Sleep(2000);
                 puller.Stop();
 
-                ValidateHttpHeaders (mockHttpHandler);
+                ValidateHttpHeaders(mockHttpHandler);
+                mockHttpHandler.ClearCapturedRequests();
+
+                mockHttpClientFactory = new MockHttpClientFactory(false);
+                mockHttpHandler = mockHttpClientFactory.HttpHandler;
+                pusher = database.CreatePushReplication(remote);
+                pusher.ClientFactory = mockHttpClientFactory;
+                pusher.Continuous = true;
+                pusher.Headers.Add("foo", "bar");
+                pusher.Start();
+                Sleep(2000);
+                pusher.Stop();
+
+                ValidateHttpHeaders(mockHttpHandler);
+                mockHttpHandler.ClearCapturedRequests();
+
+                mockHttpClientFactory = new MockHttpClientFactory(false);
+                mockHttpHandler = mockHttpClientFactory.HttpHandler;
+                puller = database.CreatePullReplication(remote);
+                puller.ClientFactory = mockHttpClientFactory;
+                puller.Continuous = true;
+                puller.Headers.Add("foo", "bar");
+                puller.Start();
+                Sleep(2000);
+                puller.Stop();
+
+                ValidateHttpHeaders(mockHttpHandler);
             }
         }
 
         private void ValidateHttpHeaders (MockHttpRequestHandler mockHttpHandler)
         {
-            var foundFooHeader = false;
+            var fooheaderCount = 0;
             var requests = mockHttpHandler.CapturedRequests;
 
+            requests.Should().NotBeEmpty("because there should be at least one request");
             foreach (var request in requests) {
-                var requestHeaders = request.Headers.GetValues ("foo");
-                foundFooHeader = false;
-                foreach (var requestHeader in requestHeaders) {
-                    foundFooHeader = true;
-                    Assert.AreEqual ("bar", requestHeader);
+                try {
+                    var requestHeaders = request.Headers.GetValues("foo");
+                    foreach(var requestHeader in requestHeaders) {
+                        fooheaderCount++;
+                        requestHeader.Should().Be("bar", "because otherwise the custom header is incorrect");
+                    }
+                } catch(InvalidOperationException) {
+                    Assert.Fail("No custom header found");
                 }
             }
-            Assert.IsTrue (foundFooHeader);
+
+            fooheaderCount.Should().Be(requests.Count, "because every request should have the custom header");
         }
 
         /// <exception cref="System.Exception"></exception>
