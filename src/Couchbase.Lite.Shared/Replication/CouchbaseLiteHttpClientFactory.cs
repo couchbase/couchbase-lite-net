@@ -71,7 +71,6 @@ namespace Couchbase.Lite.Support
         public CouchbaseLiteHttpClientFactory()
         {
             SocketTimeout = ReplicationOptions.DefaultSocketTimeout;
-            Headers = new ConcurrentDictionary<string, string>();
         }
 
         internal static void SetupSslCallback()
@@ -196,13 +195,6 @@ namespace Couchbase.Lite.Support
             client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SyncProtocolVersion, Manager.VersionString));
             client.DefaultRequestHeaders.Connection.Add("keep-alive");
 
-            foreach(var header in Headers)
-            {
-                var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
-                if (!success)
-                    Log.To.Sync.W(Tag, String.Format("Unabled to add header to request: {0}: {1}", header.Key, header.Value));
-            }
-
             var transientHandler = authHandler as TransientErrorRetryHandler;
             var defaultAuthHandler = default(DefaultAuthHandler);
             if (transientHandler != null) {
@@ -213,8 +205,6 @@ namespace Couchbase.Lite.Support
 
             return new CouchbaseLiteHttpClient(client, defaultAuthHandler);
         }
-
-        public IDictionary<string, string> Headers { get; set; }
        
     }
 }

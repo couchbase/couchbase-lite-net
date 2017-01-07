@@ -232,10 +232,17 @@ namespace Couchbase.Lite.Internal
                 _client.SetCookie(new WebSocketSharp.Net.Cookie(cookie.Name, cookie.Value, cookie.Path, cookie.Domain));
             }
 
+            var additionalHeaders = new Dictionary<string, string>();
             if (authHeader != null) {
-                _client.CustomHeaders = new Dictionary<string, string> {
-                    ["Authorization"] = authHeader.ToString()
-                };
+                additionalHeaders["Authorization"] = authHeader.ToString();
+            }
+
+            foreach(var header in _remoteSession.RequestHeaders) {
+                additionalHeaders[header.Key] = header.Value;
+            }
+
+            if(additionalHeaders.Any()) {
+                _client.CustomHeaders = additionalHeaders;
             }
 
             _client.ConnectAsync();

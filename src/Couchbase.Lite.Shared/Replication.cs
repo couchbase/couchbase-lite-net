@@ -604,14 +604,14 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the headers that should be used when making HTTP requests
         /// </summary>
-        [Obsolete("Use Headers")]
+        [Obsolete("Use Headers, this method will throw an exception")]
         protected internal IDictionary<string, object> RequestHeaders
         {
             get {
-                return _remoteSession.RequestHeaders;
+                throw new NotSupportedException();
             }
-            set { 
-                _remoteSession.RequestHeaders = value ?? new Dictionary<string, object>();
+            set {
+                throw new NotSupportedException();
             }
         }
 

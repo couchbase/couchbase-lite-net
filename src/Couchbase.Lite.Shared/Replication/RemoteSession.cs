@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Internal
 
         public RemoteServerVersion ServerType { get; set; }
 
-        public IDictionary<string, object> RequestHeaders { get; set; } = new Dictionary<string, object>();
+        public IDictionary<string, string> RequestHeaders { get; set; } = new Dictionary<string, string>();
 
         public bool Disposed { get; private set; }
 
