@@ -1328,15 +1328,16 @@ namespace Couchbase.Lite.Storage.ForestDB
                     var docId = inDocId;
                     var prevRevId = inPrevRevId;
 
-                    // https://github.com/couchbase/couchbase-lite-net/issues/749
-                    // Need to ensure revpos is correct for a revision inserted on top
-                    // of a deletion
-                    var existing = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_getForPut(Forest, docId, prevRevId?.ToString(), deleting,
-                        allowConflict, err));
+                    var attachments = properties.CblAttachments();
+                    if(attachments != null) {
 
-                    if(existing->IsDeleted) {
-                        var attachments = properties.CblAttachments();
-                        if(attachments != null) {
+                        // https://github.com/couchbase/couchbase-lite-net/issues/749
+                        // Need to ensure revpos is correct for a revision inserted on top
+                        // of a deletion
+                        var existing = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_getForPut(Forest, docId, prevRevId?.ToString(), deleting,
+                            allowConflict, err));
+
+                        if(existing->IsDeleted) {
                             foreach(var attach in attachments) {
                                 var metadata = attach.Value.AsDictionary<string, object>();
                                 if(metadata != null) {
