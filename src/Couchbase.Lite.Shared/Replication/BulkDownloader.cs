@@ -120,6 +120,7 @@ namespace Couchbase.Lite.Replicator
             _requestHeaders = options.RequestHeaders;
             _tokenSource = options.TokenSource ?? new CancellationTokenSource();
             _body = CreatePostBody(options.Revisions, _db);
+            _session = options.Session;
         }
 
         public void Start()
