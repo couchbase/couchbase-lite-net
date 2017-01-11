@@ -51,8 +51,10 @@ namespace Couchbase.Lite
         {
             CouchbaseLiteHttpClientFactory.SetupSslCallback();
             var uri = new Uri(remoteUri);
-            try {
-                using(var c = new TcpClient(uri.Host, uri.Port)) {
+            try
+            {
+                Uri proxy = WebRequest.DefaultWebProxy.GetProxy(new Uri(remoteUri));
+                using(var c = new TcpClient(proxy.DnsSafeHost, proxy.Port)) {
                     return true;
                 }
             } catch(Exception e) {

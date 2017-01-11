@@ -222,12 +222,17 @@ namespace Couchbase.Lite.Internal
             _usePost = false;
             _caughtUp = false;
             _client = new WebSocket(ChangesFeedUrl.AbsoluteUri);
+            var systemProxy = WebRequest.DefaultWebProxy.GetProxy(DatabaseUrl).ToString();
+            var proxyCredentials = WebRequest.DefaultWebProxy.Credentials.GetCredential(DatabaseUrl, "");
+            _client.SetProxy(systemProxy, proxyCredentials.UserName, proxyCredentials.Password);
             _client.WaitTime = TimeSpan.FromSeconds(2);
             _client.OnOpen += OnConnect;
             _client.OnMessage += OnReceive;
             _client.OnError += OnError;
             _client.OnClose += OnClose;
-            _client.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls;
+            _client.SslConfiguration.EnabledSslProtocols = (SslProtocols)ServicePointManager.SecurityProtocol;
+            _client.SslConfiguration.EnabledSslProtocols &= ~SslProtocols.Ssl3;
+            _client.SslConfiguration.EnabledSslProtocols |= SslProtocols.Tls;    
             foreach(Cookie cookie in Client.GetCookieStore().GetCookies(ChangesFeedUrl)) {
                 _client.SetCookie(new WebSocketSharp.Net.Cookie(cookie.Name, cookie.Value, cookie.Path, cookie.Domain));
             }
