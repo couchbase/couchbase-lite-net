@@ -230,6 +230,8 @@ namespace Couchbase.Lite.Internal
             _client.OnMessage += OnReceive;
             _client.OnError += OnError;
             _client.OnClose += OnClose;
+            _client.SslConfiguration.EnabledSslProtocols = (SslProtocols)ServicePointManager.SecurityProtocol;
+            _client.SslConfiguration.EnabledSslProtocols &= ~SslProtocols.Ssl3;
             _client.SslConfiguration.EnabledSslProtocols |= SslProtocols.Tls;    
             foreach(Cookie cookie in Client.GetCookieStore().GetCookies(ChangesFeedUrl)) {
                 _client.SetCookie(new WebSocketSharp.Net.Cookie(cookie.Name, cookie.Value, cookie.Path, cookie.Domain));
