@@ -144,8 +144,8 @@ namespace Couchbase.Lite.Internal
             }
                 
             try {
-                Misc.SafeDispose(ref changesFeedRequestTokenSource);
-                changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
+                var feedTokenSource = Interlocked.Exchange(ref changesFeedRequestTokenSource, CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token));
+                feedTokenSource?.Dispose();
                 var info = _remoteSession.SendAsyncRequest(
                     Request, 
                     HttpCompletionOption.ResponseHeadersRead,

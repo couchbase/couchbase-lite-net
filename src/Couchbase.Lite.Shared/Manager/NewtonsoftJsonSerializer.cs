@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -126,24 +127,28 @@ namespace Couchbase.Lite
 
         public void StartIncrementalParse(Stream json)
         {
-            if (_textReader != null) {
-                ((IDisposable)_textReader).Dispose();
-            }
-
-            _textReader = new JsonTextReader(new StreamReader(json));
+            var old = Interlocked.Exchange(ref _textReader, new JsonTextReader(new StreamReader(json)) {
+                CloseInput = false
+            });
+            ((IDisposable)old)?.Dispose();
         }
 
         public void StopIncrementalParse()
         {
-            _textReader?.Close();
             Misc.SafeDispose(ref _textReader);
         }
 
         public bool Read()
         {
             try {
-                return _textReader != null && _textReader.Read();
+                return _textReader?.Read() == true;
+            } catch(NullReferenceException) {
+                // For some reason disposing the reader while it is blocked on a read will cause
+                // an NRE
+                Log.To.NoDomain.I(Tag, "Streaming read cancelled, returning false for Read()...");
+                return false;
             } catch (Exception e) {
+                
                 if (e is JsonReaderException) {
                     throw Misc.CreateExceptionAndLog(Log.To.NoDomain, StatusCode.BadJson, TAG, 
                         "Error reading from streaming parser");

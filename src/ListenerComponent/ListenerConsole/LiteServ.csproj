@@ -58,12 +58,6 @@
     <Reference Include="ICSharpCode.SharpZipLib.Portable">
       <HintPath>..\..\packages\SharpZipLib.Portable.0.86.0.0003\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid+Xamarin.iOS10\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Stateless">
-      <HintPath>..\..\packages\Stateless.2.5.62.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
-    </Reference>
     <Reference Include="SQLitePCLPlugin_sqlcipher">
       <HintPath>..\..\packages\SQLitePCL.plugin.sqlcipher.net45.0.9.3\lib\net45\SQLitePCLPlugin_sqlcipher.dll</HintPath>
     </Reference>
@@ -72,6 +66,12 @@
     </Reference>
     <Reference Include="SQLitePCL.ugly">
       <HintPath>..\..\packages\SQLitePCL.ugly.0.9.3\lib\net35\SQLitePCL.ugly.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Stateless">
+      <HintPath>..\..\packages\Stateless.3.1.0\lib\net45\Stateless.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
