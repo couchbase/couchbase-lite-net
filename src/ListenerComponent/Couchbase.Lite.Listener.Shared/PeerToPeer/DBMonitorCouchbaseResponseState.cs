@@ -135,10 +135,10 @@ namespace Couchbase.Lite.Listener
         /// processing
         /// </summary>
         /// <param name="db">Db.</param>
-        public void SubscribeToDatabase(Database db, long since, ChangesOptions options)
+        public bool SubscribeToDatabase(Database db, long since, ChangesOptions options)
         {
             if(db == null) {
-                return;
+                return false;
             }
 
 
@@ -159,6 +159,8 @@ namespace Couchbase.Lite.Listener
                     Db.Changed += DatabaseChanged;
                 }
             }
+
+            return IsAsync;
         }
 
         /// <summary>

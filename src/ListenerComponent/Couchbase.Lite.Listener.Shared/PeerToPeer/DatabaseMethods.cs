@@ -369,7 +369,11 @@ namespace Couchbase.Lite.Listener
                         }
                     }
 
-                    responseState.SubscribeToDatabase(db, since, options);
+                    var subscribed = responseState.SubscribeToDatabase(db, since, options);
+                    if(!subscribed) {
+                        return response;
+                    }
+
                     string heartbeatParam = context.GetQueryParam("heartbeat");
                     if(heartbeatParam != null) {
                         int heartbeat;
