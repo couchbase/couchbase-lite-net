@@ -53,55 +53,26 @@ namespace Couchbase.Lite {
     /// </summary>
     public class DocumentChange
     {
-        internal RevisionInternal AddedRevision { get; private set; }
 
-        // Used by plugins
-        internal DocumentChange(RevisionInternal addedRevision, RevisionID winningRevisionId, bool isConflict, Uri sourceUrl)
-        {
-            AddedRevision = addedRevision;
-            WinningRevisionId = winningRevisionId;
-            IsConflict = isConflict;
-            SourceUrl = sourceUrl;
-        }
+        #region Properties
 
-        #region Instance Members
-
-        //Properties
         /// <summary>
         /// Gets the Id of the <see cref="Couchbase.Lite.Document"/> that changed.
         /// </summary>
-        /// <value>The Id of the <see cref="Couchbase.Lite.Document"/> that changed.</value>
-        public string DocumentId { get { return AddedRevision.DocID; } }
+        public string DocumentId { get { return AddedRevision?.DocID; } }
 
         /// <summary>
         /// Gets the Id of the new Revision.
         /// </summary>
-        /// <value>The Id of the new Revision.</value>
-        public string RevisionId { get { return AddedRevision.RevID.ToString(); } }
+        public string RevisionId { get { return AddedRevision?.RevID?.ToString(); } }
 
         /// <summary>
         /// Gets a value indicating whether this instance is current revision.
         /// </summary>
-        /// <value><c>true</c> if this instance is current revision; otherwise, <c>false</c>.</value>
-        public bool IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.RevID.ToString()); } }
-
-        internal RevisionID WinningRevisionId { get; private set; }
-
-        /// <summary>
-        /// Gets the winning revision.
-        /// </summary>
-        /// <value>The winning revision.</value>
-        internal RevisionInternal WinningRevisionIfKnown
-        { 
-            get
-            {
-                return IsCurrentRevision ? AddedRevision : null;
+        public bool IsCurrentRevision {
+            get {
+                return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision?.RevID?.ToString());
             }
-        }
-
-        internal void ReduceMemoryUsage()
-        {
-            AddedRevision = AddedRevision.CopyWithoutBody();
         }
 
         /// <summary>
@@ -116,10 +87,53 @@ namespace Couchbase.Lite {
         public bool IsExpiration { get; internal set; }
 
         /// <summary>
+        /// Gets whether or not this change is a deletion
+        /// </summary>
+        public bool IsDeletion {
+            get {
+                return AddedRevision?.Deleted == true;
+            }
+        }
+
+        /// <summary>
         /// Gets the remote URL of the source Database from which this change was replicated.
         /// </summary>
         /// <value>The remote URL of the source Database from which this change was replicated.</value>
         public Uri SourceUrl { get; private set; }
+
+        internal RevisionInternal AddedRevision { get; private set; }
+
+        internal RevisionID WinningRevisionId { get; }
+
+        internal RevisionInternal WinningRevisionIfKnown {
+            get {
+                return IsCurrentRevision ? AddedRevision : null;
+            }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        // Used by plugins
+        internal DocumentChange(RevisionInternal addedRevision, RevisionID winningRevisionId, bool isConflict, Uri sourceUrl)
+        {
+            AddedRevision = addedRevision;
+            WinningRevisionId = winningRevisionId;
+            IsConflict = isConflict;
+            SourceUrl = sourceUrl;
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal void ReduceMemoryUsage()
+        {
+            AddedRevision = AddedRevision.CopyWithoutBody();
+        }
+
+
 
         #endregion
 
@@ -152,5 +166,4 @@ namespace Couchbase.Lite {
         #endregion
 
     }
-
 }
