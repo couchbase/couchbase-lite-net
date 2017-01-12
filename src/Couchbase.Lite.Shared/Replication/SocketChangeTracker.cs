@@ -187,7 +187,10 @@ namespace Couchbase.Lite.Internal
                 return;
             }
 
-            Log.To.ChangeTracker.I(Tag, "{0} got an exception, analyzing...", this);
+            if(e != null) {
+                Log.To.ChangeTracker.I(Tag, "{0} got an exception, analyzing...", this);
+            }
+
             var resolution = ExceptionResolver.Solve(e, new ExceptionResolverOptions {
                 Continuous = Continuous
             });

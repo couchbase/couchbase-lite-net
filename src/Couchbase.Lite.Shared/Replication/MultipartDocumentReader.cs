@@ -193,7 +193,12 @@ namespace Couchbase.Lite.Support
 
         private void RegisterAttachments()
         {
-            var attachments = document.Get("_attachments").AsDictionary<string, object>();
+            var attachmentsBoxed = document.Get("_attachments");
+            if(attachmentsBoxed == null) {
+                return;
+            }
+
+            var attachments = attachmentsBoxed.AsDictionary<string, object>();
             if (attachments == null) {
                 throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG, "_attachments property is not a dictionary");
             }
