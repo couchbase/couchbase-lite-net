@@ -1,5 +1,3 @@
-[![Stories in Ready](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=ready&title=Scheduled)](https://waffle.io/couchbase/couchbase-lite-net)
-[![Stories in Progress](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=in%20progress&title=In%20Progress)](https://waffle.io/couchbase/couchbase-lite-net)
 Couchbase Lite for .NET [![GitHub release](https://img.shields.io/github/release/couchbase/couchbase-lite-net.svg?style=plastic)]()
 ==================
 
@@ -67,5 +65,10 @@ The replication unit tests currently require a running instance of `sync_gateway
 ## Example App
 * [Kitchen Sync](https://github.com/couchbaselabs/mini-hacks/tree/master/kitchen-sync/xamarin)
 * [ToDo](https://github.com/couchbaselabs/mobile-training-todo/tree/master/dotnet)
+
+## Metrics
+[![Stories in Progress](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=ready&title=In%20Progress)](https://waffle.io/couchbase/couchbase-lite-net)
+[![Stories in Backlog](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=backlog&title=Backlogged)](https://waffle.io/couchbase/couchbase-lite-net)<br>
+[![Throughput Graph](http://graphs.waffle.io/couchbase/couchbase-lite-net/throughput.svg)](https://waffle.io/couchbase/couchbase-lite-net/metrics)
 
 [![GitHub license](https://img.shields.io/github/license/couchbase/couchbase-lite-net.svg?style=plastic)]()
