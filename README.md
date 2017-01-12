@@ -64,10 +64,8 @@ ForestDB requires native components to be built for each platform you want to ta
 
 The replication unit tests currently require a running instance of `sync_gateway`. Prior to running the replication tests, start `sync_gateway` by running the `start_gateway` script found in the root of the project
 
-## Example Apps
-* [GrocerySync](https://github.com/couchbase/couchbase-lite-net/tree/master/samples)
+## Example App
+* [ToDo](https://github.com/couchbaselabs/mobile-training-todo/tree/master/dotnet)
 	* Beginner example
-* [Couchbase Connect](https://github.com/FireflyLogic/couchbase-connect-14)
-	* Advanced example
 
 [![GitHub license](https://img.shields.io/github/license/couchbase/couchbase-lite-net.svg?style=plastic)]()
