@@ -77,7 +77,6 @@ namespace Couchbase.Lite.Util
                 }
 
                 newRequest.Version = _request.Version;
-                _request.Dispose();
                 _request = newRequest;
 
                 Log.To.Sync.V(Tag, "{0} returned {1} for the next delay ({2} attempts remaining)",

@@ -122,12 +122,6 @@ namespace Couchbase.Lite.Internal
                 tokenSource = new CancellationTokenSource();
             }
 
-            if (Request != null)
-            {
-                Request.Dispose();
-                Request = null;
-            }
-
             var url = ChangesFeedUrl;
             if(_usePost) {
                 Request = new HttpRequestMessage(HttpMethod.Post, url);
@@ -361,8 +355,6 @@ namespace Couchbase.Lite.Internal
                     cts?.Dispose();
                     responseStream?.Close();
                     responseStream?.Dispose();
-                    response.Dispose();
-                    Request.Dispose();
                 }
             });
         }

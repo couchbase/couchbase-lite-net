@@ -274,7 +274,6 @@ namespace Couchbase.Lite.Internal
                 } finally {
                     Task dummy;
                     _requests.TryRemove(message, out dummy);
-                    message.Dispose();
                     response?.Dispose();
                 }
             }, token);

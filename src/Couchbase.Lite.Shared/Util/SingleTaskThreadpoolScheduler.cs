@@ -96,10 +96,8 @@ namespace Couchbase.Lite.Util
                         {
                             Log.To.TaskScheduling.V(Tag, "Executing task...");
                             var success = TryExecuteTask(item);
-                            if (!success) {
-                                if(((Task)s).Status == TaskStatus.Faulted) {
-                                    Log.To.TaskScheduling.E(Tag, "Task failed to run", ((Task)s).Exception);
-                                }
+                            if(item.Status == TaskStatus.Faulted) {
+                                Log.To.TaskScheduling.V(Tag, "Task failed to run", item.Exception);
                             }
                         } else {
                             Log.To.TaskScheduling.V(Tag, "Skipping already running task...");

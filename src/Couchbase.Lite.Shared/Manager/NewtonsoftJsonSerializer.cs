@@ -110,8 +110,8 @@ namespace Couchbase.Lite
 
         public T Deserialize<T>(Stream json) 
         {
-            using (var sr = new StreamReader(json))
-            using (var jsonReader = new JsonTextReader(sr)) 
+            var sr = new StreamReader(json); // Don't dispose, we don't want to close the stream
+            using(var jsonReader = new JsonTextReader(sr) { CloseInput = false }) 
             {
                 var serializer = JsonSerializer.Create(settings);
                 T item;
@@ -142,15 +142,18 @@ namespace Couchbase.Lite
         {
             try {
                 return _textReader?.Read() == true;
+            } catch(IOException) {
+                Log.To.NoDomain.I(Tag, "Remote endpoint hung up, returning false for Read()");
+                return false;
             } catch(NullReferenceException) {
                 // For some reason disposing the reader while it is blocked on a read will cause
                 // an NRE
                 Log.To.NoDomain.I(Tag, "Streaming read cancelled, returning false for Read()...");
                 return false;
-            } catch (Exception e) {
-                
-                if (e is JsonReaderException) {
-                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, StatusCode.BadJson, TAG, 
+            } catch(Exception e) {
+
+                if(e is JsonReaderException) {
+                    throw Misc.CreateExceptionAndLog(Log.To.NoDomain, StatusCode.BadJson, TAG,
                         "Error reading from streaming parser");
                 }
 

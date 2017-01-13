@@ -142,7 +142,6 @@ namespace Couchbase.Lite.Replicator
             ExecuteRequest(requestMessage).ContinueWith(t => 
             {
                 Log.To.Sync.V(Tag, "RemoteRequest run() finished, url: {0}", _bulkGetUri);
-                requestMessage.Dispose();
             });
         }
 
