@@ -221,6 +221,11 @@ namespace Couchbase.Lite
             return $"{GetType().Name}[{Id}]";
         }
 
+        protected override FLSharedKeys* GetSharedKeys()
+        {
+            return Native.c4db_getFLSharedKeys(_c4db);
+        }
+
         public void Dispose()
         {
             Dispose(true);

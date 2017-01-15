@@ -67,6 +67,7 @@
     <Compile Include="Util\Misc.cs" />
     <Compile Include="Util\RecyclableMemoryStream.cs" />
     <Compile Include="Util\RecyclableMemoryStreamManager.cs" />
+    <Compile Include="Serialization\FLValueConverter.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj">

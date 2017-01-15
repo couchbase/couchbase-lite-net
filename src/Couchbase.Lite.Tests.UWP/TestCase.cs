@@ -2,7 +2,6 @@
 using System.IO;
 using Couchbase.Lite;
 using FluentAssertions;
-using Windows.Storage;
 
 namespace Test
 {
@@ -12,9 +11,20 @@ namespace Test
 
         protected Database Db { get; private set; }
 
+#if __NET46__
+        static TestCase()
+        {
+            Couchbase.Lite.Support.Net46.Activate();
+        }
+#endif
+
         public TestCase()
         {
-            var dir = Path.Combine(ApplicationData.Current.TemporaryFolder.Path, "CouchbaseLite");
+#if __UWP__
+            var dir = Path.Combine(Windows.Storage.ApplicationData.Current.TemporaryFolder.Path, "CouchbaseLite");
+#else
+            var dir = Path.Combine(Path.GetTempPath(), "CouchbaseLite");
+#endif
             Database.Delete(DatabaseName, dir);
 
             var options = DatabaseOptions.Default;

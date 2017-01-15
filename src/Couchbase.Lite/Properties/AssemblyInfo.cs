@@ -30,3 +30,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyFileVersion("1.0.0.0")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Support.UWP")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Tests.UWP")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Support.iOS")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Tests.iOS")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Support.Net46")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Tests.Net46")]

@@ -23,10 +23,12 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using LiteCore.Util;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -89,10 +91,7 @@ namespace Couchbase.Lite
                 return Properties.Get(key);
             }
 
-            using(var reader = new JsonFLValueReader(FleeceValueForKey(key))) {
-                var serializer = new JsonSerializer();
-                return serializer.Deserialize<Dictionary<string, object>>(reader);
-            }
+            return FLValueConverter.ToObject(FleeceValueForKey(key));
         }
 
         public string GetString(string key)
@@ -150,16 +149,16 @@ namespace Couchbase.Lite
             throw new NotImplementedException();
         }
 
-        public DateTimeOffset GetDate(string key)
+        public DateTimeOffset? GetDate(string key)
         {
-            var retVal = DateTimeOffset.MinValue;
+            var retVal = default(DateTimeOffset);
             if(TryGet(key, out retVal)) {
                 return retVal;
             }
 
             var dateString = GetString(key);
             if(dateString == null) {
-                return DateTimeOffset.MinValue;
+                return null;
             }
 
             return DateTimeOffset.ParseExact(dateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.None);
@@ -246,6 +245,11 @@ namespace Couchbase.Lite
             HasChanges = false;
         }
 
+        protected virtual FLSharedKeys* GetSharedKeys()
+        {
+            return null;
+        }
+
         private void MutateProperties()
         {
             if(_properties == null) {
@@ -281,7 +285,7 @@ namespace Couchbase.Lite
 
         private FLValue* FleeceValueForKey(string key)
         {
-            return Native.FLDict_GetSharedKey(_root, Encoding.UTF8.GetBytes(key), null);
+            return Native.FLDict_GetSharedKey(_root, Encoding.UTF8.GetBytes(key), GetSharedKeys());
         }
     }
 }

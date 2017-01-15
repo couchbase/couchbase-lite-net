@@ -38,6 +38,7 @@ namespace Couchbase.Lite
         private Stack<object> _sequenceStack = new Stack<object>();
         private FLValue* _currentValue;
         private bool _inValue;
+        private bool _ended;
 
         public JsonFLValueReader(FLValue *root)
         {
@@ -60,35 +61,42 @@ namespace Couchbase.Lite
 
         private NextActionCode NextAction()
         {
+            if(_ended) {
+                _ended = false;
+                var last = _sequenceStack.Pop();
+                return (last is FLDictIterator) ? NextActionCode.EndObject : NextActionCode.EndArray;
+            }
+
             if(_sequenceStack.Count == 0) {
                 return NextActionCode.ReadValue;
             }
 
-            var i = _sequenceStack.Peek();
+            var i = _sequenceStack.Pop();
             if(i is FLDictIterator) {
                 var iter = (FLDictIterator)i;
                 if(_inValue) {
                     _inValue = false;
                     _currentValue = Native.FLDictIterator_GetValue(&iter);
+                    if(!Native.FLDictIterator_Next(&iter)) {
+                        _ended = true;
+                    }
+
+                    _sequenceStack.Push(iter);
                     return NextActionCode.ReadValue;
                 } else {
                     _inValue = true;
-                }
-
-                if(!Native.FLDictIterator_Next(&iter)) {
-                    _sequenceStack.Pop();
-                    return NextActionCode.EndObject;
                 }
 
                 _currentValue = Native.FLDictIterator_GetKey(&iter);
                 return NextActionCode.ReadObjectKey;
             } else {
                 var iter = (FLArrayIterator)i;
+                _currentValue = Native.FLArrayIterator_GetValue(&iter);
                 if(!Native.FLArrayIterator_Next(&iter)) {
-                    return NextActionCode.EndArray;
+                    _ended = true;
                 }
 
-                _currentValue = Native.FLArrayIterator_GetValue(&iter);
+                _sequenceStack.Push(iter);
                 return NextActionCode.ReadValue;
             }
         }
@@ -107,7 +115,8 @@ namespace Couchbase.Lite
                     SetToken(JsonToken.EndObject);
                     break;
                 case NextActionCode.ReadObjectKey:
-                    SetToken(JsonToken.PropertyName, Native.FLValue_AsString(_currentValue));
+                    var key = Native.FLValue_AsString(_currentValue);
+                    SetToken(JsonToken.PropertyName, key);
                     break;
                 case NextActionCode.ReadValue:
                     switch(Native.FLValue_GetType(_currentValue)) {

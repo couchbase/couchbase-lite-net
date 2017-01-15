@@ -40,10 +40,7 @@ namespace Couchbase.Lite.Crypto
     /// <summary>
     /// Basic AES encryption. Uses a 256-bit (32-byte) key.
     /// </summary>
-    public sealed class SymmetricKey 
-    #if !NET_3_5
-        : IDisposable
-    #endif
+    public sealed class SymmetricKey : IDisposable
     {
 
         #region Constants
@@ -297,7 +294,6 @@ namespace Couchbase.Lite.Crypto
 
         #endregion
 
-        #if !NET_3_5
         #region IDisposable
         #pragma warning disable 1591
 
@@ -308,6 +304,5 @@ namespace Couchbase.Lite.Crypto
 
         #pragma warning restore 1591
         #endregion
-        #endif
     }
 }
