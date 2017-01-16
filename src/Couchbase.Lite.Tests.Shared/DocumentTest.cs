@@ -112,18 +112,19 @@ namespace Test
             doc.GetDate("date").Should().Be(date, "because that is the date that was saved");
 
             // Get the doc from another database
-            var doc1 = new Database(Db).GetDocument("doc1");
+            using(var otherDB = new Database(Db)) {
+                var doc1 = otherDB.GetDocument("doc1");
+                doc1.GetBoolean("bool").Should().BeTrue("because that is the bool that was saved");
+                doc1.GetDouble("double").Should().BeApproximately(1.1, Double.Epsilon, "because that is the double that was saved");
+                doc1.GetFloat("float").Should().BeApproximately(1.2f, Single.Epsilon, "because that is the float that was saved");
+                doc1.GetLong("integer").Should().Be(2L, "because that is the integer that was saved");
 
-            doc1.GetBoolean("bool").Should().BeTrue("because that is the bool that was saved");
-            doc1.GetDouble("double").Should().BeApproximately(1.1, Double.Epsilon, "because that is the double that was saved");
-            doc1.GetFloat("float").Should().BeApproximately(1.2f, Single.Epsilon, "because that is the float that was saved");
-            doc1.GetLong("integer").Should().Be(2L, "because that is the integer that was saved");
+                doc1.GetString("string").Should().Be("str", "because that is the string that was saved");
+                //doc1.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
+                doc1.Get("array").ShouldBeEquivalentTo(new[] { "1", "2" }, "because that is the array that was saved");
 
-            doc1.GetString("string").Should().Be("str", "because that is the string that was saved");
-            //doc1.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
-            doc1.Get("array").ShouldBeEquivalentTo(new[] { "1", "2" }, "because that is the array that was saved");
-
-            doc1.GetDate("date").Should().Be(date, "because that is the date that was saved");
+                doc1.GetDate("date").Should().Be(date, "because that is the date that was saved");
+            }
         }
 
         [Fact]

@@ -147,15 +147,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AppDelegate.cs" />
-    <Compile Include="..\Couchbase.Lite.Tests.UWP\DatabaseTest.cs">
-      <Link>DatabaseTest.cs</Link>
-    </Compile>
-    <Compile Include="..\Couchbase.Lite.Tests.UWP\DocumentTest.cs">
-      <Link>DocumentTest.cs</Link>
-    </Compile>
-    <Compile Include="..\Couchbase.Lite.Tests.UWP\TestCase.cs">
-      <Link>TestCase.cs</Link>
-    </Compile>
     <Compile Include="Main.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -172,9 +163,7 @@
       <Name>LiteCore</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <BundleResource Include="libLiteCore.dylib" />
-  </ItemGroup>
+  <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Import Project="..\packages\Xamarin.Forms.2.3.0.49\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets" Condition="Exists('..\packages\Xamarin.Forms.2.3.0.49\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets')" />
   <Import Project="..\packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets" Condition="Exists('..\packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets')" />

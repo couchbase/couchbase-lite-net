@@ -59,15 +59,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="..\Couchbase.Lite.Tests.UWP\DatabaseTest.cs">
-      <Link>DatabaseTest.cs</Link>
-    </Compile>
-    <Compile Include="..\Couchbase.Lite.Tests.UWP\DocumentTest.cs">
-      <Link>DocumentTest.cs</Link>
-    </Compile>
-    <Compile Include="..\Couchbase.Lite.Tests.UWP\TestCase.cs">
-      <Link>TestCase.cs</Link>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
@@ -86,5 +77,6 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

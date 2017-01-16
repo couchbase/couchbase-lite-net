@@ -49,7 +49,7 @@ namespace Test
 
             try {
                 var db = new Database("db", options);
-                db.Close();
+                db.Dispose();
             } finally {
                 Database.Delete("db", dir);
             }
@@ -61,7 +61,6 @@ namespace Test
             var path = Db.Path;
             Directory.Exists(path).Should().BeTrue("because otherwise the database was not created");
 
-            Db.Close();
             Db.Delete();
             Directory.Exists(path).Should().BeFalse("because otherwise the database was not deleted");
         }

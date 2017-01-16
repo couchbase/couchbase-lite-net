@@ -34,3 +34,5 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("Couchbase.Lite.Tests.iOS")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Support.Net46")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Tests.Net46")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Support.Android")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Tests.Android")]

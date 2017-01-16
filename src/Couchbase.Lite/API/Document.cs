@@ -24,6 +24,7 @@ using System.Threading;
 
 using LiteCore;
 using LiteCore.Interop;
+using LiteCore.Util;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite
@@ -191,11 +192,14 @@ namespace Couchbase.Lite
                 }
 
                 try {
-                    newDoc = (C4Document*)LiteCoreBridge.Check(err =>
-                    {
-                        var localPut = put;
-                        return Native.c4doc_put(_c4db, &localPut, null, err);
-                    });
+                    using(var type = new C4String(this["type"] as string)) {
+                        newDoc = (C4Document*)LiteCoreBridge.Check(err =>
+                        {
+                            var localPut = put;
+                            localPut.docType = type.AsC4Slice();
+                            return Native.c4doc_put(_c4db, &localPut, null, err);
+                        });
+                    }
                 } finally {
                     Native.FLSliceResult_Free(body);
                 }

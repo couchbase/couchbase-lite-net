@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>{11F38891-8397-49B4-9146-6DAF0A9D7866}</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Couchbase.Lite.Tests.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TestCase.cs" />
+  </ItemGroup>
+</Project>

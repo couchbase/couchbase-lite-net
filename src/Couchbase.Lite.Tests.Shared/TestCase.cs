@@ -2,6 +2,9 @@
 using System.IO;
 using Couchbase.Lite;
 using FluentAssertions;
+using Xunit;
+
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace Test
 {

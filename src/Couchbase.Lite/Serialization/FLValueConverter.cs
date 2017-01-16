@@ -30,6 +30,10 @@ namespace Couchbase.Lite
     {
         public static object ToObject(FLValue* value)
         {
+            if(value == null) {
+                return null;
+            }
+
             switch(Native.FLValue_GetType(value)) {
                 case FLValueType.Array: 
                     {

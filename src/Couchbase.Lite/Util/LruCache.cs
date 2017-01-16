@@ -47,7 +47,7 @@ using Couchbase.Lite.Logging;
 namespace Couchbase.Lite.Util
 {
     //LruCache implementation (null values disallowed)
-    internal class LruCache<TKey, TValue> 
+    internal class LruCache<TKey, TValue> : IDisposable
     where TKey: class 
     where TValue: class
     {
@@ -94,6 +94,25 @@ namespace Couchbase.Lite.Util
         #endregion
 
         #region Public Methods
+
+        public void Dispose()
+        {
+            Log.To.NoDomain.D(Tag, "Entering lock in Clear");
+            lock(_locker) {
+                foreach(var val in _allValues.Values) {
+                    TValue foo;
+                    if(val.TryGetTarget(out foo)) {
+                        (foo as IDisposable)?.Dispose();
+                    }
+                }
+
+                _recents.Clear();
+                _allValues.Clear();
+                _nodes.Clear();
+                Size = 0;
+            }
+            Log.To.NoDomain.D(Tag, "Exited lock in Clear");
+        }
 
         public void Clear()
         {
@@ -305,8 +324,8 @@ namespace Couchbase.Lite.Util
             
         protected internal virtual void EntryRemoved(bool evicted, TKey key, TValue oldValue, TValue newValue)
         {
-            //Used by subclasses for logic when an entry has been removed from the cache via
-            //ejection, or calls to put/remove
+            var disp = oldValue as IDisposable;
+            disp?.Dispose();
         }
             
         protected internal virtual TValue Create(TKey key)
@@ -334,20 +353,6 @@ namespace Couchbase.Lite.Util
             //The size of an entry in user defined units.  This must not change
             //for any given entry while it is in the cache
             return 1;
-        }
-            
-        // Used by tests
-        public void EvictAll()
-        {
-            Log.To.NoDomain.D(Tag, "Entering lock in EvictAll");
-            lock(_locker) {
-                int oldMax = MaxSize;
-                MaxSize = 0;
-                Trim();
-                MaxSize = oldMax;
-            }
-
-            Log.To.NoDomain.D(Tag, "Exited lock in EvictAll");
         }
 
         #endregion

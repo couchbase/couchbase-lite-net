@@ -168,13 +168,7 @@ namespace Couchbase.Lite
 
         public void Close()
         {
-            if(c4db == null) {
-                return;
-            }
-
-            _documents = null;
-
-            LiteCoreBridge.Check(err => Native.c4db_close(c4db, err));
+            Dispose();
         }
 
         public void ChangeEncryptionKey(object key)
@@ -186,6 +180,7 @@ namespace Couchbase.Lite
         {
             var db = (C4Database*)Interlocked.Exchange(ref p_c4db, 0);
             if(db != null) {
+                Close();
                 LiteCoreBridge.Check(err => Native.c4db_delete(db, err));
             }
         }
@@ -285,8 +280,16 @@ namespace Couchbase.Lite
 
         private void Dispose(bool disposing)
         {
-            var db = (C4Database *)Interlocked.Exchange(ref p_c4db, 0);
-            Native.c4db_free(db);
+            if(disposing) {
+                var docs = Interlocked.Exchange(ref _documents, null);
+                docs?.Dispose();
+            }
+
+            var db = (C4Database*)Interlocked.Exchange(ref p_c4db, 0);
+            if(db != null) {
+                LiteCoreBridge.Check(err => Native.c4db_close(db, err));
+                Native.c4db_free(db);
+            }
         }
 
         private void Open()
