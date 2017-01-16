@@ -222,9 +222,12 @@ namespace Couchbase.Lite.Internal
             _usePost = false;
             _caughtUp = false;
             _client = new WebSocket(ChangesFeedUrl.AbsoluteUri);
-            var systemProxy = WebRequest.DefaultWebProxy.GetProxy(DatabaseUrl).ToString();
-            var proxyCredentials = WebRequest.DefaultWebProxy.Credentials.GetCredential(DatabaseUrl, "");
-            _client.SetProxy(systemProxy, proxyCredentials.UserName, proxyCredentials.Password);
+            var systemProxy = WebRequest.DefaultWebProxy.GetProxy(DatabaseUrl)?.ToString();
+            var proxyCredentials = WebRequest.DefaultWebProxy.Credentials?.GetCredential(DatabaseUrl, "");
+            if(systemProxy != null && proxyCredentials != null) {
+                _client.SetProxy(systemProxy, proxyCredentials.UserName, proxyCredentials.Password);
+            }
+
             _client.WaitTime = TimeSpan.FromSeconds(2);
             _client.OnOpen += OnConnect;
             _client.OnMessage += OnReceive;
