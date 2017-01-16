@@ -36,6 +36,17 @@ namespace Couchbase.Lite
     {
         private FLDict* _root;
         private IReadOnlyDictionary<string, object> _rootProps;
+        private SharedStringCache _stringCache;
+        private SharedStringCache StringCache
+        {
+            get {
+                if(_stringCache == null) {
+                    _stringCache = new SharedStringCache(GetSharedKeys());
+                }
+
+                return _stringCache;
+            }
+        }
 
         private Dictionary<string, object> _properties;
 
@@ -62,7 +73,7 @@ namespace Couchbase.Lite
                 }
 
                 if(_root != null) {
-                    using(var reader = new JsonFLValueReader((FLValue *)_root)) {
+                    using(var reader = new JsonFLValueReader((FLValue *)_root, StringCache)) {
                         var serializer = new JsonSerializer();
                         return serializer.Deserialize<Dictionary<string, object>>(reader);
                     }
@@ -91,7 +102,7 @@ namespace Couchbase.Lite
                 return Properties.Get(key);
             }
 
-            return FLValueConverter.ToObject(FleeceValueForKey(key));
+            return FLValueConverter.ToObject(FleeceValueForKey(key), StringCache);
         }
 
         public string GetString(string key)

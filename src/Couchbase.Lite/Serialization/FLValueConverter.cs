@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 
+using Couchbase.Lite.Logging;
 using LiteCore;
 using LiteCore.Interop;
 
@@ -28,7 +29,9 @@ namespace Couchbase.Lite
 {
     internal static unsafe class FLValueConverter
     {
-        public static object ToObject(FLValue* value)
+        private const string Tag = nameof(FLValueConverter);
+
+        public static object ToObject(FLValue* value, SharedStringCache cache)
         {
             if(value == null) {
                 return null;
@@ -43,7 +46,7 @@ namespace Couchbase.Lite
                         Native.FLArrayIterator_Begin(arr, &i);
                         int pos = 0;
                         do {
-                            retVal[pos++] = ToObject(Native.FLArrayIterator_GetValue(&i));
+                            retVal[pos++] = ToObject(Native.FLArrayIterator_GetValue(&i), cache);
                         } while(Native.FLArrayIterator_Next(&i));
 
                         return retVal;
@@ -59,8 +62,19 @@ namespace Couchbase.Lite
                         var i = default(FLDictIterator);
                         Native.FLDictIterator_Begin(dict, &i);
                         do {
-                            var key = Native.FLValue_AsString(Native.FLDictIterator_GetKey(&i));
-                            retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i));
+                            var rawKey = Native.FLDictIterator_GetKey(&i);
+                            var key = default(string);
+                            if(Native.FLValue_GetType(rawKey) == FLValueType.Number) {
+                                key = cache.GetKey((int)Native.FLValue_AsInt(rawKey));
+                                if(key == null) {
+                                    Log.To.Database.W(Tag, "Corrupt key found during deserialization, skipping...");
+                                    continue;
+                                }
+                            } else {
+                                key = Native.FLValue_AsString(rawKey);
+                            }
+
+                            retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), cache);
                         } while(Native.FLDictIterator_Next(&i));
 
                         return retVal;

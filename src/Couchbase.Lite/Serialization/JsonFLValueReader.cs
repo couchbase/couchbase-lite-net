@@ -21,12 +21,16 @@
 using System;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+
+using Couchbase.Lite.Logging;
+using LiteCore;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
     internal sealed unsafe class JsonFLValueReader : JsonReader
     {
+        private const string Tag = nameof(JsonFLValueReader);
         private enum NextActionCode
         {
             ReadValue,
@@ -37,12 +41,14 @@ namespace Couchbase.Lite
 
         private Stack<object> _sequenceStack = new Stack<object>();
         private FLValue* _currentValue;
+        private readonly SharedStringCache _stringCache;
         private bool _inValue;
         private bool _ended;
 
-        public JsonFLValueReader(FLValue *root)
+        public JsonFLValueReader(FLValue *root, SharedStringCache stringCache)
         {
             _currentValue = root;
+            _stringCache = stringCache;
         }
 
         private void BeginObject(FLDict* d)
@@ -101,6 +107,21 @@ namespace Couchbase.Lite
             }
         }
 
+        private string GetKey()
+        {
+            var key = default(string);
+            if(Native.FLValue_GetType(_currentValue) == FLValueType.Number) {
+                key = _stringCache.GetKey((int)Native.FLValue_AsInt(_currentValue));
+                if(key == null) {
+                    Log.To.Database.W(Tag, "Corrupt key found during deserialization, skipping...");
+                }
+            } else {
+                key = Native.FLValue_AsString(_currentValue);
+            }
+
+            return key;
+        }
+
         public override bool Read()
         {
             if(_sequenceStack.Count == 0 && _currentValue == null) {
@@ -115,7 +136,11 @@ namespace Couchbase.Lite
                     SetToken(JsonToken.EndObject);
                     break;
                 case NextActionCode.ReadObjectKey:
-                    var key = Native.FLValue_AsString(_currentValue);
+                    var key = GetKey();
+                    if(key == null) {
+                        return false;
+                    }
+
                     SetToken(JsonToken.PropertyName, key);
                     break;
                 case NextActionCode.ReadValue:

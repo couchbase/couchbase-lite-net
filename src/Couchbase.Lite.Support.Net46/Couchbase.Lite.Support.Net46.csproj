@@ -46,5 +46,10 @@
       <Name>Couchbase.Lite</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="libLiteCore.dylib">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

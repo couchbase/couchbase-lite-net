@@ -120,7 +120,8 @@ namespace Test
                 doc1.GetLong("integer").Should().Be(2L, "because that is the integer that was saved");
 
                 doc1.GetString("string").Should().Be("str", "because that is the string that was saved");
-                //doc1.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
+                var foo = doc1.Get("dict");
+                doc1.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
                 doc1.Get("array").ShouldBeEquivalentTo(new[] { "1", "2" }, "because that is the array that was saved");
 
                 doc1.GetDate("date").Should().Be(date, "because that is the date that was saved");
