@@ -27,7 +27,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Support.Internal
 {
     internal sealed class DefaultLogger : ILogger
     {
@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Support
 
         private void PerformWrite(string final)
         {
-            Console.WriteLine(final);
+            Debug.WriteLine(final);
         }
 
         public void D(string tag, string msg)

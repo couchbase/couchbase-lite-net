@@ -60,6 +60,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Serialization\JsonFLValueReader.cs" />
     <Compile Include="Serialization\JsonFLValueWriter.cs" />
+    <Compile Include="Support\DefaultDirectoryResolver.cs" />
+    <Compile Include="Support\DefaultLogger.cs" />
     <Compile Include="Support\IDefaultPathResolver.cs" />
     <Compile Include="Support\IInjectable.cs" />
     <Compile Include="Util\Extensions.cs" />

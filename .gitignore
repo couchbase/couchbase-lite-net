@@ -147,3 +147,7 @@ UnityDemo.sln
 tmp/
 sync_gateway
 staging
+project.lock.json
+*.VC.db
+.vs/
+project.fragment.lock.json

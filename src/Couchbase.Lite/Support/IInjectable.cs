@@ -22,6 +22,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Couchbase.Lite.Logging;
+using Couchbase.Lite.Support.Internal;
 
 namespace Couchbase.Lite.Support
 {
@@ -34,6 +36,12 @@ namespace Couchbase.Lite.Support
         private const string Tag = nameof(InjectableCollection);
         private static readonly Dictionary<Type, Func<IInjectable>> _injectableMap =
             new Dictionary<Type, Func<IInjectable>>();
+
+        static InjectableCollection()
+        {
+            RegisterImplementation<ILogger>(() => new DefaultLogger());
+            RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
+        }
 
         public static void RegisterImplementation<T>(Func<IInjectable> generator) where T : IInjectable
         {
