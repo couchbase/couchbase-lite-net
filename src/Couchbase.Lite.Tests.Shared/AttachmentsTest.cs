@@ -54,6 +54,7 @@ using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Store;
+using Couchbase.Lite.Tests;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
@@ -70,23 +71,58 @@ namespace Couchbase.Lite
         public AttachmentsTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestEncryptedAttachments()
+        {
+            var dbOptions = new DatabaseOptions {
+                EncryptionKey = new SymmetricKey("password"),
+                Create = true
+            };
+
+            var encryptedDb = manager.OpenDatabase("encrypted", dbOptions);
+            var rev = encryptedDb.GetDocument("test").CreateRevision();
+            var data = Encoding.UTF8.GetBytes("12345");
+            rev.SetAttachment("test", "text/plain", data);
+            rev.Save();
+            var originalAttach = rev.Attachments.First();
+
+            var loadedRev = encryptedDb.GetExistingDocument("test").CurrentRevision;
+            var attachment = loadedRev.Attachments.First();
+
+            // Make sure we can read multiple times without throwing
+            var stream = attachment.ContentStream;
+            var content = attachment.Content;
+            content.Should().Equal(data, "because otherwise the saved attachment is incorrect");
+            var stream2 = attachment.ContentStream;
+            var content2 = attachment.Content;
+            content2.Should().Equal(data, "because otherwise the saved attachment is incorrect");
+
+            attachment.Length.Should().Be(originalAttach.Length, "because the length should be preserved");
+
+            // Make sure this does not throw
+            var newAttach = new Attachment(stream2, attachment.ContentType);
+        }
+
+        [Test]
         public void TestEmptyContentType()
         {
-            var doc = database.CreateDocument();
-            var unsaved = doc.CreateRevision();
+            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+            using(var remoteDb = sg.CreateDatabase("empty-content-type")) {
+                var doc = database.CreateDocument();
+                var unsaved = doc.CreateRevision();
 
-            var data = Enumerable.Repeat<byte>((byte)80, 2500);
-            unsaved.SetAttachment("attach", "", data);
-            unsaved.Save();
-            database.GetDocumentCount().Should().Be(1, "because a document was added");
+                var data = Enumerable.Repeat<byte>((byte)80, 2500);
+                unsaved.SetAttachment("attach", "", data);
+                unsaved.Save();
+                database.GetDocumentCount().Should().Be(1, "because a document was added");
 
-            var push = database.CreatePushReplication(GetReplicationURL());
-            push.Start();
-            var now = DateTime.UtcNow;
-            while(push.CompletedChangesCount < 1) {
-                Sleep(500);
-                if(DateTime.UtcNow - now > TimeSpan.FromSeconds(10)) {
-                    throw new TimeoutException("Test timed out");
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                push.Start();
+                var now = DateTime.UtcNow;
+                while(push.CompletedChangesCount < 1) {
+                    Sleep(500);
+                    if(DateTime.UtcNow - now > TimeSpan.FromSeconds(10)) {
+                        throw new TimeoutException("Test timed out");
+                    }
                 }
             }
         }

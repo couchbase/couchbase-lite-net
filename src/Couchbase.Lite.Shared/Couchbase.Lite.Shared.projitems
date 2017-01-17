@@ -171,6 +171,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Linq\NotSupportedExpressionVisitor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ExceptionResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\UniqueQueue.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\SilentCryptoStream.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
