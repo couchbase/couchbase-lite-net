@@ -24,11 +24,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
+using Couchbase.Lite.Serialization;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
-using LiteCore.Util;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {

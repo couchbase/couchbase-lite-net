@@ -43,13 +43,19 @@
     <Compile Include="API\Blob.cs" />
     <Compile Include="API\ConflictResolver.cs" />
     <Compile Include="API\Database.cs" />
+    <Compile Include="API\DatabaseQueryable.cs" />
     <Compile Include="API\Document.cs" />
     <Compile Include="API\IModellable.cs" />
     <Compile Include="API\Model.cs" />
     <Compile Include="API\Property.cs" />
     <Compile Include="API\PropertyContainer.cs" />
+    <Compile Include="API\Query.cs" />
     <Compile Include="API\Subdocument.cs" />
     <Compile Include="Encryption\SymmetricKey.cs" />
+    <Compile Include="Linq\LiteCoreExpressionTreeVisitor.cs" />
+    <Compile Include="Linq\LiteCoreQueryExecutor.cs" />
+    <Compile Include="Linq\LiteCoreQueryModelVisitor.cs" />
+    <Compile Include="Linq\NotSupportedExpressionVisitor.cs" />
     <Compile Include="Log\ILogger.cs" />
     <Compile Include="Log\Log.cs" />
     <Compile Include="Log\LogDomains.cs" />
@@ -58,6 +64,7 @@
     <Compile Include="Log\LogTo.cs" />
     <Compile Include="Log\SecureLogString.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Query\QueryEnumerator.cs" />
     <Compile Include="Serialization\JsonFLValueReader.cs" />
     <Compile Include="Serialization\JsonFLValueWriter.cs" />
     <Compile Include="Support\DefaultDirectoryResolver.cs" />

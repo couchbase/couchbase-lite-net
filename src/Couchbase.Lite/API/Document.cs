@@ -22,6 +22,7 @@
 using System;
 using System.Threading;
 
+using Couchbase.Lite.Serialization;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
@@ -59,6 +60,8 @@ namespace Couchbase.Lite
                 return _c4doc->flags.HasFlag(C4DocumentFlags.Exists);
             }
         }
+
+        public ulong Sequence { get; }
 
         private long p_c4db;
         private C4Database* _c4db
@@ -128,7 +131,7 @@ namespace Couchbase.Lite
             return true;
         }
 
-        public void Reset()
+        public void Revert()
         {
             ResetChanges();
         }

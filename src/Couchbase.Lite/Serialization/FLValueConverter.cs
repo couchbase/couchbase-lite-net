@@ -25,7 +25,7 @@ using Couchbase.Lite.Logging;
 using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Serialization
 {
     internal static unsafe class FLValueConverter
     {

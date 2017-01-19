@@ -203,7 +203,7 @@ namespace Test
             doc["name"] = "Scott";
 
             // Reset before save:
-            doc.Reset();
+            doc.Revert();
             doc["type"].Should().BeNull("because the document was reset");
             doc["name"].Should().BeNull("because the document was reset");
 
@@ -219,7 +219,7 @@ namespace Test
             doc["name"] = "Scottie";
 
             // Reset:
-            doc.Reset();
+            doc.Revert();
             doc["type"].Should().Be("Profile", "because the document was reset");
             doc["name"].Should().Be("Scott", "because the document was reset");
         }

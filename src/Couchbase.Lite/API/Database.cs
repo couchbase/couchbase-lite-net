@@ -20,13 +20,9 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+
 using Couchbase.Lite.Crypto;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
@@ -36,6 +32,34 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
+    using IndexType = C4IndexType;
+    
+    public sealed class IndexOptions
+    {
+        public string Language { get; set; }
+
+        public bool IgnoreDiacriticals { get; set; }
+
+        public IndexOptions()
+        {
+
+        }
+
+        public IndexOptions(string language, bool ignoreDiacriticals)
+        {
+            Language = language;
+            IgnoreDiacriticals = ignoreDiacriticals;
+        }
+
+        public static explicit operator C4IndexOptions(IndexOptions options)
+        {
+            return new C4IndexOptions {
+                language = options.Language,
+                ignoreDiacritics = options.IgnoreDiacriticals
+            };
+        }
+    }
+
     public abstract class ComponentChangedEventArgs<T> : EventArgs
     {
         public T Source { get; set; }
@@ -239,6 +263,34 @@ namespace Couchbase.Lite
             get {
                 return GetDocument(id);
             }
+        }
+
+        public void CreateIndex(string propertyPath)
+        {
+            CreateIndex(propertyPath, IndexType.ValueIndex, null);
+        }
+
+        public void CreateIndex(string propertyPath, IndexType indexType, IndexOptions options)
+        {
+            LiteCoreBridge.Check(err =>
+            {
+                if(options == null) {
+                    return Native.c4db_createIndex(c4db, propertyPath, indexType, null, err);
+                } else {
+                    var localOpts = (C4IndexOptions)options;
+                    return Native.c4db_createIndex(c4db, propertyPath, indexType, &localOpts, err);
+                }
+            });
+        }
+
+        public void DeleteIndex(string propertyPath, IndexType type)
+        {
+            LiteCoreBridge.Check(err => Native.c4db_deleteIndex(c4db, propertyPath, type, err));
+        }
+
+        public Query CreateQuery()
+        {
+            return new Query(this);
         }
 
         private static string DefaultDirectory()

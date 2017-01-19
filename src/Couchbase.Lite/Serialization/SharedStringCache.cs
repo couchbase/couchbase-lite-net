@@ -23,7 +23,7 @@ using System.Collections.Generic;
 
 using LiteCore.Interop;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Serialization
 {
     internal sealed unsafe class SharedStringCache
     {

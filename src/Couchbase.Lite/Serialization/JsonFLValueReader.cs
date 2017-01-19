@@ -26,7 +26,7 @@ using Couchbase.Lite.Logging;
 using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Serialization
 {
     internal sealed unsafe class JsonFLValueReader : JsonReader
     {
