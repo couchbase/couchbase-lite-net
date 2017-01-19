@@ -25,6 +25,7 @@ using System.Threading;
 
 using Couchbase.Lite.Crypto;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Serialization;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore;
@@ -33,7 +34,7 @@ using LiteCore.Interop;
 namespace Couchbase.Lite
 {
     using IndexType = C4IndexType;
-    
+
     public sealed class IndexOptions
     {
         public string Language { get; set; }
@@ -80,7 +81,7 @@ namespace Couchbase.Lite
         public bool ReadOnly { get; set; }
     }
 
-    public sealed unsafe class Database : IDisposable
+    public sealed unsafe class Database : ThreadLockedObject, IDisposable
     {
         private static readonly C4DatabaseConfig DBConfig = new C4DatabaseConfig {
             flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.Bundled | C4DatabaseFlags.SharedKeys,
@@ -108,10 +109,27 @@ namespace Couchbase.Lite
             }
         }
 
+        internal SharedStringCache SharedStrings { get; }
+
         internal string Path
         {
             get {
                 return Native.c4db_getPath(c4db);
+            }
+        }
+
+        private IJsonSerializer _jsonSerializer;
+        internal IJsonSerializer JsonSerializer
+        {
+            get {
+                if(_jsonSerializer == null) {
+                    _jsonSerializer = Serializer.CreateDefaultFor(this);
+                }
+
+                return _jsonSerializer;
+            }
+            set {
+                _jsonSerializer = value;
             }
         }
 
@@ -155,9 +173,10 @@ namespace Couchbase.Lite
             Name = name;
             _options = options;
             Open();
+            SharedStrings = new SharedStringCache(Native.c4db_getFLSharedKeys(c4db));
         }
 
-        public Database(Database other) : this(other.Name, other._options)
+        internal Database(Database other) : this(other.Name, other._options)
         {
 
         }
@@ -235,14 +254,14 @@ namespace Couchbase.Lite
             return GetDocument(id, false);
         }
 
-        public T GetDocument<T>() where T : IDocumentModel
+        public ModeledDocument<T> GetDocument<T>() where T : class, new()
         {
-            throw new NotImplementedException();
+            return GetDocument<T>(Misc.CreateGUID());
         }
 
-        public T GetDocument<T>(string id) where T : IDocumentModel
+        public ModeledDocument<T> GetDocument<T>(string id) where T : class, new()
         {
-            throw new NotImplementedException();
+            return GetDocument<T>(id, false);
         }
 
         public bool Exists(string documentID)
@@ -308,6 +327,24 @@ namespace Couchbase.Lite
             return System.IO.Path.Combine(Directory(directory), name);
         }
 
+        private ModeledDocument<T> GetDocument<T>(string docID, bool mustExist) where T : class, new()
+        {
+            var doc = (C4Document*)RetryHandler.RetryIfBusy()
+                .AllowError((int)LiteCoreError.NotFound, C4ErrorDomain.LiteCoreDomain)
+                .Execute(err => Native.c4doc_get(c4db, docID, mustExist, err));
+
+            if(doc == null) {
+                return null;
+            }
+
+            FLValue *value = NativeRaw.FLValue_FromTrustedData((FLSlice)doc->selectedRev.body);
+            var retVal = JsonSerializer.Deserialize<T>(value);
+            if(retVal == null) {
+                retVal = Activator.CreateInstance<T>();
+            }
+            return new ModeledDocument<T>(retVal, this, doc);
+        }
+
         private Document GetDocument(string docID, bool mustExist)
         {
             if(_documents == null) {
@@ -371,6 +408,11 @@ namespace Couchbase.Lite
                 var localConfig2 = localConfig1;
                 return Native.c4db_open(path, &localConfig2, err);
             });
+        }
+
+        internal override object Copy()
+        {
+            return new Database(this);
         }
 
         public void Dispose()

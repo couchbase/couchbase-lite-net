@@ -98,6 +98,12 @@ namespace Couchbase.Lite
             Dispose(false);
         }
 
+        public new Document Set(string key, object value)
+        {
+            base.Set(key, value);
+            return this;
+        }
+
         public bool Save()
         {
             return Save(null, false);
@@ -228,9 +234,9 @@ namespace Couchbase.Lite
             return $"{GetType().Name}[{Id}]";
         }
 
-        protected override FLSharedKeys* GetSharedKeys()
+        internal override SharedStringCache GetSharedStrings()
         {
-            return Native.c4db_getFLSharedKeys(_c4db);
+            return Database.SharedStrings;
         }
 
         public void Dispose()

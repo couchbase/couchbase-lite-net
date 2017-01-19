@@ -70,7 +70,7 @@ namespace Couchbase.Lite
                 paramJSON = JsonConvert.SerializeObject(Parameters);
             }
 
-            return new QueryEnumerator(Database, _c4query, options, paramJSON);
+            return new QueryRowEnumerable(Database, _c4query, options, paramJSON);
         }
     }
 

@@ -42,6 +42,7 @@
   <ItemGroup>
     <Compile Include="API\Blob.cs" />
     <Compile Include="API\ConflictResolver.cs" />
+    <Compile Include="API\CouchbaseLiteException.cs" />
     <Compile Include="API\Database.cs" />
     <Compile Include="API\DatabaseQueryable.cs" />
     <Compile Include="API\Document.cs" />
@@ -67,10 +68,12 @@
     <Compile Include="Query\QueryEnumerator.cs" />
     <Compile Include="Serialization\JsonFLValueReader.cs" />
     <Compile Include="Serialization\JsonFLValueWriter.cs" />
+    <Compile Include="Serialization\Serializer.cs" />
     <Compile Include="Support\DefaultDirectoryResolver.cs" />
     <Compile Include="Support\DefaultLogger.cs" />
     <Compile Include="Support\IDefaultPathResolver.cs" />
     <Compile Include="Support\IInjectable.cs" />
+    <Compile Include="Support\ThreadLockedObject.cs" />
     <Compile Include="Util\Extensions.cs" />
     <Compile Include="Util\LruCache.cs" />
     <Compile Include="Util\Misc.cs" />

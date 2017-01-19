@@ -27,6 +27,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
+using Couchbase.Lite.Support;
 using FluentAssertions;
 using Xunit;
 
@@ -115,6 +116,22 @@ namespace Test
                 var docId = $"doc{i}";
                 Db.Exists(docId).Should().Be(commit, "because otherwise the batch didn't commit or rollback properly");
             }
+        }
+
+        [Fact]
+        public async Task TestThreadSafety()
+        {
+            Db.IsSafeToUse.Should().BeTrue("because Db was created on this thread");
+            var safe = await Task.Factory.StartNew(() => Db.IsSafeToUse);
+            safe.Should().BeFalse("because Db was used on another thread");
+            safe = await Task.Factory.StartNew(() =>
+            {
+                using(var db1 = ThreadLocked.Copy(Db)) {
+                    return db1.IsSafeToUse;
+                }
+            });
+
+            safe.Should().BeTrue("because a copy was made to another thread");
         }
     }
 }

@@ -29,16 +29,16 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Querying
 {
-    internal unsafe sealed class QueryEnumerator : IEnumerable<QueryRow>
+    internal unsafe abstract class QueryEnumerable<T> : IEnumerable<T>
     {
-        private const string Tag = nameof(QueryEnumerator);
+        private const string Tag = nameof(QueryEnumerable<T>);
 
-        private readonly Database _db;
-        private readonly C4Query* _query;
-        private readonly C4QueryOptions _options;
-        private readonly string _encodedParameters;
+        protected readonly Database _db;
+        protected readonly C4Query* _query;
+        protected readonly C4QueryOptions _options;
+        protected readonly string _encodedParameters;
 
-        internal QueryEnumerator(Database db, C4Query *query, C4QueryOptions options, string encodedParameters)
+        protected QueryEnumerable(Database db, C4Query* query, C4QueryOptions options, string encodedParameters)
         {
             _db = db;
             _query = query;
@@ -46,77 +46,139 @@ namespace Couchbase.Lite.Querying
             _encodedParameters = encodedParameters;
         }
 
-        public IEnumerator<QueryRow> GetEnumerator()
-        {
-            return new Enumerator(_db, _query, _options, _encodedParameters);
-        }
+        public abstract IEnumerator<T> GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
+    }
 
-        private class Enumerator : InteropObject, IEnumerator<QueryRow>
+    internal unsafe sealed class QueryRowEnumerable : QueryEnumerable<QueryRow>
+    {
+        internal QueryRowEnumerable(Database db, C4Query* query, C4QueryOptions options, string encodedParameters)
+            : base(db, query, options, encodedParameters)
         {
-            private long p_native;
-            private C4Query* _query;
-            private Database _db;
 
-            private C4QueryEnumerator* _native
+        }
+
+        public override IEnumerator<QueryRow> GetEnumerator()
+        {
+            return new QueryRowEnumerator(_db, _query, _options, _encodedParameters);
+        }
+    }
+
+    internal unsafe sealed class LinqQueryEnumerable<T> : QueryEnumerable<T>
+    {
+        internal LinqQueryEnumerable(Database db, C4Query* query, C4QueryOptions options, string encodedParameters)
+            : base(db, query, options, encodedParameters)
+        {
+
+        }
+
+        public override IEnumerator<T> GetEnumerator()
+        {
+            return new LinqQueryEnumerator<T>(_db, _query, _options, _encodedParameters);
+        }
+    }
+
+    internal unsafe abstract class QueryEnumerator<T> : InteropObject, IEnumerator<T>
+    {
+        private const string Tag = nameof(QueryEnumerator<T>);
+        private long p_native;
+        protected C4Query* _query;
+        protected Database _db;
+
+        private C4QueryEnumerator* _native
+        {
+            get {
+                return (C4QueryEnumerator*)p_native;
+            }
+            set {
+                p_native = (long)value;
+            }
+        }
+
+        public T Current { get; protected set; }
+
+        object IEnumerator.Current
+        {
+            get {
+                return Current;
+            }
+        }
+
+        public QueryEnumerator(Database db, C4Query* query, C4QueryOptions options, string encodedParameters)
+        {
+            _db = db;
+            _query = query;
+            _native = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
             {
-                get {
-                    return (C4QueryEnumerator*)p_native;
-                }
-                set {
-                    p_native = (long)value;
-                }
+                var localOpts = options;
+                return Native.c4query_run(query, &localOpts, encodedParameters, err);
+            });
+        }
+
+        protected abstract void SetCurrent(C4QueryEnumerator* enumerator);
+
+        protected override void Dispose(bool finalizing)
+        {
+            var native = (C4QueryEnumerator*)Interlocked.Exchange(ref p_native, 0);
+            if(native != null) {
+                Native.c4queryenum_close(native);
+                Native.c4queryenum_free(native);
+            }
+        }
+
+        public bool MoveNext()
+        {
+            C4Error err;
+            if(Native.c4queryenum_next(_native, &err)) {
+                SetCurrent(_native);
+                return true;
+            } else if(err.code != 0) {
+                Log.To.Query.E(Tag, $"QueryEnumerator error: {err.domain}/{err.code}");
             }
 
-            public QueryRow Current { get; private set; }
+            return false;
+        }
 
-            object IEnumerator.Current
-            {
-                get {
-                    return Current;
-                }
-            }
+        public void Reset()
+        {
+            throw new NotSupportedException();
+        }
+    }
 
-            public Enumerator(Database db, C4Query* query, C4QueryOptions options, string encodedParameters)
-            {
-                _db = db;
-                _query = query;
-                _native = (C4QueryEnumerator*)LiteCoreBridge.Check(err =>
-                {
-                    var localOpts = options;
-                    return Native.c4query_run(query, &localOpts, encodedParameters, err);
-                });
-            }
+    internal sealed unsafe class QueryRowEnumerator : QueryEnumerator<QueryRow>
+    {
+        public QueryRowEnumerator(Database db, C4Query* query, C4QueryOptions options, string encodedParameters)
+            : base(db, query, options, encodedParameters)
+        {
 
-            protected override void Dispose(bool finalizing)
-            {
-                var native = (C4QueryEnumerator*)Interlocked.Exchange(ref p_native, 0);
-                if(native != null) {
-                    Native.c4queryenum_close(native);
-                    Native.c4queryenum_free(native);
-                }
-            }
+        }
 
-            public bool MoveNext()
-            {
-                C4Error err;
-                if(Native.c4queryenum_next(_native, &err)) {
-                    Current = _native->fullTextTermCount > 0 ? new FullTextQueryRow(_db, _query, _native) : new QueryRow(_db, _native);
-                    return true;
-                } else if(err.code != 0) {
-                    Log.To.Query.E(Tag, $"QueryEnumerator error: {err.domain}/{err.code}");
-                }
+        protected override void SetCurrent(C4QueryEnumerator* enumerator)
+        {
+            Current = enumerator->fullTextTermCount > 0 ? new FullTextQueryRow(_db, _query, enumerator) : new QueryRow(_db, enumerator);
+        }
+    }
 
-                return false;
-            }
+    internal sealed unsafe class LinqQueryEnumerator<T> : QueryEnumerator<T>
+    {
+        public LinqQueryEnumerator(Database db, C4Query* query, C4QueryOptions options, string encodedParameters)
+            : base(db, query, options, encodedParameters)
+        {
 
-            public void Reset()
-            {
-                throw new NotSupportedException();
+        }
+
+        protected override void SetCurrent(C4QueryEnumerator* enumerator)
+        {
+            var doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_getBySequence(_db.c4db, enumerator->docSequence, err));
+            try {
+                FLValue* value = NativeRaw.FLValue_FromTrustedData((FLSlice)doc->selectedRev.body);
+                Current = _db.JsonSerializer.Deserialize<T>(value);
+            } finally {
+                Native.c4doc_free(doc);
             }
         }
     }

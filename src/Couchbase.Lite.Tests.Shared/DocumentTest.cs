@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -86,19 +87,16 @@ namespace Test
         public void TestPropertyAccessors()
         {
             var doc = Db.GetDocument("doc1");
+            var date = DateTimeOffset.Now;
             doc.Set("bool", true)
                 .Set("double", 1.1)
                 .Set("float", 1.2f)
-                .Set("integer", 2L);
-
-            doc.Set("string", "str")
-                .Set("dict", new Dictionary<string, object> { ["foo"] = "bar" })
-                .Set("array", new[] { "1", "2" });
-
-            var date = DateTimeOffset.Now;
-            doc.Set("date", date);
-
-            doc.Save().Should().BeTrue("because the save should succeed");
+                .Set("integer", 2L)
+                .Set("string", "str")
+                //.Set("dict", new Dictionary<string, object> { ["foo"] = "bar" })
+                .Set("array", new[] { "1", "2" })
+                .Set("date", date)
+                .Save().Should().BeTrue("because the save should succeed");
 
             doc.GetBoolean("bool").Should().BeTrue("because that is the bool that was saved");
             doc.GetDouble("double").Should().BeApproximately(1.1, Double.Epsilon, "because that is the double that was saved");
@@ -106,7 +104,7 @@ namespace Test
             doc.GetLong("integer").Should().Be(2L, "because that is the integer that was saved");
 
             doc.GetString("string").Should().Be("str", "because that is the string that was saved");
-            doc.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
+            //doc.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
             doc.Get("array").ShouldBeEquivalentTo(new[] { "1", "2" }, "because that is the array that was saved");
 
             doc.GetDate("date").Should().Be(date, "because that is the date that was saved");
@@ -120,8 +118,7 @@ namespace Test
                 doc1.GetLong("integer").Should().Be(2L, "because that is the integer that was saved");
 
                 doc1.GetString("string").Should().Be("str", "because that is the string that was saved");
-                var foo = doc1.Get("dict");
-                doc1.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
+                //doc1.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
                 doc1.Get("array").ShouldBeEquivalentTo(new[] { "1", "2" }, "because that is the array that was saved");
 
                 doc1.GetDate("date").Should().Be(date, "because that is the date that was saved");
@@ -196,7 +193,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestReset()
+        public void TestRevert()
         {
             var doc = Db["doc1"];
             doc["type"] = "Profile";
@@ -222,6 +219,16 @@ namespace Test
             doc.Revert();
             doc["type"].Should().Be("Profile", "because the document was reset");
             doc["name"].Should().Be("Scott", "because the document was reset");
+        }
+
+        [Fact]
+        public void TestInvalidProperties()
+        {
+            var doc = Db["doc1"];
+            doc.Invoking(x => x.Set("dict", new Dictionary<string, object> { ["foo"] = "bar" })).ShouldThrow<ArgumentException>("because storing dictionaries directly is not allowed");
+
+            var fancyClass = new Action(() => Debug.WriteLine("OUT!"));
+            doc.Invoking(x => x.Set("action", fancyClass)).ShouldThrow<ArgumentException>("because storing dictionaries directly is not allowed");
         }
     }
 }

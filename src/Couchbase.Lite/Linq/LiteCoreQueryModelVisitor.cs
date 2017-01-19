@@ -25,6 +25,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using LiteCore.Interop;
+using Newtonsoft.Json;
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 
@@ -32,7 +34,7 @@ namespace Couchbase.Lite.Linq
 {
     internal sealed class LiteCoreQueryModelVisitor : QueryModelVisitorBase
     {
-        private StringBuilder _jsonQuery = new StringBuilder();
+        private IDictionary<string, object> _query = new Dictionary<string, object>();
 
         public static string GenerateJsonQuery(QueryModel model)
         {
@@ -56,8 +58,9 @@ namespace Couchbase.Lite.Linq
 
         public override void VisitWhereClause(WhereClause whereClause, QueryModel queryModel, int index)
         {
-            var exp = GetJsonExpression(whereClause.Predicate);
-            _jsonQuery.Append($"{{WHERE: {exp}}}");
+            var visitor = new LiteCoreWhereExpressionVisitor();
+            visitor.Visit(whereClause.Predicate);
+            _query["WHERE"] = visitor.GetJsonExpression();
 
             base.VisitWhereClause(whereClause, queryModel, index);
         }
@@ -82,14 +85,10 @@ namespace Couchbase.Lite.Linq
             base.VisitGroupJoinClause(groupJoinClause, queryModel, index);
         }
 
-        internal string GetJsonQuery()
+        internal unsafe string GetJsonQuery()
         {
-            return _jsonQuery.ToString();
-        }
-
-        private string GetJsonExpression(Expression expression)
-        {
-            return LiteCoreExpressionTreeVisitor.GetJsonExpression(expression);
+            var json5 = JsonConvert.SerializeObject(_query);
+            return Native.FLJSON5_ToJSON(json5, null);
         }
     }
 }

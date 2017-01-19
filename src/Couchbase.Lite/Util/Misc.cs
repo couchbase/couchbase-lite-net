@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Util
 {
@@ -20,6 +18,51 @@ namespace Couchbase.Lite.Util
             // '_' character:
             sb.Insert(0, '-');
             return sb.ToString();
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, string tag, string message)
+        {
+            return CreateExceptionAndLog(domain, StatusCode.Exception, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, StatusCode code, string tag, string message)
+        {
+            domain.E(tag, "{0}, throwing CouchbaseLiteException ({1})", message, code);
+            return new CouchbaseLiteException(message, code);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, StatusCode code, string tag,
+            string format, params object[] args)
+        {
+            var message = String.Format(format, args);
+            return CreateExceptionAndLog(domain, code, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner, string tag, string message)
+        {
+            return CreateExceptionAndLog(domain, inner, StatusCode.Exception, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner,
+            StatusCode code, string tag, string message)
+        {
+            domain.E(tag, String.Format("{0}, throwing CouchbaseLiteException",
+                message), inner);
+            return new CouchbaseLiteException(message, inner) { Code = code };
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner,
+            string tag, string format, params object[] args)
+        {
+            var message = String.Format(format, args);
+            return CreateExceptionAndLog(domain, inner, tag, message);
+        }
+
+        public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, Exception inner,
+            StatusCode code, string tag, string format, params object[] args)
+        {
+            var message = String.Format(format, args);
+            return CreateExceptionAndLog(domain, inner, code, tag, message);
         }
     }
 }

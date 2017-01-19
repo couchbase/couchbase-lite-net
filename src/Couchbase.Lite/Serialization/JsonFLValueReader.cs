@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using Couchbase.Lite.Logging;
 using LiteCore;
 using LiteCore.Interop;
+using System.Globalization;
 
 namespace Couchbase.Lite.Serialization
 {
@@ -40,10 +41,10 @@ namespace Couchbase.Lite.Serialization
         }
 
         private Stack<object> _sequenceStack = new Stack<object>();
+        private Stack<bool> _endMarker = new Stack<bool>();
         private FLValue* _currentValue;
         private readonly SharedStringCache _stringCache;
         private bool _inValue;
-        private bool _ended;
 
         public JsonFLValueReader(FLValue *root, SharedStringCache stringCache)
         {
@@ -55,6 +56,7 @@ namespace Couchbase.Lite.Serialization
         {
             FLDictIterator i;
             Native.FLDictIterator_Begin(d, &i);
+            _endMarker.Push(false);
             _sequenceStack.Push(i);
         }
 
@@ -62,13 +64,14 @@ namespace Couchbase.Lite.Serialization
         {
             FLArrayIterator i;
             Native.FLArrayIterator_Begin(a, &i);
+            _endMarker.Push(false);
             _sequenceStack.Push(i);
         }
 
         private NextActionCode NextAction()
         {
-            if(_ended) {
-                _ended = false;
+            if(_endMarker.Count > 0 && _endMarker.Peek()) {
+                _endMarker.Pop();
                 var last = _sequenceStack.Pop();
                 return (last is FLDictIterator) ? NextActionCode.EndObject : NextActionCode.EndArray;
             }
@@ -84,7 +87,8 @@ namespace Couchbase.Lite.Serialization
                     _inValue = false;
                     _currentValue = Native.FLDictIterator_GetValue(&iter);
                     if(!Native.FLDictIterator_Next(&iter)) {
-                        _ended = true;
+                        _endMarker.Pop();
+                        _endMarker.Push(true);
                     }
 
                     _sequenceStack.Push(iter);
@@ -93,13 +97,15 @@ namespace Couchbase.Lite.Serialization
                     _inValue = true;
                 }
 
+                _sequenceStack.Push(i);
                 _currentValue = Native.FLDictIterator_GetKey(&iter);
                 return NextActionCode.ReadObjectKey;
             } else {
                 var iter = (FLArrayIterator)i;
                 _currentValue = Native.FLArrayIterator_GetValue(&iter);
                 if(!Native.FLArrayIterator_Next(&iter)) {
-                    _ended = true;
+                    _endMarker.Pop();
+                    _endMarker.Push(true);
                 }
 
                 _sequenceStack.Push(iter);
@@ -168,9 +174,10 @@ namespace Couchbase.Lite.Serialization
                                 SetToken(JsonToken.Integer, Native.FLValue_AsInt(_currentValue));
                             } else if(Native.FLValue_IsDouble(_currentValue)) {
                                 SetToken(JsonToken.Float, Native.FLValue_AsDouble(_currentValue));
+                            } else {
+                                SetToken(JsonToken.Float, Native.FLValue_AsFloat(_currentValue));
                             }
 
-                            SetToken(JsonToken.Float, Native.FLValue_AsFloat(_currentValue));
                             break;
                         case FLValueType.String:
                             SetToken(JsonToken.String, Native.FLValue_AsString(_currentValue));
@@ -188,88 +195,46 @@ namespace Couchbase.Lite.Serialization
             return true;
         }
 
-        public override decimal? ReadAsDecimal()
+        public override DateTime? ReadAsDateTime()
         {
-            if(Native.FLValue_GetType(_currentValue) != FLValueType.Number) {
-                return null;
+            var action = NextAction();
+            if(action != NextActionCode.ReadValue) {
+                throw new JsonReaderException($"Invalid state for reading date time offset ({action})");
             }
 
-            if(Native.FLValue_IsInteger(_currentValue)) {
-                if(Native.FLValue_IsUnsigned(_currentValue)) {
-                    return Native.FLValue_AsUnsigned(_currentValue);
-                }
-
-                return Native.FLValue_AsInt(_currentValue);
-            } else if(Native.FLValue_IsDouble(_currentValue)) {
-                return (decimal)Native.FLValue_AsDouble(_currentValue);
-            }
-
-            return (decimal)Native.FLValue_AsFloat(_currentValue);
-        }
-
-        public override double? ReadAsDouble()
-        {
-            if(Native.FLValue_GetType(_currentValue) != FLValueType.Number 
-                || Native.FLValue_IsInteger(_currentValue)) {
-                return null;
-            }
-
-            if(Native.FLValue_IsDouble(_currentValue)) {
-                return Native.FLValue_AsDouble(_currentValue);
-            }
-
-            return Native.FLValue_AsFloat(_currentValue);
-        }
-
-        public override int? ReadAsInt32()
-        {
-            if(Native.FLValue_GetType(_currentValue) != FLValueType.Number
-                || !Native.FLValue_IsInteger(_currentValue)) {
-                return null;
-            }
-
-            if(Native.FLValue_IsUnsigned(_currentValue)) {
-                return (int)Native.FLValue_AsUnsigned(_currentValue);
-            }
-
-            return (int)Native.FLValue_AsInt(_currentValue);
-        }
-
-        public override bool? ReadAsBoolean()
-        {
-            if(Native.FLValue_GetType(_currentValue) != FLValueType.Boolean) {
-                return null;
-            }
-
-            return Native.FLValue_AsBool(_currentValue);
-        }
-
-        public override string ReadAsString()
-        {
             if(Native.FLValue_GetType(_currentValue) != FLValueType.String) {
                 return null;
             }
 
-            return Native.FLValue_AsString(_currentValue);
-        }
 
-        public override byte[] ReadAsBytes()
-        {
-            if(Native.FLValue_GetType(_currentValue) != FLValueType.Data) {
-                return null;
+            DateTime retVal;
+            if(DateTime.TryParseExact(Native.FLValue_AsString(_currentValue), "o", null, DateTimeStyles.RoundtripKind, out retVal)) {
+                SetToken(JsonToken.Date, retVal);
+                return retVal;
             }
 
-            return Native.FLValue_AsData(_currentValue);
-        }
-
-        public override DateTime? ReadAsDateTime()
-        {
-            return null;
+            throw new LiteCoreException(new C4Error(FLError.EncodeError));
         }
 
         public override DateTimeOffset? ReadAsDateTimeOffset()
         {
-            return null;
+            var action = NextAction();
+            if(action != NextActionCode.ReadValue) {
+                throw new JsonReaderException($"Invalid state for reading date time offset ({action})");
+            }
+
+            if(Native.FLValue_GetType(_currentValue) != FLValueType.String) {
+                return null;
+            }
+
+            
+            DateTimeOffset retVal;
+            if(DateTimeOffset.TryParseExact(Native.FLValue_AsString(_currentValue), "o", null, DateTimeStyles.RoundtripKind, out retVal)) {
+                SetToken(JsonToken.Date, retVal);
+                return retVal;
+            }
+
+            throw new LiteCoreException(new C4Error(FLError.EncodeError));
         }
     }
 }

@@ -25,13 +25,16 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Lite.Querying;
+using LiteCore;
+using LiteCore.Interop;
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.ExpressionVisitors;
 
 namespace Couchbase.Lite.Linq
 {
-    internal class LiteCoreQueryExecutor : IQueryExecutor
+    internal unsafe class LiteCoreQueryExecutor : IQueryExecutor
     {
         private readonly Database _db;
 
@@ -44,7 +47,10 @@ namespace Couchbase.Lite.Linq
         {
             var visitor = new LiteCoreQueryModelVisitor();
             visitor.VisitQueryModel(queryModel);
-            return Enumerable.Empty<T>();
+            var query = visitor.GetJsonQuery();
+
+            var queryObj = (C4Query *)LiteCoreBridge.Check(err => Native.c4query_new(_db.c4db, query, err));
+            return new LinqQueryEnumerable<T>(_db, queryObj, C4QueryOptions.Default, null);
         }
 
         public T ExecuteScalar<T>(QueryModel queryModel)

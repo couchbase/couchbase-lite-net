@@ -25,24 +25,37 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Linq
 {
-    internal sealed class LiteCoreExpressionTreeVisitor : NotSupportedExpressionVisitor
+    internal sealed class LiteCoreWhereExpressionVisitor : NotSupportedExpressionVisitor
     {
-        private StringBuilder _jsonExpression = new StringBuilder();
+        private static readonly IDictionary<ExpressionType, string> _expressionTypeMap = new Dictionary<ExpressionType, string> {
+            [ExpressionType.LessThan] = "<",
+            [ExpressionType.LessThanOrEqual] = "<=",
+            [ExpressionType.GreaterThan] = ">",
+            [ExpressionType.GreaterThanOrEqual] = ">=",
+            [ExpressionType.Equal] = "=",
+            [ExpressionType.NotEqual] = "!="
+        };
 
-        public static string GetJsonExpression(Expression expression)
+        private IList<object> _query = new List<object>();
+
+        public static IList<object> GetJsonExpression(Expression expression)
         {
-            var visitor = new LiteCoreExpressionTreeVisitor();
+            var visitor = new LiteCoreWhereExpressionVisitor();
             visitor.Visit(expression);
             return visitor.GetJsonExpression();
         }
 
-        public string GetJsonExpression()
+        public IList<object> GetJsonExpression()
         {
-            _jsonExpression.Append("]");
-            return _jsonExpression.ToString();
+            if(_query.Count > 1) {
+                _query.Insert(0, "AND");
+            }
+            
+            return _query;
         }
 
         protected override Expression VisitBinary(BinaryExpression expression)
@@ -60,79 +73,27 @@ namespace Couchbase.Lite.Linq
             return node;
         }
 
-        protected override Expression VisitMethodCall(MethodCallExpression node)
-        {
-            if(node.Method.Name.Equals("Analyze")) {
-                var firstArg = (node.Arguments[1] as ConstantExpression).Value as string;
-                _jsonExpression.Append($",['.{firstArg}']");
-                return node;
-            } else if(node.Method.Name.Equals("AllMatch") || node.Method.Name.Equals("AnyMatch")) {
-                var firstArg = (node.Arguments[1] as ConstantExpression).Value as string;
-                var secondArg = node.Arguments[2] as Expression<Func<object, bool>>;
-
-                var prefix = node.Method.Name.Equals("AllMatch") ? "['EVERY','X'," : "['ANY','X',";
-                var childPath = AppendArrayPath(prefix, firstArg);
-                var body = secondArg.Body as BinaryExpression;
-                AppendOperand(body);
-                AppendChildPath(childPath);
-                Visit(body.Right);
-                _jsonExpression.Append("]");
-                return node;
-            } else {
-                return base.VisitMethodCall(node);
-            }
-        }
-
         protected override Expression VisitConstant(ConstantExpression node)
         {
-            if(node.Value is string) {
-                _jsonExpression.Append($",'{node.Value}'");
-            } else {
-                _jsonExpression.Append($",{node.Value}");
-            }
+            (_query.Last() as IList<object>).Add(node.Value);
             return node;
         }
 
-        private string AppendArrayPath(string prefix, string fullPath)
+        protected override Expression VisitMember(MemberExpression node)
         {
-            var lastPeriod = fullPath.LastIndexOf('.');
-            var retVal = default(string);
-            var arrayPath = fullPath;
-            if(lastPeriod != -1) {
-                retVal = fullPath.Substring(lastPeriod + 1);
-                arrayPath = fullPath.Substring(0, lastPeriod);
-            }
-
-            _jsonExpression.Append($"{prefix}['.{arrayPath}'],");
-            return retVal;
-        }
-
-        private void AppendChildPath(string path)
-        {
-            if(path == null) {
-                _jsonExpression.Append(",['?X']");
-            } else {
-                _jsonExpression.Append($",['?X','{path}']");
-            }
+            (_query.Last() as IList<object>).Add(new[] { $".{node.Member.Name}" });
+            return node;
         }
 
         private void AppendOperand(BinaryExpression expression)
         {
+            if(_expressionTypeMap.ContainsKey(expression.NodeType)) {
+                _query.Add(new List<object> { _expressionTypeMap[expression.NodeType] });
+                return;
+            }
+
             switch(expression.NodeType) {
-                case ExpressionType.Equal:
-                    _jsonExpression.Append("['='");
-                    break;
-                case ExpressionType.LessThan:
-                    _jsonExpression.Append("['<'");
-                    break;
-                case ExpressionType.LessThanOrEqual:
-                    _jsonExpression.Append("['<='");
-                    break;
-                case ExpressionType.GreaterThan:
-                    _jsonExpression.Append("['>'");
-                    break;
-                case ExpressionType.GreaterThanOrEqual:
-                    _jsonExpression.Append("['>='");
+                case ExpressionType.AndAlso:
                     break;
                 default:
                     base.VisitBinary(expression);

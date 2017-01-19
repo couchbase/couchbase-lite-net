@@ -20,8 +20,11 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 
 using Couchbase.Lite.Serialization;
@@ -35,17 +38,6 @@ namespace Couchbase.Lite
     {
         private FLDict* _root;
         private IReadOnlyDictionary<string, object> _rootProps;
-        private SharedStringCache _stringCache;
-        private SharedStringCache StringCache
-        {
-            get {
-                if(_stringCache == null) {
-                    _stringCache = new SharedStringCache(GetSharedKeys());
-                }
-
-                return _stringCache;
-            }
-        }
 
         private Dictionary<string, object> _properties;
 
@@ -72,7 +64,7 @@ namespace Couchbase.Lite
                 }
 
                 if(_root != null) {
-                    using(var reader = new JsonFLValueReader((FLValue *)_root, StringCache)) {
+                    using(var reader = new JsonFLValueReader((FLValue *)_root, GetSharedStrings())) {
                         var serializer = new JsonSerializer();
                         return serializer.Deserialize<Dictionary<string, object>>(reader);
                     }
@@ -84,6 +76,7 @@ namespace Couchbase.Lite
 
         public PropertyContainer Set(string key, object value)
         {
+            ValidateObjectType(value);
             MutateProperties();
 
             var oldValue = Properties.Get(key);
@@ -101,7 +94,7 @@ namespace Couchbase.Lite
                 return Properties.Get(key);
             }
 
-            return FLValueConverter.ToObject(FleeceValueForKey(key), StringCache);
+            return FLValueConverter.ToObject(FleeceValueForKey(key), GetSharedStrings());
         }
 
         public string GetString(string key)
@@ -255,9 +248,43 @@ namespace Couchbase.Lite
             HasChanges = false;
         }
 
-        protected virtual FLSharedKeys* GetSharedKeys()
+        internal virtual SharedStringCache GetSharedStrings()
         {
             return null;
+        }
+
+        private static readonly TypeInfo[] ValidTypes = new[] {
+            typeof(string).GetTypeInfo(),
+            typeof(DateTime).GetTypeInfo(),
+            typeof(DateTimeOffset).GetTypeInfo(),
+            typeof(decimal).GetTypeInfo()
+        };
+
+        private static bool IsValidScalarType(Type type)
+        {
+            var info = type.GetTypeInfo();
+            if(info.IsPrimitive) {
+                return true;
+            }
+
+            return ValidTypes.Any(x => info.IsAssignableFrom(x));
+        }
+
+        private static void ValidateObjectType(object value)
+        {
+            var type = value.GetType();
+            if(IsValidScalarType(type)) {
+                return;
+            }
+
+            var array = value as IList;
+            if(array == null) {
+                throw new ArgumentException($"Invalid type in document properties: {type.Name}", nameof(value));
+            }
+
+            foreach(var item in array) {
+                ValidateObjectType(item);
+            }
         }
 
         private void MutateProperties()
@@ -295,7 +322,7 @@ namespace Couchbase.Lite
 
         private FLValue* FleeceValueForKey(string key)
         {
-            return Native.FLDict_GetSharedKey(_root, Encoding.UTF8.GetBytes(key), GetSharedKeys());
+            return Native.FLDict_GetSharedKey(_root, Encoding.UTF8.GetBytes(key), GetSharedStrings().SharedKeys);
         }
     }
 }

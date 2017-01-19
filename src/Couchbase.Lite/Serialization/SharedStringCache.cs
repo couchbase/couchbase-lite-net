@@ -27,12 +27,13 @@ namespace Couchbase.Lite.Serialization
 {
     internal sealed unsafe class SharedStringCache
     {
-        private readonly FLSharedKeys* _sk;
         private readonly IDictionary<int, string> _managedCache = new Dictionary<int, string>();
+
+        internal FLSharedKeys* SharedKeys { get; }
 
         public SharedStringCache(FLSharedKeys* sk)
         {
-            _sk = sk;
+            SharedKeys = sk;
         }
 
         public string GetKey(int index)
@@ -42,7 +43,7 @@ namespace Couchbase.Lite.Serialization
                 return retVal;
             }
 
-            retVal = Native.FLSharedKey_GetStringKey(_sk, index, null);
+            retVal = Native.FLSharedKey_GetStringKey(SharedKeys, index, null);
             if(retVal != null) {
                 _managedCache[index] = retVal;
             }
