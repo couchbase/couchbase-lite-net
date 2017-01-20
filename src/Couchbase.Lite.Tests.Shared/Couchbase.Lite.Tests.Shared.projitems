@@ -12,6 +12,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ModelTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)QueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TestCase.cs" />
   </ItemGroup>
 </Project>

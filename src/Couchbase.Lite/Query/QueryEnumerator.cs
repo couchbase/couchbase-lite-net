@@ -134,6 +134,7 @@ namespace Couchbase.Lite.Querying
         {
             C4Error err;
             if(Native.c4queryenum_next(_native, &err)) {
+                (Current as IDisposable)?.Dispose();
                 SetCurrent(_native);
                 return true;
             } else if(err.code != 0) {
@@ -177,6 +178,8 @@ namespace Couchbase.Lite.Querying
             try {
                 FLValue* value = NativeRaw.FLValue_FromTrustedData((FLSlice)doc->selectedRev.body);
                 Current = _db.JsonSerializer.Deserialize<T>(value);
+                var idm = Current as IDocumentModel;
+                idm.Metadata = new DocumentMetadata(doc->docID.CreateString(), Native.c4doc_getType(doc), doc->flags.HasFlag(C4DocumentFlags.Deleted), doc->sequence);
             } finally {
                 Native.c4doc_free(doc);
             }

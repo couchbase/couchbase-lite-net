@@ -41,7 +41,6 @@ namespace Couchbase.Lite.Serialization
         }
 
         private Stack<object> _sequenceStack = new Stack<object>();
-        private Stack<bool> _endMarker = new Stack<bool>();
         private FLValue* _currentValue;
         private readonly SharedStringCache _stringCache;
         private bool _inValue;
@@ -56,7 +55,6 @@ namespace Couchbase.Lite.Serialization
         {
             FLDictIterator i;
             Native.FLDictIterator_Begin(d, &i);
-            _endMarker.Push(false);
             _sequenceStack.Push(i);
         }
 
@@ -64,18 +62,11 @@ namespace Couchbase.Lite.Serialization
         {
             FLArrayIterator i;
             Native.FLArrayIterator_Begin(a, &i);
-            _endMarker.Push(false);
             _sequenceStack.Push(i);
         }
 
         private NextActionCode NextAction()
         {
-            if(_endMarker.Count > 0 && _endMarker.Peek()) {
-                _endMarker.Pop();
-                var last = _sequenceStack.Pop();
-                return (last is FLDictIterator) ? NextActionCode.EndObject : NextActionCode.EndArray;
-            }
-
             if(_sequenceStack.Count == 0) {
                 return NextActionCode.ReadValue;
             }
@@ -86,28 +77,31 @@ namespace Couchbase.Lite.Serialization
                 if(_inValue) {
                     _inValue = false;
                     _currentValue = Native.FLDictIterator_GetValue(&iter);
-                    if(!Native.FLDictIterator_Next(&iter)) {
-                        _endMarker.Pop();
-                        _endMarker.Push(true);
+                    if(_currentValue == null) {
+                        return NextActionCode.EndObject;
                     }
 
+                    Native.FLDictIterator_Next(&iter);
                     _sequenceStack.Push(iter);
                     return NextActionCode.ReadValue;
-                } else {
-                    _inValue = true;
+                }
+                
+                _currentValue = Native.FLDictIterator_GetKey(&iter);
+                if(_currentValue == null) {
+                    return NextActionCode.EndObject;
                 }
 
+                _inValue = true;
                 _sequenceStack.Push(i);
-                _currentValue = Native.FLDictIterator_GetKey(&iter);
                 return NextActionCode.ReadObjectKey;
             } else {
                 var iter = (FLArrayIterator)i;
                 _currentValue = Native.FLArrayIterator_GetValue(&iter);
-                if(!Native.FLArrayIterator_Next(&iter)) {
-                    _endMarker.Pop();
-                    _endMarker.Push(true);
+                if(_currentValue == null) {
+                    return NextActionCode.EndArray;
                 }
 
+                Native.FLArrayIterator_Next(&iter);
                 _sequenceStack.Push(iter);
                 return NextActionCode.ReadValue;
             }

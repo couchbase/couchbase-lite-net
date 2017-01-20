@@ -34,7 +34,7 @@ namespace Couchbase.Lite
 {
     public static class QueryableFactory
     {
-        public static IQueryable<TElement> MakeQueryable<TElement>(Database db)
+        public static IQueryable<TElement> MakeQueryable<TElement>(Database db) where TElement : class, IDocumentModel, new()
         {
             return new DatabaseQueryable<TElement>(db);
         }
@@ -45,16 +45,10 @@ namespace Couchbase.Lite
         }
     }
 
-    internal sealed class DatabaseQueryable<TElement> : QueryableBase<TElement>
+    internal sealed class DatabaseQueryable<TElement> : QueryableBase<TElement> where TElement : class, IDocumentModel, new()
     {
         public DatabaseQueryable(Database db)
-            : this(QueryParser.CreateDefault(), new LiteCoreQueryExecutor(db))
-        {
-            
-        }
-
-        public DatabaseQueryable(IQueryParser queryParser, IQueryExecutor executor)
-            : base(new DefaultQueryProvider(typeof(DatabaseQueryable<>), queryParser, executor))
+            : base(QueryParser.CreateDefault(), new LiteCoreQueryExecutor(db))
         {
             
         }

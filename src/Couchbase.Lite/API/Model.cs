@@ -35,6 +35,30 @@ using Newtonsoft.Json.Serialization;
 
 namespace Couchbase.Lite
 {
+    public interface IDocumentModel
+    {
+        DocumentMetadata Metadata { get; set; }
+    }
+
+    public sealed class DocumentMetadata
+    {
+        public string Id { get; }
+
+        public string Type { get; set; }
+
+        public bool IsDeleted { get; }
+
+        public ulong Sequence { get; }
+
+        internal DocumentMetadata(string id, string type, bool isDeleted, ulong sequence)
+        {
+            Id = id;
+            Type = type;
+            IsDeleted = isDeleted;
+            Sequence = sequence;
+        }
+    }
+
     public sealed unsafe class ModeledDocument<T> : InteropObject
     {
         public T Item { get; set; }
@@ -46,6 +70,8 @@ namespace Couchbase.Lite
         public Database Db { get; }
 
         public bool IsDeleted { get; private set; }
+
+        public ulong Sequence { get; }
 
         private long p_document;
         private C4Document* _document
@@ -63,6 +89,7 @@ namespace Couchbase.Lite
             Db = db;
             Item = item;
             Id = native->docID.CreateString();
+            Sequence = native->sequence;
             _document = native;
         }
 
@@ -143,10 +170,6 @@ namespace Couchbase.Lite
             var doc = (C4Document *)Interlocked.Exchange(ref p_document, 0);
             Native.c4doc_free(doc);
         }
-    }
-
-    public interface IDocumentModel
-    {
     }
 
     public interface ISubdocumentModel

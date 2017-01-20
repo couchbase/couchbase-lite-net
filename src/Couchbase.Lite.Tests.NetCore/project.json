@@ -30,7 +30,8 @@
             "includeFiles": [
                 "../Couchbase.Lite.Tests.Shared/TestCase.cs",
                 "../Couchbase.Lite.Tests.Shared/DatabaseTest.cs",
-                "../Couchbase.Lite.Tests.Shared/DocumentTest.cs"
+                "../Couchbase.Lite.Tests.Shared/DocumentTest.cs",
+                "../Couchbase.Lite.Tests.Shared/QueryTest.cs"
             ]
         }
     }

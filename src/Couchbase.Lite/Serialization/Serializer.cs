@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,6 +30,7 @@ using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Couchbase.Lite.Serialization
 {
@@ -49,6 +51,7 @@ namespace Couchbase.Lite.Serialization
         }
 
         public JsonSerializerSettings SerializerSettings { get; set; } = new JsonSerializerSettings {
+            ContractResolver = new CouchbaseLiteContractResolver(),
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
             DefaultValueHandling = DefaultValueHandling.Ignore,
             FloatFormatHandling = FloatFormatHandling.DefaultValue,
@@ -81,8 +84,18 @@ namespace Couchbase.Lite.Serialization
         {
             try {
                 using(var writer = new JsonFLValueWriter(_db.c4db)) {
-                    var serializer = JsonSerializer.CreateDefault(SerializerSettings);
+                    var settings = SerializerSettings;
+#if DEBUG
+                    var traceWriter = new MemoryTraceWriter();
+                    settings.TraceWriter = traceWriter;
+#endif
+                    var serializer = JsonSerializer.CreateDefault(settings);
                     serializer.Serialize(writer, obj);
+
+#if DEBUG
+                    Debug.WriteLine(traceWriter);
+#endif
+
                     writer.Flush();
                     return writer.Result;
                 }
@@ -104,8 +117,19 @@ namespace Couchbase.Lite.Serialization
         {
             try {
                 using(var reader = new JsonFLValueReader(value, _db.SharedStrings)) {
-                    var serializer = JsonSerializer.CreateDefault(SerializerSettings);
+                    var settings = SerializerSettings;
+#if DEBUG
+                    var traceWriter = new MemoryTraceWriter();
+                    settings.TraceWriter = traceWriter;
+#endif
+
+                    var serializer = JsonSerializer.CreateDefault(settings);
                     var retVal = serializer.Deserialize<T>(reader);
+
+#if DEBUG
+                    Debug.WriteLine(traceWriter);
+#endif
+
                     if(retVal == null) {
                         retVal = Activator.CreateInstance<T>();
                     }

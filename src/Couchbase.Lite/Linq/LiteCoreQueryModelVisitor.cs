@@ -29,6 +29,7 @@ using LiteCore.Interop;
 using Newtonsoft.Json;
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
+using Remotion.Linq.Clauses.Expressions;
 
 namespace Couchbase.Lite.Linq
 {
@@ -58,10 +59,7 @@ namespace Couchbase.Lite.Linq
 
         public override void VisitWhereClause(WhereClause whereClause, QueryModel queryModel, int index)
         {
-            var visitor = new LiteCoreWhereExpressionVisitor();
-            visitor.Visit(whereClause.Predicate);
-            _query["WHERE"] = visitor.GetJsonExpression();
-
+            _query["WHERE"] = LiteCoreWhereExpressionVisitor.GetJsonExpression(whereClause.Predicate);
             base.VisitWhereClause(whereClause, queryModel, index);
         }
 
