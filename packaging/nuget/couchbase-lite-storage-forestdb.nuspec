@@ -39,6 +39,7 @@ For full details please see https://github.com/couchbase/couchbase-lite-net/rele
     <file target="build/net45/x86" src="staging/Couchbase.Lite.Storage.ForestDB/net45/x86/CBForest-Interop.dll" />
     <file target="build/net45/x64" src="staging/Couchbase.Lite.Storage.ForestDB/net45/x64/CBForest-Interop.dll" />
     <file target="build/net45/" src="staging/Couchbase.Lite.Storage.ForestDB/net45/libCBForest-Interop.dylib" />
+    <file target="build/net45" src="staging/Couchbase.Lite.Storage.ForestDB/net45/libCBForest-Interop.so" />
     <file target="lib/net45/" src="staging/Couchbase.Lite.Storage.ForestDB/net45/Couchbase.Lite.Storage.ForestDB.dll*" />
     
     <!-- Xamarin.Android -->
