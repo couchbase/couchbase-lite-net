@@ -162,7 +162,7 @@ namespace Couchbase.Lite.Linq
                 return node;
             }
 
-            if(TryHandleCount(subquery)) {
+            if(TryHandleSumOrCount(subquery)) {
                 return node;
             }
 
@@ -285,13 +285,14 @@ namespace Couchbase.Lite.Linq
             return false;
         }
 
-        private bool TryHandleCount(SubQueryExpression subquery)
+        private bool TryHandleSumOrCount(SubQueryExpression subquery)
         {
             var resultOperator = subquery.QueryModel.ResultOperators[0];
             var countOperator = resultOperator as CountResultOperator;
-            if(countOperator != null) {
+            var sumOperator = resultOperator as SumResultOperator;
+            if(countOperator != null || sumOperator != null) {
                 var overallExpression = _query.Last() as IList<object>;
-                _currentExpression = new List<object> { "ARRAY_COUNT()" };
+                _currentExpression = new List<object> { countOperator != null ? "ARRAY_COUNT()" : "ARRAY_SUM()" };
                 var from = subquery.QueryModel.MainFromClause.FromExpression;
                 Visit(from);
                 overallExpression.Add(_currentExpression);

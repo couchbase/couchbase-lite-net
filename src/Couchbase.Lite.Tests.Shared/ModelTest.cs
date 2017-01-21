@@ -20,6 +20,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite;
@@ -30,22 +31,27 @@ using Xunit;
 namespace Test
 {
     [JsonObject(MemberSerialization.OptOut)]
-    public class TestModel
+    public class TestModel : IDocumentModel
     {
         public int IntValue { get; set; }
 
         public string StringValue { get; set; }
 
         public TestModelReference Child { get; set; } = new TestModelReference();
+
+        public DocumentMetadata Metadata
+        {
+            get; set;
+        }
     }
 
     public class TestModelReference
     {
-        public DateTimeOffset CreatedAt { get; set; }
+        public IList<int> IntValues { get; set; }
 
         public TestModelReference()
         {
-            CreatedAt = DateTimeOffset.Now;
+            IntValues = new List<int>();
         }
     }
 
@@ -58,23 +64,17 @@ namespace Test
             var item = model.Item;
             item.IntValue = 42;
             item.StringValue = "Jim";
-            var date = item.Child.CreatedAt;
+            item.Child.IntValues = new[] { 1, 2, 3, 4 };
             model.Save().Should().BeTrue("because otherwise the save failed");
 
             var model2 = Db.GetDocument<TestModel>();
             item = model2.Item;
             item.IntValue = 43;
             item.StringValue = "Jim";
+            item.Child.IntValues = new[] { 1, 2, 3, 4, 5 };
             model2.Save();
 
-            using(var db1 = new Database(Db)) {
-                model = db1.GetDocument<TestModel>(model.Id);
-                model.Item.IntValue.Should().Be(42, "because that was the saved int value");
-                model.Item.StringValue.Should().Be("Jim", "because that was the saved string value");
-                model.Item.Child.CreatedAt.Should().Be(date, "because that was the saved date value");
-            }
-
-            var all = from x in new DatabaseQueryable<TestModel>(Db) where x.IntValue == 42 && x.StringValue == "Jim" select x;
+            var all = from x in QueryableFactory.MakeQueryable<TestModel>(Db) where x.Child.IntValues.Sum() > 10 select x;
             all.ToArray();
         }
     }

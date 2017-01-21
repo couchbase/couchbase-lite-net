@@ -25,19 +25,21 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
 namespace Couchbase.Lite.Serialization
 {
     internal sealed class CouchbaseLiteContractResolver : DefaultContractResolver
     {
-        protected override List<MemberInfo> GetSerializableMembers(Type objectType)
+        protected override IList<JsonProperty> CreateProperties(Type type, MemberSerialization memberSerialization)
         {
-            if(typeof(IDocumentModel).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo())) {
-                return objectType.GetRuntimeProperties().Where(x => x.Name != "Metadata").ToList<MemberInfo>();
+            var baseProperties = base.CreateProperties(type, memberSerialization);
+            if(!typeof(IDocumentModel).GetTypeInfo().IsAssignableFrom(type.GetTypeInfo())) {
+                return baseProperties;
             }
 
-            return base.GetSerializableMembers(objectType);
+            return baseProperties.Where(x => x.PropertyName != "Metadata").ToList();
         }
     }
 }

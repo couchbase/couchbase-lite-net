@@ -46,9 +46,9 @@ namespace Couchbase.Lite.Support
         public static void RegisterImplementation<T>(Func<IInjectable> generator) where T : IInjectable
         {
             var type = typeof(T);
-            if(_injectableMap.ContainsKey(type)) {
-                throw new InvalidOperationException($"{type.FullName} is already registered!");
-            }
+            //if(_injectableMap.ContainsKey(type)) {
+            //    throw new InvalidOperationException($"{type.FullName} is already registered!");
+            //}
 
             _injectableMap[type] = generator;
         }

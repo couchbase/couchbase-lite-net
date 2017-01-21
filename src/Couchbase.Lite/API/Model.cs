@@ -121,18 +121,7 @@ namespace Couchbase.Lite
 
                 var body = new FLSliceResult();
                 if(!deletion) {
-                    using(var writer = new JsonFLValueWriter(Db.c4db)) {
-                        ITraceWriter traceWriter = new MemoryTraceWriter();
-
-                        var serializer = JsonSerializer.CreateDefault(new JsonSerializerSettings {
-                            TraceWriter = traceWriter
-                        });
-                        serializer.Serialize(writer, Item);
-                        Debug.WriteLine(traceWriter);
-                        writer.Flush();
-                        body = writer.Result;
-                        put.body = body;
-                    }
+                    body = Db.JsonSerializer.Serialize(Item);
                 }
 
                 try {

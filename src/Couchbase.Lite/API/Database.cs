@@ -89,6 +89,8 @@ namespace Couchbase.Lite
             versioning = C4DocumentVersioning.RevisionTrees
         };
 
+        private static readonly C4LogCallback _LogCallback;
+
         private const string Tag = nameof(Database);
 
         private readonly DatabaseOptions _options;
@@ -137,26 +139,8 @@ namespace Couchbase.Lite
 
         static Database()
         {
-            Native.c4log_register(C4LogLevel.Warning, (level, msg) =>
-            {
-                switch(level) {
-                    case C4LogLevel.Error:
-                        Log.To.Database.E("LiteCore", msg.CreateString());
-                        break;
-                    case C4LogLevel.Warning:
-                        Log.To.Database.W("LiteCore", msg.CreateString());
-                        break;
-                    case C4LogLevel.Info:
-                        Log.To.Database.I("LiteCore", msg.CreateString());
-                        break;
-                    case C4LogLevel.Verbose:
-                        Log.To.Database.V("LiteCore", msg.CreateString());
-                        break;
-                    case C4LogLevel.Debug:
-                        Log.To.Database.D("LiteCore", msg.CreateString());
-                        break;
-                }
-            });
+            _LogCallback = new C4LogCallback(LiteCoreLog);
+            Native.c4log_register(C4LogLevel.Verbose, _LogCallback);
         }
 
         public Database(string name) : this(name, DatabaseOptions.Default)
@@ -310,6 +294,27 @@ namespace Couchbase.Lite
         public Query CreateQuery()
         {
             return new Query(this);
+        }
+
+        private static void LiteCoreLog(C4LogDomain domain, C4LogLevel level, C4Slice msg)
+        {
+            switch(level) {
+                case C4LogLevel.Error:
+                    Log.To.Database.E("LiteCore", msg.CreateString());
+                    break;
+                case C4LogLevel.Warning:
+                    Log.To.Database.W("LiteCore", msg.CreateString());
+                    break;
+                case C4LogLevel.Info:
+                    Log.To.Database.V("LiteCore", msg.CreateString()); // Noisy, so intentionally V
+                    break;
+                case C4LogLevel.Verbose:
+                    Log.To.Database.V("LiteCore", msg.CreateString());
+                    break;
+                case C4LogLevel.Debug:
+                    Log.To.Database.D("LiteCore", msg.CreateString());
+                    break;
+            }
         }
 
         private static string DefaultDirectory()
