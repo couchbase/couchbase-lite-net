@@ -11,7 +11,7 @@ using Android.OS;
 
 namespace Listener
 {
-    [Activity(Label="LiteServ", MainLauncher=true)]
+    [Activity(Label="LiteServ", Name="com.couchbase.liteserv.MainActivity", MainLauncher=true)]
     public class MainActivity : Activity
     {
         protected override void OnCreate(Bundle savedInstanceState)

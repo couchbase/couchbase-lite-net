@@ -80,7 +80,7 @@ namespace Listener
                 switch (option.Key) {
                     
                 case "dir":           alternateDir = (string)option.Value; break;
-                case "port":          portToUse    = (int)option.Value; break;
+                case "port":          portToUse    = Convert.ToInt32(option.Value); break;
                 case "readonly":      readOnly     = (bool)option.Value; break;
                 case "auth":          requiresAuth = (bool)option.Value; break;
                 case "push":          pushUrl      = new Uri((string)option.Value); break;
@@ -89,7 +89,7 @@ namespace Listener
                 case "continuous":    continuous   = (bool)option.Value; break;
                 case "user":          userName     = (string)option.Value; break;
                 case "password":      password     = (string)option.Value; break;
-                case "revs_limit":    revsLimit    = (int)option.Value; break;
+                case "revs_limit":    revsLimit    = Convert.ToInt32(option.Value); break;
                 case "ssl":           useSSL       = (bool)option.Value; break;
                 case "sslcert":       sslCertPath  = (string)option.Value; break;
                 case "sslpass":       sslCertPass  = (string)option.Value; break;

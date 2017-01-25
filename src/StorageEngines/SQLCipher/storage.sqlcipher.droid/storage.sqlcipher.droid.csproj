@@ -23,6 +23,7 @@
     <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
     <RestorePackages>true</RestorePackages>
 	<AndroidSdkBuildToolsVersion>23.0.3</AndroidSdkBuildToolsVersion>
+	<AndroidTlsProvider></AndroidTlsProvider>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -82,7 +83,7 @@
       <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.3\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
     </Reference>
     <Reference Include="SQLitePCLPlugin_sqlcipher">
-      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlcipher.android.0.9.3\lib\MonoAndroid\SQLitePCLPlugin_sqlcipher.dll</HintPath>
+      <HintPath>..\..\..\packages\SQLitePCL.plugin.sqlcipher.android.0.9.5\lib\MonoAndroid\SQLitePCLPlugin_sqlcipher.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
