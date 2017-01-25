@@ -1057,7 +1057,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             if (revId != null) {
                 sb.Append(" FROM revs WHERE revs.doc_id=? AND revid=? LIMIT 1");
             } else {
-                sb.Append(" FROM revs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1");
+                sb.Append(" FROM revs WHERE revs.doc_id=? and current=1 ORDER BY revid DESC LIMIT 1");
             }
                 
             var transactionStatus = TryQuery(c =>
@@ -1080,7 +1080,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             if (transactionStatus.IsError) {
                 if (transactionStatus.Code == StatusCode.NotFound) {
-                    outStatus.Code = revId == null ? StatusCode.Deleted : StatusCode.NotFound;
+                    outStatus.Code = StatusCode.NotFound;
                     return null;
                 } else {
                     throw Misc.CreateExceptionAndLog(Log.To.Database, outStatus.Code, TAG,
@@ -1088,7 +1088,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
             }
 
-            outStatus.Code = StatusCode.Ok;
+            if(result.Deleted) {
+                outStatus.Code = StatusCode.Deleted;
+                return null;
+            } else {
+                outStatus.Code = StatusCode.Ok;
+            }
+
             return result;
         }
 
