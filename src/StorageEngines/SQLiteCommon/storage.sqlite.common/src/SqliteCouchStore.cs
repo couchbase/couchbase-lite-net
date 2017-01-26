@@ -1057,17 +1057,18 @@ namespace Couchbase.Lite.Storage.SQLCipher
             if (revId != null) {
                 sb.Append(" FROM revs WHERE revs.doc_id=? AND revid=? LIMIT 1");
             } else {
-                sb.Append(" FROM revs WHERE revs.doc_id=? and current=1 ORDER BY revid DESC LIMIT 1");
+                sb.Append(" FROM revs WHERE revs.doc_id=? and current=1 ORDER BY deleted, revid DESC LIMIT 1");
             }
                 
             var transactionStatus = TryQuery(c =>
             {
-                if(revId == null) {
-                    revId = c.GetString(0).AsRevID();
+                var revIDToUse = revId;
+                if(revIDToUse == null) {
+                    revIDToUse = c.GetString(0).AsRevID();
                 }
 
                 bool deleted = c.GetInt(1) != 0;
-                result = new RevisionInternal(docId, revId, deleted);
+                result = new RevisionInternal(docId, revIDToUse, deleted);
                 result.Sequence = c.GetLong(2);
                 if(withBody) {
                     result.SetJson(c.GetBlob(3));
@@ -1075,7 +1076,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     result.Missing = c.GetInt(3) == 0;
                 }
                     
-                return false;
+                return revId == null && deleted;
             }, sb.ToString(), docNumericId, revId?.ToString());
 
             if (transactionStatus.IsError) {
