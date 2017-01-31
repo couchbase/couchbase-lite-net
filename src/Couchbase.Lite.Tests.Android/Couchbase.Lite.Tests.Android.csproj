@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -130,12 +130,12 @@
     <AndroidResource Include="Resources\values\Strings.xml" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Resources\drawable\" />
     <Folder Include="Resources\mipmap-hdpi\" />
     <Folder Include="Resources\mipmap-mdpi\" />
     <Folder Include="Resources\mipmap-xhdpi\" />
     <Folder Include="Resources\mipmap-xxhdpi\" />
     <Folder Include="Resources\mipmap-xxxhdpi\" />
-    <Folder Include="Resources\drawable\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
@@ -145,10 +145,6 @@
     <ProjectReference Include="..\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj">
       <Project>{50486C17-30BD-4362-85D9-C2D3E6EB2D91}</Project>
       <Name>Couchbase.Lite.Support.Android</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj">
-      <Project>{52A6D1D6-4E98-4368-9D11-DC6057A63D12}</Project>
-      <Name>LiteCore</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />

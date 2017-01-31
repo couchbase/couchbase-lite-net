@@ -38,11 +38,7 @@ namespace Test
         [Fact]
         public void TestCreate()
         {
-#if __UWP__
-            var dir = Path.Combine(Windows.Storage.ApplicationData.Current.TemporaryFolder.Path, "CouchbaseLite");
-#else
             var dir = Path.Combine(Path.GetTempPath(), "CouchbaseLite");
-#endif
             Database.Delete("db", dir);
 
             var options = DatabaseOptions.Default;

@@ -85,7 +85,7 @@
     <Compile Include="Serialization\SharedStringCache.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj">
+    <ProjectReference Include="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj">
       <Project>{52a6d1d6-4e98-4368-9d11-dc6057a63d12}</Project>
       <Name>LiteCore</Name>
     </ProjectReference>

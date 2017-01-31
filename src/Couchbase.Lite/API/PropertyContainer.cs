@@ -45,7 +45,11 @@ namespace Couchbase.Lite
         {
             get {
                 if(_properties == null) {
+                    var saved = SavedProperties;
                     _properties = new Dictionary<string, object>();
+                    foreach(var pair in saved) {
+                        _properties[pair.Key] = pair.Value;
+                    }
                 }
                 return _properties;
             }
@@ -272,7 +276,7 @@ namespace Couchbase.Lite
 
         private static void ValidateObjectType(object value)
         {
-            var type = value.GetType();
+            /*var type = value.GetType();
             if(IsValidScalarType(type)) {
                 return;
             }
@@ -284,7 +288,7 @@ namespace Couchbase.Lite
 
             foreach(var item in array) {
                 ValidateObjectType(item);
-            }
+            }*/
         }
 
         private void MutateProperties()

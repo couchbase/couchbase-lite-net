@@ -28,7 +28,6 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using FluentAssertions;
-using LiteCore;
 using Xunit;
 
 namespace Test
@@ -222,13 +221,18 @@ namespace Test
         }
 
         [Fact]
-        public void TestInvalidProperties()
+        public void TestReopenDB()
         {
             var doc = Db["doc1"];
-            doc.Invoking(x => x.Set("dict", new Dictionary<string, object> { ["foo"] = "bar" })).ShouldThrow<ArgumentException>("because storing dictionaries directly is not allowed");
+            doc["string"] = "str";
+            doc.Properties.Should().Equal(new Dictionary<string, object> { ["string"] = "str" }, "because otherwise the property didn't get inserted");
+            doc.Save().Should().BeTrue("because otherwise the save failed");
 
-            var fancyClass = new Action(() => Debug.WriteLine("OUT!"));
-            doc.Invoking(x => x.Set("action", fancyClass)).ShouldThrow<ArgumentException>("because storing dictionaries directly is not allowed");
+            ReopenDB();
+
+            doc = Db["doc1"];
+            doc.Properties.Should().Equal(new Dictionary<string, object> { ["string"] = "str" }, "because otherwise the property didn't get saved");
+            doc["string"].Should().Be("str", "because otherwise the property didn't get saved");
         }
     }
 }

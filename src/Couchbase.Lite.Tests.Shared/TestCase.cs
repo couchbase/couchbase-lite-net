@@ -14,6 +14,13 @@ namespace Test
 
         protected Database Db { get; private set; }
 
+        private static string Directory
+        {
+            get {
+                return Path.Combine(Path.GetTempPath(), "CouchbaseLite");
+            }
+        }
+
 #if __NET46__
         static TestCase()
         {
@@ -23,16 +30,27 @@ namespace Test
 
         public TestCase()
         {
-#if __UWP__
-            var dir = Path.Combine(Windows.Storage.ApplicationData.Current.TemporaryFolder.Path, "CouchbaseLite");
-#else
-            var dir = Path.Combine(Path.GetTempPath(), "CouchbaseLite");
-#endif
-            Database.Delete(DatabaseName, dir);
+            Database.Delete(DatabaseName, Directory);
+            OpenDB();
+        }
+
+        protected void OpenDB()
+        {
+            if(Db != null) {
+                throw new InvalidOperationException();
+            }
 
             var options = DatabaseOptions.Default;
-            options.Directory = dir;
+            options.Directory = Directory;
             Db = new Database(DatabaseName, options);
+            Db.Should().NotBeNull("because otherwise the database failed to open");
+        }
+
+        protected void ReopenDB()
+        {
+            Db.Close();
+            Db = null;
+            OpenDB();
         }
 
         protected virtual void Dispose(bool disposing)

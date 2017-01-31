@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Serialization
                 return retVal;
             }
 
-            retVal = Native.FLSharedKey_GetStringKey(SharedKeys, index, null);
+            retVal = Native.FLSharedKey_GetKeyString(SharedKeys, index, null);
             if(retVal != null) {
                 _managedCache[index] = retVal;
             }

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -29,13 +29,15 @@
     <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
     <MtouchTlsProvider>Default</MtouchTlsProvider>
     <DeviceSpecificBuild>false</DeviceSpecificBuild>
-    <MtouchExtraArgs></MtouchExtraArgs>
+    <MtouchExtraArgs>
+    </MtouchExtraArgs>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhone' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\iPhone\Release</OutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodesignKey>iPhone Developer</CodesignKey>
@@ -52,7 +54,8 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\iPhoneSimulator\Release</OutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodesignKey>iPhone Developer</CodesignKey>
@@ -134,8 +137,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json" />
-    <ImageAsset Include="Assets.xcassets\Contents.json" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json">
+      <InProject>false</InProject>
+    </ImageAsset>
+    <ImageAsset Include="Assets.xcassets\Contents.json">
+      <InProject>false</InProject>
+    </ImageAsset>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
@@ -150,17 +157,13 @@
     <Compile Include="Main.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj">
+      <Project>{52a6d1d6-4e98-4368-9d11-dc6057a63d12}</Project>
+      <Name>LiteCore</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
       <Project>{1CF95F79-7649-4FDA-A888-73B5C69316FC}</Project>
       <Name>Couchbase.Lite</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj">
-      <Project>{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}</Project>
-      <Name>Couchbase.Lite.Support.iOS</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj">
-      <Project>{52A6D1D6-4E98-4368-9D11-DC6057A63D12}</Project>
-      <Name>LiteCore</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />

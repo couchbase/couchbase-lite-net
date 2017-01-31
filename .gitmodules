@@ -1,3 +1,3 @@
-[submodule "vendor/websocket-sharp"]
-	path = vendor/websocket-sharp
-	url = https://github.com/couchbasedeps/websocket-sharp
+[submodule "vendor/couchbase-lite-core"]
+	path = vendor/couchbase-lite-core
+	url = https://github.com/couchbase/couchbase-lite-core

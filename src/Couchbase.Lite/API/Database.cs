@@ -33,8 +33,6 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
-    using IndexType = C4IndexType;
-
     public sealed class IndexOptions
     {
         public string Language { get; set; }
@@ -270,10 +268,10 @@ namespace Couchbase.Lite
 
         public void CreateIndex(string propertyPath)
         {
-            CreateIndex(propertyPath, IndexType.ValueIndex, null);
+            CreateIndex(propertyPath, C4IndexType.ValueIndex, null);
         }
 
-        public void CreateIndex(string propertyPath, IndexType indexType, IndexOptions options)
+        public void CreateIndex(string propertyPath, C4IndexType indexType, IndexOptions options)
         {
             LiteCoreBridge.Check(err =>
             {
@@ -286,7 +284,7 @@ namespace Couchbase.Lite
             });
         }
 
-        public void DeleteIndex(string propertyPath, IndexType type)
+        public void DeleteIndex(string propertyPath, C4IndexType type)
         {
             LiteCoreBridge.Check(err => Native.c4db_deleteIndex(c4db, propertyPath, type, err));
         }
