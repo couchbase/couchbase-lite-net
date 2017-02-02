@@ -743,6 +743,28 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return null; // no change
         }
 
+        private HashSet<long> LosingSequences(long since)
+        {
+            var retVal = new HashSet<long>();
+            var sql = "SELECT sequence, revs.doc_id, docid, revid, deleted FROM revs, docs " +
+                "WHERE sequence > ? AND current=1 " +
+                "AND revs.doc_id = docs.doc_id " +
+                "ORDER BY revs.doc_id, deleted, revid DESC";
+            long lastDocId = 0L;
+            using(var c = StorageEngine.RawQuery(sql, since)) {
+                while(c.MoveToNext()) {
+                    var docNumericId = c.GetLong(1);
+                    if(docNumericId == lastDocId) {
+                        retVal.Add(c.GetLong(0));
+                    }
+
+                    lastDocId = docNumericId;
+                }
+            }
+
+            return retVal;  
+        }
+
         internal RevisionID GetWinner(long docNumericId, ValueTypePtr<bool> outDeleted, ValueTypePtr<bool> outConflict)
         {
             Debug.Assert(docNumericId > 0);
@@ -1556,16 +1578,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
 
             bool includeDocs = options.IncludeDocs || filter != null;
-            var orderby = options.SortBySequence ? options.Descending ? "sequence DESC" : "sequence" : "revs.doc_id, deleted, revid DESC";
             var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
                 "WHERE sequence > ? AND current=1 " +
                 "AND revs.doc_id = docs.doc_id " +
-                "ORDER BY {1} " +
-                "LIMIT {2}",
-                (includeDocs ? @", json" : @""), orderby, options.Limit);
+                "ORDER BY revs.doc_id, deleted, revid DESC",
+                (includeDocs ? @", json" : @""));
 
             var changes = new RevisionList();
             long lastDocId = 0L;
+
+            var returned = 0;
             TryQuery(c =>
             {
                 if(!options.IncludeConflicts) {
@@ -1587,12 +1609,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     rev.SetJson(c.GetBlob(5));
                 }
 
-                if(filter == null || filter(rev)) {
+                if((filter == null || filter(rev)) && returned++ < options.Limit) {
                     changes.Add(rev);
                 }
 
                 return true;
             }, sql, lastSequence);
+
+            if(options.SortBySequence) {
+                changes.SortBySequence(!options.Descending);
+            }
 
             return changes;
         }
@@ -1604,16 +1630,23 @@ namespace Couchbase.Lite.Storage.SQLCipher
             var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
                 "WHERE sequence > ? AND current=1 " +
                 "AND revs.doc_id = docs.doc_id " +
-                "ORDER BY {1} " +
-                "LIMIT {2}",
-                (includeDocs ? @", json" : @""), orderby, options.Limit);
+                "ORDER BY {1} ",
+                (includeDocs ? @", json" : @""), orderby);
 
-            var changes = new RevisionList();
-            long lastDocId = 0L;
+            var losingSequences = default(HashSet<long>);
+            if(options.SortBySequence && !options.IncludeConflicts) {
+                losingSequences = LosingSequences(lastSequence);
+            }
 
+            var returned = 0;
+            var lastDocId = 0L;
             using(var c = StorageEngine.RawQuery(sql, lastSequence)) {
                 while(c.MoveToNext()) {
-                    if(!options.IncludeConflicts) {
+                    if(options.SortBySequence) {
+                        if(losingSequences?.Contains(c.GetLong(0)) == true) {
+                            continue;
+                        }
+                    } else if(!options.IncludeConflicts) {
                         // Only count the first rev for a given doc (the rest will be losing conflicts):
                         var docNumericId = c.GetLong(1);
                         if(docNumericId == lastDocId) {
@@ -1632,7 +1665,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         rev.SetJson(c.GetBlob(5));
                     }
 
-                    if(filter == null || filter(rev)) {
+                    if(filter == null || filter(rev) && returned++ < options.Limit) {
                         yield return rev;
                     }
                 }

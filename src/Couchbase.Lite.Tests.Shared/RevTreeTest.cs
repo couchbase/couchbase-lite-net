@@ -163,8 +163,10 @@ namespace Couchbase.Lite
             CollectionAssert.AreEqual(new[] { conflict, rev }, conflictingRevs);
             
             // Get the _changes feed and verify only the winner is in it:
-            var options = new ChangesOptions();
-            var changes = database.ChangesSince(0, options, null, null);
+            var options = ChangesOptions.Default;
+            IList<RevisionInternal> changes = database.ChangesSince(0, options, null, null);
+            CollectionAssert.AreEqual(new[] { conflict, other }, changes);
+            changes = database.ChangesSinceStreaming(0, options, null, null).ToList();
             CollectionAssert.AreEqual(new[] { conflict, other }, changes);
             options.IncludeConflicts = true;
             changes = database.ChangesSince(0, options, null, null);
@@ -177,6 +179,27 @@ namespace Couchbase.Lite
             expectedChangesAlt.Add(rev);
             expectedChangesAlt.Add(other);
             Assert.IsTrue(expectedChanges.SequenceEqual(changes) || expectedChangesAlt.SequenceEqual(changes));
+            changes = database.ChangesSinceStreaming(0, options, null, null).ToList();
+            Assert.IsTrue(expectedChanges.SequenceEqual(changes) || expectedChangesAlt.SequenceEqual(changes));
+
+            conflict = new RevisionInternal(conflict.DocID, "6-6666".AsRevID(), false);
+            conflictHistory.Add(conflict.RevID);
+            database.ForceInsert(conflict, conflictHistory, null);
+
+            options = ChangesOptions.Default;
+            changes = database.ChangesSince(0, options, null, null);
+            CollectionAssert.AreEqual(new[] { other, conflict }, changes);
+            changes = database.ChangesSinceStreaming(0, options, null, null).ToList();
+            CollectionAssert.AreEqual(new[] { other, conflict }, changes);
+            options.IncludeConflicts = true;
+            changes = database.ChangesSince(0, options, null, null);
+            expectedChanges = new RevisionList();
+            expectedChanges.Add(rev);
+            expectedChanges.Add(other);
+            expectedChanges.Add(conflict);
+            Assert.IsTrue(expectedChanges.SequenceEqual(changes));
+            changes = database.ChangesSinceStreaming(0, options, null, null).ToList();
+            Assert.IsTrue(expectedChanges.SequenceEqual(changes));
         }
 
         [Test]

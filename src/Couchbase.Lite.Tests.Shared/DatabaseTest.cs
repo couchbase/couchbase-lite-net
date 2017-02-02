@@ -107,10 +107,14 @@ namespace Couchbase.Lite
             var rev = database.GetDocument ("proper").PutProperties (props);
 
             Assert.IsNull (database.GetExistingDocument ("rogue"));
-            Assert.AreEqual (1, rev.Sequence);
+            if(_storageType == StorageEngineTypes.SQLite) {
+                Assert.AreEqual(1, rev.Sequence);
+            }
 
             rev = database.GetDocument ("rogue").PutProperties (props);
-            Assert.AreEqual (2, rev.Sequence);
+            if(_storageType == StorageEngineTypes.SQLite) {
+                Assert.AreEqual(2, rev.Sequence);
+            }
         }
 
         [Test]

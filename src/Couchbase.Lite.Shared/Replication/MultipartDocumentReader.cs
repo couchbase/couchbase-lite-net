@@ -204,6 +204,7 @@ namespace Couchbase.Lite.Support
             }
 
             var numAttachmentsInDoc = 0;
+            var nuAttachments = new Dictionary<string, object>(attachments.Count);
             foreach (var attmt in attachments) {
                 var attachmentName = attmt.Key;
                 var attachment = attmt.Value.AsDictionary<string, object>();
@@ -264,12 +265,15 @@ namespace Couchbase.Lite.Support
                                 + "should be sent in MIME parts for reduced memory overhead.", attachmentName, length);
                     Log.To.Sync.W(TAG, msg);
                 }
+
+                nuAttachments[attachmentName] = attachment;
             }
 
             if (numAttachmentsInDoc < attachmentsByDigest.Count) {
                 throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG, "More MIME bodies ({0}) than attachments ({1}) ", attachmentsByDigest.Count, numAttachmentsInDoc);
             }
 
+            document["_attachments"] = nuAttachments;
             // If everything's copacetic, hand over the (uninstalled) blobs to the database to remember:
             database.RememberAttachmentWritersForDigests(attachmentsByDigest);
         }

@@ -253,6 +253,7 @@ namespace Couchbase.Lite.Internal
                 _client.CustomHeaders = additionalHeaders;
             }
 
+            Backoff.ResetBackoff();
             _client.ConnectAsync();
             return true;
         }
@@ -267,7 +268,7 @@ namespace Couchbase.Lite.Internal
             Misc.SafeNull(ref _client, c =>
             {
                 Log.To.ChangeTracker.I(Tag, "{0} requested to stop", this);
-                c.CloseAsync(CloseStatusCode.Normal);
+                c.Close(CloseStatusCode.Normal);
             });
         }
 

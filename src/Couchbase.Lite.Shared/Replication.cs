@@ -1845,7 +1845,10 @@ namespace Couchbase.Lite
             _stateMachine.Configure(ReplicationState.Offline).OnExit(transition =>
             {
                 Log.To.Sync.V(Tag, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
-                PerformGoOnline();
+                if(transition.Destination != ReplicationState.Stopping) {
+                    PerformGoOnline();
+                }
+
                 NotifyChangeListenersStateTransition(transition);
             });
 
