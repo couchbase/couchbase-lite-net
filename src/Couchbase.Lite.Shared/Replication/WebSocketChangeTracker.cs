@@ -45,7 +45,18 @@ namespace Couchbase.Lite.Internal
     // Concrete class for receiving changes over web sockets
     internal class WebSocketChangeTracker : ChangeTracker
     {
-        
+
+        #region Enums
+
+        private enum PrivateCloseStatusCode : ushort
+        {
+            // 4000 is the first code reserved for private use by
+            // Section 7.4 of RFC 6455 (http://tools.ietf.org/html/rfc6455#section-7.4).
+            DisableActiveOnly = 4000
+        }
+
+        #endregion
+
         #region Constants
 
         private static readonly string Tag = typeof(WebSocketChangeTracker).Name;
@@ -100,13 +111,13 @@ namespace Couchbase.Lite.Internal
         private void OnClose(object sender, CloseEventArgs args)
         {
             if (_client != null) {
-                if (args.Code == (ushort)CloseStatusCode.ProtocolError) {
+                if(args.Code == (ushort)CloseStatusCode.ProtocolError) {
                     // This is not a valid web socket connection, need to fall back to regular HTTP
                     CanConnect = false;
                     Stopped(ErrorResolution.RetryNow);
-                } else {
+                } else { 
                     if(Backoff.CanContinue) {
-                        Log.To.ChangeTracker.I(Tag, "{0} remote {1} closed connection ({2} {3})",
+                        Log.To.ChangeTracker.I(Tag, "{0} connection with {1} was closed ({2} {3})",
                             this, args.WasClean ? "cleanly" : "forcibly", args.Code, args.Reason);
                         Backoff.DelayAppropriateAmountOfTime().ContinueWith(t => _client?.ConnectAsync());
                     } else {
@@ -114,8 +125,13 @@ namespace Couchbase.Lite.Internal
                     }
                 }
             } else {
-                Log.To.ChangeTracker.I(Tag, "{0} is closed", this);
-                Stopped(ErrorResolution.Stop);
+                if(args.Code == (ushort)PrivateCloseStatusCode.DisableActiveOnly) {
+                    ActiveOnly = false;
+                    Start(); //Switching to non-active-only mode
+                } else {
+                    Log.To.ChangeTracker.I(Tag, "{0} is closed", this);
+                    Stopped(ErrorResolution.Stop);
+                }
             }
         }
 
@@ -129,7 +145,18 @@ namespace Couchbase.Lite.Internal
 
             Misc.SafeDispose(ref _responseLogic);
             _responseLogic = new WebSocketLogic();
-            _responseLogic.OnCaughtUp = () => Client?.ChangeTrackerCaughtUp(this);
+            _responseLogic.OnCaughtUp = () =>
+            {
+                Client?.ChangeTrackerCaughtUp(this);
+                if(ActiveOnly) {
+                    IsRunning = false;
+                    Misc.SafeNull(ref _client, c =>
+                    {
+                        Log.To.ChangeTracker.I(Tag, "{0} switching to non-active mode", this);
+                        c.Close((ushort)PrivateCloseStatusCode.DisableActiveOnly, "Switching to non-active mode");
+                    });
+                }
+            };
             _responseLogic.OnChangeFound = (change) =>
             {
                 if (!ReceivedChange(change)) {
@@ -228,7 +255,7 @@ namespace Couchbase.Lite.Internal
                 _client.SetProxy(systemProxy, proxyCredentials.UserName, proxyCredentials.Password);
             }
 
-            _client.WaitTime = TimeSpan.FromSeconds(2);
+            _client.WaitTime = TimeSpan.FromSeconds(5);
             _client.OnOpen += OnConnect;
             _client.OnMessage += OnReceive;
             _client.OnError += OnError;
