@@ -349,10 +349,15 @@ namespace Couchbase.Lite.Listener
                     responseState.FilterParams = context.GetQueryParams();
                 }
 
+                string heartbeatParam = context.GetQueryParam("heartbeat");
+                int heartbeat = 0;
+                if(heartbeatParam != null && (!Int32.TryParse(heartbeatParam, out heartbeat) || heartbeat <= 0)) {
+                    return context.CreateResponse(StatusCode.BadParam);
+                }
 
                 var changes = db.ChangesSinceStreaming(since, options, responseState.ChangesFilter, responseState.FilterParams);
                 if((context.ChangesFeedMode >= ChangesFeedMode.Continuous) ||
-                    (context.ChangesFeedMode == ChangesFeedMode.LongPoll && changes.Any())) {
+                    (context.ChangesFeedMode == ChangesFeedMode.LongPoll && !changes.Any())) {
                     // Response is going to stay open (continuous, or hanging GET):
                     response.Chunked = true;
                     if(context.ChangesFeedMode == ChangesFeedMode.EventSource) {
@@ -374,14 +379,7 @@ namespace Couchbase.Lite.Listener
                         return response;
                     }
 
-                    string heartbeatParam = context.GetQueryParam("heartbeat");
-                    if(heartbeatParam != null) {
-                        int heartbeat;
-                        if(!int.TryParse(heartbeatParam, out heartbeat) || heartbeat <= 0) {
-                            responseState.IsAsync = false;
-                            return context.CreateResponse(StatusCode.BadParam);
-                        }
-
+                    if(heartbeat > 0) {
                         var heartbeatSpan = TimeSpan.FromMilliseconds(heartbeat);
                         if(heartbeatSpan < MinHeartbeat) {
                             heartbeatSpan = MinHeartbeat;

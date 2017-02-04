@@ -1441,7 +1441,7 @@ namespace Couchbase.Lite
             // do a query which will kick off an async index
             PutNDocs(database, 1);
             query.IndexUpdateMode = IndexUpdateMode.After;
-            query.Run().Should().HaveCount(5, "because the update mode is async");
+            query.Run().Count.Should().BeOneOf(new[] { 5, 6 }, "because the update mode is async");
 
             // wait until indexing is (hopefully) done
             Sleep(1000);

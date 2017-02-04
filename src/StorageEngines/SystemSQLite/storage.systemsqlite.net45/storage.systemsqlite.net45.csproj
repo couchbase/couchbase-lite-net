@@ -13,7 +13,6 @@
     <OutputType>Library</OutputType>
     <RootNamespace>storage.systemsqlite.net45</RootNamespace>
     <AssemblyName>Couchbase.Lite.Storage.SystemSQLite</AssemblyName>
-    <ReleaseVersion>1.1.1</ReleaseVersion>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <RestorePackages>true</RestorePackages>
     <NuGetPackageImportStamp>

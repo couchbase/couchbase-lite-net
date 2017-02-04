@@ -158,6 +158,8 @@ namespace Couchbase.Lite.Listener
                 } else {
                     Db.Changed += DatabaseChanged;
                 }
+            } else {
+                Db.Changed += DatabaseChanged;
             }
 
             return IsAsync;

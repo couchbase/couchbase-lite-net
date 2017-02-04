@@ -26,6 +26,7 @@ using NUnit.Framework;
 
 using Couchbase.Lite.Listener;
 using Couchbase.Lite.Internal;
+using FluentAssertions;
 using System.Linq;
 using Couchbase.Lite.Util;
 using System.Collections;
@@ -877,7 +878,8 @@ namespace Couchbase.Lite
 
 
                 List<byte> body = new List<byte>();
-                var mre = new ManualResetEventSlim();
+                var gotData = new ManualResetEventSlim();
+                var streamEnded = new ManualResetEventSlim();
                 SendRequest("GET", String.Format("/{0}/_changes?feed=continuous", database.Name), null, null, true, r =>
                 {
                     response = r;
@@ -886,30 +888,33 @@ namespace Couchbase.Lite
                     while (stream.Read(data, 0, data.Length) > 0)
                     {
                         body.AddRange(data.TakeWhile(x => x != 0));
+                        gotData.Set();
                     }
 
-                    mre.Set();
+                    streamEnded.Set();
                 });
 
                 // Should initially have a response and one line of output:
-                Sleep(TimeSpan.FromMilliseconds(500));
+                gotData.Wait(TimeSpan.FromSeconds(100)).Should().BeTrue("because the changes feed should return something");
                 Assert.IsNotNull(response);
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
                 Assert.IsTrue(body.Count > 0);
-                Assert.IsFalse(mre.IsSet);
+                Assert.IsFalse(streamEnded.IsSet);
                 body.Clear();
 
+                gotData.Reset();
                 endpoint = String.Format("/{0}/doc2", database.Name);
                 SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                     { "message", "hej" } 
                 }), HttpStatusCode.Created, null);
 
-                Sleep(TimeSpan.FromMilliseconds(500));
+                gotData.Wait(TimeSpan.FromSeconds(1)).Should().BeTrue("because the changes feed should return something");
 
                 Assert.IsTrue(body.Count > 0);
-                Assert.IsFalse(mre.IsSet);
+                Assert.IsFalse(streamEnded.IsSet);
 
-                mre.Dispose();
+                gotData.Dispose();
+                streamEnded.Dispose();
             } finally {
                 if (response != null) {
                     response.Dispose();
