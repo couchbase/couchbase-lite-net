@@ -28,6 +28,8 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using FluentAssertions;
+using LiteCore;
+using LiteCore.Interop;
 using Xunit;
 
 namespace Test
@@ -37,7 +39,7 @@ namespace Test
         [Fact]
         public void TestNewDoc()
         {
-            var doc = Db.GetDocument();
+            var doc = Db.CreateDocument();
             doc.Id.Should().NotBeNullOrEmpty("because a document should always have an ID");
             doc.Database.Should().BeSameAs(Db, "because a doc should have a reference to its owner");
             doc.Exists.Should().BeFalse("because the document has not been saved yet");
@@ -51,7 +53,7 @@ namespace Test
             doc.GetDate("prop").Should().BeNull("because this date does not exist");
             doc.GetString("prop").Should().BeNull("because this string does not exist");
 
-            doc.Save().Should().BeTrue("because the save should succeed");
+            doc.Save();
             doc.Exists.Should().BeTrue("because the document was saved");
             doc.IsDeleted.Should().BeFalse("because the document is not deleted");
             doc.Properties.Should().BeEmpty("because no properties were added");
@@ -75,7 +77,7 @@ namespace Test
             doc.GetDate("prop").Should().BeNull("because this date does not exist");
             doc.GetString("prop").Should().BeNull("because this string does not exist");
 
-            doc.Save().Should().BeTrue("because the save should succeed");
+            doc.Save();
             doc.Exists.Should().BeTrue("because the document was saved");
             doc.IsDeleted.Should().BeFalse("because the document is not deleted");
             doc.Properties.Should().BeEmpty("because no properties were added");
@@ -95,7 +97,7 @@ namespace Test
                 //.Set("dict", new Dictionary<string, object> { ["foo"] = "bar" })
                 .Set("array", new[] { "1", "2" })
                 .Set("date", date)
-                .Save().Should().BeTrue("because the save should succeed");
+                .Save();
 
             doc.GetBoolean("bool").Should().BeTrue("because that is the bool that was saved");
             doc.GetDouble("double").Should().BeApproximately(1.1, Double.Epsilon, "because that is the double that was saved");
@@ -140,6 +142,24 @@ namespace Test
         }
 
         [Fact]
+        public void TestContainsKey()
+        {
+            var doc = Db["doc1"];
+            doc.Properties = new Dictionary<string, object> {
+                ["type"] = "profile",
+                ["name"] = "Jaon",
+                ["address"] = new Dictionary<string, object> {
+                    ["street"] = "1 milky way."
+                }
+            };
+
+            doc.Contains("type").Should().BeTrue("because 'type' exists in the document");
+            doc.Contains("name").Should().BeTrue("because 'name' exists in the document");
+            doc.Contains("address").Should().BeTrue("because 'address' exists in the document");
+            doc.Contains("weight").Should().BeFalse("because 'weight' does not exist in the document");
+        }
+
+        [Fact]
         public void TestDelete()
         {
             var doc = Db["doc1"];
@@ -149,17 +169,19 @@ namespace Test
             doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
 
             // Delete before save:
-            doc.Delete().Should().BeFalse("because deleting a non-existent document is invalid");
+            doc.Invoking(d => d.Delete()).ShouldThrow<LiteCoreException>().Which.Error.Should()
+                .Be(new C4Error(LiteCoreError.NotFound), "because an attempt to delete a non-existent document was made");
+
             doc["type"].Should().Be("Profile", "because the doc should still exist");
             doc["name"].Should().Be("Scott", "because the doc should still exist");
 
             // Save:
-            doc.Save().Should().BeTrue("because the save should succeed");
+            doc.Save();
             doc.Exists.Should().BeTrue("because the document was saved");
             doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
 
             // Delete:
-            doc.Delete().Should().BeTrue("because the delete should succeed now"); ;
+            doc.Delete();
             doc.Exists.Should().BeTrue("because the document still exists in terms of the DB");
             doc.IsDeleted.Should().BeTrue("because now the document is deleted");
             doc.Properties.Should().BeEmpty("because a deleted document has no properties");
@@ -180,7 +202,7 @@ namespace Test
             doc["name"].Should().Be("Scott", "because the doc should still exist");
 
             // Save:
-            doc.Save().Should().BeTrue("because the save should succeed");
+            doc.Save();
             doc.Exists.Should().BeTrue("because the document was saved");
             doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
 
@@ -206,7 +228,7 @@ namespace Test
             // Save:
             doc["type"] = "Profile";
             doc["name"] = "Scott";
-            doc.Save().Should().BeTrue("because the save should succeed");
+            doc.Save();
             doc["type"].Should().Be("Profile", "because the save completed");
             doc["name"].Should().Be("Scott", "because the save completed");
 
@@ -226,13 +248,151 @@ namespace Test
             var doc = Db["doc1"];
             doc["string"] = "str";
             doc.Properties.Should().Equal(new Dictionary<string, object> { ["string"] = "str" }, "because otherwise the property didn't get inserted");
-            doc.Save().Should().BeTrue("because otherwise the save failed");
+            doc.Save();
 
             ReopenDB();
 
             doc = Db["doc1"];
             doc.Properties.Should().Equal(new Dictionary<string, object> { ["string"] = "str" }, "because otherwise the property didn't get saved");
             doc["string"].Should().Be("str", "because otherwise the property didn't get saved");
+        }
+
+        [Fact]
+        public void TestConflict()
+        {
+            Db.ConflictResolver = new TheirsWins();
+            var doc = SetupConflict();
+            doc.Save();
+            doc["name"].Should().Be("Scotty", "because the 'theirs' version should win");
+
+            doc = Db["doc2"];
+            doc.ConflictResolver = new MergeThenTheirsWins();
+            doc["type"] = "profile";
+            doc["name"] = "Scott";
+            doc.Save();
+
+            var properties = doc.Properties;
+            properties["type"] = "bio";
+            properties["gender"] = "male";
+            SaveProperties(properties, doc.Id);
+
+            doc["type"] = "biography";
+            doc["age"] = 31;
+            doc.Save();
+            doc["age"].Should().Be(31, "because 'age' was changed by 'mine' and not 'theirs'");
+            doc["type"].Should().Be("bio", "because 'type' was changed by 'mine' and 'theirs' so 'theirs' should win");
+            doc["gender"].Should().Be("male", "because 'gender' was changed by 'theirs' but not 'mine'");
+            doc["name"].Should().Be("Scott", "because 'name' was unchanged");
+        }
+
+        [Fact]
+        public void TestConflictResolverGivesUp()
+        {
+            Db.ConflictResolver = new GiveUp();
+            var doc = SetupConflict();
+            var ex = doc.Invoking(d => d.Save()).ShouldThrow<LiteCoreException>().Which.Error.Should().Be(new C4Error(LiteCoreError.Conflict), "because the conflict resolver gave up");
+            doc.ToConcrete().HasChanges.Should().BeTrue("because the document wasn't saved");
+        }
+
+        [Fact]
+        public void TestDeletionConflict()
+        {
+            Db.ConflictResolver = new DoNotResolve();
+            var doc = SetupConflict();
+            doc.Delete();
+            doc.Exists.Should().BeTrue("because there was a conflict in place of the deletion");
+            doc.IsDeleted.Should().BeFalse("because there was a conflict in place of the deletion");
+            doc["name"].Should().Be("Scotty", "because that was the pre-deletion value");
+        }
+
+        private IDocument SetupConflict()
+        {
+            var doc = Db["doc1"];
+            doc["type"] = "profile";
+            doc["name"] = "Scott";
+            doc.Save();
+
+            var properties = doc.Properties;
+            properties["name"] = "Scotty";
+            SaveProperties(properties, doc.Id);
+
+            doc["name"] = "Scott Pilgrim";
+            return doc;
+        }
+
+        private unsafe bool SaveProperties(IDictionary<string, object> props, string docID)
+        {
+            var ok = Db.InBatch(() =>
+            {
+                var tricky = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db.c4db, docID, true, err));
+                var put = new C4DocPutRequest {
+                    docID = tricky->docID,
+                    history = &tricky->revID,
+                    historyCount = 1,
+                    save = true
+                };
+
+                var body = Db.JsonSerializer.Serialize(props);
+                put.body = body;
+
+                var newDoc = (C4Document*)LiteCoreBridge.Check(err =>
+               {
+                   var localPut = put;
+                   var retVal = Native.c4doc_put(Db.c4db, &localPut, null, err);
+                   Native.FLSliceResult_Free(body);
+                   return retVal;
+               });
+
+                return true;
+            });
+
+            ok.Should().BeTrue("beacuse otherwise the batch failed in SaveProperties");
+            return ok;
+        }
+    }
+
+    internal class TheirsWins : IConflictResolver
+    {
+        public IDictionary<string, object> Resolve(IReadOnlyDictionary<string, object> mine, IReadOnlyDictionary<string, object> theirs, IReadOnlyDictionary<string, object> baseProps)
+        {
+            return theirs.ToDictionary(k => k.Key, v => v.Value);
+        }
+    }
+
+    internal class MergeThenTheirsWins : IConflictResolver
+    {
+        public IDictionary<string, object> Resolve(IReadOnlyDictionary<string, object> mine, IReadOnlyDictionary<string, object> theirs, IReadOnlyDictionary<string, object> baseProps)
+        {
+            var resolved = baseProps.ToDictionary(k => k.Key, v => v.Value);
+            var changed = new HashSet<string>();
+            foreach(var pair in theirs) {
+                resolved[pair.Key] = pair.Value;
+                changed.Add(pair.Key);
+            }
+
+            foreach(var pair in mine) {
+                if(!changed.Contains(pair.Key)) {
+                    resolved[pair.Key] = pair.Value;
+                }
+            }
+
+            return resolved;
+        }
+    }
+
+    internal class GiveUp : IConflictResolver
+    {
+        public IDictionary<string, object> Resolve(IReadOnlyDictionary<string, object> mine, IReadOnlyDictionary<string, object> theirs, IReadOnlyDictionary<string, object> baseProps)
+        {
+            return null;
+        }
+    }
+
+    internal class DoNotResolve : IConflictResolver
+    {
+        public IDictionary<string, object> Resolve(IReadOnlyDictionary<string, object> mine, IReadOnlyDictionary<string, object> theirs, IReadOnlyDictionary<string, object> baseProps)
+        {
+            throw new NotImplementedException();
         }
     }
 }

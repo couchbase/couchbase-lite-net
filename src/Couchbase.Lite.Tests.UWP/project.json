@@ -1,6 +1,6 @@
 ﻿{
   "dependencies": {
-    "FluentAssertions": "4.18.0",
+    "FluentAssertions": "4.19.0",
     "Microsoft.NETCore.UniversalWindowsPlatform": "5.2.2",
     "xunit": "2.1.0",
     "xunit.runner.visualstudio": "2.1.0"

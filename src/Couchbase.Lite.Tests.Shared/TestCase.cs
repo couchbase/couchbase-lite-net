@@ -8,6 +8,14 @@ using Xunit;
 
 namespace Test
 {
+    internal static class Convert
+    {
+        internal static Document ToConcrete(this IDocument doc)
+        {
+            return doc as Document;
+        }
+    }
+
     public class TestCase : IDisposable
     {
         public const string DatabaseName = "testdb";

@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Serialization
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
             DefaultValueHandling = DefaultValueHandling.Ignore,
             FloatFormatHandling = FloatFormatHandling.DefaultValue,
-            NullValueHandling = NullValueHandling.Ignore
+            NullValueHandling = NullValueHandling.Ignore,
         };
 
         protected Serializer()
@@ -78,6 +78,7 @@ namespace Couchbase.Lite.Serialization
         public DefaultSerializer(Database db) : base()
         {
             _db = db;
+            SerializerSettings.Converters = new[] { new BlobConverter(_db) };
         }
 
         public override FLSliceResult Serialize(object obj)

@@ -34,7 +34,36 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
-    public unsafe class PropertyContainer
+    public interface IPropertyContainer
+    {
+        IDictionary<string, object> Properties { get; set; }
+
+        IPropertyContainer Set(string key, object value);
+
+        object Get(string key);
+
+        string GetString(string key);
+
+        long GetLong(string key);
+
+        float GetFloat(string key);
+
+        double GetDouble(string key);
+
+        bool GetBoolean(string key);
+
+        DateTimeOffset? GetDate(string key);
+
+        IList<object> GetArray(string key);
+
+        IPropertyContainer Remove(string key);
+
+        bool Contains(string key);
+
+        object this[string key] { get; set; }
+    }
+
+    internal unsafe abstract class PropertyContainer : IPropertyContainer
     {
         private FLDict* _root;
         private IReadOnlyDictionary<string, object> _rootProps;
@@ -47,8 +76,10 @@ namespace Couchbase.Lite
                 if(_properties == null) {
                     var saved = SavedProperties;
                     _properties = new Dictionary<string, object>();
-                    foreach(var pair in saved) {
-                        _properties[pair.Key] = pair.Value;
+                    if(saved != null) {
+                        foreach(var pair in saved) {
+                            _properties[pair.Key] = pair.Value;
+                        }
                     }
                 }
                 return _properties;
@@ -58,9 +89,9 @@ namespace Couchbase.Lite
             }
         }
 
-        internal bool HasChanges { get; private set; }
+        internal bool HasChanges { get; set; }
 
-        private IReadOnlyDictionary<string, object> SavedProperties
+        protected IReadOnlyDictionary<string, object> SavedProperties
         {
             get {
                 if(_properties != null && HasChanges) {
@@ -78,7 +109,7 @@ namespace Couchbase.Lite
             }
         }
 
-        public PropertyContainer Set(string key, object value)
+        public IPropertyContainer Set(string key, object value)
         {
             ValidateObjectType(value);
             MutateProperties();
@@ -151,11 +182,6 @@ namespace Couchbase.Lite
             return Native.FLValue_AsBool(FleeceValueForKey(key));
         }
 
-        public Blob GetBlob(string key)
-        {
-            throw new NotImplementedException();
-        }
-
         public DateTimeOffset? GetDate(string key)
         {
             var retVal = default(DateTimeOffset);
@@ -206,7 +232,7 @@ namespace Couchbase.Lite
             throw new NotImplementedException();
         }
 
-        public PropertyContainer Remove(string key)
+        public IPropertyContainer Remove(string key)
         {
             _properties.Remove(key);
             return this;

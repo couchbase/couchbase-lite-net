@@ -98,25 +98,18 @@ namespace Couchbase.Lite
 
         public string Name { get; }
 
-        private long p_c4db;
-        internal C4Database* c4db
-        {
-            get {
-                return (C4Database*)p_c4db;
-            }
-            private set {
-                p_c4db = (long)value;
-            }
-        }
-
-        internal SharedStringCache SharedStrings { get; }
-
-        internal string Path
+        public string Path
         {
             get {
                 return Native.c4db_getPath(c4db);
             }
         }
+
+        public IConflictResolver ConflictResolver { get; set; }
+
+        internal C4Database* c4db { get; private set; }
+
+        internal SharedStringCache SharedStrings { get; }
 
         private IJsonSerializer _jsonSerializer;
         internal IJsonSerializer JsonSerializer
@@ -133,7 +126,13 @@ namespace Couchbase.Lite
             }
         }
 
-        public IConflictResolver ConflictResolver { get; set; }
+        internal C4BlobStore* BlobStore
+        {
+            get {
+                CheckOpen();
+                return (C4BlobStore*)LiteCoreBridge.Check(err => Native.c4db_getBlobStore(c4db, err));
+            }
+        }
 
         static Database()
         {
@@ -203,10 +202,10 @@ namespace Couchbase.Lite
 
         public void Delete()
         {
-            var db = (C4Database*)Interlocked.Exchange(ref p_c4db, 0);
-            if(db != null) {
+            if(c4db != null) {
                 Close();
-                LiteCoreBridge.Check(err => Native.c4db_delete(db, err));
+                LiteCoreBridge.Check(err => Native.c4db_delete(c4db, err));
+                c4db = null;
             }
         }
 
@@ -219,6 +218,7 @@ namespace Couchbase.Lite
             } catch(Exception e) {
                 Log.To.Database.W(Tag, "Exception during InBatch, rolling back...", e);
                 success = false;
+                throw;
             } finally {
                 LiteCoreBridge.Check(err => Native.c4db_endTransaction(c4db, success, err));
             }
@@ -226,27 +226,27 @@ namespace Couchbase.Lite
             return success;
         }
 
-        public Document GetDocument()
+        public IDocument CreateDocument()
         {
             return GetDocument(Misc.CreateGUID());
         }
 
-        public Document GetDocument(string id)
+        public IDocument GetDocument(string id)
         {
             return GetDocument(id, false);
         }
 
-        public ModeledDocument<T> GetDocument<T>() where T : class, new()
-        {
-            return GetDocument<T>(Misc.CreateGUID());
-        }
+        //public ModeledDocument<T> GetDocument<T>() where T : class, new()
+        //{
+        //    return GetDocument<T>(Misc.CreateGUID());
+        //}
 
-        public ModeledDocument<T> GetDocument<T>(string id) where T : class, new()
-        {
-            return GetDocument<T>(id, false);
-        }
+        //public ModeledDocument<T> GetDocument<T>(string id) where T : class, new()
+        //{
+        //    return GetDocument<T>(id, false);
+        //}
 
-        public bool Exists(string documentID)
+        public bool DocumentExists(string documentID)
         {
             if(documentID == null) {
                 throw new ArgumentNullException(nameof(documentID));
@@ -259,7 +259,7 @@ namespace Couchbase.Lite
             return exists;
         }
 
-        public Document this[string id]
+        public IDocument this[string id]
         {
             get {
                 return GetDocument(id);
@@ -287,11 +287,6 @@ namespace Couchbase.Lite
         public void DeleteIndex(string propertyPath, C4IndexType type)
         {
             LiteCoreBridge.Check(err => Native.c4db_deleteIndex(c4db, propertyPath, type, err));
-        }
-
-        public Query CreateQuery()
-        {
-            return new Query(this);
         }
 
         private static void LiteCoreLog(C4LogDomain domain, C4LogLevel level, C4Slice msg)
@@ -377,10 +372,10 @@ namespace Couchbase.Lite
                 docs?.Dispose();
             }
 
-            var db = (C4Database*)Interlocked.Exchange(ref p_c4db, 0);
-            if(db != null) {
-                LiteCoreBridge.Check(err => Native.c4db_close(db, err));
-                Native.c4db_free(db);
+            if(c4db != null) {
+                LiteCoreBridge.Check(err => Native.c4db_close(c4db, err));
+                Native.c4db_free(c4db);
+                c4db = null;
             }
         }
 
@@ -411,6 +406,13 @@ namespace Couchbase.Lite
                 var localConfig2 = localConfig1;
                 return Native.c4db_open(path, &localConfig2, err);
             });
+        }
+
+        private void CheckOpen()
+        {
+            if(c4db == null) {
+                throw new InvalidOperationException("Attempt to perform an operation on a closed database");
+            }
         }
 
         internal override object Copy()

@@ -57,25 +57,25 @@ namespace Test
 
     public class ModelTest : TestCase
     {
-        [Fact]
-        public void TestModel()
-        {
-            var model = Db.GetDocument<TestModel>();
-            var item = model.Item;
-            item.IntValue = 42;
-            item.StringValue = "Jim";
-            item.Child.IntValues = new[] { 1, 2, 3, 4 };
-            model.Save().Should().BeTrue("because otherwise the save failed");
+        //[Fact]
+        //public void TestModel()
+        //{
+        //    var model = Db.GetDocument<TestModel>();
+        //    var item = model.Item;
+        //    item.IntValue = 42;
+        //    item.StringValue = "Jim";
+        //    item.Child.IntValues = new[] { 1, 2, 3, 4 };
+        //    model.Save().Should().BeTrue("because otherwise the save failed");
 
-            var model2 = Db.GetDocument<TestModel>();
-            item = model2.Item;
-            item.IntValue = 43;
-            item.StringValue = "Jim";
-            item.Child.IntValues = new[] { 1, 2, 3, 4, 5 };
-            model2.Save();
+        //    var model2 = Db.GetDocument<TestModel>();
+        //    item = model2.Item;
+        //    item.IntValue = 43;
+        //    item.StringValue = "Jim";
+        //    item.Child.IntValues = new[] { 1, 2, 3, 4, 5 };
+        //    model2.Save();
 
-            var all = from x in QueryableFactory.MakeQueryable<TestModel>(Db) where x.Child.IntValues.Sum() > 10 select x;
-            all.ToArray();
-        }
+        //    var all = from x in QueryableFactory.MakeQueryable<TestModel>(Db) where x.Child.IntValues.Sum() > 10 select x;
+        //    all.ToArray();
+        //}
     }
 }

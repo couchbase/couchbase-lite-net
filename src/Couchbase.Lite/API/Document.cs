@@ -20,9 +20,11 @@
 //
 
 using System;
-using System.Threading;
-
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using Couchbase.Lite.Serialization;
+using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
@@ -30,13 +32,45 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
-    public sealed class DocumentChangedEventArgs : ComponentChangedEventArgs<Document>
+    public sealed class DocumentChangedEventArgs : ComponentChangedEventArgs<IDocument>
     {
         
     }
 
-    public sealed unsafe class Document : PropertyContainer, IDisposable // ,IPropertyContainer, IModellable
+    public interface IDocument : IPropertyContainer, IDisposable
     {
+        event EventHandler<DocumentChangedEventArgs> Changed;
+
+        event EventHandler<PropertyChangedEventArgs> PropertyChanged;
+
+        Database Database { get; }
+
+        IConflictResolver ConflictResolver { get; set; }
+
+        string Id { get; }
+
+        bool IsDeleted { get; }
+
+        bool Exists { get; }
+
+        ulong Sequence { get; }
+
+        new IDocument Set(string key, object value);
+
+        void Save();
+
+        void Delete();
+
+        bool Purge();
+
+        void Revert();
+    }
+
+    internal sealed unsafe class Document : PropertyContainer, IDocument //, IModellable
+    {
+        private C4Database* _c4db;
+        private C4Document* _c4doc;
+
         public event EventHandler<DocumentChangedEventArgs> Changed;
 
         public event EventHandler<PropertyChangedEventArgs> PropertyChanged;
@@ -63,28 +97,20 @@ namespace Couchbase.Lite
 
         public ulong Sequence { get; }
 
-        private long p_c4db;
-        private C4Database* _c4db
+        private uint Generation
         {
             get {
-                return (C4Database*)p_c4db;
-            }
-            set {
-                p_c4db = (long)value;
+                return NativeRaw.c4rev_getGeneration(_c4doc->revID);
             }
         }
 
-        private long p_c4doc;
-        private C4Document* _c4doc
+        private IConflictResolver EffectiveConflictResolver
         {
             get {
-                return (C4Document*)p_c4doc;
-            }
-            set {
-                p_c4doc = (long)value;
+                return ConflictResolver ?? Database.ConflictResolver;
             }
         }
-
+        
         internal Document(Database db, string docID, bool mustExist)
         {
             Database = db;
@@ -98,20 +124,20 @@ namespace Couchbase.Lite
             Dispose(false);
         }
 
-        public new Document Set(string key, object value)
+        public new IDocument Set(string key, object value)
         {
             base.Set(key, value);
             return this;
         }
 
-        public bool Save()
+        public void Save()
         {
-            return Save(null, false);
+            Save(EffectiveConflictResolver, false);
         }
 
-        public bool Delete()
+        public void Delete()
         {
-            return Save(null, true);
+            Save(EffectiveConflictResolver, true);
         }
 
         public bool Purge()
@@ -150,8 +176,8 @@ namespace Couchbase.Lite
 
         private void SetC4Doc(C4Document* doc)
         {
-            var oldDoc = Interlocked.Exchange(ref p_c4doc, (long)doc);
-            Native.c4doc_free((C4Document *)oldDoc);
+            Native.c4doc_free(_c4doc);
+            _c4doc = doc;
             SetRoot(null, null);
             if(doc != null) {
                 var body = doc->selectedRev.body;
@@ -164,69 +190,186 @@ namespace Couchbase.Lite
 
         private void Dispose(bool disposing)
         {
-            var oldDoc = Interlocked.Exchange(ref p_c4doc, 0);
-            Native.c4doc_free((C4Document *)oldDoc);
+            Native.c4doc_free(_c4doc);
+            _c4doc = null;
         }
 
-        private bool Save(object resolver, bool deletion)
+        private void Save(IConflictResolver resolver, bool deletion)
         {
             if(!HasChanges && !deletion && Exists) {
-                return false;
+                return;
             }
 
             C4Document* newDoc = null;
+            var endedEarly = false;
             var success = Database.InBatch(() =>
             {
-                var propertiesToSave = deletion ? null : Properties;
-                var put = new C4DocPutRequest {
-                    docID = _c4doc->docID,
-                    history = &_c4doc->revID,
-                    historyCount = 1,
-                    save = true
-                };
+                var tmp = default(C4Document*);
+                SaveInto(&tmp, deletion);
+                if(tmp == null) {
+                    Merge(resolver, deletion);
+                    if(!HasChanges) {
+                        endedEarly = true;
+                        return false;
+                    }
 
-                if(deletion) {
-                    put.revFlags = C4RevisionFlags.Deleted;
-                }
-
-                var body = new FLSliceResult();
-                if(propertiesToSave?.Count > 0) {
-                    using(var writer = new JsonFLValueWriter(_c4db)) {
-                        var serializer = new JsonSerializer();
-                        serializer.Serialize(writer, propertiesToSave);
-                        writer.Flush();
-                        body = writer.Result;
-                        put.body = body;
+                    SaveInto(&tmp, deletion);
+                    if(tmp == null) {
+                        throw new CouchbaseLiteException("Conflict still occuring after resolution", StatusCode.DbError);
                     }
                 }
 
-                try {
-                    using(var type = new C4String(this["type"] as string)) {
-                        newDoc = (C4Document*)LiteCoreBridge.Check(err =>
-                        {
-                            var localPut = put;
-                            localPut.docType = type.AsC4Slice();
-                            return Native.c4doc_put(_c4db, &localPut, null, err);
-                        });
-                    }
-                } finally {
-                    Native.FLSliceResult_Free(body);
-                }
-
+                newDoc = tmp;
                 return true;
             });
 
+            if(endedEarly) {
+                return;
+            }
+
             if(!success) {
                 Native.c4doc_free(newDoc);
-                return success;
+                return;
             }
 
             SetC4Doc(newDoc);
             if(deletion) {
                 ResetChanges();
             }
+        }
 
-            return success;
+        private void Merge(IConflictResolver resolver, bool deletion)
+        {
+            var currentDoc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, Id, true, err));
+            var currentData = currentDoc->selectedRev.body;
+            var current = default(IDictionary<string, object>);
+            if(currentData.size > 0) {
+                var currentRoot = NativeRaw.FLValue_FromTrustedData((FLSlice)currentData);
+                current = FLValueConverter.ToObject(currentRoot, Database.SharedStrings) as IDictionary<string, object>;
+            }
+
+            var resolved = default(IDictionary<string, object>);
+            if(deletion) {
+                resolved = current;
+            } else if (resolver != null) {
+                var empty = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
+                resolved = resolver.Resolve(Properties != null ? new ReadOnlyDictionary<string, object>(Properties) : empty,
+                    current != null ? new ReadOnlyDictionary<string, object>(current) : empty,
+                    SavedProperties);
+                if(resolved == null) {
+                    Native.c4doc_free(currentDoc);
+                    throw new LiteCoreException(new C4Error(LiteCoreError.Conflict));
+                }
+            } else {
+                // Thank Jens Alfke for this variable name (lol)
+                uint myGgggeneration = Generation + 1;
+                uint theirGgggeneration = NativeRaw.c4rev_getGeneration(currentDoc->revID);
+                if(myGgggeneration >= theirGgggeneration) { // hope I die before I get old
+                    resolved = Properties;
+                } else {
+                    resolved = current;
+                }
+            }
+
+            SetC4Doc(currentDoc);
+            Properties = resolved;
+            if(resolved.Equals(current)) {
+                HasChanges = false;
+            }
+        }
+
+        private void SaveInto(C4Document** outDoc, bool deletion)
+        {
+            //TODO: Need to be able to save a deletion that has properties on it
+            var propertiesToSave = deletion ? null : Properties;
+            var put = new C4DocPutRequest {
+                docID = _c4doc->docID,
+                history = &_c4doc->revID,
+                historyCount = 1,
+                save = true
+            };
+
+            if(deletion) {
+                put.revFlags = C4RevisionFlags.Deleted;
+            }
+
+            if(ContainsBlob(propertiesToSave)) {
+                put.revFlags |= C4RevisionFlags.HasAttachments;
+            }
+
+            var body = new FLSliceResult();
+            if(propertiesToSave?.Count > 0) {
+                body = Database.JsonSerializer.Serialize(propertiesToSave);
+                put.body = body;
+            }
+
+            try {
+                using(var type = new C4String(this["type"] as string)) {
+                    *outDoc = (C4Document*)RetryHandler.RetryIfBusy()
+                        .AllowError(new C4Error(LiteCoreError.Conflict))
+                        .Execute(err =>
+                    {
+                        var localPut = put;
+                        localPut.docType = type.AsC4Slice();
+                        return Native.c4doc_put(_c4db, &localPut, null, err);
+                    });
+                }
+            } finally {
+                Native.FLSliceResult_Free(body);
+            }
+        }
+
+        private static bool ContainsBlob(IDictionary<string, object> dict)
+        {
+            if(dict == null) {
+                return false;
+            }
+
+            if(dict.GetCast<string>("_cbltype") == "blob") {
+                return true;
+            }
+
+            foreach(var obj in dict.Values) {
+                if(ContainsBlob(obj)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ContainsBlob(object obj)
+        {
+            if(obj == null) {
+                return false;
+            }
+
+            var dict = obj as IDictionary<string, object>;
+            if(dict != null) {
+                return ContainsBlob(dict);
+            }
+
+            var arr = obj as IList;
+            if(arr != null) {
+                return ContainsBlob(arr);
+            }
+
+            return false;
+        }
+
+        private static bool ContainsBlob(IList list)
+        {
+            if(list == null) {
+                return false;
+            }
+
+            foreach(var obj in list) {
+                if(ContainsBlob(obj)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public override string ToString()

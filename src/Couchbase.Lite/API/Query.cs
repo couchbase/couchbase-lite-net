@@ -33,47 +33,6 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
-    public sealed class SortDescriptor
-    {
-        public string Key { get; }
-
-        public bool Ascending { get; }
-
-
-    }
-
-    public sealed unsafe class Query
-    {
-        private C4Query* _c4query;
-
-        public Database Database { get; }
-
-        public ulong Skip { get; set; }
-
-        public ulong Limit { get; set; }
-
-        public IDictionary<string, object> Parameters { get; }
-
-        internal Query(Database db)
-        {
-            Database = db;
-        }
-
-        public IEnumerable<QueryRow> Run()
-        {
-            C4QueryOptions options = C4QueryOptions.Default;
-            options.skip = Skip;
-            options.limit = Limit;
-
-            var paramJSON = default(string);
-            if(Parameters.Any()) {
-                paramJSON = JsonConvert.SerializeObject(Parameters);
-            }
-
-            return new QueryRowEnumerable(Database, _c4query, options, paramJSON);
-        }
-    }
-
     public unsafe class QueryRow
     {
         protected readonly Database _db;
@@ -82,7 +41,7 @@ namespace Couchbase.Lite
 
         public ulong Sequence { get; set; }
 
-        public Document Document
+        public IDocument Document
         {
             get {
                 var retVal = _db.GetDocument(DocumentID);

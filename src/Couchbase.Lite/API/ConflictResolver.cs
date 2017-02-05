@@ -29,6 +29,7 @@ namespace Couchbase.Lite
 {
     public interface IConflictResolver
     {
-        Document Resolve(Document mine, Document theirs, Document start);
+        IDictionary<string, object> Resolve(IReadOnlyDictionary<string, object> mine,
+            IReadOnlyDictionary<string, object> theirs, IReadOnlyDictionary<string, object> baseProps);
     }
 }

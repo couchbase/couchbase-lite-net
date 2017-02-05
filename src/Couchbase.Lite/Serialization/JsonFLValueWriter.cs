@@ -23,12 +23,15 @@ using Newtonsoft.Json;
 using LiteCore.Interop;
 using LiteCore.Util;
 using LiteCore;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Serialization
 {
     internal unsafe class JsonFLValueWriter : JsonWriter
     {
         private FLEncoder* _encoder;
+
+        public IList<Blob> Blobs { get; }
 
         public FLSliceResult Result { get; private set; }
 
