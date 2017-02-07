@@ -30,11 +30,25 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Serialization
 {
-    internal sealed class BlobConverter : JsonConverter
+    internal sealed class BlobWriteConverter : JsonConverter
     {
         private readonly Database _db;
 
-        public BlobConverter(Database db)
+        public override bool CanWrite
+        {
+            get {
+                return true;
+            }
+        }
+
+        public override bool CanRead
+        {
+            get {
+                return false;
+            }
+        }
+
+        public BlobWriteConverter(Database db)
         {
             _db = db;
         }
@@ -46,15 +60,66 @@ namespace Couchbase.Lite.Serialization
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            var props = JObject.ReadFrom(reader).ToObject<IDictionary<string, object>>();
-            return new Blob(_db, props);
+            throw new NotSupportedException();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            var blob = (Blob)value;
-            blob.Install(_db);
-            serializer.Serialize(writer, blob.JsonRepresentation);
+            var blob = value as Blob;
+            if(blob != null) {
+                blob.Install(_db);
+                serializer.Serialize(writer, blob.JsonRepresentation);
+            }
+        }
+    }
+
+    internal sealed class CouchbaseTypeReadConverter : JsonConverter
+    {
+        private readonly Database _db;
+        private static readonly Type _DictType = typeof(IDictionary<,>).MakeGenericType(typeof(string), typeof(object));
+
+        public CouchbaseTypeReadConverter(Database db)
+        {
+            _db = db;
+        }
+
+        public override bool CanWrite
+        {
+            get {
+                return false;
+            }
+        }
+
+        public override bool CanRead
+        {
+            get {
+                return true;
+            }
+        }
+
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType.GetTypeInfo().ImplementedInterfaces.Contains(_DictType);
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            var props = JObject.ReadFrom(reader).ToObject<IDictionary<string, object>>();
+            if(!props.ContainsKey("_cbltype")) {
+                return props;
+            }
+
+            var type = props["_cbltype"] as string;
+            if(type == "blob") {
+                return new Blob(_db, props);
+            }
+
+            throw new InvalidOperationException($"Unrecognized _cbltype in document ({type})");
         }
     }
 }

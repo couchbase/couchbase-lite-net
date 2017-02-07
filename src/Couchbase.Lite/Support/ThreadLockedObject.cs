@@ -27,7 +27,14 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Support
 {
-    public abstract class ThreadLockedObject
+    public interface IThreadLockedObject
+    {
+        bool IsSafeToUse { get; }
+
+        object Copy();
+    }
+
+    internal abstract class ThreadLockedObject : IThreadLockedObject
     {
         private readonly int _owningThread = Environment.CurrentManagedThreadId;
 
@@ -45,12 +52,12 @@ namespace Couchbase.Lite.Support
             }
         }
 
-        internal abstract object Copy();
+        public abstract object Copy();
     }
 
     public static class ThreadLocked
     {
-        public static T Copy<T>(T original) where T : ThreadLockedObject
+        public static T Copy<T>(T original) where T : class, IThreadLockedObject
         {
             return original.Copy() as T;
         }

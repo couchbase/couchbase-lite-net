@@ -22,11 +22,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
+using Couchbase.Lite.Support;
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
@@ -36,6 +38,14 @@ namespace Test
 {
     public class DocumentTest : TestCase
     {
+        private IDocument _doc;
+
+        public DocumentTest()
+        {
+            Db.ConflictResolver = new DoNotResolve();
+            _doc = Db["doc1"];
+        }
+
         [Fact]
         public void TestNewDoc()
         {
@@ -111,7 +121,7 @@ namespace Test
             doc.GetDate("date").Should().Be(date, "because that is the date that was saved");
 
             // Get the doc from another database
-            using(var otherDB = new Database(Db)) {
+            using(var otherDB = ThreadLocked.Copy(Db)) {
                 var doc1 = otherDB.GetDocument("doc1");
                 doc1.GetBoolean("bool").Should().BeTrue("because that is the bool that was saved");
                 doc1.GetDouble("double").Should().BeApproximately(1.1, Double.Epsilon, "because that is the double that was saved");
@@ -305,6 +315,154 @@ namespace Test
             doc["name"].Should().Be("Scotty", "because that was the pre-deletion value");
         }
 
+        [Fact]
+        public void TestConflictMineIsDeeper()
+        {
+            Db.ConflictResolver = null;
+            var doc = SetupConflict();
+            doc.Save();
+            doc["name"].Should().Be("Scott Pilgrim", "because the current in memory document has a longer history");
+        }
+
+        [Fact]
+        public void TestConflictTheirsIsDeeper()
+        {
+            Db.ConflictResolver = null;
+            var doc = SetupConflict();
+
+            // Add another revision to the conflict, so it'll have a higher generation
+            var properties = doc.Properties;
+            properties["name"] = "Scott of the Sahara";
+            SaveProperties(properties, doc.Id);
+            doc.Save();
+
+            doc["name"].Should().Be("Scott of the Sahara", "because the conflict has a longer history");
+        }
+
+        [Fact]
+        public void TestBlob()
+        {
+            var content = Encoding.UTF8.GetBytes("12345");
+            var data = BlobFactory.Create("text/plain", content);
+            _doc["data"] = data;
+            _doc["name"] = "Jim";
+            _doc.Save();
+
+            using(var otherDb = ThreadLocked.Copy(Db)) {
+                var doc1 = otherDb["doc1"];
+                doc1["name"].Should().Be("Jim", "because the document should be persistent after save");
+                doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                data = doc1["data"] as IBlob;
+                data.Length.Should().Be(5, "because the data is 5 bytes long");
+                data.Content.Should().Equal(content, "because the data should have been retrieved correctly");
+                var contentStream = data.ContentStream;
+                var buffer = new byte[10];
+                var bytesRead = contentStream.Read(buffer, 0, 10);
+                contentStream.Dispose();
+                bytesRead.Should().Be(5, "because the data is 5 bytes long");
+            }
+        }
+
+        [Fact]
+        public void TestEmptyBlob()
+        {
+            var content = new byte[0];
+            var data = BlobFactory.Create("text/plain", content);
+            _doc["data"] = data;
+            _doc.Save();
+
+            using(var otherDb = ThreadLocked.Copy(Db)) {
+                var doc1 = otherDb["doc1"];
+                doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                data = doc1["data"] as IBlob;
+                data.Length.Should().Be(0, "because the data is 5 bytes long");
+                data.Content.Should().Equal(content, "because the data should have been retrieved correctly");
+                var contentStream = data.ContentStream;
+                var buffer = new byte[10];
+                var bytesRead = contentStream.Read(buffer, 0, 10);
+                contentStream.Dispose();
+                bytesRead.Should().Be(0, "because the data is 5 bytes long");
+            }
+        }
+
+        [Fact]
+        public void TestBlobWithStream()
+        {
+            var content = new byte[0];
+            Stream contentStream = new MemoryStream(content);
+            var data = BlobFactory.Create("text/plain", contentStream);
+            _doc["data"] = data;
+            _doc.Save();
+
+            using(var otherDb = ThreadLocked.Copy(Db)) {
+                var doc1 = otherDb["doc1"];
+                doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                data = doc1["data"] as IBlob;
+                data.Length.Should().Be(0, "because the data is 5 bytes long");
+                data.Content.Should().Equal(content, "because the data should have been retrieved correctly");
+                contentStream = data.ContentStream;
+                var buffer = new byte[10];
+                var bytesRead = contentStream.Read(buffer, 0, 10);
+                contentStream.Dispose();
+                bytesRead.Should().Be(0, "because the data is 5 bytes long");
+            }
+        }
+
+        [Fact]
+        public void TestMultipleBlobRead()
+        {
+            var content = Encoding.UTF8.GetBytes("12345");
+            var data = BlobFactory.Create("text/plain", content);
+            _doc["data"] = data;
+
+            data = _doc["data"] as IBlob;
+            for(int i = 0; i < 5; i++) {
+                data.Content.Should().Equal(content, "because otherwise incorrect data was read");
+                using(var contentStream = data.ContentStream) {
+                    var buffer = new byte[10];
+                    var bytesRead = contentStream.Read(buffer, 0, 10);
+                    bytesRead.Should().Be(5, "because the data has 5 bytes");
+                }
+            }
+
+            _doc.Save();
+            using(var otherDb = ThreadLocked.Copy(Db)) {
+                var doc1 = otherDb["doc1"];
+                doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                data = doc1["data"] as IBlob;
+                for(int i = 0; i < 5; i++) {
+                    data.Content.Should().Equal(content, "because otherwise incorrect data was read");
+                    using(var contentStream = data.ContentStream) {
+                        var buffer = new byte[10];
+                        var bytesRead = contentStream.Read(buffer, 0, 10);
+                        bytesRead.Should().Be(5, "because the data has 5 bytes");
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public void TestReadExistingBlob()
+        {
+            var content = Encoding.UTF8.GetBytes("12345");
+            var data = BlobFactory.Create("text/plain", content);
+            _doc["data"] = data;
+            _doc["name"] = "Jim";
+            _doc.Save();
+
+            ReopenDB();
+
+            _doc = Db["doc1"];
+            _doc["data"].As<IBlob>().Content.Should().Equal(content, "because the data should have been retrieved correctly");
+
+            ReopenDB();
+
+            _doc = Db["doc1"];
+            _doc["foo"] = "bar";
+            _doc.Save();
+            _doc["data"].As<IBlob>().Content.Should().Equal(content, "because the data should have been retrieved correctly");
+        }
+
         private IDocument SetupConflict()
         {
             var doc = Db["doc1"];
@@ -324,7 +482,7 @@ namespace Test
         {
             var ok = Db.InBatch(() =>
             {
-                var tricky = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db.c4db, docID, true, err));
+                var tricky = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db.ToConcrete().c4db, docID, true, err));
                 var put = new C4DocPutRequest {
                     docID = tricky->docID,
                     history = &tricky->revID,
@@ -332,13 +490,13 @@ namespace Test
                     save = true
                 };
 
-                var body = Db.JsonSerializer.Serialize(props);
+                var body = Db.ToConcrete().JsonSerializer.Serialize(props);
                 put.body = body;
 
                 var newDoc = (C4Document*)LiteCoreBridge.Check(err =>
                {
                    var localPut = put;
-                   var retVal = Native.c4doc_put(Db.c4db, &localPut, null, err);
+                   var retVal = Native.c4doc_put(Db.ToConcrete().c4db, &localPut, null, err);
                    Native.FLSliceResult_Free(body);
                    return retVal;
                });
@@ -348,6 +506,15 @@ namespace Test
 
             ok.Should().BeTrue("beacuse otherwise the batch failed in SaveProperties");
             return ok;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if(!disposing) {
+                _doc.Revert();
+            }
+
+            base.Dispose(disposing);
         }
     }
 

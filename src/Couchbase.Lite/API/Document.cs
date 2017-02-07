@@ -43,7 +43,7 @@ namespace Couchbase.Lite
 
         event EventHandler<PropertyChangedEventArgs> PropertyChanged;
 
-        Database Database { get; }
+        IDatabase Database { get; }
 
         IConflictResolver ConflictResolver { get; set; }
 
@@ -70,12 +70,18 @@ namespace Couchbase.Lite
     {
         private C4Database* _c4db;
         private C4Document* _c4doc;
+        private readonly Database _database;
 
         public event EventHandler<DocumentChangedEventArgs> Changed;
 
         public event EventHandler<PropertyChangedEventArgs> PropertyChanged;
 
-        public Database Database { get; }
+        public IDatabase Database
+        {
+            get {
+                return _database;
+            }
+        }
 
         public IConflictResolver ConflictResolver { get; set; }
 
@@ -113,7 +119,7 @@ namespace Couchbase.Lite
         
         internal Document(Database db, string docID, bool mustExist)
         {
-            Database = db;
+            _database = db;
             Id = docID;
             _c4db = db.c4db;
             LoadDoc(mustExist);
@@ -166,6 +172,11 @@ namespace Couchbase.Lite
         public void Revert()
         {
             ResetChanges();
+        }
+
+        protected internal override IBlob CreateBlob(IDictionary<string, object> properties)
+        {
+            return new Blob(_database, properties);
         }
 
         private void LoadDoc(bool mustExist)
@@ -245,7 +256,7 @@ namespace Couchbase.Lite
             var current = default(IDictionary<string, object>);
             if(currentData.size > 0) {
                 var currentRoot = NativeRaw.FLValue_FromTrustedData((FLSlice)currentData);
-                current = FLValueConverter.ToObject(currentRoot, Database.SharedStrings) as IDictionary<string, object>;
+                current = FLValueConverter.ToObject(currentRoot, this, GetSharedStrings()) as IDictionary<string, object>;
             }
 
             var resolved = default(IDictionary<string, object>);
@@ -299,7 +310,7 @@ namespace Couchbase.Lite
 
             var body = new FLSliceResult();
             if(propertiesToSave?.Count > 0) {
-                body = Database.JsonSerializer.Serialize(propertiesToSave);
+                body = _database.JsonSerializer.Serialize(propertiesToSave);
                 put.body = body;
             }
 
@@ -325,10 +336,6 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            if(dict.GetCast<string>("_cbltype") == "blob") {
-                return true;
-            }
-
             foreach(var obj in dict.Values) {
                 if(ContainsBlob(obj)) {
                     return true;
@@ -342,6 +349,11 @@ namespace Couchbase.Lite
         {
             if(obj == null) {
                 return false;
+            }
+
+            var blob = obj as IBlob;
+            if(blob != null) {
+                return true;
             }
 
             var dict = obj as IDictionary<string, object>;
@@ -379,7 +391,7 @@ namespace Couchbase.Lite
 
         internal override SharedStringCache GetSharedStrings()
         {
-            return Database.SharedStrings;
+            return _database.SharedStrings;
         }
 
         public void Dispose()

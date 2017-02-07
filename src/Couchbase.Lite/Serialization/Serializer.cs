@@ -38,8 +38,6 @@ namespace Couchbase.Lite.Serialization
     {
         FLSliceResult Serialize(object obj);
 
-        object DeserializeProperties(FLValue* value);
-
         T Deserialize<T>(FLValue* value);
     }
 
@@ -65,8 +63,6 @@ namespace Couchbase.Lite.Serialization
 
         public abstract FLSliceResult Serialize(object obj);
 
-        public abstract object DeserializeProperties(FLValue* value);
-
         public abstract T Deserialize<T>(FLValue* value);
     }
 
@@ -78,7 +74,7 @@ namespace Couchbase.Lite.Serialization
         public DefaultSerializer(Database db) : base()
         {
             _db = db;
-            SerializerSettings.Converters = new[] { new BlobConverter(_db) };
+            SerializerSettings.Converters = new JsonConverter[] { new BlobWriteConverter(_db), new CouchbaseTypeReadConverter(_db) };
         }
 
         public override FLSliceResult Serialize(object obj)
@@ -101,16 +97,7 @@ namespace Couchbase.Lite.Serialization
                     return writer.Result;
                 }
             } catch(Exception e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, $"Unable to serialize object!");
-            }
-        }
-
-        public override object DeserializeProperties(FLValue* value)
-        {
-            try {
-                return ToObject(value, _db.SharedStrings);
-            } catch(Exception e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, $"Unable to deserialize properties!");
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, "Unable to serialize object!");
             }
         }
 
@@ -139,74 +126,6 @@ namespace Couchbase.Lite.Serialization
                 }
             } catch(Exception e) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, $"Unable to deserialize into type {typeof(T).FullName}!");
-            }
-        }
-
-        public static object ToObject(FLValue* value, SharedStringCache cache)
-        {
-            if(value == null) {
-                return null;
-            }
-
-            switch(Native.FLValue_GetType(value)) {
-                case FLValueType.Array: {
-                        var arr = Native.FLValue_AsArray(value);
-                        var retVal = new object[Native.FLArray_Count(arr)];
-                        var i = default(FLArrayIterator);
-                        Native.FLArrayIterator_Begin(arr, &i);
-                        int pos = 0;
-                        do {
-                            retVal[pos++] = ToObject(Native.FLArrayIterator_GetValue(&i), cache);
-                        } while(Native.FLArrayIterator_Next(&i));
-
-                        return retVal;
-                    }
-                case FLValueType.Boolean:
-                    return Native.FLValue_AsBool(value);
-                case FLValueType.Data:
-                    return Native.FLValue_AsData(value);
-                case FLValueType.Dict: {
-                        var dict = Native.FLValue_AsDict(value);
-                        var retVal = new Dictionary<string, object>((int)Native.FLDict_Count(dict));
-                        var i = default(FLDictIterator);
-                        Native.FLDictIterator_Begin(dict, &i);
-                        do {
-                            var rawKey = Native.FLDictIterator_GetKey(&i);
-                            var key = default(string);
-                            if(Native.FLValue_GetType(rawKey) == FLValueType.Number) {
-                                key = cache.GetKey((int)Native.FLValue_AsInt(rawKey));
-                                if(key == null) {
-                                    Log.To.Database.W(Tag, "Corrupt key found during deserialization, skipping...");
-                                    continue;
-                                }
-                            } else {
-                                key = Native.FLValue_AsString(rawKey);
-                            }
-
-                            retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), cache);
-                        } while(Native.FLDictIterator_Next(&i));
-
-                        return retVal;
-                    }
-                case FLValueType.Null:
-                    return null;
-                case FLValueType.Number:
-                    if(Native.FLValue_IsInteger(value)) {
-                        if(Native.FLValue_IsUnsigned(value)) {
-                            return Native.FLValue_AsUnsigned(value);
-                        }
-
-                        return Native.FLValue_AsInt(value);
-                    } else if(Native.FLValue_IsDouble(value)) {
-                        return Native.FLValue_AsDouble(value);
-                    }
-
-                    return Native.FLValue_AsFloat(value);
-                case FLValueType.String:
-                    return Native.FLValue_AsString(value);
-                case FLValueType.Undefined:
-                default:
-                    throw new LiteCoreException(new C4Error(FLError.UnknownValue));
             }
         }
     }

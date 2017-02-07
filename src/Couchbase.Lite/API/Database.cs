@@ -33,6 +33,13 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
+    public enum IndexType : uint
+    {
+        ValueIndex = C4IndexType.ValueIndex,
+        FullTextIndex = C4IndexType.FullTextIndex,
+        GeoIndex = C4IndexType.GeoIndex
+    }
+
     public sealed class IndexOptions
     {
         public string Language { get; set; }
@@ -50,7 +57,7 @@ namespace Couchbase.Lite
             IgnoreDiacriticals = ignoreDiacriticals;
         }
 
-        public static explicit operator C4IndexOptions(IndexOptions options)
+        internal static C4IndexOptions Internal(IndexOptions options)
         {
             return new C4IndexOptions {
                 language = options.Language,
@@ -79,7 +86,61 @@ namespace Couchbase.Lite
         public bool ReadOnly { get; set; }
     }
 
-    public sealed unsafe class Database : ThreadLockedObject, IDisposable
+    public interface IDatabase : IThreadLockedObject, IDisposable
+    {
+        event EventHandler<DocumentChangedEventArgs> DocumentChanged;
+
+        string Name { get; }
+
+        string Path { get; }
+
+        IConflictResolver ConflictResolver { get; set; }
+
+        void Close();
+
+        void Delete();
+
+        bool InBatch(Func<bool> a);
+
+        IDocument CreateDocument();
+
+        IDocument GetDocument(string id);
+
+        bool DocumentExists(string documentID);
+
+        IDocument this[string id] { get; }
+
+        void CreateIndex(string propertyPath);
+
+        void CreateIndex(string propertyPath, IndexType indexType, IndexOptions options);
+
+        void DeleteIndex(string propertyPath, IndexType type);
+    }
+
+    public static class DatabaseFactory
+    {
+        public static IDatabase Create(string name)
+        {
+            return new Database(name);
+        }
+
+        public static IDatabase Create(string name, DatabaseOptions options)
+        {
+            return new Database(name, options);
+        }
+
+        public static void DeleteDatabase(string name, string directory)
+        {
+            Database.Delete(name, directory);
+        }
+
+        public static bool DatabaseExists(string name, string directory)
+        {
+            return Database.Exists(name, directory);
+        }
+    }
+
+    internal sealed unsafe class Database : ThreadLockedObject, IDatabase
     {
         private static readonly C4DatabaseConfig DBConfig = new C4DatabaseConfig {
             flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.Bundled | C4DatabaseFlags.SharedKeys,
@@ -203,9 +264,8 @@ namespace Couchbase.Lite
         public void Delete()
         {
             if(c4db != null) {
-                Close();
                 LiteCoreBridge.Check(err => Native.c4db_delete(c4db, err));
-                c4db = null;
+                Close();
             }
         }
 
@@ -236,15 +296,15 @@ namespace Couchbase.Lite
             return GetDocument(id, false);
         }
 
-        //public ModeledDocument<T> GetDocument<T>() where T : class, new()
-        //{
-        //    return GetDocument<T>(Misc.CreateGUID());
-        //}
+        public ModeledDocument<T> GetDocument<T>() where T : class, new()
+        {
+            return GetDocument<T>(Misc.CreateGUID());
+        }
 
-        //public ModeledDocument<T> GetDocument<T>(string id) where T : class, new()
-        //{
-        //    return GetDocument<T>(id, false);
-        //}
+        public ModeledDocument<T> GetDocument<T>(string id) where T : class, new()
+        {
+            return GetDocument<T>(id, false);
+        }
 
         public bool DocumentExists(string documentID)
         {
@@ -268,25 +328,25 @@ namespace Couchbase.Lite
 
         public void CreateIndex(string propertyPath)
         {
-            CreateIndex(propertyPath, C4IndexType.ValueIndex, null);
+            CreateIndex(propertyPath, IndexType.ValueIndex, null);
         }
 
-        public void CreateIndex(string propertyPath, C4IndexType indexType, IndexOptions options)
+        public void CreateIndex(string propertyPath, IndexType indexType, IndexOptions options)
         {
             LiteCoreBridge.Check(err =>
             {
                 if(options == null) {
-                    return Native.c4db_createIndex(c4db, propertyPath, indexType, null, err);
+                    return Native.c4db_createIndex(c4db, propertyPath, (C4IndexType)indexType, null, err);
                 } else {
-                    var localOpts = (C4IndexOptions)options;
-                    return Native.c4db_createIndex(c4db, propertyPath, indexType, &localOpts, err);
+                    var localOpts = IndexOptions.Internal(options);
+                    return Native.c4db_createIndex(c4db, propertyPath, (C4IndexType)indexType, &localOpts, err);
                 }
             });
         }
 
-        public void DeleteIndex(string propertyPath, C4IndexType type)
+        public void DeleteIndex(string propertyPath, IndexType type)
         {
-            LiteCoreBridge.Check(err => Native.c4db_deleteIndex(c4db, propertyPath, type, err));
+            LiteCoreBridge.Check(err => Native.c4db_deleteIndex(c4db, propertyPath, (C4IndexType)type, err));
         }
 
         private static void LiteCoreLog(C4LogDomain domain, C4LogLevel level, C4Slice msg)
@@ -415,7 +475,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal override object Copy()
+        public override object Copy()
         {
             return new Database(this);
         }

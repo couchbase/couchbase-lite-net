@@ -33,7 +33,27 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
-    public unsafe class QueryRow
+    public interface IQueryRow
+    {
+        string DocumentID { get; }
+
+        ulong Sequence { get; }
+
+        IDocument Document { get; }
+    }
+
+    public interface IFullTextQueryRow : IQueryRow
+    {
+        string FullTextMatched { get; }
+
+        uint MatchCount { get; }
+
+        Range GetTextRange(uint matchNumber);
+
+        uint GetTermIndex(uint matchNumber);
+    }
+
+    internal unsafe class QueryRow
     {
         protected readonly Database _db;
 
@@ -59,7 +79,7 @@ namespace Couchbase.Lite
         }
     }
 
-    public sealed unsafe class FullTextQueryRow : QueryRow
+    internal sealed unsafe class FullTextQueryRow : QueryRow
     {
         private readonly C4Query* _query;
         private readonly C4FullTextTerm[] _matches;

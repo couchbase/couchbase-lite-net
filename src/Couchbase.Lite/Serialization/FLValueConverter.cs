@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 
@@ -31,7 +32,7 @@ namespace Couchbase.Lite.Serialization
     {
         private const string Tag = nameof(FLValueConverter);
 
-        public static object ToObject(FLValue* value, SharedStringCache cache)
+        public static object ToObject(FLValue* value, PropertyContainer source, SharedStringCache cache)
         {
             if(value == null) {
                 return null;
@@ -46,7 +47,7 @@ namespace Couchbase.Lite.Serialization
                         Native.FLArrayIterator_Begin(arr, &i);
                         int pos = 0;
                         do {
-                            retVal[pos++] = ToObject(Native.FLArrayIterator_GetValue(&i), cache);
+                            retVal[pos++] = ToObject(Native.FLArrayIterator_GetValue(&i), source, cache);
                         } while(Native.FLArrayIterator_Next(&i));
 
                         return retVal;
@@ -74,10 +75,10 @@ namespace Couchbase.Lite.Serialization
                                 key = Native.FLValue_AsString(rawKey);
                             }
 
-                            retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), cache);
+                            retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), source, cache);
                         } while(Native.FLDictIterator_Next(&i));
 
-                        return retVal;
+                        return ToConcreteObject(source, retVal);
                     }
                 case FLValueType.Null:
                     return null;
@@ -99,6 +100,20 @@ namespace Couchbase.Lite.Serialization
                 default:
                     throw new LiteCoreException(new C4Error(FLError.UnknownValue));
             }
+        }
+
+        private static object ToConcreteObject(PropertyContainer source, IDictionary<string, object> dict)
+        {
+            var type = dict.GetCast<string>("_cbltype");
+            if(type == null) {
+                return dict;
+            }
+
+            if(type == "blob") {
+                return source.CreateBlob(dict);
+            }
+
+            throw new InvalidOperationException($"Unknown type {type} found in dictionary");
         }
     }
 }

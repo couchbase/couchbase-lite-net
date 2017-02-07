@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Couchbase.Lite3")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Couchbase.Lite")]
+[assembly: AssemblyDescription("A lightweight embedded NoSQL database that has built-in sync to larger backend structures, such as Couchbase Server.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Couchbase.Lite3")]
+[assembly: AssemblyCompany("Couchbase, Inc.")]
+[assembly: AssemblyProduct("Couchbase.Lite")]
 [assembly: AssemblyCopyright("Copyright ©  2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

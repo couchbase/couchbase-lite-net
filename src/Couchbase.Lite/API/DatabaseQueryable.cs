@@ -34,9 +34,9 @@ namespace Couchbase.Lite
 {
     public static class QueryableFactory
     {
-        public static IQueryable<TElement> MakeQueryable<TElement>(Database db) where TElement : class, IDocumentModel, new()
+        public static IQueryable<TElement> MakeQueryable<TElement>(IDatabase db) where TElement : class, IDocumentModel, new()
         {
-            return new DatabaseQueryable<TElement>(db);
+            return new DatabaseQueryable<TElement>(db as Database);
         }
 
         internal static IQueryable<string> MakeDebugQueryable()

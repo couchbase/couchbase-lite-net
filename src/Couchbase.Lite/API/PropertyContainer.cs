@@ -66,6 +66,7 @@ namespace Couchbase.Lite
     internal unsafe abstract class PropertyContainer : IPropertyContainer
     {
         private FLDict* _root;
+
         private IReadOnlyDictionary<string, object> _rootProps;
 
         private Dictionary<string, object> _properties;
@@ -99,10 +100,7 @@ namespace Couchbase.Lite
                 }
 
                 if(_root != null) {
-                    using(var reader = new JsonFLValueReader((FLValue *)_root, GetSharedStrings())) {
-                        var serializer = new JsonSerializer();
-                        return serializer.Deserialize<Dictionary<string, object>>(reader);
-                    }
+                    return FLValueConverter.ToObject((FLValue *)_root, this, GetSharedStrings()) as IReadOnlyDictionary<string, object>;
                 }
 
                 return _rootProps;
@@ -129,7 +127,7 @@ namespace Couchbase.Lite
                 return Properties.Get(key);
             }
 
-            return FLValueConverter.ToObject(FleeceValueForKey(key), GetSharedStrings());
+            return FLValueConverter.ToObject(FleeceValueForKey(key), this, GetSharedStrings());
         }
 
         public string GetString(string key)
@@ -256,6 +254,8 @@ namespace Couchbase.Lite
                 Set(key, value);
             }
         }
+
+        protected internal abstract IBlob CreateBlob(IDictionary<string, object> properties);
 
         internal void SetRoot(FLDict* root, IReadOnlyDictionary<string, object> props)
         {

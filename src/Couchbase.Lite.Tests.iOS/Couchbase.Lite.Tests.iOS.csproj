@@ -159,10 +159,6 @@
     <Compile Include="Main.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj">
-      <Project>{52a6d1d6-4e98-4368-9d11-dc6057a63d12}</Project>
-      <Name>LiteCore</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj">
       <Project>{5ad5ae31-89b2-4607-ba4b-e309178f3ede}</Project>
       <Name>Couchbase.Lite.Support.iOS</Name>

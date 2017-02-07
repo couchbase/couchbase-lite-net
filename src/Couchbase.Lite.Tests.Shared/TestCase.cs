@@ -14,13 +14,18 @@ namespace Test
         {
             return doc as Document;
         }
+
+        internal static Database ToConcrete(this IDatabase db)
+        {
+            return db as Database;
+        }
     }
 
     public class TestCase : IDisposable
     {
         public const string DatabaseName = "testdb";
 
-        protected Database Db { get; private set; }
+        protected IDatabase Db { get; private set; }
 
         private static string Directory
         {
@@ -50,7 +55,7 @@ namespace Test
 
             var options = DatabaseOptions.Default;
             options.Directory = Directory;
-            Db = new Database(DatabaseName, options);
+            Db = DatabaseFactory.Create(DatabaseName, options);
             Db.Should().NotBeNull("because otherwise the database failed to open");
         }
 

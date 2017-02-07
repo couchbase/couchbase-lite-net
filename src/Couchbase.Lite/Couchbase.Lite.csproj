@@ -22,7 +22,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -31,7 +31,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;LITECORE_PACKAGED</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -88,12 +88,7 @@
     <Compile Include="Serialization\FLValueConverter.cs" />
     <Compile Include="Serialization\SharedStringCache.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj">
-      <Project>{52a6d1d6-4e98-4368-9d11-dc6057a63d12}</Project>
-      <Name>LiteCore</Name>
-    </ProjectReference>
-  </ItemGroup>
+  <Import Project="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -61,32 +61,30 @@ namespace Couchbase.Lite
 
     public sealed unsafe class ModeledDocument<T> : InteropObject
     {
+        private readonly Database _db;
+
         public T Item { get; set; }
 
         public string Type { get; set; }
 
         public string Id { get; }
 
-        public Database Db { get; }
+        public IDatabase Db
+        {
+            get {
+                return _db;
+            }
+        }
 
         public bool IsDeleted { get; private set; }
 
         public ulong Sequence { get; }
 
-        private long p_document;
-        private C4Document* _document
-        {
-            get {
-                return (C4Document*)p_document;
-            }
-            set {
-                p_document = (long)value;
-            }
-        }
+        private C4Document* _document;
 
         internal ModeledDocument(T item, Database db, C4Document* native)
         {
-            Db = db;
+            _db = db;
             Item = item;
             Id = native->docID.CreateString();
             Sequence = native->sequence;
@@ -121,7 +119,7 @@ namespace Couchbase.Lite
 
                 var body = new FLSliceResult();
                 if(!deletion) {
-                    body = Db.JsonSerializer.Serialize(Item);
+                    body = _db.JsonSerializer.Serialize(Item);
                 }
 
                 try {
@@ -130,7 +128,7 @@ namespace Couchbase.Lite
                         {
                             var localPut = put;
                             localPut.docType = type.AsC4Slice();
-                            return Native.c4doc_put(Db.c4db, &localPut, null, err);
+                            return Native.c4doc_put(_db.c4db, &localPut, null, err);
                         });
                     }
                 } finally {
@@ -156,8 +154,8 @@ namespace Couchbase.Lite
 
         protected override void Dispose(bool finalizing)
         {
-            var doc = (C4Document *)Interlocked.Exchange(ref p_document, 0);
-            Native.c4doc_free(doc);
+            Native.c4doc_free(_document);
+            _document = null;
         }
     }
 

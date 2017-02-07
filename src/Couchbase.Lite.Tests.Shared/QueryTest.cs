@@ -155,7 +155,7 @@ namespace Test
                 }
             }
 
-            Db.DeleteIndex("name.first", C4IndexType.ValueIndex);
+            Db.DeleteIndex("name.first", IndexType.ValueIndex);
         }
     }
 }

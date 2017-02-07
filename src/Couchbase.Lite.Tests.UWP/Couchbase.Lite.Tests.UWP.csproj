@@ -132,10 +132,6 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj">
-      <Project>{52a6d1d6-4e98-4368-9d11-dc6057a63d12}</Project>
-      <Name>LiteCore</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj">
       <Project>{89c2b07b-a5e3-4be9-8d2c-22269b0aa921}</Project>
       <Name>Couchbase.Lite.Support.UWP</Name>

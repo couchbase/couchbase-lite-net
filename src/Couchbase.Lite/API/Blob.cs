@@ -116,6 +116,7 @@ namespace Couchbase.Lite
                         } while(buffer.Length == ReadBufferSize);
                     }
 
+                    _initialContentStream.Dispose();
                     _initialContentStream = null;
                     _content = result.ToArray();
                     Length = (ulong)_content.Length;
@@ -145,20 +146,12 @@ namespace Couchbase.Lite
 
         public ulong Length { get; private set; }
 
-        public string Digest { get; }
+        public string Digest { get; private set; }
 
         public IReadOnlyDictionary<string, object> Properties
         {
             get {
-                if(_properties != null) {
-                    return new ReadOnlyDictionary<string, object>(_properties);
-                }
-
-                return new NonNullDictionary<string, object> {
-                    ["digest"] = Digest,
-                    ["length"] = Length > 0 ? (object)Length : null,
-                    ["content-type"] = ContentType
-                };
+                return new ReadOnlyDictionary<string, object>(MutableProperties);
             }
         }
 
@@ -169,9 +162,26 @@ namespace Couchbase.Lite
                     throw new InvalidOperationException("Blob hasn't been saved in the database yet");
                 }
 
-                var json = new Dictionary<string, object>(_properties);
+                var props = Properties;
+
+                var json = new Dictionary<string, object>(MutableProperties);
                 json[TypeMetaProperty] = BlobType;
                 return json;
+            }
+        }
+
+        private IDictionary<string, object> MutableProperties
+        {
+            get {
+                if(_properties != null) {
+                    return _properties;
+                }
+
+                return new NonNullDictionary<string, object> {
+                    ["digest"] = Digest,
+                    ["length"] = Length > 0 ? (object)Length : null,
+                    ["content-type"] = ContentType
+                };
             }
         }
 
@@ -255,18 +265,24 @@ namespace Couchbase.Lite
                     return s;
                 });
             } else {
-                if(_initialContentStream != null) {
+                if(_initialContentStream == null) {
                     throw new InvalidOperationException("No data available to write for install");
                 }
 
                 Length = 0;
-                var contentStream = ContentStream;
+                var contentStream = _initialContentStream;
                 using(var blobOut = new BlobWriteStream(store)) {
                     contentStream.CopyTo(blobOut, ReadBufferSize);
                     blobOut.Flush();
                     key = blobOut.Key;
                 }
+
+                _initialContentStream.Dispose();
+                _initialContentStream = null;
             }
+
+            Digest = Native.c4blob_keyToString(key);
+            _db = db;
         }
 
         private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
