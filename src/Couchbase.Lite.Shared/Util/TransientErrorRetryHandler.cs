@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Util
         private Task<HttpResponseMessage> ResendHandler(HttpRequestMessage request, RetryStrategyExecutor executor)
         {
             return base.SendAsync(request, executor.Token)
-                .ContinueWith(t => HandleTransientErrors(t, executor), executor.Token)
+                .ContinueWith(t => HandleTransientErrors(t, executor))
                 .Unwrap();
         }
 
@@ -37,8 +37,21 @@ namespace Couchbase.Lite.Util
         static Task<HttpResponseMessage> HandleTransientErrors(Task<HttpResponseMessage> request, object state)
         {
             var executor = (RetryStrategyExecutor)state;
+            if(executor.Token.IsCancellationRequested) {
+                executor.Token = new CancellationToken();
+            }
+
             if (!request.IsFaulted) 
             {
+                if(request.IsCanceled) {
+                    if(executor.CanContinue) {
+                        Log.To.Sync.V(Tag, "Retrying after cancellation (i.e. HTTP timeout)");
+                        return executor.Retry();
+                    } else {
+                        throw new TaskCanceledException("HTTP timeout");
+                    }
+                }
+
                 var response = request.Result;
                 if (executor.CanContinue && ExceptionResolver.IsTransientError(response)) {
                     Log.To.Sync.V(Tag, "Retrying after transient error...");

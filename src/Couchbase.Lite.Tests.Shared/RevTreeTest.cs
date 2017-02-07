@@ -178,9 +178,9 @@ namespace Couchbase.Lite
             expectedChangesAlt.Add(conflict);
             expectedChangesAlt.Add(rev);
             expectedChangesAlt.Add(other);
-            Assert.IsTrue(expectedChanges.SequenceEqual(changes) || expectedChangesAlt.SequenceEqual(changes));
+            Assert.IsFalse(changes.Except(expectedChanges).Any());
             changes = database.ChangesSinceStreaming(0, options, null, null).ToList();
-            Assert.IsTrue(expectedChanges.SequenceEqual(changes) || expectedChangesAlt.SequenceEqual(changes));
+            Assert.IsFalse(changes.Except(expectedChanges).Any());
 
             conflict = new RevisionInternal(conflict.DocID, "6-6666".AsRevID(), false);
             conflictHistory.Add(conflict.RevID);
@@ -194,12 +194,12 @@ namespace Couchbase.Lite
             options.IncludeConflicts = true;
             changes = database.ChangesSince(0, options, null, null);
             expectedChanges = new RevisionList();
-            expectedChanges.Add(rev);
             expectedChanges.Add(other);
             expectedChanges.Add(conflict);
-            Assert.IsTrue(expectedChanges.SequenceEqual(changes));
+            expectedChanges.Add(rev);
+            Assert.IsFalse(changes.Except(expectedChanges).Any());
             changes = database.ChangesSinceStreaming(0, options, null, null).ToList();
-            Assert.IsTrue(expectedChanges.SequenceEqual(changes));
+            Assert.IsFalse(changes.Except(expectedChanges).Any());
         }
 
         [Test]

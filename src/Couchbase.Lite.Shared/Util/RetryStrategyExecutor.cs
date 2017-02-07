@@ -29,13 +29,9 @@ namespace Couchbase.Lite.Util
     {
         private static readonly string Tag = typeof(RetryStrategyExecutor).Name;
         private readonly IRetryStrategy _strategy;
-        private readonly CancellationToken _token;
         private HttpRequestMessage _request;
 
-        public CancellationToken Token
-        {
-            get { return _token; }
-        }
+        public CancellationToken Token { get; set; }
 
         public bool CanContinue
         {
@@ -48,7 +44,7 @@ namespace Couchbase.Lite.Util
         {
             _strategy = strategy.Copy();
             _request = message;
-            _token = token;
+            Token = token;
         }
 
         public Task<HttpResponseMessage> Retry()

@@ -156,11 +156,16 @@ namespace Couchbase.Lite
             }
         }
 
-        private void CreatePullAndTest(int docCount, RemoteDatabase db, Action<Replication> tester)
+        private void CreatePullAndTest(int docCount, RemoteDatabase db, Action<Replication> tester, ReplicationOptions options = null)
         {
+            if(options == null) {
+                options = new ReplicationOptions();
+            }
+
             db.AddDocuments(20, false);
 
             var pull = database.CreatePullReplication(db.RemoteUri);
+            pull.ReplicationOptions = options;
             RunReplication(pull);
 
             WriteDebug("Document count at end {0}", database.GetDocumentCount());
@@ -377,7 +382,6 @@ namespace Couchbase.Lite
         [Test]
         public void TestRestartSpamming()
         {
-            Log.Domains.Sync.Level = Log.LogLevel.Debug;
             CreateDocuments(database, 100);
             using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
                 var push = database.CreatePushReplication(remoteDb.RemoteUri);

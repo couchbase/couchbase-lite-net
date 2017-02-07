@@ -1613,6 +1613,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     changes.Add(rev);
                 }
 
+                if(returned >= options.Limit) {
+                    return false;
+                }
+
                 return true;
             }, sql, lastSequence);
 
@@ -1667,6 +1671,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                     if(filter == null || filter(rev) && returned++ < options.Limit) {
                         yield return rev;
+                    }
+
+                    if(returned >= options.Limit) {
+                        break;
                     }
                 }
             }
