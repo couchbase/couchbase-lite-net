@@ -288,7 +288,11 @@ namespace Couchbase.Lite
         private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
         {
             try {
-                *outBlobStore = _db.BlobStore;
+                _db.ActionQueue.DispatchSync(() =>
+                {
+                    *outBlobStore = _db.BlobStore;
+                });
+
                 return Digest != null && Native.c4blob_keyFromString(Digest, outKey);
             } catch(InvalidOperationException) {
                 return false;

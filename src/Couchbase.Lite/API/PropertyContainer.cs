@@ -28,13 +28,14 @@ using System.Reflection;
 using System.Text;
 
 using Couchbase.Lite.Serialization;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
-    public interface IPropertyContainer
+    public interface IPropertyContainer : IThreadSafe
     {
         IDictionary<string, object> Properties { get; set; }
 
@@ -56,6 +57,8 @@ namespace Couchbase.Lite
 
         IList<object> GetArray(string key);
 
+        IBlob GetBlob(string key);
+
         IPropertyContainer Remove(string key);
 
         bool Contains(string key);
@@ -63,7 +66,7 @@ namespace Couchbase.Lite
         object this[string key] { get; set; }
     }
 
-    internal unsafe abstract class PropertyContainer : IPropertyContainer
+    internal unsafe abstract class PropertyContainer : ThreadSafe, IPropertyContainer
     {
         private FLDict* _root;
 
@@ -74,6 +77,7 @@ namespace Couchbase.Lite
         public IDictionary<string, object> Properties
         {
             get {
+                AssertSafety();
                 if(_properties == null) {
                     var saved = SavedProperties;
                     _properties = new Dictionary<string, object>();
@@ -86,15 +90,28 @@ namespace Couchbase.Lite
                 return _properties;
             }
             set {
+                AssertSafety();
                 _properties = value != null ? new Dictionary<string, object>(value) : new Dictionary<string, object>();
             }
         }
 
-        internal bool HasChanges { get; set; }
+        private bool _hasChanges;
+        internal bool HasChanges
+        {
+            get {
+                AssertSafety();
+                return _hasChanges;
+            }
+            set {
+                AssertSafety();
+                _hasChanges = value;
+            }
+        }
 
         protected IReadOnlyDictionary<string, object> SavedProperties
         {
             get {
+                AssertSafety();
                 if(_properties != null && HasChanges) {
                     return _properties;
                 }
@@ -109,11 +126,12 @@ namespace Couchbase.Lite
 
         public IPropertyContainer Set(string key, object value)
         {
+            AssertSafety();
             ValidateObjectType(value);
             MutateProperties();
 
             var oldValue = Properties.Get(key);
-            if(value != oldValue && value != null && !value.Equals(oldValue)) {
+            if(value == null || !value.Equals(oldValue)) {
                 _properties[key] = value;
                 MarkChanges();
             }
@@ -123,6 +141,7 @@ namespace Couchbase.Lite
 
         public object Get(string key)
         {
+            AssertSafety();
             if(_properties != null) {
                 return Properties.Get(key);
             }
@@ -132,6 +151,7 @@ namespace Couchbase.Lite
 
         public string GetString(string key)
         {
+            AssertSafety();
             var retVal = String.Empty;
             if(TryGet(key, out retVal)) {
                 return retVal;
@@ -142,6 +162,7 @@ namespace Couchbase.Lite
 
         public long GetLong(string key)
         {
+            AssertSafety();
             var retVal = 0L;
             if(TryGet(key, out retVal)) {
                 return retVal;
@@ -152,6 +173,7 @@ namespace Couchbase.Lite
 
         public float GetFloat(string key)
         {
+            AssertSafety();
             var retVal = 0.0f;
             if(TryGet(key, out retVal)) {
                 return retVal;
@@ -162,6 +184,7 @@ namespace Couchbase.Lite
 
         public double GetDouble(string key)
         {
+            AssertSafety();
             var retVal = 0.0;
             if(TryGet(key, out retVal)) {
                 return retVal;
@@ -172,6 +195,7 @@ namespace Couchbase.Lite
 
         public bool GetBoolean(string key)
         {
+            AssertSafety();
             var retVal = false;
             if(TryGet(key, out retVal)) {
                 return retVal;
@@ -182,6 +206,7 @@ namespace Couchbase.Lite
 
         public DateTimeOffset? GetDate(string key)
         {
+            AssertSafety();
             var retVal = default(DateTimeOffset);
             if(TryGet(key, out retVal)) {
                 return retVal;
@@ -198,6 +223,12 @@ namespace Couchbase.Lite
         public IList<object> GetArray(string key)
         {
             throw new NotImplementedException();
+        }
+
+        public IBlob GetBlob(string key)
+        {
+            AssertSafety();
+            return Get(key) as IBlob;
         }
 
         public Subdocument GetSubdocument(string key)
@@ -232,12 +263,14 @@ namespace Couchbase.Lite
 
         public IPropertyContainer Remove(string key)
         {
+            AssertSafety();
             _properties.Remove(key);
             return this;
         }
 
         public bool Contains(string key)
         {
+            AssertSafety();
             if(_properties != null) {
                 return _properties.ContainsKey(key);
             }
@@ -248,16 +281,16 @@ namespace Couchbase.Lite
         public object this[string key]
         {
             get {
+                AssertSafety();
                 return Get(key);
             }
             set {
+                AssertSafety();
                 Set(key, value);
             }
         }
 
-        protected internal abstract IBlob CreateBlob(IDictionary<string, object> properties);
-
-        internal void SetRoot(FLDict* root, IReadOnlyDictionary<string, object> props)
+        protected void SetRoot(FLDict* root, IReadOnlyDictionary<string, object> props)
         {
             _root = null;
             _rootProps = null;
@@ -269,17 +302,21 @@ namespace Couchbase.Lite
                 _rootProps = props;
             }
 
-            HasChanges = false;
+            _hasChanges = false;
         }
+
+        protected internal abstract IBlob CreateBlob(IDictionary<string, object> properties);
 
         internal void ResetChanges()
         {
+            AssertSafety();
             _properties = null;
             HasChanges = false;
         }
 
         internal virtual SharedStringCache GetSharedStrings()
         {
+            AssertSafety();
             return null;
         }
 

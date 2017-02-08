@@ -90,7 +90,7 @@ namespace Couchbase.Lite.Serialization
                     serializer.Serialize(writer, obj);
 
 #if DEBUG
-                    Debug.WriteLine(traceWriter);
+                    Log.To.Database.D(Tag, "{0}", traceWriter);
 #endif
 
                     writer.Flush();
@@ -115,7 +115,7 @@ namespace Couchbase.Lite.Serialization
                     var retVal = serializer.Deserialize<T>(reader);
 
 #if DEBUG
-                    Debug.WriteLine(traceWriter);
+                    Log.To.Database.D(Tag, "{0}", traceWriter);
 #endif
 
                     if(retVal == null) {

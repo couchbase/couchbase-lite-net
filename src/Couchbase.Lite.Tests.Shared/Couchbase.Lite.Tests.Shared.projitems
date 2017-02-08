@@ -10,9 +10,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DocPerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ModelTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NotificationTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TestCase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TunesPerfTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Benchmark.cs" />
   </ItemGroup>
 </Project>

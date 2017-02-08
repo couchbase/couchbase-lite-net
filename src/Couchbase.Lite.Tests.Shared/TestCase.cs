@@ -61,17 +61,15 @@ namespace Test
 
         protected void ReopenDB()
         {
-            Db.Close();
+            Db.Dispose();
             Db = null;
             OpenDB();
         }
 
         protected virtual void Dispose(bool disposing)
         {
-            if(Db != null) {
-                Db.Close();
-                Db = null;
-            }
+            Db?.Dispose();
+            Db = null;
         }
 
         public void Dispose()

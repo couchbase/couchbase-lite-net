@@ -9,15 +9,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{88ECA94D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite", "..\Couchbase.Lite\Couchbase.Lite.csproj", "{1CF95F79-7649-4FDA-A888-73B5C69316FC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiteCore", "..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj", "{52A6D1D6-4E98-4368-9D11-DC6057A63D12}"
-EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{11F38891-8397-49B4-9146-6DAF0A9D7866}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.NetCore", "Couchbase.Lite.Tests.NetCore.csproj", "{AEFC2C40-9B1D-470F-9249-895F64D4363D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Lite.Tests.NetCore", "Couchbase.Lite.Tests.NetCore.csproj", "{AEFC2C40-9B1D-470F-9249-895F64D4363D}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Shared", "..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.Shared.shproj", "{C37DC024-8762-4BE4-9034-B2B5970C652C}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{11f38891-8397-49b4-9146-6daf0a9d7866}*SharedItemsImports = 13
+		..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.Shared.projitems*{1cf95f79-7649-4fda-a888-73b5c69316fc}*SharedItemsImports = 4
+		..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.Shared.projitems*{c37dc024-8762-4be4-9034-b2b5970c652c}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,18 +42,6 @@ Global
 		{1CF95F79-7649-4FDA-A888-73B5C69316FC}.Release|x64.Build.0 = Release|Any CPU
 		{1CF95F79-7649-4FDA-A888-73B5C69316FC}.Release|x86.ActiveCfg = Release|Any CPU
 		{1CF95F79-7649-4FDA-A888-73B5C69316FC}.Release|x86.Build.0 = Release|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Debug|x64.Build.0 = Debug|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Debug|x86.Build.0 = Debug|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Release|Any CPU.Build.0 = Release|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Release|x64.ActiveCfg = Release|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Release|x64.Build.0 = Release|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Release|x86.ActiveCfg = Release|Any CPU
-		{52A6D1D6-4E98-4368-9D11-DC6057A63D12}.Release|x86.Build.0 = Release|Any CPU
 		{AEFC2C40-9B1D-470F-9249-895F64D4363D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AEFC2C40-9B1D-470F-9249-895F64D4363D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AEFC2C40-9B1D-470F-9249-895F64D4363D}.Debug|x64.ActiveCfg = Debug|x64

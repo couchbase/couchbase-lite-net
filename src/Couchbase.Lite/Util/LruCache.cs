@@ -97,12 +97,20 @@ namespace Couchbase.Lite.Util
 
         public void Dispose()
         {
-            Log.To.NoDomain.D(Tag, "Entering lock in Clear");
+            Log.To.NoDomain.D(Tag, "Entering lock in Dispose");
             lock(_locker) {
                 foreach(var val in _allValues.Values) {
                     TValue foo;
                     if(val.TryGetTarget(out foo)) {
-                        (foo as IDisposable)?.Dispose();
+                        var disposable = foo as IDisposable;
+                        if(disposable != null) {
+                            var threadSafe = foo as IThreadSafe;
+                            if(threadSafe != null) {
+                                threadSafe.ActionQueue.DispatchSync(() => disposable.Dispose());
+                            } else {
+                                disposable.Dispose();
+                            }
+                        }
                     }
                 }
 
@@ -111,7 +119,7 @@ namespace Couchbase.Lite.Util
                 _nodes.Clear();
                 Size = 0;
             }
-            Log.To.NoDomain.D(Tag, "Exited lock in Clear");
+            Log.To.NoDomain.D(Tag, "Exited lock in Dispose");
         }
 
         public void Clear()

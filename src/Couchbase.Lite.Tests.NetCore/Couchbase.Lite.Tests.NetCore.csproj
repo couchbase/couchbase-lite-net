@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netcoreapp1.0</TargetFramework>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="4.18.0" />
@@ -9,7 +10,6 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.2.0-beta5-build1225" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.csproj" />
     <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj" />
   </ItemGroup>
   <ItemGroup>

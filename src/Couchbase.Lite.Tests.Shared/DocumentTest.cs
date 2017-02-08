@@ -39,320 +39,418 @@ namespace Test
     public class DocumentTest : TestCase
     {
         private IDocument _doc;
+        private IDispatchQueue _docQueue;
 
         public DocumentTest()
         {
-            Db.ConflictResolver = new DoNotResolve();
-            _doc = Db["doc1"];
+            Db.ActionQueue.DispatchSync(() =>
+            {
+                Db.ConflictResolver = new DoNotResolve();
+                _doc = Db["doc1"];
+                _docQueue = _doc.ActionQueue;
+            });
         }
 
         [Fact]
-        public void TestNewDoc()
+        public async Task TestNewDoc()
         {
-            var doc = Db.CreateDocument();
-            doc.Id.Should().NotBeNullOrEmpty("because a document should always have an ID");
-            doc.Database.Should().BeSameAs(Db, "because a doc should have a reference to its owner");
-            doc.Exists.Should().BeFalse("because the document has not been saved yet");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.Properties.Should().BeEmpty("because no properties have been added");
-            doc["prop"].Should().BeNull("because this property does not exist");
-            doc.GetBoolean("prop").Should().BeFalse("because this bool does not exist");
-            doc.GetLong("prop").Should().Be(0L, "because this int does not exist");
-            doc.GetFloat("prop").Should().BeApproximately(0.0f, Single.Epsilon, "because this float does not exist");
-            doc.GetDouble("prop").Should().BeApproximately(0.0, Double.Epsilon, "because this double does not exist");
-            doc.GetDate("prop").Should().BeNull("because this date does not exist");
-            doc.GetString("prop").Should().BeNull("because this string does not exist");
+            var doc = await Db.ActionQueue.DispatchAsync(() => Db.CreateDocument());
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc.Id.Should().NotBeNullOrEmpty("because a document should always have an ID");
+                doc.Database.Should().BeSameAs(Db, "because a doc should have a reference to its owner");
+                doc.Exists.Should().BeFalse("because the document has not been saved yet");
+                doc.IsDeleted.Should().BeFalse("because the document is not deleted");
+                doc.Properties.Should().BeEmpty("because no properties have been added");
+                doc["prop"].Should().BeNull("because this property does not exist");
+                doc.GetBoolean("prop").Should().BeFalse("because this bool does not exist");
+                doc.GetLong("prop").Should().Be(0L, "because this int does not exist");
+                doc.GetFloat("prop").Should().BeApproximately(0.0f, Single.Epsilon, "because this float does not exist");
+                doc.GetDouble("prop").Should().BeApproximately(0.0, Double.Epsilon, "because this double does not exist");
+                doc.GetDate("prop").Should().BeNull("because this date does not exist");
+                doc.GetString("prop").Should().BeNull("because this string does not exist");
 
-            doc.Save();
-            doc.Exists.Should().BeTrue("because the document was saved");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.Properties.Should().BeEmpty("because no properties were added");
+                doc.Save();
+                doc.Exists.Should().BeTrue("because the document was saved");
+                doc.IsDeleted.Should().BeFalse("because the document is not deleted");
+                doc.Properties.Should().BeEmpty("because no properties were added");
+            });
         }
 
         [Fact]
-        public void TestNewDocWithID()
+        public async Task TestNewDocWithID()
         {
-            var doc = Db.GetDocument("doc1");
-            Db.GetDocument("doc1").Should().BeSameAs(doc, "because the document should be cached");
-            doc.Id.Should().Be("doc1", "because that is the ID that was passed");
-            doc.Database.Should().BeSameAs(Db, "because a doc should have a reference to its owner");
-            doc.Exists.Should().BeFalse("because the document has not been saved yet");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.Properties.Should().BeEmpty("because no properties have been added");
-            doc["prop"].Should().BeNull("because this property does not exist");
-            doc.GetBoolean("prop").Should().BeFalse("because this bool does not exist");
-            doc.GetLong("prop").Should().Be(0L, "because this int does not exist");
-            doc.GetFloat("prop").Should().BeApproximately(0.0f, Single.Epsilon, "because this float does not exist");
-            doc.GetDouble("prop").Should().BeApproximately(0.0, Double.Epsilon, "because this double does not exist");
-            doc.GetDate("prop").Should().BeNull("because this date does not exist");
-            doc.GetString("prop").Should().BeNull("because this string does not exist");
+            var doc = await Db.ActionQueue.DispatchAsync(() => Db.GetDocument("doc1"));
+            Db.ActionQueue.DispatchSync(() => Db.GetDocument("doc1")).Should().BeSameAs(doc, "because the document should be cached");
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc.Id.Should().Be("doc1", "because that is the ID that was passed");
+                doc.Database.Should().BeSameAs(Db, "because a doc should have a reference to its owner");
+                doc.Exists.Should().BeFalse("because the document has not been saved yet");
+                doc.IsDeleted.Should().BeFalse("because the document is not deleted");
+                doc.Properties.Should().BeEmpty("because no properties have been added");
+                doc["prop"].Should().BeNull("because this property does not exist");
+                doc.GetBoolean("prop").Should().BeFalse("because this bool does not exist");
+                doc.GetLong("prop").Should().Be(0L, "because this int does not exist");
+                doc.GetFloat("prop").Should().BeApproximately(0.0f, Single.Epsilon, "because this float does not exist");
+                doc.GetDouble("prop").Should().BeApproximately(0.0, Double.Epsilon, "because this double does not exist");
+                doc.GetDate("prop").Should().BeNull("because this date does not exist");
+                doc.GetString("prop").Should().BeNull("because this string does not exist");
 
-            doc.Save();
-            doc.Exists.Should().BeTrue("because the document was saved");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.Properties.Should().BeEmpty("because no properties were added");
-            Db.GetDocument("doc1").Should().BeSameAs(doc, "because the document should be cached");
+                doc.Save();
+                doc.Exists.Should().BeTrue("because the document was saved");
+                doc.IsDeleted.Should().BeFalse("because the document is not deleted");
+                doc.Properties.Should().BeEmpty("because no properties were added");
+            });
+            Db.ActionQueue.DispatchSync(() => Db.GetDocument("doc1")).Should().BeSameAs(doc, "because the document should be cached");
         }
 
         [Fact]
-        public void TestPropertyAccessors()
+        public async Task TestPropertyAccessors()
         {
-            var doc = Db.GetDocument("doc1");
+            var doc = await Db.ActionQueue.DispatchAsync(() => Db.GetDocument("doc1"));
             var date = DateTimeOffset.Now;
-            doc.Set("bool", true)
-                .Set("double", 1.1)
-                .Set("float", 1.2f)
-                .Set("integer", 2L)
-                .Set("string", "str")
-                //.Set("dict", new Dictionary<string, object> { ["foo"] = "bar" })
-                .Set("array", new[] { "1", "2" })
-                .Set("date", date)
-                .Save();
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc.Set("bool", true)
+                    .Set("double", 1.1)
+                    .Set("float", 1.2f)
+                    .Set("integer", 2L)
+                    .Set("string", "str")
+                    //.Set("dict", new Dictionary<string, object> { ["foo"] = "bar" })
+                    .Set("array", new[] { "1", "2" })
+                    .Set("date", date)
+                    .Save();
 
-            doc.GetBoolean("bool").Should().BeTrue("because that is the bool that was saved");
-            doc.GetDouble("double").Should().BeApproximately(1.1, Double.Epsilon, "because that is the double that was saved");
-            doc.GetFloat("float").Should().BeApproximately(1.2f, Single.Epsilon, "because that is the float that was saved");
-            doc.GetLong("integer").Should().Be(2L, "because that is the integer that was saved");
+                doc.GetBoolean("bool").Should().BeTrue("because that is the bool that was saved");
+                doc.GetDouble("double").Should().BeApproximately(1.1, Double.Epsilon, "because that is the double that was saved");
+                doc.GetFloat("float").Should().BeApproximately(1.2f, Single.Epsilon, "because that is the float that was saved");
+                doc.GetLong("integer").Should().Be(2L, "because that is the integer that was saved");
 
-            doc.GetString("string").Should().Be("str", "because that is the string that was saved");
-            //doc.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
-            doc.Get("array").ShouldBeEquivalentTo(new[] { "1", "2" }, "because that is the array that was saved");
+                doc.GetString("string").Should().Be("str", "because that is the string that was saved");
+                //doc.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
+                doc.Get("array").ShouldBeEquivalentTo(new[] { "1", "2" }, "because that is the array that was saved");
 
-            doc.GetDate("date").Should().Be(date, "because that is the date that was saved");
+                doc.GetDate("date").Should().Be(date, "because that is the date that was saved");
+            });
 
             // Get the doc from another database
-            using(var otherDB = ThreadLocked.Copy(Db)) {
-                var doc1 = otherDB.GetDocument("doc1");
-                doc1.GetBoolean("bool").Should().BeTrue("because that is the bool that was saved");
-                doc1.GetDouble("double").Should().BeApproximately(1.1, Double.Epsilon, "because that is the double that was saved");
-                doc1.GetFloat("float").Should().BeApproximately(1.2f, Single.Epsilon, "because that is the float that was saved");
-                doc1.GetLong("integer").Should().Be(2L, "because that is the integer that was saved");
+            using(var otherDB = DatabaseFactory.Create(Db)) {
+                var doc1 = await otherDB.ActionQueue.DispatchAsync(() => otherDB.GetDocument("doc1"));
+                await doc1.ActionQueue.DispatchAsync(() =>
+                {
+                    doc1.GetBoolean("bool").Should().BeTrue("because that is the bool that was saved");
+                    doc1.GetDouble("double").Should().BeApproximately(1.1, Double.Epsilon, "because that is the double that was saved");
+                    doc1.GetFloat("float").Should().BeApproximately(1.2f, Single.Epsilon, "because that is the float that was saved");
+                    doc1.GetLong("integer").Should().Be(2L, "because that is the integer that was saved");
 
-                doc1.GetString("string").Should().Be("str", "because that is the string that was saved");
-                //doc1.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
-                doc1.Get("array").ShouldBeEquivalentTo(new[] { "1", "2" }, "because that is the array that was saved");
+                    doc1.GetString("string").Should().Be("str", "because that is the string that was saved");
+                    //doc1.Get("dict").ShouldBeEquivalentTo(new Dictionary<string, object> { ["foo"] = "bar" }, "because that is the dict that was saved");
+                    doc1.Get("array").ShouldBeEquivalentTo(new[] { "1", "2" }, "because that is the array that was saved");
 
-                doc1.GetDate("date").Should().Be(date, "because that is the date that was saved");
+                    doc1.GetDate("date").Should().Be(date, "because that is the date that was saved");
+                });
             }
         }
 
         [Fact]
-        public void TestProperties()
+        public async Task TestProperties()
         {
-            var doc = Db["doc1"];
-            doc["type"] = "demo";
-            doc["weight"] = 12.5;
-            doc["tags"] = new[] { "useless", "emergency" };
+            var doc = await Db.ActionQueue.DispatchAsync(() => Db["doc1"]);
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc["type"] = "demo";
+                doc["weight"] = 12.5;
+                doc["tags"] = new[] { "useless", "emergency" };
 
-            doc["type"].Should().Be("demo", "because that is the type that was entered");
-            doc["weight"].As<double>().Should().BeApproximately(12.5, Double.Epsilon, "beacuse that is the weight that was entered");
-            doc.Properties.Should().Contain("type", "demo").And.Contain("weight", 12.5, "because those simple values were added");
-            doc.Properties["tags"].As<IEnumerable<string>>().Should()
-                .ContainInOrder(new[] { "useless", "emergency" }, "because those were the tags that were added");
+                doc["type"].Should().Be("demo", "because that is the type that was entered");
+                doc["weight"].As<double>().Should().BeApproximately(12.5, Double.Epsilon, "beacuse that is the weight that was entered");
+                doc.Properties.Should().Contain("type", "demo").And.Contain("weight", 12.5, "because those simple values were added");
+                doc.Properties["tags"].As<IEnumerable<string>>().Should()
+                    .ContainInOrder(new[] { "useless", "emergency" }, "because those were the tags that were added");
+            });
         }
 
         [Fact]
-        public void TestContainsKey()
+        public async Task TestRemoveProperties()
         {
-            var doc = Db["doc1"];
-            doc.Properties = new Dictionary<string, object> {
-                ["type"] = "profile",
-                ["name"] = "Jaon",
-                ["address"] = new Dictionary<string, object> {
-                    ["street"] = "1 milky way."
-                }
-            };
+            await _docQueue.DispatchAsync(() =>
+            {
+                _doc.Properties = new Dictionary<string, object> {
+                    ["type"] = "profile",
+                    ["name"] = "Jason",
+                    ["weight"] = 130.5,
+                    ["address"] = new Dictionary<string, object> {
+                        ["street"] = "1 milky way.",
+                        ["city"] = "galaxy city",
+                        ["zip"] = 12345
+                    }
+                };
 
-            doc.Contains("type").Should().BeTrue("because 'type' exists in the document");
-            doc.Contains("name").Should().BeTrue("because 'name' exists in the document");
-            doc.Contains("address").Should().BeTrue("because 'address' exists in the document");
-            doc.Contains("weight").Should().BeFalse("because 'weight' does not exist in the document");
+                _doc.GetDouble("weight").Should().BeApproximately(130.5, Double.Epsilon, "because that is the value that was entered");
+                (_doc["address"] as IDictionary<string, object>)["city"].Should().Be("galaxy city", "because that is the value that was entered");
+
+                _doc["name"] = null;
+                _doc["weight"] = null;
+                (_doc["address"] as IDictionary<string, object>)["city"] = null;
+                _doc["name"].Should().BeNull("because it was removed");
+                _doc["weight"].Should().BeNull("because it was removed");
+                _doc.GetDouble("weight").Should().Be(0.0, "because that is the default double value");
+                (_doc["address"] as IDictionary<string, object>)["city"].Should().BeNull("because it was removed");
+            });
         }
 
         [Fact]
-        public void TestDelete()
+        public async Task TestContainsKey()
         {
-            var doc = Db["doc1"];
-            doc["type"] = "Profile";
-            doc["name"] = "Scott";
-            doc.Exists.Should().BeFalse("because the document has not been saved yet");
-            doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
+            var doc = await Db.ActionQueue.DispatchAsync(() => Db["doc1"]);
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc.Properties = new Dictionary<string, object> {
+                    ["type"] = "profile",
+                    ["name"] = "Jaon",
+                    ["address"] = new Dictionary<string, object> {
+                        ["street"] = "1 milky way."
+                    }
+                };
 
-            // Delete before save:
-            doc.Invoking(d => d.Delete()).ShouldThrow<LiteCoreException>().Which.Error.Should()
-                .Be(new C4Error(LiteCoreError.NotFound), "because an attempt to delete a non-existent document was made");
-
-            doc["type"].Should().Be("Profile", "because the doc should still exist");
-            doc["name"].Should().Be("Scott", "because the doc should still exist");
-
-            // Save:
-            doc.Save();
-            doc.Exists.Should().BeTrue("because the document was saved");
-            doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
-
-            // Delete:
-            doc.Delete();
-            doc.Exists.Should().BeTrue("because the document still exists in terms of the DB");
-            doc.IsDeleted.Should().BeTrue("because now the document is deleted");
-            doc.Properties.Should().BeEmpty("because a deleted document has no properties");
+                doc.Contains("type").Should().BeTrue("because 'type' exists in the document");
+                doc.Contains("name").Should().BeTrue("because 'name' exists in the document");
+                doc.Contains("address").Should().BeTrue("because 'address' exists in the document");
+                doc.Contains("weight").Should().BeFalse("because 'weight' does not exist in the document");
+            });
         }
 
         [Fact]
-        public void TestPurge()
+        public async Task TestDelete()
         {
-            var doc = Db["doc1"];
-            doc["type"] = "Profile";
-            doc["name"] = "Scott";
-            doc.Exists.Should().BeFalse("because the document has not been saved yet");
-            doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
+            var doc = await Db.ActionQueue.DispatchAsync(() => Db["doc1"]);
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc["type"] = "Profile";
+                doc["name"] = "Scott";
+                doc.Exists.Should().BeFalse("because the document has not been saved yet");
+                doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
 
-            // Purge before save:
-            doc.Purge().Should().BeFalse("because deleting a non-existent document is invalid");
-            doc["type"].Should().Be("Profile", "because the doc should still exist");
-            doc["name"].Should().Be("Scott", "because the doc should still exist");
+                // Delete before save:
+                doc.Invoking(d => d.Delete()).ShouldThrow<LiteCoreException>().Which.Error.Should()
+                    .Be(new C4Error(LiteCoreError.NotFound), "because an attempt to delete a non-existent document was made");
 
-            // Save:
-            doc.Save();
-            doc.Exists.Should().BeTrue("because the document was saved");
-            doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
+                doc["type"].Should().Be("Profile", "because the doc should still exist");
+                doc["name"].Should().Be("Scott", "because the doc should still exist");
 
-            // Purge:
-            doc.Purge().Should().BeTrue("because the purge should succeed now");
-            doc.Exists.Should().BeFalse("because the document was blown away");
-            doc.IsDeleted.Should().BeFalse("because the document does not exist");
-            doc.Properties.Should().BeEmpty("because a purged document has no properties");
+                // Save:
+                doc.Save();
+                doc.Exists.Should().BeTrue("because the document was saved");
+                doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
+
+                // Delete:
+                doc.Delete();
+                doc.Exists.Should().BeTrue("because the document still exists in terms of the DB");
+                doc.IsDeleted.Should().BeTrue("because now the document is deleted");
+                doc.Properties.Should().BeEmpty("because a deleted document has no properties");
+            });
         }
 
         [Fact]
-        public void TestRevert()
+        public async Task TestPurge()
         {
-            var doc = Db["doc1"];
-            doc["type"] = "Profile";
-            doc["name"] = "Scott";
+            var doc = await Db.ActionQueue.DispatchAsync(() => Db["doc1"]);
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc["type"] = "Profile";
+                doc["name"] = "Scott";
+                doc.Exists.Should().BeFalse("because the document has not been saved yet");
+                doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
 
-            // Reset before save:
-            doc.Revert();
-            doc["type"].Should().BeNull("because the document was reset");
-            doc["name"].Should().BeNull("because the document was reset");
+                // Purge before save:
+                doc.Purge().Should().BeFalse("because deleting a non-existent document is invalid");
+                doc["type"].Should().Be("Profile", "because the doc should still exist");
+                doc["name"].Should().Be("Scott", "because the doc should still exist");
 
-            // Save:
-            doc["type"] = "Profile";
-            doc["name"] = "Scott";
-            doc.Save();
-            doc["type"].Should().Be("Profile", "because the save completed");
-            doc["name"].Should().Be("Scott", "because the save completed");
+                // Save:
+                doc.Save();
+                doc.Exists.Should().BeTrue("because the document was saved");
+                doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
 
-            // Make some changes:
-            doc["type"] = "user";
-            doc["name"] = "Scottie";
-
-            // Reset:
-            doc.Revert();
-            doc["type"].Should().Be("Profile", "because the document was reset");
-            doc["name"].Should().Be("Scott", "because the document was reset");
+                // Purge:
+                doc.Purge().Should().BeTrue("because the purge should succeed now");
+                doc.Exists.Should().BeFalse("because the document was blown away");
+                doc.IsDeleted.Should().BeFalse("because the document does not exist");
+                doc.Properties.Should().BeEmpty("because a purged document has no properties");
+            });
         }
 
         [Fact]
-        public void TestReopenDB()
+        public async Task TestRevert()
         {
-            var doc = Db["doc1"];
-            doc["string"] = "str";
-            doc.Properties.Should().Equal(new Dictionary<string, object> { ["string"] = "str" }, "because otherwise the property didn't get inserted");
-            doc.Save();
+            var doc = await Db.ActionQueue.DispatchAsync(() => Db["doc1"]);
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc["type"] = "Profile";
+                doc["name"] = "Scott";
+
+                // Reset before save:
+                doc.Revert();
+                doc["type"].Should().BeNull("because the document was reset");
+                doc["name"].Should().BeNull("because the document was reset");
+
+                // Save:
+                doc["type"] = "Profile";
+                doc["name"] = "Scott";
+                doc.Save();
+                doc["type"].Should().Be("Profile", "because the save completed");
+                doc["name"].Should().Be("Scott", "because the save completed");
+
+                // Make some changes:
+                doc["type"] = "user";
+                doc["name"] = "Scottie";
+
+                // Reset:
+                doc.Revert();
+                doc["type"].Should().Be("Profile", "because the document was reset");
+                doc["name"].Should().Be("Scott", "because the document was reset");
+            });
+        }
+
+        [Fact]
+        public async Task TestReopenDB()
+        {
+            var doc = await Db.ActionQueue.DispatchAsync(() => Db["doc1"]);
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc["string"] = "str";
+                doc.Properties.Should().Equal(new Dictionary<string, object> { ["string"] = "str" }, "because otherwise the property didn't get inserted");
+                doc.Save();
+            });
 
             ReopenDB();
 
-            doc = Db["doc1"];
-            doc.Properties.Should().Equal(new Dictionary<string, object> { ["string"] = "str" }, "because otherwise the property didn't get saved");
-            doc["string"].Should().Be("str", "because otherwise the property didn't get saved");
+            doc = await Db.ActionQueue.DispatchAsync(() => Db["doc1"]);
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc.Properties.Should().Equal(new Dictionary<string, object> { ["string"] = "str" }, "because otherwise the property didn't get saved");
+                doc["string"].Should().Be("str", "because otherwise the property didn't get saved");
+            });
         }
 
         [Fact]
-        public void TestConflict()
+        public async Task TestConflict()
         {
-            Db.ConflictResolver = new TheirsWins();
-            var doc = SetupConflict();
-            doc.Save();
-            doc["name"].Should().Be("Scotty", "because the 'theirs' version should win");
+            await Db.ActionQueue.DispatchAsync(() => Db.ConflictResolver = new TheirsWins());
+            var doc = await SetupConflict();
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc.Save();
+                doc["name"].Should().Be("Scotty", "because the 'theirs' version should win");
+            });
 
-            doc = Db["doc2"];
-            doc.ConflictResolver = new MergeThenTheirsWins();
-            doc["type"] = "profile";
-            doc["name"] = "Scott";
-            doc.Save();
+            doc = await Db.ActionQueue.DispatchAsync(() => Db["doc2"]);
+            var properties = await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc.ConflictResolver = new MergeThenTheirsWins();
+                doc["type"] = "profile";
+                doc["name"] = "Scott";
+                doc.Save();
 
-            var properties = doc.Properties;
+                return doc.Properties;
+            });
+
             properties["type"] = "bio";
             properties["gender"] = "male";
             SaveProperties(properties, doc.Id);
 
-            doc["type"] = "biography";
-            doc["age"] = 31;
-            doc.Save();
-            doc["age"].Should().Be(31, "because 'age' was changed by 'mine' and not 'theirs'");
-            doc["type"].Should().Be("bio", "because 'type' was changed by 'mine' and 'theirs' so 'theirs' should win");
-            doc["gender"].Should().Be("male", "because 'gender' was changed by 'theirs' but not 'mine'");
-            doc["name"].Should().Be("Scott", "because 'name' was unchanged");
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc["type"] = "biography";
+                doc["age"] = 31;
+                doc.Save();
+                doc["age"].Should().Be(31, "because 'age' was changed by 'mine' and not 'theirs'");
+                doc["type"].Should().Be("bio", "because 'type' was changed by 'mine' and 'theirs' so 'theirs' should win");
+                doc["gender"].Should().Be("male", "because 'gender' was changed by 'theirs' but not 'mine'");
+                doc["name"].Should().Be("Scott", "because 'name' was unchanged");
+            });
         }
 
         [Fact]
-        public void TestConflictResolverGivesUp()
+        public async Task TestConflictResolverGivesUp()
         {
-            Db.ConflictResolver = new GiveUp();
-            var doc = SetupConflict();
-            var ex = doc.Invoking(d => d.Save()).ShouldThrow<LiteCoreException>().Which.Error.Should().Be(new C4Error(LiteCoreError.Conflict), "because the conflict resolver gave up");
-            doc.ToConcrete().HasChanges.Should().BeTrue("because the document wasn't saved");
+            await Db.ActionQueue.DispatchAsync(() => Db.ConflictResolver = new GiveUp());
+            var doc = await SetupConflict();
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                var ex = doc.Invoking(d => d.Save()).ShouldThrow<LiteCoreException>().Which.Error.Should().Be(new C4Error(LiteCoreError.Conflict), "because the conflict resolver gave up");
+                doc.ToConcrete().HasChanges.Should().BeTrue("because the document wasn't saved");
+            });
         }
 
         [Fact]
-        public void TestDeletionConflict()
+        public async Task TestDeletionConflict()
         {
-            Db.ConflictResolver = new DoNotResolve();
-            var doc = SetupConflict();
-            doc.Delete();
-            doc.Exists.Should().BeTrue("because there was a conflict in place of the deletion");
-            doc.IsDeleted.Should().BeFalse("because there was a conflict in place of the deletion");
-            doc["name"].Should().Be("Scotty", "because that was the pre-deletion value");
+            await Db.ActionQueue.DispatchAsync(() => Db.ConflictResolver = new DoNotResolve());
+            var doc = await SetupConflict();
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc.Delete();
+                doc.Exists.Should().BeTrue("because there was a conflict in place of the deletion");
+                doc.IsDeleted.Should().BeFalse("because there was a conflict in place of the deletion");
+                doc["name"].Should().Be("Scotty", "because that was the pre-deletion value");
+            });
         }
 
         [Fact]
-        public void TestConflictMineIsDeeper()
+        public async Task TestConflictMineIsDeeper()
         {
-            Db.ConflictResolver = null;
-            var doc = SetupConflict();
-            doc.Save();
-            doc["name"].Should().Be("Scott Pilgrim", "because the current in memory document has a longer history");
+            await Db.ActionQueue.DispatchAsync(() => Db.ConflictResolver = null);
+            var doc = await SetupConflict();
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc.Save();
+                doc["name"].Should().Be("Scott Pilgrim", "because the current in memory document has a longer history");
+            });
         }
 
         [Fact]
-        public void TestConflictTheirsIsDeeper()
+        public async Task TestConflictTheirsIsDeeper()
         {
-            Db.ConflictResolver = null;
-            var doc = SetupConflict();
+            await Db.ActionQueue.DispatchAsync(() => Db.ConflictResolver = null);
+            var doc = await SetupConflict();
 
             // Add another revision to the conflict, so it'll have a higher generation
-            var properties = doc.Properties;
-            properties["name"] = "Scott of the Sahara";
-            SaveProperties(properties, doc.Id);
-            doc.Save();
+            await doc.ActionQueue.DispatchAsync(() =>
+            {
+                var properties = doc.Properties;
+                properties["name"] = "Scott of the Sahara";
+                SaveProperties(properties, doc.Id);
+                doc.Save();
 
-            doc["name"].Should().Be("Scott of the Sahara", "because the conflict has a longer history");
+                doc["name"].Should().Be("Scott of the Sahara", "because the conflict has a longer history");
+            });
         }
 
         [Fact]
-        public void TestBlob()
+        public async Task TestBlob()
         {
             var content = Encoding.UTF8.GetBytes("12345");
             var data = BlobFactory.Create("text/plain", content);
-            _doc["data"] = data;
-            _doc["name"] = "Jim";
-            _doc.Save();
+            await _docQueue.DispatchAsync(() =>
+            {
+                _doc["data"] = data;
+                _doc["name"] = "Jim";
+                _doc.Save();
+            });
 
-            using(var otherDb = ThreadLocked.Copy(Db)) {
-                var doc1 = otherDb["doc1"];
-                doc1["name"].Should().Be("Jim", "because the document should be persistent after save");
-                doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
-                data = doc1["data"] as IBlob;
+            using(var otherDb = DatabaseFactory.Create(Db)) {
+               
+                var doc1 = otherDb.ActionQueue.DispatchSync(() => otherDb["doc1"]);
+                var doc1Queue = doc1.ActionQueue;
+                await doc1Queue.DispatchAsync(() =>
+                {
+                    doc1["name"].Should().Be("Jim", "because the document should be persistent after save");
+                    doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                    data = doc1.GetBlob("data");
+                });
+
                 data.Length.Should().Be(5, "because the data is 5 bytes long");
                 data.Content.Should().Equal(content, "because the data should have been retrieved correctly");
                 var contentStream = data.ContentStream;
@@ -364,40 +462,53 @@ namespace Test
         }
 
         [Fact]
-        public void TestEmptyBlob()
+        public async Task TestEmptyBlob()
         {
             var content = new byte[0];
             var data = BlobFactory.Create("text/plain", content);
-            _doc["data"] = data;
-            _doc.Save();
+            await _docQueue.DispatchAsync(() =>
+            {
+                _doc["data"] = data;
+                _doc.Save();
+            });
 
-            using(var otherDb = ThreadLocked.Copy(Db)) {
-                var doc1 = otherDb["doc1"];
-                doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
-                data = doc1["data"] as IBlob;
-                data.Length.Should().Be(0, "because the data is 5 bytes long");
-                data.Content.Should().Equal(content, "because the data should have been retrieved correctly");
-                var contentStream = data.ContentStream;
-                var buffer = new byte[10];
-                var bytesRead = contentStream.Read(buffer, 0, 10);
-                contentStream.Dispose();
-                bytesRead.Should().Be(0, "because the data is 5 bytes long");
+            using(var otherDb = DatabaseFactory.Create(Db)) {
+                var doc1 = await otherDb.ActionQueue.DispatchAsync(() => otherDb["doc1"]);
+                await doc1.ActionQueue.DispatchAsync(() =>
+                {
+                    doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                    data = doc1.GetBlob("data");
+                    data.Length.Should().Be(0, "because the data is 5 bytes long");
+                    data.Content.Should().Equal(content, "because the data should have been retrieved correctly");
+                    var contentStream = data.ContentStream;
+                    var buffer = new byte[10];
+                    var bytesRead = contentStream.Read(buffer, 0, 10);
+                    contentStream.Dispose();
+                    bytesRead.Should().Be(0, "because the data is 5 bytes long");
+                });
             }
         }
 
         [Fact]
-        public void TestBlobWithStream()
+        public async Task TestBlobWithStream()
         {
             var content = new byte[0];
             Stream contentStream = new MemoryStream(content);
             var data = BlobFactory.Create("text/plain", contentStream);
-            _doc["data"] = data;
-            _doc.Save();
+            await _docQueue.DispatchAsync(() =>
+            {
+                _doc["data"] = data;
+                _doc.Save();
+            });
 
-            using(var otherDb = ThreadLocked.Copy(Db)) {
-                var doc1 = otherDb["doc1"];
-                doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
-                data = doc1["data"] as IBlob;
+            using(var otherDb = DatabaseFactory.Create(Db)) {
+                var doc1 = await otherDb.ActionQueue.DispatchAsync(() => otherDb["doc1"]);
+                await doc1.ActionQueue.DispatchAsync(() =>
+                {
+                    doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                    data = doc1.GetBlob("data");
+                });
+
                 data.Length.Should().Be(0, "because the data is 5 bytes long");
                 data.Content.Should().Equal(content, "because the data should have been retrieved correctly");
                 contentStream = data.ContentStream;
@@ -409,13 +520,16 @@ namespace Test
         }
 
         [Fact]
-        public void TestMultipleBlobRead()
+        public async Task TestMultipleBlobRead()
         {
             var content = Encoding.UTF8.GetBytes("12345");
             var data = BlobFactory.Create("text/plain", content);
-            _doc["data"] = data;
+            data = await _docQueue.DispatchAsync(() =>
+            {
+                _doc["data"] = data;
+                return _doc.GetBlob("data");
+            });
 
-            data = _doc["data"] as IBlob;
             for(int i = 0; i < 5; i++) {
                 data.Content.Should().Equal(content, "because otherwise incorrect data was read");
                 using(var contentStream = data.ContentStream) {
@@ -425,11 +539,15 @@ namespace Test
                 }
             }
 
-            _doc.Save();
-            using(var otherDb = ThreadLocked.Copy(Db)) {
-                var doc1 = otherDb["doc1"];
-                doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
-                data = doc1["data"] as IBlob;
+            await _docQueue.DispatchAsync(() => _doc.Save());
+            using(var otherDb = DatabaseFactory.Create(Db)) {
+                var doc1 = await otherDb.ActionQueue.DispatchAsync(() => otherDb["doc1"]);
+                data = await doc1.ActionQueue.DispatchAsync(() =>
+                {
+                    doc1["data"].Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                    return doc1.GetBlob("data");
+                }); 
+
                 for(int i = 0; i < 5; i++) {
                     data.Content.Should().Equal(content, "because otherwise incorrect data was read");
                     using(var contentStream = data.ContentStream) {
@@ -442,66 +560,82 @@ namespace Test
         }
 
         [Fact]
-        public void TestReadExistingBlob()
+        public async Task TestReadExistingBlob()
         {
             var content = Encoding.UTF8.GetBytes("12345");
             var data = BlobFactory.Create("text/plain", content);
-            _doc["data"] = data;
-            _doc["name"] = "Jim";
-            _doc.Save();
+            await _docQueue.DispatchAsync(() => { 
+                _doc["data"] = data;
+                _doc["name"] = "Jim";
+                _doc.Save();
+            });
 
             ReopenDB();
 
-            _doc = Db["doc1"];
-            _doc["data"].As<IBlob>().Content.Should().Equal(content, "because the data should have been retrieved correctly");
+            _doc = await Db.ActionQueue.DispatchAsync(() => Db["doc1"]);
+            _docQueue = _doc.ActionQueue;
+            await _docQueue.DispatchAsync(() =>
+            {
+                _doc["data"].As<IBlob>().Content.Should().Equal(content, "because the data should have been retrieved correctly");
+            });
 
             ReopenDB();
 
-            _doc = Db["doc1"];
-            _doc["foo"] = "bar";
-            _doc.Save();
-            _doc["data"].As<IBlob>().Content.Should().Equal(content, "because the data should have been retrieved correctly");
+            _doc = await Db.ActionQueue.DispatchAsync(() => Db["doc1"]);
+            _docQueue = _doc.ActionQueue;
+            await _docQueue.DispatchAsync(() =>
+            {
+                _doc["foo"] = "bar";
+                _doc.Save();
+                _doc["data"].As<IBlob>().Content.Should().Equal(content, "because the data should have been retrieved correctly");
+            });
         }
 
-        private IDocument SetupConflict()
+        private async Task<IDocument> SetupConflict()
         {
-            var doc = Db["doc1"];
-            doc["type"] = "profile";
-            doc["name"] = "Scott";
-            doc.Save();
+            var doc = await Db.ActionQueue.DispatchAsync(() => Db["doc1"]);
+            var properties = await doc.ActionQueue.DispatchAsync(() =>
+            {
+                doc["type"] = "profile";
+                doc["name"] = "Scott";
+                doc.Save();
+                return doc.Properties;
+            });
 
-            var properties = doc.Properties;
             properties["name"] = "Scotty";
             SaveProperties(properties, doc.Id);
 
-            doc["name"] = "Scott Pilgrim";
+            await doc.ActionQueue.DispatchAsync(() => doc["name"] = "Scott Pilgrim");
             return doc;
         }
 
         private unsafe bool SaveProperties(IDictionary<string, object> props, string docID)
         {
-            var ok = Db.InBatch(() =>
+            var ok = Db.ActionQueue.DispatchSync(() =>
             {
-                var tricky = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db.ToConcrete().c4db, docID, true, err));
-                var put = new C4DocPutRequest {
-                    docID = tricky->docID,
-                    history = &tricky->revID,
-                    historyCount = 1,
-                    save = true
-                };
+                return Db.InBatch(() =>
+                {
+                    var tricky = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db.ToConcrete().c4db, docID, true, err));
+                    var put = new C4DocPutRequest {
+                        docID = tricky->docID,
+                        history = &tricky->revID,
+                        historyCount = 1,
+                        save = true
+                    };
 
-                var body = Db.ToConcrete().JsonSerializer.Serialize(props);
-                put.body = body;
+                    var body = Db.ToConcrete().JsonSerializer.Serialize(props);
+                    put.body = body;
 
-                var newDoc = (C4Document*)LiteCoreBridge.Check(err =>
-               {
-                   var localPut = put;
-                   var retVal = Native.c4doc_put(Db.ToConcrete().c4db, &localPut, null, err);
-                   Native.FLSliceResult_Free(body);
-                   return retVal;
-               });
+                    var newDoc = (C4Document*)LiteCoreBridge.Check(err =>
+                   {
+                       var localPut = put;
+                       var retVal = Native.c4doc_put(Db.ToConcrete().c4db, &localPut, null, err);
+                       Native.FLSliceResult_Free(body);
+                       return retVal;
+                   });
 
-                return true;
+                    return true;
+                });
             });
 
             ok.Should().BeTrue("beacuse otherwise the batch failed in SaveProperties");
@@ -510,8 +644,8 @@ namespace Test
 
         protected override void Dispose(bool disposing)
         {
-            if(!disposing) {
-                _doc.Revert();
+            if(disposing) {
+                _doc.ActionQueue.DispatchSync(() => _doc.Revert());
             }
 
             base.Dispose(disposing);

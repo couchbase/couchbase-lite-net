@@ -1,5 +1,5 @@
 ﻿//
-//  ThreadLockedObject.cs
+//  ThreadSafe.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -27,39 +27,29 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Support
 {
-    public interface IThreadLockedObject
+    internal unsafe delegate void* PointerReturnDelegate();
+
+    internal abstract class ThreadSafe : IThreadSafe
     {
-        bool IsSafeToUse { get; }
+        private readonly SerialQueue _serialQueue;
 
-        object Copy();
-    }
-
-    internal abstract class ThreadLockedObject : IThreadLockedObject
-    {
-        private readonly int _owningThread = Environment.CurrentManagedThreadId;
-
-        public bool IsSafeToUse
+        public IDispatchQueue ActionQueue
         {
             get {
-                return _owningThread == Environment.CurrentManagedThreadId;
+                return _serialQueue;
             }
         }
 
-        protected void AssertCorrectThread()
+        public IDispatchQueue CallbackQueue { get; set; } = new ConcurrentQueue();
+
+        protected ThreadSafe()
         {
-            if(!IsSafeToUse) {
-                throw new InvalidOperationException($"An instance of {GetType().FullName} ({this}) was used on a different thread than it was created.  Please copy it first using the ThreadLocked class.");
-            }
+            _serialQueue = new SerialQueue();
         }
 
-        public abstract object Copy();
-    }
-
-    public static class ThreadLocked
-    {
-        public static T Copy<T>(T original) where T : class, IThreadLockedObject
+        protected void AssertSafety()
         {
-            return original.Copy() as T;
+            _serialQueue.AssertInQueue();
         }
     }
 }

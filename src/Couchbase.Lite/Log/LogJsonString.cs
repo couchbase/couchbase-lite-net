@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Logging
 {
@@ -55,14 +56,14 @@ namespace Couchbase.Lite.Logging
             _unserialized = obj;
         }
 
-       /* public override string ToString()
+        public override string ToString()
         {
             if (_serialized == null) {
-                _serialized = Manager.GetObjectMapper().WriteValueAsString(_unserialized);
+                _serialized = JsonConvert.SerializeObject(_unserialized);
             }
 
             return _serialized;
-        }*/
+        }
     }
 }
 

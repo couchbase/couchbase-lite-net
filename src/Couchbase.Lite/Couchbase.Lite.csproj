@@ -34,6 +34,7 @@
     <DefineConstants>TRACE;LITECORE_PACKAGED</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <None Include="project.json" />
@@ -46,7 +47,9 @@
     <Compile Include="API\Database.cs" />
     <Compile Include="API\DatabaseQueryable.cs" />
     <Compile Include="API\Document.cs" />
+    <Compile Include="API\IDispatchQueue.cs" />
     <Compile Include="API\IModellable.cs" />
+    <Compile Include="API\IThreadSafe.cs" />
     <Compile Include="API\Model.cs" />
     <Compile Include="API\Property.cs" />
     <Compile Include="API\PropertyContainer.cs" />
@@ -74,11 +77,13 @@
     <Compile Include="Serialization\JsonFLValueReader.cs" />
     <Compile Include="Serialization\JsonFLValueWriter.cs" />
     <Compile Include="Serialization\Serializer.cs" />
+    <Compile Include="Support\ConcurrentQueue.cs" />
     <Compile Include="Support\DefaultDirectoryResolver.cs" />
     <Compile Include="Support\DefaultLogger.cs" />
     <Compile Include="Support\IDefaultPathResolver.cs" />
     <Compile Include="Support\IInjectable.cs" />
-    <Compile Include="Support\ThreadLockedObject.cs" />
+    <Compile Include="Support\SerialQueue.cs" />
+    <Compile Include="Support\ThreadSafe.cs" />
     <Compile Include="Util\Extensions.cs" />
     <Compile Include="Util\LruCache.cs" />
     <Compile Include="Util\Misc.cs" />

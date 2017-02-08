@@ -23,7 +23,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Serialization;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
@@ -37,11 +40,19 @@ namespace Couchbase.Lite
         
     }
 
+    public sealed class DocumentSavedEventArgs : EventArgs
+    {
+        public bool IsExternal { get; }
+
+        internal DocumentSavedEventArgs(bool external)
+        {
+            IsExternal = external;
+        }
+    }
+
     public interface IDocument : IPropertyContainer, IDisposable
     {
-        event EventHandler<DocumentChangedEventArgs> Changed;
-
-        event EventHandler<PropertyChangedEventArgs> PropertyChanged;
+        event EventHandler<DocumentSavedEventArgs> Saved;
 
         IDatabase Database { get; }
 
@@ -68,13 +79,13 @@ namespace Couchbase.Lite
 
     internal sealed unsafe class Document : PropertyContainer, IDocument //, IModellable
     {
+        private const string Tag = nameof(Document);
+
         private C4Database* _c4db;
         private C4Document* _c4doc;
         private readonly Database _database;
 
-        public event EventHandler<DocumentChangedEventArgs> Changed;
-
-        public event EventHandler<PropertyChangedEventArgs> PropertyChanged;
+        public event EventHandler<DocumentSavedEventArgs> Saved;
 
         public IDatabase Database
         {
@@ -85,11 +96,19 @@ namespace Couchbase.Lite
 
         public IConflictResolver ConflictResolver { get; set; }
 
-        public string Id { get; }
+        private readonly string _id;
+        public string Id
+        {
+            get {
+                AssertSafety();
+                return _id;
+            }
+        }
 
         public bool IsDeleted
         {
             get {
+                AssertSafety();
                 return _c4doc->flags.HasFlag(C4DocumentFlags.Deleted);
             }
         }
@@ -97,11 +116,19 @@ namespace Couchbase.Lite
         public bool Exists
         {
             get {
+                AssertSafety();
                 return _c4doc->flags.HasFlag(C4DocumentFlags.Exists);
             }
         }
 
-        public ulong Sequence { get; }
+        private readonly ulong _sequence;
+        public ulong Sequence
+        {
+            get {
+                AssertSafety();
+                return _sequence;
+            }
+        }
 
         private uint Generation
         {
@@ -113,14 +140,18 @@ namespace Couchbase.Lite
         private IConflictResolver EffectiveConflictResolver
         {
             get {
-                return ConflictResolver ?? Database.ConflictResolver;
+                if(ConflictResolver != null) {
+                    return ConflictResolver;
+                }
+
+                return Database.ActionQueue.DispatchSync(() => Database.ConflictResolver);
             }
         }
         
         internal Document(Database db, string docID, bool mustExist)
         {
             _database = db;
-            Id = docID;
+            _id = docID;
             _c4db = db.c4db;
             LoadDoc(mustExist);
         }
@@ -138,26 +169,32 @@ namespace Couchbase.Lite
 
         public void Save()
         {
+            AssertSafety();
             Save(EffectiveConflictResolver, false);
         }
 
         public void Delete()
         {
+            AssertSafety();
             Save(EffectiveConflictResolver, true);
         }
 
         public bool Purge()
         {
+            AssertSafety();
             if(!Exists) {
                 return false;
             }
 
-            var success = Database.InBatch(() =>
+            var success = Database.ActionQueue.DispatchSync(() =>
             {
-                LiteCoreBridge.Check(err => NativeRaw.c4doc_purgeRevision(_c4doc, C4Slice.Null, err));
-                LiteCoreBridge.Check(err => Native.c4doc_save(_c4doc, 0, err));
+                return Database.InBatch(() =>
+                {
+                    LiteCoreBridge.Check(err => NativeRaw.c4doc_purgeRevision(_c4doc, C4Slice.Null, err));
+                    LiteCoreBridge.Check(err => Native.c4doc_save(_c4doc, 0, err));
 
-                return true;
+                    return true;
+                });
             });
 
             if(!success) {
@@ -171,17 +208,38 @@ namespace Couchbase.Lite
 
         public void Revert()
         {
+            AssertSafety();
             ResetChanges();
         }
 
-        protected internal override IBlob CreateBlob(IDictionary<string, object> properties)
+        internal void ChangedExternally()
         {
-            return new Blob(_database, properties);
+            // The current API design decision is that when a document has unsaved changes, it should
+            // not update with external changes and should not post notifications.  Instead the conflict
+            // resolution will happen when the app saves the document
+            AssertSafety();
+            if(!HasChanges) {
+                try {
+                    LoadDoc(true);
+                } catch(Exception e) {
+                    Log.To.Database.W(Tag, $"{this} failed to load external changes", e);
+                }
+
+                PostChangedNotifications(true);
+            }
+        }
+
+        internal void PostChangedNotifications(bool external)
+        {
+            CallbackQueue.DispatchAsync(() =>
+            {
+                Saved?.Invoke(this, new DocumentSavedEventArgs(external));
+            });
         }
 
         private void LoadDoc(bool mustExist)
         {
-            var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, Id, mustExist, err));
+            var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, _id, mustExist, err));
             SetC4Doc(doc);
         }
 
@@ -213,25 +271,28 @@ namespace Couchbase.Lite
 
             C4Document* newDoc = null;
             var endedEarly = false;
-            var success = Database.InBatch(() =>
+            var success = Database.ActionQueue.DispatchSync(() =>
             {
-                var tmp = default(C4Document*);
-                SaveInto(&tmp, deletion);
-                if(tmp == null) {
-                    Merge(resolver, deletion);
-                    if(!HasChanges) {
-                        endedEarly = true;
-                        return false;
-                    }
-
+                return Database.InBatch(() =>
+                {
+                    var tmp = default(C4Document*);
                     SaveInto(&tmp, deletion);
                     if(tmp == null) {
-                        throw new CouchbaseLiteException("Conflict still occuring after resolution", StatusCode.DbError);
-                    }
-                }
+                        Merge(resolver, deletion);
+                        if(!HasChanges) {
+                            endedEarly = true;
+                            return false;
+                        }
 
-                newDoc = tmp;
-                return true;
+                        SaveInto(&tmp, deletion);
+                        if(tmp == null) {
+                            throw new CouchbaseLiteException("Conflict still occuring after resolution", StatusCode.DbError);
+                        }
+                    }
+
+                    newDoc = tmp;
+                    return true;
+                });
             });
 
             if(endedEarly) {
@@ -247,6 +308,8 @@ namespace Couchbase.Lite
             if(deletion) {
                 ResetChanges();
             }
+
+            PostChangedNotifications(false);
         }
 
         private void Merge(IConflictResolver resolver, bool deletion)
@@ -384,18 +447,26 @@ namespace Couchbase.Lite
             return false;
         }
 
+        protected internal override IBlob CreateBlob(IDictionary<string, object> properties)
+        {
+            AssertSafety();
+            return new Blob(_database, properties);
+        }
+
         public override string ToString()
         {
-            return $"{GetType().Name}[{Id}]";
+            return $"{GetType().Name}[{_id}]";
         }
 
         internal override SharedStringCache GetSharedStrings()
         {
-            return _database.SharedStrings;
+            AssertSafety();
+            return _database.ActionQueue.DispatchSync(() => _database.SharedStrings);
         }
 
         public void Dispose()
         {
+            AssertSafety();
             Dispose(true);
             GC.SuppressFinalize(this);
         }
