@@ -31,6 +31,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
+using ObjCRuntime;
 
 namespace Couchbase.Lite.DB
 {
@@ -298,6 +299,7 @@ namespace Couchbase.Lite.DB
             });
         }
 
+        [MonoPInvokeCallback(typeof(C4LogCallback))]
         private static void LiteCoreLog(C4LogDomain domain, C4LogLevel level, C4Slice msg)
         {
             switch(level) {
