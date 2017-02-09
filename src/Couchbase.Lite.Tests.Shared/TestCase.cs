@@ -35,7 +35,7 @@ namespace Test
         private static string Directory
         {
             get {
-                return Path.Combine(Path.GetTempPath(), "CouchbaseLite");
+                return Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
             }
         }
 
@@ -48,7 +48,7 @@ namespace Test
 
         public TestCase(ITestOutputHelper output)
         {
-            Log.SetLogger(new XunitLogger(output));
+            Log.AddLogger(new XunitLogger(output));
             _output = output;
             Database.Delete(DatabaseName, Directory);
             OpenDB();
@@ -82,6 +82,7 @@ namespace Test
         {
             Db?.Dispose();
             Db = null;
+            Log.SetDefaultLogger();
         }
 
         public void Dispose()

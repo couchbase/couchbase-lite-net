@@ -86,14 +86,16 @@ namespace Test
 
         protected virtual void SetUp()
         {
-
+            Log.Disabled = true;
         }
 
         protected abstract void Test();
 
         protected virtual void TearDown()
         {
-
+            Log.Disabled = false;
+            Db?.Dispose();
+            Db = null;
         }
 
         protected void Run()

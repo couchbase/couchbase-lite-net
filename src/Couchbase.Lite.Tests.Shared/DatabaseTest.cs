@@ -40,7 +40,7 @@ namespace Test
         [Fact]
         public void TestCreate()
         {
-            var dir = Path.Combine(Path.GetTempPath(), "CouchbaseLite");
+            var dir = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
             DatabaseFactory.DeleteDatabase("db", dir);
 
             var options = DatabaseOptions.Default;

@@ -42,9 +42,7 @@ namespace Test
         public void TestPerformance()
         {
             var options = DatabaseOptions.Default;
-            options.Directory = Path.Combine(Path.GetTempPath(), "CouchbaseLite");
-
-            WriteLine("Starting test...");
+            options.Directory = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
             SetOptions(options);
             Run();
         }
