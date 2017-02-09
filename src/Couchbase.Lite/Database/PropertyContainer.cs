@@ -33,39 +33,8 @@ using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.DB
 {
-    public interface IPropertyContainer : IThreadSafe
-    {
-        IDictionary<string, object> Properties { get; set; }
-
-        IPropertyContainer Set(string key, object value);
-
-        object Get(string key);
-
-        string GetString(string key);
-
-        long GetLong(string key);
-
-        float GetFloat(string key);
-
-        double GetDouble(string key);
-
-        bool GetBoolean(string key);
-
-        DateTimeOffset? GetDate(string key);
-
-        IList<object> GetArray(string key);
-
-        IBlob GetBlob(string key);
-
-        IPropertyContainer Remove(string key);
-
-        bool Contains(string key);
-
-        object this[string key] { get; set; }
-    }
-
     internal unsafe abstract class PropertyContainer : ThreadSafe, IPropertyContainer
     {
         private FLDict* _root;
@@ -231,32 +200,12 @@ namespace Couchbase.Lite
             return Get(key) as IBlob;
         }
 
-        public Subdocument GetSubdocument(string key)
-        {
-            throw new NotImplementedException();
-        }
-
-        public T GetSubdocument<T>(string key) where T : ISubdocumentModel
-        {
-            throw new NotImplementedException();
-        }
-
         public Document GetDocument(string key)
         {
             throw new NotImplementedException();
         }
 
         public IList<Document> GetDocuments(string key)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Property GetProperty(string key)
-        {
-            throw new NotImplementedException();
-        }
-
-        public T GetProperty<T>(string key) where T : IPropertyModel
         {
             throw new NotImplementedException();
         }

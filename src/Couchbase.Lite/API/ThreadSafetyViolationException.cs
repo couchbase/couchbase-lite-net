@@ -1,5 +1,5 @@
 ﻿//
-//  Activate.cs
+//  ThreadSafetyViolationException.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -20,20 +20,18 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite
 {
-    public static class UWP
+    /// <summary>
+    /// An exception that is thrown when an <see cref="IThreadSafe"/> object is
+    /// accessed inappropriately
+    /// </summary>
+    public sealed class ThreadSafetyViolationException : Exception
     {
-        public static void Activate()
+        internal ThreadSafetyViolationException() : base("An attempt was made to use a thread safe object outside of its action queue")
         {
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
+
         }
     }
 }

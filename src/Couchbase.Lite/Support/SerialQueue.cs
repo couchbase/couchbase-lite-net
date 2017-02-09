@@ -21,26 +21,15 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
-    public sealed class UnhandledExceptionEventArgs : EventArgs
-    {
-        public Exception Error { get; }
-
-        internal UnhandledExceptionEventArgs(Exception error)
-        {
-            Error = error;
-        }
-    }
-
+    // Inspired by https://github.com/borland/SerialQueue
     internal sealed class SerialQueue : IDispatchQueue
     {
         private class SerialQueueItem
@@ -64,8 +53,6 @@ namespace Couchbase.Lite.Support
         private int _state;
         private int _currentProcessingThread;
         private bool _executingSync;
-
-        public event EventHandler<UnhandledExceptionEventArgs> UnhandledException;
 
         public int Count { get; private set; }
 

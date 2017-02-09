@@ -1,5 +1,5 @@
 ﻿//
-//  Activate.cs
+//  IBlob.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,21 +19,23 @@
 //  limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
+using System.IO;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite
 {
-    public static class UWP
+    public interface IBlob
     {
-        public static void Activate()
-        {
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
-        }
+        byte[] Content { get; }
+
+        Stream ContentStream { get; }
+
+        string ContentType { get; }
+
+        ulong Length { get; }
+
+        string Digest { get; }
+
+        IReadOnlyDictionary<string, object> Properties { get; }
     }
 }

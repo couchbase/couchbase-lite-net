@@ -21,12 +21,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using Couchbase.Lite.Crypto;
+
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Serialization;
 using Couchbase.Lite.Support;
@@ -34,146 +32,8 @@ using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.DB
 {
-    public enum IndexType : uint
-    {
-        ValueIndex = C4IndexType.ValueIndex,
-        FullTextIndex = C4IndexType.FullTextIndex,
-        GeoIndex = C4IndexType.GeoIndex
-    }
-
-    public sealed class IndexOptions
-    {
-        public string Language { get; set; }
-
-        public bool IgnoreDiacriticals { get; set; }
-
-        public IndexOptions()
-        {
-
-        }
-
-        public IndexOptions(string language, bool ignoreDiacriticals)
-        {
-            Language = language;
-            IgnoreDiacriticals = ignoreDiacriticals;
-        }
-
-        internal static C4IndexOptions Internal(IndexOptions options)
-        {
-            return new C4IndexOptions {
-                language = options.Language,
-                ignoreDiacritics = options.IgnoreDiacriticals
-            };
-        }
-    }
-
-    public abstract class ComponentChangedEventArgs<T> : EventArgs
-    {
-        public T Source { get; set; }
-
-        public T Value { get; set; }
-
-        public T OldValue { get; set; }
-    }
-
-    public struct DatabaseOptions
-    {
-        public static readonly DatabaseOptions Default = new DatabaseOptions();
-
-        public string Directory { get; set; }
-
-        public object EncryptionKey { get; set; }
-
-        public bool ReadOnly { get; set; }
-    }
-
-    public sealed class DatabaseChangedEventArgs : EventArgs
-    {
-        public IList<string> DocIDs { get; }
-
-        public ulong LastSequence { get; }
-
-        public bool External { get; }
-
-        internal DatabaseChangedEventArgs(IList<string> docIDs, ulong lastSequence, bool external)
-        {
-            DocIDs = docIDs;
-            LastSequence = lastSequence;
-            External = external;
-        }
-    }
-
-    public interface IDatabase : IThreadSafe, IDisposable
-    {
-        event EventHandler<DatabaseChangedEventArgs> Changed;
-
-        string Name { get; }
-
-        string Path { get; }
-
-        DatabaseOptions Options { get; }
-        
-        IConflictResolver ConflictResolver { get; set; }
-
-        void Close();
-
-        void Delete();
-
-        bool InBatch(Func<bool> a);
-
-        IDocument CreateDocument();
-
-        IDocument GetDocument(string id);
-
-        bool DocumentExists(string documentID);
-
-        IDocument this[string id] { get; }
-
-        void CreateIndex(string propertyPath);
-
-        void CreateIndex(string propertyPath, IndexType indexType, IndexOptions options);
-
-        void DeleteIndex(string propertyPath, IndexType type);
-    }
-
-    public static class DatabaseFactory
-    {
-        public static IDatabase Create(string name)
-        {
-            return new Database(name);
-        }
-
-        public static IDatabase Create(string name, DatabaseOptions options)
-        {
-            return new Database(name, options);
-        }
-
-        public static IDatabase Create(IDatabase other)
-        {
-            var name = default(string);
-            var options = default(DatabaseOptions);
-            other.ActionQueue.DispatchSync(() =>
-            {
-                name = other.Name;
-                options = other.Options;
-            });
-
-            return Create(name, options);
-        }
-
-        public static void DeleteDatabase(string name, string directory)
-        {
-            Database.Delete(name, directory);
-        }
-
-        public static bool DatabaseExists(string name, string directory)
-        {
-            return Database.Exists(name, directory);
-        }
-    }
-
     internal sealed unsafe partial class Database : ThreadSafe, IDatabase
     {
         private static readonly C4DatabaseConfig DBConfig = new C4DatabaseConfig {
@@ -192,32 +52,17 @@ namespace Couchbase.Lite
 
         public event EventHandler<DatabaseChangedEventArgs> Changed;
 
-        public string Name
-        {
-            get {
-                AssertSafety();
-                return _name;
-            }
-        }
-        private readonly string _name;
+        public string Name { get; }
 
         public string Path
         {
             get {
-                AssertSafety();
                 CheckOpen();
                 return Native.c4db_getPath(c4db);
             }
         }
 
-        public DatabaseOptions Options
-        {
-            get {
-                AssertSafety();
-                return _options;
-            }
-        }
-        private readonly DatabaseOptions _options;
+        public DatabaseOptions Options { get; }
 
         public IConflictResolver ConflictResolver
         {
@@ -303,8 +148,8 @@ namespace Couchbase.Lite
                 throw new ArgumentNullException(nameof(name));
             }
 
-            _name = name;
-            _options = options;
+            Name = name;
+            Options = options;
             Open();
             _sharedStrings = new SharedStringCache(Native.c4db_getFLSharedKeys(_c4db));
         }
@@ -384,26 +229,13 @@ namespace Couchbase.Lite
 
         public IDocument CreateDocument()
         {
-            AssertSafety();
-            return GetDocument(Misc.CreateGUID());
+            return GetDocument(Misc.CreateGUID(), false);
         }
 
         public IDocument GetDocument(string id)
         {
             AssertSafety();
             return GetDocument(id, false);
-        }
-
-        public ModeledDocument<T> GetDocument<T>() where T : class, new()
-        {
-            AssertSafety();
-            return GetDocument<T>(Misc.CreateGUID());
-        }
-
-        public ModeledDocument<T> GetDocument<T>(string id) where T : class, new()
-        {
-            AssertSafety();
-            return GetDocument<T>(id, false);
         }
 
         public bool DocumentExists(string documentID)
@@ -541,25 +373,6 @@ namespace Couchbase.Lite
             } while(changes > 0);
         }
 
-        private ModeledDocument<T> GetDocument<T>(string docID, bool mustExist) where T : class, new()
-        {
-            CheckOpen();
-            var doc = (C4Document*)RetryHandler.RetryIfBusy()
-                .AllowError((int)LiteCoreError.NotFound, C4ErrorDomain.LiteCoreDomain)
-                .Execute(err => Native.c4doc_get(c4db, docID, mustExist, err));
-
-            if(doc == null) {
-                return null;
-            }
-
-            FLValue *value = NativeRaw.FLValue_FromTrustedData((FLSlice)doc->selectedRev.body);
-            var retVal = JsonSerializer.Deserialize<T>(value);
-            if(retVal == null) {
-                retVal = Activator.CreateInstance<T>();
-            }
-            return new ModeledDocument<T>(retVal, this, doc);
-        }
-
         private Document GetDocument(string docID, bool mustExist)
         {
             CheckOpen();
@@ -605,22 +418,26 @@ namespace Couchbase.Lite
                 return;
             }
 
-            System.IO.Directory.CreateDirectory(Directory(_options.Directory));
-            var path = DatabasePath(_name, _options.Directory);
+            System.IO.Directory.CreateDirectory(Directory(Options.Directory));
+            var path = DatabasePath(Name, Options.Directory);
             var config = DBConfig;
-            if(_options.ReadOnly) {
+            if(Options.ReadOnly) {
                 config.flags |= C4DatabaseFlags.ReadOnly;
             }
 
-            if(_options.EncryptionKey != null) {
-                var key = SymmetricKey.Create(_options.EncryptionKey);
+            var encrypted = "";
+            if(Options.EncryptionKey != null) {
+                var key = SymmetricKey.Create(Options.EncryptionKey);
                 int i = 0;
                 config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
                 foreach(var b in key.KeyData) {
                     config.encryptionKey.bytes[i++] = b;
                 }
+
+                encrypted = "encrypted ";
             }
 
+            Log.To.Database.I(Tag, $"Opening {encrypted}database at {path}");
             var localConfig1 = config;
             _c4db = (C4Database *)LiteCoreBridge.Check(err => {
                 var localConfig2 = localConfig1;

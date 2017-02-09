@@ -2,7 +2,7 @@
 //  DefaultLogger.cs
 //
 //  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
+//      Jim Borden  <jim.borden@couchbase.com>
 //
 //  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 //
@@ -20,16 +20,14 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+
 using Couchbase.Lite.Logging;
+using Log = Android.Util.Log;
 
 namespace Couchbase.Lite.Support
 {
-    internal sealed class DefaultLogger : ILogger
+    internal sealed class AndroidDefaultLogger : ILogger
     {
         private string MakeMessage(string msg, Exception tr)
         {
@@ -43,109 +41,104 @@ namespace Couchbase.Lite.Support
             return $"[{Environment.CurrentManagedThreadId}] {dateTime} {msg}";
         }
 
-        private string MakeLine(string level, string tag, string msg)
+        private string MakeLine(string tag, string msg)
         {
-            return $"[{level}] {tag} {MakeMessage(msg)}";
+            return $"{tag} {MakeMessage(msg)}";
         }
 
-        private string MakeLine(string level, string tag, string msg, Exception tr)
+        private string MakeLine(string tag, string msg, Exception tr)
         {
-            return $"{level} {tag} {MakeMessage(msg, tr)}";
-        }
-
-        private void PerformWrite(string final)
-        {
-            Debug.WriteLine(final);
+            return $"{tag} {MakeMessage(msg, tr)}";
         }
 
         public void D(string tag, string msg)
         {
-            var line = MakeLine("DEBUG", tag, msg);
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, msg);
+            Task.Factory.StartNew(() => Log.Debug("CouchbaseLite", line));
         }
 
         public void D(string tag, string format, params object[] args)
         {
-            var line = MakeLine("DEBUG", tag, String.Format(format, args));
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, String.Format(format, args));
+            Task.Factory.StartNew(() => Log.Debug("CouchbaseLite", line));
         }
 
         public void D(string tag, string msg, Exception tr)
         {
-            var line = MakeLine("DEBUG", tag, msg, tr);
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, msg, tr);
+            Task.Factory.StartNew(() => Log.Debug("CouchbaseLite", line));
         }
 
         public void E(string tag, string msg)
         {
-            var line = MakeLine("ERROR", tag, msg);
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, msg);
+            Task.Factory.StartNew(() => Log.Error("CouchbaseLite", line));
         }
 
         public void E(string tag, string format, params object[] args)
         {
-            var line = MakeLine("ERROR", tag, String.Format(format, args));
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, String.Format(format, args));
+            Task.Factory.StartNew(() => Log.Error("CouchbaseLite", line));
         }
 
         public void E(string tag, string msg, Exception tr)
         {
-            var line = MakeLine("ERROR", tag, msg, tr);
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, msg, tr);
+            Task.Factory.StartNew(() => Log.Error("CouchbaseLite", line));
         }
 
         public void I(string tag, string msg)
         {
-            var line = MakeLine("INFO", tag, msg);
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, msg);
+            Task.Factory.StartNew(() => Log.Info("CouchbaseLite", line));
         }
 
         public void I(string tag, string format, params object[] args)
         {
-            var line = MakeLine("INFO", tag, String.Format(format, args));
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, String.Format(format, args));
+            Task.Factory.StartNew(() => Log.Info("CouchbaseLite", line));
         }
 
         public void I(string tag, string msg, Exception tr)
         {
-            var line = MakeLine("INFO", tag, msg, tr);
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, msg, tr);
+            Task.Factory.StartNew(() => Log.Info("CouchbaseLite", line));
         }
 
         public void V(string tag, string msg)
         {
-            var line = MakeLine("VERBOSE", tag, msg);
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, msg);
+            Task.Factory.StartNew(() => Log.Verbose("CouchbaseLite", line));
         }
 
         public void V(string tag, string format, params object[] args)
         {
-            var line = MakeLine("VERBOSE", tag, String.Format(format, args));
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, String.Format(format, args));
+            Task.Factory.StartNew(() => Log.Verbose("CouchbaseLite", line));
         }
 
         public void V(string tag, string msg, Exception tr)
         {
-            var line = MakeLine("VERBOSE", tag, msg, tr);
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, msg, tr);
+            Task.Factory.StartNew(() => Log.Verbose("CouchbaseLite", line));
         }
 
         public void W(string tag, string msg)
         {
-            var line = MakeLine("WARN", tag, msg);
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, msg);
+            Task.Factory.StartNew(() => Log.Warn("CouchbaseLite", line));
         }
 
         public void W(string tag, string format, params object[] args)
         {
-            var line = MakeLine("WARN", tag, String.Format(format, args));
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, String.Format(format, args));
+            Task.Factory.StartNew(() => Log.Warn("CouchbaseLite", line));
         }
 
         public void W(string tag, string msg, Exception tr)
         {
-            var line = MakeLine("WARN", tag, msg, tr);
-            Task.Factory.StartNew(() => PerformWrite(line));
+            var line = MakeLine(tag, msg, tr);
+            Task.Factory.StartNew(() => Log.Warn("CouchbaseLite", line));
         }
     }
 }

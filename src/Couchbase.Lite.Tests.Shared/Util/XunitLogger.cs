@@ -1,5 +1,5 @@
 ﻿//
-//  Activate.cs
+//  XunitLogger.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,21 +19,24 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Support
+using Couchbase.Lite.Logging;
+using Xunit.Abstractions;
+
+namespace Test.Util
 {
-    public static class UWP
+    internal sealed class XunitLogger : DefaultLogger
     {
-        public static void Activate()
+        private readonly ITestOutputHelper _output;
+
+        public XunitLogger(ITestOutputHelper output)
         {
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
+            _output = output;
+        }
+
+        protected override void PerformWrite(string final)
+        {
+            _output.WriteLine(final);
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿//
-//  Activate.cs
+//  Range.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,21 +19,32 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
-
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite
 {
-    public static class UWP
+    /// <summary>
+    /// A struct representing an arbitrary range
+    /// </summary>
+    public struct Range
     {
-        public static void Activate()
+        /// <summary>
+        /// Gets the start position of the range
+        /// </summary>
+        public uint Start { get; }
+
+        /// <summary>
+        /// Gets the length of the range
+        /// </summary>
+        public uint Length { get; }
+
+        /// <summary>
+        /// Construtor
+        /// </summary>
+        /// <param name="start">The start of the range</param>
+        /// <param name="length">The length of the range</param>
+        public Range(uint start, uint length)
         {
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
+            Start = start;
+            Length = length;
         }
     }
 }

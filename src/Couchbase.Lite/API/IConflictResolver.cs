@@ -1,5 +1,5 @@
 ﻿//
-//  Activate.cs
+//  IConflictResolver.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,21 +19,13 @@
 //  limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite
 {
-    public static class UWP
+    public interface IConflictResolver
     {
-        public static void Activate()
-        {
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
-        }
+        IDictionary<string, object> Resolve(IReadOnlyDictionary<string, object> mine,
+            IReadOnlyDictionary<string, object> theirs, IReadOnlyDictionary<string, object> baseProps);
     }
 }

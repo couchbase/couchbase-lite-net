@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Support
         public static void Activate()
         {
             InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ILogger>(() => new DefaultLogger());
+            InjectableCollection.RegisterImplementation<ILogger>(() => new iOSDefaultLogger());
         }
     }
 }

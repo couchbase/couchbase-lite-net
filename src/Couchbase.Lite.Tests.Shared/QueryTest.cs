@@ -31,6 +31,7 @@ using FluentAssertions;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Test
 {
@@ -53,7 +54,7 @@ namespace Test
         [JsonProperty(PropertyName = "memberSince")]
         public string MemberSince { get; set; }
 
-        public DocumentMetadata Metadata { get; set; }
+        public IDocumentMetadata Metadata { get; set; }
 
         public NamesModel()
         {
@@ -107,7 +108,10 @@ namespace Test
 
     public class QueryTest : TestCase
     {
+        public QueryTest(ITestOutputHelper output) : base(output)
+        {
 
+        }
         //{"name":{"first":"Lue","last":"Laserna"},"gender":"female","birthday":"1983-09-18","contact":{"address":{"street":"19 Deer Loop","zip":"90732","city":"San Pedro","state":"CA"},"email":["lue.laserna@nosql-matters.org","laserna@nosql-matters.org"],"region":"310","phone":["310-8268551","310-7618427"]},"likes":["chatting"],"memberSince":"2011-05-05"}
         //[Fact]
         public void TestQuery()

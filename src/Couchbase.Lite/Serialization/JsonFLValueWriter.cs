@@ -19,19 +19,16 @@
 // limitations under the License.
 //
 using System;
-using Newtonsoft.Json;
-using LiteCore.Interop;
-using LiteCore.Util;
+
 using LiteCore;
-using System.Collections.Generic;
+using LiteCore.Interop;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Serialization
 {
     internal unsafe class JsonFLValueWriter : JsonWriter
     {
         private FLEncoder* _encoder;
-
-        public IList<Blob> Blobs { get; }
 
         public FLSliceResult Result { get; private set; }
 

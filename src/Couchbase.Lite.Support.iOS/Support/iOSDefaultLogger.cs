@@ -1,8 +1,8 @@
 ﻿//
-//  ConflictResolver.cs
+//  DefaultLogger.cs
 //
 //  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
+//      Jim Borden  <jim.borden@couchbase.com>
 //
 //  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 //
@@ -20,16 +20,15 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Support
 {
-    public interface IConflictResolver
+    internal sealed class iOSDefaultLogger : DefaultLogger
     {
-        IDictionary<string, object> Resolve(IReadOnlyDictionary<string, object> mine,
-            IReadOnlyDictionary<string, object> theirs, IReadOnlyDictionary<string, object> baseProps);
+        protected override void PerformWrite(string final)
+        {
+            Console.WriteLine(final); // Console.WriteLine == NSLog
+        }
     }
 }

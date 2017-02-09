@@ -20,35 +20,37 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Support;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Test
 {
     public class DatabaseTest : TestCase
     {
+        public DatabaseTest(ITestOutputHelper output) : base(output)
+        {
+
+        }
+
         [Fact]
         public void TestCreate()
         {
             var dir = Path.Combine(Path.GetTempPath(), "CouchbaseLite");
-            Database.Delete("db", dir);
+            DatabaseFactory.DeleteDatabase("db", dir);
 
             var options = DatabaseOptions.Default;
             options.Directory = dir;
 
             try {
-                var db = new Database("db", options);
+                var db = DatabaseFactory.Create("db", options);
                 db.Dispose();
             } finally {
-                Database.Delete("db", dir);
+                DatabaseFactory.DeleteDatabase("db", dir);
             }
         }
 

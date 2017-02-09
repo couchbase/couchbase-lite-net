@@ -1,5 +1,5 @@
 ﻿//
-//  Subdocument.cs
+//  DocumentMetadata.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,27 +19,25 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.DB
 {
-    public sealed class SubdocumentChangedEventArgs : ComponentChangedEventArgs<Subdocument>
+    internal sealed class DocumentMetadata : IDocumentMetadata
     {
+        public string Id { get; }
 
-    }
+        public string Type { get; set; }
 
-    public sealed class Subdocument //: IPropertyContainer, IModellable
-    {
-        public event EventHandler<SubdocumentChangedEventArgs> Changed;
+        public bool IsDeleted { get; }
 
-        public event EventHandler<PropertyChangedEventArgs> PropertyChanged;
+        public ulong Sequence { get; }
 
-        public string Name { get; }
-
-        
+        internal DocumentMetadata(string id, string type, bool isDeleted, ulong sequence)
+        {
+            Id = id;
+            Type = type;
+            IsDeleted = isDeleted;
+            Sequence = sequence;
+        }
     }
 }

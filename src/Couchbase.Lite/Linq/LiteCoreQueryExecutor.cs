@@ -19,18 +19,14 @@
 //  limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
+
+using Couchbase.Lite.DB;
 using Couchbase.Lite.Querying;
 using LiteCore;
 using LiteCore.Interop;
 using Remotion.Linq;
-using Remotion.Linq.Clauses;
-using Remotion.Linq.Clauses.ExpressionVisitors;
 
 namespace Couchbase.Lite.Linq
 {

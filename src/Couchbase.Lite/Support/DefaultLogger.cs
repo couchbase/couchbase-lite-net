@@ -20,16 +20,12 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Support.Internal
+namespace Couchbase.Lite.Logging
 {
-    internal sealed class DefaultLogger : ILogger
+    internal class DefaultLogger : ILogger
     {
         private string MakeMessage(string msg, Exception tr)
         {
@@ -53,7 +49,7 @@ namespace Couchbase.Lite.Support.Internal
             return $"{level} {tag} {MakeMessage(msg, tr)}";
         }
 
-        private void PerformWrite(string final)
+        protected virtual void PerformWrite(string final)
         {
             Debug.WriteLine(final);
         }

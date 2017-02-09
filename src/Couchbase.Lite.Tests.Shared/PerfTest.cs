@@ -25,6 +25,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using Couchbase.Lite;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using FluentAssertions;
 using Test.Util;
@@ -45,12 +46,7 @@ namespace Test
         protected PerfTest(ITestOutputHelper output)
         {
             _output = output;
-        }
-
-        protected PerfTest(IDatabase db)
-        {
-            Db = db;
-            SetOptions(db.Options);
+            Log.SetLogger(new XunitLogger(output));
         }
 
         protected void SetOptions(DatabaseOptions dbOptions)
@@ -70,7 +66,7 @@ namespace Test
         {
             _dbName.Should().NotBeNull("because otherwise we cannot open the database");
             Db.Should().BeNull("because otherwise we are trying to reopen the database incorrectly");
-            Db = new Database(_dbName, _dbOptions);
+            Db = DatabaseFactory.Create(_dbName, _dbOptions);
         }
 
         protected void ReopenDB()

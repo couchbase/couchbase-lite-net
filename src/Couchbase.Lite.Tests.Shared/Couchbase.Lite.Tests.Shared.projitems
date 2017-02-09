@@ -19,5 +19,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)TestCase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TunesPerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Benchmark.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\XunitLogger.cs" />
   </ItemGroup>
 </Project>

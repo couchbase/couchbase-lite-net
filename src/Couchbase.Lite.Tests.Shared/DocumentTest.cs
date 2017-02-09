@@ -33,6 +33,7 @@ using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Test
 {
@@ -41,7 +42,7 @@ namespace Test
         private IDocument _doc;
         private IDispatchQueue _docQueue;
 
-        public DocumentTest()
+        public DocumentTest(ITestOutputHelper output) : base(output)
         {
             Db.ActionQueue.DispatchSync(() =>
             {

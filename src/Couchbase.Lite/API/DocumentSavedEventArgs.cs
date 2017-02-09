@@ -1,5 +1,5 @@
 ﻿//
-//  Activate.cs
+//  DocumentSavedEventArgs.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -20,20 +20,16 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite
 {
-    public static class UWP
+    public sealed class DocumentSavedEventArgs : EventArgs
     {
-        public static void Activate()
+        public bool IsExternal { get; }
+
+        internal DocumentSavedEventArgs(bool external)
         {
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
+            IsExternal = external;
         }
     }
 }

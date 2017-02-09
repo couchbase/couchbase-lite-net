@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Util
@@ -121,6 +123,27 @@ namespace Couchbase.Lite.Util
             } catch(Exception) {
                 return false;
             }
+        }
+
+        public static string ReplaceAll(this string str, string regex, string replacement)
+        {
+            Regex rgx = new Regex(regex);
+
+            if(replacement.IndexOfAny(new char[] { '\\', '$' }) != -1) {
+                // Back references not yet supported
+                StringBuilder sb = new StringBuilder();
+                for(int n = 0; n < replacement.Length; n++) {
+                    char c = replacement[n];
+                    if(c == '$')
+                        throw new NotSupportedException("Back references not supported");
+                    if(c == '\\')
+                        c = replacement[++n];
+                    sb.Append(c);
+                }
+                replacement = sb.ToString();
+            }
+
+            return rgx.Replace(str, replacement);
         }
     }
 }

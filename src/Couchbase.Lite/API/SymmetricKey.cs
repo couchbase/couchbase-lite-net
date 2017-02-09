@@ -27,7 +27,7 @@ using System.Collections.Generic;
 using Microsoft.IO;
 using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Crypto
+namespace Couchbase.Lite
 {
     /// <summary>
     /// Type of block returned by SymmetricKey.CreateEncryptor.

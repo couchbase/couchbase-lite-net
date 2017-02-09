@@ -1,5 +1,5 @@
 ﻿//
-//  Activate.cs
+//  IQueryRow.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,21 +19,31 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite
 {
-    public static class UWP
+    /// <summary>
+    /// An interface describing an entry of a result set for
+    /// a plain value query
+    /// </summary>
+    public interface IQueryRow
     {
-        public static void Activate()
-        {
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
-        }
+        /// <summary>
+        /// Gets the ID of the document that was used for 
+        /// creating this entry
+        /// </summary>
+        string DocumentID { get; }
+
+        /// <summary>
+        /// Gets the sequence of the document that was used for 
+        /// creating this entry
+        /// </summary>
+        ulong Sequence { get; }
+
+        /// <summary>
+        /// Gets the document that was used for creating this
+        /// entry
+        /// </summary>
+        IDocument Document { get; }
     }
 }

@@ -1,5 +1,5 @@
 ﻿//
-//  Query.cs
+//  FullTextQueryRow.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -20,65 +20,15 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Text;
 
-using Couchbase.Lite.Querying;
+using Couchbase.Lite.DB;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
-using Newtonsoft.Json;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Querying
 {
-    public interface IQueryRow
-    {
-        string DocumentID { get; }
-
-        ulong Sequence { get; }
-
-        IDocument Document { get; }
-    }
-
-    public interface IFullTextQueryRow : IQueryRow
-    {
-        string FullTextMatched { get; }
-
-        uint MatchCount { get; }
-
-        Range GetTextRange(uint matchNumber);
-
-        uint GetTermIndex(uint matchNumber);
-    }
-
-    internal unsafe class QueryRow
-    {
-        protected readonly Database _db;
-
-        public string DocumentID { get; }
-
-        public ulong Sequence { get; set; }
-
-        public IDocument Document
-        {
-            get {
-                var retVal = _db.GetDocument(DocumentID);
-                Debug.Assert(retVal != null);
-                return retVal;
-            }
-        }
-
-        internal QueryRow(Database db, C4QueryEnumerator* enumerator)
-        {
-            _db = db;
-            DocumentID = enumerator->docID.CreateString();
-            Debug.Assert(DocumentID != null);
-            Sequence = enumerator->docSequence;
-        }
-    }
-
     internal sealed unsafe class FullTextQueryRow : QueryRow
     {
         private readonly C4Query* _query;
@@ -125,7 +75,7 @@ namespace Couchbase.Lite
                     throw new LiteCoreException(err);
                 }
 
-                byte* bytes = (byte *)rawText.buf;
+                byte* bytes = (byte*)rawText.buf;
                 return new Range(CharCountOfUTF8ByteRange(bytes, 0, start), CharCountOfUTF8ByteRange(bytes, start, length));
             }
         }
@@ -145,20 +95,7 @@ namespace Couchbase.Lite
                 return 0;
             }
 
-            return (uint)Encoding.UTF8.GetCharCount(bytes + start,(int) length);
-        }
-    }
-
-    public struct Range
-    {
-        public uint Start { get; }
-
-        public uint Length { get; }
-
-        public Range(uint start, uint length)
-        {
-            Start = start;
-            Length = length;
+            return (uint)Encoding.UTF8.GetCharCount(bytes + start, (int)length);
         }
     }
 }

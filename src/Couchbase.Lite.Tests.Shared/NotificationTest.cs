@@ -28,11 +28,17 @@ using Couchbase.Lite;
 using Couchbase.Lite.Support;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Test
 { 
     public class NotificationTest : TestCase
     {
+        public NotificationTest(ITestOutputHelper output) : base(output)
+        {
+
+        }
+
         [Fact]
         public async Task TestDatabaseNotification()
         {

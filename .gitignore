@@ -151,3 +151,4 @@ project.lock.json
 *.VC.db
 .vs/
 project.fragment.lock.json
+*.opendb

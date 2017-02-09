@@ -30,7 +30,7 @@ namespace Couchbase.Lite.Support
         public static void Activate(Context context)
         {
             InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(context));
-            InjectableCollection.RegisterImplementation<ILogger>(() => new DefaultLogger());
+            InjectableCollection.RegisterImplementation<ILogger>(() => new AndroidDefaultLogger());
         }
     }
 }

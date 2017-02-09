@@ -1,8 +1,12 @@
 ﻿using System;
 using System.IO;
 using Couchbase.Lite;
+using Couchbase.Lite.DB;
+using Couchbase.Lite.Logging;
 using FluentAssertions;
+using Test.Util;
 using Xunit;
+using Xunit.Abstractions;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
@@ -24,6 +28,7 @@ namespace Test
     public class TestCase : IDisposable
     {
         public const string DatabaseName = "testdb";
+        private readonly ITestOutputHelper _output;
 
         protected IDatabase Db { get; private set; }
 
@@ -41,10 +46,17 @@ namespace Test
         }
 #endif
 
-        public TestCase()
+        public TestCase(ITestOutputHelper output)
         {
+            Log.SetLogger(new XunitLogger(output));
+            _output = output;
             Database.Delete(DatabaseName, Directory);
             OpenDB();
+        }
+
+        protected void WriteLine(string line)
+        {
+            _output.WriteLine(line);
         }
 
         protected void OpenDB()

@@ -1,5 +1,5 @@
 ﻿//
-//  Property.cs
+//  QueryRow.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,41 +19,35 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
+using Couchbase.Lite.DB;
+using LiteCore.Interop;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Querying
 {
-    public sealed class PropertyChangedEventArgs : ComponentChangedEventArgs<Property>
+    internal unsafe class QueryRow
     {
+        protected readonly Database _db;
 
-    }
+        public string DocumentID { get; }
 
-    public sealed class Property : IModellable
-    {
-        public event EventHandler<PropertyChangedEventArgs> PropertyChanged;
+        public ulong Sequence { get; set; }
 
-        public string Name { get; }
-
-        public object Value { get; set; }
-
-        public bool Exists()
+        public IDocument Document
         {
-            throw new NotImplementedException();
+            get {
+                var retVal = _db.GetDocument(DocumentID);
+                Debug.Assert(retVal != null);
+                return retVal;
+            }
         }
 
-
-        public T AsModel<T>()
+        internal QueryRow(Database db, C4QueryEnumerator* enumerator)
         {
-            throw new NotImplementedException();
-        }
-
-        public void Set<T>(T model)
-        {
-            throw new NotImplementedException();
+            _db = db;
+            DocumentID = enumerator->docID.CreateString();
+            Debug.Assert(DocumentID != null);
+            Sequence = enumerator->docSequence;
         }
     }
 }

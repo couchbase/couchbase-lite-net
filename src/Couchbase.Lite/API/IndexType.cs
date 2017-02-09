@@ -1,5 +1,5 @@
 ﻿//
-//  IModellable.cs
+//  IndexType.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,18 +19,26 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
-    public interface IModellable
+    /// <summary>
+    /// A type setting for creating an index in a database
+    /// </summary>
+    public enum IndexType : uint
     {
-        T AsModel<T>();
+        /// <summary>
+        /// Creates an index on simple property values
+        /// </summary>
+        ValueIndex = C4IndexType.ValueIndex,
 
-        void Set<T>(T model);
+        /// <summary>
+        /// Creates a full text index
+        /// </summary>
+        FullTextIndex = C4IndexType.FullTextIndex,
+
+        // Not being included?
+        //GeoIndex = C4IndexType.GeoIndex
     }
 }

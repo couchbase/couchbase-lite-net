@@ -27,6 +27,7 @@ using Couchbase.Lite;
 using FluentAssertions;
 using Newtonsoft.Json;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Test
 {
@@ -39,7 +40,7 @@ namespace Test
 
         public TestModelReference Child { get; set; } = new TestModelReference();
 
-        public DocumentMetadata Metadata
+        public IDocumentMetadata Metadata
         {
             get; set;
         }
@@ -57,6 +58,11 @@ namespace Test
 
     public class ModelTest : TestCase
     {
+        public ModelTest(ITestOutputHelper output) : base(output)
+        {
+
+        }
+
         //[Fact]
         //public void TestModel()
         //{

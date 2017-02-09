@@ -33,57 +33,14 @@ using LiteCore.Interop;
 using LiteCore.Util;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.DB
 {
-    public sealed class DocumentChangedEventArgs : ComponentChangedEventArgs<IDocument>
-    {
-        
-    }
-
-    public sealed class DocumentSavedEventArgs : EventArgs
-    {
-        public bool IsExternal { get; }
-
-        internal DocumentSavedEventArgs(bool external)
-        {
-            IsExternal = external;
-        }
-    }
-
-    public interface IDocument : IPropertyContainer, IDisposable
-    {
-        event EventHandler<DocumentSavedEventArgs> Saved;
-
-        IDatabase Database { get; }
-
-        IConflictResolver ConflictResolver { get; set; }
-
-        string Id { get; }
-
-        bool IsDeleted { get; }
-
-        bool Exists { get; }
-
-        ulong Sequence { get; }
-
-        new IDocument Set(string key, object value);
-
-        void Save();
-
-        void Delete();
-
-        bool Purge();
-
-        void Revert();
-    }
-
     internal sealed unsafe class Document : PropertyContainer, IDocument //, IModellable
     {
         private const string Tag = nameof(Document);
 
         private C4Database* _c4db;
         private C4Document* _c4doc;
-        private readonly Database _database;
 
         public event EventHandler<DocumentSavedEventArgs> Saved;
 
@@ -93,17 +50,22 @@ namespace Couchbase.Lite
                 return _database;
             }
         }
+        private readonly Database _database;
 
-        public IConflictResolver ConflictResolver { get; set; }
-
-        private readonly string _id;
-        public string Id
+        public IConflictResolver ConflictResolver
         {
             get {
                 AssertSafety();
-                return _id;
+                return _conflictResolver;
+            }
+            set {
+                AssertSafety();
+                _conflictResolver = value;
             }
         }
+        private IConflictResolver _conflictResolver;
+        
+        public string Id { get; }
 
         public bool IsDeleted
         {
@@ -120,15 +82,8 @@ namespace Couchbase.Lite
                 return _c4doc->flags.HasFlag(C4DocumentFlags.Exists);
             }
         }
-
-        private readonly ulong _sequence;
-        public ulong Sequence
-        {
-            get {
-                AssertSafety();
-                return _sequence;
-            }
-        }
+        
+        public ulong Sequence { get; }
 
         private uint Generation
         {
@@ -151,7 +106,7 @@ namespace Couchbase.Lite
         internal Document(Database db, string docID, bool mustExist)
         {
             _database = db;
-            _id = docID;
+            Id = docID;
             _c4db = db.c4db;
             LoadDoc(mustExist);
         }
@@ -239,7 +194,7 @@ namespace Couchbase.Lite
 
         private void LoadDoc(bool mustExist)
         {
-            var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, _id, mustExist, err));
+            var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, Id, mustExist, err));
             SetC4Doc(doc);
         }
 
@@ -455,7 +410,7 @@ namespace Couchbase.Lite
 
         public override string ToString()
         {
-            return $"{GetType().Name}[{_id}]";
+            return $"{GetType().Name}[{Id}]";
         }
 
         internal override SharedStringCache GetSharedStrings()

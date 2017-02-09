@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 
+using Couchbase.Lite.DB;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 using LiteCore;

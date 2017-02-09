@@ -19,16 +19,9 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Support
 {
-    internal unsafe delegate void* PointerReturnDelegate();
-
     internal abstract class ThreadSafe : IThreadSafe
     {
         private readonly SerialQueue _serialQueue;

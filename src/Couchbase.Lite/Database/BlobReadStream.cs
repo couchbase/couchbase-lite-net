@@ -28,7 +28,7 @@ using System.Threading.Tasks;
 using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.DB
 {
     internal unsafe sealed class BlobReadStream : Stream
     {

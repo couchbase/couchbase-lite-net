@@ -1,5 +1,5 @@
 ﻿//
-//  Activate.cs
+//  IDocumentModel.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,21 +19,18 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
-
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite
 {
-    public static class UWP
+    /// <summary>
+    /// Using this interface, an arbitrary non-Couchbase class can become
+    /// the model for retrieving data
+    /// </summary>
+    public interface IDocumentModel
     {
-        public static void Activate()
-        {
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
-        }
+        /// <summary>
+        /// Gets or sets the metadata for the document (note:
+        /// this should only be set by the library)
+        /// </summary>
+        IDocumentMetadata Metadata { get; set; }
     }
 }

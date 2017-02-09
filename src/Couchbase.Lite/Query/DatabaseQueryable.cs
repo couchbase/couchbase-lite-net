@@ -19,32 +19,16 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
+
+using Couchbase.Lite.DB;
 using Couchbase.Lite.Linq;
 using Remotion.Linq;
 using Remotion.Linq.Parsing.Structure;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Querying
 {
-    public static class QueryableFactory
-    {
-        public static IQueryable<TElement> MakeQueryable<TElement>(IDatabase db) where TElement : class, IDocumentModel, new()
-        {
-            return new DatabaseQueryable<TElement>(db as Database);
-        }
-
-        internal static IQueryable<string> MakeDebugQueryable()
-        {
-            return new DatabaseDebugQueryable();
-        }
-    }
-
     internal sealed class DatabaseQueryable<TElement> : QueryableBase<TElement> where TElement : class, IDocumentModel, new()
     {
         public DatabaseQueryable(Database db)

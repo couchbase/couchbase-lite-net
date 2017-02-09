@@ -1,5 +1,5 @@
 ﻿//
-//  IThreadSafe.cs
+//  DatabaseChangedEventArgs.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,26 +19,37 @@
 //  limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An interface for an object that guarantees thread safety via
-    /// the use of dispatch queues
+    /// The parameters of a database changed event
     /// </summary>
-    public interface IThreadSafe
+    public sealed class DatabaseChangedEventArgs : EventArgs
     {
         /// <summary>
-        /// Gets the queue that is used for scheduling operations on
-        /// the object.  If operations are performed outside of this queue
-        /// for properties marked with <see cref="AccessMode.FromQueueOnly"/>
-        /// a <see cref="ThreadSafetyViolationException"/> will be thrown. 
+        /// Gets the document IDs of the changes that occurred
         /// </summary>
-        IDispatchQueue ActionQueue { get; }
+        public IList<string> DocIDs { get; }
 
         /// <summary>
-        /// Gets or sets the queue used for firing events from the object
+        /// Gets the last sequence checked before this event fired
         /// </summary>
-        IDispatchQueue CallbackQueue { get; set; }
+        public ulong LastSequence { get; }
+
+        /// <summary>
+        /// Gets whether or not this event was triggered by another 
+        /// <see cref="IDatabase"/> instnace.
+        /// </summary>
+        public bool External { get; }
+
+        internal DatabaseChangedEventArgs(IList<string> docIDs, ulong lastSequence, bool external)
+        {
+            DocIDs = docIDs;
+            LastSequence = lastSequence;
+            External = external;
+        }
     }
 }

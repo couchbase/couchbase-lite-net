@@ -1,5 +1,5 @@
 ﻿//
-//  IThreadSafe.cs
+//  IDocumentMetadata.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,26 +19,31 @@
 //  limitations under the License.
 //
 
-
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An interface for an object that guarantees thread safety via
-    /// the use of dispatch queues
+    /// An interface describing metadata for an <see cref="IModeledDocument{T}"/>
     /// </summary>
-    public interface IThreadSafe
+    public interface IDocumentMetadata
     {
         /// <summary>
-        /// Gets the queue that is used for scheduling operations on
-        /// the object.  If operations are performed outside of this queue
-        /// for properties marked with <see cref="AccessMode.FromQueueOnly"/>
-        /// a <see cref="ThreadSafetyViolationException"/> will be thrown. 
+        /// Gets the unique ID of the document
         /// </summary>
-        IDispatchQueue ActionQueue { get; }
+        string Id { get; }
 
         /// <summary>
-        /// Gets or sets the queue used for firing events from the object
+        /// Gets or sets the type of the document
         /// </summary>
-        IDispatchQueue CallbackQueue { get; set; }
+        string Type { get; set; }
+
+        /// <summary>
+        /// Gets whether or not the document is deleted
+        /// </summary>
+        bool IsDeleted { get; }
+
+        /// <summary>
+        /// Gets the unique sequence number of the document
+        /// </summary>
+        ulong Sequence { get; }
     }
 }

@@ -21,6 +21,8 @@
 using System;
 using System.Linq;
 using System.Text;
+using Couchbase.Lite.Util;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Logging
 {
@@ -131,11 +133,11 @@ namespace Couchbase.Lite.Logging
         private readonly object _object;
         private string _str;
 
-       /* private string String 
+        private string String 
         {
             get {
                 if(_str == null) {
-                    var str = Manager.GetObjectMapper().WriteValueAsString(_object);
+                    var str = JsonConvert.SerializeObject(_object);
                     if(str.Length > 100) {
                         _str = $"{new string(str.Take(100).ToArray())}...";
                     } else {
@@ -145,7 +147,7 @@ namespace Couchbase.Lite.Logging
 
                 return _str;
             }
-        }*/
+        }
 
         public SecureLogJsonString(object input, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
         {
@@ -163,7 +165,7 @@ namespace Couchbase.Lite.Logging
         private readonly Uri _uri;
         private string _str;
 
-        /*private string UriString
+        private string UriString
         {
             get {
                 if (_str == null) {
@@ -172,7 +174,7 @@ namespace Couchbase.Lite.Logging
 
                 return _str;
             }
-        }*/
+        }
 
         // Only used for stripping credentials, so always insecure
         public SecureLogUri(Uri uri) : base(LogMessageSensitivity.Insecure)

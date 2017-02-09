@@ -20,17 +20,12 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using Couchbase.Lite.DB;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
-using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace Couchbase.Lite.Serialization
 {
@@ -83,7 +78,7 @@ namespace Couchbase.Lite.Serialization
                 using(var writer = new JsonFLValueWriter(_db.c4db)) {
                     var settings = SerializerSettings;
 #if DEBUG
-                    var traceWriter = new MemoryTraceWriter();
+                    var traceWriter = new Newtonsoft.Json.Serialization.MemoryTraceWriter();
                     settings.TraceWriter = traceWriter;
 #endif
                     var serializer = JsonSerializer.CreateDefault(settings);
@@ -107,7 +102,7 @@ namespace Couchbase.Lite.Serialization
                 using(var reader = new JsonFLValueReader(value, _db.SharedStrings)) {
                     var settings = SerializerSettings;
 #if DEBUG
-                    var traceWriter = new MemoryTraceWriter();
+                    var traceWriter = new Newtonsoft.Json.Serialization.MemoryTraceWriter();
                     settings.TraceWriter = traceWriter;
 #endif
 

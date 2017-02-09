@@ -23,51 +23,14 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Serialization;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
-using Newtonsoft.Json;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.DB
 {
-    public interface IBlob
-    {
-        byte[] Content { get; }
-
-        Stream ContentStream { get; }
-
-        string ContentType { get; }
-
-        ulong Length { get; }
-
-        string Digest { get; }
-
-        IReadOnlyDictionary<string, object> Properties { get; }
-    }
-
-    public static class BlobFactory
-    {
-        public static IBlob Create(string contentType, byte[] content)
-        {
-            return new Blob(contentType, content);
-        }
-
-        public static IBlob Create(string contentType, Stream stream)
-        {
-            return new Blob(contentType, stream);
-        }
-
-        public static IBlob Create(string contentType, Uri fileUrl)
-        {
-            return new Blob(contentType, fileUrl);
-        }
-    }
-
     internal sealed unsafe class Blob : IBlob
     {
         private const string TypeMetaProperty = "_cbltype";
