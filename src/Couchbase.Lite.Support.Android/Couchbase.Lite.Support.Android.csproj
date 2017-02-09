@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -14,7 +14,8 @@
     <MonoAndroidResourcePrefix>Resources</MonoAndroidResourcePrefix>
     <MonoAndroidAssetsPrefix>Assets</MonoAndroidAssetsPrefix>
     <AndroidUseLatestPlatformSdk>true</AndroidUseLatestPlatformSdk>
-    <AndroidTlsProvider></AndroidTlsProvider>
+    <AndroidTlsProvider>
+    </AndroidTlsProvider>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -46,7 +47,7 @@
   <ItemGroup>
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Support\DefaultLogger.cs" />
+    <Compile Include="Support\AndroidDefaultLogger.cs" />
     <Compile Include="Support\DefaultDirectoryResolver.cs" />
     <Compile Include="Activate.cs" />
   </ItemGroup>
@@ -56,17 +57,15 @@
   <ItemGroup>
     <AndroidResource Include="Resources\values\Strings.xml" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <Folder Include="Support\" />
+    <EmbeddedNativeLibrary Include="x86\libsqlite3.so" />
+    <EmbeddedNativeLibrary Include="x86\libLiteCore.so" />
+    <EmbeddedNativeLibrary Include="armeabi-v7a\libsqlite3.so" />
+    <EmbeddedNativeLibrary Include="armeabi-v7a\libLiteCore.so" />
+    <EmbeddedNativeLibrary Include="arm64-v8a\libsqlite3.so" />
+    <EmbeddedNativeLibrary Include="arm64-v8a\libLiteCore.so" />
   </ItemGroup>
-	<ItemGroup>
-        <EmbeddedNativeLibrary Include="x86\libsqlite3.so" />
-		<EmbeddedNativeLibrary Include="x86\libLiteCore.so" />
-		<EmbeddedNativeLibrary Include="armeabi-v7a\libsqlite3.so" />
-        <EmbeddedNativeLibrary Include="armeabi-v7a\libLiteCore.so" />
-		<EmbeddedNativeLibrary Include="arm64-v8a\libsqlite3.so" />
-        <EmbeddedNativeLibrary Include="arm64-v8a\libLiteCore.so" />
-	</ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
       <Project>{1CF95F79-7649-4FDA-A888-73B5C69316FC}</Project>

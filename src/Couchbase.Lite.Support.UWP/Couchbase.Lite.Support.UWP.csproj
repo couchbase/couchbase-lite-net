@@ -110,7 +110,7 @@
     <Compile Include="Activate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Support\DefaultDirectoryResolver.cs" />
-    <Compile Include="Support\DefaultLogger.cs" />
+    <Compile Include="Support\UwpDefaultLogger.cs" />
     <EmbeddedResource Include="Properties\Couchbase.Lite.Support.UWP.rd.xml" />
   </ItemGroup>
   <ItemGroup>
