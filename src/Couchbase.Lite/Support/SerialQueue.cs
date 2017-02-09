@@ -129,13 +129,22 @@ namespace Couchbase.Lite.Support
                 DispatchAsync(() =>
                 {
                     asyncReady.Set();
-                    syncDone.Wait();
+                    try {
+                        syncDone.Wait();
+                    } catch(ObjectDisposedException) {
+                        // Swallow this, it means that the sync method finished
+                        // Entirely between the two above lines and already disposed
+                        // syncDone
+                    }
                 });
 
                 try {
                     _executingSync = true;
                     asyncReady.Wait();
                     a();
+                } catch(Exception e) {
+                    Log.To.TaskScheduling.W(Tag, "Exception during DispatchSync", e);
+                    throw; // Synchronous, so let the caller handle it
                 } finally {
                     _executingSync = oldExecuting;
                     syncDone.Set();
@@ -172,7 +181,7 @@ namespace Couchbase.Lite.Support
                         next.Action();
                         next.Tcs.SetResult(true);
                     } catch(Exception e) {
-                        Log.To.TaskScheduling.W(Tag, "Exception during DispatchAsync, sending to event...", e);
+                        Log.To.TaskScheduling.W(Tag, "Exception during DispatchAsync", e);
                         next.Tcs.TrySetException(e);
                     }
                 }
