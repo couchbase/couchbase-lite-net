@@ -21,12 +21,23 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Logging
 {
-    internal class DefaultLogger : ILogger
+    internal class DefaultLogger : ILogger, IDisposable
     {
+        private StreamWriter _writer;
+
+        public DefaultLogger()
+        {
+            var directory = Path.Combine(AppContext.BaseDirectory, "Logs");
+            Directory.CreateDirectory(directory);
+            _writer = new StreamWriter(File.Open(Path.Combine(directory, $"Log-{GetTimeStamp()}.txt"), FileMode.Create, FileAccess.Write, FileShare.Read));
+            _writer.AutoFlush = true;
+        }
+
         private string MakeMessage(string msg, Exception tr)
         {
             var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
@@ -49,9 +60,15 @@ namespace Couchbase.Lite.Logging
             return $"{level} {tag} {MakeMessage(msg, tr)}";
         }
 
+        private string GetTimeStamp()
+        {
+            var now = DateTime.Now;
+            return $"{now.Year:D4}{now.Month:D2}{now.Day:D2}-{now.Hour:D2}{now.Minute:D2}{now.Second:D2}{now.Millisecond:D3}";
+        }
+
         protected virtual void PerformWrite(string final)
         {
-            Debug.WriteLine(final);
+            _writer.WriteLine(final);
         }
 
         public void D(string tag, string msg)
@@ -142,6 +159,12 @@ namespace Couchbase.Lite.Logging
         {
             var line = MakeLine("WARN", tag, msg, tr);
             Task.Factory.StartNew(() => PerformWrite(line));
+        }
+
+        public void Dispose()
+        {
+            _writer?.Dispose();
+            _writer = null;
         }
     }
 }

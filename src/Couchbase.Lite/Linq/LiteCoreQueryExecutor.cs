@@ -45,8 +45,10 @@ namespace Couchbase.Lite.Linq
             visitor.VisitQueryModel(queryModel);
             var query = visitor.GetJsonQuery();
 
-            var queryObj = (C4Query *)LiteCoreBridge.Check(err => Native.c4query_new(_db.c4db, query, err));
-            return new LinqQueryEnumerable<T>(_db, queryObj, C4QueryOptions.Default, null);
+            return _db.ActionQueue.DispatchSync(() => {
+                var queryObj = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(_db.c4db, query, err));
+                return new LinqQueryEnumerable<T>(_db, queryObj, C4QueryOptions.Default, null);
+            });
         }
 
         public T ExecuteScalar<T>(QueryModel queryModel)

@@ -22,7 +22,7 @@
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An interface describing metadata for an <see cref="IModeledDocument{T}"/>
+    /// An interface describing metadata for an <see cref="IDocumentModel"/>
     /// </summary>
     public interface IDocumentMetadata
     {

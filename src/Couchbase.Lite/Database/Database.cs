@@ -108,15 +108,13 @@ namespace Couchbase.Lite.DB
         internal IJsonSerializer JsonSerializer
         {
             get {
-                AssertSafety();
                 if(_jsonSerializer == null) {
                     _jsonSerializer = Serializer.CreateDefaultFor(this);
                 }
 
                 return _jsonSerializer;
             }
-            set {
-                AssertSafety();
+            set { 
                 _jsonSerializer = value;
             }
         }
@@ -212,7 +210,7 @@ namespace Couchbase.Lite.DB
         {
             AssertSafety();
             CheckOpen();
-            LiteCoreBridge.Check(err => Native.c4db_beginTransaction(c4db, err));
+            LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
             var success = true;
             try {
                 success = a();
@@ -221,7 +219,7 @@ namespace Couchbase.Lite.DB
                 success = false;
                 throw;
             } finally {
-                LiteCoreBridge.Check(err => Native.c4db_endTransaction(c4db, success, err));
+                LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, success, err));
             }
 
             PostDatabaseChanged();

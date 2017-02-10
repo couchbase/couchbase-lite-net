@@ -77,17 +77,8 @@ namespace Couchbase.Lite.Serialization
             try {
                 using(var writer = new JsonFLValueWriter(_db.c4db)) {
                     var settings = SerializerSettings;
-#if DEBUG
-                    var traceWriter = new Newtonsoft.Json.Serialization.MemoryTraceWriter();
-                    settings.TraceWriter = traceWriter;
-#endif
                     var serializer = JsonSerializer.CreateDefault(settings);
                     serializer.Serialize(writer, obj);
-
-#if DEBUG
-                    Log.To.Database.D(Tag, "{0}", traceWriter);
-#endif
-
                     writer.Flush();
                     return writer.Result;
                 }
@@ -101,18 +92,8 @@ namespace Couchbase.Lite.Serialization
             try {
                 using(var reader = new JsonFLValueReader(value, _db.SharedStrings)) {
                     var settings = SerializerSettings;
-#if DEBUG
-                    var traceWriter = new Newtonsoft.Json.Serialization.MemoryTraceWriter();
-                    settings.TraceWriter = traceWriter;
-#endif
-
                     var serializer = JsonSerializer.CreateDefault(settings);
                     var retVal = serializer.Deserialize<T>(reader);
-
-#if DEBUG
-                    Log.To.Database.D(Tag, "{0}", traceWriter);
-#endif
-
                     if(retVal == null) {
                         retVal = Activator.CreateInstance<T>();
                     }

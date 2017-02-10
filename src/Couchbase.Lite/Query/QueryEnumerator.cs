@@ -175,7 +175,8 @@ namespace Couchbase.Lite.Querying
 
         protected override void SetCurrent(C4QueryEnumerator* enumerator)
         {
-            var doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_getBySequence(_db.c4db, enumerator->docSequence, err));
+            var doc = default(C4Document*);
+            _db.ActionQueue.DispatchSync(() => doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_getBySequence(_db.c4db, enumerator->docSequence, err)));
             try {
                 FLValue* value = NativeRaw.FLValue_FromTrustedData((FLSlice)doc->selectedRev.body);
                 Current = _db.JsonSerializer.Deserialize<T>(value);

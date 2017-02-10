@@ -52,15 +52,13 @@ namespace Couchbase.Lite.Support
         private object _executionLock = new object();
         private int _state;
         private int _currentProcessingThread;
-        private bool _executingSync;
 
         public int Count { get; private set; }
 
         internal bool IsInQueue
         {
             get {
-                return _executingSync ||
-                    Environment.CurrentManagedThreadId == _currentProcessingThread;
+                return Environment.CurrentManagedThreadId == _currentProcessingThread;
             }
         }
 
@@ -103,19 +101,19 @@ namespace Couchbase.Lite.Support
 
         public void DispatchSync(Action a)
         {
-            var oldExecuting = _executingSync;
             if(IsInQueue || State == SerialQueueState.Idle) {
                 // Nested call (or nothing is queued), so execute inline
-                _executingSync = true;
                 var lockTaken = false;
                 if(!IsInQueue) {
                     Monitor.Enter(_executionLock, ref lockTaken);
                 }
 
+                var oldThread = _currentProcessingThread;
+                _currentProcessingThread = Environment.CurrentManagedThreadId;
                 try {
                     a();
                 } finally {
-                    _executingSync = oldExecuting;
+                    _currentProcessingThread = oldThread;
                     if(lockTaken) {
                         Monitor.Exit(_executionLock);
                     }
@@ -138,15 +136,16 @@ namespace Couchbase.Lite.Support
                     }
                 });
 
-                try {
-                    _executingSync = true;
+                var oldThread = _currentProcessingThread;
+                try { 
                     asyncReady.Wait();
+                    _currentProcessingThread = Environment.CurrentManagedThreadId;
                     a();
                 } catch(Exception e) {
                     Log.To.TaskScheduling.W(Tag, "Exception during DispatchSync", e);
                     throw; // Synchronous, so let the caller handle it
                 } finally {
-                    _executingSync = oldExecuting;
+                    _currentProcessingThread = oldThread;
                     syncDone.Set();
                 }
             }
@@ -165,6 +164,7 @@ namespace Couchbase.Lite.Support
                 if(Debugger.IsAttached) {
                     Debugger.Break();
                 } else {
+                    Log.To.Database.E(Tag, $"Thread safety violation at {Environment.NewLine}{Environment.StackTrace}");
                     throw new ThreadSafetyViolationException();
                 }
             }
@@ -173,10 +173,12 @@ namespace Couchbase.Lite.Support
         private void ProcessAsync()
         {
             SerialQueueItem next;
+            var oldThread = _currentProcessingThread;
             while(_queue.TryDequeue(out next)) {
-                _currentProcessingThread = Environment.CurrentManagedThreadId;
+                
                 State = SerialQueueState.Processing;
                 lock(_executionLock) {
+                    _currentProcessingThread = Environment.CurrentManagedThreadId;
                     try {
                         next.Action();
                         next.Tcs.SetResult(true);
@@ -190,7 +192,7 @@ namespace Couchbase.Lite.Support
             }
 
             State = SerialQueueState.Idle;
-            _currentProcessingThread = 0;
+            _currentProcessingThread = oldThread;
         }
     }
 }
