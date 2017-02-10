@@ -23,8 +23,21 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// An interface for resolving a conflict in a document (i.e. two edits to the same
+    /// document at the same time)
+    /// </summary>
     public interface IConflictResolver
     {
+        /// <summary>
+        /// Resolves the conflict between the given items
+        /// </summary>
+        /// <param name="mine">The properties on the document that the local user created</param>
+        /// <param name="theirs">The properties on the document that exist from another edit</param>
+        /// <param name="baseProps">The properties as they were before either edit</param>
+        /// <returns>The resolved document properties, or <c>null</c> if the document cannot be resolved</returns>
+        /// <exception cref="LiteCore.LiteCoreException">Thrown if the method fails to resolve the document 
+        /// by returning null</exception>
         IDictionary<string, object> Resolve(IReadOnlyDictionary<string, object> mine,
             IReadOnlyDictionary<string, object> theirs, IReadOnlyDictionary<string, object> baseProps);
     }

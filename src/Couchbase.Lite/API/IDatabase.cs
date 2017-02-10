@@ -23,49 +23,129 @@ using System;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// An interface describing a Couchbase Lite database
+    /// </summary>
     public interface IDatabase : IThreadSafe, IDisposable
     {
+        /// <summary>
+        /// An event fired whenever the database changes
+        /// </summary>
         event EventHandler<DatabaseChangedEventArgs> Changed;
 
+        /// <summary>
+        /// Gets the name of the database
+        /// </summary>
         [AccessibilityMode(AccessMode.FromAnywhere)]
         string Name { get; }
 
+        /// <summary>
+        /// Gets the path on disk where the database exists
+        /// </summary>
         [AccessibilityMode(AccessMode.FromAnywhere)]
         string Path { get; }
 
+        /// <summary>
+        /// Gets the options that were used to create the database
+        /// </summary>
         [AccessibilityMode(AccessMode.FromAnywhere)]
         DatabaseOptions Options { get; }
 
+        /// <summary>
+        /// Gets or sets the conflict resolver to use when conflicts arise
+        /// </summary>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         IConflictResolver ConflictResolver { get; set; }
 
+        /// <summary>
+        /// Closes the database
+        /// </summary>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         void Close();
 
+        /// <summary>
+        /// Deletes the database
+        /// </summary>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         void Delete();
 
+        /// <summary>
+        /// Runs the given batch of operations as an atomic unit
+        /// </summary>
+        /// <param name="a">The <see cref="Func{T}"/> of <see cref="Boolean"/> containing the operations.  
+        /// This function should return <c>true</c>
+        /// on success and <c>false</c> on failure which will cause all the operations to be abandoned.</param>
+        /// <returns>The return value of <c>a</c></returns>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         bool InBatch(Func<bool> a);
 
+        /// <summary>
+        /// Creates a new <see cref="IDocument"/> with a unique ID
+        /// </summary>
+        /// <returns>The created document</returns>
         [AccessibilityMode(AccessMode.FromAnywhere)]
         IDocument CreateDocument();
 
+        IModeledDocument<T> CreateDocument<T>() where T : class, new();
+
+        /// <summary>
+        /// Gets or creates an <see cref="IDocument"/> with the specified ID
+        /// </summary>
+        /// <param name="id">The ID to use when creating or getting the document</param>
+        /// <returns>The instantiated </returns>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         IDocument GetDocument(string id);
 
+        IModeledDocument<T> GetDocument<T>(string id) where T : class, new();
+
+        /// <summary>
+        /// Checks if the <see cref="IDocument"/> with the given ID exists in the database
+        /// </summary>
+        /// <param name="documentID">The ID to check</param>
+        /// <returns><c>true</c> if the document exists, <c>false</c> otherwise</returns>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         bool DocumentExists(string documentID);
 
+        /// <summary>
+        /// Bracket operator for retrieving <see cref="IDocument"/>s
+        /// </summary>
+        /// <param name="id">The ID of the <see cref="IDocument"/> to retrieve</param>
+        /// <returns>The instantiated <see cref="IDocument"/></returns>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         IDocument this[string id] { get; }
 
+        /// <summary>
+        /// Creates an <see cref="IndexType.ValueIndex"/> index on the given path
+        /// </summary>
+        /// <param name="propertyPath">The path to create the index on</param>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         void CreateIndex(string propertyPath);
 
+        /// <summary>
+        /// Creates an index of the given <see cref="IndexType"/> with the given <see cref="IndexOptions"/>
+        /// on the given property path
+        /// </summary>
+        /// <param name="propertyPath">The property path to create the index on</param>
+        /// <param name="indexType">The type of index to create</param>
+        /// <param name="options">The options for creating the index</param>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         void CreateIndex(string propertyPath, IndexType indexType, IndexOptions options);
 
+        /// <summary>
+        /// Deletes an index of the given <see cref="IndexType"/> on the given propertyPath
+        /// </summary>
+        /// <param name="propertyPath">The path of the index to delete</param>
+        /// <param name="type">The type of the index to delete</param>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         void DeleteIndex(string propertyPath, IndexType type);
     }

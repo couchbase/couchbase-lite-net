@@ -23,8 +23,14 @@ using System;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// Arguments for the <see cref="IDocument.Saved"/> event
+    /// </summary>
     public sealed class DocumentSavedEventArgs : EventArgs
     {
+        /// <summary>
+        /// Gets whether or not another object triggered this event
+        /// </summary>
         public bool IsExternal { get; }
 
         internal DocumentSavedEventArgs(bool external)

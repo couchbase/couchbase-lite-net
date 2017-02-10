@@ -24,18 +24,39 @@ using System.IO;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// An interface describing a typed binary data object
+    /// </summary>
     public interface IBlob
     {
+        /// <summary>
+        /// Gets the content as an in memory array
+        /// </summary>
         byte[] Content { get; }
 
+        /// <summary>
+        /// Gets the content as a stream from the soruce
+        /// </summary>
         Stream ContentStream { get; }
 
+        /// <summary>
+        /// Gets the content type of the object (e.g. application/x-octet)
+        /// </summary>
         string ContentType { get; }
 
+        /// <summary>
+        /// Gets the length of the data contained in the object
+        /// </summary>
         ulong Length { get; }
 
+        /// <summary>
+        /// Gets the digest of the object
+        /// </summary>
         string Digest { get; }
 
+        /// <summary>
+        /// Gets the metadata about the object
+        /// </summary>
         IReadOnlyDictionary<string, object> Properties { get; }
     }
 }
