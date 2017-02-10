@@ -105,6 +105,8 @@ namespace Couchbase.Lite
                 new StorageEngineRule()
             });
 
+        private static readonly HashSet<string> _DeletionScheduled = new HashSet<string>();
+
         private CookieStore _persistentCookieStore;
 
         private IDictionary<string, BlobStoreWriter>    _pendingAttachmentsByDigest;
@@ -450,13 +452,17 @@ namespace Couchbase.Lite
         /// Thrown if an issue occurs while deleting the <see cref="Couchbase.Lite.Database" /></exception>
         public void Delete()
         {
-            Log.To.Database.I(Tag, "Deleting {0}", this);
-            Close().Wait();
-            if(!Exists()) {
-                return;
+            try {
+                _DeletionScheduled.Add(Name);
+                Log.To.Database.I(Tag, "Deleting {0}", this);
+                Close().Wait();
+                if(!Directory.Exists(DbDirectory)) {
+                    return;
+                }
+                Directory.Delete(DbDirectory, true);
+            } finally {
+                _DeletionScheduled.Remove(Name);
             }
-
-            Directory.Delete(DbDirectory, true);
         }
 
         /// <summary>
@@ -831,8 +837,7 @@ namespace Couchbase.Lite
                     }
                 }
 
-                ThreadPool.RegisterWaitForSingleObject(evt.WaitHandle, (state, timedOut) =>
-                {
+                ThreadPool.RegisterWaitForSingleObject(evt.WaitHandle, (state, timedOut) => {
                     ActiveReplicators.Release();
                     CloseStorage();
                     tcs.SetResult(!timedOut);
@@ -1172,7 +1177,7 @@ namespace Couchbase.Lite
 
         internal bool Exists()
         {
-            return Directory.Exists(DbDirectory);
+            return !_DeletionScheduled.Contains(Name) && Directory.Exists(DbDirectory);
         }
 
         internal static string MakeLocalDocumentId(string documentId)
@@ -1386,13 +1391,13 @@ namespace Couchbase.Lite
 
         internal string PrivateUUID()
         {
-            return Storage.GetInfo("privateUUID");
+            return Storage?.GetInfo("privateUUID");
         }
 
         // Used by the listener, do not remove
         internal string PublicUUID()
         {
-            return Storage.GetInfo("publicUUID");
+            return Storage?.GetInfo("publicUUID");
         }
 
         // This method is used by the SQLite plugin, at least
@@ -1988,6 +1993,8 @@ namespace Couchbase.Lite
         {
             var storage = Interlocked.Exchange(ref _storage, null);
             try {
+                DocumentCache = null;
+                Manager.ForgetDatabase(this);
                 storage?.Close();
             } catch(CouchbaseLiteException) {
                 Log.To.Database.E(Tag, "Failed to close database, rethrowing...");
@@ -1995,8 +2002,6 @@ namespace Couchbase.Lite
             } catch(Exception e) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag, "Exception while closing database");
             } finally {
-                DocumentCache = null;
-                Manager.ForgetDatabase(this);
                 _closingTask = null;
             }
         }
@@ -2005,6 +2010,10 @@ namespace Couchbase.Lite
         {
             if(IsOpen) {
                 return;
+            }
+
+            if(_DeletionScheduled.Contains(Name)) {
+                throw new CouchbaseLiteException(StatusCode.NotFound);
             }
 
             Log.To.Database.I(Tag, "Opening {0}", this);
@@ -2262,6 +2271,10 @@ namespace Couchbase.Lite
                 return null;
             }
 
+            if(DocumentCache == null) {
+                return null;
+            }
+
             var doc = DocumentCache.Get(docId);
             if(doc != null) {
                 if(mustExist && doc.CurrentRevision == null) {
@@ -2331,7 +2344,7 @@ namespace Couchbase.Lite
 
         public void DatabaseStorageChanged(DocumentChange change)
         {
-            if(change == null) {
+            if(change == null || !IsOpen) {
                 return;
             }
 

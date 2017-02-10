@@ -111,6 +111,7 @@ namespace Couchbase.Lite.Storage.ForestDB
         private SymmetricKey _encryptionKey;
         private LruCache<string, ForestDBViewStore> _views = new LruCache<string, ForestDBViewStore>(100);
         private AutoResetEvent _transactionEnd = new AutoResetEvent(false);
+        private object _closeLock = new object();
 
         #endregion
 
@@ -132,6 +133,10 @@ namespace Couchbase.Lite.Storage.ForestDB
         public int DocumentCount
         {
             get {
+                if(Forest == null) {
+                    return 0;
+                }
+
                 return (int)Native.c4db_getDocumentCount(Forest);
             }
         }
@@ -139,6 +144,10 @@ namespace Couchbase.Lite.Storage.ForestDB
         public long LastSequence
         {
             get {
+                if(Forest == null) {
+                    return 0L;
+                }
+
                 return (long)Native.c4db_getLastSequence(Forest);
             }
         }
@@ -146,6 +155,10 @@ namespace Couchbase.Lite.Storage.ForestDB
         public bool InTransaction
         {
             get {
+                if(Forest == null) {
+                    return false;
+                }
+
                 return Native.c4db_isInTransaction(Forest);
             }
         }
@@ -578,18 +591,25 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public void Close()
         {
+            var transactionCount = 0;
             IsOpen = false;
             var connections = _fdbConnections;
             _fdbConnections = new ConcurrentDictionary<int, IntPtr>();
             foreach(var ptr in connections) {
-                if(!Native.c4db_isInTransaction((C4Database*)ptr.Value)) {
-                    ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
-                    Native.c4db_free((C4Database*)ptr.Value.ToPointer());
-                } else {
-                    Log.To.Database.W(TAG, "Database connection still in a transaction, " +
-                                      "unable to close until it is finished.  Blocking!");
-                    _transactionEnd.WaitOne();
+                lock(_closeLock) {
+                    if(!Native.c4db_isInTransaction((C4Database*)ptr.Value)) {
+                        ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
+                        Native.c4db_free((C4Database*)ptr.Value.ToPointer());
+                    } else {
+                        Log.To.Database.W(TAG, "Database connection still in a transaction, " +
+                                            "unable to close until it is finished.  Blocking!");
+                        transactionCount++;
+                    }
                 }
+            }
+
+            while(transactionCount-- > 0) {
+                _transactionEnd.WaitOne();
             }
         }
 
@@ -630,12 +650,12 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public bool RunInTransaction(RunInTransactionDelegate block)
         {
-            var nativeDb = Forest;
+            var nativeDb = default(C4Database*);
+            nativeDb = Forest;
             if(nativeDb == null) {
                 Log.To.Database.W(TAG, "RunInTransaction called on a closed database, returning false...");
                 return false;
             }
-
             Log.To.Database.V(TAG, "BEGIN transaction...");
             try {
                 ForestDBBridge.Check(err => Native.c4db_beginTransaction(nativeDb, err));
@@ -1328,10 +1348,10 @@ namespace Couchbase.Lite.Storage.ForestDB
             C4Document* doc = null;
             var putRev = default(RevisionInternal);
             var change = default(DocumentChange);
+            var nativeDb = Forest;
             var success = RunInTransaction(() =>
             {
                 try {
-                    
                     var docId = inDocId;
                     var prevRevId = inPrevRevId;
 
@@ -1341,7 +1361,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                         // https://github.com/couchbase/couchbase-lite-net/issues/749
                         // Need to ensure revpos is correct for a revision inserted on top
                         // of a deletion
-                        var existing = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_getForPut(Forest, docId, prevRevId?.ToString(), deleting,
+                        var existing = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_getForPut(nativeDb, docId, prevRevId?.ToString(), deleting,
                             allowConflict, err));
 
                         if(existing->IsDeleted) {
@@ -1352,6 +1372,8 @@ namespace Couchbase.Lite.Storage.ForestDB
                                 }
                             }
                         }
+
+                        Native.c4doc_free(existing);
                     }
 
                     var json = default(string);
@@ -1376,7 +1398,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                     doc = (C4Document*)ForestDBBridge.Check(err =>
                     {
                         UIntPtr tmp;
-                        var retVal = Native.c4doc_put(Forest, rq, &tmp, err);
+                        var retVal = Native.c4doc_put(nativeDb, rq, &tmp, err);
                         commonAncestorIndex = tmp;
                         return retVal;
                     });

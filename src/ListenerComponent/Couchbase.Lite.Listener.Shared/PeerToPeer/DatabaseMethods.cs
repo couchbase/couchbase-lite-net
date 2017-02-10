@@ -640,8 +640,8 @@ namespace Couchbase.Lite.Listener
             Func<Database, CouchbaseLiteResponse> action) 
         {
             string dbName = context.DatabaseName;
-            Database db = context.DbManager.GetDatabase(dbName, false);
-            if (db == null || !db.Exists()) {
+            Database db = context.DbManager.GetDatabase(dbName, true);
+            if (db == null) {
                 return context.CreateResponse(StatusCode.NotFound);
             }
 
