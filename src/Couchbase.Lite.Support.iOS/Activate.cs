@@ -19,8 +19,11 @@
 // limitations under the License.
 //
 using System;
+using System.IO;
 
 using Couchbase.Lite.Logging;
+using Foundation;
+using ObjCRuntime;
 
 namespace Couchbase.Lite.Support
 {
@@ -28,8 +31,26 @@ namespace Couchbase.Lite.Support
     {
         public static void Activate()
         {
+            Console.WriteLine("Loading support items");
             InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
             InjectableCollection.RegisterImplementation<ILogger>(() => new iOSDefaultLogger());
+
+            Console.WriteLine("Loading libLiteCore.dylib");
+            var dylibPath = Path.Combine(NSBundle.MainBundle.BundlePath, "libLiteCore.dylib");
+            if(!File.Exists(dylibPath)) {
+                Console.WriteLine("Failed to find libLiteCore.dylib, nothing is going to work!");
+            }
+
+            var loaded = ObjCRuntime.Dlfcn.dlopen(dylibPath, 0);
+            if(loaded == IntPtr.Zero) {
+                Console.WriteLine("Failed to load libLiteCore.dylib, nothing is going to work!");
+                var error = ObjCRuntime.Dlfcn.dlerror();
+                if(String.IsNullOrEmpty(error)) {
+                    Console.WriteLine("dlerror() was empty; most likely missing architecture");
+                } else {
+                    Console.WriteLine($"Error: {error}");
+                }
+            }
         }
     }
 }

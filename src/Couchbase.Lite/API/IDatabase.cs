@@ -90,8 +90,6 @@ namespace Couchbase.Lite
         [AccessibilityMode(AccessMode.FromAnywhere)]
         IDocument CreateDocument();
 
-        IModeledDocument<T> CreateDocument<T>() where T : class, new();
-
         /// <summary>
         /// Gets or creates an <see cref="IDocument"/> with the specified ID
         /// </summary>
@@ -100,8 +98,6 @@ namespace Couchbase.Lite
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         IDocument GetDocument(string id);
-
-        IModeledDocument<T> GetDocument<T>(string id) where T : class, new();
 
         /// <summary>
         /// Checks if the <see cref="IDocument"/> with the given ID exists in the database
