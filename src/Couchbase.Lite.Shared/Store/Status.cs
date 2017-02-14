@@ -275,6 +275,7 @@ namespace Couchbase.Lite
             { StatusCode.AttachmentError, Tuple.Create(500, "Attachment store error") },
             { StatusCode.CallbackError, Tuple.Create(500, "Application callback block failed") },
             { StatusCode.Exception, Tuple.Create(500, "Internal error") },
+            { StatusCode.InternalServerError, Tuple.Create(500, "Internal error") },
             { StatusCode.DbBusy, Tuple.Create(500, "Database locked") }
         };
 
