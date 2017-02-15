@@ -31,6 +31,8 @@ namespace Couchbase.Lite
     /// </summary>
     public static class BlobFactory
     {
+        #region Public Methods
+
         /// <summary>
         /// Creates an <see cref="IBlob" /> given a type and in memory content
         /// </summary>
@@ -73,5 +75,7 @@ namespace Couchbase.Lite
         {
             return new Blob(contentType, fileUrl);
         }
+
+        #endregion
     }
 }

@@ -28,10 +28,14 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IDocument : IPropertyContainer, IDisposable
     {
+        #region Properties
+
         /// <summary>
-        /// An event that is fired when the document is saved
+        /// Gets or sets the <see cref="IConflictResolver"/> that should resolve conflicts for this document
         /// </summary>
-        event EventHandler<DocumentSavedEventArgs> Saved;
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
+        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        IConflictResolver ConflictResolver { get; set; }
 
         /// <summary>
         /// Gets the <see cref="IDatabase"/> that owns this document
@@ -40,11 +44,11 @@ namespace Couchbase.Lite
         IDatabase Database { get; }
 
         /// <summary>
-        /// Gets or sets the <see cref="IConflictResolver"/> that should resolve conflicts for this document
+        /// Gets whether or not this document exists (i.e. has been persisted)
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
-        IConflictResolver ConflictResolver { get; set; }
+        bool Exists { get; }
 
         /// <summary>
         /// Gets the unique ID of this document
@@ -60,34 +64,14 @@ namespace Couchbase.Lite
         bool IsDeleted { get; }
 
         /// <summary>
-        /// Gets whether or not this document exists (i.e. has been persisted)
-        /// </summary>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
-        bool Exists { get; }
-
-        /// <summary>
         /// Gets the sequence number of this document
         /// </summary>
         [AccessibilityMode(AccessMode.FromAnywhere)]
         ulong Sequence { get; }
 
-        /// <summary>
-        /// Sets the given key to the given value in this document
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>The same <see cref="IDocument"/> object for chaining</returns>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
-        new IDocument Set(string key, object value);
+        #endregion
 
-        /// <summary>
-        /// Saves the document to disk
-        /// </summary>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
-        void Save();
+        #region Public Methods
 
         /// <summary>
         /// Deletes the document
@@ -110,5 +94,29 @@ namespace Couchbase.Lite
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         void Revert();
+
+        /// <summary>
+        /// Saves the document to disk
+        /// </summary>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
+        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        void Save();
+
+        /// <summary>
+        /// An event that is fired when the document is saved
+        /// </summary>
+        event EventHandler<DocumentSavedEventArgs> Saved;
+
+        /// <summary>
+        /// Sets the given key to the given value in this document
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The same <see cref="IDocument"/> object for chaining</returns>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
+        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        new IDocument Set(string key, object value);
+
+        #endregion
     }
 }

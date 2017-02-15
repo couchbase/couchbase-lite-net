@@ -29,6 +29,8 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IConflictResolver
     {
+        #region Public Methods
+
         /// <summary>
         /// Resolves the conflict between the given items
         /// </summary>
@@ -40,5 +42,7 @@ namespace Couchbase.Lite
         /// by returning null</exception>
         IDictionary<string, object> Resolve(IReadOnlyDictionary<string, object> mine,
             IReadOnlyDictionary<string, object> theirs, IReadOnlyDictionary<string, object> baseProps);
+
+        #endregion
     }
 }

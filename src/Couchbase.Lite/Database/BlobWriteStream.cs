@@ -20,21 +20,22 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 using LiteCore;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
-    internal unsafe sealed class BlobWriteStream : Stream
+    internal sealed unsafe class BlobWriteStream : Stream
     {
+        #region Variables
+
         private C4WriteStream* _writeStream;
 
-        public C4BlobKey Key { get; private set; }
+        #endregion
+
+        #region Properties
 
         public override bool CanRead
         {
@@ -57,6 +58,8 @@ namespace Couchbase.Lite
             }
         }
 
+        public C4BlobKey Key { get; private set; }
+
         public override long Length
         {
             get {
@@ -75,9 +78,23 @@ namespace Couchbase.Lite
             }
         }
 
+        #endregion
+
+        #region Constructors
+
         public BlobWriteStream(C4BlobStore* store)
         {
             _writeStream = (C4WriteStream*)LiteCoreBridge.Check(err => Native.c4blob_openWriteStream(store, err));
+        }
+
+        #endregion
+
+        #region Overrides
+
+        protected override void Dispose(bool disposing)
+        {
+            Native.c4stream_closeWriter(_writeStream);
+            _writeStream = null;
         }
 
         public override void Flush()
@@ -106,10 +123,6 @@ namespace Couchbase.Lite
             LiteCoreBridge.Check(err => Native.c4stream_write(_writeStream, buffer, err));
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            Native.c4stream_closeWriter(_writeStream);
-            _writeStream = null;
-        }
+        #endregion
     }
 }

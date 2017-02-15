@@ -28,6 +28,7 @@ namespace Couchbase.Lite
     /// </summary>
     public static class DatabaseFactory
     {
+        #region Public Methods
 
         /// <summary>
         /// Creates an <see cref="IDatabase"/> instance with the given name.  Internally
@@ -68,11 +69,12 @@ namespace Couchbase.Lite
         /// colon character (:) that is not part of a drive label ("C:\")</exception>
         /// <exception cref="System.ArgumentException"><c>name</c> contains invalid characters</exception> 
         /// <exception cref="System.IO.InvalidDataException"><see cref="DatabaseOptions.EncryptionKey"/> contains
-        /// an invalid object for creating a <see cref="Couchbase.Lite.Crypto.SymmetricKey" /> </exception> 
+        /// an invalid object for creating a <see cref="SymmetricKey" /> </exception> 
         /// <exception cref="LiteCore.LiteCoreException">An error occurred during LiteCore interop</exception>
         public static IDatabase Create(string name, DatabaseOptions options)
         {
-            return new Database(name, options);
+            var retVal = new Database(name, options);
+            return retVal;
         }
 
         /// <summary>
@@ -95,6 +97,20 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Checks if underlying data exists for a given database in the given directory.
+        /// A <c>null</c> directory will check the library default directory for the platform
+        /// </summary>
+        /// <param name="name">The name of the database to check for</param>
+        /// <param name="directory">The directory to check in</param>
+        /// <returns><c>true</c> if data exists, <c>false</c> otherwise</returns>
+        /// <exception cref="System.ArgumentNullException"><c>name</c> is <c>null</c></exception>
+        /// <exception cref="System.ArgumentException"><c>name</c> contains invalid characters</exception> 
+        public static bool DatabaseExists(string name, string directory)
+        {
+            return Database.Exists(name, directory);
+        }
+
+        /// <summary>
         /// Deletes underlying data for a given database given the database name and directory
         /// (from <see cref="DatabaseOptions.Directory"/>).  Useful for deleting a database
         /// that cannot be otherwise opened (e.g. encryption key forgotten) but 
@@ -111,18 +127,6 @@ namespace Couchbase.Lite
             Database.Delete(name, directory);
         }
 
-        /// <summary>
-        /// Checks if underlying data exists for a given database in the given directory.
-        /// A <c>null</c> directory will check the library default directory for the platform
-        /// </summary>
-        /// <param name="name">The name of the database to check for</param>
-        /// <param name="directory">The directory to check in</param>
-        /// <returns><c>true</c> if data exists, <c>false</c> otherwise</returns>
-        /// <exception cref="System.ArgumentNullException"><c>name</c> is <c>null</c></exception>
-        /// <exception cref="System.ArgumentException"><c>name</c> contains invalid characters</exception> 
-        public static bool DatabaseExists(string name, string directory)
-        {
-            return Database.Exists(name, directory);
-        }
+        #endregion
     }
 }

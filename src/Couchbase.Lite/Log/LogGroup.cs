@@ -24,9 +24,15 @@ using System.Linq;
 
 namespace Couchbase.Lite.Logging
 {
-    internal sealed class LogGroup : IDomainLogging, IEnumerable<IDomainLogging>
+    internal sealed class LogGroup : IDomainLogging
     {
+        #region Variables
+
         private readonly IEnumerable<IDomainLogging> _components;
+
+        #endregion
+
+        #region Properties
 
         public string Domain { get; }
 
@@ -34,7 +40,7 @@ namespace Couchbase.Lite.Logging
         {
             get {
                 var tmp = _components.FirstOrDefault();
-                return tmp == null ? Log.LogLevel.None : tmp.Level;
+                return tmp?.Level ?? Log.LogLevel.None;
             }
             set { 
                 foreach (var component in _components) {
@@ -43,22 +49,32 @@ namespace Couchbase.Lite.Logging
             }
         }
 
+        #endregion
+
+        #region Constructors
+
         internal LogGroup(params IDomainLogging[] components)
         {
             _components = components;
             Domain = components.Aggregate(String.Empty, (l, r) => $"{l},{r.Domain}");
         }
-        
-        #region IEnumerable implementation
 
-        public IEnumerator<IDomainLogging> GetEnumerator()
-        {
-            return _components.GetEnumerator();
-        }
+        #endregion
+
+        #region IEnumerable
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        #endregion
+
+        #region IEnumerable<IDomainLogging>
+
+        public IEnumerator<IDomainLogging> GetEnumerator()
+        {
+            return _components.GetEnumerator();
         }
 
         #endregion

@@ -20,9 +20,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite
@@ -33,11 +30,7 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IDispatchQueue
     {
-        /// <summary>
-        /// Scheduled the given <see cref="Action"/> and waits for it to complete
-        /// </summary>
-        /// <param name="a">The  <see cref="Action"/> to schedule</param>
-        void DispatchSync(Action a);
+        #region Public Methods
 
         /// <summary>
         /// Schedules the given <see cref="Action"/>
@@ -47,32 +40,43 @@ namespace Couchbase.Lite
         Task DispatchAsync(Action a);
 
         /// <summary>
-        /// Schedules the given <see cref="Func{T}"/>, waits for it to complete
-        /// and returns the result of the action
-        /// </summary>
-        /// <typeparam name="T">The return type of the operation</typeparam>
-        /// <param name="f">The <see cref="Func{T}"/> to schedule</param>
-        /// <returns>The result of the <see cref="Func{T}"/></returns>
-        TResult DispatchSync<TResult>(Func<TResult> f);
-
-        /// <summary>
         /// Schedules the given <see cref="Func{T}"/>
         /// </summary>
         /// <typeparam name="TResult">The retuyrn type of the operation</typeparam>
         /// <param name="f">The <see cref="Func{T}"/> to schedule</param>
         /// <returns>A <see cref="Task{TResult}"/> object representing the scheduled <see cref="Func{T}"/></returns>
         Task<TResult> DispatchAsync<TResult>(Func<TResult> f);
+
+        /// <summary>
+        /// Scheduled the given <see cref="Action"/> and waits for it to complete
+        /// </summary>
+        /// <param name="a">The  <see cref="Action"/> to schedule</param>
+        void DispatchSync(Action a);
+
+        /// <summary>
+        /// Schedules the given <see cref="Func{T}"/>, waits for it to complete
+        /// and returns the result of the action
+        /// </summary>
+        /// <typeparam name="TResult">The return type of the operation</typeparam>
+        /// <param name="f">The <see cref="Func{T}"/> to schedule</param>
+        /// <returns>The result of the <see cref="Func{T}"/></returns>
+        TResult DispatchSync<TResult>(Func<TResult> f);
+
+        #endregion
     }
 
     /// <summary>
     /// A class containing common IDispatchQueue operations
     /// </summary>
-    public static class IDispatchQueueExtensions
+    public static class DispatchQueueExtensions
     {
+        #region Public Methods
+
         /// <summary>
         /// Schedules the given <see cref="Action"/> after waiting 
         /// the given amount of time
         /// </summary>
+        /// <param name="queue">The queue to operate on</param>
         /// <param name="a">The <see cref="Action"/> to schedule</param>
         /// <param name="time">The delay to use before scheduling</param>
         /// <returns>A <see cref="Task"/> object representing the scheduled <see cref="Action"/></returns>
@@ -86,6 +90,7 @@ namespace Couchbase.Lite
         /// the given amount of time
         /// </summary>
         /// <typeparam name="TResult">The return type of the operation</typeparam>
+        /// <param name="queue">The queue to oeprate on</param>
         /// <param name="f">The <see cref="Func{T}"/> to schedule</param>
         /// <param name="time">The delay to use before scheduling</param>
         /// <returns>A <see cref="Task{TResult}"/> object representing the scheduled <see cref="Func{T}"/></returns>
@@ -93,5 +98,7 @@ namespace Couchbase.Lite
         {
             return Task.Delay(time).ContinueWith(t => queue.DispatchSync(f));
         }
+
+        #endregion
     }
 }

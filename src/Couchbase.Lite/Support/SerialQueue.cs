@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -32,26 +33,23 @@ namespace Couchbase.Lite.Support
     // Inspired by https://github.com/borland/SerialQueue
     internal sealed class SerialQueue : IDispatchQueue
     {
-        private class SerialQueueItem
-        {
-            public Action Action;
-
-            public TaskCompletionSource<bool> Tcs;
-        }
-
-        private enum SerialQueueState
-        {
-            Idle,
-            Scheduled,
-            Processing
-        }
+        #region Constants
 
         private const string Tag = nameof(SerialQueue);
 
+        #endregion
+
+        #region Variables
+
+        private readonly object _executionLock = new object();
+
         private readonly ConcurrentQueue<SerialQueueItem> _queue = new ConcurrentQueue<SerialQueueItem>();
-        private object _executionLock = new object();
-        private int _state;
         private int _currentProcessingThread;
+        private int _state;
+
+        #endregion
+
+        #region Properties
 
         public int Count { get; private set; }
 
@@ -71,6 +69,56 @@ namespace Couchbase.Lite.Support
                 _state = (int)value;
             }
         }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal void AssertInQueue()
+        {
+            if(!IsInQueue) {
+                if(Debugger.IsAttached) {
+                    Debugger.Break();
+                } else {
+                    Log.To.Database.E(Tag, $"Thread safety violation at {Environment.NewLine}{Environment.StackTrace}");
+                    throw new ThreadSafetyViolationException();
+                }
+            }
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private void ProcessAsync()
+        {
+            SerialQueueItem next;
+            var oldThread = _currentProcessingThread;
+            while(_queue.TryDequeue(out next)) {
+                
+                State = SerialQueueState.Processing;
+                lock(_executionLock) {
+                    _currentProcessingThread = Environment.CurrentManagedThreadId;
+                    try {
+                        next.Action();
+                        next.Tcs.SetResult(true);
+                    } catch(Exception e) {
+                        Log.To.TaskScheduling.W(Tag, "Exception during DispatchAsync", e);
+                        next.Tcs.TrySetException(e);
+                    } finally {
+                        _currentProcessingThread = oldThread;
+                    }
+                }
+
+                Count--;
+            }
+
+            State = SerialQueueState.Idle;
+        }
+
+        #endregion
+
+        #region IDispatchQueue
 
         public Task DispatchAsync(Action a)
         {
@@ -99,13 +147,15 @@ namespace Couchbase.Lite.Support
             return tcs.Task;
         }
 
+        [SuppressMessage("ReSharper", "AccessToDisposedClosure", Justification = "The locking mechanism will assure that the block is executed before the using statement ends")]
         public void DispatchSync(Action a)
         {
             if(IsInQueue || State == SerialQueueState.Idle) {
                 // Nested call (or nothing is queued), so execute inline
                 var lockTaken = false;
                 if(!IsInQueue) {
-                    Monitor.Enter(_executionLock, ref lockTaken);
+                    Monitor.Enter(_executionLock);
+                    lockTaken = true;
                 }
 
                 var oldThread = _currentProcessingThread;
@@ -158,41 +208,28 @@ namespace Couchbase.Lite.Support
             return retVal;
         }
 
-        internal void AssertInQueue()
+        #endregion
+
+        #region Nested
+
+        private class SerialQueueItem
         {
-            if(!IsInQueue) {
-                if(Debugger.IsAttached) {
-                    Debugger.Break();
-                } else {
-                    Log.To.Database.E(Tag, $"Thread safety violation at {Environment.NewLine}{Environment.StackTrace}");
-                    throw new ThreadSafetyViolationException();
-                }
-            }
+            #region Variables
+
+            public Action Action;
+
+            public TaskCompletionSource<bool> Tcs;
+
+            #endregion
         }
 
-        private void ProcessAsync()
+        private enum SerialQueueState
         {
-            SerialQueueItem next;
-            var oldThread = _currentProcessingThread;
-            while(_queue.TryDequeue(out next)) {
-                
-                State = SerialQueueState.Processing;
-                lock(_executionLock) {
-                    _currentProcessingThread = Environment.CurrentManagedThreadId;
-                    try {
-                        next.Action();
-                        next.Tcs.SetResult(true);
-                    } catch(Exception e) {
-                        Log.To.TaskScheduling.W(Tag, "Exception during DispatchAsync", e);
-                        next.Tcs.TrySetException(e);
-                    }
-                }
-
-                Count--;
-            }
-
-            State = SerialQueueState.Idle;
-            _currentProcessingThread = oldThread;
+            Idle,
+            Scheduled,
+            Processing
         }
+
+        #endregion
     }
 }

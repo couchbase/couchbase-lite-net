@@ -31,24 +31,38 @@ namespace Couchbase.Lite.Serialization
 {
     internal sealed unsafe class JsonFLValueReader : JsonReader
     {
-        private const string Tag = nameof(JsonFLValueReader);
-        private enum NextActionCode
-        {
-            ReadValue,
-            ReadObjectKey,
-            EndObject,
-            EndArray
-        }
+        #region Constants
 
-        private Stack<object> _sequenceStack = new Stack<object>();
-        private FLValue* _currentValue;
+        private const string Tag = nameof(JsonFLValueReader);
+
+        #endregion
+
+        #region Variables
+
+        private readonly Stack<object> _sequenceStack = new Stack<object>();
         private readonly SharedStringCache _stringCache;
+        private FLValue* _currentValue;
         private bool _inValue;
+
+        #endregion
+
+        #region Constructors
 
         public JsonFLValueReader(FLValue *root, SharedStringCache stringCache)
         {
             _currentValue = root;
             _stringCache = stringCache;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private void BeginArray(FLArray* a)
+        {
+            FLArrayIterator i;
+            Native.FLArrayIterator_Begin(a, &i);
+            _sequenceStack.Push(i);
         }
 
         private void BeginObject(FLDict* d)
@@ -58,11 +72,19 @@ namespace Couchbase.Lite.Serialization
             _sequenceStack.Push(i);
         }
 
-        private void BeginArray(FLArray* a)
+        private string GetKey()
         {
-            FLArrayIterator i;
-            Native.FLArrayIterator_Begin(a, &i);
-            _sequenceStack.Push(i);
+            string key;
+            if(Native.FLValue_GetType(_currentValue) == FLValueType.Number) {
+                key = _stringCache.GetKey((int)Native.FLValue_AsInt(_currentValue));
+                if(key == null) {
+                    Log.To.Database.W(Tag, "Corrupt key found during deserialization, skipping...");
+                }
+            } else {
+                key = Native.FLValue_AsString(_currentValue);
+            }
+
+            return key;
         }
 
         private NextActionCode NextAction()
@@ -107,20 +129,9 @@ namespace Couchbase.Lite.Serialization
             }
         }
 
-        private string GetKey()
-        {
-            var key = default(string);
-            if(Native.FLValue_GetType(_currentValue) == FLValueType.Number) {
-                key = _stringCache.GetKey((int)Native.FLValue_AsInt(_currentValue));
-                if(key == null) {
-                    Log.To.Database.W(Tag, "Corrupt key found during deserialization, skipping...");
-                }
-            } else {
-                key = Native.FLValue_AsString(_currentValue);
-            }
+        #endregion
 
-            return key;
-        }
+        #region Overrides
 
         public override bool Read()
         {
@@ -176,7 +187,6 @@ namespace Couchbase.Lite.Serialization
                         case FLValueType.String:
                             SetToken(JsonToken.String, Native.FLValue_AsString(_currentValue));
                             break;
-                        case FLValueType.Undefined:
                         default:
                             return false;
                     }
@@ -230,5 +240,19 @@ namespace Couchbase.Lite.Serialization
 
             throw new LiteCoreException(new C4Error(FLError.EncodeError));
         }
+
+        #endregion
+
+        #region Nested
+
+        private enum NextActionCode
+        {
+            ReadValue,
+            ReadObjectKey,
+            EndObject,
+            EndArray
+        }
+
+        #endregion
     }
 }

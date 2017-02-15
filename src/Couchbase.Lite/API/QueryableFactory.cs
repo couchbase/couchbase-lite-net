@@ -31,10 +31,12 @@ namespace Couchbase.Lite
     /// </summary>
     public static class QueryableFactory
     {
+        #region Public Methods
+
         /// <summary>
         /// Creates an <see cref="IQueryable{T}"/> instance based on the given database
         /// </summary>
-        /// <typeparam name="TElement">The type of element to return from the query</typeparam>
+        /// <typeparam name="T">The type of element to return from the query</typeparam>
         /// <param name="db">The database to operate on</param>
         /// <returns>The instantiated <see cref="IQueryable{T}"/> instance</returns>
         public static IQueryable<T> MakeQueryable<T>(IDatabase db) where T : class, IDocumentModel, new()
@@ -42,9 +44,15 @@ namespace Couchbase.Lite
             return new DatabaseQueryable<T>(db as Database);
         }
 
+        #endregion
+
+        #region Internal Methods
+
         internal static IQueryable<string> MakeDebugQueryable()
         {
             return new DatabaseDebugQueryable();
         }
+
+        #endregion
     }
 }

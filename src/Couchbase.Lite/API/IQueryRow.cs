@@ -28,6 +28,14 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IQueryRow
     {
+        #region Properties
+
+        /// <summary>
+        /// Gets the document that was used for creating this
+        /// entry
+        /// </summary>
+        IDocument Document { get; }
+
         /// <summary>
         /// Gets the ID of the document that was used for 
         /// creating this entry
@@ -40,10 +48,6 @@ namespace Couchbase.Lite
         /// </summary>
         ulong Sequence { get; }
 
-        /// <summary>
-        /// Gets the document that was used for creating this
-        /// entry
-        /// </summary>
-        IDocument Document { get; }
+        #endregion
     }
 }

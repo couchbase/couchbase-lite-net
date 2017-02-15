@@ -20,20 +20,24 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 using LiteCore;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.DB
 {
-    internal unsafe sealed class BlobReadStream : Stream
+    internal sealed unsafe class BlobReadStream : Stream
     {
-        private C4ReadStream* _readStream;
+        #region Variables
+
+        private long _length = -1;
         private long _position;
+        private C4ReadStream* _readStream;
+
+        #endregion
+
+        #region Properties
 
         public override bool CanRead
         {
@@ -56,7 +60,6 @@ namespace Couchbase.Lite.DB
             }
         }
 
-        private long _length = -1;
         public override long Length
         {
             get {
@@ -87,9 +90,23 @@ namespace Couchbase.Lite.DB
             }
         }
 
+        #endregion
+
+        #region Constructors
+
         public BlobReadStream(C4BlobStore *store, C4BlobKey key)
         {
             _readStream = (C4ReadStream*)LiteCoreBridge.Check(err => Native.c4blob_openReadStream(store, key, err));
+        }
+
+        #endregion
+
+        #region Overrides
+
+        protected override void Dispose(bool disposing)
+        {
+            Native.c4stream_close(_readStream);
+            _readStream = null;
         }
 
         public override void Flush()
@@ -151,10 +168,6 @@ namespace Couchbase.Lite.DB
             throw new NotSupportedException();
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            Native.c4stream_close(_readStream);
-            _readStream = null;
-        }
+        #endregion
     }
 }

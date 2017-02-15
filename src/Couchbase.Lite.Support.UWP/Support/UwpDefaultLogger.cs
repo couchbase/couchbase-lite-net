@@ -32,13 +32,13 @@ using Windows.Storage;
 
 namespace Couchbase.Lite.Support
 {
-    internal sealed class UwpDefaultLogger : DefaultLogger, IDisposable
+    internal sealed class UwpDefaultLogger : DefaultLogger
     {
         private readonly ManualResetEventSlim _loggingReady = new ManualResetEventSlim();
         private StreamWriter _writer;
         private bool _disposed;
 
-        public UwpDefaultLogger()
+        public UwpDefaultLogger() : base(false)
         {
             var filename = $"Log-{GetTimeStamp()}.txt";
             ApplicationData.Current.LocalFolder.CreateFolderAsync("Logs", CreationCollisionOption.OpenIfExists)
@@ -69,7 +69,7 @@ namespace Couchbase.Lite.Support
             _writer.WriteLine(final);
         }
 
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
             if(_disposed) {
                 return;

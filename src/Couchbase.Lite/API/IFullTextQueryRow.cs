@@ -29,6 +29,8 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IFullTextQueryRow : IQueryRow
     {
+        #region Properties
+
         /// <summary>
         /// Gets the full text that was matched
         /// </summary>
@@ -39,22 +41,28 @@ namespace Couchbase.Lite
         /// </summary>
         uint MatchCount { get; }
 
-        /// <summary>
-        /// Gets the range in the string for the given full text match
-        /// </summary>
-        /// <param name="matchNumber">The match number to use</param>
-        /// <returns>The range in the string</returns>
-        /// <exception cref="System.IndexOutOfRangeException"><c>matchNumber</c> was not between
-        /// 0 and <see cref="MatchCount"/> </c></exception>
-        Range GetTextRange(uint matchNumber);
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
         /// Gets the index of the term that was matched in the given match number
         /// </summary>
         /// <param name="matchNumber">The match number to check</param>
         /// <returns>The index of the term that was matched</returns>
-        /// <exception cref = "System.IndexOutOfRangeException" >< c > matchNumber </ c > was not between
-        /// 0 and <see cref="MatchCount"/> </c></exception>
+        /// <exception cref = "System.IndexOutOfRangeException" ><c>matchNumber</c> was not between
+        /// 0 and <see cref="MatchCount"/></exception>
         uint GetTermIndex(uint matchNumber);
+
+        /// <summary>
+        /// Gets the range in the string for the given full text match
+        /// </summary>
+        /// <param name="matchNumber">The match number to use</param>
+        /// <returns>The range in the string</returns>
+        /// <exception cref="System.IndexOutOfRangeException"><c>matchNumber</c> was not between
+        /// 0 and <see cref="MatchCount"/></exception>
+        Range GetTextRange(uint matchNumber);
+
+        #endregion
     }
 }

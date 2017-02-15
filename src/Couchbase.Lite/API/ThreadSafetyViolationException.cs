@@ -29,9 +29,13 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class ThreadSafetyViolationException : Exception
     {
+        #region Constructors
+
         internal ThreadSafetyViolationException() : base("An attempt was made to use a thread safe object outside of its action queue")
         {
 
         }
+
+        #endregion
     }
 }

@@ -42,12 +42,12 @@ namespace Couchbase.Lite.Logging
         /// may be logger, but access tokens, passwords, etc should still
         /// be redacted
         /// </summary>
-        PotentiallyInsecureOK,
+        PotentiallyInsecureOk,
 
         /// <summary>
         /// All information should be logged
         /// </summary>
-        AllOK
+        AllOk
     }
 
     internal enum LogMessageSensitivity
@@ -58,10 +58,20 @@ namespace Couchbase.Lite.Logging
 
     internal abstract class SecureLogItem
     {
-        protected const string Redacted = "<redacted>";
+        #region Constants
+
         protected const int CharLimit = 100;
+        protected const string Redacted = "<redacted>";
+
+        #endregion
+
+        #region Variables
 
         private readonly LogMessageSensitivity _sensitivity;
+
+        #endregion
+
+        #region Properties
 
         protected bool ShouldLog
         {
@@ -70,42 +80,55 @@ namespace Couchbase.Lite.Logging
             }
         }
 
+        #endregion
+
+        #region Constructors
+
         protected SecureLogItem(LogMessageSensitivity sensitivity)
         {
             _sensitivity = sensitivity;
         }
 
+        #endregion
     }
 
     internal sealed class SecureLogString : SecureLogItem
     {
-        private string _string;
+        #region Variables
+
         private readonly byte[] _bytes;
         private readonly object _obj;
+        private string _string;
+
+        #endregion
+
+        #region Properties
 
         private string String
         {
             get {
-                if (_string == null) {
-                    var str = default(string);
-                    if (_bytes != null) {
-                        str = Encoding.UTF8.GetString(_bytes);
-                    } else if (_obj != null) {
-                        str = _obj.ToString();
-                    } else {
-                        str = "(null)";
-                    }
-
-                    if(str.Length > 100) {
-                        _string = $"{new string(str.Take(100).ToArray())}...";
-                    } else {
-                        _string = str;
-                    }
+                if (_string != null) {
+                    return _string;
                 }
+
+                string str;
+                if (_bytes != null) {
+                    str = Encoding.UTF8.GetString(_bytes);
+                } else if (_obj != null) {
+                    str = _obj.ToString();
+                } else {
+                    str = "(null)";
+                }
+
+                _string = str.Length > 100 ? $"{new string(str.Take(100).ToArray())}..." : str;
 
                 return _string;
             }
         }
+
+        #endregion
+
+        #region Constructors
 
         public SecureLogString(string str, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
         {
@@ -122,59 +145,85 @@ namespace Couchbase.Lite.Logging
             _obj = obj;
         }
 
+        #endregion
+
+        #region Overrides
+
         public override string ToString()
         {
             return ShouldLog ? String : Redacted;
         }
+
+        #endregion
     }
 
     internal sealed class SecureLogJsonString : SecureLogItem
     {
+        #region Variables
+
         private readonly object _object;
         private string _str;
+
+        #endregion
+
+        #region Properties
 
         private string String 
         {
             get {
-                if(_str == null) {
-                    var str = JsonConvert.SerializeObject(_object);
-                    if(str.Length > 100) {
-                        _str = $"{new string(str.Take(100).ToArray())}...";
-                    } else {
-                        _str = str;
-                    }
+                if (_str != null) {
+                    return _str;
                 }
+
+                var str = JsonConvert.SerializeObject(_object);
+                _str = str.Length > 100 ? $"{new string(str.Take(100).ToArray())}..." : str;
 
                 return _str;
             }
         }
+
+        #endregion
+
+        #region Constructors
 
         public SecureLogJsonString(object input, LogMessageSensitivity sensitivityLevel) : base(sensitivityLevel)
         {
             _object = input;
         }
 
+        #endregion
+
+        #region Overrides
+
         public override string ToString()
         {
-            return ShouldLog ? String.Empty : Redacted;
+            return ShouldLog ? String : Redacted;
         }
+
+        #endregion
     }
 
     internal sealed class SecureLogUri : SecureLogItem
     {
+        #region Variables
+
         private readonly Uri _uri;
         private string _str;
+
+        #endregion
+
+        #region Properties
 
         private string UriString
         {
             get {
-                if (_str == null) {
-                    _str = _uri.ToString().ReplaceAll("://.*:.*@", "://<redacted>:<redacted>@");
-                }
-
-                return _str;
+                return _str ?? (_str = _uri.ToString().ReplaceAll("://.*:.*@", "://<redacted>:<redacted>@"));
             }
         }
+
+        #endregion
+
+        #region Constructors
 
         // Only used for stripping credentials, so always insecure
         public SecureLogUri(Uri uri) : base(LogMessageSensitivity.Insecure)
@@ -182,10 +231,16 @@ namespace Couchbase.Lite.Logging
             _uri = uri;
         }
 
+        #endregion
+
+        #region Overrides
+
         public override string ToString()
         {
-            return ShouldLog ? _uri.ToString() : String.Empty;
+            return ShouldLog ? UriString : String.Empty;
         }
+
+        #endregion
     }
 }
 

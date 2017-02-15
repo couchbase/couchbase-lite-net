@@ -20,28 +20,38 @@
 //
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 using Couchbase.Lite.DB;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
+using LiteCore.Util;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Serialization
 {
-    internal unsafe interface IJsonSerializer
+    [AttributeUsage(AttributeTargets.Property)]
+    internal sealed class JsonPropertyAttribute : Attribute
     {
-        FLSliceResult Serialize(object obj);
-
-        T Deserialize<T>(FLValue* value);
+        
     }
 
-    internal abstract unsafe class Serializer : IJsonSerializer
+    internal unsafe interface IJsonSerializer
     {
-        internal static IJsonSerializer CreateDefaultFor(Database db)
-        {
-            return new DefaultSerializer(db);
-        }
+        #region Public Methods
+
+        T Deserialize<T>(FLValue* value);
+
+        void Populate<T>(T item, FLValue* value);
+        FLSliceResult Serialize(object obj);
+
+        #endregion
+    }
+
+    internal abstract unsafe class Serializer : IJsonSerializer, IJsonWriter
+    {
+        #region Properties
 
         public JsonSerializerSettings SerializerSettings { get; set; } = new JsonSerializerSettings {
             ContractResolver = new CouchbaseLiteContractResolver(),
@@ -51,42 +61,88 @@ namespace Couchbase.Lite.Serialization
             NullValueHandling = NullValueHandling.Ignore,
         };
 
-        protected Serializer()
-        {
+        #endregion
 
+        #region Internal Methods
+
+        internal static IJsonSerializer CreateDefaultFor(Database db)
+        {
+            return new DefaultSerializer(db);
         }
+
+        #endregion
+
+        #region IJsonSerializer
+
+        public abstract T Deserialize<T>(FLValue* value);
+
+        public abstract void Populate<T>(T item, FLValue* value);
 
         public abstract FLSliceResult Serialize(object obj);
 
-        public abstract T Deserialize<T>(FLValue* value);
+        #endregion
+
+        #region IJsonWriter
+
+        public abstract void Write(string name, string value);
+        public abstract void Write(string key, long value);
+        public abstract void Write(string key, bool value);
+        public abstract void Write(string key, IJsonMapped value);
+        public abstract void Write(string key, ulong value);
+
+        #endregion
     }
 
     internal sealed unsafe class DefaultSerializer : Serializer
     {
-        private const string Tag = nameof(DefaultSerializer);
-        private readonly Database _db;
+        #region Constants
 
-        public DefaultSerializer(Database db) : base()
+        private const string Tag = nameof(DefaultSerializer);
+
+        #endregion
+
+        #region Variables
+
+        private readonly Database _db;
+        private JsonFLValueWriter _innerWriter;
+
+        #endregion
+
+        #region Constructors
+
+        public DefaultSerializer(Database db)
         {
             _db = db;
             SerializerSettings.Converters = new JsonConverter[] { new BlobWriteConverter(_db), new CouchbaseTypeReadConverter(_db) };
         }
 
-        public override FLSliceResult Serialize(object obj)
+        #endregion
+
+        #region Public Methods
+
+        public FLSliceResult Serialize(IJsonMapped obj)
         {
-            try {
-                using(var writer = new JsonFLValueWriter(_db.c4db)) {
-                    var settings = SerializerSettings;
-                    var serializer = JsonSerializer.CreateDefault(settings);
-                    serializer.Serialize(writer, obj);
-                    writer.Flush();
-                    return writer.Result;
-                }
-            } catch(Exception e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, "Unable to serialize object!");
+            using(var writer = new JsonFLValueWriter(_db.c4db)) {
+                _innerWriter = writer;
+                PerfTimer.StartEvent("Serialize_Write");
+                writer.WriteStartObject();
+                obj.WriteTo(this);
+                writer.WriteEndObject();
+                PerfTimer.StopEvent("Serialize_Write");
+                PerfTimer.StartEvent("Serialize_Flush");
+                writer.Flush();
+                PerfTimer.StopEvent("Serialize_Flush");
+
+                _innerWriter = null;
+                return writer.Result;
             }
         }
 
+        #endregion
+
+        #region Overrides
+
+        [SuppressMessage("ReSharper", "ConvertIfStatementToNullCoalescingExpression", Justification = "T is not constrained to nullable type")]
         public override T Deserialize<T>(FLValue* value)
         {
             try {
@@ -104,5 +160,85 @@ namespace Couchbase.Lite.Serialization
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, $"Unable to deserialize into type {typeof(T).FullName}!");
             }
         }
+
+        public override void Populate<T>(T item, FLValue* value)
+        {
+            try {
+                using(var reader = new JsonFLValueReader(value, _db.SharedStrings)) {
+                    var settings = SerializerSettings;
+                    var serializer = JsonSerializer.CreateDefault(settings);
+                    serializer.Populate(reader, item);
+                }
+            } catch(Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, $"Unable to deserialize into type {typeof(T).FullName}!");
+            }
+        }
+
+        public override FLSliceResult Serialize(object obj)
+        {
+            var fast = obj as IJsonMapped;
+            if(fast != null) {
+                return Serialize(fast);
+            }
+            //using(var writer = new JsonFLValueWriter(_db.c4db)) {
+            //    PerfTimer.StartEvent("Serialize_Write");
+            //    writer.Write(obj);
+            //    PerfTimer.StopEvent("Serialize_Write");
+            //    PerfTimer.StartEvent("Serialize_Flush");
+            //    writer.Flush();
+            //    PerfTimer.StopEvent("Serialize_Flush");
+
+            //    return writer.Result;
+            //}
+            try {
+                using(var writer = new JsonFLValueWriter(_db.c4db)) {
+                    var settings = SerializerSettings;
+                    var serializer = JsonSerializer.CreateDefault(settings);
+                    PerfTimer.StartEvent("Serialize_Write");
+                    serializer.Serialize(writer, obj);
+                    PerfTimer.StopEvent("Serialize_Write");
+                    PerfTimer.StartEvent("Serialize_Flush");
+                    writer.Flush();
+                    PerfTimer.StopEvent("Serialize_Flush");
+                    return writer.Result;
+                }
+            } catch(Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, "Unable to serialize object!");
+            }
+        }
+
+        public override void Write(string name, string value)
+        {
+            _innerWriter.WritePropertyName(name);
+            _innerWriter.WriteValue(value);
+        }
+
+        public override void Write(string key, long value)
+        {
+            _innerWriter.WritePropertyName(key);
+            _innerWriter.WriteValue(value);
+        }
+
+        public override void Write(string key, bool value)
+        {
+            _innerWriter.WritePropertyName(key);
+            _innerWriter.WriteValue(value);
+        }
+
+        public override void Write(string key, IJsonMapped value)
+        {
+            _innerWriter.WritePropertyName(key);
+            _innerWriter.WriteStartObject();
+            value.WriteTo(this);
+            _innerWriter.WriteEndObject();
+        }
+
+        public override void Write(string key, ulong value)
+        {
+            _innerWriter.WritePropertyName(key);
+            _innerWriter.WriteValue(value);
+        }
+
+        #endregion
     }
 }

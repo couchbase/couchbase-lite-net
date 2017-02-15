@@ -31,8 +31,14 @@ namespace Couchbase.Lite.Querying
 {
     internal sealed unsafe class FullTextQueryRow : QueryRow
     {
-        private readonly C4Query* _query;
+        #region Variables
+
         private readonly C4FullTextTerm[] _matches;
+        private readonly C4Query* _query;
+
+        #endregion
+
+        #region Properties
 
         public string FullTextMatched
         {
@@ -49,6 +55,10 @@ namespace Couchbase.Lite.Querying
 
         public uint MatchCount { get; }
 
+        #endregion
+
+        #region Constructors
+
         internal FullTextQueryRow(Database db, C4Query* query, C4QueryEnumerator* enumerator)
             : base(db, enumerator)
         {
@@ -60,25 +70,9 @@ namespace Couchbase.Lite.Querying
             }
         }
 
-        public Range GetTextRange(uint matchNumber)
-        {
-            if(matchNumber >= MatchCount) {
-                throw new ArgumentOutOfRangeException(nameof(matchNumber), matchNumber, "Must be less than MatchCount");
-            }
+        #endregion
 
-            uint start = _matches[matchNumber].start;
-            uint length = _matches[matchNumber].length;
-            C4Error err;
-            using(var id = new C4String(DocumentID)) {
-                var rawText = NativeRaw.c4query_fullTextMatched(_query, id.AsC4Slice(), Sequence, &err);
-                if(rawText.buf == null) {
-                    throw new LiteCoreException(err);
-                }
-
-                byte* bytes = (byte*)rawText.buf;
-                return new Range(CharCountOfUTF8ByteRange(bytes, 0, start), CharCountOfUTF8ByteRange(bytes, start, length));
-            }
-        }
+        #region Public Methods
 
         public uint GetTermIndex(uint matchNumber)
         {
@@ -89,6 +83,30 @@ namespace Couchbase.Lite.Querying
             return _matches[matchNumber].termIndex;
         }
 
+        public Range GetTextRange(uint matchNumber)
+        {
+            if(matchNumber >= MatchCount) {
+                throw new ArgumentOutOfRangeException(nameof(matchNumber), matchNumber, "Must be less than MatchCount");
+            }
+
+            var start = _matches[matchNumber].start;
+            var length = _matches[matchNumber].length;
+            using(var id = new C4String(DocumentID)) {
+                C4Error err;
+                var rawText = NativeRaw.c4query_fullTextMatched(_query, id.AsC4Slice(), Sequence, &err);
+                if(rawText.buf == null) {
+                    throw new LiteCoreException(err);
+                }
+
+                byte* bytes = (byte*)rawText.buf;
+                return new Range(CharCountOfUTF8ByteRange(bytes, 0, start), CharCountOfUTF8ByteRange(bytes, start, length));
+            }
+        }
+
+        #endregion
+
+        #region Private Methods
+
         private uint CharCountOfUTF8ByteRange(byte* bytes, uint start, uint length)
         {
             if(length == 0) {
@@ -97,5 +115,7 @@ namespace Couchbase.Lite.Querying
 
             return (uint)Encoding.UTF8.GetCharCount(bytes + start, (int)length);
         }
+
+        #endregion
     }
 }

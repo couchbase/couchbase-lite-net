@@ -23,8 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -32,6 +31,8 @@ namespace Couchbase.Lite.Serialization
 {
     internal sealed class CouchbaseLiteContractResolver : DefaultContractResolver
     {
+        #region Overrides
+
         protected override IList<JsonProperty> CreateProperties(Type type, MemberSerialization memberSerialization)
         {
             var baseProperties = base.CreateProperties(type, memberSerialization);
@@ -41,5 +42,7 @@ namespace Couchbase.Lite.Serialization
 
             return baseProperties.Where(x => x.PropertyName != "Metadata").ToList();
         }
+
+        #endregion
     }
 }

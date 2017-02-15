@@ -21,26 +21,45 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support.Internal;
 
 namespace Couchbase.Lite.Support
 {
     public interface IInjectable
-    {
-    }
+    {}
 
     internal static class InjectableCollection
     {
-        private const string Tag = nameof(InjectableCollection);
-        private static readonly Dictionary<Type, Func<IInjectable>> _injectableMap =
+        #region Constants
+
+        //private const string Tag = nameof(InjectableCollection);
+        private static readonly Dictionary<Type, Func<IInjectable>> _InjectableMap =
             new Dictionary<Type, Func<IInjectable>>();
+
+        #endregion
+
+        #region Constructors
 
         static InjectableCollection()
         {
             RegisterImplementation<ILogger>(() => new DefaultLogger());
             RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        public static T GetImplementation<T>() where T : IInjectable
+        {
+            var type = typeof(T);
+            Func<IInjectable> retVal;
+            if(!_InjectableMap.TryGetValue(type, out retVal)) {
+                throw new KeyNotFoundException($"No implementation registered for {type.FullName}");
+            }
+
+            return (T)retVal();
         }
 
         public static void RegisterImplementation<T>(Func<IInjectable> generator) where T : IInjectable
@@ -50,18 +69,9 @@ namespace Couchbase.Lite.Support
             //    throw new InvalidOperationException($"{type.FullName} is already registered!");
             //}
 
-            _injectableMap[type] = generator;
+            _InjectableMap[type] = generator;
         }
 
-        public static T GetImplementation<T>() where T : IInjectable
-        {
-            var type = typeof(T);
-            var retVal = default(Func<IInjectable>);
-            if(!_injectableMap.TryGetValue(type, out retVal)) {
-                throw new KeyNotFoundException($"No implementation registered for {type.FullName}");
-            }
-
-            return (T)retVal();
-        }
+        #endregion
     }
 }

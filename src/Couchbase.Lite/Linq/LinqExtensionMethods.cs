@@ -21,24 +21,20 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Linq
 {
     public static class LinqExtensionMethods
     {
+        #region Public Methods
+
+        [SuppressMessage("ReSharper", "PossibleMultipleEnumeration", Justification = "Any only needs to check the first element")]
         public static bool AnyAndEvery<T>(this IEnumerable<T> collection, Func<T, bool> predicate)
         {
-            return collection.Any() && collection.All(x => predicate(x));
-        }
-
-        public static bool IsRegexMatch(this string item, string pattern)
-        {
-            var regex = new Regex(pattern);
-            return regex.IsMatch(item);
+            return collection.Any() && collection.All(predicate);
         }
 
         public static bool Between(this long l, long min, long max)
@@ -80,5 +76,13 @@ namespace Couchbase.Lite.Linq
         {
             return Between((ulong)b, min, max);
         }
+
+        public static bool IsRegexMatch(this string item, string pattern)
+        {
+            var regex = new Regex(pattern);
+            return regex.IsMatch(item);
+        }
+
+        #endregion
     }
 }

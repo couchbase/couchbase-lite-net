@@ -22,48 +22,65 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Logging
 {
     internal sealed class LogString
     {
-        private string _serialized;
+        #region Variables
+
         private readonly byte[] _unserialized;
+        private string _serialized;
+
+        #endregion
+
+        #region Constructors
 
         public LogString(IEnumerable<byte> utf8Bytes)
         {
             _unserialized = utf8Bytes.ToArray();
         }
 
+        #endregion
+
+        #region Overrides
+
         public override string ToString()
         {
-            if (_serialized == null) {
-                _serialized = Encoding.UTF8.GetString(_unserialized);
-            }
-
-            return _serialized;
+            return _serialized ?? (_serialized = Encoding.UTF8.GetString(_unserialized));
         }
+
+        #endregion
     }
 
     internal sealed class LogJsonString
     {
-        private string _serialized;
+        #region Variables
+
         private readonly object _unserialized;
+        private string _serialized;
+
+        #endregion
+
+        #region Constructors
 
         public LogJsonString(object obj)
         {
             _unserialized = obj;
         }
 
+        #endregion
+
+        #region Overrides
+
         public override string ToString()
         {
-            if (_serialized == null) {
-                _serialized = JsonConvert.SerializeObject(_unserialized);
-            }
-
-            return _serialized;
+            return _serialized ?? (_serialized = JsonConvert.SerializeObject(_unserialized));
         }
+
+        #endregion
     }
 }
 

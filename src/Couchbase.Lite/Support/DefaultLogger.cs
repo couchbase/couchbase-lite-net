@@ -20,7 +20,6 @@
 //
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -28,14 +27,66 @@ namespace Couchbase.Lite.Logging
 {
     internal class DefaultLogger : ILogger, IDisposable
     {
+        #region Variables
+
         private StreamWriter _writer;
 
-        public DefaultLogger()
+        #endregion
+
+        #region Constructors
+
+        public DefaultLogger() : this(true)
         {
+            
+        }
+
+        protected DefaultLogger(bool createWriter)
+        {
+            if(!createWriter) {
+                return;
+            }
+
             var directory = Path.Combine(AppContext.BaseDirectory, "Logs");
             Directory.CreateDirectory(directory);
-            _writer = new StreamWriter(File.Open(Path.Combine(directory, $"Log-{GetTimeStamp()}.txt"), FileMode.Create, FileAccess.Write, FileShare.Read));
-            _writer.AutoFlush = true;
+            _writer = new StreamWriter(File.Open(Path.Combine(directory, $"Log-{GetTimeStamp()}.txt"), FileMode.Create,
+                FileAccess.Write, FileShare.Read)) {
+                AutoFlush = true
+            };
+        }
+
+        #endregion
+
+        #region Protected Methods
+
+        protected virtual void Dispose(bool disposing)
+        {
+            _writer?.Dispose();
+            _writer = null;
+        }
+
+        protected virtual void PerformWrite(string final)
+        {
+            _writer.WriteLine(final);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private string GetTimeStamp()
+        {
+            var now = DateTime.Now;
+            return $"{now.Year:D4}{now.Month:D2}{now.Day:D2}-{now.Hour:D2}{now.Minute:D2}{now.Second:D2}{now.Millisecond:D3}";
+        }
+
+        private string MakeLine(string level, string tag, string msg)
+        {
+            return $"[{level}] {tag} {MakeMessage(msg)}";
+        }
+
+        private string MakeLine(string level, string tag, string msg, Exception tr)
+        {
+            return $"{level} {tag} {MakeMessage(msg, tr)}";
         }
 
         private string MakeMessage(string msg, Exception tr)
@@ -50,26 +101,18 @@ namespace Couchbase.Lite.Logging
             return $"[{Environment.CurrentManagedThreadId}] {dateTime} {msg}";
         }
 
-        private string MakeLine(string level, string tag, string msg)
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
         {
-            return $"[{level}] {tag} {MakeMessage(msg)}";
+            Dispose(true);
         }
 
-        private string MakeLine(string level, string tag, string msg, Exception tr)
-        {
-            return $"{level} {tag} {MakeMessage(msg, tr)}";
-        }
+        #endregion
 
-        private string GetTimeStamp()
-        {
-            var now = DateTime.Now;
-            return $"{now.Year:D4}{now.Month:D2}{now.Day:D2}-{now.Hour:D2}{now.Minute:D2}{now.Second:D2}{now.Millisecond:D3}";
-        }
-
-        protected virtual void PerformWrite(string final)
-        {
-            _writer.WriteLine(final);
-        }
+        #region ILogger
 
         public void D(string tag, string msg)
         {
@@ -161,10 +204,6 @@ namespace Couchbase.Lite.Logging
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
-        public void Dispose()
-        {
-            _writer?.Dispose();
-            _writer = null;
-        }
+        #endregion
     }
 }

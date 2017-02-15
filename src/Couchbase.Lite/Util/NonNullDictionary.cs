@@ -22,60 +22,73 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite.Util
 {
-    internal sealed class CollectionDebuggerView<T, U>
+    internal sealed class CollectionDebuggerView<TKey, TValue>
     {
-        readonly ICollection<KeyValuePair<T, U>> c;
+        #region Variables
 
-        public CollectionDebuggerView(ICollection<KeyValuePair<T, U>> col)
-        {
-            this.c = col;
-        }
+        private readonly ICollection<KeyValuePair<TKey, TValue>> _c;
+
+        #endregion
+
+        #region Properties
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public KeyValuePair<T, U>[] Items
+        public KeyValuePair<TKey, TValue>[] Items
         {
             get {
-                var o = new KeyValuePair<T, U>[c.Count];
-                c.CopyTo(o, 0);
+                var o = new KeyValuePair<TKey, TValue>[_c.Count];
+                _c.CopyTo(o, 0);
                 return o;
             }
         }
+
+        #endregion
+
+        #region Constructors
+
+        public CollectionDebuggerView(ICollection<KeyValuePair<TKey, TValue>> col)
+        {
+            _c = col;
+        }
+
+        #endregion
     }
 
     /// <summary>
     /// A dictionary that ignores any attempts to insert a null object into it.
     /// Usefor for creating JSON objects that should not contain null values
     /// </summary>
+    // ReSharper disable UseNameofExpression
     [DebuggerDisplay("Count={Count}")]
+    // ReSharper restore UseNameofExpression
     [DebuggerTypeProxy(typeof(CollectionDebuggerView<,>))]
-    public sealed class NonNullDictionary<K, V> : IEnumerable<KeyValuePair<K, V>>, IDictionary<K, V>, IReadOnlyDictionary<K, V>
+    public sealed class NonNullDictionary<TK, TV> : IDictionary<TK, TV>, IReadOnlyDictionary<TK, TV>
     {
-
         #region Variables
 
-        private readonly IDictionary<K, V> _data = new Dictionary<K, V>();
+        private readonly IDictionary<TK, TV> _data = new Dictionary<TK, TV>();
 
         #endregion
 
         #region Private Methods
 
-        private bool IsAddable(V item)
+        [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalse", Justification = "item is a Nullable type during the block")]
+        private static bool IsAddable(TV item)
         {
-            if(item is ValueType) {
-                var underlyingType = Nullable.GetUnderlyingType(typeof(V));
-                if(underlyingType != null) {
-                    return item != null;
-                }
-
-                return true;
+            if (!(item is ValueType)) {
+                return item != null;
             }
 
-            return item != null;
+            var underlyingType = Nullable.GetUnderlyingType(typeof(TV));
+            if(underlyingType != null) {
+                return item != null;
+            }
+
+            return true;
         }
 
         #endregion
@@ -84,7 +97,7 @@ namespace Couchbase.Lite.Util
 
         #region IEnumerable
 
-        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+        public IEnumerator<KeyValuePair<TK, TV>> GetEnumerator()
         {
             return _data.GetEnumerator();
         }
@@ -98,29 +111,29 @@ namespace Couchbase.Lite.Util
 
         #region IDictionary
 
-        public void Add(K key, V value)
+        public void Add(TK key, TV value)
         {
             if(IsAddable(value)) {
                 _data.Add(key, value);
             }
         }
 
-        public bool ContainsKey(K key)
+        public bool ContainsKey(TK key)
         {
             return _data.ContainsKey(key);
         }
 
-        public bool Remove(K key)
+        public bool Remove(TK key)
         {
             return _data.Remove(key);
         }
 
-        public bool TryGetValue(K key, out V value)
+        public bool TryGetValue(TK key, out TV value)
         {
             return _data.TryGetValue(key, out value);
         }
 
-        public V this[K index]
+        public TV this[TK index]
         {
             get {
                 return _data[index];
@@ -132,35 +145,35 @@ namespace Couchbase.Lite.Util
             }
         }
 
-        public ICollection<K> Keys
+        public ICollection<TK> Keys
         {
             get {
                 return _data.Keys;
             }
         }
 
-        public ICollection<V> Values
+        public ICollection<TV> Values
         {
             get {
                 return _data.Values;
             }
         }
 
-        IEnumerable<K> IReadOnlyDictionary<K, V>.Keys
+        IEnumerable<TK> IReadOnlyDictionary<TK, TV>.Keys
         {
             get {
                 return _data.Keys;
             }
         }
 
-        IEnumerable<V> IReadOnlyDictionary<K, V>.Values
+        IEnumerable<TV> IReadOnlyDictionary<TK, TV>.Values
         {
             get {
                 return _data.Values;
             }
         }
 
-        public void Add(KeyValuePair<K, V> item)
+        public void Add(KeyValuePair<TK, TV> item)
         {
             if(IsAddable(item.Value)) {
                 _data.Add(item);
@@ -172,17 +185,17 @@ namespace Couchbase.Lite.Util
             _data.Clear();
         }
 
-        public bool Contains(KeyValuePair<K, V> item)
+        public bool Contains(KeyValuePair<TK, TV> item)
         {
             return _data.Contains(item);
         }
 
-        public void CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
+        public void CopyTo(KeyValuePair<TK, TV>[] array, int arrayIndex)
         {
             _data.CopyTo(array, arrayIndex);
         }
 
-        public bool Remove(KeyValuePair<K, V> item)
+        public bool Remove(KeyValuePair<TK, TV> item)
         {
             return _data.Remove(item);
         }
@@ -202,7 +215,7 @@ namespace Couchbase.Lite.Util
         }
 
         #endregion
-#pragma warning restore 1591
 
+#pragma warning restore 1591
     }
 }

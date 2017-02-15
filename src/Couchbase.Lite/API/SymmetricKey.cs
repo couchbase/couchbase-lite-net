@@ -42,14 +42,7 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class SymmetricKey : IDisposable
     {
-
         #region Constants
-
-        /// <summary>
-        /// Number of bytes in a 256-bit key
-        /// </summary>
-        [Obsolete("Use DataSize")]
-        public const int DATA_SIZE = 32;
 
         /// <summary>
         /// Number of bytes in a 256-bit key
@@ -59,24 +52,20 @@ namespace Couchbase.Lite
         /// <summary>
         /// The data type associated with encrypted content
         /// </summary>
-        [Obsolete("Use EncryptedContentType")]
-        public const string ENCRYPTED_CONTENT_TYPE = "application/x-beanbag-aes-256";
-
-        /// <summary>
-        /// The data type associated with encrypted content
-        /// </summary>
         public static readonly string EncryptedContentType = "application/x-beanbag-aes-256";
 
-        private static readonly string Tag = typeof(SymmetricKey).Name;
+        private const int BlockSize = 16;
+        private const int DefaultPbkdfRounds = 64000;
+        private const string DefaultSalt = "Salty McNaCl";
+        private const int IvSize = BlockSize;
 
-        private const int KEY_SIZE = 32;
-        private const int BLOCK_SIZE = 16;
-        private const int IV_SIZE = BLOCK_SIZE;
-        private const int CHECKSUM_SIZE = sizeof(uint);
-        private const string DEFAULT_SALT = "Salty McNaCl";
-        private const int DEFAULT_PBKDF_ROUNDS = 64000;
+        private const int KeySize = 32;
+
+        private const string Tag = nameof(SymmetricKey);
 
         #endregion
+
+        #region Variables
 
         #region Private Members
 
@@ -84,16 +73,9 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region Properties
+        #endregion
 
-        /// <summary>
-        /// The SymmetricKey's key data; can be used to reconstitute it.
-        /// </summary>
-        public byte[] KeyData { 
-            get {
-                return _cryptor.Key;
-            }
-        }
+        #region Properties
 
         /// <summary>
         /// The key data encoded as hex.
@@ -101,6 +83,15 @@ namespace Couchbase.Lite
         public string HexData { 
             get {
                 return BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
+            }
+        }
+
+        /// <summary>
+        /// The SymmetricKey's key data; can be used to reconstitute it.
+        /// </summary>
+        public byte[] KeyData { 
+            get {
+                return _cryptor.Key;
             }
         }
 
@@ -129,34 +120,36 @@ namespace Couchbase.Lite
         {
             if(password == null) {
                 Log.To.Database.E(Tag, "password cannot be null in ctor, throwing...");
-                throw new ArgumentNullException("password");
+                throw new ArgumentNullException(nameof(password));
             }
 
             if (salt == null) {
                 Log.To.Database.E(Tag, "salt cannot be null in ctor, throwing...");
-                throw new ArgumentNullException("salt");
+                throw new ArgumentNullException(nameof(salt));
             }
 
             if(salt.Length <= 4) {
                 Log.To.Database.E(Tag, "salt cannot be less than 4 bytes in ctor, throwing...");
-                throw new ArgumentOutOfRangeException("salt", "Value is too short");
+                throw new ArgumentOutOfRangeException(nameof(salt), "Value is too short");
             }
             if(rounds <= 200) {
                 Log.To.Database.E(Tag, "rounds cannot be <= 200 in ctor, throwing...");
-                throw new ArgumentOutOfRangeException("rounds", "Insufficient rounds");
+                throw new ArgumentOutOfRangeException(nameof(rounds), "Insufficient rounds");
             }
 
             InitCryptor();
-            Rfc2898DeriveBytes pbkdf2 = new Rfc2898DeriveBytes(password, salt);
-            pbkdf2.IterationCount = rounds;
-            _cryptor.Key = pbkdf2.GetBytes(KEY_SIZE);
+            var pbkdf2 = new Rfc2898DeriveBytes(password, salt) {
+                IterationCount = rounds
+            };
+
+            _cryptor.Key = pbkdf2.GetBytes(KeySize);
         }
 
         /// <summary>
         /// Creates an instance with a key derived from a password, using default salt and rounds.
         /// </summary>
         public SymmetricKey(string password) : 
-        this(password, Encoding.UTF8.GetBytes(DEFAULT_SALT), DEFAULT_PBKDF_ROUNDS) {}
+        this(password, Encoding.UTF8.GetBytes(DefaultSalt), DefaultPbkdfRounds) {}
 
         /// <summary>
         /// Creates an instance from existing key data.
@@ -164,8 +157,8 @@ namespace Couchbase.Lite
         public SymmetricKey(byte[] keyData) 
         {
             InitCryptor();
-            if(keyData == null || keyData.Length != KEY_SIZE) {
-                throw new ArgumentOutOfRangeException("keyData", "Value is incorrect size");
+            if(keyData == null || keyData.Length != KeySize) {
+                throw new ArgumentOutOfRangeException(nameof(keyData), "Value is incorrect size");
             }
 
             _cryptor.Key = keyData;
@@ -176,53 +169,19 @@ namespace Couchbase.Lite
         #region Public Methods
 
         /// <summary>
-        /// Creates a new SymmetricKey using the supplied data
+        /// Creates a strem that will encrypt the given base stream
         /// </summary>
-        /// <param name="keyOrPassword">A password as a string or a byte
-        /// IEnumerable containig key data</param>
-        internal static SymmetricKey Create(object keyOrPassword)
+        /// <returns>The stream to write to for encryption</returns>
+        /// <param name="baseStream">The stream to read from</param>
+        public CryptoStream CreateStream(Stream baseStream)
         {
-            if (keyOrPassword == null) {
+            if (_cryptor == null || baseStream == null) {
                 return null;
             }
 
-            var password = keyOrPassword as string;
-            if(password != null) {
-                return new SymmetricKey(password);
-            }
-
-            var data = keyOrPassword as IEnumerable<byte>;
-            if (data == null) {
-                Log.To.Database.E(Tag, "Invalid keyOrPassword type ({0}) received, must be string " +
-                "or IEnumerable<byte>, throwing...", keyOrPassword.GetType().FullName);
-                throw new InvalidDataException("keyOrPassword must be either string or IEnumerable<byte>");
-            }
-
-            return new SymmetricKey(data.ToArray());
-        }
-
-        /// <summary>
-        /// Encrypts a data blob.
-        /// The output consists of a 16-byte random initialization vector,
-        /// followed by PKCS7-padded ciphertext. 
-        /// </summary>
-        public byte[] EncryptData(byte[] data)
-        {
-            if (data == null) {
-                return null;
-            }
-
-            byte[] encrypted = null;
-            _cryptor.GenerateIV();
-            using(var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream())
-            using(var cs = new CryptoStream(ms, _cryptor.CreateEncryptor(), CryptoStreamMode.Write)) {
-                ms.Write(_cryptor.IV, 0, IV_SIZE);
-                cs.Write(data, 0, data.Length);
-                cs.FlushFinalBlock();
-                encrypted = ms.GetBuffer().Take((int)ms.Length).ToArray();
-            }
-
-            return encrypted;
+            var retVal = new CryptoStream(baseStream, _cryptor.CreateEncryptor(), CryptoStreamMode.Write);
+            retVal.Write(_cryptor.IV, 0, IvSize);
+            return retVal;
         }
 
         /// <summary>
@@ -250,13 +209,13 @@ namespace Couchbase.Lite
         {
             if(stream == null || !stream.CanRead) {
                 Log.To.Database.E(Tag, "Unable to read from stream, throwing...");
-                throw new ArgumentException("Unable to read from stream", "stream");
+                throw new ArgumentException("Unable to read from stream", nameof(stream));
             }
 
-            byte[] iv = new byte[IV_SIZE];
-            int bytesRead = stream.ReadAsync(iv, 0, IV_SIZE).Result;
+            byte[] iv = new byte[IvSize];
+            int bytesRead = stream.ReadAsync(iv, 0, IvSize).Result;
 
-            if(bytesRead != IV_SIZE) {
+            if(bytesRead != IvSize) {
                 return null;
             }
 
@@ -264,20 +223,71 @@ namespace Couchbase.Lite
             return new CryptoStream(stream, _cryptor.CreateDecryptor(), CryptoStreamMode.Read);
         }
 
-        /// <summary>
-        /// Creates a strem that will encrypt the given base stream
-        /// </summary>
-        /// <returns>The stream to write to for encryption</returns>
-        /// <param name="baseStream">The stream to read from</param>
-        public CryptoStream CreateStream(Stream baseStream)
+        #region IDisposable
+
+#pragma warning disable 1591
+
+        public void Dispose()
         {
-            if (_cryptor == null || baseStream == null) {
+            _cryptor.Dispose();
+        }
+
+#pragma warning restore 1591
+
+        #endregion
+
+        /// <summary>
+        /// Encrypts a data blob.
+        /// The output consists of a 16-byte random initialization vector,
+        /// followed by PKCS7-padded ciphertext. 
+        /// </summary>
+        public byte[] EncryptData(byte[] data)
+        {
+            if (data == null) {
                 return null;
             }
 
-            var retVal = new CryptoStream(baseStream, _cryptor.CreateEncryptor(), CryptoStreamMode.Write);
-            retVal.Write(_cryptor.IV, 0, IV_SIZE);
-            return retVal;
+            byte[] encrypted;
+            _cryptor.GenerateIV();
+            using(var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream())
+            using(var cs = new CryptoStream(ms, _cryptor.CreateEncryptor(), CryptoStreamMode.Write)) {
+                ms.Write(_cryptor.IV, 0, IvSize);
+                cs.Write(data, 0, data.Length);
+                cs.FlushFinalBlock();
+                encrypted = ms.GetBuffer().Take((int)ms.Length).ToArray();
+            }
+
+            return encrypted;
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        /// <summary>
+        /// Creates a new SymmetricKey using the supplied data
+        /// </summary>
+        /// <param name="keyOrPassword">A password as a string or a byte
+        /// IEnumerable containig key data</param>
+        internal static SymmetricKey Create(object keyOrPassword)
+        {
+            if (keyOrPassword == null) {
+                return null;
+            }
+
+            var password = keyOrPassword as string;
+            if(password != null) {
+                return new SymmetricKey(password);
+            }
+
+            var data = keyOrPassword as IEnumerable<byte>;
+            if (data == null) {
+                Log.To.Database.E(Tag, "Invalid keyOrPassword type ({0}) received, must be string " +
+                "or IEnumerable<byte>, throwing...", keyOrPassword.GetType().FullName);
+                throw new InvalidDataException("keyOrPassword must be either string or IEnumerable<byte>");
+            }
+
+            return new SymmetricKey(data.ToArray());
         }
 
         #endregion
@@ -287,22 +297,11 @@ namespace Couchbase.Lite
         private void InitCryptor()
         {
             _cryptor = Aes.Create();
-            _cryptor.KeySize = KEY_SIZE * 8;
-            _cryptor.BlockSize = BLOCK_SIZE * 8;
+            _cryptor.KeySize = KeySize * 8;
+            _cryptor.BlockSize = BlockSize * 8;
             _cryptor.Padding = PaddingMode.PKCS7;
         }
 
-        #endregion
-
-        #region IDisposable
-        #pragma warning disable 1591
-
-        public void Dispose()
-        {
-            _cryptor.Dispose();
-        }
-
-        #pragma warning restore 1591
         #endregion
     }
 }

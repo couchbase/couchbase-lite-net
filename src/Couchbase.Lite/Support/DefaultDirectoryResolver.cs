@@ -20,19 +20,19 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Support.Internal
 {
     internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
     {
+        #region IDefaultDirectoryResolver
+
         public string DefaultDirectory()
         {
             return Path.Combine(AppContext.BaseDirectory, "CouchbaseLite");
         }
+
+        #endregion
     }
 }

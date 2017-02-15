@@ -1,0 +1,417 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" InitialTargets="ValidateSolutionConfiguration;ValidateToolsVersions;ValidateProjects" DefaultTargets="Build">
+  <PropertyGroup>
+    <MSBuildToolsPath32>C:\Program Files (x86)\MSBuild\14.0\bin\</MSBuildToolsPath32>
+    <MSBuildToolsRoot>C:\Program Files (x86)\MSBuild\</MSBuildToolsRoot>
+    <MSBuildFrameworkToolsPath>C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\</MSBuildFrameworkToolsPath>
+    <MSBuildFrameworkToolsPath32>C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\</MSBuildFrameworkToolsPath32>
+    <MSBuildFrameworkToolsRoot>C:\WINDOWS\Microsoft.NET\Framework\</MSBuildFrameworkToolsRoot>
+    <MSBuildRuntimeVersion>4.0.30319</MSBuildRuntimeVersion>
+    <FrameworkSDKRoot>C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\</FrameworkSDKRoot>
+    <SDK35ToolsPath />
+    <SDK40ToolsPath>C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6 Tools\</SDK40ToolsPath>
+    <VCTargetsPath>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\</VCTargetsPath>
+    <VCTargetsPath10>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\</VCTargetsPath10>
+    <VCTargetsPath11>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V110\</VCTargetsPath11>
+    <VCTargetsPath12>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\</VCTargetsPath12>
+    <VCTargetsPath14>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\</VCTargetsPath14>
+    <WindowsSDK80Path>C:\Program Files (x86)\Windows Kits\8.1\</WindowsSDK80Path>
+    <AspNetConfiguration>Release</AspNetConfiguration>
+    <SolutionDir>D:\Development\couchbase-lite-net-2\src\</SolutionDir>
+    <SolutionExt>.sln</SolutionExt>
+    <SolutionFileName>Couchbase.Lite.sln</SolutionFileName>
+    <SolutionName>Couchbase.Lite</SolutionName>
+    <SolutionPath>D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.sln</SolutionPath>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <CurrentSolutionConfigurationContents>
+      <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Release|x64</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Release|x64</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Release|iPhone</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+    </CurrentSolutionConfigurationContents>
+  </PropertyGroup>
+  <ItemDefinitionGroup />
+  <ItemGroup>
+    <SolutionConfiguration Include="Debug|Any CPU">
+      <Configuration>Debug</Configuration>
+      <Platform>Any CPU</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Debug|x64</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Debug|iPhoneSimulator</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Debug|ARM</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Debug|ARM</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Debug|iPhoneSimulator</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Debug|iPhone">
+      <Configuration>Debug</Configuration>
+      <Platform>iPhone</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Debug|x64</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Debug|iPhone</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Debug|iPhoneSimulator">
+      <Configuration>Debug</Configuration>
+      <Platform>iPhoneSimulator</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Debug|x86</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Debug|iPhoneSimulator</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Debug|x64</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Debug|x64</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Debug|iPhoneSimulator</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Debug|x86</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Debug|x86</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Debug|iPhoneSimulator</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Debug|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Release|Any CPU">
+      <Configuration>Release</Configuration>
+      <Platform>Any CPU</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Release|x64</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Release|iPhone</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Release|ARM</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Release|ARM</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Release|iPhone</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Release|iPhone">
+      <Configuration>Release</Configuration>
+      <Platform>iPhone</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Release|x86</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Release|iPhone</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Release|iPhoneSimulator">
+      <Configuration>Release</Configuration>
+      <Platform>iPhoneSimulator</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Release|x86</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Release|iPhoneSimulator</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Release|x64</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Release|x64</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Release|iPhone</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+    <SolutionConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+      <Content>
+        <SolutionConfiguration xmlns="">
+  <ProjectConfiguration Project="{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" BuildProjectInSolution="True">Release|x86</ProjectConfiguration>
+  <ProjectConfiguration Project="{1CF95F79-7649-4FDA-A888-73B5C69316FC}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{389C22F9-8999-47A5-8EB1-289D2B709EAE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj" BuildProjectInSolution="True">Release|x86</ProjectConfiguration>
+  <ProjectConfiguration Project="{5AD5AE31-89B2-4607-BA4B-E309178F3EDE}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{F5F57919-BE42-46B6-B173-EB6F34CFB022}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj" BuildProjectInSolution="True">Release|iPhone</ProjectConfiguration>
+  <ProjectConfiguration Project="{50486C17-30BD-4362-85D9-C2D3E6EB2D91}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+  <ProjectConfiguration Project="{56CD9946-09F9-4AB4-99BB-45A3D355E42B}" AbsolutePath="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj" BuildProjectInSolution="True">Release|AnyCPU</ProjectConfiguration>
+</SolutionConfiguration>
+      </Content>
+    </SolutionConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj">
+      <ToolsVersion>
+      </ToolsVersion>
+      <SkipNonexistentProjects>False</SkipNonexistentProjects>
+      <AdditionalProperties>Configuration=Release; Platform=x64</AdditionalProperties>
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectReference>
+    <ProjectReference Include="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj">
+      <ToolsVersion>
+      </ToolsVersion>
+      <SkipNonexistentProjects>False</SkipNonexistentProjects>
+      <AdditionalProperties>Configuration=Release; Platform=AnyCPU</AdditionalProperties>
+      <Configuration>Release</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectReference>
+    <ProjectReference Include="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj">
+      <ToolsVersion>
+      </ToolsVersion>
+      <SkipNonexistentProjects>False</SkipNonexistentProjects>
+      <AdditionalProperties>Configuration=Release; Platform=x64</AdditionalProperties>
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectReference>
+    <ProjectReference Include="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj">
+      <ToolsVersion>
+      </ToolsVersion>
+      <SkipNonexistentProjects>False</SkipNonexistentProjects>
+      <AdditionalProperties>Configuration=Release; Platform=AnyCPU</AdditionalProperties>
+      <Configuration>Release</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectReference>
+    <ProjectReference Include="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj">
+      <ToolsVersion>
+      </ToolsVersion>
+      <SkipNonexistentProjects>False</SkipNonexistentProjects>
+      <AdditionalProperties>Configuration=Release; Platform=iPhone</AdditionalProperties>
+      <Configuration>Release</Configuration>
+      <Platform>iPhone</Platform>
+    </ProjectReference>
+    <ProjectReference Include="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj">
+      <ToolsVersion>
+      </ToolsVersion>
+      <SkipNonexistentProjects>False</SkipNonexistentProjects>
+      <AdditionalProperties>Configuration=Release; Platform=AnyCPU</AdditionalProperties>
+      <Configuration>Release</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectReference>
+    <ProjectReference Include="D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj">
+      <ToolsVersion>
+      </ToolsVersion>
+      <SkipNonexistentProjects>False</SkipNonexistentProjects>
+      <AdditionalProperties>Configuration=Release; Platform=AnyCPU</AdditionalProperties>
+      <Configuration>Release</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="ValidateSolutionConfiguration">
+    <Error Condition="('$(CurrentSolutionConfigurationContents)' == '') and ('$(SkipInvalidConfigurations)' != 'true')" Text="The specified solution configuration &quot;$(Configuration)|$(Platform)&quot; is invalid. Please specify a valid solution configuration using the Configuration and Platform properties (e.g. MSBuild.exe Solution.sln /p:Configuration=Debug /p:Platform=&quot;Any CPU&quot;) or leave those properties blank to use the default solution configuration." Code="MSB4126" HelpKeyword="MSBuild.SolutionInvalidSolutionConfiguration" />
+    <Warning Condition="('$(CurrentSolutionConfigurationContents)' == '') and ('$(SkipInvalidConfigurations)' == 'true')" Text="The specified solution configuration &quot;$(Configuration)|$(Platform)&quot; is invalid. Please specify a valid solution configuration using the Configuration and Platform properties (e.g. MSBuild.exe Solution.sln /p:Configuration=Debug /p:Platform=&quot;Any CPU&quot;) or leave those properties blank to use the default solution configuration." Code="MSB4126" HelpKeyword="MSBuild.SolutionInvalidSolutionConfiguration" />
+    <Message Condition="'$(CurrentSolutionConfigurationContents)' != ''" Text="Building solution configuration &quot;$(Configuration)|$(Platform)&quot;." />
+  </Target>
+  <Target Name="ValidateToolsVersions">
+    <Error Condition="'$(MSBuildToolsVersion)' == '2.0' and ('$(ProjectToolsVersion)' != '2.0' and '$(ProjectToolsVersion)' != '')" Text="The tools version &quot;$(MSBuildToolsVersion)&quot; of the solution does not support building projects with a different tools version." Code="MSB4149" HelpKeyword="MSBuild.SolutionToolsVersionDoesNotSupportProjectToolsVersion" />
+  </Target>
+  <Target Name="ValidateProjects" />
+  <Target Name="GetSolutionConfigurationContents" Outputs="$(SolutionConfigurationContents)" />
+  <Target Name="Build" Outputs="@(CollectedBuildOutput)">
+    <MSBuild Projects="@(ProjectReference)" BuildInParallel="True" Properties="BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" SkipNonexistentProjects="%(ProjectReference.SkipNonexistentProjects)">
+      <Output TaskParameter="TargetOutputs" ItemName="CollectedBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Clean">
+    <MSBuild Projects="@(ProjectReference-&gt;Reverse())" Targets="Clean" BuildInParallel="True" Properties="BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" SkipNonexistentProjects="%(ProjectReference.SkipNonexistentProjects)" />
+  </Target>
+  <Target Name="Rebuild" Outputs="@(CollectedBuildOutput)">
+    <MSBuild Projects="@(ProjectReference)" Targets="Rebuild" BuildInParallel="True" Properties="BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" SkipNonexistentProjects="%(ProjectReference.SkipNonexistentProjects)">
+      <Output TaskParameter="TargetOutputs" ItemName="CollectedBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Publish">
+    <MSBuild Projects="@(ProjectReference)" Targets="Publish" BuildInParallel="True" Properties="BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" SkipNonexistentProjects="%(ProjectReference.SkipNonexistentProjects)" />
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_UWP" Outputs="@(Support_Couchbase_Lite_Support_UWPBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj'" Projects="@(ProjectReference)" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=x64;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Support_Couchbase_Lite_Support_UWPBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_UWP:Clean">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj'" Projects="@(ProjectReference)" Targets="Clean" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=x64;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_UWP:Rebuild" Outputs="@(Support_Couchbase_Lite_Support_UWPBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj'" Projects="@(ProjectReference)" Targets="Rebuild" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=x64;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Support_Couchbase_Lite_Support_UWPBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_UWP:Publish">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj'" Projects="@(ProjectReference)" Targets="Publish" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=x64;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Couchbase_Lite" Outputs="@(Couchbase_LiteBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj'" Projects="@(ProjectReference)" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Couchbase_LiteBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Couchbase_Lite:Clean">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj'" Projects="@(ProjectReference)" Targets="Clean" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Couchbase_Lite:Rebuild" Outputs="@(Couchbase_LiteBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj'" Projects="@(ProjectReference)" Targets="Rebuild" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Couchbase_LiteBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Couchbase_Lite:Publish">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite\Couchbase.Lite.csproj'" Projects="@(ProjectReference)" Targets="Publish" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_UWP" Outputs="@(Tests_Couchbase_Lite_Tests_UWPBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj'" Projects="@(ProjectReference)" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=x64;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Tests_Couchbase_Lite_Tests_UWPBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_UWP:Clean">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj'" Projects="@(ProjectReference)" Targets="Clean" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=x64;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_UWP:Rebuild" Outputs="@(Tests_Couchbase_Lite_Tests_UWPBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj'" Projects="@(ProjectReference)" Targets="Rebuild" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=x64;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Tests_Couchbase_Lite_Tests_UWPBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_UWP:Publish">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.csproj'" Projects="@(ProjectReference)" Targets="Publish" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=x64;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_iOS" Outputs="@(Support_Couchbase_Lite_Support_iOSBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj'" Projects="@(ProjectReference)" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Support_Couchbase_Lite_Support_iOSBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_iOS:Clean">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj'" Projects="@(ProjectReference)" Targets="Clean" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_iOS:Rebuild" Outputs="@(Support_Couchbase_Lite_Support_iOSBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj'" Projects="@(ProjectReference)" Targets="Rebuild" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Support_Couchbase_Lite_Support_iOSBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_iOS:Publish">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj'" Projects="@(ProjectReference)" Targets="Publish" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_iOS" Outputs="@(Tests_Couchbase_Lite_Tests_iOSBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj'" Projects="@(ProjectReference)" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=iPhone;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Tests_Couchbase_Lite_Tests_iOSBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_iOS:Clean">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj'" Projects="@(ProjectReference)" Targets="Clean" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=iPhone;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_iOS:Rebuild" Outputs="@(Tests_Couchbase_Lite_Tests_iOSBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj'" Projects="@(ProjectReference)" Targets="Rebuild" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=iPhone;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Tests_Couchbase_Lite_Tests_iOSBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_iOS:Publish">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.iOS\Couchbase.Lite.Tests.iOS.csproj'" Projects="@(ProjectReference)" Targets="Publish" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=iPhone;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_Android" Outputs="@(Support_Couchbase_Lite_Support_AndroidBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj'" Projects="@(ProjectReference)" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Support_Couchbase_Lite_Support_AndroidBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_Android:Clean">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj'" Projects="@(ProjectReference)" Targets="Clean" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_Android:Rebuild" Outputs="@(Support_Couchbase_Lite_Support_AndroidBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj'" Projects="@(ProjectReference)" Targets="Rebuild" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Support_Couchbase_Lite_Support_AndroidBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Support\Couchbase_Lite_Support_Android:Publish">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj'" Projects="@(ProjectReference)" Targets="Publish" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_Android" Outputs="@(Tests_Couchbase_Lite_Tests_AndroidBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj'" Projects="@(ProjectReference)" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Tests_Couchbase_Lite_Tests_AndroidBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_Android:Clean">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj'" Projects="@(ProjectReference)" Targets="Clean" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_Android:Rebuild" Outputs="@(Tests_Couchbase_Lite_Tests_AndroidBuildOutput)">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj'" Projects="@(ProjectReference)" Targets="Rebuild" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)">
+      <Output TaskParameter="TargetOutputs" ItemName="Tests_Couchbase_Lite_Tests_AndroidBuildOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="Tests\Couchbase_Lite_Tests_Android:Publish">
+    <MSBuild Condition="'%(ProjectReference.Identity)' == 'D:\Development\couchbase-lite-net-2\src\Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj'" Projects="@(ProjectReference)" Targets="Publish" BuildInParallel="True" ToolsVersion="$(ProjectToolsVersion)" Properties="Configuration=Release; Platform=AnyCPU;BuildingSolutionFile=true; CurrentSolutionConfigurationContents=$(CurrentSolutionConfigurationContents); SolutionDir=$(SolutionDir); SolutionExt=$(SolutionExt); SolutionFileName=$(SolutionFileName); SolutionName=$(SolutionName); SolutionPath=$(SolutionPath)" />
+  </Target>
+</Project>

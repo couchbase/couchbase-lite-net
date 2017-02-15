@@ -29,7 +29,7 @@ namespace Test.Util
     {
         private readonly ITestOutputHelper _output;
 
-        public XunitLogger(ITestOutputHelper output)
+        public XunitLogger(ITestOutputHelper output) : base(false)
         {
             _output = output;
         }

@@ -27,11 +27,13 @@ namespace Couchbase.Lite.Querying
 {
     internal unsafe class QueryRow
     {
+        #region Variables
+
         protected readonly Database _db;
 
-        public string DocumentID { get; }
+        #endregion
 
-        public ulong Sequence { get; set; }
+        #region Properties
 
         public IDocument Document
         {
@@ -42,6 +44,14 @@ namespace Couchbase.Lite.Querying
             }
         }
 
+        public string DocumentID { get; }
+
+        public ulong Sequence { get; set; }
+
+        #endregion
+
+        #region Constructors
+
         internal QueryRow(Database db, C4QueryEnumerator* enumerator)
         {
             _db = db;
@@ -49,5 +59,7 @@ namespace Couchbase.Lite.Querying
             Debug.Assert(DocumentID != null);
             Sequence = enumerator->docSequence;
         }
+
+        #endregion
     }
 }

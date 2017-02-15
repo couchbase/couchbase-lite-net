@@ -20,7 +20,6 @@
 //
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -31,17 +30,46 @@ using Couchbase.Lite.Serialization;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.DB
 {
-    internal unsafe abstract class PropertyContainer : ThreadSafe, IPropertyContainer
+    internal abstract unsafe class PropertyContainer : ThreadSafe, IPropertyContainer
     {
+        #region Constants
+
+        private static readonly TypeInfo[] _ValidTypes = new[] {
+            typeof(string).GetTypeInfo(),
+            typeof(DateTime).GetTypeInfo(),
+            typeof(DateTimeOffset).GetTypeInfo(),
+            typeof(decimal).GetTypeInfo()
+        };
+
+        #endregion
+
+        #region Variables
+
+        private bool _hasChanges;
+
+        private Dictionary<string, object> _properties;
         private FLDict* _root;
 
         private IReadOnlyDictionary<string, object> _rootProps;
 
-        private Dictionary<string, object> _properties;
+        #endregion
+
+        #region Properties
+
+        public object this[string key]
+        {
+            get {
+                AssertSafety();
+                return Get(key);
+            }
+            set {
+                AssertSafety();
+                Set(key, value);
+            }
+        }
 
         public IDictionary<string, object> Properties
         {
@@ -64,19 +92,6 @@ namespace Couchbase.Lite.DB
             }
         }
 
-        private bool _hasChanges;
-        internal bool HasChanges
-        {
-            get {
-                AssertSafety();
-                return _hasChanges;
-            }
-            set {
-                AssertSafety();
-                _hasChanges = value;
-            }
-        }
-
         protected IReadOnlyDictionary<string, object> SavedProperties
         {
             get {
@@ -93,112 +108,21 @@ namespace Couchbase.Lite.DB
             }
         }
 
-        public IPropertyContainer Set(string key, object value)
+        internal bool HasChanges
         {
-            AssertSafety();
-            ValidateObjectType(value);
-            MutateProperties();
-
-            var oldValue = Properties.Get(key);
-            if(value == null || !value.Equals(oldValue)) {
-                _properties[key] = value;
-                MarkChanges();
+            get {
+                AssertSafety();
+                return _hasChanges;
             }
-
-            return this;
-        }
-
-        public object Get(string key)
-        {
-            AssertSafety();
-            if(_properties != null) {
-                return Properties.Get(key);
+            set {
+                AssertSafety();
+                _hasChanges = value;
             }
-
-            return FLValueConverter.ToObject(FleeceValueForKey(key), this, GetSharedStrings());
         }
 
-        public string GetString(string key)
-        {
-            AssertSafety();
-            var retVal = String.Empty;
-            if(TryGet(key, out retVal)) {
-                return retVal;
-            }
+        #endregion
 
-            return Native.FLValue_AsString(FleeceValueForKey(key));
-        }
-
-        public long GetLong(string key)
-        {
-            AssertSafety();
-            var retVal = 0L;
-            if(TryGet(key, out retVal)) {
-                return retVal;
-            }
-
-            return Native.FLValue_AsInt(FleeceValueForKey(key));
-        }
-
-        public float GetFloat(string key)
-        {
-            AssertSafety();
-            var retVal = 0.0f;
-            if(TryGet(key, out retVal)) {
-                return retVal;
-            }
-
-            return Native.FLValue_AsFloat(FleeceValueForKey(key));
-        }
-
-        public double GetDouble(string key)
-        {
-            AssertSafety();
-            var retVal = 0.0;
-            if(TryGet(key, out retVal)) {
-                return retVal;
-            }
-
-            return Native.FLValue_AsDouble(FleeceValueForKey(key));
-        }
-
-        public bool GetBoolean(string key)
-        {
-            AssertSafety();
-            var retVal = false;
-            if(TryGet(key, out retVal)) {
-                return retVal;
-            }
-
-            return Native.FLValue_AsBool(FleeceValueForKey(key));
-        }
-
-        public DateTimeOffset? GetDate(string key)
-        {
-            AssertSafety();
-            var retVal = default(DateTimeOffset);
-            if(TryGet(key, out retVal)) {
-                return retVal;
-            }
-
-            var dateString = GetString(key);
-            if(dateString == null) {
-                return null;
-            }
-
-            return DateTimeOffset.ParseExact(dateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.None);
-        }
-
-        public IList<object> GetArray(string key)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IBlob GetBlob(string key)
-        {
-            AssertSafety();
-            return Get(key) as IBlob;
-        }
+        #region Public Methods
 
         public Document GetDocument(string key)
         {
@@ -210,34 +134,15 @@ namespace Couchbase.Lite.DB
             throw new NotImplementedException();
         }
 
-        public IPropertyContainer Remove(string key)
-        {
-            AssertSafety();
-            _properties.Remove(key);
-            return this;
-        }
+        #endregion
 
-        public bool Contains(string key)
-        {
-            AssertSafety();
-            if(_properties != null) {
-                return _properties.ContainsKey(key);
-            }
+        #region Protected Internal Methods
 
-            return FleeceValueForKey(key) != null;
-        }
+        protected internal abstract IBlob CreateBlob(IDictionary<string, object> properties);
 
-        public object this[string key]
-        {
-            get {
-                AssertSafety();
-                return Get(key);
-            }
-            set {
-                AssertSafety();
-                Set(key, value);
-            }
-        }
+        #endregion
+
+        #region Protected Methods
 
         protected void SetRoot(FLDict* root, IReadOnlyDictionary<string, object> props)
         {
@@ -254,7 +159,15 @@ namespace Couchbase.Lite.DB
             _hasChanges = false;
         }
 
-        protected internal abstract IBlob CreateBlob(IDictionary<string, object> properties);
+        #endregion
+
+        #region Internal Methods
+
+        internal virtual SharedStringCache GetSharedStrings()
+        {
+            AssertSafety();
+            return null;
+        }
 
         internal void ResetChanges()
         {
@@ -263,18 +176,9 @@ namespace Couchbase.Lite.DB
             HasChanges = false;
         }
 
-        internal virtual SharedStringCache GetSharedStrings()
-        {
-            AssertSafety();
-            return null;
-        }
+        #endregion
 
-        private static readonly TypeInfo[] ValidTypes = new[] {
-            typeof(string).GetTypeInfo(),
-            typeof(DateTime).GetTypeInfo(),
-            typeof(DateTimeOffset).GetTypeInfo(),
-            typeof(decimal).GetTypeInfo()
-        };
+        #region Private Methods
 
         private static bool IsValidScalarType(Type type)
         {
@@ -283,7 +187,7 @@ namespace Couchbase.Lite.DB
                 return true;
             }
 
-            return ValidTypes.Any(x => info.IsAssignableFrom(x));
+            return _ValidTypes.Any(x => info.IsAssignableFrom(x));
         }
 
         private static void ValidateObjectType(object value)
@@ -303,6 +207,16 @@ namespace Couchbase.Lite.DB
             }*/
         }
 
+        private FLValue* FleeceValueForKey(string key)
+        {
+            return Native.FLDict_GetSharedKey(_root, Encoding.UTF8.GetBytes(key), GetSharedStrings().SharedKeys);
+        }
+
+        private void MarkChanges()
+        {
+            HasChanges = true;
+        }
+
         private void MutateProperties()
         {
             if(_properties == null) {
@@ -315,19 +229,14 @@ namespace Couchbase.Lite.DB
             }
         }
 
-        private void MarkChanges()
-        {
-            HasChanges = true;
-        }
-
         private bool TryGet<T>(string key, out T value)
         {
             if(_properties != null) {
-                if(Properties.TryGetValue<T>(key, out value)) {
+                if(Properties.TryGetValue(key, out value)) {
                     return true;
                 }
             } else if(_rootProps != null) {
-                if(_rootProps.TryGetValue<T>(key, out value)) {
+                if(_rootProps.TryGetValue(key, out value)) {
                     return true;
                 }
             }
@@ -336,9 +245,114 @@ namespace Couchbase.Lite.DB
             return false;
         }
 
-        private FLValue* FleeceValueForKey(string key)
+        #endregion
+
+        #region IPropertyContainer
+
+        public bool Contains(string key)
         {
-            return Native.FLDict_GetSharedKey(_root, Encoding.UTF8.GetBytes(key), GetSharedStrings().SharedKeys);
+            AssertSafety();
+            if(_properties != null) {
+                return _properties.ContainsKey(key);
+            }
+
+            return FleeceValueForKey(key) != null;
         }
+
+        public object Get(string key)
+        {
+            AssertSafety();
+            if(_properties != null) {
+                return Properties.Get(key);
+            }
+
+            return FLValueConverter.ToObject(FleeceValueForKey(key), this, GetSharedStrings());
+        }
+
+        public IList<object> GetArray(string key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IBlob GetBlob(string key)
+        {
+            AssertSafety();
+            return Get(key) as IBlob;
+        }
+
+        public bool GetBoolean(string key)
+        {
+            AssertSafety();
+            bool retVal;
+            return TryGet(key, out retVal) ? retVal : Native.FLValue_AsBool(FleeceValueForKey(key));
+        }
+
+        public DateTimeOffset? GetDate(string key)
+        {
+            AssertSafety();
+            DateTimeOffset retVal;
+            if(TryGet(key, out retVal)) {
+                return retVal;
+            }
+
+            var dateString = GetString(key);
+            if(dateString == null) {
+                return null;
+            }
+
+            return DateTimeOffset.ParseExact(dateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.None);
+        }
+
+        public double GetDouble(string key)
+        {
+            AssertSafety();
+            double retVal;
+            return TryGet(key, out retVal) ? retVal : Native.FLValue_AsDouble(FleeceValueForKey(key));
+        }
+
+        public float GetFloat(string key)
+        {
+            AssertSafety();
+            float retVal;
+            return TryGet(key, out retVal) ? retVal : Native.FLValue_AsFloat(FleeceValueForKey(key));
+        }
+
+        public long GetLong(string key)
+        {
+            AssertSafety();
+            long retVal;
+            return TryGet(key, out retVal) ? retVal : Native.FLValue_AsInt(FleeceValueForKey(key));
+        }
+
+        public string GetString(string key)
+        {
+            AssertSafety();
+            string retVal;
+            return TryGet(key, out retVal) ? retVal : Native.FLValue_AsString(FleeceValueForKey(key));
+        }
+
+        public IPropertyContainer Remove(string key)
+        {
+            AssertSafety();
+            _properties.Remove(key);
+            return this;
+        }
+
+        public IPropertyContainer Set(string key, object value)
+        {
+            AssertSafety();
+            ValidateObjectType(value);
+            MutateProperties();
+
+            var oldValue = Properties.Get(key);
+            if(value == null || !value.Equals(oldValue)) {
+                _properties[key] = value;
+                MarkChanges();
+            }
+
+            return this;
+        }
+
+        #endregion
     }
 }

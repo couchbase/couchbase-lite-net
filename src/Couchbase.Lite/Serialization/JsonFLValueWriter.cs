@@ -28,14 +28,26 @@ namespace Couchbase.Lite.Serialization
 {
     internal unsafe class JsonFLValueWriter : JsonWriter
     {
+        #region Variables
+
         private FLEncoder* _encoder;
 
+        #endregion
+
+        #region Properties
+
         public FLSliceResult Result { get; private set; }
+
+        #endregion
+
+        #region Constructors
 
         public JsonFLValueWriter(C4Database* db) 
         {
             _encoder = Native.c4db_createFleeceEncoder(db);
         }
+
+        #endregion
 
         #region Overrides
 
@@ -43,6 +55,7 @@ namespace Couchbase.Lite.Serialization
         {
             base.Dispose(disposing);
             Native.FLEncoder_Free(_encoder);
+            _encoder = null;
         }
 
         public override void Flush()
@@ -149,7 +162,7 @@ namespace Couchbase.Lite.Serialization
             base.WriteValue(value);
             Native.FLEncoder_WriteUInt(_encoder, value);
         }
-            
+
         public override void WriteValue(ulong value)
         {
             base.WriteValue(value);

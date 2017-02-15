@@ -21,7 +21,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
 
 namespace Couchbase.Lite
 {
@@ -212,7 +211,6 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class Status
     {
-
         #region Constants
 
         private static readonly Dictionary<StatusCode, Tuple<int, string>> _StatusMap =
@@ -267,22 +265,22 @@ namespace Couchbase.Lite
         public StatusCode Code { get; set; }
 
         /// <summary>
-        /// Gets whether or not the status code represents a successful action
-        /// </summary>
-        public bool IsSuccessful
-        {
-            get {
-                return ((int)Code > 0 && (int)Code < 400);
-            }
-        }
-
-        /// <summary>
         /// Gets whether or not the status code represents a failed action
         /// </summary>
         public bool IsError
         {
             get {
                 return !IsSuccessful;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether or not the status code represents a successful action
+        /// </summary>
+        public bool IsSuccessful
+        {
+            get {
+                return ((int)Code > 0 && (int)Code < 400);
             }
         }
 
@@ -326,8 +324,6 @@ namespace Couchbase.Lite
             return Tuple.Create(-1, string.Empty);
         }
 
-        #endregion
-
         #region Overrides
 
         /// <summary>
@@ -341,6 +337,7 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #endregion
     }
 
     /// <summary>
@@ -348,8 +345,7 @@ namespace Couchbase.Lite
     /// </summary>
     public class CouchbaseLiteException : Exception
     {
-
-        internal StatusCode Code { get; set; }
+        #region Properties
 
         /// <summary>
         /// Gets the Status object holding the error code for this exception
@@ -360,6 +356,12 @@ namespace Couchbase.Lite
                 return new Status(Code);
             }
         }
+
+        internal StatusCode Code { get; set; }
+
+        #endregion
+
+        #region Constructors
 
         /// <summary>
         /// Constructor
@@ -385,7 +387,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="innerException">The exception that was caught before the one being made, if applicable</param>
         /// <param name="status">The object holding the code representing the error for this exception</param>
-        public CouchbaseLiteException(Exception innerException, Status status) : this(innerException, status == null ? StatusCode.Exception : status.Code)
+        public CouchbaseLiteException(Exception innerException, Status status) : this(innerException, status?.Code ?? StatusCode.Exception)
         {
 
         }
@@ -416,6 +418,8 @@ namespace Couchbase.Lite
         /// <param name="values">Values.</param>
         public CouchbaseLiteException(String messageFormat, params Object[] values)
             : base(String.Format(messageFormat, values)) { }
+
+        #endregion
     }
 
 }

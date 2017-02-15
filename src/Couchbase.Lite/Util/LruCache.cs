@@ -51,7 +51,6 @@ namespace Couchbase.Lite.Util
     where TKey: class 
     where TValue: class
     {
-
         #region Constants
 
         private const string Tag = "LruCache";
@@ -60,22 +59,30 @@ namespace Couchbase.Lite.Util
 
         #region Variables
 
-        private readonly IDictionary<TKey, TValue> _recents = new Dictionary<TKey, TValue>();
         private readonly IDictionary<TKey, WeakReference<TValue>> _allValues = new Dictionary<TKey, WeakReference<TValue>>();
-        private readonly LinkedList<TKey> _nodes = new LinkedList<TKey>();
         private readonly Object _locker = new Object ();
+        private readonly LinkedList<TKey> _nodes = new LinkedList<TKey>();
+
+        private readonly IDictionary<TKey, TValue> _recents = new Dictionary<TKey, TValue>();
 
         #endregion
 
         #region Properties
 
-        public int Size { get; private set; }
-        public int MaxSize { get; private set; }
-        public int PutCount { get; private set; }
         public int CreateCount { get; private set; }
         public int EvictionCount { get; private set; }
         public int HitCount { get; private set; }
+
+        public TValue this[TKey key] {
+            get { return Get (key); }
+            set { Put (key, value); }
+        }
+
+        public int MaxSize { get; private set; }
         public int MissCount { get; private set; }
+        public int PutCount { get; private set; }
+
+        public int Size { get; private set; }
 
         #endregion
 
@@ -95,33 +102,6 @@ namespace Couchbase.Lite.Util
 
         #region Public Methods
 
-        public void Dispose()
-        {
-            Log.To.NoDomain.D(Tag, "Entering lock in Dispose");
-            lock(_locker) {
-                foreach(var val in _allValues.Values) {
-                    TValue foo;
-                    if(val.TryGetTarget(out foo)) {
-                        var disposable = foo as IDisposable;
-                        if(disposable != null) {
-                            var threadSafe = foo as IThreadSafe;
-                            if(threadSafe != null) {
-                                threadSafe.ActionQueue.DispatchSync(() => disposable.Dispose());
-                            } else {
-                                disposable.Dispose();
-                            }
-                        }
-                    }
-                }
-
-                _recents.Clear();
-                _allValues.Clear();
-                _nodes.Clear();
-                Size = 0;
-            }
-            Log.To.NoDomain.D(Tag, "Exited lock in Dispose");
-        }
-
         public void Clear()
         {
             Log.To.NoDomain.D(Tag, "Entering lock in Clear");
@@ -134,27 +114,11 @@ namespace Couchbase.Lite.Util
             Log.To.NoDomain.D(Tag, "Exited lock in Clear");
         }
 
-        public virtual void Resize(int maxSize)
-        {
-            if (maxSize <= 0) {
-                Log.To.NoDomain.E(Tag, "maxSize is <= 0 ({0}) in Resize, throwing...", maxSize);
-                throw new ArgumentException("maxSize <= 0");
-            }
-
-            Log.To.NoDomain.D(Tag, "Entering lock in Resize");
-            lock (_locker) {
-                MaxSize = maxSize;
-            }
-            Log.To.NoDomain.D(Tag, "Exited lock in Resize");
-
-            Trim();
-        }
-
         public TValue Get(TKey key)
         {
             if (key == null) {
                 Log.To.NoDomain.E(Tag, "key cannot be null in Get, throwing...");
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
             }
 
             Log.To.NoDomain.D(Tag, "Entering first lock in Get");
@@ -222,19 +186,14 @@ namespace Couchbase.Lite.Util
             }
         }
 
-        public TValue this[TKey key] {
-            get { return Get (key); }
-            set { Put (key, value); }
-        }
-            
         public TValue Put(TKey key, TValue value)
         {
             if (key == null) {
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
             }
 
             if (value == null) {
-                throw new ArgumentNullException("value");
+                throw new ArgumentNullException(nameof(value));
             }
 
             Log.To.NoDomain.D(Tag, "Entering lock in Put");
@@ -267,7 +226,96 @@ namespace Couchbase.Lite.Util
             Trim();
             return previous;
         }
-            
+
+        public TValue Remove(TKey key)
+        {
+            if (key == null) {
+                Log.To.NoDomain.E(Tag, "key cannot be null in Remove, throwing...");
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            Log.To.NoDomain.D(Tag, "Entering lock in Remove");
+            TValue previous;
+            lock (_locker) {
+                Log.To.NoDomain.V(Tag, "Attempting to remove {0}...",
+                    new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure));
+                if (_recents.TryGetValue(key, out previous)) {
+                    _recents.Remove(key);
+                    Size -= SafeSizeOf(key, previous);
+                    _nodes.Remove(key);
+                    _allValues.Remove(key);
+                    Log.To.NoDomain.V(Tag, "...Success!");
+                } else {
+                    Log.To.NoDomain.V(Tag, "...Key not found!");
+                }
+            }
+
+            Log.To.NoDomain.D(Tag, "Exited lock in Remove");
+
+            if (previous != null) {
+                EntryRemoved(false, key, previous, default(TValue));
+            }
+
+            return previous;
+        }
+
+        public virtual void Resize(int maxSize)
+        {
+            if (maxSize <= 0) {
+                Log.To.NoDomain.E(Tag, "maxSize is <= 0 ({0}) in Resize, throwing...", maxSize);
+                throw new ArgumentException("maxSize <= 0");
+            }
+
+            Log.To.NoDomain.D(Tag, "Entering lock in Resize");
+            lock (_locker) {
+                MaxSize = maxSize;
+            }
+            Log.To.NoDomain.D(Tag, "Exited lock in Resize");
+
+            Trim();
+        }
+
+        #endregion
+
+        #region Protected Internal Methods
+
+        protected internal virtual TValue Create(TKey key)
+        {
+            //Return the compiler default value for a new TValue, but can be overriden in subclasses
+            return default(TValue);
+        }
+
+        protected internal virtual void EntryRemoved(bool evicted, TKey key, TValue oldValue, TValue newValue)
+        {
+            var disp = oldValue as IDisposable;
+            disp?.Dispose();
+        }
+
+        protected internal virtual int SizeOf(TKey key, TValue value)
+        {
+            //The size of an entry in user defined units.  This must not change
+            //for any given entry while it is in the cache
+            return 1;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private int SafeSizeOf(TKey key, TValue value)
+        {
+            int result = SizeOf(key, value);
+            if (result < 0) {
+                Log.To.NoDomain.E(Tag, "SizeOf reported an invalid size for <{0} / {1}> ({2}), throwing...",
+                    new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure),
+                    new SecureLogString(value, LogMessageSensitivity.PotentiallyInsecure),
+                    result);
+                throw new InvalidOperationException("Invalid size returned by SizeOf in LruCache");
+            }
+
+            return result;
+        }
+
         private void Trim()
         {
             while (true) {
@@ -297,71 +345,6 @@ namespace Couchbase.Lite.Util
                 EntryRemoved(true, key, value, default(TValue));
             }
         }
-            
-        public TValue Remove(TKey key)
-        {
-            if (key == null) {
-                Log.To.NoDomain.E(Tag, "key cannot be null in Remove, throwing...");
-                throw new ArgumentNullException("key");
-            }
-
-            Log.To.NoDomain.D(Tag, "Entering lock in Remove");
-            TValue previous;
-            lock (_locker) {
-                Log.To.NoDomain.V(Tag, "Attempting to remove {0}...",
-                    new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure));
-                if (_recents.TryGetValue(key, out previous)) {
-                    _recents.Remove(key);
-                    Size -= SafeSizeOf(key, previous);
-                    _nodes.Remove(key);
-                    _allValues.Remove(key);
-                    Log.To.NoDomain.V(Tag, "...Success!");
-                } else {
-                    Log.To.NoDomain.V(Tag, "...Key not found!");
-                }
-            }
-
-            Log.To.NoDomain.D(Tag, "Exited lock in Remove");
-
-            if (previous != null) {
-                EntryRemoved(false, key, previous, default(TValue));
-            }
-
-            return previous;
-        }
-            
-        protected internal virtual void EntryRemoved(bool evicted, TKey key, TValue oldValue, TValue newValue)
-        {
-            var disp = oldValue as IDisposable;
-            disp?.Dispose();
-        }
-            
-        protected internal virtual TValue Create(TKey key)
-        {
-            //Return the compiler default value for a new TValue, but can be overriden in subclasses
-            return default(TValue);
-        }
-
-        private int SafeSizeOf(TKey key, TValue value)
-        {
-            int result = SizeOf(key, value);
-            if (result < 0) {
-                Log.To.NoDomain.E(Tag, "SizeOf reported an invalid size for <{0} / {1}> ({2}), throwing...",
-                    new SecureLogString(key, LogMessageSensitivity.PotentiallyInsecure),
-                    new SecureLogString(value, LogMessageSensitivity.PotentiallyInsecure),
-                    result);
-                throw new InvalidOperationException("Invalid size returned by SizeOf in LruCache");
-            }
-
-            return result;
-        }
-            
-        protected internal virtual int SizeOf(TKey key, TValue value)
-        {
-            //The size of an entry in user defined units.  This must not change
-            //for any given entry while it is in the cache
-            return 1;
-        }
 
         #endregion
 
@@ -372,15 +355,45 @@ namespace Couchbase.Lite.Util
             Log.To.NoDomain.D(Tag, "Entering lock in ToString");
             lock (_locker) {
                 
-                int accesses = HitCount + MissCount;
-                int hitPercent = accesses != 0 ? (int)Math.Round((100 * (HitCount / (double)accesses))) : 0;
+                var accesses = HitCount + MissCount;
+                var hitPercent = accesses != 0 ? (int)Math.Round((100 * (HitCount / (double)accesses))) : 0;
 
                 Log.To.NoDomain.D(Tag, "Exiting lock via return");
-                return string.Format ("LruCache[maxSize={0},hits={1},misses={2},hitRate={3:P}%]", MaxSize, HitCount, MissCount, hitPercent);
+                return $"LruCache[maxSize={MaxSize},hits={HitCount},misses={MissCount},hitRate={hitPercent:P}%]";
             }
         }
 
         #endregion
 
+        #region IDisposable
+
+        public void Dispose()
+        {
+            Log.To.NoDomain.D(Tag, "Entering lock in Dispose");
+            lock(_locker) {
+                foreach(var val in _allValues.Values) {
+                    TValue foo;
+                    if(val.TryGetTarget(out foo)) {
+                        var disposable = foo as IDisposable;
+                        if(disposable != null) {
+                            var threadSafe = foo as IThreadSafe;
+                            if(threadSafe != null) {
+                                threadSafe.ActionQueue.DispatchSync(() => disposable.Dispose());
+                            } else {
+                                disposable.Dispose();
+                            }
+                        }
+                    }
+                }
+
+                _recents.Clear();
+                _allValues.Clear();
+                _nodes.Clear();
+                Size = 0;
+            }
+            Log.To.NoDomain.D(Tag, "Exited lock in Dispose");
+        }
+
+        #endregion
     }
 }

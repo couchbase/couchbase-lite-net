@@ -24,13 +24,19 @@ namespace Couchbase.Lite.DB
 {
     internal sealed class DocumentMetadata : IDocumentMetadata
     {
-        public string Id { get; }
+        #region Properties
 
-        public string Type { get; set; }
+        public string Id { get; }
 
         public bool IsDeleted { get; }
 
         public ulong Sequence { get; }
+
+        public string Type { get; set; }
+
+        #endregion
+
+        #region Constructors
 
         internal DocumentMetadata(string id, string type, bool isDeleted, ulong sequence)
         {
@@ -39,5 +45,7 @@ namespace Couchbase.Lite.DB
             IsDeleted = isDeleted;
             Sequence = sequence;
         }
+
+        #endregion
     }
 }

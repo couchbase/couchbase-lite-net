@@ -29,6 +29,8 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IBlob
     {
+        #region Properties
+
         /// <summary>
         /// Gets the content as an in memory array
         /// </summary>
@@ -45,18 +47,20 @@ namespace Couchbase.Lite
         string ContentType { get; }
 
         /// <summary>
-        /// Gets the length of the data contained in the object
-        /// </summary>
-        ulong Length { get; }
-
-        /// <summary>
         /// Gets the digest of the object
         /// </summary>
         string Digest { get; }
 
         /// <summary>
+        /// Gets the length of the data contained in the object
+        /// </summary>
+        ulong Length { get; }
+
+        /// <summary>
         /// Gets the metadata about the object
         /// </summary>
         IReadOnlyDictionary<string, object> Properties { get; }
+
+        #endregion
     }
 }

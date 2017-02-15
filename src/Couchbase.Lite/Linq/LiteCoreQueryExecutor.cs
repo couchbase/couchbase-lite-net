@@ -32,12 +32,22 @@ namespace Couchbase.Lite.Linq
 {
     internal unsafe class LiteCoreQueryExecutor : IQueryExecutor
     {
+        #region Variables
+
         private readonly Database _db;
+
+        #endregion
+
+        #region Constructors
 
         internal LiteCoreQueryExecutor(Database db)
         {
             _db = db;
         }
+
+        #endregion
+
+        #region IQueryExecutor
 
         public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
         {
@@ -62,10 +72,14 @@ namespace Couchbase.Lite.Linq
 
             return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
         }
+
+        #endregion
     }
 
     internal sealed class LiteCoreDebugExecutor : IQueryExecutor
     {
+        #region IQueryExecutor
+
         public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
         {
             var visitor = new LiteCoreQueryModelVisitor();
@@ -84,5 +98,7 @@ namespace Couchbase.Lite.Linq
 
             return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
         }
+
+        #endregion
     }
 }

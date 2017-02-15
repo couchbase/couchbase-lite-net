@@ -27,10 +27,14 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IDocumentModel
     {
+        #region Properties
+
         /// <summary>
         /// Gets or sets the metadata for the document (note:
         /// this should only be set by the library)
         /// </summary>
         IDocumentMetadata Metadata { get; set; }
+
+        #endregion
     }
 }

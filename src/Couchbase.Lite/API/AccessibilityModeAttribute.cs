@@ -43,10 +43,16 @@ namespace Couchbase.Lite
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Method)]
     public sealed class AccessibilityModeAttribute : Attribute
     {
+        #region Properties
+
         /// <summary>
         /// Gets the access mode of the property or method in question
         /// </summary>
         public AccessMode AccessMode { get; }
+
+        #endregion
+
+        #region Constructors
 
         /// <summary>
         /// Constructor
@@ -56,5 +62,7 @@ namespace Couchbase.Lite
         {
             AccessMode = mode;
         }
+
+        #endregion
     }
 }

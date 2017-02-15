@@ -28,16 +28,22 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class IndexOptions
     {
-        /// <summary>
-        /// Gets or sets the language to use for full text search
-        /// </summary>
-        public string Language { get; set; }
+        #region Properties
 
         /// <summary>
         /// Gets or sets whether or not to ignore diacriticals
         /// (i.e. accent marks, etc) when full text searching
         /// </summary>
         public bool IgnoreDiacriticals { get; set; }
+
+        /// <summary>
+        /// Gets or sets the language to use for full text search
+        /// </summary>
+        public string Language { get; set; }
+
+        #endregion
+
+        #region Constructors
 
         /// <summary>
         /// Default Constructor
@@ -59,6 +65,10 @@ namespace Couchbase.Lite
             IgnoreDiacriticals = ignoreDiacriticals;
         }
 
+        #endregion
+
+        #region Internal Methods
+
         internal static C4IndexOptions Internal(IndexOptions options)
         {
             return new C4IndexOptions {
@@ -66,5 +76,7 @@ namespace Couchbase.Lite
                 ignoreDiacritics = options.IgnoreDiacriticals
             };
         }
+
+        #endregion
     }
 }

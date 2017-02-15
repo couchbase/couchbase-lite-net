@@ -28,14 +28,22 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class DocumentSavedEventArgs : EventArgs
     {
+        #region Properties
+
         /// <summary>
         /// Gets whether or not another object triggered this event
         /// </summary>
         public bool IsExternal { get; }
 
+        #endregion
+
+        #region Constructors
+
         internal DocumentSavedEventArgs(bool external)
         {
             IsExternal = external;
         }
+
+        #endregion
     }
 }

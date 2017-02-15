@@ -20,15 +20,14 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Support
 {
     internal sealed class ConcurrentQueue : IDispatchQueue
     {
+        #region IDispatchQueue
+
         public Task DispatchAsync(Action a)
         {
             return Task.Factory.StartNew(a);
@@ -48,5 +47,7 @@ namespace Couchbase.Lite.Support
         {
             return Task.Factory.StartNew(f).Result;
         }
+
+        #endregion
     }
 }

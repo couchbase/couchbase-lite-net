@@ -26,22 +26,18 @@ namespace Couchbase.Lite.Linq
 {
     internal abstract class NotSupportedExpressionVisitor : ExpressionVisitor
     {
-        protected bool _fromSubclass;
+        #region Variables
 
-        protected override Expression VisitConditional(ConditionalExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitConditional(node);
-            }
+        protected bool FromSubclass;
 
-            throw new NotSupportedException();
-        }
+        #endregion
+
+        #region Overrides
 
         protected override Expression VisitBinary(BinaryExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitBinary(node);
             }
 
@@ -50,79 +46,9 @@ namespace Couchbase.Lite.Linq
 
         protected override Expression VisitBlock(BlockExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitBlock(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitTry(TryExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitTry(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitNew(NewExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitNew(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitGoto(GotoExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitGoto(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitLoop(LoopExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitLoop(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitExtension(Expression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitExtension(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override SwitchCase VisitSwitchCase(SwitchCase node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitSwitchCase(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitUnary(UnaryExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitUnary(node);
             }
 
             throw new NotSupportedException();
@@ -130,29 +56,39 @@ namespace Couchbase.Lite.Linq
 
         protected override CatchBlock VisitCatchBlock(CatchBlock node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitCatchBlock(node);
             }
 
             throw new NotSupportedException();
         }
 
-        protected override Expression VisitLabel(LabelExpression node)
+        protected override Expression VisitConditional(ConditionalExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitLabel(node);
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitConditional(node);
             }
 
             throw new NotSupportedException();
         }
 
-        protected override Expression VisitIndex(IndexExpression node)
+        protected override Expression VisitConstant(ConstantExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitIndex(node);
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitConstant(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitDebugInfo(DebugInfoExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitDebugInfo(node);
             }
 
             throw new NotSupportedException();
@@ -160,8 +96,8 @@ namespace Couchbase.Lite.Linq
 
         protected override Expression VisitDefault(DefaultExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitDefault(node);
             }
 
@@ -170,109 +106,39 @@ namespace Couchbase.Lite.Linq
 
         protected override ElementInit VisitElementInit(ElementInit node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitElementInit(node);
             }
 
             throw new NotSupportedException();
         }
 
-        protected override Expression VisitMember(MemberExpression node)
+        protected override Expression VisitExtension(Expression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitMember(node);
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitExtension(node);
             }
 
             throw new NotSupportedException();
         }
 
-        protected override Expression VisitSwitch(SwitchExpression node)
+        protected override Expression VisitGoto(GotoExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitSwitch(node);
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitGoto(node);
             }
 
             throw new NotSupportedException();
         }
 
-        protected override Expression VisitLambda<T>(Expression<T> node)
+        protected override Expression VisitIndex(IndexExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitLambda(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override LabelTarget VisitLabelTarget(LabelTarget node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitLabelTarget(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitConstant(ConstantExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitConstant(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitListInit(ListInitExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitListInit(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitNewArray(NewArrayExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitNewArray(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override MemberBinding VisitMemberBinding(MemberBinding node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitMemberBinding(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitDebugInfo(DebugInfoExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitDebugInfo(node);
-            }
-
-            throw new NotSupportedException();
-        }
-
-        protected override Expression VisitParameter(ParameterExpression node)
-        {
-            if(_fromSubclass) {
-                _fromSubclass = false;
-                return base.VisitParameter(node);
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitIndex(node);
             }
 
             throw new NotSupportedException();
@@ -280,9 +146,69 @@ namespace Couchbase.Lite.Linq
 
         protected override Expression VisitInvocation(InvocationExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitInvocation(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitLabel(LabelExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitLabel(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override LabelTarget VisitLabelTarget(LabelTarget node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitLabelTarget(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitLambda<T>(Expression<T> node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitLambda(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitListInit(ListInitExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitListInit(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitLoop(LoopExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitLoop(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitMember(node);
             }
 
             throw new NotSupportedException();
@@ -290,9 +216,19 @@ namespace Couchbase.Lite.Linq
 
         protected override MemberAssignment VisitMemberAssignment(MemberAssignment node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitMemberAssignment(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override MemberBinding VisitMemberBinding(MemberBinding node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitMemberBinding(node);
             }
 
             throw new NotSupportedException();
@@ -300,8 +236,8 @@ namespace Couchbase.Lite.Linq
 
         protected override Expression VisitMemberInit(MemberInitExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitMemberInit(node);
             }
 
@@ -310,8 +246,8 @@ namespace Couchbase.Lite.Linq
 
         protected override MemberListBinding VisitMemberListBinding(MemberListBinding node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitMemberListBinding(node);
             }
 
@@ -320,8 +256,8 @@ namespace Couchbase.Lite.Linq
 
         protected override MemberMemberBinding VisitMemberMemberBinding(MemberMemberBinding node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitMemberMemberBinding(node);
             }
 
@@ -330,9 +266,39 @@ namespace Couchbase.Lite.Linq
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitMethodCall(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitNew(NewExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitNew(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitNewArray(NewArrayExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitNewArray(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitParameter(ParameterExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitParameter(node);
             }
 
             throw new NotSupportedException();
@@ -340,9 +306,39 @@ namespace Couchbase.Lite.Linq
 
         protected override Expression VisitRuntimeVariables(RuntimeVariablesExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitRuntimeVariables(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitSwitch(SwitchExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitSwitch(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override SwitchCase VisitSwitchCase(SwitchCase node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitSwitchCase(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        protected override Expression VisitTry(TryExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitTry(node);
             }
 
             throw new NotSupportedException();
@@ -350,12 +346,24 @@ namespace Couchbase.Lite.Linq
 
         protected override Expression VisitTypeBinary(TypeBinaryExpression node)
         {
-            if(_fromSubclass) {
-                _fromSubclass = false;
+            if(FromSubclass) {
+                FromSubclass = false;
                 return base.VisitTypeBinary(node);
             }
 
             throw new NotSupportedException();
         }
+
+        protected override Expression VisitUnary(UnaryExpression node)
+        {
+            if(FromSubclass) {
+                FromSubclass = false;
+                return base.VisitUnary(node);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        #endregion
     }
 }

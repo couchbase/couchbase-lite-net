@@ -29,15 +29,12 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class DatabaseChangedEventArgs : EventArgs
     {
+        #region Properties
+
         /// <summary>
         /// Gets the document IDs of the changes that occurred
         /// </summary>
         public IList<string> DocIDs { get; }
-
-        /// <summary>
-        /// Gets the last sequence checked before this event fired
-        /// </summary>
-        public ulong LastSequence { get; }
 
         /// <summary>
         /// Gets whether or not this event was triggered by another 
@@ -45,11 +42,22 @@ namespace Couchbase.Lite
         /// </summary>
         public bool External { get; }
 
+        /// <summary>
+        /// Gets the last sequence checked before this event fired
+        /// </summary>
+        public ulong LastSequence { get; }
+
+        #endregion
+
+        #region Constructors
+
         internal DatabaseChangedEventArgs(IList<string> docIDs, ulong lastSequence, bool external)
         {
             DocIDs = docIDs;
             LastSequence = lastSequence;
             External = external;
         }
+
+        #endregion
     }
 }

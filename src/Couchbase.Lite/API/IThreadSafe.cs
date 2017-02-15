@@ -28,6 +28,8 @@ namespace Couchbase.Lite
     /// </summary>
     public interface IThreadSafe
     {
+        #region Properties
+
         /// <summary>
         /// Gets the queue that is used for scheduling operations on
         /// the object.  If operations are performed outside of this queue
@@ -40,5 +42,7 @@ namespace Couchbase.Lite
         /// Gets or sets the queue used for firing events from the object
         /// </summary>
         IDispatchQueue CallbackQueue { get; set; }
+
+        #endregion
     }
 }

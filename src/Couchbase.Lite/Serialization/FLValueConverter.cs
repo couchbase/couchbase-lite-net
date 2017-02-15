@@ -1,23 +1,23 @@
-﻿//
-// ObjectConverter.cs
-//
+﻿// 
+// FLValueConverter.cs
+// 
 // Author:
-// 	Jim Borden  <jim.borden@couchbase.com>
-//
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
 // Copyright (c) 2017 Couchbase, Inc All rights reserved.
-//
+// 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//
+// 
 // http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
+// 
 using System;
 using System.Collections.Generic;
 
@@ -31,7 +31,13 @@ namespace Couchbase.Lite.Serialization
 {
     internal static unsafe class FLValueConverter
     {
+        #region Constants
+
         private const string Tag = nameof(FLValueConverter);
+
+        #endregion
+
+        #region Public Methods
 
         public static object ToObject(FLValue* value, PropertyContainer source, SharedStringCache cache)
         {
@@ -65,7 +71,7 @@ namespace Couchbase.Lite.Serialization
                         Native.FLDictIterator_Begin(dict, &i);
                         do {
                             var rawKey = Native.FLDictIterator_GetKey(&i);
-                            var key = default(string);
+                            string key;
                             if(Native.FLValue_GetType(rawKey) == FLValueType.Number) {
                                 key = cache.GetKey((int)Native.FLValue_AsInt(rawKey));
                                 if(key == null) {
@@ -97,11 +103,14 @@ namespace Couchbase.Lite.Serialization
                     return Native.FLValue_AsFloat(value);
                 case FLValueType.String:
                     return Native.FLValue_AsString(value);
-                case FLValueType.Undefined:
                 default:
                     throw new LiteCoreException(new C4Error(FLError.UnknownValue));
             }
         }
+
+        #endregion
+
+        #region Private Methods
 
         private static object ToConcreteObject(PropertyContainer source, IDictionary<string, object> dict)
         {
@@ -116,5 +125,7 @@ namespace Couchbase.Lite.Serialization
 
             throw new InvalidOperationException($"Unknown type {type} found in dictionary");
         }
+
+        #endregion
     }
 }

@@ -20,7 +20,6 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Couchbase.Lite.Logging
 {
@@ -29,49 +28,52 @@ namespace Couchbase.Lite.Logging
     /// </summary>
     public interface IDomainLogging : IEnumerable<IDomainLogging>
     {
-        /// <summary>
-        /// Gets or sets the current logging level of this logger
-        /// </summary>
-        Log.LogLevel Level { get; set; }
+        #region Properties
 
         /// <summary>
         /// Gets the domain of this logger
         /// </summary>
         string Domain { get; }
+
+        /// <summary>
+        /// Gets or sets the current logging level of this logger
+        /// </summary>
+        Log.LogLevel Level { get; set; }
+
+        #endregion
     }
 
     internal sealed class DomainLogger : IDomainLogging
     {
+        #region Variables
+
         private readonly string _domain;
         private readonly bool _makeTag;
 
-        public Log.LogLevel Level { get; set; }
+        #endregion
+
+        #region Properties
 
         public string Domain 
         {
             get { return _domain; }
         }
 
+        public Log.LogLevel Level { get; set; }
+
+        #endregion
+
+        #region Constructors
+
         internal DomainLogger(string domain, bool makeTag)
         {
             _domain = domain;
             _makeTag = makeTag;
         }
-            
-        internal void V(string tag, string msg)
-        {
-            PerformLog(logger => logger.V(MakeTag(tag), msg), Log.LogLevel.Verbose);
-        }
-            
-        internal void V(string tag, string msg, Exception tr)
-        {
-            PerformLog(logger => logger.V(MakeTag(tag), msg, tr), Log.LogLevel.Verbose);
-        }
 
-        internal void V(string tag, string format, params object[] args)
-        {
-            PerformLog(logger => logger.V(MakeTag(tag), format, args), Log.LogLevel.Verbose);
-        }
+        #endregion
+
+        #region Internal Methods
 
         [System.Diagnostics.Conditional("DEBUG")]
         internal void D(string tag, string msg)
@@ -84,11 +86,26 @@ namespace Couchbase.Lite.Logging
         {
             PerformLog(logger => logger.D(MakeTag(tag), msg, tr), Log.LogLevel.Debug);
         }
-            
+
         [System.Diagnostics.Conditional("DEBUG")]
         internal void D(string tag, string format, params object[] args)
         {
             PerformLog(logger => logger.D(MakeTag(tag), format, args), Log.LogLevel.Debug);
+        }
+
+        internal void E(string tag, string msg)
+        {
+            PerformLog(logger => logger.E(MakeTag(tag), msg), Log.LogLevel.Base);
+        }
+
+        internal void E(string tag, string msg, Exception tr)
+        {
+            PerformLog(logger => logger.E(MakeTag(tag), msg, tr), Log.LogLevel.Base);
+        }
+
+        internal void E(string tag, string format, params object[] args)
+        {
+            PerformLog(logger => logger.E(MakeTag(tag), format, args), Log.LogLevel.Base);
         }
 
         internal void I(string tag, string msg)
@@ -100,10 +117,25 @@ namespace Couchbase.Lite.Logging
         {
             PerformLog(logger => logger.I(MakeTag(tag), msg, tr), Log.LogLevel.Base);
         }
-            
+
         internal void I(string tag, string format, params object[] args)
         {
             PerformLog(logger => logger.I(MakeTag(tag), format, args), Log.LogLevel.Base);
+        }
+
+        internal void V(string tag, string msg)
+        {
+            PerformLog(logger => logger.V(MakeTag(tag), msg), Log.LogLevel.Verbose);
+        }
+
+        internal void V(string tag, string msg, Exception tr)
+        {
+            PerformLog(logger => logger.V(MakeTag(tag), msg, tr), Log.LogLevel.Verbose);
+        }
+
+        internal void V(string tag, string format, params object[] args)
+        {
+            PerformLog(logger => logger.V(MakeTag(tag), format, args), Log.LogLevel.Verbose);
         }
 
         internal void W(string tag, string msg)
@@ -121,20 +153,9 @@ namespace Couchbase.Lite.Logging
             PerformLog(logger => logger.W(MakeTag(tag), format, args), Log.LogLevel.Base);
         }
 
-        internal void E(string tag, string msg)
-        {
-            PerformLog(logger => logger.E(MakeTag(tag), msg), Log.LogLevel.Base);
-        }
+        #endregion
 
-        internal void E(string tag, string msg, Exception tr)
-        {
-            PerformLog(logger => logger.E(MakeTag(tag), msg, tr), Log.LogLevel.Base);
-        }
-
-        internal void E(string tag, string format, params object[] args)
-        {
-            PerformLog(logger => logger.E(MakeTag(tag), format, args), Log.LogLevel.Base);
-        }
+        #region Private Methods
 
         private string MakeTag(string tag)
         {
@@ -158,7 +179,7 @@ namespace Couchbase.Lite.Logging
                 }
             }
         }
-            
+
         private bool ShouldLog(Log.LogLevel level)
         {
             if (Log.Disabled) {
@@ -167,11 +188,10 @@ namespace Couchbase.Lite.Logging
 
             return Level >= level;
         }
-            
-        public override int GetHashCode()
-        {
-            return _domain.GetHashCode();
-        }
+
+        #endregion
+
+        #region Overrides
 
         public override bool Equals(object obj)
         {
@@ -183,27 +203,79 @@ namespace Couchbase.Lite.Logging
             return other._domain == _domain;
         }
 
-        public IEnumerator<IDomainLogging> GetEnumerator()
+        public override int GetHashCode()
         {
-            return new OneShotEnumerator(this);
+            return _domain.GetHashCode();
         }
+
+        #endregion
+
+        #region IEnumerable
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
-        #region Private Classes
+        #endregion
+
+        #region IEnumerable<IDomainLogging>
+
+        public IEnumerator<IDomainLogging> GetEnumerator()
+        {
+            return new OneShotEnumerator(this);
+        }
+
+        #endregion
+
+        #region Nested
 
         private class OneShotEnumerator : IEnumerator<IDomainLogging>
         {
+            #region Variables
+
             private readonly DomainLogger _parent;
             private bool _moved;
+
+            #endregion
+
+            #region Properties
+
+            public IDomainLogging Current
+            {
+                get {
+                    return _parent;
+                }
+            }
+
+            object System.Collections.IEnumerator.Current
+            {
+                get {
+                    return _parent;
+                }
+            }
+
+            #endregion
+
+            #region Constructors
 
             public OneShotEnumerator(DomainLogger parent)
             {
                 _parent = parent;
             }
+
+            #endregion
+
+            #region IDisposable
+
+            public void Dispose()
+            {
+                // No op
+            }
+
+            #endregion
+
+            #region IEnumerator
 
             public bool MoveNext()
             {
@@ -217,24 +289,7 @@ namespace Couchbase.Lite.Logging
                 _moved = false;
             }
 
-            object System.Collections.IEnumerator.Current
-            {
-                get {
-                    return _parent;
-                }
-            }
-
-            public void Dispose()
-            {
-                // No op
-            }
-
-            public IDomainLogging Current
-            {
-                get {
-                    return _parent;
-                }
-            }
+            #endregion
         }
 
         #endregion
@@ -242,13 +297,25 @@ namespace Couchbase.Lite.Logging
 
     internal sealed class LogTo
     {
+        #region Variables
+
         private readonly DomainLogger[] _allLoggers;
+
+        #endregion
+
+        #region Properties
+
+        internal DomainLogger ChangeTracker { get { return _allLoggers[6]; } }
 
         internal DomainLogger Database { get { return _allLoggers[0]; } }
 
-        internal DomainLogger Query { get { return _allLoggers[1]; } }
+        internal DomainLogger Discovery { get { return _allLoggers[10]; } }
 
-        internal DomainLogger View { get { return _allLoggers[2]; } }
+        internal DomainLogger Listener { get { return _allLoggers[9]; } }
+
+        internal DomainLogger NoDomain { get { return _allLoggers[12]; } }
+
+        internal DomainLogger Query { get { return _allLoggers[1]; } }
 
         internal DomainLogger Router { get { return _allLoggers[3]; } }
 
@@ -256,19 +323,17 @@ namespace Couchbase.Lite.Logging
 
         internal DomainLogger SyncPerf { get { return _allLoggers[5]; } }
 
-        internal DomainLogger ChangeTracker { get { return _allLoggers[6]; } }
-
-        internal DomainLogger Validation { get { return _allLoggers[7]; } }
+        internal DomainLogger TaskScheduling { get { return _allLoggers[11]; } }
 
         internal DomainLogger Upgrade { get { return _allLoggers[8]; } }
 
-        internal DomainLogger Listener { get { return _allLoggers[9]; } }
+        internal DomainLogger Validation { get { return _allLoggers[7]; } }
 
-        internal DomainLogger Discovery { get { return _allLoggers[10]; } }
+        internal DomainLogger View { get { return _allLoggers[2]; } }
 
-        internal DomainLogger TaskScheduling { get { return _allLoggers[11]; } }
+        #endregion
 
-        internal DomainLogger NoDomain { get { return _allLoggers[12]; } }
+        #region Constructors
 
         internal LogTo()
         {
@@ -286,11 +351,17 @@ namespace Couchbase.Lite.Logging
             _allLoggers[_allLoggers.Length - 1] = new DomainLogger(null, false) { Level = Log.LogLevel.Base };
         }
 
+        #endregion
+
+        #region Private Methods
+
         private void CreateAndAddLogger(string domain, int index)
         {
             var logger = new DomainLogger(domain, true) { Level = Log.LogLevel.Base };
             _allLoggers[index] = logger;
         }
+
+        #endregion
     }
 }
 

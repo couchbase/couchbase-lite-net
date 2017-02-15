@@ -52,6 +52,8 @@
     <Compile Include="API\IDocument.cs" />
     <Compile Include="API\IDocumentModel.cs" />
     <Compile Include="API\IFullTextQueryRow.cs" />
+    <Compile Include="API\IJsonMapped.cs" />
+    <Compile Include="API\IModeledDocument.cs" />
     <Compile Include="API\IndexOptions.cs" />
     <Compile Include="API\IndexType.cs" />
     <Compile Include="API\IPropertyContainer.cs" />
@@ -64,6 +66,7 @@
     <Compile Include="API\CouchbaseLiteException.cs" />
     <Compile Include="Database\Database.cs" />
     <Compile Include="Database\DocumentMetadata.cs" />
+    <Compile Include="Database\ModeledDocument.cs" />
     <Compile Include="Query\DatabaseQueryable.cs" />
     <Compile Include="Database\Document.cs" />
     <Compile Include="API\IBlob.cs" />
@@ -105,8 +108,6 @@
     <Compile Include="Util\LruCache.cs" />
     <Compile Include="Util\Misc.cs" />
     <Compile Include="Util\NonNullDictionary.cs" />
-    <Compile Include="Util\RecyclableMemoryStream.cs" />
-    <Compile Include="Util\RecyclableMemoryStreamManager.cs" />
     <Compile Include="Serialization\FLValueConverter.cs" />
     <Compile Include="Serialization\SharedStringCache.cs" />
   </ItemGroup>

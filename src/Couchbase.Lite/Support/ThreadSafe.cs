@@ -24,7 +24,13 @@ namespace Couchbase.Lite.Support
 {
     internal abstract class ThreadSafe : IThreadSafe
     {
+        #region Variables
+
         private readonly SerialQueue _serialQueue;
+
+        #endregion
+
+        #region Properties
 
         public IDispatchQueue ActionQueue
         {
@@ -35,14 +41,24 @@ namespace Couchbase.Lite.Support
 
         public IDispatchQueue CallbackQueue { get; set; } = new ConcurrentQueue();
 
+        #endregion
+
+        #region Constructors
+
         protected ThreadSafe()
         {
             _serialQueue = new SerialQueue();
         }
 
+        #endregion
+
+        #region Protected Methods
+
         protected void AssertSafety()
         {
             _serialQueue.AssertInQueue();
         }
+
+        #endregion
     }
 }

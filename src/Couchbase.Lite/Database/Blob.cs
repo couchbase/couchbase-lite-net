@@ -31,18 +31,28 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.DB
 {
-    internal sealed unsafe class Blob : IBlob
+    internal sealed unsafe class Blob : IBlob, IJsonMapped
     {
-        private const string TypeMetaProperty = "_cbltype";
+        #region Constants
+
         private const string BlobType = "blob";
         private const uint MaxCachedContentLength = 8 * 1024;
         private const int ReadBufferSize = 8 * 1024;
         private const string Tag = nameof(Blob);
+        private const string TypeMetaProperty = "_cbltype";
 
-        private Stream _initialContentStream;
+        #endregion
+
+        #region Variables
+
+        private readonly Dictionary<string, object> _properties;
         private byte[] _content;
         private Database _db;
-        private Dictionary<string, object> _properties;
+        private Stream _initialContentStream;
+
+        #endregion
+
+        #region Properties
 
         public byte[] Content
         {
@@ -71,8 +81,8 @@ namespace Couchbase.Lite.DB
                     }
 
                     var result = new List<byte>();
-                    var buffer = default(byte[]);
                     using(var reader = new BinaryReader(_initialContentStream)) {
+                        byte[] buffer;
                         do {
                             buffer = reader.ReadBytes(ReadBufferSize);
                             result.AddRange(buffer);
@@ -107,16 +117,7 @@ namespace Couchbase.Lite.DB
 
         public string ContentType { get; }
 
-        public ulong Length { get; private set; }
-
         public string Digest { get; private set; }
-
-        public IReadOnlyDictionary<string, object> Properties
-        {
-            get {
-                return new ReadOnlyDictionary<string, object>(MutableProperties);
-            }
-        }
 
         public IReadOnlyDictionary<string, object> JsonRepresentation
         {
@@ -125,11 +126,20 @@ namespace Couchbase.Lite.DB
                     throw new InvalidOperationException("Blob hasn't been saved in the database yet");
                 }
 
-                var props = Properties;
+                var json = new Dictionary<string, object>(MutableProperties) {
+                    [TypeMetaProperty] = BlobType
+                };
 
-                var json = new Dictionary<string, object>(MutableProperties);
-                json[TypeMetaProperty] = BlobType;
                 return json;
+            }
+        }
+
+        public ulong Length { get; private set; }
+
+        public IReadOnlyDictionary<string, object> Properties
+        {
+            get {
+                return new ReadOnlyDictionary<string, object>(MutableProperties);
             }
         }
 
@@ -147,6 +157,10 @@ namespace Couchbase.Lite.DB
                 };
             }
         }
+
+        #endregion
+
+        #region Constructors
 
         public Blob(string contentType, byte[] content)
         {
@@ -169,18 +183,18 @@ namespace Couchbase.Lite.DB
             _initialContentStream = stream;
         }
 
-        public Blob(string contentType, Uri fileURL)
+        public Blob(string contentType, Uri fileUrl)
         {
-            if(fileURL == null) {
-                throw new ArgumentNullException(nameof(fileURL));
+            if(fileUrl == null) {
+                throw new ArgumentNullException(nameof(fileUrl));
             }
 
-            if(!fileURL.IsFile) {
-                throw new ArgumentException($"{fileURL} must be a file-based URL", nameof(fileURL));
+            if(!fileUrl.IsFile) {
+                throw new ArgumentException($"{fileUrl} must be a file-based URL", nameof(fileUrl));
             }
 
             ContentType = contentType;
-            _initialContentStream = File.OpenRead(fileURL.AbsolutePath);
+            _initialContentStream = File.OpenRead(fileUrl.AbsolutePath);
         }
 
         internal Blob(Database db, IDictionary<string, object> properties)
@@ -194,14 +208,20 @@ namespace Couchbase.Lite.DB
             }
 
             _db = db;
-            _properties = new Dictionary<string, object>(properties);
-            _properties[TypeMetaProperty] = null;
+            _properties = new Dictionary<string, object>(properties) {
+                [TypeMetaProperty] = null
+            };
+
             Length = properties.GetCast<ulong>("length");
             Digest = properties.GetCast<string>("digest");
             if(Digest == null) {
                 Log.To.Database.W(Tag, "Blob read from database has missing digest");
             }
         }
+
+        #endregion
+
+        #region Internal Methods
 
         internal void Install(Database db)
         {
@@ -220,8 +240,7 @@ namespace Couchbase.Lite.DB
             var store = db.BlobStore;
             var key = default(C4BlobKey);
             if(_content != null) {
-                LiteCoreBridge.Check(err =>
-                {
+                LiteCoreBridge.Check(err => {
                     var tmpKey = default(C4BlobKey);
                     var s = Native.c4blob_create(store, _content, &tmpKey, err);
                     key = tmpKey;
@@ -248,11 +267,14 @@ namespace Couchbase.Lite.DB
             _db = db;
         }
 
+        #endregion
+
+        #region Private Methods
+
         private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
         {
             try {
-                _db.ActionQueue.DispatchSync(() =>
-                {
+                _db.ActionQueue.DispatchSync(() => {
                     *outBlobStore = _db.BlobStore;
                 });
 
@@ -262,9 +284,27 @@ namespace Couchbase.Lite.DB
             }
         }
 
+        #endregion
+
+        #region Overrides
+
         public override string ToString()
         {
             return $"Blob[{ContentType}; {(Length + 512) / 1024} KB]";
         }
+
+        #endregion
+
+        #region IJsonMapped
+
+        public void WriteTo(IJsonWriter writer)
+        {
+            writer.Write("digest", Digest);
+            writer.Write("length", Length);
+            writer.Write("content-type", ContentType);
+            writer.Write(TypeMetaProperty, BlobType);
+        }
+
+        #endregion
     }
 }
