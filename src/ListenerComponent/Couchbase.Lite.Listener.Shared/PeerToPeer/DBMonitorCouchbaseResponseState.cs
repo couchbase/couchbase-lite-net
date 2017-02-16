@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Listener
         private Timer _heartbeatTimer;
         private long _since;
         private ChangesOptions _options;
-        private bool _filled;
+        private int _filled;
 
         #endregion
 
@@ -204,10 +204,12 @@ namespace Couchbase.Lite.Listener
         // Processes a change in the subscribed database
         private void DatabaseChanged(object sender, DatabaseChangeEventArgs args)
         {
-            if(!_filled) {
-                _filled = true;
+            var filled = Interlocked.CompareExchange(ref _filled, 1, 0);
+            if(filled == 0) {
                 WriteChanges(Db.ChangesSince(_since, _options, ChangesFilter, FilterParams));
                 return;
+            } else if(ChangesFeedMode == ChangesFeedMode.LongPoll) {
+                return; // RACE, will be picked up by the next request
             }
 
             var changesToSend = new RevisionList();

@@ -559,6 +559,9 @@ namespace Couchbase.Lite.Listener
 
             try {
                 _writeLock.WaitOne();
+            } catch(ObjectDisposedException) {
+                Log.To.Router.W(TAG, "Data written after connection closed!");
+                return false;
             } catch(Exception e) {
                 Log.To.Router.W(TAG, "Error acquiring write lock for response", e);
                 return false;
