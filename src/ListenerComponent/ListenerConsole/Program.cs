@@ -48,6 +48,8 @@ namespace Listener
             // INTERNAL API
 
             Couchbase.Lite.Util.Log.SetLogger(Logger);
+            Couchbase.Lite.Util.Log.ScrubSensitivity = Couchbase.Lite.Util.LogScrubSensitivity.AllOK;
+
             var alternateDir = default(string);
             var pullUrl = default(Uri);
             var pushUrl = default(Uri);

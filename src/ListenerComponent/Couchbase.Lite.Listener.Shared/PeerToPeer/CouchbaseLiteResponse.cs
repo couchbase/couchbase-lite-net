@@ -336,12 +336,14 @@ namespace Couchbase.Lite.Listener
             Log.To.Router.V(TAG, "Attempting to send data over the wire: {0}", new SecureLogString(data.ToArray(),
                 LogMessageSensitivity.PotentiallyInsecure));
             if (!WriteToStream(data.ToArray())) {
+                Log.To.Router.W(TAG, "Failed to send data: {0}", 
+                                new SecureLogString(data.ToArray(), LogMessageSensitivity.PotentiallyInsecure));
                 TryClose();
                 return false;
             }
 
             if (finished) {
-                Log.To.Router.V(TAG, "Data sent, closing connectioned!");
+                Log.To.Router.V(TAG, "Data sent, closing connection!");
                 TryClose();
             }
 

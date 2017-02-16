@@ -468,8 +468,7 @@ namespace Couchbase.Lite.Listener
                     }
 
                     response.WriteHeaders();
-                    responseState.SubscribeToDatabase(db, since, options);
-                    if(responseState.IsAsync) {
+                    if(responseState.SubscribeToDatabase(db, since, options)) {
                         int heartbeat = body.GetCast<int>("heartbeat", Int32.MinValue);
                         if(heartbeat != Int32.MinValue) {
                             if(heartbeat <= 0) {
