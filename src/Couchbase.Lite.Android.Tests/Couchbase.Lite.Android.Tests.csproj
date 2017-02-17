@@ -37,6 +37,7 @@
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EmbedAssembliesIntoApk>True</EmbedAssembliesIntoApk>
     <AndroidSupportedAbis>armeabi-v7a;x86;arm64-v8a;x86_64;armeabi</AndroidSupportedAbis>
+    <AndroidTlsProvider></AndroidTlsProvider>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -44,15 +45,17 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
-    <DebugType>full</DebugType>
+    <DebugType>pdbonly</DebugType>
     <DebugSymbols>True</DebugSymbols>
     <EmbedAssembliesIntoApk>True</EmbedAssembliesIntoApk>
-    <AndroidSupportedAbis>armeabi,armeabi-v7a,x86,x86_64,arm64-v8a</AndroidSupportedAbis>
+    <AndroidSupportedAbis>armeabi;armeabi-v7a;x86;x86_64;arm64-v8a</AndroidSupportedAbis>
     <AndroidLinkSkip />
     <AndroidLinkMode>SdkOnly</AndroidLinkMode>
     <AndroidStoreUncompressedFileExtensions />
     <MandroidI18n />
     <Debugger>Xamarin</Debugger>
+    <AndroidHttpClientHandlerType>Xamarin.Android.Net.AndroidClientHandler</AndroidHttpClientHandlerType>
+    <AndroidTlsProvider>btls</AndroidTlsProvider>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -184,7 +187,6 @@
     <EmbeddedResource Condition="Exists('Assets\local-test.properties')" Include="Assets\local-test.properties" />
     <EmbeddedResource Include="Assets\test.properties" />
     <EmbeddedResource Include="Assets\attachment.blob" />
-    <EmbeddedResource Include="Assets\withattachments.cblite" />
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios130-forestdb.zip">
       <Link>Assets\ios130-forestdb.zip</Link>
     </EmbeddedResource>
@@ -196,21 +198,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android130.zip">
       <Link>Assets\android130.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
-      <Link>Assets\android104.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android110.zip">
-      <Link>Assets\android110.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
-      <Link>Assets\ios104.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios110.zip">
-      <Link>Assets\ios110.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
-      <Link>Assets\noattachments.cblite</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
       <Link>Assets\perftest.properties</Link>
@@ -242,6 +229,30 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120-forestdb.zip">
       <Link>Assets\ios120-forestdb.zip</Link>
+    </EmbeddedResource>
+	<EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android140-forestdb.zip">
+      <Link>Assets\android140-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android140.zip">
+      <Link>Assets\android140.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios140-forestdb.zip">
+      <Link>Assets\ios140-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios140.zip">
+      <Link>Assets\ios140.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net120-forestdb.zip">
+      <Link>Assets\net120-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net120.zip">
+      <Link>Assets\net120.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net130-forestdb.zip">
+      <Link>Assets\net130-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net130.zip">
+      <Link>Assets\net130.zip</Link>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />

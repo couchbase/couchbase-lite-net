@@ -96,6 +96,10 @@ namespace Couchbase.Lite.Tests
                 }
             } catch(AggregateException e) {
                 var ex = e.InnerException as WebException;
+                if(ex == null) {
+                    ex = (e.InnerException as HttpRequestException)?.InnerException as WebException;
+                }
+              
                 if (ex != null && ex.Status == WebExceptionStatus.ProtocolError) {
                     var response = ex.Response as HttpWebResponse;
                     if (response != null) {
@@ -103,10 +107,17 @@ namespace Couchbase.Lite.Tests
                         Delete().ContinueWith(t => Create()).Wait();
                         return;
                     } else {
-                        Assert.Inconclusive("Error from remote when trying to create DB: {0}", response.StatusCode);
+                        Assert.Inconclusive("Error from remote when trying to create DB:", ex);
                     }
                 } else {
-                    Assert.Inconclusive("Error from remote when trying to create DB: {0}", e);
+                    Assert.Inconclusive("Error from remote when trying to create DB:", ex);
+                }
+            } catch(HttpResponseException e) {
+                if(e.StatusCode == HttpStatusCode.PreconditionFailed) {
+                    Delete().ContinueWith(t => Create()).Wait();
+                    return;
+                } else {
+                    Assert.Inconclusive("Error from remote when trying to create DB:", e);
                 }
             }
 

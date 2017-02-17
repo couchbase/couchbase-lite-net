@@ -219,7 +219,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            UseWebSocket = dictionary.GetCast<bool>("websocket");
+            UseWebSocket = dictionary.GetCast<bool>("websocket", true);
             RemoteUUID = dictionary.GetCast<string>("remoteUUID");
             PurgePushed = dictionary.GetCast<bool>("purgePushed");
             AllNew = dictionary.GetCast<bool>("allNew");

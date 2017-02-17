@@ -99,94 +99,42 @@ namespace Couchbase.Lite
             db.Delete();
         }
 
-        /// <exception cref="System.Exception"></exception>
         [Test]
-        public void TestUpgradeOldDatabaseFiles()
+        public void TestReplaceWithPreviousDatabase()
         {
-            var testDirName = "test-directory-" + (ulong)DateTime.UtcNow.TimeSinceEpoch().TotalMilliseconds;
-            var rootDirPath = RootDirectory.FullName;
-            var testDirPath = Path.Combine(rootDirPath, testDirName);
-            var testDirInfo = Directory.CreateDirectory(testDirPath);
-
-            var dbStream = GetAsset("withattachments.cblite");
-            var destStream = File.OpenWrite(Path.Combine(testDirPath, "withattachments" + Manager.DatabaseSuffixv1));
-            dbStream.CopyTo(destStream);
-            dbStream.Dispose();
-            destStream.Dispose();
-
-            var attStream = GetAsset("attachment.blob");
-            Directory.CreateDirectory(Path.Combine(testDirPath, "withattachments/attachments"));
-            destStream = File.OpenWrite(Path.Combine(testDirPath, "withattachments/attachments/356a192b7913b04c54574d18c28d46e6395428ab.blob"));
-            attStream.CopyTo(destStream);
-            destStream.Dispose();
-            attStream.Dispose();
-
-            StopCBLite();
-            manager = new Manager(testDirInfo, Manager.DefaultOptions);
-            var db = manager.GetDatabase("withattachments", true);
-            int version = DatabaseUpgraderFactory.SchemaVersion(Path.Combine(db.DbDirectory, "db.sqlite3"));
-            Assert.IsTrue(version >= 101, "Upgrade failed");
-            Assert.IsFalse(Directory.Exists(Path.Combine(testDirPath, "withattachments/attachments")), "Failed to remove old attachments dir");
-            Assert.IsTrue(Directory.Exists(db.AttachmentStorePath), "Failed to create new attachments dir");
+            if (_storageType == "SQLite") {
+                TestReplaceDatabase ("net", "120", 1, "doc1", "doc2", "_local/local1");
+                TestReplaceDatabase ("net", "130", 1, "doc1", "doc2", "_local/local1");
+            } else {
+                TestReplaceDatabase ("net", "120-forestdb", 1, "doc1", "doc2", "_local/local1");
+                TestReplaceDatabase ("net", "130-forestdb", 1, "doc1", "doc2", "_local/local1");
+            }
         }
 
-        [Test]
-        public void TestReplaceDatabaseNamedNoAttachments() {
-            //Copy database from assets to local storage
-            var dbStream = GetAsset("noattachments.cblite");
-
-#pragma warning disable 618
-            manager.ReplaceDatabase("replaced", dbStream, null);
-#pragma warning restore 618
-            dbStream.Dispose();
-
-            //Now validate the number of files in the DB
-            var db = manager.GetDatabase("replaced");
-            Assert.AreEqual(10, db.GetDocumentCount());
-            db.Dispose();
-        }
-
-        [Test]
-        public void TestReplaceDatabaseNamedWithAttachments() {
-            var dbStream = GetAsset("withattachments.cblite");
-            var attachments = new Dictionary<string, Stream>();
-            attachments["356a192b7913b04c54574d18c28d46e6395428ab.blob"] = GetAsset("attachment.blob");
-#pragma warning disable 618
-            manager.ReplaceDatabase("replaced", dbStream, attachments);
-#pragma warning restore 618
-            dbStream.Dispose();
-            //Validate the number of files in the DB
-            Assert.AreEqual(1, manager.GetDatabase("replaced").GetDocumentCount());
-
-            var doc = manager.GetDatabase("replaced").GetExistingDocument("168e0c56-4588-4df4-8700-4d5115fa9c74");
-            Assert.IsNotNull(doc);
-            Assert.IsNotNull(doc.CurrentRevision.Attachments.ElementAt(0));
-            Assert.IsNotNull(doc.CurrentRevision.Attachments.ElementAt(0).Content);
-        }
 
         [Test]
         public void TestReplaceWithIosDatabase() {
             if (_storageType == "SQLite") {
-                TestReplaceDatabase("ios", "104", 2, "BC38EA44-E153-429A-A698-0CBE6B0090C4");
-                TestReplaceDatabase("ios", "110", 2, "-iTji_n2zmHpmgYecaRHqZE");
                 TestReplaceDatabase("ios", "120", 2, "doc1");
                 TestReplaceDatabase("ios", "130", 1, "doc1", "doc2", "_local/local1");
+                TestReplaceDatabase ("ios", "140", 1, "doc1", "doc2", "_local/local1");
             } else {
                 TestReplaceDatabase("ios", "120-forestdb", 1, "doc1", "doc2");
                 TestReplaceDatabase("ios", "130-forestdb", 1, "doc1", "doc2");
+                TestReplaceDatabase ("ios", "140-forestdb", 1, "doc1", "doc2");
             }
         }
 
         [Test]
         public void TestReplaceWithAndroidDatabase() {
             if (_storageType == "SQLite") {
-                TestReplaceDatabase("android", "104", 1, "66ac306d-de93-46c8-b60f-946c16ac4a1d");
-                TestReplaceDatabase("android", "110", 1, "d3e80747-2568-47c8-81e8-a04ba1b5c5d4");
                 TestReplaceDatabase("android", "120", 1, "doc1", "doc2", "_local/local1");
                 TestReplaceDatabase("android", "130", 1, "doc1", "doc2", "_local/local1");
+                TestReplaceDatabase("android", "140", 1, "doc1", "doc2", "_local/local1");
             } else {
                 TestReplaceDatabase("android", "120-forestdb", 1, "doc1", "doc2");
                 TestReplaceDatabase("android", "130-forestdb", 1, "doc1", "doc2");
+                TestReplaceDatabase ("android", "140-forestdb", 1, "doc1", "doc2");
             }
         }
 
@@ -200,7 +148,7 @@ namespace Couchbase.Lite
                 
             Assert.Throws(typeof(ArgumentException), () =>
             {
-                using (var assetStream = GetAsset("android104.zip")) {
+                using (var assetStream = GetAsset("android120.zip")) {
                     manager.ReplaceDatabase(database.Name, assetStream, false);
                 }
             });
@@ -214,6 +162,10 @@ namespace Couchbase.Lite
         private void TestReplaceDatabase(string platform, string version, int attachmentCount, params string[] docNames)
         {
             using(var assetStream = GetAsset($"{platform}{version}.zip")) {
+                if(assetStream == null) {
+                    WriteDebug ($"Missing database file {platform}{version}.zip");
+                    return;
+                }
                 manager.ReplaceDatabase($"{platform}db", assetStream, true);
             }
 

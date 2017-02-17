@@ -60,10 +60,10 @@
     <CodesignKey>iPhone Developer</CodesignKey>
     <IpaPackageName>
     </IpaPackageName>
-    <MtouchArch>ARMv7, ARM64</MtouchArch>
+    <MtouchArch>ARM64</MtouchArch>
     <MtouchUseRefCounting>True</MtouchUseRefCounting>
     <MtouchLink>None</MtouchLink>
-    <MtouchSdkVersion>9.3</MtouchSdkVersion>
+    <MtouchSdkVersion></MtouchSdkVersion>
     <MtouchProfiling>False</MtouchProfiling>
     <MtouchFastDev>True</MtouchFastDev>
     <MtouchUseLlvm>False</MtouchUseLlvm>
@@ -73,8 +73,9 @@
     <OptimizePNGs>True</OptimizePNGs>
     <MtouchTlsProvider>Default</MtouchTlsProvider>
     <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
-    <MtouchFloat32>False</MtouchFloat32>
+    <MtouchFloat32>true</MtouchFloat32>
     <DeviceSpecificBuild>True</DeviceSpecificBuild>
+    <MtouchNoSymbolStrip>true</MtouchNoSymbolStrip>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhone' ">
     <DebugType>full</DebugType>
@@ -86,9 +87,9 @@
     <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
     <ConsolePause>false</ConsolePause>
     <CodesignKey>iPhone Developer</CodesignKey>
-    <MtouchArch>ARMv7, ARM64</MtouchArch>
-    <MtouchLink>SdkOnly</MtouchLink>
-    <MtouchSdkVersion>9.3</MtouchSdkVersion>
+    <MtouchArch>ARM64</MtouchArch>
+    <MtouchLink>None</MtouchLink>
+    <MtouchSdkVersion></MtouchSdkVersion>
     <MtouchDebug>False</MtouchDebug>
     <MtouchProfiling>False</MtouchProfiling>
     <MtouchFastDev>False</MtouchFastDev>
@@ -100,7 +101,7 @@
     <OptimizePNGs>True</OptimizePNGs>
     <MtouchTlsProvider>Default</MtouchTlsProvider>
     <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
-    <MtouchFloat32>False</MtouchFloat32>
+    <MtouchFloat32>true</MtouchFloat32>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -195,9 +196,6 @@
     <EmbeddedResource Include="Resources\test.properties">
       <LogicalName>CouchbaseLiteiOSTests.Assets.test.properties</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Resources\withattachments.cblite">
-      <LogicalName>CouchbaseLiteiOSTests.Assets.withattachments.cblite</LogicalName>
-    </EmbeddedResource>
     <EmbeddedResource Include="Resources\attachment.blob">
       <LogicalName>CouchbaseLiteiOSTests.Assets.attachment.blob</LogicalName>
     </EmbeddedResource>
@@ -217,33 +215,9 @@
       <Link>Assets\android130.zip</Link>
       <LogicalName>CouchbaseLiteiOSTests.Assets.android130.zip</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
-      <Link>Resources\android104.zip</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.android104.zip</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android110.zip">
-      <Link>Resources\android110.zip</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.android110.zip</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
-      <Link>Resources\ios104.zip</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.ios104.zip</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios110.zip">
-      <Link>Resources\ios110.zip</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.ios110.zip</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
-      <Link>Resources\noattachments.cblite</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.noattachments.cblite</LogicalName>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
       <Link>Resources\perftest.properties</Link>
       <LogicalName>CouchbaseLiteiOSTests.Assets.perftest.properties</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120.zip">
-      <Link>Resources\ios120.zip</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.ios120.zip</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\Multipart1.mime">
       <Link>Resources\Multipart1.mime</Link>
@@ -260,6 +234,54 @@
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartStars.mime">
       <Link>Resources\MultipartStars.mime</Link>
       <LogicalName>MultipartStars.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120-forestdb.zip">
+      <Link>Assets\ios120-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios120-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120.zip">
+      <Link>Assets\ios120.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios120.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120.zip">
+      <Link>Assets\android120.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android120.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120-forestdb.zip">
+      <Link>Assets\android120-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android120-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android140.zip">
+      <Link>Assets\android140.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android140.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android140-forestdb.zip">
+      <Link>Assets\android140-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android140-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios140.zip">
+      <Link>Assets\ios140.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios140.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios140-forestdb.zip">
+      <Link>Assets\ios140-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios140-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net120-forestdb.zip">
+      <Link>Assets\net120-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.net120-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net120.zip">
+      <Link>Assets\net120.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.net120.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net130-forestdb.zip">
+      <Link>Assets\net130-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.net130-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net130.zip">
+      <Link>Assets\net130.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.net130.zip</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

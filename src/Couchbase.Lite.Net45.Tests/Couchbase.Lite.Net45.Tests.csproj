@@ -93,7 +93,6 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\attachment.blob" />
-    <EmbeddedResource Include="Assets\withattachments.cblite" />
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios130-forestdb.zip">
       <Link>Assets\ios130-forestdb.zip</Link>
     </EmbeddedResource>
@@ -109,21 +108,6 @@
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
-      <Link>Assets\ios104.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios110.zip">
-      <Link>Assets\ios110.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
-      <Link>Assets\android104.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android110.zip">
-      <Link>Assets\android110.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
-      <Link>Assets\noattachments.cblite</Link>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
       <Link>Assets\perftest.properties</Link>
     </EmbeddedResource>
@@ -156,6 +140,30 @@
       <Link>Assets\ios120-forestdb.zip</Link>
     </EmbeddedResource>
     <None Include="app.config" />
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net120-forestdb.zip">
+      <Link>Assets\net120-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net120.zip">
+      <Link>Assets\net120.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net130-forestdb.zip">
+      <Link>Assets\net130-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net130.zip">
+      <Link>Assets\net130.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android140.zip">
+      <Link>Assets\android140.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android140-forestdb.zip">
+      <Link>Assets\android140-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios140.zip">
+      <Link>Assets\ios140.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios140-forestdb.zip">
+      <Link>Assets\ios140-forestdb.zip</Link>
+    </EmbeddedResource>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
