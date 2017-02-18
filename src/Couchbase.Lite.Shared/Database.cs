@@ -105,8 +105,6 @@ namespace Couchbase.Lite
                 new StorageEngineRule()
             });
 
-        private static readonly HashSet<string> _DeletionScheduled = new HashSet<string>();
-
         private CookieStore _persistentCookieStore;
 
         private IDictionary<string, BlobStoreWriter>    _pendingAttachmentsByDigest;
@@ -452,17 +450,13 @@ namespace Couchbase.Lite
         /// Thrown if an issue occurs while deleting the <see cref="Couchbase.Lite.Database" /></exception>
         public void Delete()
         {
-            try {
-                _DeletionScheduled.Add(Name);
-                Log.To.Database.I(Tag, "Deleting {0}", this);
-                Close().Wait();
-                if(!Directory.Exists(DbDirectory)) {
-                    return;
-                }
-                Directory.Delete(DbDirectory, true);
-            } finally {
-                _DeletionScheduled.Remove(Name);
+            Log.To.Database.I(Tag, "Deleting {0}", this);
+            Close().Wait();
+            if(!Exists()) {
+                return;
             }
+
+            Directory.Delete(DbDirectory, true);
         }
 
         /// <summary>
@@ -837,7 +831,8 @@ namespace Couchbase.Lite
                     }
                 }
 
-                ThreadPool.RegisterWaitForSingleObject(evt.WaitHandle, (state, timedOut) => {
+                ThreadPool.RegisterWaitForSingleObject(evt.WaitHandle, (state, timedOut) =>
+                {
                     ActiveReplicators.Release();
                     CloseStorage();
                     tcs.SetResult(!timedOut);
@@ -1177,7 +1172,7 @@ namespace Couchbase.Lite
 
         internal bool Exists()
         {
-            return !_DeletionScheduled.Contains(Name) && Directory.Exists(DbDirectory);
+            return Directory.Exists(DbDirectory);
         }
 
         internal static string MakeLocalDocumentId(string documentId)
@@ -1993,8 +1988,6 @@ namespace Couchbase.Lite
         {
             var storage = Interlocked.Exchange(ref _storage, null);
             try {
-                DocumentCache = null;
-                Manager.ForgetDatabase(this);
                 storage?.Close();
             } catch(CouchbaseLiteException) {
                 Log.To.Database.E(Tag, "Failed to close database, rethrowing...");
@@ -2010,10 +2003,6 @@ namespace Couchbase.Lite
         {
             if(IsOpen) {
                 return;
-            }
-
-            if(_DeletionScheduled.Contains(Name)) {
-                throw new CouchbaseLiteException(StatusCode.NotFound);
             }
 
             Log.To.Database.I(Tag, "Opening {0}", this);
