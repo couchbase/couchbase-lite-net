@@ -110,7 +110,6 @@ namespace Couchbase.Lite.Storage.ForestDB
         private C4DatabaseFlags _config;
         private SymmetricKey _encryptionKey;
         private LruCache<string, ForestDBViewStore> _views = new LruCache<string, ForestDBViewStore>(100);
-        private AutoResetEvent _transactionEnd = new AutoResetEvent(false);
         private object _closeLock = new object();
 
         #endregion
@@ -596,15 +595,9 @@ namespace Couchbase.Lite.Storage.ForestDB
             var connections = _fdbConnections;
             _fdbConnections = new ConcurrentDictionary<int, IntPtr>();
             foreach(var ptr in connections) {
-                lock(_closeLock) {
-                    if(!Native.c4db_isInTransaction((C4Database*)ptr.Value)) {
-                        ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
-                        Native.c4db_free((C4Database*)ptr.Value.ToPointer());
-                    } else {
-                        Log.To.Database.W(TAG, "Database connection still in a transaction, " +
-                                            "unable to close until it is finished.  Blocking!");
-                        transactionCount++;
-                    }
+                if(!Native.c4db_isInTransaction((C4Database*)ptr.Value)) {
+                    ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
+                    Native.c4db_free((C4Database*)ptr.Value.ToPointer());
                 }
             }
 
@@ -692,12 +685,10 @@ namespace Couchbase.Lite.Storage.ForestDB
                 Log.To.Database.V(TAG, "END transaction (success={0})", success);
                 ForestDBBridge.Check(err => Native.c4db_endTransaction(nativeDb, success, err));
                 if(!InTransaction && Delegate != null) {
+                    Delegate.StorageExitedTransaction(success);
                     if(!IsOpen) {
                         ForestDBBridge.Check(err => Native.c4db_close(nativeDb, err));
                         Native.c4db_free(nativeDb);
-                        _transactionEnd.Set();
-                    } else {
-                        Delegate.StorageExitedTransaction(success);
                     }
                 }
             }
