@@ -1995,6 +1995,8 @@ namespace Couchbase.Lite
             } catch(Exception e) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag, "Exception while closing database");
             } finally {
+                DocumentCache = null;
+                Manager.ForgetDatabase(this);
                 _closingTask = null;
             }
         }

@@ -102,16 +102,16 @@ namespace Couchbase.Lite.Tests
             }
 
             if (responder != null) {
-                return Task.Factory.StartNew(() =>
+                return Task.Factory.StartNew(async () =>
                 {
-                    Task.Delay(ResponseDelayMilliseconds, cancellationToken).Wait();
+                    await Task.Delay(ResponseDelayMilliseconds, cancellationToken);
                     var message = responder(request);
                     if(message is RequestCorrectHttpMessage) {
-                        return base.SendAsync(request, cancellationToken).Result;
+                        return await base.SendAsync(request, cancellationToken);
                     }
 
                     return message;
-                }, cancellationToken);
+                }, cancellationToken).Unwrap();
             } else if(DefaultFail) {
                 throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
             }

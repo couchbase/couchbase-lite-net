@@ -146,8 +146,7 @@ namespace Couchbase.Lite.Internal
                     changesFeedRequestTokenSource.Token
                 );
 
-                info.ContinueWith(ChangeFeedResponseHandler, changesFeedRequestTokenSource == null ? 
-                                  CancellationToken.None : changesFeedRequestTokenSource.Token, 
+                info.ContinueWith(ChangeFeedResponseHandler, changesFeedRequestTokenSource?.Token ?? CancellationToken.None, 
                     TaskContinuationOptions.LongRunning, 
                     TaskScheduler.Default);
             }
@@ -321,14 +320,13 @@ namespace Couchbase.Lite.Internal
                     "Got empty change tracker response");
             }
 
-            var cts = changesFeedRequestTokenSource;
             var responseStream = default(Stream); 
             Log.To.ChangeTracker.D(Tag, "Getting stream from change tracker response");
             return response.Content.ReadAsStreamAsync().ContinueWith((Task<Stream> t) =>
             {
                 try {
                     responseStream = t?.Result;
-                    var result = _responseLogic.ProcessResponseStream(responseStream, cts == null ? CancellationToken.None : cts.Token);
+                    var result = _responseLogic.ProcessResponseStream(responseStream, changesFeedRequestTokenSource?.Token ?? CancellationToken.None);
                     Backoff.ResetBackoff();
                     if(result == ChangeTrackerResponseCode.ChangeHeartbeat) {
                         Heartbeat = _responseLogic.Heartbeat;
@@ -352,6 +350,7 @@ namespace Couchbase.Lite.Internal
                 } catch (Exception e) {
                     RetryOrStopIfNecessary(e);
                 } finally {
+                    var cts = Interlocked.Exchange(ref changesFeedRequestTokenSource, null);
                     cts?.Dispose();
                     responseStream?.Close();
                     responseStream?.Dispose();
@@ -394,10 +393,11 @@ namespace Couchbase.Lite.Internal
 
                 IsRunning = false;
 
-                var feedTokenSource = changesFeedRequestTokenSource;
+                var feedTokenSource = Interlocked.Exchange(ref changesFeedRequestTokenSource, null);
                 if (feedTokenSource != null && !feedTokenSource.IsCancellationRequested) {
                     try {
                         feedTokenSource.Cancel();
+                        feedTokenSource.Dispose();
                     } catch (ObjectDisposedException) {
                         Log.To.ChangeTracker.W(Tag, "Race condition on changesFeedRequestTokenSource detected");
                     } catch (AggregateException e) {
