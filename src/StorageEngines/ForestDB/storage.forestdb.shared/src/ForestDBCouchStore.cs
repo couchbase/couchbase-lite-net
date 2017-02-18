@@ -590,7 +590,6 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public void Close()
         {
-            var transactionCount = 0;
             IsOpen = false;
             var connections = _fdbConnections;
             _fdbConnections = new ConcurrentDictionary<int, IntPtr>();
@@ -599,10 +598,6 @@ namespace Couchbase.Lite.Storage.ForestDB
                     ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
                     Native.c4db_free((C4Database*)ptr.Value.ToPointer());
                 }
-            }
-
-            while(transactionCount-- > 0) {
-                _transactionEnd.WaitOne();
             }
         }
 
