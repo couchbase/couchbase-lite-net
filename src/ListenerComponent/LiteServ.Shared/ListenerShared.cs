@@ -40,6 +40,10 @@ namespace Listener
 
         public static void StartListener()
         {
+            // INTERNAL API
+            CouchbaseLiteRouter.InsecureMode = true;
+            // INTERNAL API
+
             var alternateDir = default(string);
             var pullUrl      = default(Uri);
             var pushUrl      = default(Uri);
