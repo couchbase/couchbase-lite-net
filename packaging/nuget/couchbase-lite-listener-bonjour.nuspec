@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>Couchbase.Lite.Listener.Bonjour</id>
-    <title>Couchbase Lite - Bonjour P2P Discovery Service</title>
+    <title>Couchbase Lite - Bonjour P2P Discovery Service (Deprecated)</title>
     <version>$version$</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
@@ -12,17 +12,13 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Enables Bonjour/DNS-SD Discovery for Peer-to-Peer Couchbase Lite applications.</description>
     <releaseNotes>
-This is a feature release, with a focus on performance. Noteworthy changes:
+NOTE: THIS PACKAGE HAS BEEN DEPRECATED AND WILL NOT RECEIVE ANY FURTHER UPDATES.  IT WILL NOT BE COMPATIBLE WITH COUCHBASE LITE 2.0.
 
-- Support for OpenID Connect authentication, so you can log into Sync Gateway using a 3rd-party identity like a Google or Yahoo ID.
-- Timed expiration of documents can help keep your database from growing indefinitely.
-- Better performance with docs that have many revisions. Replication is faster, and older revisions are now automatically cleaned up in SQLite storage.
-- Clearer error messages and better logging, including customizable domains and app.config support
-- And of course many smaller optimizations, and lots of bug fixes.
+Couchbase Lite 1.4 brings initial LINQ support to Couchbase Lite, as well as a number of bug fixes and optimizations.
 
-For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.3-pre1
+For full notes see https://developer.couchbase.com/documentation/mobile/1.4/references/couchbase-lite/release-notes/Dot-Net.html
     </releaseNotes>
-    <copyright>Copyright 2015-2016</copyright>
+    <copyright>Copyright 2015-2017</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database bonjour dns-sd p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
