@@ -61,6 +61,9 @@ namespace Listener
             var passwordMap  = new Dictionary<string, string>();
             var revsLimit    = 0;
 
+            View.Compiler = new JSViewCompiler();
+            Database.FilterCompiler = new JSFilterCompiler();
+
             string json;
 
             using (var httpListener = new HttpListener())
