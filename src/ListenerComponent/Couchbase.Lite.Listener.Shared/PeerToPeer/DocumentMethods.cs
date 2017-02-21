@@ -328,17 +328,21 @@ namespace Couchbase.Lite.Listener
             if(props != null && props.TryGetValue("_exp", out tmp)) {
                 hasValue = true;
                 if(tmp != null) {
-                    try {
-                        expirationTime = Convert.ToDateTime(tmp);
-                    } catch(Exception) {
+                    if (tmp is DateTime || tmp is DateTimeOffset) {
+                        expirationTime = (DateTime)tmp;
+                    } else {
                         try {
-                            var num = Convert.ToInt64(tmp);
-                            expirationTime = Misc.OffsetFromEpoch(TimeSpan.FromSeconds(num));
-                        } catch(Exception) {
-                            Log.To.Router.E(TAG, "Invalid value for _exp: {0}", tmp);
-                            return StatusCode.BadRequest;
-                        }
+                            expirationTime = Convert.ToDateTime(tmp);
+                        } catch (Exception) {
+                            try {
+                                var num = Convert.ToInt64(tmp);
+                                expirationTime = Misc.OffsetFromEpoch(TimeSpan.FromSeconds(num));
+                            } catch (Exception) {
+                                Log.To.Router.E(TAG, "Invalid value for _exp: {0}", tmp);
+                                return StatusCode.BadRequest;
+                            }
 
+                        }
                     }
                 }
             

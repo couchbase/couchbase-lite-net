@@ -1922,6 +1922,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             RevisionID winningRevId = null;
             ValueTypePtr<bool> inConflict = false;
+            bool created = false;
             RunInTransaction(() =>
             {
                 // First look up the document's row-id and all locally-known revisions of it:
@@ -2104,10 +2105,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 // Figure out what the new winning rev ID is:
                 winningRevId = GetWinner(docNumericId, oldWinningRevId, oldWinnerWasDeletion, rev);
+                created = true;
                 return true;
             });
-                
-            Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId, inConflict, source));
+
+            if (created) {
+                Delegate.DatabaseStorageChanged (new DocumentChange (rev, winningRevId, inConflict, source));
+            }
         }
 
         public IDictionary<string, object> PurgeRevisions(IDictionary<string, IList<string>> docsToRev)

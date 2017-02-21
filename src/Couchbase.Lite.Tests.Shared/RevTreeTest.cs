@@ -78,12 +78,14 @@ namespace Couchbase.Lite
         [Test]
         public void TestRevTree()
         {
+            var are = new AutoResetEvent (false);
             var change = default(DocumentChange);
             database.Changed += (sender, args) =>
             {
                 Assert.AreEqual(1, args.Changes.Count());
                 Assert.IsNull(change, "Multiple notifications posted");
                 change = args.Changes.First();
+                are.Set ();
             };
 
             var rev = new RevisionInternal("MyDocId", "4-4444".AsRevID(), false);
@@ -100,6 +102,7 @@ namespace Couchbase.Lite
             database.ForceInsert(rev, revHistory, null);
             Assert.AreEqual(1, database.GetDocumentCount());
             VerifyRev(rev, revHistory);
+            Assert.IsTrue (are.WaitOne (5000));
             Assert.AreEqual(Announcement(database, rev, rev), change);
             Assert.IsFalse(change.IsConflict);
 
@@ -124,6 +127,7 @@ namespace Couchbase.Lite
             database.ForceInsert(conflict, conflictHistory, null);
             Assert.AreEqual(1, database.GetDocumentCount());
             VerifyRev(conflict, conflictHistory);
+            Assert.IsTrue (are.WaitOne (5000));
             Assert.AreEqual(Announcement(database, conflict, conflict), change);
             Assert.IsTrue(change.IsConflict);
 
@@ -136,6 +140,7 @@ namespace Couchbase.Lite
             otherHistory.Add(other.RevID);
             change = null;
             database.ForceInsert(other, otherHistory, null);
+            Assert.IsTrue (are.WaitOne (5000));
             Assert.AreEqual(Announcement(database, other, other), change);
             Assert.IsFalse(change.IsConflict);
 
