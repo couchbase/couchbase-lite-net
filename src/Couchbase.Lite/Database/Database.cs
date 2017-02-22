@@ -303,8 +303,7 @@ namespace Couchbase.Lite.DB
             var value = NativeRaw.FLValue_FromTrustedData((FLSlice)doc->selectedRev.body);
             PerfTimer.StopEvent("GetDocument<T>_NativeRaw.FLValue_FromTrustedData");
             PerfTimer.StartEvent("GetDocument<T>_CreateModeledDocument");
-            var poolObject = ObjectPool.GetObjectPool<ModeledDocument<T>>().GetItem(() => new ModeledDocument<T>(this, doc)) as ModeledDocument<T>;
-            poolObject.Reconstruct(this, doc);
+            var poolObject = new ModeledDocument<T>(this, doc);
             if(value != null) {
                 poolObject.ActionQueue.DispatchSync(() => JsonSerializer.Populate(poolObject.Item, value));
             }

@@ -43,9 +43,11 @@ namespace Test
         public async Task TestDatabaseNotification()
         {
             var gotCount = 0;
+            var mre = new ManualResetEventSlim();
             Db.Changed += (sender, args) =>
             {
                 gotCount = args.DocIDs.Count;
+                mre.Set();
             };
 
             var ok = await Db.ActionQueue.DispatchAsync(() =>
@@ -66,6 +68,7 @@ namespace Test
             });
 
             ok.Should().BeTrue("because otherwise the batch failed");
+            mre.Wait(5000).Should().BeTrue("because otherwise the event never fired");
             gotCount.Should().Be(10, "because 10 documents were added");
         }
 

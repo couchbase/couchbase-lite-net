@@ -164,18 +164,6 @@
     <Compile Include="AppDelegate.cs" />
     <Compile Include="Main.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj">
-      <Project>{5ad5ae31-89b2-4607-ba4b-e309178f3ede}</Project>
-      <Name>Couchbase.Lite.Support.iOS</Name>
-      <IsAppExtension>false</IsAppExtension>
-      <IsWatchApp>false</IsWatchApp>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{1CF95F79-7649-4FDA-A888-73B5C69316FC}</Project>
-      <Name>Couchbase.Lite</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Import Project="..\packages\Xamarin.Forms.2.3.0.49\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets" Condition="Exists('..\packages\Xamarin.Forms.2.3.0.49\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets')" />

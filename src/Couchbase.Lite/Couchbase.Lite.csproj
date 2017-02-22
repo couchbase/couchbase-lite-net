@@ -1,123 +1,30 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{1CF95F79-7649-4FDA-A888-73B5C69316FC}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Couchbase.Lite</RootNamespace>
+    <TargetFramework>netstandard1.4</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Couchbase.Lite</AssemblyName>
-    <DefaultLanguage>en-US</DefaultLanguage>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
-    <TargetFrameworkVersion>v5.0</TargetFrameworkVersion>
+    <PackageId>Couchbase.Lite</PackageId>
+    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;LITECORE_PACKAGED</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+
   <ItemGroup>
-    <None Include="project.json" />
-    <!-- A reference to the entire .NET Framework is automatically included -->
+    <PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="Remotion.Linq" Version="2.1.1" />
+    <PackageReference Include="System.Linq.Expressions" Version="4.3.0" />
+    <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="API\AccessibilityModeAttribute.cs" />
-    <Compile Include="API\BlobFactory.cs" />
-    <Compile Include="API\DatabaseChangedEventArgs.cs" />
-    <Compile Include="API\DatabaseFactory.cs" />
-    <Compile Include="API\DatabaseOptions.cs" />
-    <Compile Include="API\IDocumentMetadata.cs" />
-    <Compile Include="API\DocumentSavedEventArgs.cs" />
-    <Compile Include="API\IDatabase.cs" />
-    <Compile Include="API\IDocument.cs" />
-    <Compile Include="API\IDocumentModel.cs" />
-    <Compile Include="API\IFullTextQueryRow.cs" />
-    <Compile Include="API\IJsonMapped.cs" />
-    <Compile Include="API\IModeledDocument.cs" />
-    <Compile Include="API\IndexOptions.cs" />
-    <Compile Include="API\IndexType.cs" />
-    <Compile Include="API\IPropertyContainer.cs" />
-    <Compile Include="API\IQueryRow.cs" />
-    <Compile Include="API\QueryableFactory.cs" />
-    <Compile Include="API\Range.cs" />
-    <Compile Include="API\ThreadSafetyViolationException.cs" />
-    <Compile Include="Database\Blob.cs" />
-    <Compile Include="API\IConflictResolver.cs" />
-    <Compile Include="API\CouchbaseLiteException.cs" />
-    <Compile Include="Database\Database.cs" />
-    <Compile Include="Database\DocumentMetadata.cs" />
-    <Compile Include="Database\ModeledDocument.cs" />
-    <Compile Include="Query\DatabaseQueryable.cs" />
-    <Compile Include="Database\Document.cs" />
-    <Compile Include="API\IBlob.cs" />
-    <Compile Include="API\IDispatchQueue.cs" />
-    <Compile Include="API\IThreadSafe.cs" />
-    <Compile Include="Database\PropertyContainer.cs" />
-    <Compile Include="Database\BlobReadStream.cs" />
-    <Compile Include="Database\BlobWriteStream.cs" />
-    <Compile Include="API\SymmetricKey.cs" />
-    <Compile Include="Linq\LinqExtensionMethods.cs" />
-    <Compile Include="Linq\LiteCoreWhereExpressionVisitor.cs" />
-    <Compile Include="Linq\LiteCoreQueryExecutor.cs" />
-    <Compile Include="Linq\LiteCoreQueryModelVisitor.cs" />
-    <Compile Include="Linq\NotSupportedExpressionVisitor.cs" />
-    <Compile Include="Log\ILogger.cs" />
-    <Compile Include="Log\Log.cs" />
-    <Compile Include="Log\LogDomains.cs" />
-    <Compile Include="Log\LogGroup.cs" />
-    <Compile Include="Log\LogJsonString.cs" />
-    <Compile Include="Log\LogTo.cs" />
-    <Compile Include="Log\SecureLogString.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Query\FullTextQueryRow.cs" />
-    <Compile Include="Query\QueryEnumerator.cs" />
-    <Compile Include="Query\QueryRow.cs" />
-    <Compile Include="Serialization\BlobConverter.cs" />
-    <Compile Include="Serialization\CouchbaseLiteContractResolver.cs" />
-    <Compile Include="Serialization\JsonFLValueReader.cs" />
-    <Compile Include="Serialization\JsonFLValueWriter.cs" />
-    <Compile Include="Serialization\Serializer.cs" />
-    <Compile Include="Support\ConcurrentQueue.cs" />
-    <Compile Include="Support\DefaultDirectoryResolver.cs" />
-    <Compile Include="Support\DefaultLogger.cs" />
-    <Compile Include="Support\IDefaultPathResolver.cs" />
-    <Compile Include="Support\IInjectable.cs" />
-    <Compile Include="Support\SerialQueue.cs" />
-    <Compile Include="Support\ThreadSafe.cs" />
-    <Compile Include="Util\Extensions.cs" />
-    <Compile Include="Util\LruCache.cs" />
-    <Compile Include="Util\Misc.cs" />
-    <Compile Include="Util\NonNullDictionary.cs" />
-    <Compile Include="Serialization\FLValueConverter.cs" />
-    <Compile Include="Serialization\SharedStringCache.cs" />
-  </ItemGroup>
+  
   <Import Project="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.Shared.projitems" Label="Shared" />
-  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

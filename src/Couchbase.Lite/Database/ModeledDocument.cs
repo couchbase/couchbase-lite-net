@@ -27,7 +27,7 @@ using LiteCore.Util;
 
 namespace Couchbase.Lite.DB
 {
-    internal sealed unsafe class ModeledDocument<T> : ThreadSafe, IPoolObject, IModeledDocument<T> where T : class, new()
+    internal sealed unsafe class ModeledDocument<T> : ThreadSafe, IModeledDocument<T> where T : class, new()
     {
         #region Variables
 
@@ -74,8 +74,6 @@ namespace Couchbase.Lite.DB
                 _item = value;
             }
         }
-
-        public ObjectPool Pool { get; set; }
 
         public ulong Sequence { get; private set; }
 
@@ -191,7 +189,6 @@ namespace Couchbase.Lite.DB
         {
             Native.c4doc_free(_document);
             _document = null;
-            Pool?.PutItem(this);
         }
 
         #endregion

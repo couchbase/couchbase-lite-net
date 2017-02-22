@@ -4,7 +4,6 @@
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
   </PropertyGroup>
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Import Project="$(NuGetPackageRoot)xunit.runner.visualstudio\2.1.0\build\uap10.0\xunit.runner.visualstudio.targets" Condition="Exists('$(NuGetPackageRoot)xunit.runner.visualstudio\2.1.0\build\uap10.0\xunit.runner.visualstudio.targets')" />
     <Import Project="$(NuGetPackageRoot)microsoft.net.native.sharedlibrary-x86\1.6.0\build\Microsoft.Net.Native.SharedLibrary-x86.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.net.native.sharedlibrary-x86\1.6.0\build\Microsoft.Net.Native.SharedLibrary-x86.targets')" />
     <Import Project="$(NuGetPackageRoot)microsoft.net.native.sharedlibrary-x64\1.6.0\build\Microsoft.Net.Native.SharedLibrary-x64.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.net.native.sharedlibrary-x64\1.6.0\build\Microsoft.Net.Native.SharedLibrary-x64.targets')" />
     <Import Project="$(NuGetPackageRoot)microsoft.net.native.sharedlibrary-arm\1.6.0\build\Microsoft.Net.Native.SharedLibrary-arm.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.net.native.sharedlibrary-arm\1.6.0\build\Microsoft.Net.Native.SharedLibrary-arm.targets')" />

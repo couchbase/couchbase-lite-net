@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using Android.App;
 using Android.Content;
@@ -12,7 +12,7 @@ using Xunit.Runners.UI;
 
 namespace Couchbase.Lite.Tests.Android
 {
-    [Activity(Label = "xUnit Android Runner", MainLauncher = true, Theme= "@android:style/Theme.Material.Light")]
+    [Activity(Label = "CBLUnit", MainLauncher = true, Theme = "@android:style/Theme.Material.Light")]
     public class MainActivity : RunnerActivity
     {
 
