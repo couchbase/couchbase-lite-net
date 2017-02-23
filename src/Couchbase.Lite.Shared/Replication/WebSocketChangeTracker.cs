@@ -52,7 +52,9 @@ namespace Couchbase.Lite.Internal
         {
             // 4000 is the first code reserved for private use by
             // Section 7.4 of RFC 6455 (http://tools.ietf.org/html/rfc6455#section-7.4).
-            DisableActiveOnly = 4000
+            DisableActiveOnly = 4000,
+
+            GoOffline = 4001
         }
 
         #endregion
@@ -128,7 +130,7 @@ namespace Couchbase.Lite.Internal
                 if(args.Code == (ushort)PrivateCloseStatusCode.DisableActiveOnly) {
                     ActiveOnly = false;
                     Start(); //Switching to non-active-only mode
-                } else {
+                } else if(args.Code != (ushort)PrivateCloseStatusCode.GoOffline) {
                     Log.To.ChangeTracker.I(Tag, "{0} is closed", this);
                     Stopped(ErrorResolution.Stop);
                 }
@@ -292,10 +294,14 @@ namespace Couchbase.Lite.Internal
             }
 
             IsRunning = false;
+            var resolution = (ErrorResolution)resolutionWrapper;
+            ushort closeStatus = resolution == ErrorResolution.GoOffline ? 
+                                 (ushort)PrivateCloseStatusCode.GoOffline : (ushort)CloseStatusCode.Normal;
+            
             Misc.SafeNull(ref _client, c =>
             {
                 Log.To.ChangeTracker.I(Tag, "{0} requested to stop", this);
-                c.Close(CloseStatusCode.Normal);
+                c.Close(closeStatus);
             });
         }
 
