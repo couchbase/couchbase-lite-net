@@ -204,12 +204,20 @@ namespace Couchbase.Lite.Listener
         // Processes a change in the subscribed database
         private void DatabaseChanged(object sender, DatabaseChangeEventArgs args)
         {
-            var filled = Interlocked.CompareExchange(ref _filled, 1, 0);
-            if(filled == 0) {
+            if (ChangesFeedMode == ChangesFeedMode.LongPoll) {
+                // Only send changes if it is the first VALID time (i.e. has at least one change
+                // and hasn't started another write yet)
+                var changes = Db.ChangesSince(_since, _options, ChangesFilter, FilterParams);
+                if (changes.Count > 0 && Interlocked.CompareExchange(ref _filled, 1, 0) == 0) {
+                    WriteChanges(changes);
+                }
+
+                return;
+            } else if (Interlocked.CompareExchange(ref _filled, 1, 0) == 0) {
+                // Backfill potentially missed revisions between the check for subscription need
+                // and actual subscription
                 WriteChanges(Db.ChangesSince(_since, _options, ChangesFilter, FilterParams));
                 return;
-            } else if(ChangesFeedMode == ChangesFeedMode.LongPoll) {
-                return; // RACE, will be picked up by the next request
             }
 
             var changesToSend = new RevisionList();
