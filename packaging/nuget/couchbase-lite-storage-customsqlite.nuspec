@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>Couchbase.Lite.Storage.CustomSQLite</id>
-    <title>Couchbase Lite System SQLite Storage</title>
+    <title>Couchbase Lite Custom SQLite Storage</title>
     <version>$version$</version>
     <authors>Jim Borden</authors>
     <owners>Couchbase</owners>
