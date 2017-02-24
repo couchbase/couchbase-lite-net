@@ -1088,7 +1088,7 @@ namespace SQLitePCL
 
         private static class NativeMethods
         {
-            private const string SQLITE_DLL = "cbsqlite";
+            private const string SQLITE_DLL = "cbsqlite3";
 
 #if PRELOAD_FROM_ARCH_DIRECTORY
     // TODO on which Windows platforms is LoadLibraryEx available?
