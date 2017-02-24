@@ -59,7 +59,15 @@ namespace Couchbase.Lite.Storage.SQLCipher
         /// </summary>
         public static void Register()
         {
-            Database.RegisterStorageEngine(StorageEngineTypes.SQLite, typeof(SqliteCouchStore));
+#if SQLITE && __ANDROID__
+            var osVersion = global::Android.OS.Build.VERSION.SdkInt;
+            if (global::Android.OS.Build.VERSION.SdkInt > global::Android.OS.BuildVersionCodes.M) {
+                Log.To.Database.W("SqliteCouchStore",
+                    $"SystemSQLite cannot be used on '{osVersion}' because of new Google restrictions in API 24+, if another " +
+                    "storage engine is not registered this process will misbehave.");
+            }
+#endif
+                Database.RegisterStorageEngine(StorageEngineTypes.SQLite, typeof(SqliteCouchStore));
         }
     }
 
