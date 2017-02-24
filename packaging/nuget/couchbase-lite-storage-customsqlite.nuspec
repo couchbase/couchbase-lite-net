@@ -29,13 +29,13 @@ For full notes see https://developer.couchbase.com/documentation/mobile/1.4/refe
     </dependencies>
   </metadata>
   <files>
-    <file target="lib/net45/" src="staging\Couchbase.Lite.Storage.CustomSQLite\net45\Couchbase.Lite.Storage.CustomSQLite*" />
+    <file target="lib/net45/" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/Couchbase.Lite.Storage.CustomSQLite*" />
     <file target="build/net45/" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/libcbsqlite3.dylib" />
     <file target="build/net45/" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/libcbsqlite3.so" />
     <file target="build/net45/x86/cbsqlite3.dll" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/x86/cbsqlite3.dll" />
     <file target="build/net45/x64/cbsqlite3.dll" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/x64/cbsqlite3.dll" />
     <file target="build/net45/Couchbase.Lite.Storage.CustomSQLite.targets" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/net45.targets" />
-    <file target="lib/MonoAndroid/" src="staging\Couchbase.Lite.Storage.CustomSQLite\MonoAndroid\*" />
-    <file target="lib/Xamarin.iOS10/" src="staging\Couchbase.Lite.Storage.CustomSQLite\Xamarin.iOS10\*" />
+    <file target="lib/MonoAndroid/" src="staging/Couchbase.Lite.Storage.CustomSQLite/MonoAndroid/*" />
+    <file target="lib/Xamarin.iOS10/" src="staging/Couchbase.Lite.Storage.CustomSQLite/Xamarin.iOS10/*" />
   </files>
 </package>
