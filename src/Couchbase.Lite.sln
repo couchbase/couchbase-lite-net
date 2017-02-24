@@ -17,8 +17,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.iOS", 
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{11F38891-8397-49B4-9146-6DAF0A9D7866}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Shared", "..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.Shared.shproj", "{C37DC024-8762-4BE4-9034-B2B5970C652C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UWPHack", "Couchbase.Lite.Tests.UWP\UWPHack\UWPHack.csproj", "{52DE92D8-E0FB-4761-A377-493082A95799}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Lite.Tests.NetCore", "Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.csproj", "{5A5C38AB-75EC-4E43-974B-CF334603D408}"
@@ -29,13 +27,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Support.iOS"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.Android", "Couchbase.Lite.Tests.Android\Couchbase.Lite.Tests.Android.csproj", "{3A866140-E4A7-44D7-B81E-071E1B3E8C21}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Shared", "..\vendor\couchbase-lite-core\CSharp\src\LiteCore.Shared\LiteCore.Shared.shproj", "{C37DC024-8762-4BE4-9034-B2B5970C652C}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{11f38891-8397-49b4-9146-6daf0a9d7866}*SharedItemsImports = 13
 		..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.Shared.projitems*{1cf95f79-7649-4fda-a888-73b5c69316fc}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{3a866140-e4a7-44d7-b81e-071e1b3e8c21}*SharedItemsImports = 4
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{52de92d8-e0fb-4761-a377-493082a95799}*SharedItemsImports = 4
-		..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.Shared.projitems*{c37dc024-8762-4be4-9034-b2b5970c652c}*SharedItemsImports = 13
+		..\vendor\couchbase-lite-core\CSharp\src\LiteCore.Shared\LiteCore.Shared.projitems*{c37dc024-8762-4be4-9034-b2b5970c652c}*SharedItemsImports = 13
 		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{f5f57919-be42-46b6-b173-eb6f34cfb022}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -25,6 +25,6 @@
     <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.0" />
   </ItemGroup>
   
-  <Import Project="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore\LiteCore.Shared.projitems" Label="Shared" />
+  <Import Project="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore.Shared\LiteCore.Shared.projitems" Label="Shared" />
 
 </Project>
