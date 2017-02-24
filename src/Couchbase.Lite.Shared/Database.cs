@@ -282,6 +282,15 @@ namespace Couchbase.Lite
         static Database()
         {
             var type = Type.GetType("Couchbase.Lite.Storage.SystemSQLite.SqliteCouchStore, Couchbase.Lite.Storage.SystemSQLite");
+
+#if __ANDROID__
+            var osVersion = global::Android.OS.Build.VERSION.SdkInt;
+            if(global::Android.OS.Build.VERSION.SdkInt > global::Android.OS.BuildVersionCodes.M) {
+                Log.To.Database.W(Tag, $"SystemSQLite cannot be used on '{osVersion}' because of new Google restrictions " +
+                    "in API 24+, if another storage engine is not registered this process will misbehave.");
+            }
+#endif
+            
             if(type != null) {
                 RegisterStorageEngine(StorageEngineTypes.SQLite, type);
             } else {
