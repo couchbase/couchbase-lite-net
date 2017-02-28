@@ -1,5 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <MonoPrefix>mono </MonoPrefix>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <MonoPrefix />
+  </PropertyGroup>
   <PropertyGroup>
     <TargetFramework>netstandard1.4</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -14,8 +19,19 @@
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
+    <SignAssembly>True</SignAssembly>
+    <DelaySign>True</DelaySign>
+    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\version">
+        <LogicalName>version</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NETCore.Portable.Compatibility" Version="1.0.1" />
@@ -24,7 +40,33 @@
     <PackageReference Include="System.Linq.Expressions" Version="4.3.0" />
     <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="desktop.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Properties\DynamicAssemblyInfo.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\DynamicAssemblyInfo.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
   
   <Import Project="..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore.Shared\LiteCore.Shared.projitems" Label="Shared" />
+  
+  <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
+    <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)Properties\version&quot;" />
+  </Target>
 
 </Project>

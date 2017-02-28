@@ -152,3 +152,4 @@ project.lock.json
 .vs/
 project.fragment.lock.json
 *.opendb
+couchbase.snk

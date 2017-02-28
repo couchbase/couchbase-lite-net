@@ -31,14 +31,40 @@
     <ConsolePause>false</ConsolePause>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Packaging\</OutputPath>
+    <DefineConstants>__UNIFIED__;__MOBILE__;__IOS__;</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>portable</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <SignAssembly>True</SignAssembly>
+    <DelaySign>True</DelaySign>
+    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.iOS" />
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
+    <Content Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">
+      <Link>Properties\DynamicAssemblyInfo.tt</Link>
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.cs">
+      <Link>Properties\DynamicAssemblyInfo.cs</Link>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Activate.cs" />
     <Compile Include="Support\iOSDefaultLogger.cs" />
@@ -52,6 +78,14 @@
   </ItemGroup>
   <ItemGroup>
     <BundleResource Include="Resources\libLiteCore.dylib" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Couchbase.Lite\Properties\version">
+      <Link>Properties\version</Link>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
 </Project>
