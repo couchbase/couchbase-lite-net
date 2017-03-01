@@ -8,4 +8,4 @@ string nugetVersion = System.Environment.GetEnvironmentVariable("NUGET_VERSION")
 #>
 
 [assembly: AssemblyVersion ("<#= assemblyVersion#>")]
-[assembly: AssemblyInformationalVersion("<#= nugetVersion#>")] // Used by nuget for semver detection.
+[assembly: AssemblyInformationalVersion("<#= nugetVersion#>")]

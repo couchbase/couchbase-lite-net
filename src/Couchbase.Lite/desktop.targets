@@ -17,6 +17,14 @@
                 <Link>x64\LiteCore.dll</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </None>
+            <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\sqlite3.dll">
+                <Link>x86\sqlite3.dll</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </None>
+            <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\sqlite3.dll">
+                <Link>x64\sqlite3.dll</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </None>
             <None Include="$(MSBuildThisFileDirectory)..\runtimes\osx-x64\native\libLiteCore.dylib" Condition=" $(IsMac) ">
                 <Link>libLiteCore.dylib</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
