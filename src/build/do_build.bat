@@ -12,5 +12,6 @@ if not defined VSCMD_ARG_HOST_ARCH (
 )
 
 msbuild Couchbase.Lite.csproj /t:Transform /p:TransformFile="Properties\DynamicAssemblyInfo.tt"
+dotnet restore
 dotnet build -c Packaging && sn -Ra bin\Packaging\netstandard1.4\Couchbase.Lite.dll ..\couchbase.snk
 popd
