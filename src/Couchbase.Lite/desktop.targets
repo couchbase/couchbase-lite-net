@@ -5,30 +5,30 @@
     </PropertyGroup>
     <Target Name="InjectReference_11513e9c-85e5-4aa3-93a0-c55433b2b66d" BeforeTargets="ResolveAssemblyReferences">
         <ItemGroup>
-            <None Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libLiteCore.so">
+            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libLiteCore.so">
                 <Link>libLiteCore.so</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </None>
-            <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\LiteCore.dll">
+            </Content>
+            <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\LiteCore.dll">
                 <Link>x86\LiteCore.dll</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </None>
-            <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\LiteCore.dll">
+            </Content>
+            <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\LiteCore.dll">
                 <Link>x64\LiteCore.dll</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </None>
-            <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\sqlite3.dll">
+            </Content>
+            <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\sqlite3.dll">
                 <Link>x86\sqlite3.dll</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </None>
-            <None Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\sqlite3.dll">
+            </Content>
+            <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\sqlite3.dll">
                 <Link>x64\sqlite3.dll</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </None>
-            <None Include="$(MSBuildThisFileDirectory)..\runtimes\osx-x64\native\libLiteCore.dylib" Condition=" $(IsMac) ">
+            </Content>
+            <Content Include="$(MSBuildThisFileDirectory)..\runtimes\osx-x64\native\libLiteCore.dylib" Condition=" $(IsMac) ">
                 <Link>libLiteCore.dylib</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </None>
+            </Content>
         </ItemGroup>
     </Target>
 </Project>
