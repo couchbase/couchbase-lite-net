@@ -1,7 +1,7 @@
 @echo off
 pushd %~dp0
-if not exist nuget.exe (
-    powershell -Command "Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile nuget.exe"
+if not exist ..\..\nuget.exe (
+    powershell -Command "Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile ..\..\nuget.exe"
 )
 
 if not defined NUGET_VERSION (
@@ -22,8 +22,8 @@ if not defined NUGET_REPO (
     exit /b 1
 )
 
-nuget.exe pack couchbase-lite.nuspec /Properties version=%NUGET_VERSION% /BasePath ..\..
-nuget.exe pack couchbase-lite-support-uwp.nuspec /Properties version=%NUGET_VERSION% /BasePath ..\..
-nuget.exe push Couchbase.Lite.%NUGET_VERSION%.nupkg %API_KEY% -Source %NUGET_REPO%
-nuget.exe push Couchbase.Lite.Support.UWP.%NUGET_VERSION%.nupkg %API_KEY% -Source %NUGET_REPO%
+..\..\nuget.exe pack couchbase-lite.nuspec /Properties version=%NUGET_VERSION% /BasePath ..\..
+..\..\nuget.exe pack couchbase-lite-support-uwp.nuspec /Properties version=%NUGET_VERSION% /BasePath ..\..
+..\..\nuget.exe push Couchbase.Lite.%NUGET_VERSION%.nupkg %API_KEY% -Source %NUGET_REPO%
+..\..\nuget.exe push Couchbase.Lite.Support.UWP.%NUGET_VERSION%.nupkg %API_KEY% -Source %NUGET_REPO%
 popd
