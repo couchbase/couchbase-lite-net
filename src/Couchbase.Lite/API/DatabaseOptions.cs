@@ -38,12 +38,9 @@ namespace Couchbase.Lite
         public string Directory { get; set; }
 
         /// <summary>
-        /// Gets or sets the data to be used for deriving an encryption key
-        /// for the database (must be either a <see cref="System.String"/>
-        /// password, or <see cref="System.Collections.Generic.IEnumerable{T}"/>
-        /// of <see cref="System.Byte"/> containining PBKDF2 data.
+        /// Gets or sets the encryption key to use on the database
         /// </summary>
-        public object EncryptionKey { get; set; }
+        public IEncryptionKey EncryptionKey { get; set; }
 
         /// <summary>
         /// Gets or sets whether or not this database is readonly.

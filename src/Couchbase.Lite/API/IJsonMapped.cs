@@ -18,9 +18,10 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //  
+
 namespace Couchbase.Lite
 {
-    public interface IJsonWriter
+    internal interface IJsonWriter
     {
         #region Public Methods
 
@@ -37,7 +38,7 @@ namespace Couchbase.Lite
         #endregion
     }
 
-    public interface IJsonMapped
+    internal interface IJsonMapped
     {
         #region Public Methods
 

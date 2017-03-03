@@ -19,17 +19,18 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
+    /// <summary>
+    /// The UWP support class
+    /// </summary>
     public static class UWP
     {
+        /// <summary>
+        /// Activates the support classes for UWP
+        /// </summary>
         public static void Activate()
         {
             InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());

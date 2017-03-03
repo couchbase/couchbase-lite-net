@@ -40,6 +40,10 @@ namespace Couchbase.Lite
         FromAnywhere
     }
 
+    /// <summary>
+    /// An attribute indicating when a given property or method is allowed to be accessed
+    /// (queue-only vs anytime)
+    /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Method)]
     public sealed class AccessibilityModeAttribute : Attribute
     {

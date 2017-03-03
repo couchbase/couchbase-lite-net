@@ -22,7 +22,7 @@ using System;
 
 namespace Couchbase.Lite
 {
-    public interface IModeledDocument<T> : IThreadSafe, IDisposable where T : class, new()
+    internal interface IModeledDocument<T> : IThreadSafe, IDisposable where T : class, new()
     {
         #region Properties
 

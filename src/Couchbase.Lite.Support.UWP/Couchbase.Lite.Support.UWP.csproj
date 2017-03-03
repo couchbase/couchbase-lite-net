@@ -151,6 +151,7 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.UWP.xml</DocumentationFile>
     <!-- SignAssembly>True</SignAssembly>
     <DelaySign>True</DelaySign>
     <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile -->

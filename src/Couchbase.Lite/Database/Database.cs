@@ -350,7 +350,10 @@ namespace Couchbase.Lite.DB
 
             var encrypted = "";
             if(Options.EncryptionKey != null) {
-                var key = SymmetricKey.Create(Options.EncryptionKey);
+#if true
+                throw new NotImplementedException("Encryption is not yet supported");
+#else
+                var key = Options.EncryptionKey;
                 int i = 0;
                 config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
                 foreach(var b in key.KeyData) {
@@ -358,6 +361,7 @@ namespace Couchbase.Lite.DB
                 }
 
                 encrypted = "encrypted ";
+#endif
             }
 
             Log.To.Database.I(Tag, $"Opening {encrypted}database at {path}");
@@ -409,9 +413,9 @@ namespace Couchbase.Lite.DB
             } while(changes > 0);
         }
 
-        #endregion
+#endregion
 
-        #region IDatabase
+#region IDatabase
 
         public void Close()
         {
@@ -523,9 +527,9 @@ namespace Couchbase.Lite.DB
             return success;
         }
 
-        #endregion
+#endregion
 
-        #region IDisposable
+#region IDisposable
 
         public void Dispose()
         {
@@ -536,6 +540,6 @@ namespace Couchbase.Lite.DB
             });
         }
 
-        #endregion
+#endregion
     }
 }

@@ -129,7 +129,7 @@ namespace Couchbase.Lite
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         IDocument GetDocument(string id);
 
-        IModeledDocument<T> GetDocument<T>(string id) where T : class, new();
+        //IModeledDocument<T> GetDocument<T>(string id) where T : class, new();
 
         /// <summary>
         /// Runs the given batch of operations as an atomic unit

@@ -26,8 +26,14 @@ using Couchbase.Lite.Support.Internal;
 
 namespace Couchbase.Lite.Support
 {
+    /// <summary>
+    /// A placeholder interface indicating that a class is meant to be used for
+    /// dependency injection
+    /// </summary>
     public interface IInjectable
-    {}
+    {
+        
+    }
 
     internal static class InjectableCollection
     {
