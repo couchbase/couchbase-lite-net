@@ -286,11 +286,12 @@ namespace Couchbase.Lite.Util
                     _recents.Remove(key);
                     Size -= SafeSizeOf(key, previous);
                     _nodes.Remove(key);
-                    _allValues.Remove(key);
                     Log.To.NoDomain.V(Tag, "...Success!");
                 } else {
-                    Log.To.NoDomain.V(Tag, "...Key not found!");
+                    Log.To.NoDomain.V(Tag, "...Key not found in recent list!");
                 }
+
+                _allValues.Remove(key);
             }
 
             Log.To.NoDomain.D(Tag, "Exited lock in Remove");
