@@ -873,6 +873,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return new Status(StatusCode.Ok);
         }
 
+        private void InvalidateDocNumericID(string docID)
+        {
+            _docIDs.Remove(docID);
+        }
+
+        private void NotifyPurgedDocument(string docID)
+        {
+            Delegate?.DatabaseStorageChanged(new DocumentChange(docID));
+        }
+
 #endregion
 
 #region ICouchStore
@@ -2147,9 +2157,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     } else if(revIDs.Count == 0) {
                         revsPurged = new List<string>();
                     } else if(revIDs.Contains("*")) {
-                        // Delete all revisions if magic "*" revision ID is given:
+                        // Delete all revisions if magic "*" revision ID is given.  Deleting the 'docs'
+                        // row will delete all 'revs' rows due to cascading.
                         try {
-                            StorageEngine.Delete("revs", "doc_id=?", docNumericId.ToString());
+                            StorageEngine.Delete("docs", "doc_id=?", docNumericId.ToString());
                         } catch(CouchbaseLiteException) {
                             Log.To.Database.E(TAG, "Failed to delete revisions of {0}, rethrowing...", 
                                 new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
@@ -2159,6 +2170,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                 "Error deleting revisions of {0}", new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
                         }
 
+                        InvalidateDocNumericID(docId);
+                        NotifyPurgedDocument(docId);
                         revsPurged = new List<string> { "*" };
                     } else {
                         // Iterate over all the revisions of the doc, in reverse sequence order.

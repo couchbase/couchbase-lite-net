@@ -59,7 +59,7 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Gets the Id of the <see cref="Couchbase.Lite.Document"/> that changed.
         /// </summary>
-        public string DocumentId { get { return AddedRevision?.DocID; } }
+        public string DocumentId { get; }
 
         /// <summary>
         /// Gets the Id of the new Revision.
@@ -115,10 +115,16 @@ namespace Couchbase.Lite {
 
         #region Constructors
 
+        internal DocumentChange(string purgedDocumentID)
+        {
+            DocumentId = purgedDocumentID;
+        }
+
         // Used by plugins
         internal DocumentChange(RevisionInternal addedRevision, RevisionID winningRevisionId, bool isConflict, Uri sourceUrl)
         {
             AddedRevision = addedRevision;
+            DocumentId = AddedRevision?.DocID;
             WinningRevisionId = winningRevisionId;
             IsConflict = isConflict;
             SourceUrl = sourceUrl;
