@@ -23,6 +23,11 @@ namespace Test
         {
             return db as Database;
         }
+
+        internal static Subdocument ToConcrete(this ISubdocument subdoc)
+        {
+            return subdoc as Subdocument;
+        }
     }
 
     public class TestCase : IDisposable
@@ -71,7 +76,7 @@ namespace Test
             Db.Should().NotBeNull("because otherwise the database failed to open");
         }
 
-        protected void ReopenDB()
+        protected virtual void ReopenDB()
         {
             Db.Dispose();
             Db = null;

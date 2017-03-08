@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Support
                     Debugger.Break();
                 } else {
                     Log.To.Database.E(Tag, $"Thread safety violation at {Environment.NewLine}{Environment.StackTrace}");
-                    throw new ThreadSafetyViolationException();
+                    throw new ThreadSafetyViolationException(true);
                 }
             }
         }

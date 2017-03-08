@@ -16,6 +16,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)NotificationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SubdocumentTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TestCase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TunesPerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Benchmark.cs" />

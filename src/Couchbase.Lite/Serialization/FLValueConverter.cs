@@ -18,13 +18,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
 using System.Collections.Generic;
 
-using Couchbase.Lite.DB;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Util;
-using LiteCore;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Serialization
@@ -39,23 +35,22 @@ namespace Couchbase.Lite.Serialization
 
         #region Public Methods
 
-        public static object ToObject(FLValue* value, PropertyContainer source, SharedStringCache cache)
+        public static object ToObject(FLValue* value, SharedStringCache sharedKeys)
         {
-            if(value == null) {
+            if (value == null) {
                 return null;
             }
 
-            switch(Native.FLValue_GetType(value)) {
-                case FLValueType.Array: 
-                    {
+            switch (Native.FLValue_GetType(value)) {
+                case FLValueType.Array: {
                         var arr = Native.FLValue_AsArray(value);
                         var retVal = new object[Native.FLArray_Count(arr)];
                         var i = default(FLArrayIterator);
                         Native.FLArrayIterator_Begin(arr, &i);
                         int pos = 0;
                         do {
-                            retVal[pos++] = ToObject(Native.FLArrayIterator_GetValue(&i), source, cache);
-                        } while(Native.FLArrayIterator_Next(&i));
+                            retVal[pos++] = ToObject(Native.FLArrayIterator_GetValue(&i), sharedKeys);
+                        } while (Native.FLArrayIterator_Next(&i));
 
                         return retVal;
                     }
@@ -63,8 +58,7 @@ namespace Couchbase.Lite.Serialization
                     return Native.FLValue_AsBool(value);
                 case FLValueType.Data:
                     return Native.FLValue_AsData(value);
-                case FLValueType.Dict:
-                    {
+                case FLValueType.Dict: {
                         var dict = Native.FLValue_AsDict(value);
                         var retVal = new Dictionary<string, object>((int)Native.FLDict_Count(dict));
                         var i = default(FLDictIterator);
@@ -72,9 +66,9 @@ namespace Couchbase.Lite.Serialization
                         do {
                             var rawKey = Native.FLDictIterator_GetKey(&i);
                             string key;
-                            if(Native.FLValue_GetType(rawKey) == FLValueType.Number) {
-                                key = cache.GetKey((int)Native.FLValue_AsInt(rawKey));
-                                if(key == null) {
+                            if (Native.FLValue_GetType(rawKey) == FLValueType.Number) {
+                                key = sharedKeys.GetKey((int)Native.FLValue_AsInt(rawKey));
+                                if (key == null) {
                                     Log.To.Database.W(Tag, "Corrupt key found during deserialization, skipping...");
                                     continue;
                                 }
@@ -82,10 +76,10 @@ namespace Couchbase.Lite.Serialization
                                 key = Native.FLValue_AsString(rawKey);
                             }
 
-                            retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), source, cache);
-                        } while(Native.FLDictIterator_Next(&i));
+                            retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), sharedKeys);
+                        } while (Native.FLDictIterator_Next(&i));
 
-                        return ToConcreteObject(source, retVal);
+                        return retVal;
                     }
                 case FLValueType.Null:
                     return null;
@@ -104,28 +98,10 @@ namespace Couchbase.Lite.Serialization
                 case FLValueType.String:
                     return Native.FLValue_AsString(value);
                 default:
-                    throw new LiteCoreException(new C4Error(FLError.UnknownValue));
+                    return null;
             }
         }
-
-        #endregion
-
-        #region Private Methods
-
-        private static object ToConcreteObject(PropertyContainer source, IDictionary<string, object> dict)
-        {
-            var type = dict.GetCast<string>("_cbltype");
-            if(type == null) {
-                return dict;
-            }
-
-            if(type == "blob") {
-                return source.CreateBlob(dict);
-            }
-
-            throw new InvalidOperationException($"Unknown type {type} found in dictionary");
-        }
-
+        
         #endregion
     }
 }

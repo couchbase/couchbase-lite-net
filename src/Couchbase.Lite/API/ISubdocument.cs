@@ -1,5 +1,5 @@
 ﻿// 
-// ThreadSafetyViolationException.cs
+// ISubdocument.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,32 +18,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An exception that is thrown when an <see cref="IThreadSafe"/> object is
-    /// accessed inappropriately
+    /// An interface representing an embedded JSON object in an <see cref="IDocument"/>
     /// </summary>
-    public sealed class ThreadSafetyViolationException : Exception
+    public interface ISubdocument : IPropertyContainer
     {
-        #region Constants
+        #region Properties
 
-        private const string QueueMessage =
-            "An attempt was made to use a thread safe object outside of its action queue";
+        /// <summary>
+        /// Gets the parent document for this subdocument
+        /// </summary>
+        [AccessibilityMode(AccessMode.FromAnywhere)]
+        IDocument Document { get; }
 
-        private const string ThreadMessage =
-            "An attempt was made to use a thread safe object on a thread other than the one it was created on";
-
-        #endregion
-
-        #region Constructors
-
-        internal ThreadSafetyViolationException(bool queueBased) : base(queueBased ? QueueMessage : ThreadMessage)
-        {
-
-        }
+        /// <summary>
+        /// Gets whether or not this subdocument has been saved into a document yet
+        /// </summary>
+        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        bool Exists { get; }
 
         #endregion
     }
