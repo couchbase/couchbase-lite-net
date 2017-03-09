@@ -93,13 +93,14 @@ namespace Couchbase.Lite.Util
             MaxSize = maxSize;
             _gcTimer = new Timer(o =>
             {
-                lock (_locker) {
+                var self = (LruCache<TKey, TValue>) o;
+                lock (self._locker) {
                     TValue item;
-                    foreach (var k in _allValues.Where(x => !x.Value.TryGetTarget(out item)).ToList()) {
-                        _allValues.Remove(k.Key);
+                    foreach (var k in self._allValues.Where(x => !x.Value.TryGetTarget(out item)).ToList()) {
+                       self._allValues.Remove(k.Key);
                     }
                 }
-            }, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+            }, this, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
         }
 
         #endregion

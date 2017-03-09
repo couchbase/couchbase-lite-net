@@ -909,6 +909,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         {
             if (StorageEngine != null && StorageEngine.IsOpen) {
                 StorageEngine.Close();
+                _docIDs.Dispose();
             }
         }
 

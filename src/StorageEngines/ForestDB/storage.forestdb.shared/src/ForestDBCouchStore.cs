@@ -599,6 +599,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                     Native.c4db_free((C4Database*)ptr.Value.ToPointer());
                 }
             }
+            _views.Dispose();
         }
 
         public void SetEncryptionKey(SymmetricKey key)
