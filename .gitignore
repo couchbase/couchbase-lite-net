@@ -153,3 +153,6 @@ project.lock.json
 project.fragment.lock.json
 *.opendb
 couchbase.snk
+AboutResources.txt
+*.chm
+AboutAssets.txt

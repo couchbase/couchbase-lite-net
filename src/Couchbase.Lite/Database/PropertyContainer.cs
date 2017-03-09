@@ -104,15 +104,18 @@ namespace Couchbase.Lite.DB
 
                 if (value?.Count > 0) {
                     foreach(var pair in value) {
-                        result[pair.Key] = ConvertValue(pair.Value, Properties.Get(pair.Key), pair.Key);
+                        ValidateObjectType(pair.Value);
+                        result[pair.Key] = ConvertValue(pair.Value, Properties?.Get(pair.Key), pair.Key);
                         changesKeys.Add(pair.Key);
                     }
 
                     // Invalidate obsolete subdocuments from the current _properties:
-                    var oldKeys = _properties.Keys;
-                    var removedKeys = changesKeys.Except(oldKeys);
-                    foreach (var key in removedKeys) {
-                        InvalidateIfSubdocument(_properties[key]);
+                    var oldKeys = _properties?.Keys;
+                    if (oldKeys != null) {
+                        var removedKeys = changesKeys.Except(oldKeys);
+                        foreach (var key in removedKeys) {
+                            InvalidateIfSubdocument(_properties[key]);
+                        }
                     }
                 }
                 
@@ -615,10 +618,20 @@ namespace Couchbase.Lite.DB
             }
 
             var array = value as IList;
-            if(array == null) {
+            if(array != null) {
+                foreach (var item in array) {
+                    ValidateObjectType(item);
+                }
+
+                return;
+            }
+
+            var dict = value as IDictionary<string, object>;
+            if (dict == null) {
                 throw new ArgumentException($"Invalid type in document properties: {type.Name}", nameof(value));
             }
-            foreach(var item in array) {
+
+            foreach(var item in dict.Values) {
                 ValidateObjectType(item);
             }
         }
@@ -652,12 +665,11 @@ namespace Couchbase.Lite.DB
 
         public IList<object> GetArray(string key)
         {
-            throw new NotImplementedException();
+            return Get(key) as IList<object>;
         }
 
         public IBlob GetBlob(string key)
         {
-            AssertSafety();
             return Get(key) as IBlob;
         }
 
@@ -714,7 +726,6 @@ namespace Couchbase.Lite.DB
 
         public ISubdocument GetSubdocument(string key)
         {
-            AssertSafety();
             return Get(key) as ISubdocument;
         }
 
@@ -727,6 +738,7 @@ namespace Couchbase.Lite.DB
 
         public void Revert()
         {
+            AssertSafety();
             if(_changesKeys == null) {
                 return;
             }
@@ -760,6 +772,7 @@ namespace Couchbase.Lite.DB
         public IPropertyContainer Set(string key, object value)
         {
             AssertSafety();
+            ValidateObjectType(value);
             var oldValue = Properties?.Get(key);
             if (value?.Equals(oldValue) == true) {
                 return this;
