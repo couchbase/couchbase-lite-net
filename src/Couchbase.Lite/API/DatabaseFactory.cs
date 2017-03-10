@@ -86,14 +86,7 @@ namespace Couchbase.Lite
         /// <exception cref="LiteCore.LiteCoreException">An error occurred during LiteCore interop</exception>
         public static IDatabase Create(IDatabase other)
         {
-            var name = default(string);
-            var options = default(DatabaseOptions);
-            other.ActionQueue.DispatchSync(() => {
-                name = other.Name;
-                options = other.Options;
-            });
-
-            return Create(name, options);
+            return Create(other.Name, other.Options);
         }
 
         /// <summary>

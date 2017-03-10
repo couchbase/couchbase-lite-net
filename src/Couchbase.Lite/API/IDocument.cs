@@ -89,13 +89,6 @@ namespace Couchbase.Lite
         bool Purge();
 
         /// <summary>
-        /// Cancels all changes since the last save
-        /// </summary>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
-        void Revert();
-
-        /// <summary>
         /// Saves the document to disk
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>

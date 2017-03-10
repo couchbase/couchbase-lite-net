@@ -1,5 +1,5 @@
 ﻿// 
-// IThreadSafe.cs
+// ISubdocument.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,38 +18,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
-using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An interface for an object that guarantees thread safety via
-    /// the use of dispatch queues
+    /// An interface representing an embedded JSON object in an <see cref="IDocument"/>
     /// </summary>
-    public interface IThreadSafe
+    public interface ISubdocument : IPropertyContainer
     {
         #region Properties
 
         /// <summary>
-        /// Gets the queue that is used for scheduling operations on
-        /// the object.  If operations are performed outside of this queue
-        /// for properties marked with <see cref="AccessMode.FromQueueOnly"/>
-        /// a <see cref="ThreadSafetyViolationException"/> will be thrown. 
+        /// Gets the parent document for this subdocument
         /// </summary>
-        IDispatchQueue ActionQueue { get; set; }
+        [AccessibilityMode(AccessMode.FromAnywhere)]
+        IDocument Document { get; }
 
-        #endregion
-
-        #region Public Methods
-
-        Task DoAsync(Action a);
-
-        Task<T> DoAsync<T>(Func<T> f);
-
-        void DoSync(Action a);
-
-        T DoSync<T>(Func<T> f);
+        /// <summary>
+        /// Gets whether or not this subdocument has been saved into a document yet
+        /// </summary>
+        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        bool Exists { get; }
 
         #endregion
     }

@@ -1,24 +1,23 @@
-﻿//
-//  Database.cs
-//
-//  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
-//
-//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
-//
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
-//
-
+﻿// 
+// Database.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -67,6 +66,7 @@ namespace Couchbase.Lite.DB
         private LruCache<string, Document> _documents = new LruCache<string, Document>(100);
         private IJsonSerializer _jsonSerializer;
         private DatabaseObserver _obs;
+        private HashSet<Document> _unsavedDocuments = new HashSet<Document>();
         private long p_c4db;
 
         #endregion
@@ -172,7 +172,8 @@ namespace Couchbase.Lite.DB
             Name = name;
             Options = options;
             Open();
-            _sharedStrings = new SharedStringCache(Native.c4db_getFLSharedKeys(_c4db));
+            _sharedStrings = new SharedStringCache(_c4db);
+            CheckThreadSafety = options.CheckThreadSafety;
         }
 
         ~Database()
@@ -194,7 +195,7 @@ namespace Couchbase.Lite.DB
             LiteCoreBridge.Check(err =>
             {
                 var localConfig = _DBConfig;
-                return Native.c4db_deleteAtPath(path, &localConfig, err);
+                return Native.c4db_deleteAtPath(path, &localConfig, err) || err->code == 0;
             });
         }
 
@@ -210,6 +211,45 @@ namespace Couchbase.Lite.DB
         public void ChangeEncryptionKey(object key)
         {
             throw new NotImplementedException();
+        }
+
+        public IModeledDocument<T> CreateDocument<T>() where T : class, new()
+        {
+            return GetDocument<T>(Misc.CreateGuid(), false);
+        }
+
+        public void CreateIndex(string propertyPath, IndexType indexType, IndexOptions options)
+        {
+            AssertSafety();
+            CheckOpen();
+            LiteCoreBridge.Check(err =>
+            {
+                if(options == null) {
+                    return Native.c4db_createIndex(c4db, propertyPath, (C4IndexType)indexType, null, err);
+                } else {
+                    var localOpts = IndexOptions.Internal(options);
+                    return Native.c4db_createIndex(c4db, propertyPath, (C4IndexType)indexType, &localOpts, err);
+                }
+            });
+        }
+
+        public IModeledDocument<T> GetDocument<T>(string id) where T : class, new()
+        {
+            AssertSafety();
+            return GetDocument<T>(id, false);
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal void SetHasUnsavedChanges(Document doc, bool hasChanges)
+        {
+            if (hasChanges) {
+                _unsavedDocuments.Add(doc);
+            } else {
+                _unsavedDocuments.Remove(doc);
+            }
         }
 
         #endregion
@@ -276,10 +316,16 @@ namespace Couchbase.Lite.DB
                 docs?.Dispose();
                 var obs = Interlocked.Exchange(ref _obs, null);
                 obs?.Dispose();
+                if(_unsavedDocuments.Count > 0) {
+                    Log.To.Database.W(Tag,
+                        $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
+                }
+                _unsavedDocuments.Clear();
             }
 
             var old = (C4Database *)Interlocked.Exchange(ref p_c4db, 0);
             if(old != null) {
+                Log.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(old)}");
                 LiteCoreBridge.Check(err => Native.c4db_close(old, err));
                 Native.c4db_free(old);
             }
@@ -305,7 +351,7 @@ namespace Couchbase.Lite.DB
             PerfTimer.StartEvent("GetDocument<T>_CreateModeledDocument");
             var poolObject = new ModeledDocument<T>(this, doc);
             if(value != null) {
-                poolObject.ActionQueue.DispatchSync(() => JsonSerializer.Populate(poolObject.Item, value));
+                JsonSerializer.Populate(poolObject.Item, value);
             }
 
             PerfTimer.StopEvent("GetDocument<T>_CreateModeledDocument");
@@ -322,7 +368,11 @@ namespace Couchbase.Lite.DB
 
             var doc = _documents[docID];
             if(doc == null) {
-                doc = new Document(this, docID, mustExist);
+                doc = new Document(this, docID, mustExist) {
+                    ActionQueue = ActionQueue,
+                    CheckThreadSafety = CheckThreadSafety
+                };
+
                 _documents[docID] = doc;
             } else {
                 if(mustExist && !doc.Exists) {
@@ -394,7 +444,7 @@ namespace Couchbase.Lite.DB
                     if(docIDs.Count > 0) {
                         // Only notify if there are actually changes to send
                         var args = new DatabaseChangedEventArgs(docIDs.ToArray(), lastSequence, external);
-                        CallbackQueue.DispatchAsync(() =>
+                        DoAsync(() =>
                         {
                             Changed?.Invoke(this, args);
                         });
@@ -408,7 +458,7 @@ namespace Couchbase.Lite.DB
                     docIDs.Add(docID);
                     if(external) {
                         var existingDoc = _documents[docID];
-                        existingDoc?.ActionQueue.DispatchAsync(() => existingDoc.ChangedExternally());
+                        existingDoc?.ChangedExternally();
                     }
                 }
 
@@ -418,9 +468,9 @@ namespace Couchbase.Lite.DB
             } while(nChanges > 0);
         }
 
-#endregion
+        #endregion
 
-#region IDatabase
+        #region IDatabase
 
         public void Close()
         {
@@ -429,12 +479,8 @@ namespace Couchbase.Lite.DB
 
         public IDocument CreateDocument()
         {
+            AssertSafety();
             return GetDocument(Misc.CreateGuid(), false);
-        }
-
-        public IModeledDocument<T> CreateDocument<T>() where T : class, new()
-        {
-            return GetDocument<T>(Misc.CreateGuid(), false);
         }
 
         public void CreateIndex(string propertyPath)
@@ -442,21 +488,6 @@ namespace Couchbase.Lite.DB
             AssertSafety();
             CheckOpen();
             CreateIndex(propertyPath, IndexType.ValueIndex, null);
-        }
-
-        public void CreateIndex(string propertyPath, IndexType indexType, IndexOptions options)
-        {
-            AssertSafety();
-            CheckOpen();
-            LiteCoreBridge.Check(err =>
-            {
-                if(options == null) {
-                    return Native.c4db_createIndex(c4db, propertyPath, (C4IndexType)indexType, null, err);
-                } else {
-                    var localOpts = IndexOptions.Internal(options);
-                    return Native.c4db_createIndex(c4db, propertyPath, (C4IndexType)indexType, &localOpts, err);
-                }
-            });
         }
 
         public void Delete()
@@ -502,12 +533,6 @@ namespace Couchbase.Lite.DB
             return GetDocument(id, false);
         }
 
-        public IModeledDocument<T> GetDocument<T>(string id) where T : class, new()
-        {
-            AssertSafety();
-            return GetDocument<T>(id, false);
-        }
-
         public bool InBatch(Func<bool> a)
         {
             AssertSafety();
@@ -532,19 +557,20 @@ namespace Couchbase.Lite.DB
             return success;
         }
 
-#endregion
+        #endregion
 
-#region IDisposable
+        #region IDisposable
 
         public void Dispose()
         {
             ActionQueue.DispatchSync(() =>
             {
                 Dispose(true);
-                GC.SuppressFinalize(this);
             });
+
+            GC.SuppressFinalize(this);
         }
 
-#endregion
+        #endregion
     }
 }

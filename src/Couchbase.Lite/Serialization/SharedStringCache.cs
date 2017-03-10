@@ -19,7 +19,7 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
-
+using System.Text;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Serialization
@@ -28,40 +28,88 @@ namespace Couchbase.Lite.Serialization
     {
         #region Variables
 
-        private readonly IDictionary<int, string> _managedCache = new Dictionary<int, string>();
-
-        #endregion
-
-        #region Properties
-
-        internal FLSharedKeys* SharedKeys { get; }
+        private readonly IDictionary<int, string> _documentStrings = new Dictionary<int, string>();
+        private readonly FLSharedKeys* _sharedKeys;
+        private FLDict* _root;
 
         #endregion
 
         #region Constructors
 
-        public SharedStringCache(FLSharedKeys* sk)
+        public SharedStringCache()
         {
-            SharedKeys = sk;
+            
+        }
+
+        public SharedStringCache(C4Database* db)
+        {
+            _sharedKeys = Native.c4db_getFLSharedKeys(db);
+        }
+
+        public SharedStringCache(SharedStringCache other)
+        {
+            _sharedKeys = other._sharedKeys;
+        }
+
+        public SharedStringCache(SharedStringCache other, FLDict* root)
+            : this(other)
+        {
+            _root = root;
         }
 
         #endregion
 
         #region Public Methods
 
+        public string GetDictIterKey(FLDictIterator* iter)
+        {
+            var key = Native.FLDictIterator_GetKey(iter);
+            if (key == null) {
+                return null;
+            }
+
+            if (Native.FLValue_IsInteger(key)) {
+                return GetKey((int)Native.FLValue_AsInt(key));
+            }
+
+            return FLValueConverter.ToObject(key, this) as string;
+        }
+
+        public FLValue* GetDictValue(FLDict* dict, string key)
+        {
+            return Native.FLDict_GetSharedKey(dict, Encoding.UTF8.GetBytes(key), _sharedKeys);
+        }
+
+        public FLValue* GetDictValue(FLDict* dict, FLSlice key)
+        {
+            return NativeRaw.FLDict_GetSharedKey(dict, key, _sharedKeys);
+        }
+
         public string GetKey(int index)
         {
             string retVal;
-            if(_managedCache.TryGetValue(index, out retVal)) {
+            if(_documentStrings.TryGetValue(index, out retVal)) {
                 return retVal;
             }
 
-            retVal = Native.FLSharedKey_GetKeyString(SharedKeys, index, null);
+            retVal = Native.FLSharedKey_GetKeyString(_sharedKeys, index, null);
             if(retVal != null) {
-                _managedCache[index] = retVal;
+                _documentStrings[index] = retVal;
             }
 
             return retVal;
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal void UseDocumentRoot(FLDict* root)
+        {
+            if (_root != root) {
+                _root = root;
+                _documentStrings.Clear();
+            }
         }
 
         #endregion

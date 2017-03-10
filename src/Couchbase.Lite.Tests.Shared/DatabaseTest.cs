@@ -57,7 +57,7 @@ namespace Test
         [Fact]
         public void TestDelete()
         {
-            Db.ActionQueue.DispatchSync(() =>
+            Db.DoSync(() =>
             {
                 var path = Db.Path;
                 Directory.Exists(path).Should().BeTrue("because otherwise the database was not created");
@@ -70,44 +70,35 @@ namespace Test
         [Fact]
         public async Task TestCreateDocument()
         {
-            var doc = await Db.ActionQueue.DispatchAsync(() => Db.CreateDocument());
-            await doc.ActionQueue.DispatchAsync(() =>
+            await Db.DoAsync(() =>
             {
+                var doc = Db.CreateDocument();
                 doc.Id.Should().NotBeNullOrEmpty("because every document should have an ID immediately");
                 doc.Database.Should().Be(Db, "because the document should know its owning database");
                 doc.Exists.Should().BeFalse("because the document is not saved yet");
                 doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-                doc.Properties.Should().BeEmpty("because no properties have been saved yet");
-            });
-
-            var doc1 = await Db.ActionQueue.DispatchAsync(() => Db.GetDocument("doc1"));
-            await doc1.ActionQueue.DispatchAsync(() =>
-            {
+                doc.Properties.Should().BeNull("because no properties have been saved yet");
+                var doc1 = Db.GetDocument("doc1");
                 doc1.Id.Should().Be("doc1", "because that is the ID it was given");
                 doc1.Database.Should().Be(Db, "because the document should know its owning database");
                 doc1.Exists.Should().BeFalse("because the document is not saved yet");
                 doc1.IsDeleted.Should().BeFalse("because the document is not deleted");
-                doc1.Properties.Should().BeEmpty("because no properties have been saved yet");
+                doc1.Properties.Should().BeNull("because no properties have been saved yet");
+                Db.GetDocument("doc1").Should().BeSameAs(doc1, "because the document should be cached");
             });
-            Db.ActionQueue.DispatchSync(() => Db.GetDocument("doc1")).Should().BeSameAs(doc1, "because the document should be cached");
         }
 
         [Fact]
         public async Task TestDocumentExists()
         {
-            var doc1 = await Db.ActionQueue.DispatchAsync(() =>
+            await Db.DoAsync(() =>
             {
                 Db.DocumentExists("doc1").Should().BeFalse("beacause the document has not been created yet");
-                return Db.GetDocument("doc1");
-            });
-
-            await doc1.ActionQueue.DispatchAsync(() =>
-            {
-                doc1.Properties.Should().BeEmpty("because no properties were saved");
+                var doc1 = Db.GetDocument("doc1");
+                doc1.Properties.Should().BeNull("because no properties were saved");
                 doc1.Save();
+                Db.DocumentExists("doc1").Should().BeTrue("because now the document has been created");
             });
-
-            Db.ActionQueue.DispatchSync(() => Db.DocumentExists("doc1").Should().BeTrue("because now the document has been created"));
         }
 
         [Theory]
@@ -116,26 +107,26 @@ namespace Test
         public async Task TestInBatch(bool commit)
         {
 
-            var success = await Db.ActionQueue.DispatchAsync(() =>
+             await Db.DoAsync(() =>
             {
-                return Db.InBatch(() =>
+                var success = Db.InBatch(() =>
                 {
                     for(int i = 0; i < 10; i++) {
                         var docId = $"doc{i}";
                         var doc = Db.GetDocument(docId);
-                        doc.ActionQueue.DispatchSync(() => doc.Save());
+                        doc.Save();
                     }
 
                     return commit;
                 });
-            });
 
-            success.Should().BeTrue("because otherwise the batch failed");
-            var dbQueue = Db.ActionQueue;
-            for(int i = 0; i < 10; i++) {
-                var docId = $"doc{i}";
-                dbQueue.DispatchSync(() => Db.DocumentExists(docId)).Should().Be(commit, "because otherwise the batch didn't commit or rollback properly");
-            }
+                success.Should().BeTrue("because otherwise the batch failed");
+                var dbQueue = Db.ActionQueue;
+                for (int i = 0; i < 10; i++) {
+                    var docId = $"doc{i}";
+                    Db.DocumentExists(docId).Should().Be(commit, "because otherwise the batch didn't commit or rollback properly");
+                }
+            });
         }
     }
 }

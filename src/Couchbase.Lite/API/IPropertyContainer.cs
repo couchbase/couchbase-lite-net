@@ -150,6 +150,16 @@ namespace Couchbase.Lite
         string GetString(string key);
 
         /// <summary>
+        /// Gets the <see cref="ISubdocument"/> for the given key
+        /// </summary>
+        /// <param name="key">The key to check</param>
+        /// <returns>The value stored in the given key, or <c>null</c> if it doesn't exist
+        /// or is not an <see cref="ISubdocument"/></returns>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
+        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        ISubdocument GetSubdocument(string key);
+
+        /// <summary>
         /// Removes the given key from the object
         /// </summary>
         /// <param name="key">The key to remove</param>
@@ -157,6 +167,13 @@ namespace Couchbase.Lite
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
         IPropertyContainer Remove(string key);
+
+        /// <summary>
+        /// Cancels all changes since the last save
+        /// </summary>
+        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
+        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        void Revert();
 
         /// <summary>
         /// Sets the given value to the given key in the object

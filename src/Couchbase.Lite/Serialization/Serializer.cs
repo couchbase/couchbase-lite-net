@@ -84,11 +84,8 @@ namespace Couchbase.Lite.Serialization
 
         #region IJsonWriter
 
-        public abstract void Write(string name, string value);
-        public abstract void Write(string key, long value);
-        public abstract void Write(string key, bool value);
+        public abstract void Write(string name, object value);
         public abstract void Write(string key, IJsonMapped value);
-        public abstract void Write(string key, ulong value);
 
         #endregion
     }
@@ -207,19 +204,7 @@ namespace Couchbase.Lite.Serialization
             }
         }
 
-        public override void Write(string name, string value)
-        {
-            _innerWriter.WritePropertyName(name);
-            _innerWriter.WriteValue(value);
-        }
-
-        public override void Write(string key, long value)
-        {
-            _innerWriter.WritePropertyName(key);
-            _innerWriter.WriteValue(value);
-        }
-
-        public override void Write(string key, bool value)
+        public override void Write(string key, object value)
         {
             _innerWriter.WritePropertyName(key);
             _innerWriter.WriteValue(value);
@@ -231,12 +216,6 @@ namespace Couchbase.Lite.Serialization
             _innerWriter.WriteStartObject();
             value.WriteTo(this);
             _innerWriter.WriteEndObject();
-        }
-
-        public override void Write(string key, ulong value)
-        {
-            _innerWriter.WritePropertyName(key);
-            _innerWriter.WriteValue(value);
         }
 
         #endregion

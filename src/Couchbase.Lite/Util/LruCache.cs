@@ -43,6 +43,7 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite.Util
 {
@@ -376,9 +377,9 @@ namespace Couchbase.Lite.Util
                     if(val.TryGetTarget(out foo)) {
                         var disposable = foo as IDisposable;
                         if(disposable != null) {
-                            var threadSafe = foo as IThreadSafe;
+                            var threadSafe = foo as ThreadSafe;
                             if(threadSafe != null) {
-                                threadSafe.ActionQueue.DispatchSync(() => disposable.Dispose());
+                                threadSafe.DoSync(() => disposable.Dispose());
                             } else {
                                 disposable.Dispose();
                             }

@@ -124,47 +124,43 @@ namespace Couchbase.Lite.DB
         private void Save(IConflictResolver conflictResolver, bool deletion)
         {
             C4Document* newDoc = null;
-            PerfTimer.StartEvent("Save_DispatchSync");
-            var success = Db.ActionQueue.DispatchSync(() => {
-                PerfTimer.StopEvent("Save_DispatchSync");
-                PerfTimer.StartEvent("Save_BeginInBatch");
-                return Db.InBatch(() => {
-                    PerfTimer.StopEvent("Save_BeginInBatch");
-                    var put = new C4DocPutRequest {
-                        docID = _document->docID,
-                        history = &_document->revID,
-                        historyCount = 1,
-                        save = true
-                    };
+            PerfTimer.StartEvent("Save_BeginInBatch");
+            var success = Db.InBatch(() => {
+                PerfTimer.StopEvent("Save_BeginInBatch");
+                var put = new C4DocPutRequest {
+                    docID = _document->docID,
+                    history = &_document->revID,
+                    historyCount = 1,
+                    save = true
+                };
 
-                    if(deletion) {
-                        put.revFlags = C4RevisionFlags.Deleted;
+                if(deletion) {
+                    put.revFlags = C4RevisionFlags.Deleted;
+                }
+
+                var body = default(FLSliceResult);
+                if(!deletion) {
+                    PerfTimer.StartEvent("Save_Serialize");
+                    body = _db.JsonSerializer.Serialize(Item);
+                    PerfTimer.StopEvent("Save_Serialize");
+                    put.body = body;
+                }
+
+                try {
+                    using(var type = new C4String(Type)) {
+                        PerfTimer.StartEvent("Save_c4doc_put");
+                        newDoc = (C4Document*)LiteCoreBridge.Check(err => {
+                            var localPut = put;
+                            localPut.docType = type.AsC4Slice();
+                            return Native.c4doc_put(_db.c4db, &localPut, null, err);
+                        });
+                        PerfTimer.StopEvent("Save_c4doc_put");
                     }
+                } finally {
+                    body.Dispose();
+                }
 
-                    var body = default(FLSliceResult);
-                    if(!deletion) {
-                        PerfTimer.StartEvent("Save_Serialize");
-                        body = _db.JsonSerializer.Serialize(Item);
-                        PerfTimer.StopEvent("Save_Serialize");
-                        put.body = body;
-                    }
-
-                    try {
-                        using(var type = new C4String(Type)) {
-                            PerfTimer.StartEvent("Save_c4doc_put");
-                            newDoc = (C4Document*)LiteCoreBridge.Check(err => {
-                                var localPut = put;
-                                localPut.docType = type.AsC4Slice();
-                                return Native.c4doc_put(_db.c4db, &localPut, null, err);
-                            });
-                            PerfTimer.StopEvent("Save_c4doc_put");
-                        }
-                    } finally {
-                        body.Dispose();
-                    }
-
-                    return true;
-                });
+                return true;
             });
 
             if(!success) {

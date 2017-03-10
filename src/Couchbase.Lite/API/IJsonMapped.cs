@@ -25,13 +25,7 @@ namespace Couchbase.Lite
     {
         #region Public Methods
 
-        void Write(string key, string value);
-
-        void Write(string key, long value);
-
-        void Write(string key, ulong value);
-
-        void Write(string key, bool value);
+        void Write(string key, object value);
 
         void Write(string key, IJsonMapped value);
 
