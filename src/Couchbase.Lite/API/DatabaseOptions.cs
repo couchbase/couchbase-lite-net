@@ -46,5 +46,11 @@ namespace Couchbase.Lite
         /// Gets or sets whether or not this database is readonly.
         /// </summary>
         public bool ReadOnly { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether or not to add extra checks for thread safety to track
+        /// down concurrency issues
+        /// </summary>
+        public bool CheckThreadSafety { get; set; }
     }
 }

@@ -378,8 +378,8 @@ namespace Couchbase.Lite.Util
                         var disposable = foo as IDisposable;
                         if(disposable != null) {
                             var threadSafe = foo as ThreadSafe;
-                            if(threadSafe?.ActionQueue_Internal != null) {
-                                threadSafe.ActionQueue_Internal.DispatchSync(() => disposable.Dispose());
+                            if(threadSafe != null) {
+                                threadSafe.DoSync(() => disposable.Dispose());
                             } else {
                                 disposable.Dispose();
                             }

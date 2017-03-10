@@ -20,18 +20,16 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Couchbase.Lite;
-using Couchbase.Lite.Support;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Test
-{ 
+{
     public class NotificationTest : TestCase
     {
         public NotificationTest(ITestOutputHelper output) : base(output)
@@ -50,17 +48,14 @@ namespace Test
                 mre.Set();
             };
 
-            var ok = await Db.ActionQueue.DispatchAsync(() =>
+            var ok = await Db.DoAsync(() =>
             {
                 return Db.InBatch(() =>
                 {
                     for(uint i = 0; i < 10; i++) {
                         var doc = Db[$"doc-{i}"];
-                        doc.ActionQueue.DispatchSync(() =>
-                        {
-                            doc["type"] = "demo";
-                            doc.Save();
-                        });
+                        doc["type"] = "demo";
+                        doc.Save();
                     }
 
                     return true;
@@ -75,8 +70,8 @@ namespace Test
         [Fact]
         public async Task TestDocumentNotification()
         {
-            var docA = await Db.ActionQueue.DispatchAsync(() => Db["A"]);
-            var docB = await Db.ActionQueue.DispatchAsync(() => Db["B"]);
+            var docA = await Db.DoAsync(() => Db["A"]);
+            var docB = await Db.DoAsync(() => Db["B"]);
             var callbackCount = 0;
             bool external = false;
             var are = new AutoResetEvent(false);
@@ -87,7 +82,7 @@ namespace Test
                 are.Set();
             };
 
-            await docB.ActionQueue.DispatchAsync(() =>
+            await docB.DoAsync(() =>
             {
                 docB.Set("thewronganswer", 18);
                 docB.Save();

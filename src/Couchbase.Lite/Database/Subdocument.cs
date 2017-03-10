@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Lite.Serialization;
+using Couchbase.Lite.Support;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.DB
@@ -15,7 +16,10 @@ namespace Couchbase.Lite.DB
         {
             var doc = Document;
             if (doc != null) {
-                return new Blob(doc.Database as Database, properties);
+                return new Blob(doc.Database as Database, properties) {
+                    ActionQueue = ActionQueue,
+                    CheckThreadSafety = CheckThreadSafety
+                };
             }
 
             throw new InvalidOperationException("Cannot read blob inside a subdocument not attached to a document");
@@ -87,6 +91,9 @@ namespace Couchbase.Lite.DB
             foreach(var prop in Properties) {
                 writer.Write(prop.Key, prop.Value);
             }
+
+            ActionQueue = Document.ActionQueue;
+            CheckThreadSafety = (Document as ThreadSafe).CheckThreadSafety;
         }
     }
 }

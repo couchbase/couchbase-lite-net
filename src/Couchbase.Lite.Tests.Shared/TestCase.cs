@@ -72,6 +72,7 @@ namespace Test
 
             var options = DatabaseOptions.Default;
             options.Directory = Directory;
+            options.CheckThreadSafety = true;
             Db = DatabaseFactory.Create(DatabaseName, options);
             Db.Should().NotBeNull("because otherwise the database failed to open");
         }

@@ -173,6 +173,7 @@ namespace Couchbase.Lite.DB
             Options = options;
             Open();
             _sharedStrings = new SharedStringCache(_c4db);
+            CheckThreadSafety = options.CheckThreadSafety;
         }
 
         ~Database()
@@ -263,7 +264,7 @@ namespace Couchbase.Lite.DB
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
         {
             var dbObj = (Database)context;
-            dbObj.ActionQueue_Internal?.DispatchAsync(() =>
+            dbObj.ActionQueue.DispatchAsync(() =>
             {
                 dbObj.PostDatabaseChanged();
             });
@@ -310,8 +311,6 @@ namespace Couchbase.Lite.DB
 
         private void Dispose(bool disposing)
         {
-            Log.To.Database.I(Tag, $"Closing database at path {Path}");
-
             if(disposing) {
                 var docs = Interlocked.Exchange(ref _documents, null);
                 docs?.Dispose();
@@ -326,6 +325,7 @@ namespace Couchbase.Lite.DB
 
             var old = (C4Database *)Interlocked.Exchange(ref p_c4db, 0);
             if(old != null) {
+                Log.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(old)}");
                 LiteCoreBridge.Check(err => Native.c4db_close(old, err));
                 Native.c4db_free(old);
             }
@@ -369,7 +369,8 @@ namespace Couchbase.Lite.DB
             var doc = _documents[docID];
             if(doc == null) {
                 doc = new Document(this, docID, mustExist) {
-                    ActionQueue = ActionQueue_Internal
+                    ActionQueue = ActionQueue,
+                    CheckThreadSafety = CheckThreadSafety
                 };
 
                 _documents[docID] = doc;
@@ -443,7 +444,7 @@ namespace Couchbase.Lite.DB
                     if(docIDs.Count > 0) {
                         // Only notify if there are actually changes to send
                         var args = new DatabaseChangedEventArgs(docIDs.ToArray(), lastSequence, external);
-                        CallbackQueue.DispatchAsync(() =>
+                        DoAsync(() =>
                         {
                             Changed?.Invoke(this, args);
                         });
@@ -478,6 +479,7 @@ namespace Couchbase.Lite.DB
 
         public IDocument CreateDocument()
         {
+            AssertSafety();
             return GetDocument(Misc.CreateGuid(), false);
         }
 
@@ -561,15 +563,10 @@ namespace Couchbase.Lite.DB
 
         public void Dispose()
         {
-            if (ActionQueue_Internal != null) {
-                ActionQueue_Internal.DispatchSync(() =>
-                {
-                    Dispose(true);
-                });
-            } else {
-                AssertSafety();
+            ActionQueue.DispatchSync(() =>
+            {
                 Dispose(true);
-            }
+            });
 
             GC.SuppressFinalize(this);
         }

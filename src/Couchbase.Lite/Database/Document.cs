@@ -166,7 +166,8 @@ namespace Couchbase.Lite.DB
         internal override void MarkChangedKey(string key)
         {
             base.MarkChangedKey(key);
-            CallbackQueue.DispatchAsync(() =>
+
+            ActionQueue.DispatchAsync(() =>
             {
                 Changed?.Invoke(this, null);
             });
@@ -174,7 +175,7 @@ namespace Couchbase.Lite.DB
 
         internal void PostChangedNotifications(bool external)
         {
-            CallbackQueue.DispatchAsync(() =>
+            ActionQueue.DispatchAsync(() =>
             {
                 Saved?.Invoke(this, new DocumentSavedEventArgs(external));
             });
@@ -401,7 +402,10 @@ namespace Couchbase.Lite.DB
         protected internal override IBlob CreateBlob(IDictionary<string, object> properties)
         {
             AssertSafety();
-            return new Blob(_database, properties);
+            return new Blob(_database, properties) {
+                ActionQueue = ActionQueue,
+                CheckThreadSafety = CheckThreadSafety
+            };
         }
 
         public override string ToString()
@@ -416,15 +420,10 @@ namespace Couchbase.Lite.DB
 
         public void Dispose()
         {
-            if (ActionQueue_Internal != null) {
-                ActionQueue_Internal.DispatchSync(() =>
-                {
-                    Dispose(true);
-                });
-            } else {
-                AssertSafety();
+            ActionQueue.DispatchSync(() =>
+            {
                 Dispose(true);
-            }
+            });
 
             GC.SuppressFinalize(this);
         }
@@ -446,7 +445,7 @@ namespace Couchbase.Lite.DB
                 return false;
             }
 
-            var success = Database.InBatch(() =>
+            Database.InBatch(() =>
             {
                 LiteCoreBridge.Check(err => NativeRaw.c4doc_purgeRevision(_c4Doc, C4Slice.Null, err));
                 LiteCoreBridge.Check(err => Native.c4doc_save(_c4Doc, 0, err));

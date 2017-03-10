@@ -21,59 +21,34 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
     internal abstract class ThreadSafe : IThreadSafe
     {
-        #region Constants
-
-        private const string Tag = nameof(ThreadSafe);
-
-        #endregion
-
         #region Variables
 
-        private readonly int _owner;
-        private SerialQueue _serialQueue;
+        private SerialQueue _serialQueue = new SerialQueue();
 
         #endregion
 
         #region Properties
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public IDispatchQueue ActionQueue
-        {
-            get {
-                return _serialQueue ?? (_serialQueue = new SerialQueue());
-            }
-            internal set {
-                if (_serialQueue != null) {
-                    throw new InvalidOperationException("Cannot reset the queue of a thread safe object");
-                }
-
-                _serialQueue = value as SerialQueue;
-            }
-        }
-
-        public IDispatchQueue CallbackQueue { get; set; } = new ConcurrentQueue();
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        internal SerialQueue ActionQueue_Internal
         {
             get {
                 return _serialQueue;
             }
+            set {
+                _serialQueue = value as SerialQueue;
+            }
         }
 
-        #endregion
-
-        #region Constructors
-
-        protected ThreadSafe()
+        internal bool CheckThreadSafety
         {
-            _owner = Environment.CurrentManagedThreadId;
+            get; set;
         }
 
         #endregion
@@ -82,18 +57,35 @@ namespace Couchbase.Lite.Support
 
         protected void AssertSafety()
         {
-            if (_serialQueue != null) {
-                _serialQueue.AssertInQueue();
-            } else {
-                if (_owner != Environment.CurrentManagedThreadId) {
-                    if (Debugger.IsAttached) {
-                        Debugger.Break();
-                    } else {
-                        Log.To.Database.E(Tag, $"Thread safety violation at {Environment.NewLine}{Environment.StackTrace}");
-                        throw new ThreadSafetyViolationException(false);
-                    }
-                }
+            if (!CheckThreadSafety) {
+                return;
             }
+
+            _serialQueue.AssertInQueue();
+        }
+
+        #endregion
+
+        #region IThreadSafe
+
+        public Task DoAsync(Action a)
+        {
+            return _serialQueue.DispatchAsync(a);
+        }
+
+        public Task<T> DoAsync<T>(Func<T> f)
+        {
+            return _serialQueue.DispatchAsync(f);
+        }
+
+        public void DoSync(Action a)
+        {
+            _serialQueue.DispatchSync(a);
+        }
+
+        public T DoSync<T>(Func<T> f)
+        {
+            return _serialQueue.DispatchSync(f);
         }
 
         #endregion

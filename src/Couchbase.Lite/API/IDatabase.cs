@@ -84,7 +84,7 @@ namespace Couchbase.Lite
         /// Creates a new <see cref="IDocument"/> with a unique ID
         /// </summary>
         /// <returns>The created document</returns>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
+        [AccessibilityMode(AccessMode.FromQueueOnly)]
         IDocument CreateDocument();
 
         /// <summary>

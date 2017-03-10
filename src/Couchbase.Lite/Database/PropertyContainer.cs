@@ -100,7 +100,7 @@ namespace Couchbase.Lite.DB
                 // Convert each property value if needed, build up changesKeys set, and invalidate
                 // obsolete subdocuments
                 var changesKeys = new HashSet<string>();
-                var result = value != null ? new Dictionary<string, object>(value) : new Dictionary<string, object>();
+                var result = value != null ? new Dictionary<string, object>(value) : null;
 
                 if (value?.Count > 0) {
                     foreach(var pair in value) {
@@ -108,17 +108,17 @@ namespace Couchbase.Lite.DB
                         result[pair.Key] = ConvertValue(pair.Value, Properties?.Get(pair.Key), pair.Key);
                         changesKeys.Add(pair.Key);
                     }
+                }
 
-                    // Invalidate obsolete subdocuments from the current _properties:
-                    var oldKeys = _properties?.Keys;
-                    if (oldKeys != null) {
-                        var removedKeys = changesKeys.Except(oldKeys);
-                        foreach (var key in removedKeys) {
-                            InvalidateIfSubdocument(_properties[key]);
-                        }
+                // Invalidate obsolete subdocuments from the current _properties:
+                var oldKeys = _properties?.Keys;
+                if (oldKeys != null) {
+                    var removedKeys = oldKeys.Except(changesKeys);
+                    foreach (var key in removedKeys) {
+                        InvalidateIfSubdocument(_properties[key]);
                     }
                 }
-                
+
                 // Add keys from _root that do not exist in the changedKeys (deleting):
                 if (_root != null) {
                     FLDictIterator iter;
@@ -227,11 +227,13 @@ namespace Couchbase.Lite.DB
         internal void ResetChangesKeys()
         {
             AssertSafety();
-            foreach (var pair in _properties) {
-                ResetChangesKeys(pair.Value as Subdocument);
+            if (_properties != null) {
+                foreach (var pair in _properties) {
+                    ResetChangesKeys(pair.Value as Subdocument);
+                }
             }
 
-            _changesKeys.Clear();
+            _changesKeys?.Clear();
             HasChanges = false;
         }
 
@@ -284,7 +286,11 @@ namespace Couchbase.Lite.DB
                     _properties = new Dictionary<string, object>();
                 }
 
-                _properties[key] = value;
+                if (value == null) {
+                    _properties.Remove(key);
+                } else {
+                    _properties[key] = value;
+                }
             }
         }
 
@@ -292,7 +298,9 @@ namespace Couchbase.Lite.DB
         {
             var sk = SharedKeys;
             var subDoc = new Subdocument(this, sk) {
-                Key = key
+                Key = key,
+                CheckThreadSafety = CheckThreadSafety,
+                ActionQueue = ActionQueue
             };
 
             subDoc.SetOnMutate(GetOnMutateBlock(key));
@@ -534,7 +542,7 @@ namespace Couchbase.Lite.DB
             } 
 
             value = default(T);
-            return false;
+            return HasChanges;
         }
 
         private FLSlice TypeForDict(FLDict* dict)
@@ -608,6 +616,10 @@ namespace Couchbase.Lite.DB
 
         private static void ValidateObjectType(object value)
         {
+            if (value == null) {
+                return;
+            }
+
             var type = value.GetType();
             if(IsValidScalarType(type)) {
                 return;
@@ -676,8 +688,16 @@ namespace Couchbase.Lite.DB
         public bool GetBoolean(string key)
         {
             AssertSafety();
-            bool retVal;
-            return TryGet(key, out retVal) ? retVal : Native.FLValue_AsBool(FleeceValueForKey(key));
+            var val = Get(key);
+            if (val == null || HasChanges) {
+                if (val == null) {
+                    return false;
+                }
+
+                return val is bool ? (bool)val : true;
+            }
+
+            return Native.FLValue_AsBool(FleeceValueForKey(key));
         }
 
         public DateTimeOffset? GetDate(string key)
@@ -720,8 +740,7 @@ namespace Couchbase.Lite.DB
         public string GetString(string key)
         {
             AssertSafety();
-            string retVal;
-            return TryGet(key, out retVal) ? retVal : Native.FLValue_AsString(FleeceValueForKey(key));
+            return Get(key) as string;
         }
 
         public ISubdocument GetSubdocument(string key)

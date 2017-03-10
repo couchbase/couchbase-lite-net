@@ -53,8 +53,13 @@ namespace Couchbase.Lite.Serialization
 
             public void Write(string key, object value)
             {
-                _inner.WritePropertyName(key);
-                _inner.WriteValue(value);
+                var fast = value as IJsonMapped;
+                if (fast != null) {
+                    Write(key, fast);
+                } else {
+                    _inner.WritePropertyName(key);
+                    _inner.WriteValue(value);
+                }
             }
 
             public void Write(string key, IJsonMapped value)

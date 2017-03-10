@@ -77,12 +77,8 @@ namespace Couchbase.Lite.Support
         internal void AssertInQueue()
         {
             if(!IsInQueue) {
-                if(Debugger.IsAttached) {
-                    Debugger.Break();
-                } else {
-                    Log.To.Database.E(Tag, $"Thread safety violation at {Environment.NewLine}{Environment.StackTrace}");
-                    throw new ThreadSafetyViolationException(true);
-                }
+                Log.To.Database.E(Tag, $"Thread safety violation at {Environment.NewLine}{Environment.StackTrace}");
+                throw new ThreadSafetyViolationException();
             }
         }
 
@@ -101,7 +97,13 @@ namespace Couchbase.Lite.Support
                     _currentProcessingThread = Environment.CurrentManagedThreadId;
                     try {
                         next.Action();
-                        next.Tcs.SetResult(true);
+
+                        // This is important, otherwise we get confusing behavior...after awaiting
+                        // The function that scheduled this block will continue *on the same thread
+                        // as the queue is using* so any further blocking actions will cause the queue
+                        // to become blocked.  If we schedule the final bit on another thread, then
+                        // we escape this situation.
+                        Task.Factory.StartNew(s => ((SerialQueueItem)s).Tcs.SetResult(true), next);
                     } catch(Exception e) {
                         Log.To.TaskScheduling.W(Tag, "Exception during DispatchAsync", e);
                         next.Tcs.TrySetException(e);
