@@ -382,15 +382,15 @@ namespace Couchbase.Lite.DB
 
             const uint maxChanges = 100u;
             var external = false;
-            uint changes;
-            var c4DocIDs = new string[maxChanges];
+            uint nChanges;
+            var changes = new C4DatabaseChange[maxChanges];
             var docIDs = new List<string>();
             do {
                 // Read changes in batches of MaxChanges:
                 bool newExternal;
-                ulong lastSequence;
-                changes = Native.c4dbobs_getChanges(_obs.Observer, c4DocIDs, &lastSequence, &newExternal);
-                if(changes == 0 || external != newExternal || docIDs.Count > 1000) {
+                var lastSequence = 0UL;
+                nChanges = Native.c4dbobs_getChanges(_obs.Observer, changes, maxChanges, &newExternal);
+                if(nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
                     if(docIDs.Count > 0) {
                         // Only notify if there are actually changes to send
                         var args = new DatabaseChangedEventArgs(docIDs.ToArray(), lastSequence, external);
@@ -403,14 +403,19 @@ namespace Couchbase.Lite.DB
                 }
 
                 external = newExternal;
-                foreach(var docID in c4DocIDs.Take((int)changes)) {
+                for(int i = 0; i < nChanges; i++) {
+                    var docID = changes[i].docID.CreateString();
                     docIDs.Add(docID);
                     if(external) {
                         var existingDoc = _documents[docID];
                         existingDoc?.ActionQueue.DispatchAsync(() => existingDoc.ChangedExternally());
                     }
                 }
-            } while(changes > 0);
+
+                if(nChanges > 0) {
+                    lastSequence = changes.Last().sequence;
+                }
+            } while(nChanges > 0);
         }
 
 #endregion

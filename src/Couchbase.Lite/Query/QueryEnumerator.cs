@@ -248,6 +248,7 @@ namespace Couchbase.Lite.Querying
         #endregion
 
         #region Overrides
+#warning fix DocumentMetadata type
 
         [SuppressMessage("ReSharper", "PossibleNullReferenceException", Justification = "Current will always be IDocumentModel")]
         protected override void SetCurrent(C4QueryEnumerator* enumerator)
@@ -258,7 +259,7 @@ namespace Couchbase.Lite.Querying
                 FLValue* value = NativeRaw.FLValue_FromTrustedData((FLSlice)doc->selectedRev.body);
                 Current = _db.JsonSerializer.Deserialize<T>(value);
                 var idm = Current as IDocumentModel;
-                idm.Metadata = new DocumentMetadata(doc->docID.CreateString(), Native.c4doc_getType(doc), doc->flags.HasFlag(C4DocumentFlags.Deleted), doc->sequence);
+                idm.Metadata = new DocumentMetadata(doc->docID.CreateString(), null, doc->flags.HasFlag(C4DocumentFlags.Deleted), doc->sequence);
             } finally {
                 Native.c4doc_free(doc);
             }
