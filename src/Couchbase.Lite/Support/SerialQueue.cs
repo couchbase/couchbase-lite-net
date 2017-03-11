@@ -97,16 +97,18 @@ namespace Couchbase.Lite.Support
                     _currentProcessingThread = Environment.CurrentManagedThreadId;
                     try {
                         next.Action();
-
-                        // This is important, otherwise we get confusing behavior...after awaiting
-                        // The function that scheduled this block will continue *on the same thread
-                        // as the queue is using* so any further blocking actions will cause the queue
-                        // to become blocked.  If we schedule the final bit on another thread, then
-                        // we escape this situation.
-                        Task.Factory.StartNew(s => ((SerialQueueItem)s).Tcs.SetResult(true), next);
+                        next.SyncContext.Post(s =>
+                        {
+                            var item = (SerialQueueItem) s;
+                            item.Tcs.SetResult(true);
+                        }, next);
                     } catch(Exception e) {
                         Log.To.TaskScheduling.W(Tag, "Exception during DispatchAsync", e);
-                        next.Tcs.TrySetException(e);
+                        next.SyncContext.Post(s =>
+                        {
+                            var item = (SerialQueueItem)s;
+                            item.Tcs.SetResult(true);
+                        }, next);
                     } finally {
                         _currentProcessingThread = oldThread;
                     }
@@ -125,11 +127,11 @@ namespace Couchbase.Lite.Support
         public Task DispatchAsync(Action a)
         {
             var tcs = new TaskCompletionSource<bool>();
-            _queue.Enqueue(new SerialQueueItem { Action = a, Tcs = tcs });
+            _queue.Enqueue(new SerialQueueItem { Action = a, Tcs = tcs, SyncContext = SynchronizationContext.Current ?? new SynchronizationContext() });
             Count++;
             var old = Interlocked.CompareExchange(ref _state, (int)SerialQueueState.Scheduled, (int)SerialQueueState.Idle);
             if(old == (int)SerialQueueState.Idle) {
-                Task.Factory.StartNew(ProcessAsync, TaskCreationOptions.LongRunning);
+                Task.Factory.StartNew(ProcessAsync, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
             }
 
             return tcs.Task;
@@ -221,6 +223,8 @@ namespace Couchbase.Lite.Support
             public Action Action;
 
             public TaskCompletionSource<bool> Tcs;
+
+            public SynchronizationContext SyncContext;
 
             #endregion
         }
