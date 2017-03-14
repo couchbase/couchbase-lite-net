@@ -1524,7 +1524,7 @@ namespace Couchbase.Lite
                     };
 
                     Log.To.Database.I(Tag, "{0} posting change notifications: seq {1}", this,
-                        new LogJsonString(from change in outgoingChanges select change.AddedRevision.Sequence));
+                        new LogJsonString(from change in outgoingChanges select change.AddedRevision?.Sequence ?? -1L));
 
                     Log.To.TaskScheduling.V(Tag, "Scheduling Change callback...");
                     Manager.CapturedContext.StartNew(() =>
@@ -2004,6 +2004,7 @@ namespace Couchbase.Lite
             } catch(Exception e) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, Tag, "Exception while closing database");
             } finally {
+                DocumentCache.Dispose();
                 DocumentCache = null;
                 Manager.ForgetDatabase(this);
                 _closingTask = null;

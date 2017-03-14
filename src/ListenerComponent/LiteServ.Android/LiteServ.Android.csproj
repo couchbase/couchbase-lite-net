@@ -66,14 +66,8 @@
     <Reference Include="SQLitePCL.ugly">
       <HintPath>..\..\packages\SQLitePCL.ugly.0.9.3\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
     </Reference>
-    <Reference Include="SQLitePCLPlugin_sqlcipher">
-      <HintPath>..\..\packages\SQLitePCL.plugin.sqlcipher.android.0.9.1\lib\MonoAndroid\SQLitePCLPlugin_sqlcipher.dll</HintPath>
-    </Reference>
     <Reference Include="Xamarin.Android.Support.v4">
       <HintPath>..\..\packages\Xamarin.Android.Support.v4.23.4.0.1\lib\MonoAndroid403\Xamarin.Android.Support.v4.dll</HintPath>
-    </Reference>
-    <Reference Include="Xamarin.Android.Support.Vector.Drawable">
-      <HintPath>..\..\packages\Xamarin.Android.Support.Vector.Drawable.23.4.0.1\lib\MonoAndroid403\Xamarin.Android.Support.Vector.Drawable.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Android.Support.Animated.Vector.Drawable">
       <HintPath>..\..\packages\Xamarin.Android.Support.Animated.Vector.Drawable.23.4.0.1\lib\MonoAndroid403\Xamarin.Android.Support.Animated.Vector.Drawable.dll</HintPath>
@@ -83,11 +77,17 @@
     </Reference>
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.Net.Http" />
-    <Reference Include="Stateless">
-      <HintPath>..\..\packages\Stateless.3.1.0\lib\portable45-net45+win8+wp8+wpa81\Stateless.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.9.0.1\lib\portable-net45+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Android.Support.Vector.Drawable">
+      <HintPath>..\..\packages\Xamarin.Android.Support.Vector.Drawable.23.4.0.1\lib\MonoAndroid403\Xamarin.Android.Support.Vector.Drawable.dll</HintPath>
+    </Reference>
+    <Reference Include="Stateless">
+      <HintPath>..\..\packages\Stateless.2.5.84\lib\portable-net45+wp8+win8+wpa81+monotouch+monoandroid\Stateless.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCLPlugin_sqlcipher">
+      <HintPath>..\..\packages\SQLitePCL.plugin.sqlcipher.android.0.9.5\lib\MonoAndroid\SQLitePCLPlugin_sqlcipher.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

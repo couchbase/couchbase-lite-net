@@ -42,11 +42,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
     //LruCache implementation (null values disallowed)
-    internal class LruCache<TKey, TValue> 
+    internal class LruCache<TKey, TValue> : IDisposable
     where TKey: class 
     where TValue: class
     {
@@ -63,6 +65,7 @@ namespace Couchbase.Lite.Util
         private readonly Dictionary<TKey, WeakReference<TValue>> _allValues = new Dictionary<TKey, WeakReference<TValue>>();
         private readonly LinkedList<TKey> _nodes = new LinkedList<TKey>();
         private readonly Object _locker = new Object ();
+        private readonly Timer _gcTimer;
 
         #endregion
 
@@ -88,6 +91,16 @@ namespace Couchbase.Lite.Util
             }
 
             MaxSize = maxSize;
+            _gcTimer = new Timer(o =>
+            {
+                var self = (LruCache<TKey, TValue>) o;
+                lock (self._locker) {
+                    TValue item;
+                    foreach (var k in self._allValues.Where(x => !x.Value.TryGetTarget(out item)).ToList()) {
+                       self._allValues.Remove(k.Key);
+                    }
+                }
+            }, this, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
         }
 
         #endregion
@@ -267,6 +280,8 @@ namespace Couchbase.Lite.Util
                 Log.To.NoDomain.D(Tag, "Exited lock in Trim");
 
                 EntryRemoved(true, key, value, default(TValue));
+
+                
             }
         }
             
@@ -286,11 +301,12 @@ namespace Couchbase.Lite.Util
                     _recents.Remove(key);
                     Size -= SafeSizeOf(key, previous);
                     _nodes.Remove(key);
-                    _allValues.Remove(key);
                     Log.To.NoDomain.V(Tag, "...Success!");
                 } else {
-                    Log.To.NoDomain.V(Tag, "...Key not found!");
+                    Log.To.NoDomain.V(Tag, "...Key not found in recent list!");
                 }
+
+                _allValues.Remove(key);
             }
 
             Log.To.NoDomain.D(Tag, "Exited lock in Remove");
@@ -364,6 +380,15 @@ namespace Couchbase.Lite.Util
                 Log.To.NoDomain.D(Tag, "Exiting lock via return");
                 return string.Format ("LruCache[maxSize={0},hits={1},misses={2},hitRate={3:P}%]", MaxSize, HitCount, MissCount, hitPercent);
             }
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            _gcTimer.Change(Timeout.Infinite, Timeout.Infinite);
         }
 
         #endregion
