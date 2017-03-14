@@ -667,24 +667,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return rev;
         }
 
-        private bool RunInOuterTransaction(RunInTransactionDelegate action)
-        {
-            if (!InTransaction) {
-                return RunInTransaction(action);
-            }
-
-            var status = false;
-            try {
-                status = action();
-            } catch(CouchbaseLiteException) {
-                Log.To.Database.E(TAG, "Failed in RunInOuterTransaction, rethrowing...");
-                status = false;
-                throw;
-            }
-
-            return status;
-        }
-
         private long GetSequenceOfDocument(long docNumericId, RevisionID revId, bool onlyCurrent)
         {
             var sql = String.Format("SELECT sequence FROM revs WHERE doc_id=? AND revid=? {0} LIMIT 1",
@@ -1706,7 +1688,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             RevisionID winningRevID = null;
             bool inConflict = false;
 
-            RunInOuterTransaction(() =>
+            RunInTransaction(() =>
             {
                 // Remember, this block may be called multiple times if I have to retry the transaction.
                 newRev = null;
@@ -2244,7 +2226,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public IList<string> PurgeExpired()
         {
             var result = new List<string>();
-            RunInOuterTransaction (() => {
+            RunInTransaction (() => {
                 var sequences = new List<long>();
                 var now = DateTime.UtcNow;
                 TryQuery(c =>
