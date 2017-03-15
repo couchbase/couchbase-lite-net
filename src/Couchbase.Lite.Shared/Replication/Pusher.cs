@@ -463,6 +463,7 @@ namespace Couchbase.Lite.Replicator
                 if (revsDiffResults != null) {
                     revResults = revsDiffResults.Get(rev.DocID).AsDictionary<string, object>(); 
                     if (revResults == null) {
+                        RemovePending(rev);
                         continue;
                     }
 

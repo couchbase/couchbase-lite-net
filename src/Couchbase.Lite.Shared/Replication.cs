@@ -1127,7 +1127,7 @@ namespace Couchbase.Lite
             SetupRevisionBodyTransformationFunction();
 
             Log.To.Sync.I(Tag, "Beginning replication process...");
-            LastSequence = null;
+            _lastSequence = null;
             Login();
         }
 
