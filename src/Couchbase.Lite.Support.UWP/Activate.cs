@@ -19,7 +19,15 @@
 //  limitations under the License.
 //
 
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using Windows.Storage;
 using Couchbase.Lite.Logging;
+using LiteCore;
+using LiteCore.Interop;
 
 namespace Couchbase.Lite.Support
 {
@@ -35,6 +43,47 @@ namespace Couchbase.Lite.Support
         {
             InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
             InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
+            var assembly = typeof(UWP).GetTypeInfo().Assembly;
+            try {
+                Directory.CreateDirectory(Path.Combine(ApplicationData.Current.LocalFolder.Path, "x86"));
+                Directory.CreateDirectory(Path.Combine(ApplicationData.Current.LocalFolder.Path, "x64"));
+            
+                foreach (var filename in new[] {"LiteCore", "sqlite3"}) {
+                    var x86Path = Path.Combine(ApplicationData.Current.LocalFolder.Path, "x86", $"{filename}.dll");
+                    if (!File.Exists(x86Path)) {
+                        using (var x86Out = File.OpenWrite(x86Path))
+                        using (var x86In = assembly.GetManifestResourceStream($"{filename}_x86")) {
+                            x86In.CopyTo(x86Out);
+                        }
+                    }
+
+                    var x64Path = Path.Combine(ApplicationData.Current.LocalFolder.Path, "x64", $"{filename}.dll");
+                    if (!File.Exists(x64Path)) {
+                        using (var x86Out = File.OpenWrite(x64Path))
+                        using (var x86In = assembly.GetManifestResourceStream($"{filename}_x64")) {
+                            x86In.CopyTo(x86Out);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Console.WriteLine(e);
+            }
+
+            var architecture = IntPtr.Size == 4
+                ? "x86"
+                : "x64";
+            var path = Path.Combine(ApplicationData.Current.LocalFolder.Path, architecture, "LiteCore.dll");
+            const uint loadWithAlteredSearchPath = 8;
+            var ptr = LoadLibraryEx(path, IntPtr.Zero, loadWithAlteredSearchPath);
+            if (ptr != IntPtr.Zero) {
+                return;
+            }
+
+            Debug.WriteLine("Could not load LiteCore.dll!  Nothing is going to work!");
+            throw new LiteCoreException(new C4Error(LiteCoreError.UnexpectedError));
         }
+
+        [DllImport("kernel32")]
+        private static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
     }
 }
