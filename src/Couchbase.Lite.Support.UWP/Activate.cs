@@ -44,29 +44,25 @@ namespace Couchbase.Lite.Support
             InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
             InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
             var assembly = typeof(UWP).GetTypeInfo().Assembly;
-            try {
-                Directory.CreateDirectory(Path.Combine(ApplicationData.Current.LocalFolder.Path, "x86"));
-                Directory.CreateDirectory(Path.Combine(ApplicationData.Current.LocalFolder.Path, "x64"));
+            Directory.CreateDirectory(Path.Combine(ApplicationData.Current.LocalFolder.Path, "x86"));
+            Directory.CreateDirectory(Path.Combine(ApplicationData.Current.LocalFolder.Path, "x64"));
             
-                foreach (var filename in new[] {"LiteCore", "sqlite3"}) {
-                    var x86Path = Path.Combine(ApplicationData.Current.LocalFolder.Path, "x86", $"{filename}.dll");
-                    if (!File.Exists(x86Path)) {
-                        using (var x86Out = File.OpenWrite(x86Path))
-                        using (var x86In = assembly.GetManifestResourceStream($"{filename}_x86")) {
-                            x86In.CopyTo(x86Out);
-                        }
-                    }
-
-                    var x64Path = Path.Combine(ApplicationData.Current.LocalFolder.Path, "x64", $"{filename}.dll");
-                    if (!File.Exists(x64Path)) {
-                        using (var x86Out = File.OpenWrite(x64Path))
-                        using (var x86In = assembly.GetManifestResourceStream($"{filename}_x64")) {
-                            x86In.CopyTo(x86Out);
-                        }
+            foreach (var filename in new[] {"LiteCore", "sqlite3"}) {
+                var x86Path = Path.Combine(ApplicationData.Current.LocalFolder.Path, "x86", $"{filename}.dll");
+                if (!File.Exists(x86Path)) {
+                    using (var x86Out = File.OpenWrite(x86Path))
+                    using (var x86In = assembly.GetManifestResourceStream($"{filename}_x86")) {
+                        x86In.CopyTo(x86Out);
                     }
                 }
-            } catch (Exception e) {
-                Console.WriteLine(e);
+
+                var x64Path = Path.Combine(ApplicationData.Current.LocalFolder.Path, "x64", $"{filename}.dll");
+                if (!File.Exists(x64Path)) {
+                    using (var x86Out = File.OpenWrite(x64Path))
+                    using (var x86In = assembly.GetManifestResourceStream($"{filename}_x64")) {
+                        x86In.CopyTo(x86Out);
+                    }
+                }
             }
 
             var architecture = IntPtr.Size == 4
