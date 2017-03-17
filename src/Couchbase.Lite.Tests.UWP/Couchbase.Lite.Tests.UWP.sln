@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26228.9
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.UWP", "Couchbase.Lite.Tests.UWP.csproj", "{389C22F9-8999-47A5-8EB1-289D2B709EAE}"
-EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{11F38891-8397-49B4-9146-6DAF0A9D7866}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Lite", "..\Couchbase.Lite\Couchbase.Lite.csproj", "{DD9CB298-F3A1-4653-883B-352E69C16F93}"
@@ -15,13 +13,15 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Tests.Shared", "..
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Support.UWP", "..\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj", "{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.UWP", "Couchbase.Lite.Tests.UWP.csproj", "{E5679738-ED61-443B-A621-7A10EB5B5605}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{11f38891-8397-49b4-9146-6daf0a9d7866}*SharedItemsImports = 13
-		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{389c22f9-8999-47a5-8eb1-289d2b709eae}*SharedItemsImports = 4
-		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{389c22f9-8999-47a5-8eb1-289d2b709eae}*SharedItemsImports = 4
 		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{6ec40f09-4c86-4f51-9f0e-c4397601a567}*SharedItemsImports = 13
 		..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore.Shared\LiteCore.Shared.projitems*{c37dc024-8762-4be4-9034-b2b5970c652c}*SharedItemsImports = 13
+		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{e5679738-ed61-443b-a621-7a10eb5b5605}*SharedItemsImports = 4
+		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{e5679738-ed61-443b-a621-7a10eb5b5605}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,38 +38,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Debug|ARM.ActiveCfg = Debug|ARM
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Debug|ARM.Build.0 = Debug|ARM
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Debug|ARM.Deploy.0 = Debug|ARM
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Debug|x64.ActiveCfg = Debug|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Debug|x64.Build.0 = Debug|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Debug|x64.Deploy.0 = Debug|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Debug|x86.ActiveCfg = Debug|x86
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Debug|x86.Build.0 = Debug|x86
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Debug|x86.Deploy.0 = Debug|x86
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|Any CPU.ActiveCfg = Release|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|Any CPU.Build.0 = Release|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|Any CPU.Deploy.0 = Release|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|ARM.ActiveCfg = Release|ARM
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|ARM.Build.0 = Release|ARM
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|ARM.Deploy.0 = Release|ARM
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|x64.ActiveCfg = Packaging|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|x64.Build.0 = Packaging|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|x64.Deploy.0 = Packaging|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|x86.ActiveCfg = Release|x86
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|x86.Build.0 = Release|x86
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Packaging|x86.Deploy.0 = Release|x86
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Release|Any CPU.ActiveCfg = Release|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Release|ARM.ActiveCfg = Release|ARM
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Release|ARM.Build.0 = Release|ARM
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Release|ARM.Deploy.0 = Release|ARM
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Release|x64.ActiveCfg = Release|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Release|x64.Build.0 = Release|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Release|x64.Deploy.0 = Release|x64
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Release|x86.ActiveCfg = Release|x86
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Release|x86.Build.0 = Release|x86
-		{389C22F9-8999-47A5-8EB1-289D2B709EAE}.Release|x86.Deploy.0 = Release|x86
 		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Debug|ARM.ActiveCfg = Debug|Any CPU
@@ -118,6 +86,38 @@ Global
 		{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}.Release|x64.Build.0 = Release|x64
 		{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}.Release|x86.ActiveCfg = Release|x86
 		{89C2B07B-A5E3-4BE9-8D2C-22269B0AA921}.Release|x86.Build.0 = Release|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Debug|ARM.ActiveCfg = Debug|ARM
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Debug|ARM.Build.0 = Debug|ARM
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Debug|ARM.Deploy.0 = Debug|ARM
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Debug|x64.ActiveCfg = Debug|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Debug|x64.Build.0 = Debug|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Debug|x64.Deploy.0 = Debug|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Debug|x86.ActiveCfg = Debug|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Debug|x86.Build.0 = Debug|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Debug|x86.Deploy.0 = Debug|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|Any CPU.ActiveCfg = Release|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|Any CPU.Build.0 = Release|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|Any CPU.Deploy.0 = Release|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|ARM.ActiveCfg = Release|ARM
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|ARM.Build.0 = Release|ARM
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|ARM.Deploy.0 = Release|ARM
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|x64.ActiveCfg = Packaging|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|x64.Build.0 = Packaging|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|x64.Deploy.0 = Packaging|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|x86.ActiveCfg = Release|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|x86.Build.0 = Release|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Packaging|x86.Deploy.0 = Release|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Release|Any CPU.ActiveCfg = Release|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Release|ARM.ActiveCfg = Release|ARM
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Release|ARM.Build.0 = Release|ARM
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Release|ARM.Deploy.0 = Release|ARM
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Release|x64.ActiveCfg = Release|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Release|x64.Build.0 = Release|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Release|x64.Deploy.0 = Release|x64
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Release|x86.ActiveCfg = Release|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Release|x86.Build.0 = Release|x86
+		{E5679738-ED61-443B-A621-7A10EB5B5605}.Release|x86.Deploy.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
