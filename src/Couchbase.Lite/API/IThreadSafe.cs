@@ -43,12 +43,37 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        /// <summary>
+        /// Convenience method for asynchronously scheduling a job for this
+        /// object
+        /// </summary>
+        /// <param name="a">The job to schedule</param>
+        /// <returns>An awaitable task representing the scheduled job</returns>
         Task DoAsync(Action a);
 
+        /// <summary>
+        /// Convenience method for asynchronously scheduling a job for this
+        /// object
+        /// </summary>
+        /// <typeparam name="T">The return value for the job</typeparam>
+        /// <param name="f">The job to schedule</param>
+        /// <returns>An awaitable task representing the scheduled job</returns>
         Task<T> DoAsync<T>(Func<T> f);
 
+        /// <summary>
+        /// Convenience method for scheduling and waiting for a job
+        /// on this object's queue
+        /// </summary>
+        /// <param name="a">The job to schedule</param>
         void DoSync(Action a);
 
+        /// <summary>
+        /// Convenience method for scheduling a job on this object's queue,
+        /// waiting for it to finish and returning the result
+        /// </summary>
+        /// <typeparam name="T">The return type of the scheduled job</typeparam>
+        /// <param name="f">The job to schedule</param>
+        /// <returns>The result of the job</returns>
         T DoSync<T>(Func<T> f);
 
         #endregion

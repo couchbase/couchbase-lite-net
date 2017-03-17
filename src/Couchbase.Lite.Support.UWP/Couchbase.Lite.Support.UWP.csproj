@@ -138,24 +138,6 @@
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\LiteCore.dll">
-      <Link>x64\LiteCore.dll</Link>
-      <LogicalName>LiteCore_x64</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\sqlite3.dll">
-      <Link>x64\sqlite3.dll</Link>
-      <LogicalName>sqlite3_x64</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\LiteCore.dll">
-      <Link>x86\LiteCore.dll</Link>
-      <LogicalName>LiteCore_x86</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\sqlite3.dll">
-      <Link>x86\sqlite3.dll</Link>
-      <LogicalName>sqlite3_x86</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>
