@@ -37,6 +37,8 @@ namespace Test
             
         }
 
+#if PERFORMANCE
+
         [Fact]
         [Trait("slow", "true")]
         public void TestPerformance()
@@ -46,6 +48,8 @@ namespace Test
             SetOptions(options);
             Run();
         }
+
+#endif
 
         protected override void Test()
         {
