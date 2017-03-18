@@ -15,7 +15,7 @@
     <AndroidResgenFile>Resources\Resource.Designer.cs</AndroidResgenFile>
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
     <AndroidUseLatestPlatformSdk>True</AndroidUseLatestPlatformSdk>
-    <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v7.1</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -79,12 +79,24 @@
     <AndroidResource Include="Resources\values\Strings.xml" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedNativeLibrary Include="x86\libsqlite3.so" />
-    <EmbeddedNativeLibrary Include="x86\libLiteCore.so" />
-    <EmbeddedNativeLibrary Include="armeabi-v7a\libsqlite3.so" />
-    <EmbeddedNativeLibrary Include="armeabi-v7a\libLiteCore.so" />
-    <EmbeddedNativeLibrary Include="arm64-v8a\libsqlite3.so" />
-    <EmbeddedNativeLibrary Include="arm64-v8a\libLiteCore.so" />
+    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\x86\libsqlite3.so">
+        <Link>x86\libsqlite3.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\x86\libLiteCore.so">
+        <Link>x86\libLiteCore.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\armeabi-v7a\libsqlite3.so">
+        <Link>armeabi-v7a\libsqlite3.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\armeabi-v7a\libLiteCore.so">
+        <Link>armeabi-v7a\libLiteCore.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\arm64-v8a\libsqlite3.so">
+        <Link>arm64-v8a\libsqlite3.so</Link>
+    </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\arm64-v8a\libLiteCore.so">
+        <Link>arm64-v8a\libLiteCore.so</Link>
+    </EmbeddedNativeLibrary>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
