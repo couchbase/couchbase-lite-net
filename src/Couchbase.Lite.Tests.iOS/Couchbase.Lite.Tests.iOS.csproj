@@ -9,6 +9,8 @@
     <RootNamespace>Couchbase.Lite.Tests.iOS</RootNamespace>
     <AssemblyName>Couchbase.Lite.Tests.iOS</AssemblyName>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhoneSimulator' ">
     <DebugSymbols>true</DebugSymbols>
@@ -112,6 +114,12 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Couchbase.Lite, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Couchbase.Lite.2.0.0-b0039\lib\netstandard1.4\Couchbase.Lite.dll</HintPath>
+    </Reference>
+    <Reference Include="Couchbase.Lite.Support.iOS, Version=2.0.0.0, Culture=neutral, PublicKeyToken=9a46e652e41ce60c, processorArchitecture=MSIL">
+      <HintPath>packages\Couchbase.Lite.Support.iOS.2.0.0-b0039\lib\xamarinios\Couchbase.Lite.Support.iOS.dll</HintPath>
+    </Reference>
     <Reference Include="Remotion.Linq, Version=2.1.0.0, Culture=neutral, PublicKeyToken=fee00910d6e5f53b, processorArchitecture=MSIL">
       <HintPath>..\packages\Remotion.Linq.2.1.1\lib\portable-net45+win+wpa81+wp80\Remotion.Linq.dll</HintPath>
       <Private>True</Private>
@@ -187,21 +195,16 @@
     <Compile Include="AppDelegate.cs" />
     <Compile Include="Main.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj">
-      <Project>{3d634c07-2603-4474-a8cd-de0cf495307c}</Project>
-      <Name>Couchbase.Lite.Support.iOS</Name>
-      <IsAppExtension>false</IsAppExtension>
-      <IsWatchApp>false</IsWatchApp>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{c2a99111-bf57-405c-879e-aaff5b50e8b6}</Project>
-      <Name>Couchbase.Lite</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Import Project="..\packages\Xamarin.Forms.2.3.0.49\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets" Condition="Exists('..\packages\Xamarin.Forms.2.3.0.49\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets')" />
   <Import Project="..\packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets" Condition="Exists('..\packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets')" />
+  <Import Project="packages\Couchbase.Lite.2.0.0-b0039\build\Couchbase.Lite.targets" Condition="Exists('packages\Couchbase.Lite.2.0.0-b0039\build\Couchbase.Lite.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\Couchbase.Lite.2.0.0-b0039\build\Couchbase.Lite.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Couchbase.Lite.2.0.0-b0039\build\Couchbase.Lite.targets'))" />
+  </Target>
 </Project>
