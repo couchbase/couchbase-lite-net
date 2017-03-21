@@ -7,11 +7,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.iOS", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Lite", "..\Couchbase.Lite\Couchbase.Lite.csproj", "{C2A99111-BF57-405C-879E-AAFF5B50E8B6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Support.iOS", "..\Couchbase.Lite.Support.iOS\Couchbase.Lite.Support.iOS.csproj", "{3D634C07-2603-4474-A8CD-DE0CF495307C}"
-EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{11F38891-8397-49B4-9146-6DAF0A9D7866}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Tests.Shared", "..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.shproj", "{6EC40F09-4C86-4F51-9F0E-C4397601A567}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Support.iOS", "..\Couchbase.Lite.Support.Apple\Couchbase.Lite.Support.iOS.csproj", "{3D634C07-2603-4474-A8CD-DE0CF495307C}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution

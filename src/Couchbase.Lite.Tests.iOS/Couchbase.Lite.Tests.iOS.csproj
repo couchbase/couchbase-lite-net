@@ -101,6 +101,22 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <MtouchSdkVersion>10.2</MtouchSdkVersion>
+    <MtouchLink>None</MtouchLink>
+    <MtouchDebug>False</MtouchDebug>
+    <MtouchProfiling>False</MtouchProfiling>
+    <MtouchFastDev>False</MtouchFastDev>
+    <MtouchNoSymbolStrip>False</MtouchNoSymbolStrip>
+    <MtouchArch>i386</MtouchArch>
+    <MtouchUseLlvm>False</MtouchUseLlvm>
+    <MtouchUseThumb>False</MtouchUseThumb>
+    <MtouchEnableBitcode>False</MtouchEnableBitcode>
+    <MtouchUseSGen>False</MtouchUseSGen>
+    <MtouchUseRefCounting>False</MtouchUseRefCounting>
+    <OptimizePNGs>True</OptimizePNGs>
+    <MtouchTlsProvider>Default</MtouchTlsProvider>
+    <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
+    <MtouchFloat32>False</MtouchFloat32>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|iPhone'">
     <OutputPath>bin\iPhone\Packaging\</OutputPath>
@@ -112,13 +128,32 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <BuildIpa>True</BuildIpa>
+    <IpaPackageDir>$(OutputPath)</IpaPackageDir>
+    <IpaIncludeArtwork>False</IpaIncludeArtwork>
+    <MtouchSdkVersion>10.2</MtouchSdkVersion>
+    <MtouchLink>SdkOnly</MtouchLink>
+    <MtouchDebug>False</MtouchDebug>
+    <MtouchProfiling>False</MtouchProfiling>
+    <MtouchFastDev>False</MtouchFastDev>
+    <MtouchNoSymbolStrip>False</MtouchNoSymbolStrip>
+    <MtouchArch>ARMv7, ARM64</MtouchArch>
+    <MtouchUseLlvm>False</MtouchUseLlvm>
+    <MtouchUseThumb>False</MtouchUseThumb>
+    <MtouchEnableBitcode>False</MtouchEnableBitcode>
+    <MtouchUseSGen>False</MtouchUseSGen>
+    <MtouchUseRefCounting>False</MtouchUseRefCounting>
+    <OptimizePNGs>True</OptimizePNGs>
+    <MtouchTlsProvider>Default</MtouchTlsProvider>
+    <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
+    <MtouchFloat32>False</MtouchFloat32>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Couchbase.Lite, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Couchbase.Lite.2.0.0-b0039\lib\netstandard1.4\Couchbase.Lite.dll</HintPath>
+      <HintPath>packages\Couchbase.Lite.2.0.0-b0040\lib\netstandard1.4\Couchbase.Lite.dll</HintPath>
     </Reference>
     <Reference Include="Couchbase.Lite.Support.iOS, Version=2.0.0.0, Culture=neutral, PublicKeyToken=9a46e652e41ce60c, processorArchitecture=MSIL">
-      <HintPath>packages\Couchbase.Lite.Support.iOS.2.0.0-b0039\lib\xamarinios\Couchbase.Lite.Support.iOS.dll</HintPath>
+      <HintPath>packages\Couchbase.Lite.Support.iOS.2.0.0-b0040\lib\xamarinios\Couchbase.Lite.Support.iOS.dll</HintPath>
     </Reference>
     <Reference Include="Remotion.Linq, Version=2.1.0.0, Culture=neutral, PublicKeyToken=fee00910d6e5f53b, processorArchitecture=MSIL">
       <HintPath>..\packages\Remotion.Linq.2.1.1\lib\portable-net45+win+wpa81+wp80\Remotion.Linq.dll</HintPath>
@@ -200,11 +235,11 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Import Project="..\packages\Xamarin.Forms.2.3.0.49\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets" Condition="Exists('..\packages\Xamarin.Forms.2.3.0.49\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets')" />
   <Import Project="..\packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets" Condition="Exists('..\packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets')" />
-  <Import Project="packages\Couchbase.Lite.2.0.0-b0039\build\Couchbase.Lite.targets" Condition="Exists('packages\Couchbase.Lite.2.0.0-b0039\build\Couchbase.Lite.targets')" />
+  <Import Project="packages\Couchbase.Lite.2.0.0-b0040\build\Couchbase.Lite.targets" Condition="Exists('packages\Couchbase.Lite.2.0.0-b0040\build\Couchbase.Lite.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('packages\Couchbase.Lite.2.0.0-b0039\build\Couchbase.Lite.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Couchbase.Lite.2.0.0-b0039\build\Couchbase.Lite.targets'))" />
+    <Error Condition="!Exists('packages\Couchbase.Lite.2.0.0-b0040\build\Couchbase.Lite.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Couchbase.Lite.2.0.0-b0040\build\Couchbase.Lite.targets'))" />
   </Target>
 </Project>

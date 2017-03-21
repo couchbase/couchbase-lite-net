@@ -19,8 +19,8 @@
     <language>en-US</language>
   </metadata>
   <files>
-    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll" />
-    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.iOS\bin\Packaging\Couchbase.Lite.Support.iOS.pdb" />
-    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll.mdb" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.pdb" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll.mdb" />
   </files>
 </package>
