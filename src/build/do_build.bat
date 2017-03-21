@@ -16,19 +16,16 @@ if not defined NUGET_REPO (
 
 "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" Couchbase.Lite.csproj /t:Transform /p:TransformFile="Properties\DynamicAssemblyInfo.tt"
 dotnet restore -s %NUGET_REPO% -s https://api.nuget.org/v3/index.json
-dotnet build -c Packaging
 
 pushd ..\Couchbase.Lite.Support.UWP
 if not exist ..\..\nuget.exe (
     powershell -Command "Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile ..\..\nuget.exe"
 )
 ..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
-"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" Couchbase.Lite.Support.UWP.csproj /p:Configuration=Packaging
 popd
 
-pushd ..\Couchbase.Lite.Support.Android
-..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
-"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" Couchbase.Lite.Support.Android.csproj /p:Configuration=Packaging
+pushd ..
+"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" Couchbase.Lite.sln /p:Configuration=Packaging
 popd
 
 popd

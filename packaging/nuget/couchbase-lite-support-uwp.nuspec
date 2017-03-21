@@ -12,9 +12,9 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
-        Couchbase Lite .NET Developer Build #2
+        Couchbase Lite .NET Developer Build
     </releaseNotes>
-    <copyright>Copyright 2014-2016</copyright>
+    <copyright>Copyright 2017</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
   </metadata>

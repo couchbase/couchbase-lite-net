@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package>
   <metadata>
-    <id>Couchbase.Lite.Support.Android</id>
-    <title>Couchbase Lite Android Support</title>
+    <id>Couchbase.Lite.Support.iOS</id>
+    <title>Couchbase Lite iOS Support</title>
     <version>$version$</version>
     <authors>Jim Borden</authors>
     <owners>Couchbase</owners>
@@ -19,7 +19,8 @@
     <language>en-US</language>
   </metadata>
   <files>
-    <file target="lib\monodroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll" />
-    <file target="lib\monodroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.pdb" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.iOS\bin\Packaging\Couchbase.Lite.Support.iOS.pdb" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll.mdb" />
   </files>
 </package>
