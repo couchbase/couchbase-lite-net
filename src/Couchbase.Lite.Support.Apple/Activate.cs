@@ -33,7 +33,11 @@ namespace Couchbase.Lite.Support
         {
             Console.WriteLine("Loading support items");
             InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
+#if __IOS__
+            InjectableCollection.RegisterImplementation<ILogger>(() => new iOSDefaultLogger());
+#else
             InjectableCollection.RegisterImplementation<ILogger>(() => new tvOSDefaultLogger());
+#endif
 
             Console.WriteLine("Loading libLiteCore.dylib");
             var dylibPath = Path.Combine(NSBundle.MainBundle.BundlePath, "libLiteCore.dylib");

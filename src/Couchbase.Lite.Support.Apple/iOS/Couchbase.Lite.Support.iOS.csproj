@@ -52,7 +52,7 @@
     <Reference Include="Xamarin.iOS" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">
+    <Content Include="..\..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">
       <Link>Properties\DynamicAssemblyInfo.tt</Link>
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
@@ -62,7 +62,7 @@
     <Compile Include="..\Activate.cs">
       <Link>Activate.cs</Link>
     </Compile>
-    <Compile Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.cs">
+    <Compile Include="..\..\Couchbase.Lite\Properties\DynamicAssemblyInfo.cs">
       <Link>Properties\DynamicAssemblyInfo.cs</Link>
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -79,7 +79,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Couchbase.Lite\Properties\version">
+    <None Include="..\..\Couchbase.Lite\Properties\version">
       <Link>Properties\version</Link>
     </None>
     <BundleResource Include="Resources\libLiteCore.dylib" />

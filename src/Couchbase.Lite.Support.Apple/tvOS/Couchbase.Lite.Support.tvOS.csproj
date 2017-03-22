@@ -21,12 +21,24 @@
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>full</DebugType>
+    <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|AnyCPU'">
+    <OutputPath>bin\Packaging\</OutputPath>
+    <DefineConstants>__UNIFIED__;__MOBILE__;__TVOS__;</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -34,8 +46,20 @@
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.TVOS" />
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
+    <Content Include="..\..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">
+      <Link>Properties\DynamicAssemblyInfo.tt</Link>
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Couchbase.Lite\Properties\DynamicAssemblyInfo.cs">
+      <Link>Properties\DynamicAssemblyInfo.cs</Link>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
+    </Compile>
     <Compile Include="..\Activate.cs">
       <Link>Activate.cs</Link>
     </Compile>
@@ -51,6 +75,14 @@
   </ItemGroup>
   <ItemGroup>
     <BundleResource Include="Resources\libLiteCore.dylib" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Couchbase.Lite\Properties\version">
+      <Link>Properties\version</Link>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\TVOS\Xamarin.TVOS.CSharp.targets" />
 </Project>
