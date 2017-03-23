@@ -20,6 +20,9 @@
 //
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite
 {
@@ -90,10 +93,20 @@ namespace Couchbase.Lite
         /// <summary>
         /// Creates an <see cref="IndexType.ValueIndex"/> index on the given path
         /// </summary>
-        /// <param name="propertyPath">The path to create the index on</param>
+        /// <param name="expressions">The expressions to create the index on</param>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
         [AccessibilityMode(AccessMode.FromQueueOnly)]
-        void CreateIndex(string propertyPath);
+        void CreateIndex(IList<IExpression> expressions);
+
+        /// <summary>
+        /// Creates an index of the given type on the given path with the given options
+        /// </summary>
+        /// <param name="expressions">The expressions to create the index on (must be either string
+        /// or IExpression)</param>
+        /// <param name="indexType">The type of index to create</param>
+        /// <param name="options">The options to apply to the index</param>
+        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        void CreateIndex(IList expressions, IndexType indexType, IndexOptions options);
 
         /// <summary>
         /// Deletes the database

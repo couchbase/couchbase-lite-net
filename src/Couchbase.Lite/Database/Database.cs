@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -26,12 +27,14 @@ using System.Linq;
 using System.Threading;
 
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Query;
 using Couchbase.Lite.Serialization;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Newtonsoft.Json;
 using ObjCRuntime;
 
 namespace Couchbase.Lite.DB
@@ -218,17 +221,19 @@ namespace Couchbase.Lite.DB
             return GetDocument<T>(Misc.CreateGuid(), false);
         }
 
-        public void CreateIndex(string propertyPath, IndexType indexType, IndexOptions options)
+        public void CreateIndex(IList expressions, IndexType indexType, IndexOptions options)
         {
             AssertSafety();
             CheckOpen();
+            var jsonObj = QueryExpression.EncodeToJSON(expressions);
+            var json = JsonConvert.SerializeObject(jsonObj);
             LiteCoreBridge.Check(err =>
             {
                 if(options == null) {
-                    return Native.c4db_createIndex(c4db, propertyPath, (C4IndexType)indexType, null, err);
+                    return Native.c4db_createIndex(c4db, json, (C4IndexType)indexType, null, err);
                 } else {
                     var localOpts = IndexOptions.Internal(options);
-                    return Native.c4db_createIndex(c4db, propertyPath, (C4IndexType)indexType, &localOpts, err);
+                    return Native.c4db_createIndex(c4db, json, (C4IndexType)indexType, &localOpts, err);
                 }
             });
         }
@@ -483,11 +488,11 @@ namespace Couchbase.Lite.DB
             return GetDocument(Misc.CreateGuid(), false);
         }
 
-        public void CreateIndex(string propertyPath)
+        public void CreateIndex(IList<IExpression> expressions)
         {
             AssertSafety();
             CheckOpen();
-            CreateIndex(propertyPath, IndexType.ValueIndex, null);
+            CreateIndex(expressions as IList, IndexType.ValueIndex, null);
         }
 
         public void Delete()

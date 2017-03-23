@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The initial SELECT portion of the query</returns>
         public static ISelect Select()
         {
-            return null;
+            return new Select(null, false);
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The initial SELECT portion of the query</returns>
         public static ISelect SelectDistinct()
         {
-            return null;
+            return new Select(null, true);
         }
 
         #endregion

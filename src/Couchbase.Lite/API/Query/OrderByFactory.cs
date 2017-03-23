@@ -1,5 +1,5 @@
 ﻿// 
-// SortOrderFactory.cs
+// OrderByFactory.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -19,12 +19,14 @@
 // limitations under the License.
 // 
 
+using System.Linq;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
     /// A factory class for generating <see cref="ISortOrder"/> objects
     /// </summary>
-    public static class SortOrderFactory
+    public static class OrderByFactory
     {
         #region Public Methods
 
@@ -35,7 +37,17 @@ namespace Couchbase.Lite.Query
         /// <returns>The object that will perform the sort</returns>
         public static ISortOrder Expression(IExpression expression)
         {
-            return null;
+            return new SortOrder(expression);
+        }
+
+        public static ISortOrder Property(string name)
+        {
+            return Expression(ExpressionFactory.Property(name));
+        }
+
+        public static IOrderBy OrderBy(params IOrderBy[] orderBy)
+        {
+            return new OrderBy(orderBy);
         }
 
         #endregion

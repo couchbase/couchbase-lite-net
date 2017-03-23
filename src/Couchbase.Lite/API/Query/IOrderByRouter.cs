@@ -30,7 +30,7 @@ namespace Couchbase.Lite.Query
         #region Public Methods
 
         /// <summary>
-        /// Routes this object to the next ORDER BY portion of the query
+        /// Routes this IExpression to the next ORDER BY portion of the query
         /// </summary>
         /// <param name="orderBy">An array of order by operations to consider in the 
         /// ORDER BY portion of the query</param>

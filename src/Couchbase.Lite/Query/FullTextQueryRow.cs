@@ -29,7 +29,7 @@ using LiteCore.Util;
 
 namespace Couchbase.Lite.Querying
 {
-    internal sealed unsafe class FullTextQueryRow : QueryRow
+    internal sealed unsafe class FullTextQueryRow : QueryRow, IFullTextQueryRow
     {
         #region Variables
 

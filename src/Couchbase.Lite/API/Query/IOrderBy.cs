@@ -36,15 +36,15 @@ namespace Couchbase.Lite.Query
         #region Public Methods
 
         /// <summary>
-        /// Returns an object that will sort in ascending order
+        /// Returns an IExpression that will sort in ascending order
         /// </summary>
-        /// <returns>An object that will sort in ascending order</returns>
+        /// <returns>An IExpression that will sort in ascending order</returns>
         IOrderBy Ascending();
 
         /// <summary>
-        /// Returns an object that will sort in desecending order
+        /// Returns an IExpression that will sort in desecending order
         /// </summary>
-        /// <returns>An object that will sort in desecending order</returns>
+        /// <returns>An IExpression that will sort in desecending order</returns>
         IOrderBy Descending();
 
         #endregion

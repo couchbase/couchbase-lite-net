@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -51,6 +52,24 @@ namespace Couchbase.Lite.Serialization
                 _inner = inner;
             }
 
+            private void WriteValue(object value)
+            {
+                var arr = value as IList;
+                var fast = value as IJsonMapped;
+                if (arr != null) {
+                    _inner.WriteStartArray();
+                    foreach (var val in arr) {
+                        WriteValue(val);
+                    }
+
+                    _inner.WriteEndArray();
+                } else if (fast != null) {
+                    fast.WriteTo(this);
+                } else {
+                    _inner.WriteValue(value);
+                }
+            }
+
             public void Write(string key, object value)
             {
                 var fast = value as IJsonMapped;
@@ -58,7 +77,7 @@ namespace Couchbase.Lite.Serialization
                     Write(key, fast);
                 } else {
                     _inner.WritePropertyName(key);
-                    _inner.WriteValue(value);
+                    WriteValue(value);
                 }
             }
 

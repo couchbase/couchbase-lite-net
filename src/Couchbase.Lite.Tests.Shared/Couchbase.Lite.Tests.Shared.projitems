@@ -22,4 +22,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Benchmark.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\XunitLogger.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)C\tests\data\sentences.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

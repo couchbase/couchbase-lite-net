@@ -22,7 +22,7 @@
 namespace Couchbase.Lite.Query
 {
     /// <summary>
-    /// An interface representing an object that can be routed to a SELECT
+    /// An interface representing an IExpression that can be routed to a SELECT
     /// portion of a query
     /// </summary>
     public interface ISelectRouter
@@ -30,7 +30,7 @@ namespace Couchbase.Lite.Query
         #region Public Methods
 
         /// <summary>
-        /// Routes this object to a SELECT portion of a query
+        /// Routes this IExpression to a SELECT portion of a query
         /// </summary>
         /// <returns>The next SELECT portion of the query</returns>
         ISelect Select();

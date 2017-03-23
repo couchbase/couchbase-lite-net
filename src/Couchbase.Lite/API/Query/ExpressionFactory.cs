@@ -18,9 +18,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Lite.Query
 {
@@ -46,9 +43,9 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to evaluate</param>
         /// <returns>The negated result of the expression</returns>
-        public static IExpression Negated(object expression)
+        public static IExpression Negated(IExpression expression)
         {
-            return null;
+            return new QueryCompoundExpression("NOT", expression);
         }
 
         /// <summary>
@@ -56,9 +53,9 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to evaluate</param>
         /// <returns>The negated result of the expression</returns>
-        public static IExpression Not(object expression)
+        public static IExpression Not(IExpression expression)
         {
-            return null;
+            return Negated(expression);
         }
 
         /// <summary>
@@ -68,7 +65,7 @@ namespace Couchbase.Lite.Query
         /// <returns>An expression representing the value of a named property</returns>
         public static IExpression Property(string property)
         {
-            return null;
+            return new QueryTypeExpression(property);
         }
 
         #endregion

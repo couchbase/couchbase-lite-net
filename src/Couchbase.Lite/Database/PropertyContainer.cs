@@ -30,6 +30,7 @@ using Couchbase.Lite.Serialization;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.DB
 {
@@ -60,14 +61,8 @@ namespace Couchbase.Lite.DB
 
         public object this[string key]
         {
-            get {
-                AssertSafety();
-                return Get(key);
-            }
-            set {
-                AssertSafety();
-                Set(key, value);
-            }
+            get => Get(key);
+            set => Set(key, value);
         }
 
         public IDictionary<string, object> Properties
@@ -411,6 +406,13 @@ namespace Couchbase.Lite.DB
                 return ConvertSubdoc(subdoc, oldValue, key);
             }
 
+            var jToken = value as JToken;
+            if (jToken != null) {
+                value = jToken.Type == JTokenType.Object
+                    ? (object)jToken.ToObject<Dictionary<string, object>>()
+                    : jToken.ToObject<List<object>>();
+            }
+
             var dict = value as IDictionary<string, object>;
             if (dict != null) {
                 return ConvertDict(dict, oldValue, key);
@@ -627,6 +629,15 @@ namespace Couchbase.Lite.DB
 
             if(value is ISubdocument || value is IBlob) {
                 return;
+            }
+
+            var jType = value as JToken;
+            if (jType != null) {
+                if (jType.Type == JTokenType.Object || jType.Type == JTokenType.Array) {
+                    return;
+                }
+
+                throw new ArgumentException($"Invalid type in document properties: {type.Name}", nameof(value));
             }
 
             var array = value as IList;

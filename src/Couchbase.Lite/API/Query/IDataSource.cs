@@ -26,6 +26,11 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public interface IDataSource
     {
+        
+    }
+
+    public interface IDatabaseSource : IDataSource
+    {
         #region Public Methods
 
         /// <summary>

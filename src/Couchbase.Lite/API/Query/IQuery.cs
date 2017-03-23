@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using System.Collections.Generic;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -26,13 +28,20 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public interface IQuery
     {
+
         #region Public Methods
 
         /// <summary>
         /// Runs the query
         /// </summary>
         /// <returns>The results of running the query</returns>
-        IResultSet Run();
+        IEnumerable<IQueryRow> Run();
+
+        IQuery Skip(ulong skip);
+
+        IQuery Limit(ulong limit);
+
+        IQuery SetParameters(IDictionary<string, object> parameters);
 
         #endregion
     }

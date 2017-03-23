@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using System.Collections;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -44,12 +46,12 @@ namespace Couchbase.Lite.Query
         IExpression And(object expression);
 
         /// <summary>
-        /// Determines if the result is between the current and given expressions
+        /// Determines if the result is between the two given expressions
         /// </summary>
-        /// <param name="expression">The expression to use as one of the bounds for
-        /// the between operation</param>
+        /// <param name="expression1">The expression to use as the first bound</param>
+        /// <param name="expression2">The expression to use as the second bound</param>
         /// <returns>The expression representing the new operation</returns>
-        IExpression Between(object expression);
+        IExpression Between(object expression1, object expression2);
 
         /// <summary>
         /// Concatenates the current and given expressions
@@ -88,6 +90,14 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         IExpression GreaterThanOrEqualTo(object expression);
+
+        /// <summary>
+        /// Returns an expression to test whether or not the given expression is contained
+        /// in the given list of expressions
+        /// </summary>
+        /// <param name="expressions">The list of expressions to check</param>
+        /// <returns>The expression representing the new operation</returns>
+        IExpression InExpressions(IList expressions);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -162,10 +172,10 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// Determines if the result is not between the current and given expressions
         /// </summary>
-        /// <param name="expression">The expression to use as one of the bounds for
-        /// the between operation</param>
+        /// <param name="expression1">The expression to use as the first bound</param>
+        /// <param name="expression2">The expression to use as the second bound</param>
         /// <returns>The expression representing the new operation</returns>
-        IExpression NotBetween(object expression);
+        IExpression NotBetween(object expression1, object expression2);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -174,6 +184,14 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         IExpression NotEqualTo(object expression);
+
+        /// <summary>
+        /// Returns an expression to test whether or not the given expression is NOT contained
+        /// in the given list of expressions
+        /// </summary>
+        /// <param name="expressions">The list of expressions to check</param>
+        /// <returns>The expression representing the new operation</returns>
+        IExpression NotInExpressions(IList expressions);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -227,7 +245,7 @@ namespace Couchbase.Lite.Query
         /// Gets an expression representing if the current expression is not null
         /// </summary>
         /// <returns>The expression representing the new operation</returns>
-        IExpression NotNull(object expression);
+        IExpression NotNull();
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given

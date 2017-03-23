@@ -30,7 +30,7 @@ namespace Couchbase.Lite.Query
         #region Public Methods
 
         /// <summary>
-        /// Routes this object to the nexe FROM portion of a query
+        /// Routes this IExpression to the nexe FROM portion of a query
         /// </summary>
         /// <param name="dataSource">The data source to use in the FROM portion of the query</param>
         /// <returns>The next FROM portion of the query for further processing</returns>

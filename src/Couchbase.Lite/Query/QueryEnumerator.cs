@@ -72,7 +72,7 @@ namespace Couchbase.Lite.Querying
         #endregion
     }
 
-    internal sealed unsafe class QueryRowEnumerable : QueryEnumerable<QueryRow>
+    internal sealed unsafe class QueryRowEnumerable : QueryEnumerable<IQueryRow>
     {
         #region Constructors
 
@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Querying
 
         #region Overrides
 
-        public override IEnumerator<QueryRow> GetEnumerator()
+        public override IEnumerator<IQueryRow> GetEnumerator()
         {
             return new QueryRowEnumerator(_db, _query, _options, _encodedParameters);
         }
@@ -213,7 +213,7 @@ namespace Couchbase.Lite.Querying
         #endregion
     }
 
-    internal sealed unsafe class QueryRowEnumerator : QueryEnumerator<QueryRow>
+    internal sealed unsafe class QueryRowEnumerator : QueryEnumerator<IQueryRow>
     {
         #region Constructors
 
@@ -230,6 +230,11 @@ namespace Couchbase.Lite.Querying
         protected override void SetCurrent(C4QueryEnumerator* enumerator)
         {
             Current = enumerator->fullTextTermCount > 0 ? new FullTextQueryRow(_db, _query, enumerator) : new QueryRow(_db, enumerator);
+        }
+
+        protected override void Dispose(bool finalizing)
+        {
+            Native.c4query_free(_query);
         }
 
         #endregion
