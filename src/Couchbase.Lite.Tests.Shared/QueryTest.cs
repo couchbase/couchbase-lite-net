@@ -507,7 +507,7 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
-                    var firstName = doc.GetSubdocument("name").GetString("first");
+                    var firstName = doc.DoSync(() => doc.GetSubdocument("name").GetString("first"));
                     if (firstName != null) {
                         firstNames.Add(firstName);
                     }
