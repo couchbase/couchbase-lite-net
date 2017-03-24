@@ -86,6 +86,12 @@ namespace Couchbase.Lite.Query
             OrderByImpl = source.OrderByImpl;
         }
 
+        internal string Explain()
+        {
+            // Used for debugging
+            return Native.c4query_explain(_c4Query);
+        }
+
         private void Check()
         {
             var jsonData = EncodeAsJSON();

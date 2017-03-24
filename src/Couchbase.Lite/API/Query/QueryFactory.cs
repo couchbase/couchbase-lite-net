@@ -34,7 +34,17 @@ namespace Couchbase.Lite.Query
         /// <returns>The initial SELECT portion of the query</returns>
         public static ISelect Select()
         {
-            return new Select(null, false);
+            return Select(null);
+        }
+
+        /// <summary>
+        /// Selects the given property path from the query under construction
+        /// </summary>
+        /// <param name="propertyPath">The property path to select</param>
+        /// <returns>The initial SELECT portion of the query</returns>
+        public static ISelect Select(string propertyPath)
+        {
+            return new Select(propertyPath, false);
         }
 
         /// <summary>
@@ -43,7 +53,17 @@ namespace Couchbase.Lite.Query
         /// <returns>The initial SELECT portion of the query</returns>
         public static ISelect SelectDistinct()
         {
-            return new Select(null, true);
+            return SelectDistinct(null);
+        }
+
+        /// <summary>
+        /// Selects only the distinct results of the query
+        /// </summary>
+        /// <param name="propertyPath">The property path to select</param>
+        /// <returns>The initial SELECT portion of the query</returns>
+        public static ISelect SelectDistinct(string propertyPath)
+        {
+            return new Select(propertyPath, true);
         }
 
         #endregion

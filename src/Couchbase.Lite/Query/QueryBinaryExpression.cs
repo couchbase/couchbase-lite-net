@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Query
 {
-    internal enum OperationType
+    internal enum BinaryOpType
     {
         LessThan,
         LessThanOrEqualTo,
@@ -14,6 +14,8 @@ namespace Couchbase.Lite.Query
         GreaterThanOrEqualTo,
         EqualTo,
         NotEqualTo,
+        Is,
+        IsNot,
         Matches,
         Like,
         Between,
@@ -28,11 +30,11 @@ namespace Couchbase.Lite.Query
 
     internal sealed class QueryBinaryExpression : QueryExpression
     {
-        private readonly OperationType _type;
+        private readonly BinaryOpType _type;
         private readonly QueryExpression _lhs;
         private readonly QueryExpression _rhs;
 
-        public QueryBinaryExpression(QueryExpression lhs, QueryExpression rhs, OperationType type)
+        public QueryBinaryExpression(QueryExpression lhs, QueryExpression rhs, BinaryOpType type)
         {
             _lhs = lhs;
             _rhs = rhs;
@@ -48,52 +50,58 @@ namespace Couchbase.Lite.Query
         {
             var obj = new List<object>();
             switch (_type) {
-                case OperationType.Add:
+                case BinaryOpType.Add:
                     obj.Add("+");
                     break;
-                case OperationType.Between:
+                case BinaryOpType.Between:
                     obj.Add("BETWEEN");
                     break;
-                case OperationType.Divide:
+                case BinaryOpType.Divide:
                     obj.Add("/");
                     break;
-                case OperationType.EqualTo:
+                case BinaryOpType.EqualTo:
                     obj.Add("=");
                     break;
-                case OperationType.GreaterThan:
+                case BinaryOpType.GreaterThan:
                     obj.Add(">");
                     break;
-                case OperationType.GreaterThanOrEqualTo:
+                case BinaryOpType.GreaterThanOrEqualTo:
                     obj.Add(">=");
                     break;
-                case OperationType.In:
+                case BinaryOpType.In:
                     obj.Add("IN");
                     break;
-                case OperationType.LessThan:
+                case BinaryOpType.Is:
+                    obj.Add("IS");
+                    break;
+                case BinaryOpType.IsNot:
+                    obj.Add("IS NOT");
+                    break;
+                case BinaryOpType.LessThan:
                     obj.Add("<");
                     break;
-                case OperationType.LessThanOrEqualTo:
+                case BinaryOpType.LessThanOrEqualTo:
                     obj.Add("<=");
                     break;
-                case OperationType.Like:
+                case BinaryOpType.Like:
                     obj.Add("LIKE");
                     break;
-                case OperationType.Matches:
+                case BinaryOpType.Matches:
                     obj.Add("MATCH");
                     break;
-                case OperationType.Modulus:
+                case BinaryOpType.Modulus:
                     obj.Add("%");
                     break;
-                case OperationType.Multiply:
+                case BinaryOpType.Multiply:
                     obj.Add("*");
                     break;
-                case OperationType.NotEqualTo:
+                case BinaryOpType.NotEqualTo:
                     obj.Add("!=");
                     break;
-                case OperationType.RegexLike:
+                case BinaryOpType.RegexLike:
                     obj.Add("regexp_like()");
                     break;
-                case OperationType.Subtract:
+                case BinaryOpType.Subtract:
                     obj.Add("-");
                     break;
             }

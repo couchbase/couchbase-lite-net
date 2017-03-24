@@ -56,9 +56,9 @@ namespace Couchbase.Lite.Serialization
         public JsonSerializerSettings SerializerSettings { get; set; } = new JsonSerializerSettings {
             ContractResolver = new CouchbaseLiteContractResolver(),
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-            DefaultValueHandling = DefaultValueHandling.Ignore,
+            DefaultValueHandling = DefaultValueHandling.Include,
             FloatFormatHandling = FloatFormatHandling.DefaultValue,
-            NullValueHandling = NullValueHandling.Ignore,
+            NullValueHandling = NullValueHandling.Ignore
         };
 
         #endregion

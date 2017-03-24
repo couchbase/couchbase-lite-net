@@ -49,7 +49,7 @@ namespace Couchbase.Lite.Query
             return result;
         }
 
-        private QueryExpression GetOperator(OperationType type, object expression)
+        private QueryExpression GetOperator(BinaryOpType type, object expression)
         {
             var lhs = this;
             var rhs = expression as QueryTypeExpression;
@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Query
 
         public IExpression Add(object expression)
         {
-            return GetOperator(OperationType.Add, expression);
+            return GetOperator(BinaryOpType.Add, expression);
         }
 
         public IExpression And(object expression)
@@ -106,7 +106,7 @@ namespace Couchbase.Lite.Query
             }
 
             var rhs = new QueryTypeExpression(new[] { exp1, exp2 });
-            return new QueryBinaryExpression(lhs, rhs, OperationType.Between);
+            return new QueryBinaryExpression(lhs, rhs, BinaryOpType.Between);
         }
 
         public IExpression Concat(object expression)
@@ -116,22 +116,22 @@ namespace Couchbase.Lite.Query
 
         public IExpression Divide(object expression)
         {
-            return GetOperator(OperationType.Divide, expression);
+            return GetOperator(BinaryOpType.Divide, expression);
         }
 
         public IExpression EqualTo(object expression)
         {
-            return GetOperator(OperationType.EqualTo, expression);
+            return GetOperator(BinaryOpType.EqualTo, expression);
         }
 
         public IExpression GreaterThan(object expression)
         {
-            return GetOperator(OperationType.GreaterThan, expression);
+            return GetOperator(BinaryOpType.GreaterThan, expression);
         }
 
         public IExpression GreaterThanOrEqualTo(object expression)
         {
-            return GetOperator(OperationType.GreaterThanOrEqualTo, expression);
+            return GetOperator(BinaryOpType.GreaterThanOrEqualTo, expression);
         }
 
         public IExpression InExpressions(IList expressions)
@@ -142,7 +142,7 @@ namespace Couchbase.Lite.Query
             }
 
             var rhs = new QueryTypeExpression(expressions);
-            return new QueryBinaryExpression(lhs, rhs, OperationType.In);
+            return new QueryBinaryExpression(lhs, rhs, BinaryOpType.In);
         }
 
         public IExpression Is(object expression)
@@ -157,37 +157,37 @@ namespace Couchbase.Lite.Query
 
         public IExpression IsNull()
         {
-            return EqualTo(null);
+            return GetOperator(BinaryOpType.Is, null);
         }
 
         public IExpression LessThan(object expression)
         {
-            return GetOperator(OperationType.LessThan, expression);
+            return GetOperator(BinaryOpType.LessThan, expression);
         }
 
         public IExpression LessThanOrEqualTo(object expression)
         {
-            return GetOperator(OperationType.LessThanOrEqualTo, expression);
+            return GetOperator(BinaryOpType.LessThanOrEqualTo, expression);
         }
 
         public IExpression Like(object expression)
         {
-            return GetOperator(OperationType.Like, expression);
+            return GetOperator(BinaryOpType.Like, expression);
         }
 
         public IExpression Match(object expression)
         {
-            return GetOperator(OperationType.Matches, expression);
+            return GetOperator(BinaryOpType.Matches, expression);
         }
 
         public IExpression Modulo(object expression)
         {
-            return GetOperator(OperationType.Modulus, expression);
+            return GetOperator(BinaryOpType.Modulus, expression);
         }
 
         public IExpression Multiply(object expression)
         {
-            return GetOperator(OperationType.Multiply, expression);
+            return GetOperator(BinaryOpType.Multiply, expression);
         }
 
         public IExpression NotBetween(object expression1, object expression2)
@@ -197,7 +197,7 @@ namespace Couchbase.Lite.Query
 
         public IExpression NotEqualTo(object expression)
         {
-            return GetOperator(OperationType.NotEqualTo, expression);
+            return GetOperator(BinaryOpType.NotEqualTo, expression);
         }
 
         public IExpression NotInExpressions(IList expressions)
@@ -237,7 +237,7 @@ namespace Couchbase.Lite.Query
 
         public IExpression NotNull()
         {
-            return NotEqualTo(null);
+            return GetOperator(BinaryOpType.IsNot, null);
         }
 
         public IExpression NotRegex(object expression)
@@ -252,12 +252,12 @@ namespace Couchbase.Lite.Query
 
         public IExpression Regex(object expression)
         {
-            return GetOperator(OperationType.RegexLike, expression);
+            return GetOperator(BinaryOpType.RegexLike, expression);
         }
 
         public IExpression Subtract(object expression)
         {
-            return GetOperator(OperationType.Subtract, expression);
+            return GetOperator(BinaryOpType.Subtract, expression);
         }
     }
 }

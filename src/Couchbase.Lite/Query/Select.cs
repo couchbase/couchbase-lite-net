@@ -6,11 +6,14 @@ namespace Couchbase.Lite.Query
 {
     internal sealed class Select : XQuery, ISelect
     {
-        private readonly object _select;
+        private readonly QueryExpression _select;
 
-        public Select(object select, bool distinct)
+        public Select(string select, bool distinct)
         {
-            _select = select;
+            if (select != null) {
+                _select = new QueryTypeExpression(select);
+            }
+
             SelectImpl = this;
             Distinct = distinct;
         }
@@ -22,13 +25,7 @@ namespace Couchbase.Lite.Query
 
         public object ToJSON()
         {
-            if (_select == null) {
-                return null;
-            }
-
-            return new Dictionary<string, object> {
-                ["WHAT"] = _select
-            };
+            return _select?.ConvertToJSON();
         }
     }
 }

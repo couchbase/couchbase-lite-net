@@ -187,7 +187,7 @@ namespace Test
             numRows.Should().Be(100, "because otherwise the incorrect number of rows was returned");
         }
 
-       // [Fact]
+        [Fact]
         public async Task TestWhereCheckNull()
         {
             IDocument doc1 = null, doc2 = null;
@@ -215,10 +215,10 @@ namespace Test
                 Tuple.Create(name.IsNull(), new IDocument[0]),
                 Tuple.Create(address.NotNull(), new[] { doc2 }),
                 Tuple.Create(address.IsNull(), new[] { doc1 }),
-                Tuple.Create(age.NotNull(), new[] { doc2 }),
-                Tuple.Create(age.IsNull(), new[] { doc1 }),
-                Tuple.Create(work.NotNull(), new IDocument[0]),
-                Tuple.Create(work.IsNull(), new[] { doc1, doc2 })
+                Tuple.Create(age.NotNull(), new[] { doc1, doc2 }), // null != missing
+                Tuple.Create(age.IsNull(), new IDocument[0]),
+                Tuple.Create(work.NotNull(), new[] { doc1, doc2 }),
+                Tuple.Create(work.IsNull(), new IDocument[0])
             };
 
             foreach (var test in tests) {

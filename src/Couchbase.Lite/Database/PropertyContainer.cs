@@ -282,7 +282,7 @@ namespace Couchbase.Lite.DB
                 }
 
                 if (value == null) {
-                    _properties.Remove(key);
+                    _properties[key] = new DBNull();
                 } else {
                     _properties[key] = value;
                 }

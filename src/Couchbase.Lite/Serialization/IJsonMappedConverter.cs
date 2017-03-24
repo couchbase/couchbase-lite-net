@@ -1,11 +1,9 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
+
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Serialization
 {
@@ -16,19 +14,9 @@ namespace Couchbase.Lite.Serialization
             return objectType.GetTypeInfo().ImplementedInterfaces.Contains(typeof(IJsonMapped));
         }
 
-        public override bool CanWrite
-        {
-            get {
-                return true;
-            }
-        }
+        public override bool CanWrite => true;
 
-        public override bool CanRead
-        {
-            get {
-                return false;
-            }
-        }
+        public override bool CanRead => false;
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
