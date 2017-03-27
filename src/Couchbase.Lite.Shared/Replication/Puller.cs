@@ -46,6 +46,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -228,7 +229,14 @@ namespace Couchbase.Lite.Replicator
                 return null;
             }
 
-            return Uri.EscapeUriString(json);
+            return UrlEncode(json);
+        }
+
+        //https://github.com/mono/mono/blob/0bcbe39b148bb498742fc68416f8293ccd350fb6/mcs/class/referencesource/System.Web/Routing/ParsedRoute.cs#L667
+        private static string UrlEncode(string str)
+        {
+            string escape = Uri.EscapeUriString(str);
+            return Regex.Replace(escape, "([#;?:@&=+$,])", m => "%" + Convert.ToUInt16(m.Value[0]).ToString("x2"));
         }
 
         private void QueueRemoteRevision(RevisionInternal rev)
