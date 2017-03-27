@@ -227,8 +227,7 @@ namespace Couchbase.Lite.Listener
                 bool allOrNothing;
                 postBody.TryGetValue<bool>("all_or_nothing", out allOrNothing);
 
-                bool newEdits;
-                postBody.TryGetValue<bool>("new_edits", out newEdits);
+                var newEdits = postBody.GetCast<bool>("new_edits", true);
 
                 var response = context.CreateResponse();
                 StatusCode status = StatusCode.Ok;
