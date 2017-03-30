@@ -22,6 +22,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections;
 
+using Newtonsoft.Json.Linq;
+
 namespace Couchbase.Lite.Util
 {
     internal static class JsonUtility
@@ -48,12 +50,43 @@ namespace Couchbase.Lite.Util
                 return retVal;
             }
 
-            return jsonObject;
+            var jobj = jsonObject as JToken;
+            return jobj?.ToObject<object>() ?? jsonObject;
         }
 
         public static T ConvertToNetObject<T>(object jsonObject)
         {
             return (T)ConvertToNetObject(jsonObject);
+        }
+
+        public static object TryConvertToNetObject<T>(object jsonObject)
+        {
+            var jdict = jsonObject as JObject;
+            var jarray = jsonObject as JArray;
+            if(jdict == null && jarray == null) {
+                return ConvertToNetObject(jsonObject);
+            }
+
+            try {
+                if(jdict != null) {
+                    var dict = (IDictionary)jdict.ToObject<T>();
+                    foreach(var item in jdict) {
+                        dict[item.Key] = ConvertToNetObject(item.Value);
+                    }
+
+                    return (T)dict;
+                } else {
+                    var arr = (IList)jarray.ToObject<T>();
+                    int i = 0;
+                    foreach(var item in jarray) {
+                        arr[i++] = ConvertToNetObject(item);
+                    }
+
+                    return (T)arr;
+                }
+            } catch(Exception) {
+                return ConvertToNetObject(jsonObject);
+            }
         }
 
         public static void PopulateNetObject(object jsonObject, object template)

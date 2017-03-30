@@ -255,6 +255,12 @@ namespace Couchbase.Lite
 
             var reduce = query.Aggregate((x, y) => x + y);
             reduce.Should().Be(45, "because the results should be reducable");
+
+            var multipleQuery = from row in database.AsQueryable()
+                        where row.DocumentProperties.ContainsKey("testName")
+                        select new object[]{ (long)row.DocumentProperties["sequence"], (string)row.DocumentProperties["testName"] };
+
+            multipleQuery.ToArray()[0].Should().Equal(new object[] { 0L, "testDatabase" });
         }
 
         [NUnit.Framework.Test]
@@ -278,12 +284,10 @@ namespace Couchbase.Lite
             // regular query
             var testQuery = view.CreateQuery();
             testQuery.Should().NotBeNull("because queries should never return null");
-            var e = testQuery.Run();
             testQuery.Run().Should().NotBeNull().And.HaveCount(0, "because the view should ignore null keys");
 
             // query with null key. it should be ignored.
             testQuery.Keys = new string[] { null };
-            e = testQuery.Run();
             testQuery.Run().Should().NotBeNull().And.HaveCount(0, "because the view should ignore null keys");
         }
 

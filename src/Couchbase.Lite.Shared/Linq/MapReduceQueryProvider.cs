@@ -160,7 +160,8 @@ namespace Couchbase.Lite.Linq
             return input.Select(x =>
             {
                 var newObj = default(TOut);
-                if(ExtensionMethods.TryCast<TOut>(x, out newObj)) {
+                var tmp = JsonUtility.TryConvertToNetObject<TOut>(x);
+                if(ExtensionMethods.TryCast<TOut>(tmp, out newObj)) {
                     return newObj;
                 }
 
