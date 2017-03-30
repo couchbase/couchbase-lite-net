@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite;
+using Couchbase.Lite.Query;
 using FluentAssertions;
 using Newtonsoft.Json;
 using Xunit;
@@ -40,7 +41,7 @@ namespace Test
 
         public TestModelReference Child { get; set; } = new TestModelReference();
 
-        public IDocumentMetadata Metadata
+        public IDocument Document
         {
             get; set;
         }
@@ -66,22 +67,28 @@ namespace Test
         //[Fact]
         //public void TestModel()
         //{
-        //    var model = Db.GetDocument<TestModel>();
-        //    var item = model.Item;
-        //    item.IntValue = 42;
-        //    item.StringValue = "Jim";
-        //    item.Child.IntValues = new[] { 1, 2, 3, 4 };
-        //    model.Save().Should().BeTrue("because otherwise the save failed");
+        //    Db.DoSync(() =>
+        //    {
+        //        var model = Db.CreateDocument().AsModel<TestModel>();
+        //        model.IntValue = 42;
+        //        model.StringValue = "Jim";
+        //        model.Child.IntValues = new[] {1, 2, 3, 4};
+        //        model.Save();
 
-        //    var model2 = Db.GetDocument<TestModel>();
-        //    item = model2.Item;
-        //    item.IntValue = 43;
-        //    item.StringValue = "Jim";
-        //    item.Child.IntValues = new[] { 1, 2, 3, 4, 5 };
-        //    model2.Save();
+        //        var model2 = Db.CreateDocument().AsModel<TestModel>();
+        //        model2.IntValue = 43;
+        //        model2.StringValue = "Jim";
+        //        model2.Child.IntValues = new[] {1, 2, 3, 4, 5};
+        //        model2.Save();
 
-        //    var all = from x in QueryableFactory.MakeQueryable<TestModel>(Db) where x.Child.IntValues.Sum() > 10 select x;
-        //    all.ToArray();
+        //        var all = from x in DataSourceFactory.LinqDataSource<TestModel>(Db, true)
+        //            where x.Child.IntValues.Sum() > 10
+        //            select x;
+
+        //        var test = all.ToArray();
+        //        test.Count().Should().Be(1);
+        //        test[0].IntValue.Should().Be(43);
+        //    });
         //}
     }
 }

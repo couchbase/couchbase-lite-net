@@ -30,6 +30,7 @@ using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Serialization;
 using Couchbase.Lite.Support;
+using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
@@ -69,7 +70,7 @@ namespace Couchbase.Lite.DB
         private LruCache<string, Document> _documents = new LruCache<string, Document>(100);
         private IJsonSerializer _jsonSerializer;
         private DatabaseObserver _obs;
-        private HashSet<Document> _unsavedDocuments = new HashSet<Document>();
+        private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
         private long p_c4db;
 
         #endregion
@@ -88,12 +89,7 @@ namespace Couchbase.Lite.DB
             }
         }
 
-        public IDocument this[string id]
-        {
-            get {
-                return GetDocument(id);
-            }
-        }
+        public IDocument this[string id] => GetDocument(id);
 
         public string Name { get; }
 
@@ -126,10 +122,8 @@ namespace Couchbase.Lite.DB
 
         internal IJsonSerializer JsonSerializer
         {
-            get { return _jsonSerializer ?? (_jsonSerializer = Serializer.CreateDefaultFor(this)); }
-            set { 
-                _jsonSerializer = value;
-            }
+            get => _jsonSerializer ?? (_jsonSerializer = Serializer.CreateDefaultFor(this));
+            set => _jsonSerializer = value;
         }
 
         internal SharedStringCache SharedStrings
@@ -140,14 +134,14 @@ namespace Couchbase.Lite.DB
             }
         }
 
+        internal IDictionary<Uri, IReplication> Replications { get; } = new Dictionary<Uri, IReplication>();
+
+        internal ICollection<IReplication> ActiveReplications { get; } = new HashSet<IReplication>();
+
         private C4Database *_c4db
         {
-            get {
-                return (C4Database *)p_c4db;
-            }
-            set {
-                p_c4db = (long)value;
-            }
+            get => (C4Database *)p_c4db;
+            set => p_c4db = (long)value;
         }
 
         #endregion
@@ -216,11 +210,6 @@ namespace Couchbase.Lite.DB
             throw new NotImplementedException();
         }
 
-        public IModeledDocument<T> CreateDocument<T>() where T : class, new()
-        {
-            return GetDocument<T>(Misc.CreateGuid(), false);
-        }
-
         public void CreateIndex(IList expressions, IndexType indexType, IndexOptions options)
         {
             AssertSafety();
@@ -236,12 +225,6 @@ namespace Couchbase.Lite.DB
                     return Native.c4db_createIndex(c4db, json, (C4IndexType)indexType, &localOpts, err);
                 }
             });
-        }
-
-        public IModeledDocument<T> GetDocument<T>(string id) where T : class, new()
-        {
-            AssertSafety();
-            return GetDocument<T>(id, false);
         }
 
         #endregion
@@ -334,33 +317,6 @@ namespace Couchbase.Lite.DB
                 LiteCoreBridge.Check(err => Native.c4db_close(old, err));
                 Native.c4db_free(old);
             }
-        }
-
-        [SuppressMessage("ReSharper", "PossibleNullReferenceException", Justification = "GetItem() never returns null")]
-        private ModeledDocument<T> GetDocument<T>(string docID, bool mustExist) where T : class, new()
-        {
-            CheckOpen();
-            PerfTimer.StartEvent("GetDocument<T>_Native.c4doc_get");
-            var doc = (C4Document*)RetryHandler.RetryIfBusy()
-                .AllowError((int)LiteCoreError.NotFound, C4ErrorDomain.LiteCoreDomain)
-                .Execute(err => Native.c4doc_get(_c4db, docID, mustExist, err));
-            PerfTimer.StopEvent("GetDocument<T>_Native.c4doc_get");
-
-            if(doc == null) {
-                return null;
-            }
-
-            PerfTimer.StartEvent("GetDocument<T>_NativeRaw.FLValue_FromTrustedData");
-            var value = NativeRaw.FLValue_FromTrustedData((FLSlice)doc->selectedRev.body);
-            PerfTimer.StopEvent("GetDocument<T>_NativeRaw.FLValue_FromTrustedData");
-            PerfTimer.StartEvent("GetDocument<T>_CreateModeledDocument");
-            var poolObject = new ModeledDocument<T>(this, doc);
-            if(value != null) {
-                JsonSerializer.Populate(poolObject.Item, value);
-            }
-
-            PerfTimer.StopEvent("GetDocument<T>_CreateModeledDocument");
-            return poolObject;
         }
 
         private Document GetDocument(string docID, bool mustExist)
@@ -560,6 +516,47 @@ namespace Couchbase.Lite.DB
 
             PostDatabaseChanged();
             return success;
+        }
+
+        public IReplication CreateReplication(Uri remoteUrl)
+        {
+            if (remoteUrl == null) {
+                throw new ArgumentNullException(nameof(remoteUrl));
+            }
+
+            var repl = Replications.Get(remoteUrl);
+            if (repl == null) {
+                repl = new Replication(this, remoteUrl, null) {
+                    ActionQueue = ActionQueue,
+                    CheckThreadSafety = CheckThreadSafety
+                };
+                Replications[remoteUrl] = repl;
+            }
+
+            return repl;
+        }
+
+        public IReplication CreateReplication(IDatabase otherDatabase)
+        {
+            if (otherDatabase == null) {
+                throw new ArgumentNullException(nameof(otherDatabase));
+            }
+
+            if (otherDatabase == this) {
+                throw new InvalidOperationException("Source and target database are the same");
+            }
+
+            var key = new Uri(otherDatabase.Path);
+            var repl = Replications.Get(key);
+            if (repl == null) {
+                repl = new Replication(this, null, otherDatabase) {
+                    ActionQueue = ActionQueue,
+                    CheckThreadSafety = CheckThreadSafety
+                };
+                Replications[key] = repl;
+            }
+
+            return repl;
         }
 
         #endregion

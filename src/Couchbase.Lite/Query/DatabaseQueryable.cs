@@ -23,6 +23,7 @@ using System.Linq.Expressions;
 
 using Couchbase.Lite.DB;
 using Couchbase.Lite.Linq;
+using Couchbase.Lite.Query;
 using Remotion.Linq;
 using Remotion.Linq.Parsing.Structure;
 
@@ -32,8 +33,8 @@ namespace Couchbase.Lite.Querying
     {
         #region Constructors
 
-        public DatabaseQueryable(Database db)
-            : base(QueryParser.CreateDefault(), new LiteCoreQueryExecutor(db))
+        public DatabaseQueryable(Database db, bool prefetch)
+            : base(QueryParser.CreateDefault(), new LiteCoreQueryExecutor(db, prefetch))
         {
             
         }

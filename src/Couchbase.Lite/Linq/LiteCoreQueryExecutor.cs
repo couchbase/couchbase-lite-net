@@ -35,14 +35,16 @@ namespace Couchbase.Lite.Linq
         #region Variables
 
         private readonly Database _db;
+        private readonly bool _prefetch;
 
         #endregion
 
         #region Constructors
 
-        internal LiteCoreQueryExecutor(Database db)
+        internal LiteCoreQueryExecutor(Database db, bool prefetch)
         {
             _db = db;
+            _prefetch = prefetch;
         }
 
         #endregion
@@ -57,7 +59,7 @@ namespace Couchbase.Lite.Linq
 
             return _db.ActionQueue.DispatchSync(() => {
                 var queryObj = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(_db.c4db, query, err));
-                return new LinqQueryEnumerable<T>(_db, queryObj, C4QueryOptions.Default, null);
+                return new LinqQueryEnumerable<T>(_db, queryObj, C4QueryOptions.Default, null, _prefetch);
             });
         }
 

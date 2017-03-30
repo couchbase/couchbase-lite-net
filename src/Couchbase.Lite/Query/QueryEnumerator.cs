@@ -96,12 +96,14 @@ namespace Couchbase.Lite.Querying
 
     internal sealed unsafe class LinqQueryEnumerable<T> : QueryEnumerable<T>
     {
+        private readonly bool _prefetch;
+
         #region Constructors
 
-        internal LinqQueryEnumerable(Database db, C4Query* query, C4QueryOptions options, string encodedParameters)
+        internal LinqQueryEnumerable(Database db, C4Query* query, C4QueryOptions options, string encodedParameters, bool prefetch)
             : base(db, query, options, encodedParameters)
         {
-
+            _prefetch = prefetch;
         }
 
         #endregion
@@ -110,7 +112,7 @@ namespace Couchbase.Lite.Querying
 
         public override IEnumerator<T> GetEnumerator()
         {
-            return new LinqQueryEnumerator<T>(_db, _query, _options, _encodedParameters);
+            return new LinqQueryEnumerator<T>(_db, _query, _options, _encodedParameters, _prefetch);
         }
 
         #endregion
@@ -242,18 +244,19 @@ namespace Couchbase.Lite.Querying
 
     internal sealed unsafe class LinqQueryEnumerator<T> : QueryEnumerator<T>
     {
+        private readonly bool _prefetch;
+
         #region Constructors
 
-        public LinqQueryEnumerator(Database db, C4Query* query, C4QueryOptions options, string encodedParameters)
+        public LinqQueryEnumerator(Database db, C4Query* query, C4QueryOptions options, string encodedParameters, bool prefetch)
             : base(db, query, options, encodedParameters)
         {
-
+            _prefetch = prefetch;
         }
 
         #endregion
 
         #region Overrides
-#warning fix DocumentMetadata type
 
         [SuppressMessage("ReSharper", "PossibleNullReferenceException", Justification = "Current will always be IDocumentModel")]
         protected override void SetCurrent(C4QueryEnumerator* enumerator)
@@ -261,10 +264,15 @@ namespace Couchbase.Lite.Querying
             var doc = default(C4Document*);
             _db.ActionQueue.DispatchSync(() => doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_getBySequence(_db.c4db, enumerator->docSequence, err)));
             try {
-                FLValue* value = NativeRaw.FLValue_FromTrustedData((FLSlice)doc->selectedRev.body);
-                Current = _db.JsonSerializer.Deserialize<T>(value);
+                if (_prefetch) {
+                    FLValue* value = NativeRaw.FLValue_FromTrustedData((FLSlice) doc->selectedRev.body);
+                    Current = _db.JsonSerializer.Deserialize<T>(value);
+                } else {
+                    Current = Activator.CreateInstance<T>();
+                }
+
                 var idm = Current as IDocumentModel;
-                idm.Metadata = new DocumentMetadata(doc->docID.CreateString(), null, doc->flags.HasFlag(C4DocumentFlags.Deleted), doc->sequence);
+                idm.Document = new Document(_db, doc);
             } finally {
                 Native.c4doc_free(doc);
             }

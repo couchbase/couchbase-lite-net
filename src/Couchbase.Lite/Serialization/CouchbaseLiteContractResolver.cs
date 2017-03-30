@@ -40,7 +40,7 @@ namespace Couchbase.Lite.Serialization
                 return baseProperties;
             }
 
-            return baseProperties.Where(x => x.PropertyName != "Metadata").ToList();
+            return baseProperties.Where(x => x.PropertyName != "Document").ToList();
         }
 
         #endregion

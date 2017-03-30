@@ -57,7 +57,7 @@ namespace Test
         [JsonProperty(PropertyName = "memberSince")]
         public string MemberSince { get; set; }
 
-        public IDocumentMetadata Metadata { get; set; }
+        public IDocument Document { get; set; }
 
         public NamesModel()
         {

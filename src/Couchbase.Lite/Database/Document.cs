@@ -1,24 +1,23 @@
-﻿//
-//  Document.cs
-//
-//  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
-//
-//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
-//
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
-//
-
+﻿// 
+// Document.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -45,9 +44,9 @@ namespace Couchbase.Lite.DB
 
         private readonly C4Database* _c4Db;
         private readonly Database _database;
+        public event EventHandler Changed;
 
         public event EventHandler<DocumentSavedEventArgs> Saved;
-        public event EventHandler Changed;
         private C4Document* _c4Doc;
         private IConflictResolver _conflictResolver;
 
@@ -99,6 +98,17 @@ namespace Couchbase.Lite.DB
             }
         }
 
+        internal override bool HasChanges
+        {
+            get {
+                return base.HasChanges;
+            }
+            set {
+                base.HasChanges = value;
+                _database.SetHasUnsavedChanges(this, value);
+            }
+        }
+
         private IConflictResolver EffectiveConflictResolver
         {
             get {
@@ -113,17 +123,6 @@ namespace Couchbase.Lite.DB
             }
         }
 
-        internal override bool HasChanges
-        {
-            get {
-                return base.HasChanges;
-            }
-            set {
-                base.HasChanges = value;
-                _database.SetHasUnsavedChanges(this, value);
-            }
-        }
-
         #endregion
 
         #region Constructors
@@ -135,6 +134,15 @@ namespace Couchbase.Lite.DB
             Id = docID;
             _c4Db = db.c4db;
             LoadDoc(mustExist);
+        }
+
+        internal Document(Database db, C4Document* doc)
+            : base(db.SharedStrings)
+        {
+            _database = db;
+            Id = doc->docID.CreateString();
+            _c4Db = db.c4db;
+            SetC4Doc(doc);
         }
 
         ~Document()
@@ -161,16 +169,6 @@ namespace Couchbase.Lite.DB
 
                 PostChangedNotifications(true);
             }
-        }
-
-        internal override void MarkChangedKey(string key)
-        {
-            base.MarkChangedKey(key);
-
-            ActionQueue.DispatchAsync(() =>
-            {
-                Changed?.Invoke(this, null);
-            });
         }
 
         internal void PostChangedNotifications(bool external)
@@ -290,7 +288,7 @@ namespace Couchbase.Lite.DB
             }
         }
 
-        private void Save(IConflictResolver resolver, bool deletion)
+        private void Save(IConflictResolver resolver, bool deletion, IDocumentModel model = null)
         {
             if(!HasChanges && !deletion && Exists) {
                 return;
@@ -301,7 +299,7 @@ namespace Couchbase.Lite.DB
             var success = Database.InBatch(() =>
             {
                 var tmp = default(C4Document*);
-                SaveInto(&tmp, deletion);
+                SaveInto(&tmp, deletion, model);
                 if (tmp == null) {
                     Merge(resolver, deletion);
                     if (!HasChanges) {
@@ -309,7 +307,7 @@ namespace Couchbase.Lite.DB
                         return false;
                     }
 
-                    SaveInto(&tmp, deletion);
+                    SaveInto(&tmp, deletion, model);
                     if (tmp == null) {
                         throw new CouchbaseLiteException("Conflict still occuring after resolution", StatusCode.DbError);
                     }
@@ -338,7 +336,7 @@ namespace Couchbase.Lite.DB
         }
 
         [SuppressMessage("ReSharper", "AccessToDisposedClosure", Justification = "The closure is executed synchronously")]
-        private void SaveInto(C4Document** outDoc, bool deletion)
+        private void SaveInto(C4Document** outDoc, bool deletion, IDocumentModel model = null)
         {
             //TODO: Need to be able to save a deletion that has properties on it
             var propertiesToSave = deletion ? null : Properties;
@@ -358,7 +356,10 @@ namespace Couchbase.Lite.DB
             }
 
             var body = new FLSliceResult();
-            if(propertiesToSave?.Count > 0) {
+            if (model != null) {
+                body = _database.JsonSerializer.Serialize(model);
+                put.body = body;
+            } else if (propertiesToSave?.Count > 0) {
                 body = _database.JsonSerializer.Serialize(propertiesToSave);
                 put.body = body;
             }
@@ -406,6 +407,16 @@ namespace Couchbase.Lite.DB
                 ActionQueue = ActionQueue,
                 CheckThreadSafety = CheckThreadSafety
             };
+        }
+
+        internal override void MarkChangedKey(string key)
+        {
+            base.MarkChangedKey(key);
+
+            ActionQueue.DispatchAsync(() =>
+            {
+                Changed?.Invoke(this, null);
+            });
         }
 
         public override string ToString()
@@ -468,6 +479,28 @@ namespace Couchbase.Lite.DB
         {
             base.Set(key, value);
             return this;
+        }
+
+        #endregion
+
+        #region IModellable
+
+        public T AsModel<T>() where T : IDocumentModel, new()
+        {
+            FLValue* value = NativeRaw.FLValue_FromTrustedData((FLSlice)_c4Doc->selectedRev.body);
+            var retVal = _database.JsonSerializer.Deserialize<T>(value);
+            retVal.Document = this;
+            return retVal;
+        }
+
+        public void Set(IDocumentModel model)
+        {
+            if (model == null) {
+                throw new ArgumentNullException(nameof(model));
+            }
+
+            HasChanges = true;
+            Save(EffectiveConflictResolver, false, model);
         }
 
         #endregion

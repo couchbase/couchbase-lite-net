@@ -25,15 +25,15 @@ namespace Couchbase.Lite
     /// Using this interface, an arbitrary non-Couchbase class can become
     /// the model for retrieving data
     /// </summary>
-    public interface IDocumentModel
+    internal interface IDocumentModel
     {
         #region Properties
 
         /// <summary>
-        /// Gets or sets the metadata for the document (note:
-        /// this should only be set by the library)
+        /// Gets or sets the document that is used to populate this instance
+        /// of a concrete class
         /// </summary>
-        IDocumentMetadata Metadata { get; set; }
+        IDocument Document { get; set; }
 
         #endregion
     }

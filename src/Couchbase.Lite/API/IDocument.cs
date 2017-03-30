@@ -26,7 +26,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// An interface describing a Couchbase Lite document
     /// </summary>
-    public interface IDocument : IPropertyContainer, IDisposable
+    public interface IDocument : IPropertyContainer, IDisposable/*, IModellable*/
     {
         #region Properties
 
