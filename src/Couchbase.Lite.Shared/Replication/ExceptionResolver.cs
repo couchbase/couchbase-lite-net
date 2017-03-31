@@ -186,9 +186,10 @@ namespace Couchbase.Lite.Internal
                 }
 
                 if(we.Status == WebExceptionStatus.ConnectFailure || we.Status == WebExceptionStatus.Timeout ||
-                    we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled) {
+                    we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled ||
+                   we.Status == WebExceptionStatus.NameResolutionFailure) {
                     Log.To.Sync.V(Tag, "Rule #3: Exception is WebException and status is ConnectFailure, Timeout, " +
-                    "ConnectionClosed, or RequestCanceled, ruling transient...", we);
+                    "ConnectionClosed, RequestCanceled, or NameResolutionFailure, ruling transient...", we);
                     return new ErrorResolution_Impl(we.Status.ToString(), ErrorResolutionFlags.Transient);
                 }
 
