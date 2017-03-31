@@ -23,7 +23,7 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <MtouchLink>None</MtouchLink>
-    <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
+    <CodesignEntitlements></CodesignEntitlements>
     <MtouchDebug>true</MtouchDebug>
     <MtouchArch>i386, x86_64</MtouchArch>
     <MtouchUseRefCounting>true</MtouchUseRefCounting>
@@ -38,12 +38,13 @@
     <WarningLevel>4</WarningLevel>
     <MtouchLink>None</MtouchLink>
     <ConsolePause>false</ConsolePause>
-    <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
+    <CodesignEntitlements></CodesignEntitlements>
     <DebugSymbols>true</DebugSymbols>
     <MtouchArch>i386, x86_64</MtouchArch>
     <MtouchSdkVersion>9.3</MtouchSdkVersion>
     <MtouchI18n>
     </MtouchI18n>
+    <CodesignKey>iPhone Developer</CodesignKey>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhone' ">
     <DebugSymbols>true</DebugSymbols>
@@ -59,10 +60,10 @@
     <CodesignKey>iPhone Developer</CodesignKey>
     <IpaPackageName>
     </IpaPackageName>
-    <MtouchArch>ARMv7, ARM64</MtouchArch>
+    <MtouchArch>ARM64</MtouchArch>
     <MtouchUseRefCounting>True</MtouchUseRefCounting>
     <MtouchLink>None</MtouchLink>
-    <MtouchSdkVersion>9.3</MtouchSdkVersion>
+    <MtouchSdkVersion></MtouchSdkVersion>
     <MtouchProfiling>False</MtouchProfiling>
     <MtouchFastDev>True</MtouchFastDev>
     <MtouchUseLlvm>False</MtouchUseLlvm>
@@ -72,8 +73,9 @@
     <OptimizePNGs>True</OptimizePNGs>
     <MtouchTlsProvider>Default</MtouchTlsProvider>
     <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
-    <MtouchFloat32>False</MtouchFloat32>
+    <MtouchFloat32>true</MtouchFloat32>
     <DeviceSpecificBuild>True</DeviceSpecificBuild>
+    <MtouchNoSymbolStrip>true</MtouchNoSymbolStrip>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhone' ">
     <DebugType>full</DebugType>
@@ -85,9 +87,9 @@
     <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
     <ConsolePause>false</ConsolePause>
     <CodesignKey>iPhone Developer</CodesignKey>
-    <MtouchArch>ARMv7, ARM64</MtouchArch>
-    <MtouchLink>SdkOnly</MtouchLink>
-    <MtouchSdkVersion>9.3</MtouchSdkVersion>
+    <MtouchArch>ARM64</MtouchArch>
+    <MtouchLink>None</MtouchLink>
+    <MtouchSdkVersion></MtouchSdkVersion>
     <MtouchDebug>False</MtouchDebug>
     <MtouchProfiling>False</MtouchProfiling>
     <MtouchFastDev>False</MtouchFastDev>
@@ -99,21 +101,9 @@
     <OptimizePNGs>True</OptimizePNGs>
     <MtouchTlsProvider>Default</MtouchTlsProvider>
     <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
-    <MtouchFloat32>False</MtouchFloat32>
+    <MtouchFloat32>true</MtouchFloat32>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SQLitePCL.raw.0.9.1\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SQLitePCL.ugly.0.9.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="SQLitePCLPlugin_internal, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SQLitePCL.plugin.sqlcipher.ios_unified.0.9.1\lib\Xamarin.iOS10\SQLitePCLPlugin_internal.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Http" />
@@ -130,6 +120,23 @@
     <Reference Include="Stateless">
       <HintPath>..\packages\Stateless.2.5.62.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
     </Reference>
+    <Reference Include="SQLitePCLPlugin_internal">
+      <HintPath>..\packages\SQLitePCL.plugin.sqlcipher.ios_unified.0.9.3\lib\Xamarin.iOS10\SQLitePCLPlugin_internal.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\packages\SQLitePCL.raw.0.9.3\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>..\packages\SQLitePCL.ugly.0.9.3\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+    </Reference>
+    <Reference Include="FluentAssertions.Core">
+      <HintPath>..\packages\FluentAssertions.4.18.0\lib\netstandard1.3\FluentAssertions.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="FluentAssertions">
+      <HintPath>..\packages\FluentAssertions.4.18.0\lib\netstandard1.3\FluentAssertions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
@@ -189,9 +196,6 @@
     <EmbeddedResource Include="Resources\test.properties">
       <LogicalName>CouchbaseLiteiOSTests.Assets.test.properties</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Resources\withattachments.cblite">
-      <LogicalName>CouchbaseLiteiOSTests.Assets.withattachments.cblite</LogicalName>
-    </EmbeddedResource>
     <EmbeddedResource Include="Resources\attachment.blob">
       <LogicalName>CouchbaseLiteiOSTests.Assets.attachment.blob</LogicalName>
     </EmbeddedResource>
@@ -211,33 +215,9 @@
       <Link>Assets\android130.zip</Link>
       <LogicalName>CouchbaseLiteiOSTests.Assets.android130.zip</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
-      <Link>Resources\android104.zip</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.android104.zip</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android110.zip">
-      <Link>Resources\android110.zip</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.android110.zip</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
-      <Link>Resources\ios104.zip</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.ios104.zip</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios110.zip">
-      <Link>Resources\ios110.zip</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.ios110.zip</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
-      <Link>Resources\noattachments.cblite</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.noattachments.cblite</LogicalName>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
       <Link>Resources\perftest.properties</Link>
       <LogicalName>CouchbaseLiteiOSTests.Assets.perftest.properties</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120.zip">
-      <Link>Resources\ios120.zip</Link>
-      <LogicalName>CouchbaseLiteiOSTests.Assets.ios120.zip</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\Multipart1.mime">
       <Link>Resources\Multipart1.mime</Link>
@@ -254,6 +234,54 @@
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\MultipartStars.mime">
       <Link>Resources\MultipartStars.mime</Link>
       <LogicalName>MultipartStars.mime</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120-forestdb.zip">
+      <Link>Assets\ios120-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios120-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios120.zip">
+      <Link>Assets\ios120.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios120.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120.zip">
+      <Link>Assets\android120.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android120.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android120-forestdb.zip">
+      <Link>Assets\android120-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android120-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android140.zip">
+      <Link>Assets\android140.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android140.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android140-forestdb.zip">
+      <Link>Assets\android140-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android140-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios140.zip">
+      <Link>Assets\ios140.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios140.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios140-forestdb.zip">
+      <Link>Assets\ios140-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios140-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net120-forestdb.zip">
+      <Link>Assets\net120-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.net120-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net120.zip">
+      <Link>Assets\net120.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.net120.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net130-forestdb.zip">
+      <Link>Assets\net130-forestdb.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.net130-forestdb.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net130.zip">
+      <Link>Assets\net130.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.net130.zip</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

@@ -17,6 +17,7 @@
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -56,8 +57,8 @@
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net35" />
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb);
-    $(OutputPath)Mono.Security.Couchbase.dll;$(OutputPath)Mono.Security.Couchbase.$(mdb);$(OutputPath)Jint.dll;
-    $(OutputPath)Jint.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net35" />
+    $(OutputPath)Jint.dll;$(OutputPath)Jint.$(mdb)" 
+    DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net35" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\Couchbase.Lite.Net35\Couchbase.Lite.Net35.csproj">
@@ -83,10 +84,6 @@
     <ProjectReference Include="..\..\..\vendor\Jint\Jint\Jint.csproj">
       <Project>{678738DA-F723-4920-B9E5-CAD667104BDA}</Project>
       <Name>Jint</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj">
-      <Project>{D68D4FED-CA32-4800-A628-58BAE485562C}</Project>
-      <Name>Mono.Security-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

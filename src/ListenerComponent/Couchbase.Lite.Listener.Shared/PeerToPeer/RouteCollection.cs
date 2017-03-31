@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Listener
 
         private static readonly string Tag = typeof(RouteCollection).Name;
         public const int EndpointNotFoundStatus = -2; // To distinguish a legitimate 404 response from an actual endpoint not being found
-        private static readonly RestMethod NOT_FOUND = 
+        public static readonly RestMethod NOT_FOUND = 
             context => {
             var retVal = context.CreateResponse();
             retVal.Status = EndpointNotFoundStatus;

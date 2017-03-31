@@ -70,16 +70,15 @@ namespace Couchbase.Lite.Support
         public CouchbaseLiteHttpClientFactory()
         {
             SocketTimeout = ReplicationOptions.DefaultSocketTimeout;
-            Headers = new ConcurrentDictionary<string, string>();
         }
 
         internal static void SetupSslCallback()
         {
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
-            ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
+            ServicePointManager.SecurityProtocol &= ~System.Net.SecurityProtocolType.Ssl3;
+            ServicePointManager.SecurityProtocol |= System.Net.SecurityProtocolType.Tls;
 
-            if(ServicePointManager.ServerCertificateValidationCallback != null)
-            {
+            if(ServicePointManager.ServerCertificateValidationCallback != null) {
                 return;
             }
 
@@ -141,15 +140,31 @@ namespace Couchbase.Lite.Support
         /// </summary>
         internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, IRetryStrategy retryStrategy)
         {
+            #if __MOBILE__
+            var handler = default(HttpClientHandler);
+            #if __ANDROID__
+            if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.Lollipop) {
+                handler = new Xamarin.Android.Net.AndroidClientHandler
+                {
+                    CookieContainer = store,
+                    UseCookies = true
+                };
+            } else
+            #endif
+            {
+                handler = new HttpClientHandler
+                {
+                    CookieContainer = store,
+                    UseCookies = true
+                };
+            }
+            #else
             var handler = new WebRequestHandler {
                 CookieContainer = store,
                 UseCookies = true,
                 ReadWriteTimeout = (int)SocketTimeout.TotalMilliseconds
             };
-
-            // For now, we are not using the client cert for identity verification, just to
-            // satisfy Mono so it doesn't matter if the user doesn't choose it.
-            //handler.ClientCertificates.Add(SSLGenerator.GetOrCreateClientCert());
+            #endif
 
             if(handler.SupportsAutomaticDecompression) {
                 handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
@@ -179,13 +194,6 @@ namespace Couchbase.Lite.Support
             client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", String.Format("CouchbaseLite/{0} ({1})", Replication.SyncProtocolVersion, Manager.VersionString));
             client.DefaultRequestHeaders.Connection.Add("keep-alive");
 
-            foreach(var header in Headers)
-            {
-                var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
-                if (!success)
-                    Log.To.Sync.W(Tag, String.Format("Unabled to add header to request: {0}: {1}", header.Key, header.Value));
-            }
-
             var transientHandler = authHandler as TransientErrorRetryHandler;
             var defaultAuthHandler = default(DefaultAuthHandler);
             if (transientHandler != null) {
@@ -196,8 +204,6 @@ namespace Couchbase.Lite.Support
 
             return new CouchbaseLiteHttpClient(client, defaultAuthHandler);
         }
-
-        public IDictionary<string, string> Headers { get; set; }
        
     }
 }

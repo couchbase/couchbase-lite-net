@@ -78,12 +78,14 @@ namespace Couchbase.Lite
         [Test]
         public void TestRevTree()
         {
+            var are = new AutoResetEvent (false);
             var change = default(DocumentChange);
             database.Changed += (sender, args) =>
             {
                 Assert.AreEqual(1, args.Changes.Count());
                 Assert.IsNull(change, "Multiple notifications posted");
                 change = args.Changes.First();
+                are.Set ();
             };
 
             var rev = new RevisionInternal("MyDocId", "4-4444".AsRevID(), false);
@@ -100,6 +102,7 @@ namespace Couchbase.Lite
             database.ForceInsert(rev, revHistory, null);
             Assert.AreEqual(1, database.GetDocumentCount());
             VerifyRev(rev, revHistory);
+            Assert.IsTrue (are.WaitOne (5000));
             Assert.AreEqual(Announcement(database, rev, rev), change);
             Assert.IsFalse(change.IsConflict);
 
@@ -124,6 +127,7 @@ namespace Couchbase.Lite
             database.ForceInsert(conflict, conflictHistory, null);
             Assert.AreEqual(1, database.GetDocumentCount());
             VerifyRev(conflict, conflictHistory);
+            Assert.IsTrue (are.WaitOne (5000));
             Assert.AreEqual(Announcement(database, conflict, conflict), change);
             Assert.IsTrue(change.IsConflict);
 
@@ -136,6 +140,7 @@ namespace Couchbase.Lite
             otherHistory.Add(other.RevID);
             change = null;
             database.ForceInsert(other, otherHistory, null);
+            Assert.IsTrue (are.WaitOne (5000));
             Assert.AreEqual(Announcement(database, other, other), change);
             Assert.IsFalse(change.IsConflict);
 
@@ -163,8 +168,10 @@ namespace Couchbase.Lite
             CollectionAssert.AreEqual(new[] { conflict, rev }, conflictingRevs);
             
             // Get the _changes feed and verify only the winner is in it:
-            var options = new ChangesOptions();
-            var changes = database.ChangesSince(0, options, null, null);
+            var options = ChangesOptions.Default;
+            IList<RevisionInternal> changes = database.ChangesSince(0, options, null, null);
+            CollectionAssert.AreEqual(new[] { conflict, other }, changes);
+            changes = database.ChangesSinceStreaming(0, options, null, null).ToList();
             CollectionAssert.AreEqual(new[] { conflict, other }, changes);
             options.IncludeConflicts = true;
             changes = database.ChangesSince(0, options, null, null);
@@ -176,7 +183,28 @@ namespace Couchbase.Lite
             expectedChangesAlt.Add(conflict);
             expectedChangesAlt.Add(rev);
             expectedChangesAlt.Add(other);
-            Assert.IsTrue(expectedChanges.SequenceEqual(changes) || expectedChangesAlt.SequenceEqual(changes));
+            Assert.IsFalse(changes.Except(expectedChanges).Any());
+            changes = database.ChangesSinceStreaming(0, options, null, null).ToList();
+            Assert.IsFalse(changes.Except(expectedChanges).Any());
+
+            conflict = new RevisionInternal(conflict.DocID, "6-6666".AsRevID(), false);
+            conflictHistory.Add(conflict.RevID);
+            database.ForceInsert(conflict, conflictHistory, null);
+
+            options = ChangesOptions.Default;
+            changes = database.ChangesSince(0, options, null, null);
+            CollectionAssert.AreEqual(new[] { other, conflict }, changes);
+            changes = database.ChangesSinceStreaming(0, options, null, null).ToList();
+            CollectionAssert.AreEqual(new[] { other, conflict }, changes);
+            options.IncludeConflicts = true;
+            changes = database.ChangesSince(0, options, null, null);
+            expectedChanges = new RevisionList();
+            expectedChanges.Add(other);
+            expectedChanges.Add(conflict);
+            expectedChanges.Add(rev);
+            Assert.IsFalse(changes.Except(expectedChanges).Any());
+            changes = database.ChangesSinceStreaming(0, options, null, null).ToList();
+            Assert.IsFalse(changes.Except(expectedChanges).Any());
         }
 
         [Test]

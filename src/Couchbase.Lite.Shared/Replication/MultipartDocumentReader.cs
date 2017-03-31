@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Support
 
         private IDictionary<String, BlobStoreWriter> attachmentsByName;
 
-        private IDictionary<String, BlobStoreWriter> attachmentsBySHA1Digest;
+        private IDictionary<String, BlobStoreWriter> attachmentsByDigest;
 
         public MultipartDocumentReader(Database database)
         {
@@ -111,7 +111,7 @@ namespace Couchbase.Lite.Support
                 }
 
                 attachmentsByName = new Dictionary<string, BlobStoreWriter>();
-                attachmentsBySHA1Digest = new Dictionary<string, BlobStoreWriter>();
+                attachmentsByDigest = new Dictionary<string, BlobStoreWriter>();
                 return;
             } else if (contentType == null || contentType.StartsWith("application/json") ||
                 contentType.StartsWith("text/plain")) {
@@ -158,7 +158,7 @@ namespace Couchbase.Lite.Support
             } else if (contentType.StartsWith ("multipart/", StringComparison.InvariantCultureIgnoreCase)) {
                 multipartReader = new MultipartReader(contentType, this);
                 attachmentsByName = new Dictionary<String, BlobStoreWriter>();
-                attachmentsBySHA1Digest = new Dictionary<String, BlobStoreWriter>();
+                attachmentsByDigest = new Dictionary<String, BlobStoreWriter>();
             }  else {
                 Log.To.Sync.E(TAG, "Invalid contentType in SetContentType ({0}); does not start with multipart/, throwing...",
                     contentType);
@@ -178,7 +178,7 @@ namespace Couchbase.Lite.Support
         public void Finish()
         {
             Log.To.Sync.V(TAG, "{0} finished loading ({1} attachments)", 
-                this, attachmentsBySHA1Digest == null ? 0 : attachmentsBySHA1Digest.Count);
+                this, attachmentsByDigest == null ? 0 : attachmentsByDigest.Count);
             if (multipartReader != null) {
                 if (!multipartReader.Finished) {
                     throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.UpStreamError, TAG,
@@ -193,98 +193,89 @@ namespace Couchbase.Lite.Support
 
         private void RegisterAttachments()
         {
-            var numAttachmentsInDoc = 0;
-
-            var attachments = document.Get("_attachments").AsDictionary<string, object>();
-            if (attachments == null) {
+            var attachmentsBoxed = document.Get("_attachments");
+            if(attachmentsBoxed == null) {
                 return;
             }
 
+            var attachments = attachmentsBoxed.AsDictionary<string, object>();
+            if (attachments == null) {
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG, "_attachments property is not a dictionary");
+            }
+
+            var numAttachmentsInDoc = 0;
             var nuAttachments = new Dictionary<string, object>(attachments.Count);
             foreach (var attmt in attachments) {
                 var attachmentName = attmt.Key;
                 var attachment = attmt.Value.AsDictionary<string, object>();
 
-                long length = 0;
-                var lengthValue = attachment.Get("length");
-                if (lengthValue != null) {
-                    length = (long)lengthValue;
+
+                long length = attachment.GetCast<long>("encoded_length", -1L);
+                if(length == -1) {
+                    length = attachment.GetCast<long>("length", -1L);
                 }
 
-                var encodedLengthValue = attachment.Get("encoded_length");
-                if (encodedLengthValue != null) {
-                    length = (long)encodedLengthValue;
+                if(length == -1) {
+                    throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG, $"Attachment '{attachmentName}' has invalid length property");
                 }
 
-                var followsValue = attachment.GetCast<bool>("follows");
-                if (followsValue) {
+                if (attachment.GetCast<bool>("follows")) {
+                    // Check that each attachment in the JSON corresponds to an attachment MIME body.
+                    // Look up the attachment by either its MIME Content-Disposition header or digest
                     var digest = attachment.GetCast<string>("digest");
                     var writer = attachmentsByName.Get(attachmentName);
                     if (writer != null) {
                         // Identified the MIME body by the filename in its Disposition header:
                         var actualDigest = writer.SHA1DigestString();
                         if (digest != null && !digest.Equals(actualDigest) && !digest.Equals(writer.MD5DigestString())) {
-                            var errMsg = String.Format("Attachment '{0}' has incorrect digest ({1}; should be either {2} or {3})", 
+                            throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG, "Attachment '{0}' has incorrect digest ({1}; should be either {2} or {3})",
                                 new SecureLogString(attachmentName, LogMessageSensitivity.PotentiallyInsecure),
                                 digest, actualDigest, writer.MD5DigestString());
-                            Log.To.Sync.E(TAG, errMsg + ", throwing...");
-                            throw new InvalidOperationException(errMsg);
                         }
 
                         attachment["digest"] = actualDigest;
-                    } else {
-                        if (digest != null) {
-                            writer = attachmentsBySHA1Digest.Get(digest);
-                            if (writer == null) {
-                                var errMsg = String.Format("Attachment '{0}' does not appear in MIME body ", 
-                                    new SecureLogString(attachmentName, LogMessageSensitivity.PotentiallyInsecure));
-                                Log.To.Sync.E(TAG, errMsg);
-                                throw new InvalidOperationException(errMsg);
-                            }
-                        } else {
-                            if (attachments.Count == 1 && attachmentsBySHA1Digest.Count == 1) {
-                                // Else there's only one attachment, so just assume it matches & use it:
-                                writer = attachmentsBySHA1Digest.Values.First();
-                                attachment["digest"] = writer.SHA1DigestString();
-                            } else {
-                                // No digest metatata, no filename in MIME body; give up:
-                                var errMsg = String.Format("Attachment '{0}' has no digest metadata; cannot identify MIME body", 
-                                    new SecureLogString(attachmentName, LogMessageSensitivity.PotentiallyInsecure));
-                                Log.To.Sync.E(TAG, errMsg);
-                                throw new InvalidOperationException(errMsg);
-                            }
+                    } else if(digest != null) {
+                        writer = attachmentsByDigest.Get(digest);
+                        if(writer == null) {
+                            throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG, "Attachment '{0}' does not appear in MIME body ",
+                                new SecureLogString(attachmentName, LogMessageSensitivity.PotentiallyInsecure));
                         }
+
+                    } else if(attachments.Count == 1 && attachmentsByDigest.Count == 1) {
+                        // Else there's only one attachment, so just assume it matches & use it:
+                        writer = attachmentsByDigest.Values.First();
+                        attachment["digest"] = writer.SHA1DigestString();
+                    } else {
+                        // No digest metatata, no filename in MIME body; give up:
+                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG, "Attachment '{0}' has no digest metadata; cannot identify MIME body",
+                            new SecureLogString(attachmentName, LogMessageSensitivity.PotentiallyInsecure));
                     }
 
                     // Check that the length matches:
                     if (writer.GetLength() != length) {
-                        var errMsg = String.Format("Attachment '{0}' has incorrect length field {1} (should be {2})", 
+                        throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG, "Attachment '{0}' has incorrect length field {1} (should be {2})",
                             new SecureLogString(attachmentName, LogMessageSensitivity.PotentiallyInsecure),
                             length, writer.GetLength());
-                        Log.To.Sync.E(TAG, errMsg);
-                        throw new InvalidOperationException(errMsg);
                     }
-
-                    nuAttachments[attachmentName] = attachment;
+                    
                     ++numAttachmentsInDoc;
-                } else {
-                    if (attachment.Get("data") != null && length > 1000) {
-                        var msg = String.Format("Attachment '{0}' sent inline (len={1}).  Large attachments "
-                                  + "should be sent in MIME parts for reduced memory overhead.", attachmentName, length);
-                        Log.To.Sync.W(TAG, msg);
-                    }
+                } else if (attachment.Get("data") != null && length > 1000) {
+                    // This isn't harmful but it's quite inefficient of the server
+                    var msg = String.Format("Attachment '{0}' sent inline (len={1}).  Large attachments "
+                                + "should be sent in MIME parts for reduced memory overhead.", attachmentName, length);
+                    Log.To.Sync.W(TAG, msg);
                 }
+
+                nuAttachments[attachmentName] = attachment;
             }
 
-            if (numAttachmentsInDoc < attachmentsBySHA1Digest.Count) {
-                var msg = String.Format("More MIME bodies ({0}) than attachments ({1}) ", attachmentsBySHA1Digest.Count, numAttachmentsInDoc);
-                Log.To.Sync.E(TAG, msg);
-                throw new InvalidOperationException(msg);
+            if (numAttachmentsInDoc < attachmentsByDigest.Count) {
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG, "More MIME bodies ({0}) than attachments ({1}) ", attachmentsByDigest.Count, numAttachmentsInDoc);
             }
 
             document["_attachments"] = nuAttachments;
-            // hand over the (uninstalled) blobs to the database to remember:
-            database.RememberAttachmentWritersForDigests(attachmentsBySHA1Digest);
+            // If everything's copacetic, hand over the (uninstalled) blobs to the database to remember:
+            database.RememberAttachmentWritersForDigests(attachmentsByDigest);
         }
 
         public void StartedPart(IDictionary<String, String> headers)
@@ -292,7 +283,7 @@ namespace Couchbase.Lite.Support
             if (document == null) {
                 StartJsonBuffer(headers);
             } else {
-                Log.To.Sync.V(TAG, "{0} starting attachment #{1}...", this, attachmentsBySHA1Digest.Count + 1);
+                Log.To.Sync.V(TAG, "{0} starting attachment #{1}...", this, attachmentsByDigest.Count + 1);
                 curAttachment = database.AttachmentWriter;
                 if (curAttachment == null) {
                     throw Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.AttachmentError, TAG,
@@ -352,8 +343,8 @@ namespace Couchbase.Lite.Support
             } else {
                 curAttachment.Finish();
                 var sha1String = curAttachment.SHA1DigestString();
-                Log.To.Sync.V(TAG, "{0} finished attachment #{1}: {2}", this, attachmentsBySHA1Digest.Count + 1, curAttachment);
-                attachmentsBySHA1Digest[sha1String] = curAttachment;
+                Log.To.Sync.V(TAG, "{0} finished attachment #{1}: {2}", this, attachmentsByDigest.Count + 1, curAttachment);
+                attachmentsByDigest[sha1String] = curAttachment;
                 curAttachment = null;
             }
         }

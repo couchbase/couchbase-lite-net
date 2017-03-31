@@ -42,50 +42,147 @@
 * and limitations under the License.
 */
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-
+using System.Text;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Tests;
+using FluentAssertions;
 using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
-    [TestFixture("ForestDB")]
-    public class BlobStoreWriterTest : LiteTestCase
+   [TestFixture(false)]
+   [TestFixture(true)]
+    public class BlobStoreWriterTest
     {
+        private BlobStore _store;
+        private string _storePath;
+        private bool _encrypt;
 
-        public BlobStoreWriterTest(string storageType) : base(storageType) {}
-
-        /// <exception cref="System.Exception"></exception>
-        [Test]
-        public void TestBasicOperation()
+        public BlobStoreWriterTest(bool encrypt)
         {
-            var attachmentStream = GetAsset("attachment.png");
-            var memoryStream = new MemoryStream();
-            attachmentStream.CopyTo(memoryStream);
-            var bytes = memoryStream.ToArray();
+            _encrypt = encrypt;
+        }
 
-            var attachments = database.Attachments;
-            var blobStoreWriter = new BlobStoreWriter(attachments);
-            blobStoreWriter.AppendData(bytes);
-            blobStoreWriter.Finish();
-            blobStoreWriter.Install();
+        private void Verify(BlobKey attKey, byte[] clearText)
+        {
+            var path = _store.RawPathForKey(attKey);
+            var raw = File.ReadAllBytes(path);
+            if(_encrypt) {
+                raw.Should().NotBeNull()
+                    .And.Match(x => x.Locate(clearText) == -1, "because encrypted contents should not contain cleartext");
+            } else {
+                raw.Should().NotBeNull()
+                        .And.Equal(clearText, "because the contents should serialize to disk correctly");
+            }
+        }
 
-            var sha1DigestKey = blobStoreWriter.SHA1DigestString();
-            Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="));
+        [SetUp]
+        public void Setup()
+        {
+            _storePath = Path.GetTempPath();
+            _storePath = Path.Combine(_storePath, "CBL_BlobStore");
+            if(Directory.Exists(_storePath)) {
+                Directory.Delete(_storePath, true);
+            }
 
-            var keyFromSha1 = new BlobKey(sha1DigestKey);
-            Assert.IsTrue(attachments.GetSizeOfBlob(keyFromSha1) == bytes.Length);
+            if(_encrypt) {
+                Trace.WriteLine("----- Now enabling attachment encryption ----");
+            }
+
+            _store = new BlobStore(_storePath, _encrypt ? new SymmetricKey() : null);
+            var encryptionMarkerPath = Path.Combine(_storePath, BlobStore.EncryptionMarkerFilename);
+            var markerExists = File.Exists(encryptionMarkerPath);
+            markerExists.Should().Be(_encrypt);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _store = null;
+            Directory.Delete(_storePath, true);
         }
 
         [Test]
-        public void TestBlobStoreWriterForBody()
+        public void TestBasicOperation()
         {
-            var attachmentStream = GetAsset("attachment.png");
+            var item = Encoding.UTF8.GetBytes("this is an item");
+            var key = new BlobKey();
+            var key2 = new BlobKey();
+            _store.StoreBlob(item, key);
+            _store.StoreBlob(item, key2);
+            key.Should().Be(key2, "because keys should be deterministic");
 
-            var blobStoreWriter = Attachment.BlobStoreWriterForBody(attachmentStream, database);
+            var readItem = _store.BlobForKey(key);
+            readItem.Should().Equal(item, "beacuse the contents of a key should be read back correctly from disk");
+            Verify(key, item);
 
-            var sha1DigestKey = blobStoreWriter.SHA1DigestString();
+            var path = _store.PathForKey(key);
+            _encrypt.Should().Be(path == null, "because only plaintext attachments should return a path");
+        }
 
-            Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="));
+        [Test]
+        public void TestReopen()
+        {
+            var item = Encoding.UTF8.GetBytes("this is an item");
+            var key = new BlobKey();
+            _store.StoreBlob(item, key);
+
+            var store2 = new BlobStore(_storePath, _store.EncryptionKey);
+            var readItem = store2.BlobForKey(key);
+            readItem.Should().Equal(item, "because the contents of a key should be the same in the second store");
+
+            readItem = _store.BlobForKey(key);
+            readItem.Should().Equal(item, "because the contents of a key should be the same in the first store");
+            Verify(key, item);
+        }
+
+        [Test]
+        public void TestBlobStoreWriter()
+        {
+            var writer = new BlobStoreWriter(_store);
+            writer.AppendData(Encoding.UTF8.GetBytes("part 1, "));
+            writer.AppendData(Encoding.UTF8.GetBytes("part 2, "));
+            writer.AppendData(Encoding.UTF8.GetBytes("part 3"));
+            writer.Finish();
+            writer.Install();
+
+            var expectedData = Encoding.UTF8.GetBytes("part 1, part 2, part 3");
+            var readItem = _store.BlobForKey(writer.GetBlobKey());
+            readItem.Should().Equal(expectedData, "because the writer should correctly write contents to disk");
+            Verify(writer.GetBlobKey(), expectedData);
+        }
+
+        [Test]
+        public void TestRekey()
+        {
+            var item = Encoding.UTF8.GetBytes("this is an item");
+            var key = new BlobKey();
+            _store.StoreBlob(item, key);
+
+            var newEncryptionKey = new SymmetricKey();
+            var addOrChange = _encrypt ? "Changing" : "Adding";
+            Trace.WriteLine($"---- {addOrChange} key");
+            _store.ChangeEncryptionKey(newEncryptionKey);
+            var oldEncrypt = _encrypt;
+            _store.EncryptionKey.Should().Be(newEncryptionKey, "because the key should have become the new one");
+            _store.BlobForKey(key).Should().Equal(item, "because the content should be the same regardless of encryption");
+
+            _encrypt = true;
+            TestReopen();
+            _encrypt = oldEncrypt;
+
+            if(_encrypt) {
+                Trace.WriteLine("---- Removing key");
+                _store.ChangeEncryptionKey(null);
+                _store.EncryptionKey.Should().BeNull("because the encryption was removed");
+                _store.BlobForKey(key).Should().Equal(item, "because the content should be the same regardless of encryption");
+                _encrypt = false;
+                TestReopen();
+            }
         }
     }
 }

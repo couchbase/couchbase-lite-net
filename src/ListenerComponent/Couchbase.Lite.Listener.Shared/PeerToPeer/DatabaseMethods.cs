@@ -23,7 +23,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using System.Text;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Revisions;
@@ -39,6 +39,14 @@ namespace Couchbase.Lite.Listener
     /// </remarks>
     internal static class DatabaseMethods
     {
+        private class WriteChangesContext
+        {
+            public IEnumerable<RevisionInternal> Changes;
+            public long Since;
+            public long Limit;
+            public bool IncludeConflicts;
+            public DBMonitorCouchbaseResponseState ResponseState;
+        }
 
         #region Constants
 
@@ -240,6 +248,8 @@ namespace Couchbase.Lite.Listener
                                 rev = new RevisionInternal(body);
                                 var history = Database.ParseCouchDBRevisionHistory(doc);
                                 try {
+                                    Log.To.Router.I(TAG, "Inserting revision {0} from _bulk_docs", rev);
+                                    Log.To.Router.V(TAG, "With history {0}", new LogJsonString(history));
                                     db.ForceInsert(rev, history, source);
                                 } catch(CouchbaseLiteException e) {
                                     status = e.Code;
@@ -332,16 +342,22 @@ namespace Couchbase.Lite.Listener
                     Status status = new Status();
                     responseState.ChangesFilter = db.GetFilter(filterName, status);
                     if(responseState.ChangesFilter == null) {
-                        return context.CreateResponse(status.Code);
+                        var code = Database.FilterCompiler == null ? StatusCode.NotImplemented : StatusCode.NotFound;
+                        return context.CreateResponse(code);
                     }
 
                     responseState.FilterParams = context.GetQueryParams();
                 }
 
+                string heartbeatParam = context.GetQueryParam("heartbeat");
+                int heartbeat = 0;
+                if(heartbeatParam != null && (!Int32.TryParse(heartbeatParam, out heartbeat) || heartbeat <= 0)) {
+                    return context.CreateResponse(StatusCode.BadParam);
+                }
 
-                RevisionList changes = db.ChangesSince(since, options, responseState.ChangesFilter, responseState.FilterParams);
-                if((context.ChangesFeedMode >= ChangesFeedMode.Continuous) || 
-                    (context.ChangesFeedMode == ChangesFeedMode.LongPoll && changes.Count == 0)) {
+                var changes = db.ChangesSinceStreaming(since, options, responseState.ChangesFilter, responseState.FilterParams);
+                if((context.ChangesFeedMode >= ChangesFeedMode.Continuous) ||
+                    (context.ChangesFeedMode == ChangesFeedMode.LongPoll && !changes.Any())) {
                     // Response is going to stay open (continuous, or hanging GET):
                     response.Chunked = true;
                     if(context.ChangesFeedMode == ChangesFeedMode.EventSource) {
@@ -358,15 +374,12 @@ namespace Couchbase.Lite.Listener
                         }
                     }
 
-                    responseState.SubscribeToDatabase(db);
-                    string heartbeatParam = context.GetQueryParam("heartbeat");
-                    if(heartbeatParam != null) {
-                        int heartbeat;
-                        if(!int.TryParse(heartbeatParam, out heartbeat) || heartbeat <= 0) {
-                            responseState.IsAsync = false;
-                            return context.CreateResponse(StatusCode.BadParam);
-                        }
+                    var subscribed = responseState.SubscribeToDatabase(db, since, options);
+                    if(!subscribed) {
+                        return response;
+                    }
 
+                    if(heartbeat > 0) {
                         var heartbeatSpan = TimeSpan.FromMilliseconds(heartbeat);
                         if(heartbeatSpan < MinHeartbeat) {
                             heartbeatSpan = MinHeartbeat;
@@ -378,14 +391,27 @@ namespace Couchbase.Lite.Listener
 
                     return response;
                 } else {
+                    response.Chunked = true;
+                    response.Headers["Content-Type"] = "application/json";
+                    response.WriteBodyCallback = WriteChangesBodyJson;
                     if(responseState.ChangesIncludeConflicts) {
-                        response.JsonBody = new Body(ResponseBodyForChanges(changes, since, options.Limit, responseState));
+                        response.WriteBodyContext = new WriteChangesContext {
+                            IncludeConflicts = true,
+                            Since = since,
+                            Limit = options.Limit,
+                            Changes = changes,
+                            ResponseState = responseState
+                        };
                     } else {
-                        response.JsonBody = new Body(ResponseBodyForChanges(changes, since, responseState));
+                        response.WriteBodyContext = new WriteChangesContext {
+                            Since = since,
+                            Changes = changes,
+                            ResponseState = responseState
+                        };
                     }
-
-                    return response;
                 }
+
+                return response;
             });
 
             responseState.Response = responseObject;
@@ -434,41 +460,48 @@ namespace Couchbase.Lite.Listener
                 }
 
 
-                RevisionList changes = db.ChangesSince(since, options, responseState.ChangesFilter, responseState.FilterParams);
-                if((responseState.ChangesFeedMode >= ChangesFeedMode.Continuous) || 
-                    (responseState.ChangesFeedMode == ChangesFeedMode.LongPoll && changes.Count == 0)) {
+                if(responseState.ChangesFeedMode >= ChangesFeedMode.LongPoll) {
                     // Response is going to stay open (continuous, or hanging GET):
                     response.Chunked = true;
                     if(responseState.ChangesFeedMode == ChangesFeedMode.EventSource) {
                         response["Content-Type"] = "text/event-stream; charset=utf-8";
                     }
 
-                    if(responseState.ChangesFeedMode >= ChangesFeedMode.Continuous) {
-                        response.WriteHeaders();
-                        foreach(var rev in changes) {
-                            response.SendContinuousLine(ChangesDictForRev(rev, responseState), context.ChangesFeedMode);
+                    response.WriteHeaders();
+                    if(responseState.SubscribeToDatabase(db, since, options)) {
+                        int heartbeat = body.GetCast<int>("heartbeat", Int32.MinValue);
+                        if(heartbeat != Int32.MinValue) {
+                            if(heartbeat <= 0) {
+                                responseState.IsAsync = false;
+                                return context.CreateResponse(StatusCode.BadParam);
+                            }
+
+                            heartbeat = Math.Max(heartbeat, (int)MinHeartbeat.TotalMilliseconds);
+                            string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
+                            responseState.StartHeartbeat(heartbeatResponse, TimeSpan.FromMilliseconds(heartbeat));
                         }
                     }
 
-                    responseState.SubscribeToDatabase(db);
-                    int heartbeat = body.GetCast<int>("heartbeat", Int32.MinValue);
-                    if(heartbeat != Int32.MinValue) {
-                        if(heartbeat <= 0) {
-                            responseState.IsAsync = false;
-                            return context.CreateResponse(StatusCode.BadParam);
-                        }
-
-                        heartbeat = Math.Max(heartbeat, (int)MinHeartbeat.TotalMilliseconds);
-                        string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
-                        responseState.StartHeartbeat(heartbeatResponse, TimeSpan.FromMilliseconds(heartbeat));
-                    }
-
-                    return context.CreateResponse();
+                    return responseState.Response;
                 } else {
+                    var changes = db.ChangesSinceStreaming(since, options, responseState.ChangesFilter, responseState.FilterParams);
+                    response.Chunked = true;
+                    response.Headers["Content-Type"] = "application/json";
+                    response.WriteBodyCallback = WriteChangesBodyJson;
                     if(responseState.ChangesIncludeConflicts) {
-                        response.JsonBody = new Body(ResponseBodyForChanges(changes, since, options.Limit, responseState));
+                        response.WriteBodyContext = new WriteChangesContext {
+                            IncludeConflicts = true,
+                            Since = since,
+                            Limit = options.Limit,
+                            Changes = changes,
+                            ResponseState = responseState
+                        };
                     } else {
-                        response.JsonBody = new Body(ResponseBodyForChanges(changes, since, responseState));
+                        response.WriteBodyContext = new WriteChangesContext {
+                            Since = since,
+                            Changes = changes,
+                            ResponseState = responseState
+                        };
                     }
 
                     return response;
@@ -606,8 +639,8 @@ namespace Couchbase.Lite.Listener
             Func<Database, CouchbaseLiteResponse> action) 
         {
             string dbName = context.DatabaseName;
-            Database db = context.DbManager.GetDatabase(dbName, false);
-            if (db == null || !db.Exists()) {
+            Database db = context.DbManager.GetDatabase(dbName, true);
+            if (db == null) {
                 return context.CreateResponse(StatusCode.NotFound);
             }
 
@@ -636,11 +669,11 @@ namespace Couchbase.Lite.Listener
         public static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, DBMonitorCouchbaseResponseState responseState)
         {
             List<IDictionary<string, object>> results = new List<IDictionary<string, object>>();
-            foreach (var change in changes) {
+            foreach(var change in changes) {
                 results.Add(DatabaseMethods.ChangesDictForRev(change, responseState));
             }
 
-            if (changes.Count > 0) {
+            if(changes.Count > 0) {
                 since = changes.Last().Sequence;
             }
 
@@ -648,6 +681,91 @@ namespace Couchbase.Lite.Listener
                 { "results", results },
                 { "last_seq", since }
             };
+        }
+
+        //Create a response body for an HTTP response from a given list of DB changes, including all conflicts
+        internal static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, int limit, DBMonitorCouchbaseResponseState state)
+        {
+            string lastDocId = null;
+            IDictionary<string, object> lastEntry = null;
+            var entries = new List<IDictionary<string, object>>();
+            foreach(var rev in changes) {
+                string docId = rev.DocID;
+                if(docId.Equals(lastDocId)) {
+                    ((IList)lastEntry["changes"]).Add(new Dictionary<string, object> { { "rev", rev.RevID } });
+                } else {
+                    lastEntry = ChangesDictForRev(rev, state);
+                    entries.Add(lastEntry);
+                    lastDocId = docId;
+                }
+            }
+
+            entries.Sort((x, y) => (int)((long)x["seq"] - (long)y["seq"]));
+            if(entries.Count > limit) {
+                entries.RemoveRange(limit, entries.Count - limit);
+            }
+
+            long lastSequence = entries.Any() ? (long)entries.Last()["seq"] : since;
+            return new Dictionary<string, object> {
+                { "results", entries },
+                { "last_seq", lastSequence }
+            };
+        }
+
+        public static void WriteChangesBodyJson(CouchbaseLiteResponse response, object context)
+        {
+            var c = (WriteChangesContext)context;
+            response.WriteData(Encoding.UTF8.GetBytes("{\"results\":["), false);
+            var since = c.Since;
+            bool first = true;
+            var comma = new[] { (byte)',' };
+            if(!c.IncludeConflicts) {
+                foreach(var change in c.Changes) {
+                    if(!first) {
+                        response.WriteData(comma, false);
+                    }
+
+                    first = false;
+                    var dictToWrite = ChangesDictForRev(change, c.ResponseState);
+                    response.WriteData(Manager.GetObjectMapper().WriteValueAsBytes(dictToWrite), false);
+                    since = change.Sequence;
+                }
+            } else {
+                string lastDocId = null;
+                IDictionary<string, object> lastEntry = null;
+                var entries = new List<IDictionary<string, object>>();
+                foreach(var rev in c.Changes) {
+                    string docId = rev.DocID;
+                    if(docId.Equals(lastDocId)) {
+                        ((IList)lastEntry["changes"]).Add(new Dictionary<string, object> { { "rev", rev.RevID } });
+                    } else {
+                        if(lastEntry != null) {
+                            if(!first) {
+                                response.WriteData(comma, false);
+                            }
+
+                            first = false;
+                            response.WriteData(Manager.GetObjectMapper().WriteValueAsBytes(lastEntry), false);
+                        }
+
+                        lastEntry = ChangesDictForRev(rev, c.ResponseState);
+                        since = rev.Sequence;
+                        lastDocId = docId;
+                    }
+                }
+
+                if(lastEntry != null) {
+                    if(!first) {
+                        response.WriteData(comma, false);
+                    }
+
+                    first = false;
+                    response.WriteData(Manager.GetObjectMapper().WriteValueAsBytes(lastEntry), false);
+                }
+            }
+
+            var finalBytes = Encoding.UTF8.GetBytes($"],\"last_seq\":{since}}}");
+            response.WriteData(finalBytes, false);
         }
 
         /// <summary>
@@ -853,35 +971,6 @@ namespace Couchbase.Lite.Listener
                 { "update_seq", options.UpdateSeq ? (object)db.GetLastSequenceNumber() : null }
             });
             return response;
-        }
-
-        //Create a response body for an HTTP response from a given list of DB changes, including all conflicts
-        private static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, int limit, DBMonitorCouchbaseResponseState state)
-        {
-            string lastDocId = null;
-            IDictionary<string, object> lastEntry = null;
-            var entries = new List<IDictionary<string, object>>();
-            foreach (var rev in changes) {
-                string docId = rev.DocID;
-                if (docId.Equals(lastDocId)) {
-                    ((IList)lastEntry["changes"]).Add(new Dictionary<string, object> { { "rev", rev.RevID } });
-                } else {
-                    lastEntry = ChangesDictForRev(rev, state);
-                    entries.Add(lastEntry);
-                    lastDocId = docId;
-                }
-            }
-                    
-            entries.Sort((x, y) => (int)((long)x["seq"] - (long)y["seq"]));
-            if (entries.Count > limit) {
-                entries.RemoveRange(limit, entries.Count - limit);
-            }
-
-            long lastSequence = entries.Any() ? (long)entries.Last()["seq"] : since;
-            return new Dictionary<string, object> {
-                { "results", entries },
-                { "last_seq", lastSequence }
-            };
         }
 
         #endregion

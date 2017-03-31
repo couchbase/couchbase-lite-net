@@ -51,6 +51,11 @@ namespace Couchbase.Lite.Internal
         {
             bool started = false;
             var start = DateTime.Now;
+            token.Register(() =>
+            {
+                jsonReader.StopIncrementalParse();
+            });
+
             try {
                 while (jsonReader.Read() && !token.IsCancellationRequested) {
                     _pauseWait.Wait();

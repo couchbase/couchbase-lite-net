@@ -42,15 +42,28 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.Util;
-using System.Collections.Concurrent;
 
 namespace Couchbase.Lite.Support
 {
+    internal class BatcherOptions<T> : ConstructorOptions
+    {
+        [RequiredProperty]
+        public TaskFactory WorkExecutor { get; set; }
+        public int Capacity { get; set; }
+
+        public TimeSpan Delay { get; set; }
+
+        [RequiredProperty]
+        public Action<IList<T>> Processor { get; set; }
+        
+        [RequiredProperty(CreateDefault = true)]
+        public CancellationTokenSource TokenSource { get; set; } 
+    }
+
     /// <summary>
     /// Utility that queues up objects until the queue fills up or a time interval elapses,
     /// then passes all the objects at once to a client-supplied processor block.
@@ -66,39 +79,24 @@ namespace Couchbase.Lite.Support
 
         #region Variables
 
-        private readonly TaskFactory _workExecutor;
+        private BatcherOptions<T> _options;
         private Task _flushFuture;
-        private readonly int _capacity;
-        private readonly TimeSpan _delay;
         private TimeSpan _scheduledDelay;
-        private readonly Action<IList<T>> _processor;
         private bool _scheduled;
         private DateTime _lastProcessedTime;
         private CancellationTokenSource _cancellationSource;
-        private ConcurrentQueue<T> _inbox = new ConcurrentQueue<T>();
-        
+        private UniqueQueue<T> _inbox = new UniqueQueue<T>();
         private object _scheduleLocker = new object();
 
         #endregion
 
         #region Constructor
 
-        /// <summary>Constructor</summary>
-        /// <param name="workExecutor">the work executor that performs actual work</param>
-        /// <param name="capacity">The maximum number of objects to batch up. If the queue reaches this size, the queued objects will be sent to the processor immediately.
-        ///     </param>
-        /// <param name="delay">The maximum waiting time to collect objects before processing them. In some circumstances objects will be processed sooner.
-        ///     </param>
-        /// <param name="processor">The callback/block that will be called to process the objects.
-        ///     </param>
-        /// <param name="tokenSource">The token source to use to create the token to cancel this Batcher object</param>
-        public Batcher(TaskFactory workExecutor, int capacity, TimeSpan delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
+        public Batcher(BatcherOptions<T> options)
         {
-            _workExecutor = workExecutor;
-            _cancellationSource = tokenSource;
-            _capacity = capacity;
-            _delay = delay;
-            _processor = processor;
+            options.Validate();
+            _options = options;
+            _cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(options.TokenSource.Token);
         }
 
         #endregion
@@ -109,7 +107,7 @@ namespace Couchbase.Lite.Support
         {
             _scheduled = false;
 
-            var amountToTake = Math.Min(_capacity, _inbox.Count);
+            var amountToTake = Math.Min(_options.Capacity, _inbox.Count);
             List<T> toProcess = new List<T>();
             T nextObj;
             int i = 0;
@@ -119,7 +117,7 @@ namespace Couchbase.Lite.Support
 
             if (toProcess != null && toProcess.Count > 0) {
                 Log.To.NoDomain.D(TAG, "Invoking processor with {0} items ", toProcess.Count);
-                _processor(toProcess);
+                _options.Processor(toProcess);
             }
 
             _lastProcessedTime = DateTime.UtcNow;
@@ -137,9 +135,12 @@ namespace Couchbase.Lite.Support
             Log.To.NoDomain.V(TAG, "QueueObjects called with {0} objects", objects.Count);
             int added = 0;
             foreach (var obj in objects) {
-                if (!_inbox.Contains (obj)) {
+                if(_inbox.Enqueue(obj)) {
                     added++;
-                    _inbox.Enqueue (obj);
+                }
+
+                if(_inbox.Count >= _options.Capacity) {
+                    ScheduleWithDelay(TimeSpan.Zero);
                 }
             }
 
@@ -188,7 +189,8 @@ namespace Couchbase.Lite.Support
             Unschedule();
 
             var itemCount = _inbox.Count;
-            _inbox = new ConcurrentQueue<T>();
+            Misc.SafeDispose(ref _inbox);
+            _inbox = new UniqueQueue<T>();
 
             Log.To.NoDomain.D(TAG, "Discarded {0} items", itemCount);
         }
@@ -204,16 +206,16 @@ namespace Couchbase.Lite.Support
         /// <returns>The delay o use.</returns>
         internal TimeSpan DelayToUse()
         {
-            if(_inbox.Count > _capacity) {
+            if(_inbox.Count > _options.Capacity) {
                 return TimeSpan.Zero;
             }
 
             var delta = (DateTime.UtcNow - _lastProcessedTime);
-            var delayToUse = delta >= _delay
+            var delayToUse = delta >= _options.Delay
                 ? TimeSpan.Zero
-                : _delay;
+                : _options.Delay;
 
-            Log.To.NoDomain.D(TAG, "DelayToUse() delta: {0}, delayToUse: {1}, delay: {2} [last: {3}]", delta, delayToUse, _delay, _lastProcessedTime.ToString());
+            Log.To.NoDomain.D(TAG, "DelayToUse() delta: {0}, delayToUse: {1}, delay: {2} [last: {3}]", delta, delayToUse, _options.Delay, _lastProcessedTime.ToString());
 
             return delayToUse;
         }
@@ -237,15 +239,15 @@ namespace Couchbase.Lite.Support
                 if (!_scheduled) {
                     _scheduled = true;
                     _scheduledDelay = suggestedDelay;
-                    _cancellationSource = new CancellationTokenSource();
+                    var cts = _cancellationSource;
                     _flushFuture = Task.Delay(suggestedDelay).ContinueWith((t) =>
                     {
-                        if (_cancellationSource != null && !(_cancellationSource.IsCancellationRequested)) {
+                        if (!cts.IsCancellationRequested) {
                             ProcessNow();
                         }
     
                         return true;
-                    }, _cancellationSource.Token, TaskContinuationOptions.None, _workExecutor.Scheduler);
+                    }, cts.Token, TaskContinuationOptions.None, _options.WorkExecutor.Scheduler);
                 } else {
                     if (_flushFuture == null || _flushFuture.IsCompleted) {
                         Log.To.NoDomain.E(TAG, "Batcher got into an inconsistent state, flush future is scheduled " +
@@ -267,7 +269,7 @@ namespace Couchbase.Lite.Support
                         // Swallow it.
                     } 
     
-                    _cancellationSource = null;
+                    _cancellationSource = CancellationTokenSource.CreateLinkedTokenSource(_options.TokenSource.Token);
                 }
             }
         }

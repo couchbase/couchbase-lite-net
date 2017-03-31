@@ -76,12 +76,12 @@ namespace Couchbase.Lite.Listener
         {
             // Get the current task info of all replicators:
             var activity = new List<object>();
-            var replicators = new List<Replication>();
+            var replicators = default(List<Replication>);
             foreach (var db in context.DbManager.AllOpenDatabases()) {
                 var activeReplicators = default(IList<Replication>);
                 if(db.ActiveReplicators.AcquireTemp(out activeReplicators)) {
-                    foreach(var repl in activeReplicators) {
-                        replicators.Add(repl);
+                    replicators = new List<Replication>(activeReplicators); 
+                    foreach(var repl in replicators) {
                         activity.Add(repl.ActiveTaskInfo);
                     }
                 }

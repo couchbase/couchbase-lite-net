@@ -214,10 +214,13 @@ namespace Couchbase.Lite.Replicator
 
         public override IEnumerable<string> DocIds { get; set; }
 
-        public override IDictionary<string, string> Headers 
-        {
-            get { return ClientFactory.Headers; } 
-            set { ClientFactory.Headers = value; } 
+        public override IDictionary<string, string> Headers {
+            get {
+                return _remoteSession.RequestHeaders;
+            }
+            set {
+                _remoteSession.RequestHeaders = value;
+            }
         }
 
         protected override void StopGraceful()

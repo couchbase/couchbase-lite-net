@@ -51,15 +51,14 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Tests;
-using Couchbase.Lite.Util;
 using Couchbase.Lite.Views;
-using Newtonsoft.Json.Linq;
-using NUnit.Framework;
-using Couchbase.Lite.Revisions;
+using Couchbase.Lite.Storage.SQLCipher;
+using FluentAssertions;
+using System.Globalization;
 
 namespace Couchbase.Lite
 {
-    [TestFixture("ForestDB")]
+    [NUnit.Framework.TestFixture("ForestDB")]
     public class ViewsTest : LiteTestCase
     {
         public const string Tag = "Views";
@@ -69,41 +68,226 @@ namespace Couchbase.Lite
 
         public ViewsTest(string storageType) : base(storageType) {}
 
-        [Test]
+        [NUnit.Framework.Test]
+        public void TestReduceWithSkipAndLimit()
+        {
+            var view = database.GetView("reduceme");
+            view.SetMapReduce((doc, emit) =>
+            {
+                emit(new[] { (long)doc["sequence"] / 5, doc["_id"] }, doc["sequence"]);
+            }, BuiltinReduceFunctions.Sum, "1");
+
+            CreateDocuments(database, 20);
+
+            var query = view.CreateQuery();
+            query.Skip = 2;
+            query.Limit = 2;
+            query.GroupLevel = 1;
+            var result = query.Run();
+            result.Should().HaveCount(2, "because that was the set limit");
+            result.ElementAt(0).ValueAs<int>().Should().Be(10+11+12+13+14, "because the sum function should add");
+            result.ElementAt(1).ValueAs<int>().Should().Be(15+16+17+18+19, "because the sum function should add");
+
+            query.Skip = 3;
+            query.Limit = 2;
+            result = query.Run();
+            result.Should().HaveCount(1, "because after skipping 3 only one should remain");
+            result.ElementAt(0).ValueAs<int>().Should().Be(15 + 16 + 17 + 18 + 19, "because the sum function should add");
+
+            query.Skip = 0;
+            query.Limit = 10;
+            result = query.Run();
+            result.Should().HaveCount(4, "because even though the limit is 10, there are only four rows");
+            result.ElementAt(0).ValueAs<int>().Should().Be(0 + 1 + 2 + 3 + 4, "because the sum function should add");
+            result.ElementAt(1).ValueAs<int>().Should().Be(5 + 6 + 7 + 8 + 9, "because the sum function should add");
+            result.ElementAt(2).ValueAs<int>().Should().Be(10 + 11 + 12 + 13 + 14, "because the sum function should add");
+            result.ElementAt(3).ValueAs<int>().Should().Be(15 + 16 + 17 + 18 + 19, "because the sum function should add");
+        }
+
+        [NUnit.Framework.Test]
+        public void TestDeleteViews()
+        {
+            var views = database.GetAllViews();
+            foreach(var v in views) {
+                v.Delete();
+            }
+
+            database.GetAllViews().Should().BeEmpty("because we should start with no views");
+            database.GetExistingView("viewToDelete").Should().BeNull("because there should be no existing views");
+
+            var view = database.GetView("viewToDelete");
+            view.Should().NotBeNull("because GetView creates non-existent views");
+            view.Database.Should().Be(view.Database, "because that is the database it was created from");
+            view.Name.Should().BeEquivalentTo("viewToDelete", "because that is the name it was given");
+            view.Map.Should().BeNull("beacuse no map has been assigned yet");
+            database.GetExistingView("viewToDelete").Should().Be(view, "because after a view is created subsequent calls should return the same instance");
+
+            // Note: ForestDB view storage created view db when constructor is called
+            // but SQLite view storage does not
+            if(_storageType == StorageEngineTypes.ForestDB) {
+                database.GetAllViews().Should().HaveCount(1, "because there should only be one view created so far");
+            } else {
+                database.GetAllViews().Should().HaveCount(0, "because the view should not be fully created until the map is set");
+            }
+
+            view.SetMap((doc, emit) =>
+            {
+                // no-op 
+            }, "1");
+
+
+            database.GetAllViews().Should().HaveCount(1, "because there should only be one view created so far");
+            database.GetAllViews()[0].Should().Be(view, "because only one instance of the view should exist");
+            view.Delete();
+            database.GetAllViews().Should().BeEmpty("because the view was deleted");
+
+            var nullView = database.GetExistingView("viewToDelete").Should().BeNull("because the view was deleted");
+        }
+
+        [NUnit.Framework.Test]
+        public void TestQueryParams()
+        {
+            CreateDocuments(database, 50);
+            var view = database.GetView("test_query_params");
+            view.SetMap((document, emit) => {
+                emit(document["sequence"], document["_id"]);
+            }, "1");
+
+            var query = view.CreateQuery();
+            var completionWait = new WaitAssert();
+            int expected = 50;
+            query.Completed += (sender, e) => {
+                completionWait.RunAssert(() => {
+                    e.ErrorInfo.Should().BeNull("because there should not be an error completing the query");
+                    e.Rows.Should().HaveCount(expected, "because the query should return the correct number of results");
+                });
+            };
+
+            query.RunAsync();
+            completionWait.WaitForResult(TimeSpan.FromSeconds(5));
+
+            //query.InclusiveStart = false;
+            //query.InclusiveEnd = false;
+            completionWait = new WaitAssert();
+            //expected = 48;
+
+            query.RunAsync();
+            completionWait.WaitForResult(TimeSpan.FromSeconds(500));
+
+            query.InclusiveStart = true;
+            query.InclusiveEnd = true;
+
+            var allDocsQuery = database.CreateAllDocumentsQuery();
+            allDocsQuery.AllDocsMode = AllDocsMode.BySequence;
+            var allDocs = allDocsQuery.Run();
+            allDocs.Should().HaveCount(50, "because there are 50 documents");
+            var delete = true;
+            foreach(var row in allDocs) {
+                if(delete) {
+                    row.Document.Delete();
+                }
+
+                delete = !delete;
+            }
+
+            allDocsQuery.AllDocsMode = AllDocsMode.AllDocs;
+            allDocsQuery.Run().Should().HaveCount(25, "because there are 25 documents after deleting half");
+
+            allDocsQuery.AllDocsMode = AllDocsMode.IncludeDeleted;
+            allDocsQuery.Run().Should().HaveCount(50, "because there are 50 documents when deleted ones are included");
+
+            allDocsQuery.AllDocsMode = AllDocsMode.BySequence;
+            allDocs = allDocsQuery.Run();
+            allDocs.FirstOrDefault().Should().NotBeNull().And.Match<QueryRow>(x => x.SequenceNumber == 2, "because the first non-deleted document by sequence has a sequence number of 2");
+        }
+
+        [NUnit.Framework.Test]
+        public void TestLinq ()
+        {
+            CreateDocuments (database, 10);
+            database.CreateDocument ().PutProperties (new Dictionary<string, object> {
+                ["foo"] = "bar",
+                ["sequence"] = 100
+            });
+
+            var allDocsResult = from row in database.AsQueryable()
+                                select row.SequenceNumber;
+
+            var lastSequence = -1L;
+            foreach(var docSequence in allDocsResult) {
+                docSequence.Should().BeGreaterThan(lastSequence, "because the results should be in order by sequence");
+            }
+
+            var allDocsOrderByResults = from row in database.AsQueryable()
+                                        orderby row.DocumentId
+                                        select row.DocumentId;
+
+            var lastId = default(string);
+            foreach(var docId in allDocsOrderByResults) {
+                if(lastId != null) {
+                    docId.CompareTo(lastId).Should().BeGreaterOrEqualTo(0, "because the results should be in order by document ID");
+                }
+
+                lastId = docId;
+            }
+
+            allDocsOrderByResults = from row in database.AsQueryable()
+                                    orderby row.DocumentId descending
+                                    select row.DocumentId;
+
+            lastId = null;
+            foreach(var docId in allDocsOrderByResults) {
+                if(lastId != null) {
+                    docId.CompareTo(lastId).Should().BeLessOrEqualTo(0, "because the results should be in descending order by document ID");
+                }
+
+                lastId = docId;
+            }
+
+            var query = from row in database.AsQueryable()
+                        where row.DocumentProperties.ContainsKey("testName")
+                        select (long)row.DocumentProperties["sequence"];
+
+            query.Should().Equal(new[] { 0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L }, "because the results of the LINQ query should be correct");
+            query.Reverse().Should().Equal(new[] { 9L, 8L, 7L, 6L, 5L, 4L, 3L, 2L, 1L, 0L }, "because the results should be reversable");
+            query.Skip(5).Should().Equal(new[] { 5L, 6L, 7L, 8L, 9L }, "because the results should be skippable");
+            query.Take(5).Should().Equal(new[] { 0L, 1L, 2L, 3L, 4L }, "because the results should be limitable");
+
+            var reduce = query.Aggregate((x, y) => x + y);
+            reduce.Should().Be(45, "because the results should be reducable");
+        }
+
+        [NUnit.Framework.Test]
         public void TestEmitNullKey()
         {
             var view = database.GetView("vu");
-            Assert.IsNotNull(view);
+            view.Should().NotBeNull("because the database should create views on demand");
             view.SetMap((doc, emit) =>
             {
                 // null key -> ignored
                 emit(null, null);
             }, "1");
 
-            Assert.IsNotNull(view.Map);
-            Assert.AreEqual(0, view.TotalRows);
+            view.Should().Match<View>(v => v.Map != null && view.TotalRows == 0, "because the view should start empty");
 
             // insert 1 doc
-            var props = new Dictionary<string, object> {
-                { "_id", "11111" }
-            };
-            Assert.DoesNotThrow(() => PutDoc(database, props));
+            PutDoc(database, new Dictionary<string, object> {
+                ["_id"] = "11111"
+            });
 
             // regular query
             var testQuery = view.CreateQuery();
-            Assert.IsNotNull(testQuery);
+            testQuery.Should().NotBeNull("because queries should never return null");
             var e = testQuery.Run();
-            Assert.IsNotNull(e);
-            Assert.AreEqual(0, e.Count);
+            testQuery.Run().Should().NotBeNull().And.HaveCount(0, "because the view should ignore null keys");
 
             // query with null key. it should be ignored.
             testQuery.Keys = new string[] { null };
             e = testQuery.Run();
-            Assert.IsNotNull(e);
-            Assert.AreEqual(0, e.Count);
+            testQuery.Run().Should().NotBeNull().And.HaveCount(0, "because the view should ignore null keys");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestCustomFilter()
         {
             var view = database.GetView("vu");
@@ -112,7 +296,7 @@ namespace Couchbase.Lite
                 emit(doc["name"], doc["skin"]);
             }, "1");
 
-            Assert.IsNotNull(view.Map);
+            view.Map.Should().NotBeNull("because it was just set");
 
             database.RunInTransaction(() =>
             {
@@ -136,34 +320,33 @@ namespace Couchbase.Lite
             query.PostFilter = row => (row.Value as string).EndsWith("y");
             var rows = query.Run();
 
-            Assert.AreEqual(2, rows.Count);
-            CollectionAssert.AreEqual(new[] { "furry", "scaly" }, rows.Select(x => x.Value));
+            query.Run().Should().HaveCount(2, "because only the values of two rows end in 'y'");
+            rows.Select(x => x.Value).Should().BeEquivalentTo(new[] { "furry", "scaly" }, "because those two values end in 'y'");
 
             query = view.CreateQuery();
             query.PostFilter = row => (row.Value as string).EndsWith("y");
             query.Limit = 1;
             rows = query.Run();
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual("furry", rows.ElementAt(0).Value);
+            rows.Should().HaveCount(1, "because the query was limited to 1 row");
+            rows.ElementAt(0).Value.Should().Be("furry", "because that is the first result");
 
             query.Limit = 0;
-            rows = query.Run();
-            Assert.AreEqual(0, rows.Count);
+            query.Run().Should().BeEmpty("because the limit is 0");
 
             query = view.CreateQuery();
             query.PostFilter = row => (row.Value as string).EndsWith("y");
             query.Skip = 1;
             rows = query.Run();
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual("scaly", rows.ElementAt(0).Value);
+            rows.Should().HaveCount(1, "because there are two rows and one was skipped");
+            rows.ElementAt(0).Value.Should().Be("scaly", "because that is the second result");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestPrefixMatchingString()
         {
             PutDocs(database);
             var view = CreateView(database);
-            Assert.AreEqual(StatusCode.Ok, view.UpdateIndex_Internal().Code);
+            view.UpdateIndex_Internal().Code.Should().Be(StatusCode.Ok, "because this index update should succeed");
 
             // Keys with prefix "f":
             var options = new QueryOptions();
@@ -171,31 +354,24 @@ namespace Couchbase.Lite
             options.EndKey = "f";
             options.PrefixMatchLevel = 1;
             var rows = RowsToDicts(view.QueryWithOptions(options));
-            Assert.AreEqual(2, rows.Count);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "55555" },
-                { "key", "five" }
-            }, rows[0]);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "44444" },
-                { "key", "four" }
-            }, rows[1]);
+            rows.Should().HaveCount(2, "because only two keys start with 'f'");
+            rows[0].Should().ContainKey("id").WhichValue.Should().Be("55555", "because five comes before four in the alphabet");
+            rows[0].Should().ContainKey("key").WhichValue.Should().Be("five", "because five comes before four in the alphabet");
+            rows[1].Should().ContainKey("id").WhichValue.Should().Be("44444", "because four comes after five in the alphabet");
+            rows[1].Should().ContainKey("key").WhichValue.Should().Be("four", "because four comes after five in the alphabet");
+
 
             // ...descending:
             options.Descending = true;
             rows = RowsToDicts(view.QueryWithOptions(options));
-            Assert.AreEqual(2, rows.Count);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "55555" },
-                { "key", "five" }
-            }, rows[1]);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "44444" },
-                { "key", "four" }
-            }, rows[0]);
+            rows.Should().HaveCount(2, "because only two keys start with 'f'");
+            rows[1].Should().ContainKey("id").WhichValue.Should().Be("55555", "because five comes before four in the alphabet");
+            rows[1].Should().ContainKey("key").WhichValue.Should().Be("five", "because five comes before four in the alphabet");
+            rows[0].Should().ContainKey("id").WhichValue.Should().Be("44444", "because four comes after five in the alphabet");
+            rows[0].Should().ContainKey("key").WhichValue.Should().Be("four", "because four comes after five in the alphabet");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestPrefixMatchingArray()
         {
             PutDocs(database);
@@ -207,38 +383,60 @@ namespace Couchbase.Lite
                 emit(new List<object> { doc.Get("key"), Int32.Parse(i) / 100 }, null);
             }, "1");
 
-            Assert.AreEqual(StatusCode.Ok, view.UpdateIndex_Internal().Code);
+            view.UpdateIndex_Internal().Code.Should().Be(StatusCode.Ok, "because the index update should succeed");
 
             // Keys starting with "one":
             var options = new QueryOptions();
             options.StartKey = options.EndKey = new List<object> { "one" };
             options.PrefixMatchLevel = 1;
             var rows = RowsToDicts(view.QueryWithOptions(options));
-            Assert.AreEqual(2, rows.Count);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "11111" },
-                { "key", new List<object> { "one", 111 } }
-            }, rows[0]);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "11111" },
-                { "key", new List<object> { "one", 11111 } }
-            }, rows[1]);
+         
+            rows.Should().HaveCount(2, "because only two rows start with 'one'");
+            rows[0].Should().ContainKey("id").WhichValue.Should().Be("11111");
+            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().Equal(new List<object> { "one", 111L }, (left, right) =>
+            {
+                if(left is string) {
+                    return ((string)left).Equals((string)right);
+                }
+
+                return ((IConvertible)left).ToInt64(CultureInfo.InvariantCulture) == (long)right;
+            }, "because 111 comes before 11111");
+            rows[1].Should().ContainKey("id").WhichValue.Should().Be("11111");
+            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().Equal(new List<object> { "one", 11111L }, (left, right) =>
+            {
+                if(left is string) {
+                    return ((string)left).Equals((string)right);
+                }
+
+                return ((IConvertible)left).ToInt64(CultureInfo.InvariantCulture) == (long)right;
+            },"because 111 comes before 11111");
 
             options.Descending = true;
             rows = RowsToDicts(view.QueryWithOptions(options));
-            Assert.AreEqual(2, rows.Count);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "11111" },
-                { "key", new List<object> { "one", 111 } }
-            }, rows[1]);
-            AssertDictionariesAreEqual(new Dictionary<string, object> {
-                { "id", "11111" },
-                { "key", new List<object> { "one", 11111 } }
-            }, rows[0]);
+            rows[1].Should().ContainKey("id").WhichValue.Should().Be("11111");
+            rows[1].Should().ContainKey("key").WhichValue.AsList<object>().Should().Equal(new List<object> { "one", 111L }, (left, right) =>
+            {
+                if(left is string) {
+                    return ((string)left).Equals((string)right);
+                }
+
+                return ((IConvertible)left).ToInt64(CultureInfo.InvariantCulture) == (long)right;
+            },
+                 "because 111 comes before 11111");
+            rows[0].Should().ContainKey("id").WhichValue.Should().Be("11111");
+            rows[0].Should().ContainKey("key").WhichValue.AsList<object>().Should().Equal(new List<object> { "one", 11111L }, (left, right) =>
+            {
+                if(left is string) {
+                    return ((string)left).Equals((string)right);
+                }
+
+                return ((IConvertible)left).ToInt64(CultureInfo.InvariantCulture) == (long)right;
+            },
+                 "because 111 comes before 11111");
         }
 
         #if !NET_3_5
-        [Test]
+        [NUnit.Framework.Test]
         public void TestParallelViewQueries()
         {
             var vu = database.GetView("prefix/vu");
@@ -263,8 +461,8 @@ namespace Couchbase.Lite
                 var queryObj = gotVu.CreateQuery();
                 queryObj.Keys = new object[] { new object[] { "sequence", x } };
                 var rows = queryObj.Run();
-                Assert.AreEqual(expectCount * 500, gotVu.LastSequenceIndexed);
-                Assert.AreEqual(expectCount, rows.Count);
+                gotVu.LastSequenceIndexed.Should().Be(expectCount * 500);
+                rows.Count.Should().Be(expectCount);
             };
 
             Action queryAction2 = () =>
@@ -274,8 +472,8 @@ namespace Couchbase.Lite
                 var queryObj = gotVu.CreateQuery();
                 queryObj.Keys = new object[] { new object[] { "sequence", "FAKE" } };
                 var rows = queryObj.Run();
-                Assert.AreEqual(expectCount * 500, gotVu.LastSequenceIndexed);
-                Assert.AreEqual(expectCount * 500, rows.Count);
+                gotVu.LastSequenceIndexed.Should().Be(expectCount * 500);
+                rows.Count.Should().Be(expectCount * 500);
             };
 
             Parallel.Invoke(() => queryAction(42), () => queryAction(184), 
@@ -310,8 +508,8 @@ namespace Couchbase.Lite
         }
         #endif
 
-        [Test] 
-        public void TestIssue490()
+        [NUnit.Framework.Test] 
+        public async Task TestIssue490()
         {
             var sg = new CouchDB("http", GetReplicationServer());
             using (var remoteDb = sg.CreateDatabase("issue490")) {
@@ -320,19 +518,18 @@ namespace Couchbase.Lite
                 CreateFilteredDocuments(database, 30);
                 CreateNonFilteredDocuments (database, 10);
                 RunReplication(push);
-                Assert.IsTrue(push.ChangesCount==40);
-                Assert.IsTrue(push.CompletedChangesCount==40);
-
-                Assert.IsNull(push.LastError);
-                Assert.AreEqual(40, database.GetDocumentCount());
+                push.ChangesCount.Should().Be(40, "because there should be 40 documents");
+                push.CompletedChangesCount.Should().Be(40, "because there should be 40 documents");
+                push.LastError.Should().BeNull("because the push should succeed");
+                database.GetDocumentCount().Should().Be(40, "because there should be 40 documents");
 
                 for (int i = 0; i <= 5; i++) {
                     pull = database.CreatePullReplication(remoteDb.RemoteUri);
                     pull.Continuous = true;
                     pull.Start ();
-                    Task.Delay (1000).Wait();
+                    await Task.Delay(1000);
                     CallToView ();
-                    Task.Delay (2000).Wait();
+                    await Task.Delay(2000);
                     RecreateDatabase ();
                 }
             }
@@ -341,9 +538,6 @@ namespace Couchbase.Lite
 
         private void RecreateDatabase ()
         {
-            query.Stop ();
-            pull.Stop ();
-            //database.Manager.ForgetDatabase(database);
             database.Delete ();
             database = Manager.SharedInstance.GetDatabase ("test");
         }
@@ -351,7 +545,7 @@ namespace Couchbase.Lite
         private void CallToView ()
         {
             var the_view = database.GetView ("testView");
-            the_view.SetMap (delegate(IDictionary<string, object> document, EmitDelegate emit) {
+            the_view.SetMap ((document, emit) => {
                 try{
                     emit (null, document);
                 } catch(Exception ex){
@@ -367,29 +561,35 @@ namespace Couchbase.Lite
 
         private void CreateNonFilteredDocuments(Database db, int n)
         {
-            //TODO should be changed to use db.runInTransaction
-            for (int i = 0; i < n; i++)
+            db.RunInTransaction(() =>
             {
-                IDictionary<string, object> properties = new Dictionary<string, object>();
-                properties.Add("testName", "unimportant");
-                properties.Add("sequence", i);
-                CreateDocumentWithProperties(db, properties);
-            }
+                for(int i = 0; i < n; i++) {
+                    IDictionary<string, object> properties = new Dictionary<string, object>();
+                    properties.Add("testName", "unimportant");
+                    properties.Add("sequence", i);
+                    CreateDocumentWithProperties(db, properties);
+                }
+
+                return true;
+            });
         }
 
         private void CreateFilteredDocuments(Database db, int n)
         {
-            //TODO should be changed to use db.runInTransaction
-            for (int i = 0; i < n; i++)
+            db.RunInTransaction(() =>
             {
-                IDictionary<string, object> properties = new Dictionary<string, object>();
-                properties.Add("testName", "important");
-                properties.Add("sequence", i);
-                CreateDocumentWithProperties(db, properties);
-            }
+                for(int i = 0; i < n; i++) {
+                    IDictionary<string, object> properties = new Dictionary<string, object>();
+                    properties.Add("testName", "important");
+                    properties.Add("sequence", i);
+                    CreateDocumentWithProperties(db, properties);
+                }
+
+                return true;
+            });
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewValueIsEntireDoc()
         {
             var view = database.GetView("vu");
@@ -397,14 +597,12 @@ namespace Couchbase.Lite
             CreateDocuments(database, 10);
             var rows = view.CreateQuery().Run();
             foreach (var row in rows) {
-                Assert.IsNotNull(row.Value);
-                var dict = row.Value.AsDictionary<string, object>();
-                Assert.IsNotNull(dict);
-                Assert.AreEqual(row.Key, dict.CblID());
+                row.Value.AsDictionary<string, object>().Should().NotBeNull()
+                    .And.Subject.CblID().Should().Be(row.Key as string);
             }
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestLiveQueryUpdateWhenOptionsChanged()
         {
             var view = database.GetView("vu");
@@ -414,73 +612,55 @@ namespace Couchbase.Lite
             CreateDocuments(database, 5);
 
             var query = view.CreateQuery();
-            var result = query.Run();
-            Assert.AreEqual(5, result.Count);
-
-            int expectedKey = 0;
-            foreach (var row in result) {
-                Assert.AreEqual(expectedKey++, row.Key);
-            }
+            query.Run().Should().HaveCount(5).And.Subject.Select(x => ExtensionMethods.CastOrDefault<long>(x.Key)).Should().Equal(0L, 1L, 2L, 3L, 4L);
 
             var liveQuery = view.CreateQuery().ToLiveQuery();
-            var changeCount = 0;
-            liveQuery.Changed += (sender, e) => changeCount++;
+            var are = new AutoResetEvent(false);
+            liveQuery.Changed += (sender, e) => are.Set();
             liveQuery.Start();
-            Sleep(1000);
-
-            Assert.AreEqual(1, changeCount);
-            Assert.AreEqual(5, liveQuery.Rows.Count);
-            expectedKey = 0;
-            foreach (var row in liveQuery.Rows) {
-                Assert.AreEqual(expectedKey++, row.Key);
-            }
+            are.WaitOne(1000, true).Should().BeTrue();
+            liveQuery.Rows.Should().HaveCount(5).And.Subject.Select(x => ExtensionMethods.CastOrDefault<long>(x.Key)).Should().Equal(0L, 1L, 2L, 3L, 4L);
 
             liveQuery.StartKey = 2;
             liveQuery.QueryOptionsChanged();
-            Sleep(1000);
-
-            Assert.AreEqual(2, changeCount);
-            Assert.AreEqual(3, liveQuery.Rows.Count);
-            expectedKey = 2;
-            foreach (var row in liveQuery.Rows) {
-                Assert.AreEqual(expectedKey++, row.Key);
-            }
+            are.WaitOne(1000, true).Should().BeTrue();
+            liveQuery.Rows.Should().HaveCount(3).And.Subject.Select(x => ExtensionMethods.CastOrDefault<long>(x.Key)).Should().Equal(2L, 3L, 4L);
 
             liveQuery.Stop();
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestQueryDefaultIndexUpdateMode()
         {
             View view = database.GetView("aview");
             Query query = view.CreateQuery();
-            Assert.AreEqual(IndexUpdateMode.Before, query.IndexUpdateMode);
+            query.IndexUpdateMode.Should().Be(IndexUpdateMode.Before, "because that is the default");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewCreation()
         {
-            Assert.IsNull(database.GetExistingView("aview"));
+            database.GetExistingView("aview").Should().BeNull("because the view should not exist yet");
             var view = database.GetView("aview");
-            Assert.IsNotNull(view);
-            Assert.AreEqual(database, view.Database);
-            Assert.AreEqual("aview", view.Name);
-            Assert.IsNull(view.Map);
-            Assert.AreEqual(view, database.GetExistingView("aview"));
+            view.Should().NotBeNull("because the view should be created via GetView");
+            view.Database.Should().BeSameAs(database, "because the view should reference the DB it was created from");
+            view.Name.Should().Be("aview", "because that was the name it was given");
+            view.Map.Should().BeNull("because the map has not been assigned yet");
+            view.Should().BeSameAs(database.GetExistingView("aview"), "because the next call should return the same view");
+
+            view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=> { }, null, "1")
+                .Should().BeTrue("because otherwise setting the map function failed");
+
+            database.GetAllViews().Should().HaveCount(1, "because the view should be in the all view collection now")
+                .And.Subject.AsList<View>()[0].Should().BeSameAs(view, "because the returned view should be the same as the existing one");
 
             //no-op
-            var changed = view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=> { }, null, "1");
-            Assert.IsTrue(changed);
-            Assert.AreEqual(1, database.GetAllViews().Count);
-            Assert.AreEqual(view, database.GetAllViews()[0]);
+            view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=> { }, null, "1")
+                .Should().BeFalse("beacuse the version number did not change");
 
-            //no-op
-            changed = view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=> { }, null, "1");
-            Assert.IsFalse(changed);
-            changed = view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=> { }, null, "2");
 
-            //no-op
-            Assert.IsTrue(changed);
+            view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter) => { }, null, "2")
+                .Should().BeTrue("because the version number changed");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -581,8 +761,8 @@ namespace Couchbase.Lite
             var view = db.GetView("aview");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
                 {
-                    Assert.IsNotNull(document.CblID());
-                    Assert.IsNotNull(document.CblRev());
+                    document.CblID().Should().NotBeNull("because nothing should enter the map function without an ID");
+                    document.CblRev().Should().NotBeNull("because nothing should enter the map function without a rev ID");
                     if (document["key"] != null)
                     {
                         emitter(document["key"], null);
@@ -592,7 +772,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewIndex()
         {
             int numTimesMapFunctionInvoked = 0;
@@ -620,8 +800,8 @@ namespace Couchbase.Lite
             {
                 numTimesInvoked += 1;
 
-                Assert.IsNotNull(document.CblID());
-                Assert.IsNotNull(document.CblRev());
+                document.CblID().Should().NotBeNull("because nothing should enter the map function without an ID");
+                document.CblRev().Should().NotBeNull("because nothing should enter the map function without a rev ID");
 
                 if (document.ContainsKey("key") && document["key"] != null)
                 {
@@ -631,22 +811,21 @@ namespace Couchbase.Lite
             view.SetMap(mapBlock, "1");
 
 
-            //Assert.AreEqual(1, view.Id);
-            Assert.IsTrue(view.IsStale);
+            view.IsStale.Should().BeTrue("beacuse the view has not been updated yet");
             view.UpdateIndex_Internal();
 
             IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
             WriteDebug("View dump: " + dumpResult);
-            Assert.AreEqual(3, dumpResult.Count);
-            Assert.AreEqual("\"one\"", dumpResult[0]["key"]);
-            Assert.AreEqual(1, dumpResult[0]["seq"]);
-            Assert.AreEqual("\"two\"", dumpResult[2]["key"]);
-            Assert.AreEqual(2, dumpResult[2]["seq"]);
-            Assert.AreEqual("\"three\"", dumpResult[1]["key"]);
-            Assert.AreEqual(3, dumpResult[1]["seq"]);
+            dumpResult.Should().HaveCount(3, "beacuse three items have the 'key' property");
+            dumpResult[0].Should().Contain("key", "\"one\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 1L);
+            dumpResult[1].Should().Contain("key", "\"three\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 3L);
+            dumpResult[2].Should().Contain("key", "\"two\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 2L);
 
             //no-op reindex
-            Assert.IsFalse(view.IsStale);
+            view.IsStale.Should().BeFalse("beacuse the view was updated");
             view.UpdateIndex_Internal();
 
             // Now add a doc and update a doc:
@@ -660,11 +839,10 @@ namespace Couchbase.Lite
             rev3 = database.PutRevision(threeUpdated, rev3.RevID, false);
 
             // Reindex again:
-            Assert.IsTrue(view.IsStale);
+            view.IsStale.Should().BeTrue("beacuse a new document was added but the view was not updated");
             view.UpdateIndex_Internal();
-
-            // Make sure the map function was only invoked one more time (for the document that was added)
-            Assert.AreEqual(numTimesMapFunctionInvoked + 1, numTimesInvoked);
+            
+            numTimesInvoked.Should().Be(numTimesMapFunctionInvoked + 1, "because we only added one document");
 
             var dict4 = new Dictionary<string, object>();
             dict4["key"] = "four";
@@ -673,32 +851,32 @@ namespace Couchbase.Lite
             database.PutRevision(twoDeleted, rev2.RevID, false);
 
             // Reindex again:
-            Assert.IsTrue(view.IsStale);
+            view.IsStale.Should().BeTrue("because documents were updated but the view was not");
             view.UpdateIndex_Internal();
             dumpResult = view.Storage.Dump().ToList();
             WriteDebug("View dump: " + dumpResult);
-            Assert.AreEqual(3, dumpResult.Count);
-            Assert.AreEqual("\"one\"", dumpResult[2]["key"]);
-            Assert.AreEqual(1, dumpResult[2]["seq"]);
-            Assert.AreEqual("\"3hree\"", dumpResult[0]["key"]);
-            Assert.AreEqual(5, dumpResult[0]["seq"]);
-            Assert.AreEqual("\"four\"", dumpResult[1]["key"]);
-            Assert.AreEqual(6, dumpResult[1]["seq"]);
+            dumpResult.Should().HaveCount(3, "beacuse three items have the 'key' property");
+            dumpResult[0].Should().Contain("key", "\"3hree\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 5L);
+            dumpResult[1].Should().Contain("key", "\"four\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 6L);
+            dumpResult[2].Should().Contain("key", "\"one\"")
+                .And.Subject.AsDictionary<string, object>().Should().Contain("seq", 1L);
 
             // Now do a real query:
             IList<QueryRow> rows = view.QueryWithOptions(null).ToList();
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual("one", rows[2].Key);
-            Assert.AreEqual(rev1.DocID, rows[2].DocumentId);
-            Assert.AreEqual("3hree", rows[0].Key);
-            Assert.AreEqual(rev3.DocID, rows[0].DocumentId);
-            Assert.AreEqual("four", rows[1].Key);
-            Assert.AreEqual(rev4.DocID, rows[1].DocumentId);
+            rows.Should().HaveCount(3, "because there are only three documents with the 'key' property");
+            rows[0].Key.As<string>().Should().Be("3hree", "because the ordering should be correct");
+            rows[0].DocumentId.Should().Be(rev3.DocID, "because the row should have the correct document ID");
+            rows[1].Key.As<string>().Should().Be("four", "because the ordering should be correct");
+            rows[1].DocumentId.Should().Be(rev4.DocID, "because the row should have the correct document ID");
+            rows[2].Key.As<string>().Should().Be("one", "because the ordering should be correct");
+            rows[2].DocumentId.Should().Be(rev1.DocID, "because the row should have the correct document ID");
             view.DeleteIndex();
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewQuery()
         {
             PutDocs(database);
@@ -707,86 +885,58 @@ namespace Couchbase.Lite
 
             // Query all rows:
             QueryOptions options = new QueryOptions();
-            IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
-
-            var expectedRows = new List<object>();
-
             var dict5 = new Dictionary<string, object>();
             dict5["id"] = "55555";
             dict5["key"] = "five";
-            expectedRows.Add(dict5);
 
             var dict4 = new Dictionary<string, object>();
             dict4["id"] = "44444";
             dict4["key"] = "four";
-            expectedRows.Add(dict4);
 
             var dict1 = new Dictionary<string, object>();
             dict1["id"] = "11111";
             dict1["key"] = "one";
-            expectedRows.Add(dict1);
 
             var dict3 = new Dictionary<string, object>();
             dict3["id"] = "33333";
             dict3["key"] = "three";
-            expectedRows.Add(dict3);
 
             var dict2 = new Dictionary<string, object>();
             dict2["id"] = "22222";
             dict2["key"] = "two";
-            expectedRows.Add(dict2);
-            Assert.AreEqual(5, rows.Count);
-            Assert.AreEqual(dict5["key"], rows[0].Key);
-            Assert.AreEqual(dict4["key"], rows[1].Key);
-            Assert.AreEqual(dict1["key"], rows[2].Key);
-            Assert.AreEqual(dict3["key"], rows[3].Key);
-            Assert.AreEqual(dict2["key"], rows[4].Key);
-
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict5["key"], dict4["key"], dict1["key"], dict3["key"], dict2["key"] }, String.Equals,
+                "because the rows should be in the correct order");
+            
             // Start/end key query:
             options = new QueryOptions();
             options.StartKey = "a";
             options.EndKey = "one";
 
-            rows = view.QueryWithOptions(options).ToList();
-            expectedRows = new List<object>();
-            expectedRows.Add(dict5);
-            expectedRows.Add(dict4);
-            expectedRows.Add(dict1);
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual(dict5["key"], rows[0].Key);
-            Assert.AreEqual(dict4["key"], rows[1].Key);
-            Assert.AreEqual(dict1["key"], rows[2].Key);
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict5["key"], dict4["key"], dict1["key"] }, String.Equals,
+                "because only three rows fall in the range of 'a' to 'one'");
 
             // Start/end query without inclusive end:
             options.InclusiveEnd = false;
-            rows = view.QueryWithOptions(options).ToList();
-            expectedRows = new List<object>();
-            expectedRows.Add(dict5);
-            expectedRows.Add(dict4);
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(dict5["key"], rows[0].Key);
-            Assert.AreEqual(dict4["key"], rows[1].Key);
-
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict5["key"], dict4["key"] }, String.Equals,
+                "because the last row should be excluded");
+           
             // Reversed:
             options.Descending = true;
             options.StartKey = "o";
             options.EndKey = "five";
             options.InclusiveEnd = true;
-            rows = view.QueryWithOptions(options).ToList();
-            expectedRows = new List<object>();
-            expectedRows.Add(dict4);
-            expectedRows.Add(dict5);
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(dict4["key"], rows[0].Key);
-            Assert.AreEqual(dict5["key"], rows[1].Key);
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict4["key"], dict5["key"] }, String.Equals,
+                "because the results should be reversed and only contain applicable rows");
 
             // Reversed, no inclusive end:
             options.InclusiveEnd = false;
-            rows = view.QueryWithOptions(options).ToList();
-            expectedRows = new List<object>();
-            expectedRows.Add(dict4);
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual(dict4["key"], rows[0].Key);
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict4["key"] }, String.Equals,
+                "because the last row should be excluded");
 
             // Specific keys: (note that rows should be in same order as input keys, not sorted)
             options = new QueryOptions();
@@ -794,17 +944,13 @@ namespace Couchbase.Lite
             keys.Add("two");
             keys.Add("four");
             options.Keys = keys;
-            rows = view.QueryWithOptions(options).ToList();
-            expectedRows = new List<object>();
-            expectedRows.Add(dict4);
-            expectedRows.Add(dict2);
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(dict2["key"], rows[0].Key);
-            Assert.AreEqual(dict4["key"], rows[1].Key);
+            view.QueryWithOptions(options).Select(x => x.Key)
+                .Should().Equal(new[] { dict2["key"], dict4["key"] }, String.Equals,
+                "because the results should be the specified keys in the specified order");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewQueryWithDictSentinel()
         {
             var key1 = new List<string>();
@@ -845,48 +991,58 @@ namespace Couchbase.Lite
 
             // Query all rows:
             QueryOptions options = new QueryOptions();
-            IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
+            var expected = new[] { new[] { "green", "model1" }, new[] { "red", "model1" },
+                new[] { "red", "model2" }, new[] { "yellow", "model2" } };
 
-            Assert.AreEqual(4, rows.Count);
-            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[0].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[2].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "yellow", "model2" }, ((JArray)rows[3].Key).ToObject<object[]>());
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because the rows should contain the correct data in the correct order");
 
             // Start/end key query:
             options = new QueryOptions();
             options.StartKey = "a";
             options.EndKey = new List<object> { "red", new Dictionary<string, object>() };
-            rows = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[0].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[2].Key).ToObject<object[]>());
+            expected = new[] { new[] { "green", "model1" }, new[] { "red", "model1" },
+                new[] { "red", "model2" } };
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because only three rows should fall in the given range");
 
             // Start/end query without inclusive end:
             options.EndKey = new List<object> { "red", "model1" };
             options.InclusiveEnd = false;
-            rows = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(1, rows.Count); //1
-            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[0].Key).ToObject<object[]>());
+            expected = new[] { new[] { "green", "model1" } };
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because only two rows fall into the given range and the last row is excluded");
 
             // Reversed:
             options = new QueryOptions();
             options.StartKey = new List<object> { "red", new Dictionary<string, object>() };
             options.EndKey = new List<object> { "green", "model1" };
             options.Descending = true;
-            rows = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[0].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "green", "model1" }, ((JArray)rows[2].Key).ToObject<object[]>());
+            expected = new[] { new[] { "red", "model2" }, new[] { "red", "model1" },
+                new[] { "green", "model1" } };
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because the three applicable rows should be reversed now");
 
             // Reversed, no inclusive end:
             options.InclusiveEnd = false;
-            rows = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[0].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
+            expected = new[] { new[] { "red", "model2" }, new[] { "red", "model1" } };
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because the last row should be excluded");
 
             // Specific keys:
             options = new QueryOptions();
@@ -894,13 +1050,14 @@ namespace Couchbase.Lite
             keys.Add(new object[] { "red", "model2" });
             keys.Add(new object[] { "red", "model1" });
             options.Keys = keys;
-            rows = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(new object[] { "red", "model2" }, ((JArray)rows[0].Key).ToObject<object[]>());
-            Assert.AreEqual(new object[] { "red", "model1" }, ((JArray)rows[1].Key).ToObject<object[]>());
+            view.QueryWithOptions(options).Select(x => x.Key.AsList<object>())
+                .Should().Equal(expected, (left, right) => {
+                    return left.Cast<string>().SequenceEqual(right);
+                },
+                "because the given keys should appear in the given order");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestLiveQueryStartEndKey()
         {
             var view = CreateView(database);
@@ -909,19 +1066,24 @@ namespace Couchbase.Lite
             query.StartKey = "one";
             query.EndKey = "one\uFEFF";
             var liveQuery = query.ToLiveQuery();
-            Assert.IsNotNull(liveQuery.StartKey);
-            Assert.IsNotNull(liveQuery.EndKey);
-
+            liveQuery.StartKey.Should().NotBeNull("because it was set on the creating query");
+            liveQuery.EndKey.Should().NotBeNull("because it was set on the creating query");
+            var are = new AutoResetEvent(false);
             liveQuery.Start();
             Sleep(2000);
-            Assert.AreEqual(0, liveQuery.Rows.Count);
-
+            liveQuery.Rows.Should().HaveCount(0, "because no documents have been added yet");
+            liveQuery.Changed += (sender, args) =>
+            {
+                if(args.Rows.SequenceNumber >= 4) {
+                    are.Set();
+                }
+            };
             PutDocs(database);
-            Sleep(2000);
-            Assert.AreEqual(1, liveQuery.Rows.Count);
+            are.WaitOne(2000).Should().BeTrue("because otherwise the live query timed out");
+            liveQuery.Rows.Should().HaveCount(1, "because one document was added in the given range");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestAllDocsLiveQuery()
         {
             var query = database.CreateAllDocumentsQuery().ToLiveQuery();
@@ -940,38 +1102,46 @@ namespace Couchbase.Lite
                 });
             }
 
-            var mre = new AutoResetEvent(false);
-
+            var wa = new WaitAssert();
             query.Changed += (sender, e) => {
                 if(e.Rows.Count < expectedRowBase.Count) {
                     return;
                 }
 
-                AssertEnumerablesAreEqual(expectedRowBase, e.Rows);
-                mre.Set();
+                wa.RunAssert(() => 
+                {
+                    var enumerator = expectedRowBase.OrderBy(x => x["key"]).GetEnumerator();
+                    foreach(var row in e.Rows) {
+                        enumerator.MoveNext();
+                        row.DocumentId.Should().Be((string)enumerator.Current["id"]);
+                        row.Key.As<string>().Should().Be((string)enumerator.Current["key"]);
+                        row.Value.AsDictionary<string, object>().Should().Contain("rev", enumerator.Current["value"].AsDictionary<string, object>()["rev"].ToString());
+                    }
+                });
             };
 
-            Assert.IsTrue(mre.WaitOne(TimeSpan.FromSeconds(30)), "Live query timed out");
+            wa.WaitForResult(TimeSpan.FromSeconds(100));
+            wa = new WaitAssert();
+            
 
+            var dict6 = new Dictionary<string, object> {
+                ["key"] = "six",
+                ["_id"] = "66666"
+            };
+            var rev6 = PutDoc(database, dict6);
             expectedRowBase.Add(new Dictionary<string, object> {
                 { "id", "66666" },
                 { "key", "66666" },
                 { "value", new Dictionary<string, object> {
-                        { "rev", "1-abcdef" }
+                        { "rev", rev6.RevID }
                     }
                 }
             });
-
-            var dict6 = new Dictionary<string, object>();
-            dict6.SetDocRevID("66666", "1-adcdef");
-            dict6["key"] = "six";
-            PutDoc(database, dict6);
-
-            Assert.IsTrue(mre.WaitOne(TimeSpan.FromSeconds(30)), "Live query timed out");
+            wa.WaitForResult(TimeSpan.FromSeconds(10));
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestAllDocsQuery()
         {
             var docs = PutDocs(database);
@@ -982,7 +1152,7 @@ namespace Couchbase.Lite
                     { "id", rev.DocID },
                     { "key", rev.DocID },
                     { "value", new Dictionary<string, object> {
-                            { "rev", rev.RevID }
+                            { "rev", rev.RevID.ToString() }
                         }
                     }
                 });
@@ -997,7 +1167,7 @@ namespace Couchbase.Lite
 
             var leaf2 = new RevisionInternal(props);
             database.ForceInsert(leaf2, null, null);
-            Assert.AreEqual(docs[1].RevID, database.GetDocument("44444", null, true).RevID);
+            database.GetDocument("44444", null, true).RevID.Should().Be(docs[1].RevID, "because the revision ID should be consistent");
 
             // Query all rows:
             var options = new QueryOptions();
@@ -1010,19 +1180,37 @@ namespace Couchbase.Lite
                 expectedRowBase[4]
             };
 
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+            var e = expectedRows.GetEnumerator();
+            foreach(var row in RowsToDicts(allDocs)) {
+                e.MoveNext();
+                row["id"].Should().Be(e.Current["id"]);
+                row["key"].Should().Be(e.Current["key"]);
+                row["value"].AsDictionary<string, object>().Should().Equal(e.Current["value"].AsDictionary<string, object>());
+            }
 
             // Limit:
             options.Limit = 1;
             allDocs = database.GetAllDocs(options);
             expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2] };
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+            e = expectedRows.GetEnumerator();
+            foreach(var row in RowsToDicts(allDocs)) {
+                e.MoveNext();
+                row["id"].Should().Be(e.Current["id"]);
+                row["key"].Should().Be(e.Current["key"]);
+                row["value"].AsDictionary<string, object>().Should().Equal(e.Current["value"].AsDictionary<string, object>());
+            }
 
             // Limit+Skip:
             options.Skip = 2;
             allDocs = database.GetAllDocs(options);
             expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[3] };
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+            e = expectedRows.GetEnumerator();
+            foreach(var row in RowsToDicts(allDocs)) {
+                e.MoveNext();
+                row["id"].Should().Be(e.Current["id"]);
+                row["key"].Should().Be(e.Current["key"]);
+                row["value"].AsDictionary<string, object>().Should().Equal(e.Current["value"].AsDictionary<string, object>());
+            }
 
             // Start/end key query:
             options = new QueryOptions();
@@ -1030,19 +1218,30 @@ namespace Couchbase.Lite
             options.EndKey = "44444";
             allDocs = database.GetAllDocs(options);
             expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[0], expectedRowBase[3], expectedRowBase[1] };
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+            e = expectedRows.GetEnumerator();
+            foreach(var row in RowsToDicts(allDocs)) {
+                e.MoveNext();
+                row["id"].Should().Be(e.Current["id"]);
+                row["key"].Should().Be(e.Current["key"]);
+                row["value"].AsDictionary<string, object>().Should().Equal(e.Current["value"].AsDictionary<string, object>());
+            }
 
             // Start/end query without inclusive end:
             options.InclusiveEnd = false;
             allDocs = database.GetAllDocs(options);
             expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[0], expectedRowBase[3] };
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+            e = expectedRows.GetEnumerator();
+            foreach(var row in RowsToDicts(allDocs)) {
+                e.MoveNext();
+                row["id"].Should().Be(e.Current["id"]);
+                row["key"].Should().Be(e.Current["key"]);
+                row["value"].AsDictionary<string, object>().Should().Equal(e.Current["value"].AsDictionary<string, object>());
+            }
 
             // Get zero specific documents:
             options = new QueryOptions();
             options.Keys = new List<object>();
-            allDocs = database.GetAllDocs(options);
-            Assert.IsTrue(allDocs == null || !allDocs.Any());
+            database.GetAllDocs(options).Should().BeNullOrEmpty("because the list of keys is empty");
 
             // Get specific documents:
             options = new QueryOptions();
@@ -1052,7 +1251,13 @@ namespace Couchbase.Lite
             };
             allDocs = database.GetAllDocs(options);
             expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2], expectedRowBase[3] };
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+            e = expectedRows.GetEnumerator();
+            foreach(var row in RowsToDicts(allDocs)) {
+                e.MoveNext();
+                row["id"].Should().Be(e.Current["id"]);
+                row["key"].Should().Be(e.Current["key"]);
+                row["value"].AsDictionary<string, object>().Should().Equal(e.Current["value"].AsDictionary<string, object>());
+            }
 
             // Delete a document:
             var del = docs[0];
@@ -1063,7 +1268,7 @@ namespace Couchbase.Lite
             options = new QueryOptions();
             options.Keys = new List<object> { "BOGUS", expectedRowBase[0].GetCast<string>("id") };
             allDocs = database.GetAllDocs(options);
-            var expectedResult = new List<IDictionary<string, object>> {
+            expectedRows = new List<IDictionary<string, object>> {
                 new Dictionary<string, object> {
                     { "key", "BOGUS" },
                     { "error", "not_found" }
@@ -1072,13 +1277,25 @@ namespace Couchbase.Lite
                     { "id", del.DocID },
                     { "key", del.DocID },
                     { "value", new Dictionary<string, object> {
-                            { "rev", del.RevID },
+                            { "rev", del.RevID.ToString() },
                             { "deleted", true }
                         }
                     }
                 }
             };
-            Assert.AreEqual(expectedResult, RowsToDicts(allDocs));
+            e = expectedRows.GetEnumerator();
+            foreach(var row in RowsToDicts(allDocs)) {
+                e.MoveNext();
+                if(e.Current.ContainsKey("id")) {
+                    row["id"].Should().Be(e.Current["id"]);
+                    row["value"].AsDictionary<string, object>().Should().Equal(e.Current["value"].AsDictionary<string, object>());
+                } else {
+                    row["error"].Should().Be(e.Current["error"]);
+                }
+
+                row["key"].Should().Be(e.Current["key"]);
+                
+            }
 
             // Get conflicts:
             options = new QueryOptions();
@@ -1089,7 +1306,7 @@ namespace Couchbase.Lite
                 { "id", "44444" },
                 { "key", "44444" },
                 { "value", new Dictionary<string, object> {
-                        { "rev", curRevId },
+                        { "rev", curRevId.ToString() },
                         { "_conflicts", new List<string> {
                                 curRevId.ToString(), "1-00"
                             }
@@ -1101,14 +1318,36 @@ namespace Couchbase.Lite
             expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2], expectedRowBase[3], expectedConflict1,
                 expectedRowBase[4]
             };
-                
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+
+            e = expectedRows.GetEnumerator();
+            foreach(var row in RowsToDicts(allDocs)) {
+                e.MoveNext();
+                row["id"].Should().Be(e.Current["id"]);
+                row["key"].Should().Be(e.Current["key"]);
+                var leftVal = row["value"].AsDictionary<string, object>();
+                var rightVal = e.Current["value"].AsDictionary<string, object>();
+                leftVal.Should().Contain("rev", rightVal["rev"]);
+                if(rightVal.ContainsKey("_conflicts")) {
+                    leftVal["_conflicts"].AsList<string>().Should().Equal(rightVal["_conflicts"].AsList<string>());
+                }
+            }
 
             // Get _only_ conflicts:
             options.AllDocsMode = AllDocsMode.OnlyConflicts;
             allDocs = database.GetAllDocs(options);
             expectedRows = new List<IDictionary<string, object>>() { expectedConflict1 };
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+            e = expectedRows.GetEnumerator();
+            foreach(var row in RowsToDicts(allDocs)) {
+                e.MoveNext();
+                row["id"].Should().Be(e.Current["id"]);
+                row["key"].Should().Be(e.Current["key"]);
+                var leftVal = row["value"].AsDictionary<string, object>();
+                var rightVal = e.Current["value"].AsDictionary<string, object>();
+                leftVal.Should().Contain("rev", rightVal["rev"]);
+                if(rightVal.ContainsKey("_conflicts")) {
+                    leftVal["_conflicts"].AsList<string>().Should().Equal(rightVal["_conflicts"].AsList<string>());
+                }
+            }
         }
 
         private IDictionary<string, object> CreateExpectedQueryResult(IList<QueryRow> rows, int offset)
@@ -1121,7 +1360,7 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewReduce()
         {
             var docProperties1 = new Dictionary<string, object>();
@@ -1141,8 +1380,8 @@ namespace Couchbase.Lite
 
             View view = database.GetView("totaler");
             view.SetMapReduce((document, emitter) => {
-                Assert.IsNotNull (document.CblID());
-                Assert.IsNotNull (document.CblRev());
+                document.CblID().Should().NotBeNull("because no document should reach the map function without an ID");
+                document.CblRev().Should().NotBeNull("because no document should reach the map function without a rev ID");
                 object cost = document.Get ("cost");
                 if (cost != null) {
                     emitter (document.CblID(), cost);
@@ -1154,28 +1393,28 @@ namespace Couchbase.Lite
 
             IList<IDictionary<string, object>> dumpResult = view.Storage.Dump().ToList();
             WriteDebug("View dump: " + dumpResult);
-            Assert.AreEqual(3, dumpResult.Count);
-            Assert.AreEqual("\"App\"", dumpResult[0]["key"]);
-            Assert.AreEqual("1.95", dumpResult[0]["val"]);
-            Assert.AreEqual(2, dumpResult[0]["seq"]);
-            Assert.AreEqual("\"CD\"", dumpResult[1]["key"]);
-            Assert.AreEqual("8.99", dumpResult[1]["val"]);
-            Assert.AreEqual(1, dumpResult[1]["seq"]);
-            Assert.AreEqual("\"Dessert\"", dumpResult[2]["key"]);
-            Assert.AreEqual("6.5", dumpResult[2]["val"]);
-            Assert.AreEqual(3, dumpResult[2]["seq"]);
+            dumpResult.Should().HaveCount(3, "because there should be three results from the view");
+            dumpResult[0].Should().Contain("key", "\"App\"")
+                .And.Subject.Should().Contain("val", "1.95")
+                .And.Subject.Should().Contain("seq", 2L, "because the row should have correct information");
+
+            dumpResult[1].Should().Contain("key", "\"CD\"")
+                .And.Subject.Should().Contain("val", "8.99")
+                .And.Subject.Should().Contain("seq", 1L, "because the row should have correct information");
+
+            dumpResult[2].Should().Contain("key", "\"Dessert\"")
+                .And.Subject.Should().Contain("val", "6.5")
+                .And.Subject.Should().Contain("seq", 3L, "because the row should have correct information");
+
             QueryOptions options = new QueryOptions();
             options.Reduce = true;
 
             IList<QueryRow> reduced = view.QueryWithOptions(options).ToList();
-            Assert.AreEqual(1, reduced.Count);
-            object value = reduced[0].Value;
-            double numberValue = (double)value;
-            Assert.IsTrue(Math.Abs(numberValue - 17.44) < 0.001);
+            reduced.Should().HaveCount(1).And.Subject.First().Value.As<double>().Should().BeApproximately(17.44, 0.0001, "because the row information should be correct");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestIndexUpdateMode()
         {
             View view = CreateView(database);
@@ -1183,41 +1422,34 @@ namespace Couchbase.Lite
 
             query.IndexUpdateMode = IndexUpdateMode.Before;
             int numRowsBefore = query.Run().Count;
-            Assert.AreEqual(0, numRowsBefore);
+            query.Run().Should().HaveCount(0, "because no documents have been added yet");
 
             // do a query and force re-indexing, number of results should be +4
             PutNDocs(database, 1);
             query.IndexUpdateMode = IndexUpdateMode.Before;
-            Assert.AreEqual(1, query.Run().Count);
+            query.Run().Should().HaveCount(1, "because a document was added and the index update mode is default");
 
             // do a query without re-indexing, number of results should be the same
             PutNDocs(database, 4);
             query.IndexUpdateMode = IndexUpdateMode.Never;
-            Assert.AreEqual(1, query.Run().Count);
+            query.Run().Should().HaveCount(1, "because documents added and the view is set not to update");
 
             // do a query and force re-indexing, number of results should be +4
             query.IndexUpdateMode = IndexUpdateMode.Before;
-            Assert.AreEqual(5, query.Run().Count);
+            query.Run().Should().HaveCount(5, "because the view update mode was restored to default");
 
             // do a query which will kick off an async index
             PutNDocs(database, 1);
             query.IndexUpdateMode = IndexUpdateMode.After;
-            query.Run();
+            query.Run().Count.Should().BeOneOf(new[] { 5, 6 }, "because the update mode is async");
 
             // wait until indexing is (hopefully) done
-            try
-            {
-                Sleep(1 * 1000);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Exception during TestIndexUpdateMode", e);
-            }
-            Assert.AreEqual(6, query.Run().Count);
+            Sleep(1000);
+            query.Run().Should().HaveCount(6, "because the async update should be finished");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewGrouped()
         {
             IDictionary<string, object> docProperties1 = new Dictionary<string, object>();
@@ -1274,14 +1506,17 @@ namespace Couchbase.Lite
             QueryOptions options = new QueryOptions();
             options.Reduce = true;
 
-            IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
+            var rows = view.QueryWithOptions(options);
             IList<IDictionary<string, object>> expectedRows = new List<IDictionary<string, object>>();
             IDictionary<string, object> row1 = new Dictionary<string, object>();
             row1["key"] = null;
             row1["value"] = 1162.0;
             expectedRows.Add(row1);
-            Assert.AreEqual(row1["key"], rows[0].Key);
-            Assert.AreEqual(row1["value"], rows[0].Value);
+            rows.Should().Equal(expectedRows, (left, right) =>
+            {
+                return Object.Equals(left.Key, right["key"]) &&
+                left.Value.Equals(right["value"]);
+            }, "because otherwise the query is incorrect");
 
             //now group
             options.Group = true;
@@ -1331,16 +1566,11 @@ namespace Couchbase.Lite
             row5["key"] = key5;
             row5["value"] = 309.0;
             expectedRows.Add(row5);
-            Assert.AreEqual(row1["key"], rows[0].Key.AsList<string>());
-            Assert.AreEqual(row1["value"], rows[0].Value);
-            Assert.AreEqual(row2["key"], rows[1].Key.AsList<string>());
-            Assert.AreEqual(row2["value"], rows[1].Value);
-            Assert.AreEqual(row3["key"], rows[2].Key.AsList<string>());
-            Assert.AreEqual(row3["value"], rows[2].Value);
-            Assert.AreEqual(row4["key"], rows[3].Key.AsList<string>());
-            Assert.AreEqual(row4["value"], rows[3].Value);
-            Assert.AreEqual(row5["key"], rows[4].Key.AsList<string>());
-            Assert.AreEqual(row5["value"], rows[4].Value);
+            rows.Should().Equal(expectedRows, (left, right) =>
+            {
+                return left.Key.AsList<string>().SequenceEqual(right["key"].AsList<string>()) && 
+                left.Value.Equals(right["value"]);
+            }, "because otherwise the query is incorrect");
 
             //group level 1
             options.GroupLevel = 1;
@@ -1359,10 +1589,11 @@ namespace Couchbase.Lite
             row2["key"] = key2;
             row2["value"] = 309.0;
             expectedRows.Add(row2);
-            Assert.AreEqual(row1["key"], rows[0].Key.AsList<object>());
-            Assert.AreEqual(row1["value"], rows[0].Value);
-            Assert.AreEqual(row2["key"], rows[1].Key.AsList<object>());
-            Assert.AreEqual(row2["value"], rows[1].Value);
+            rows.Should().Equal(expectedRows, (left, right) =>
+            {
+                return left.Key.AsList<object>().Cast<string>().SequenceEqual(right["key"].AsList<string>()) &&
+                left.Value.Equals(right["value"]);
+            }, "because otherwise the query is incorrect");
 
             //group level 2
             options.GroupLevel = 2;
@@ -1389,16 +1620,15 @@ namespace Couchbase.Lite
             row3["key"] = key3;
             row3["value"] = 309.0;
             expectedRows.Add(row3);
-            Assert.AreEqual(row1["key"], rows[0].Key.AsList<object>());
-            Assert.AreEqual(row1["value"], rows[0].Value);
-            Assert.AreEqual(row2["key"], rows[1].Key.AsList<object>());
-            Assert.AreEqual(row2["value"], rows[1].Value);
-            Assert.AreEqual(row3["key"], rows[2].Key.AsList<object>());
-            Assert.AreEqual(row3["value"], rows[2].Value);
+            rows.Should().Equal(expectedRows, (left, right) =>
+            {
+                return left.Key.AsList<object>().Cast<string>().SequenceEqual(right["key"].AsList<string>()) &&
+                left.Value.Equals(right["value"]);
+            }, "because otherwise the query is incorrect");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewGroupedStrings()
         {
             IDictionary<string, object> docProperties1 = new Dictionary<string, object>();
@@ -1435,29 +1665,28 @@ namespace Couchbase.Lite
             IList<IDictionary<string, object>> expectedRows = new List<IDictionary<string, object>>();
             IDictionary<string, object> row1 = new Dictionary<string, object>();
             row1["key"] = "A";
-            row1["value"] = 2;
+            row1["value"] = 2.0;
             expectedRows.Add(row1);
 
             IDictionary<string, object> row2 = new Dictionary<string, object>();
             row2["key"] = "J";
-            row2["value"] = 2;
+            row2["value"] = 2.0;
             expectedRows.Add(row2);
 
             IDictionary<string, object> row3 = new Dictionary<string, object>();
             row3["key"] = "N";
-            row3["value"] = 1;
+            row3["value"] = 1.0;
             expectedRows.Add(row3);
 
-            Assert.AreEqual(row1["key"], rows[0].Key);
-            Assert.AreEqual(row1["value"], rows[0].Value);
-            Assert.AreEqual(row2["key"], rows[1].Key);
-            Assert.AreEqual(row2["value"], rows[1].Value);
-            Assert.AreEqual(row3["key"], rows[2].Key);
-            Assert.AreEqual(row3["value"], rows[2].Value);
+            rows.Should().Equal(expectedRows, (left, right) =>
+            {
+                return left.Key.Equals(right["key"]) &&
+                left.Value.Equals(right["value"]);
+            }, "because otherwise the query is incorrect");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewCollation()
         {
             IList<object> list1 = new List<object>();
@@ -1522,12 +1751,12 @@ namespace Couchbase.Lite
             i = 0;
             foreach (QueryRow row in rows)
             {
-                Assert.AreEqual(testKeys[i++], row.Key);
+                testKeys[i++].Should().Be(row.Key, "because otherwise the row information is incorrect");
             }
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewCollationRaw()
         {
             IList<object> list1 = new List<object>();
@@ -1596,7 +1825,7 @@ namespace Couchbase.Lite
             i = 0;
             foreach (QueryRow row in rows)
             {
-                Assert.AreEqual(testKeys[i++], row.Key);
+                testKeys[i++].Should().Be(row.Key, "because otherwise the row information is incorrect");
             }
             database.Close();
         }
@@ -1611,8 +1840,7 @@ namespace Couchbase.Lite
             // Query all rows:
             QueryOptions options = new QueryOptions();
             IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
-            Assert.IsNotNull(rows);
-            Assert.IsTrue(rows.Count > 0);
+            rows.Should().NotBeNullOrEmpty("beacuse otherwise the query failed");
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -1644,8 +1872,7 @@ namespace Couchbase.Lite
 
             // required for linked documents
             IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
-            Assert.IsNotNull(rows);
-            Assert.AreEqual(5, rows.Count);
+            rows.Should().HaveCount(5, "because otherwise the query has an incorrect number of rows");
 
             object[][] expected = new object[][] { 
                 new object[] { "22222", "hello", 0, null, "22222" }, 
@@ -1662,23 +1889,23 @@ namespace Couchbase.Lite
                 IList<object> key = (IList<object>)rowAsJson["key"];
                 IDictionary<string, object> doc = (IDictionary<string, object>)rowAsJson.Get("doc");
                 string id = (string)rowAsJson["id"];
-                Assert.AreEqual(expected[i][0], id);
-                Assert.AreEqual(2, key.Count);
-                Assert.AreEqual(expected[i][1], key[0]);
-                Assert.AreEqual(expected[i][2], key[1]);
+                id.Should().Be((string)expected[i][0]);
+                key.Count.Should().Be(2);
+                key[0].Should().Be(expected[i][1]);
+                key[1].Should().Be(expected[i][2]);
                 if (expected[i][3] == null)
                 {
-                    Assert.IsNull(row.Value);
+                    row.Value.Should().BeNull();
                 }
                 else
                 {
-                    Assert.AreEqual(expected[i][3], ((IDictionary<string, object>)row.Value).CblID());
+                    ((IDictionary<string, object>)row.Value).CblID().Should().Be((string)expected[i][3]);
                 }
-                Assert.AreEqual(expected[i][4], doc.CblID());
+                doc.CblID().Should().Be((string)expected[i][4]);
             }
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewUpdateIndexWithLiveQuery()
         {
             var view = database.GetView("TestViewUpdateWithLiveQuery");
@@ -1715,10 +1942,10 @@ namespace Couchbase.Lite
 
             liveQuery.Stop();
 
-            Assert.IsTrue(rowCountAlwaysOne);
+            rowCountAlwaysOne.Should().BeTrue("because each revision should replace the last");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestRunLiveQueriesWithReduce()
         {
             var view = database.GetView("vu");
@@ -1736,45 +1963,42 @@ namespace Couchbase.Lite
             const Int32 numDocs = 10;
             CreateDocumentsAsync(database, numDocs);
 
-            Assert.IsNull(query.Rows);
+            query.Rows.Should().BeNull("because the query has not started yet");
             query.Start();
 
             var gotExpectedQueryResult = new CountdownEvent(1);
             query.Changed += (sender, e) => 
             {
-                Assert.IsNull(e.Error);
+                e.Error.Should().BeNull("because no error should occur");
                 if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.ElementAt(0).Value) == numDocs)
                 {
                     gotExpectedQueryResult.Signal();
                 }
             };
 
-            var success = gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(60));
-            Assert.IsTrue(success);
+            gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(10)).Should().BeTrue("because otherwise the query timed out");
             query.Stop();
 
             query1.Start();
 
             CreateDocumentsAsync(database, numDocs + 5); //10 + 10 + 5
 
-            var gotExpectedQuery1Result = new CountdownEvent(1);
-            query1.Changed += (sender, e) => 
+            gotExpectedQueryResult = new CountdownEvent(1);
+            query1.Changed += (sender, e) =>
             {
-                Assert.IsNull(e.Error);
+                e.Error.Should().BeNull("because no error should occur");
                 if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.ElementAt(0).Value) == (2 * numDocs) + 5)
                 {
-                    gotExpectedQuery1Result.Signal();
+                    gotExpectedQueryResult.Signal();
                 }
             };
 
-            success = gotExpectedQuery1Result.Wait(TimeSpan.FromSeconds(10));
-            Assert.IsTrue(success);
+            gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(10)).Should().BeTrue("because otherwise the query timed out");
             query1.Stop();
-
-            Assert.AreEqual((2 * numDocs) + 5, database.GetDocumentCount());
+            database.GetDocumentCount().Should().Be((2 * numDocs) + 5, "because otherwise the document count is wrong");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewIndexSkipsDesignDocs() 
         {
             var view = CreateView(database);
@@ -1788,10 +2012,10 @@ namespace Couchbase.Lite
 
             view.UpdateIndex_Internal();
             var rows = view.QueryWithOptions(null);
-            Assert.AreEqual(0, rows.Count());
+            rows.Should().HaveCount(0, "because design documents should not be indexed");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewNumericKeys() {
             var dict = new Dictionary<string, object>()
             { 
@@ -1815,11 +2039,10 @@ namespace Couchbase.Lite
             query.StartKey = 33547239;
             query.EndKey = 33547239;
             var rows = query.Run();
-            Assert.AreEqual(1, rows.Count());
-            Assert.AreEqual(33547239, rows.ElementAt(0).Key);
+            rows.Should().HaveCount(1).And.Subject.First().Key.ShouldBeEquivalentTo(33547239, "because numeric keys should stay numeric");
         }
             
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewQueryStartKeyDocID()
         {
             PutDocs(database);
@@ -1841,32 +2064,26 @@ namespace Couchbase.Lite
             options.EndKey = "three";
             var rows = view.QueryWithOptions(options).ToList<QueryRow>();
 
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual("11112", rows[0].DocumentId);
-            Assert.AreEqual("one", rows[0].Key);
-            Assert.AreEqual("33333", rows[1].DocumentId);
-            Assert.AreEqual("three", rows[1].Key);
+            rows.Should().HaveCount(2, "because there are two documents in the given range");
+            rows.Select(x => x.DocumentId).Should().Equal(new[] { "11112", "33333" }, "because the row document IDs should be correct");
+            rows.Select(x => x.Key).Cast<string>().Should().Equal(new[] { "one", "three" }, "because the row keys should be correct");
 
             options = new QueryOptions();
             options.EndKey = "one";
             options.EndKeyDocId = "11111";
             rows = view.QueryWithOptions(options).ToList<QueryRow>();
 
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual("55555", rows[0].DocumentId);
-            Assert.AreEqual("five", rows[0].Key);
-            Assert.AreEqual("44444", rows[1].DocumentId);
-            Assert.AreEqual("four", rows[1].Key);
-            Assert.AreEqual("11111", rows[2].DocumentId);
-            Assert.AreEqual("one", rows[2].Key);
+            rows.Should().HaveCount(3, "because there are three documents in the given range");
+            rows.Select(x => x.DocumentId).Should().Equal(new[] { "55555", "44444", "11111" }, "because the row document IDs should be correct");
+            rows.Select(x => x.Key).Cast<string>().Should().Equal(new[] { "five", "four", "one" }, "because the row keys should be correct");
 
             options.StartKey = "one";
             options.StartKeyDocId = "11111";
             rows = view.QueryWithOptions(options).ToList<QueryRow>();
 
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual("11111", rows[0].DocumentId);
-            Assert.AreEqual("one", rows[0].Key);
+            rows.Should().HaveCount(1, "because there is one document in the given range");
+            rows.First().DocumentId.Should().Be("11111", "because the document ID should be correct");
+            rows.First().Key.As<string>().Should().Be("one", "because the key should be correct");
         }
 
         private SavedRevision CreateTestRevisionNoConflicts(Document doc, string val) {
@@ -1879,26 +2096,21 @@ namespace Couchbase.Lite
             return unsavedRev.Save();
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewWithConflict() {
             // Create doc and add some revs
             var doc = database.CreateDocument();
             var rev1 = CreateTestRevisionNoConflicts(doc, "1");
-            Assert.IsNotNull(rev1);
+            rev1.Should().NotBeNull("because the revision should be created successfully");
             var rev2a = CreateTestRevisionNoConflicts(doc, "2a");
-            Assert.IsNotNull(rev2a);
+            rev2a.Should().NotBeNull("because the revision should be created successfully"); ;
             var rev3 = CreateTestRevisionNoConflicts(doc, "3");
-            Assert.IsNotNull(rev3);
+            rev3.Should().NotBeNull("because the revision should be created successfully");
 
             // index the view
             var view = CreateView(database);
             var rows = view.CreateQuery().Run();
-            Assert.AreEqual(1, rows.Count);
-            var row = rows.ElementAt(0);
-            Assert.AreEqual(row.Key, "3");
-
-            // TODO: Why is this null?
-            //Assert.IsNotNull(row.DocumentRevisionId);
+            rows.Should().HaveCount(1).And.Subject.First().Key.Should().Be("3", "because there should only be one current revision in the query");
 
             // Create a conflict
             var rev2bUnsaved = rev1.CreateRevision();
@@ -1908,7 +2120,7 @@ namespace Couchbase.Lite
             };
             rev2bUnsaved.SetUserProperties(props);
             var rev2b = rev2bUnsaved.Save(true);
-            Assert.IsNotNull(rev2b);
+            rev2b.Should().NotBeNull("because the revision should be created successfully");
 
             // re-run query
             view.UpdateIndex_Internal();
@@ -1916,12 +2128,11 @@ namespace Couchbase.Lite
 
             // we should only see one row, with key=3.
             // if we see key=2b then it's a bug.
-            Assert.AreEqual(1, rows.Count);
-            row = rows.ElementAt(0);
-            Assert.AreEqual(row.Key, "3");
+
+            rows.Should().HaveCount(1).And.Subject.First().Key.Should().Be("3", "because there should only be one current revision in the query");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestMultipleQueriesOnSameView()
         {
             var view = database.GetView("view1");
@@ -1947,8 +2158,8 @@ namespace Couchbase.Lite
             }
 
             Sleep(5000);
-            Assert.AreEqual(50, view.TotalRows);
-            Assert.AreEqual(50, view.LastSequenceIndexed);
+            view.TotalRows.Should().Be(50, "because despite multiple queries the results should be accurate");
+            view.LastSequenceIndexed.Should().Be(50, "because despite multiple queries the results should be accurate");
 
             query1.Stop();
             for(int i = 50; i < 60; i++) {
@@ -1962,15 +2173,15 @@ namespace Couchbase.Lite
             }
 
             Sleep(5000);
-            Assert.AreEqual(60, view.TotalRows);
-            Assert.AreEqual(60, view.LastSequenceIndexed);
+            view.TotalRows.Should().Be(60, "because despite multiple queries the results should be accurate");
+            view.LastSequenceIndexed.Should().Be(60, "because despite multiple queries the results should be accurate");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestMapConflicts()
         {
             var view = database.GetView("vu");
-            Assert.IsNotNull(view);
+            view.Should().NotBeNull("because the view should be successfully created");
             view.SetMap((d, emit) =>
                 emit(d.CblID(), d.Get("_conflicts")), "1");
 
@@ -1978,52 +2189,41 @@ namespace Couchbase.Lite
             var rev1 = doc.CurrentRevision;
             var properties = rev1.Properties;
             properties["tag"] = "1";
-            var rev2a = default(SavedRevision);
-            Assert.DoesNotThrow(() => rev2a = doc.PutProperties(properties));
+            var rev2a = doc.PutProperties(properties);
 
             // No conflicts:
             var query = view.CreateQuery();
             var rows = query.Run();
-            Assert.AreEqual(1, rows.Count);
-            var row = rows.ElementAt(0);
-            Assert.AreEqual(doc.Id, row.Key);
-            Assert.IsNull(row.Value);
+            rows.Should().HaveCount(1).And.Subject.First().Should().Match<QueryRow>(x => x.Key.Equals(doc.Id) && x.Value == null);
 
             // Create a conflict revision:
             properties["tag"] = "2";
             var newRev = rev1.CreateRevision();
             newRev.SetProperties(properties);
-            var rev2b = default(SavedRevision);
-            Assert.DoesNotThrow(() => rev2b = newRev.Save(true));
+            var rev2b = newRev.Save(true);
 
             rows = query.Run();
-            Assert.AreEqual(1, rows.Count);
-            row = rows.ElementAt(0);
-            Assert.AreEqual(doc.Id, row.Key);
-            var conflicts = new List<string> { rev2a.Id };
-            CollectionAssert.AreEqual(conflicts, row.ValueAs<IEnumerable<string>>());
+            rows.Should().HaveCount(1).And.Subject.First().Should().Match<QueryRow>(x => x.Key.Equals(doc.Id) 
+                && x.Value.AsList<string>().First().Equals(rev2a.Id));
 
             // Create another conflict revision:
             properties["tag"] = "3";
             newRev = rev1.CreateRevision();
             newRev.SetProperties(properties);
-            Assert.DoesNotThrow(() => newRev.Save(true));
+            newRev.Save(true);
 
             rows = query.Run();
-            Assert.AreEqual(1, rows.Count);
-            row = rows.ElementAt(0);
-            Assert.AreEqual(doc.Id, row.Key);
-            conflicts = new List<string> { rev2a.Id, rev2b.Id };
-            CollectionAssert.AreEquivalent(conflicts, row.ValueAs<IEnumerable<string>>());
+            rows.Should().HaveCount(1).And.Subject.First().Key.Should().Be(doc.Id, "because the query results should be correct");
+            rows.First().Value.AsList<string>().Should().BeEquivalentTo(new[] { rev2a.Id, rev2b.Id });
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewWithDocDeletion()
         {
             TestViewWithDocRemoval(false);
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestViewWithDocPurge()
         {
             TestViewWithDocRemoval(true);
@@ -2032,7 +2232,7 @@ namespace Couchbase.Lite
         private void TestViewWithDocRemoval(bool purge)
         {
             var view = database.GetView("vu");
-            Assert.IsNotNull(view);
+            view.Should().NotBeNull("because the view should be created successfully");
             view.SetMap((doc, emit) =>
             {
                 var type = doc.GetCast<string>("type");
@@ -2043,8 +2243,8 @@ namespace Couchbase.Lite
                 }
             }, "1");
 
-            Assert.IsNotNull(view.Map);
-            Assert.AreEqual(0, view.TotalRows);
+            view.Map.Should().NotBeNull("because the map was just set");
+            view.TotalRows.Should().Be(0, "because no documents exist yet");
 
             const string insertListId = "list1";
 
@@ -2054,7 +2254,7 @@ namespace Couchbase.Lite
                 { "created_at", DateTime.Now },
                 { "list_id", insertListId }
             });
-            Assert.IsNotNull(doc1);
+            doc1.Should().NotBeNull("because the document should have been created successfully");
 
             var doc2 = CreateDocumentWithProperties(database, new Dictionary<string, object> {
                 { "_id", "doc2" },
@@ -2062,7 +2262,7 @@ namespace Couchbase.Lite
                 { "created_at", DateTime.Now },
                 { "list_id", insertListId }
             });
-            Assert.IsNotNull(doc2);
+            doc2.Should().NotBeNull("because the document should have been created successfully");
 
             var doc3 = CreateDocumentWithProperties(database, new Dictionary<string, object> {
                 { "_id", "doc3" },
@@ -2070,20 +2270,15 @@ namespace Couchbase.Lite
                 { "created_at", DateTime.Now },
                 { "list_id", insertListId }
             });
-            Assert.IsNotNull(doc3);
+            doc3.Should().NotBeNull("because the document should have been created successfully");
 
             var query = view.CreateQuery();
             query.Descending = true;
             query.StartKey = new object[] { insertListId, new Dictionary<string, object>() };
             query.EndKey = new[] { insertListId };
 
-            var rows = default(QueryEnumerator);
-            Assert.DoesNotThrow(() => rows = query.Run());
-            Assert.AreEqual(3, rows.Count);
-            Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
-            Assert.AreEqual(doc2.Id, rows.ElementAt(1).DocumentId);
-            Assert.AreEqual(doc1.Id, rows.ElementAt(2).DocumentId);
-
+            var rows = query.Run();
+            rows.Select(x => x.DocumentId).Should().Equal(new[] { doc3.Id, doc2.Id, doc1.Id });
             if (purge) {
                 doc2.Purge();
             } else {
@@ -2096,9 +2291,7 @@ namespace Couchbase.Lite
             query.EndKey = new object[] { insertListId, new Dictionary<string, object>() };
             rows = query.Run();
             Trace.WriteLine(String.Format("Ascending query: rows = {0}", rows));
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(doc1.Id, rows.ElementAt(0).DocumentId);
-            Assert.AreEqual(doc3.Id, rows.ElementAt(1).DocumentId);
+            rows.Select(x => x.DocumentId).Should().Equal(new[] { doc1.Id, doc3.Id });
 
             // Check descending query result:
             query.Descending = true;
@@ -2106,14 +2299,39 @@ namespace Couchbase.Lite
             query.EndKey = new[] { insertListId };
             rows = query.Run();
             Trace.WriteLine(String.Format("Descending query: rows = {0}", rows));
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(doc3.Id, rows.ElementAt(0).DocumentId);
-            Assert.AreEqual(doc1.Id, rows.ElementAt(1).DocumentId);
+            rows.Select(x => x.DocumentId).Should().Equal(new[] { doc3.Id, doc1.Id });
+        }
+
+        [NUnit.Framework.Test] // Issue 710
+        public void TestViewsInTransaction ()
+        {
+            if (_storageType != "SQLite") {
+                return; // Invalid for ForestDB
+            }
+
+            var foo = default (View);
+            var bar = default (View);
+            database.RunInTransaction (() => {
+                foo = database.GetView ("foo");
+                foo.SetMap ((document, emit) => {
+                    emit ("test", null);
+                }, "1");
+
+                bar = database.GetView ("bar");
+                bar.SetMapReduce ((document, emit) => {
+                    emit ("test", null);
+                }, BuiltinReduceFunctions.Count, "1");
+
+                return true;
+            });
+
+            ((SqliteViewStore)foo.Storage).ViewID.Should().Be(1, "because the view ID should be properly set");
+            ((SqliteViewStore)bar.Storage).ViewID.Should().Be(2, "because the view ID should be properly set");
         }
 
         private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)
         {
-            Assert.IsNotNull(allDocs);
+            allDocs.Should().NotBeNull("because otherwise RowsToDicts is invalid");
             var rows = new List<IDictionary<string, object>>();
             foreach (var row in allDocs) {
                 rows.Add(row.AsJSONDictionary());

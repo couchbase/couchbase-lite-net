@@ -72,16 +72,11 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Mono.Android" />
-    <Reference Include="System.Json" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Web.Services" />
     <Reference Include="Stateless">
       <HintPath>..\packages\Stateless.2.5.53.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
       <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Net.Http.WebRequest">
-      <HintPath>..\..\vendor\Mono\System.Net.Http.WebRequest.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
@@ -123,7 +118,7 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\MonoAndroid" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);&#xD;&#xA;          $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb);&#xD;&#xA;          $(OutputPath)System.Net.Http.WebRequest.dll" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\MonoAndroid" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);$(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\MonoAndroid" />
   </Target>
   <ItemGroup>
     <Content Include="..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.tt">

@@ -43,7 +43,13 @@ namespace Listener
 
         public static void Main(string[] args)
         {
+            // INTERNAL API
+            CouchbaseLiteRouter.InsecureMode = true;
+            // INTERNAL API
+
             Couchbase.Lite.Util.Log.SetLogger(Logger);
+            Couchbase.Lite.Util.Log.ScrubSensitivity = Couchbase.Lite.Util.LogScrubSensitivity.AllOK;
+
             var alternateDir = default(string);
             var pullUrl = default(Uri);
             var pushUrl = default(Uri);
@@ -63,6 +69,7 @@ namespace Listener
             var revsLimit = 0;
 
             View.Compiler = new JSViewCompiler();
+            Database.FilterCompiler = new JSFilterCompiler();
 
             var options = new OptionSet {
                 { "dir=", "Specifies an alternate directory to store databases in", v => alternateDir = v },

@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Security
     /// </summary>
     public static class X509Manager
     {
-        private static readonly string Tag = typeof(X509Manager).Name;
+        private static readonly string Tag = nameof(X509Manager);
 
         /// <summary>
         /// Generates an X509 certificate for temporary use.  It is not persisted to disk.

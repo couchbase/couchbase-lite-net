@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{FF87EED7-5DE9-47E9-82F4-D1DF659D1DC2}"
 EndProject
@@ -30,8 +30,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp", "..\vendo
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "websocket-sharp.shared", "..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.shproj", "{891A08FC-F143-4325-BC16-B9864D036B99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-net_4_5", "..\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj", "{D68D4FED-CA32-4800-A628-58BAE485562C}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "StorageEngines", "StorageEngines", "{04FF2F69-CFD6-4C7E-AA54-A481F615167C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SystemSQLite", "SystemSQLite", "{224E4067-FD35-4C70-9F78-FDBF8806EB83}"
@@ -56,25 +54,30 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "storage.sqlite.common", "St
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{D2192E1B-3E4E-4B11-A134-747A54D614C2}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CustomSQLite", "CustomSQLite", "{59ACD5F4-4E76-40AC-BFD0-06921061B5B7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "storage.customsqlite.net45", "StorageEngines\CustomSQLite\storage.customsqlite.net45\storage.customsqlite.net45.csproj", "{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8bfa15b7-957d-4ad1-9019-9df98f1ee9eb}*SharedItemsImports = 4
-		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8555f0b6-3f1a-4c80-8ccb-3eed653d6242}*SharedItemsImports = 13
-		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{5aa87149-7173-42a0-8bbc-ac618b404d46}*SharedItemsImports = 13
-		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{b357bac7-529e-4d81-a0d2-71041b19c8de}*SharedItemsImports = 4
-		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d2192e1b-3e4e-4b11-a134-747a54d614c2}*SharedItemsImports = 13
-		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{c87e0c01-aad6-46da-9935-c772c112bb18}*SharedItemsImports = 4
-		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{891a08fc-f143-4325-bc16-b9864d036b99}*SharedItemsImports = 13
-		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{88bb6717-85c9-46f0-923b-c263c08a189b}*SharedItemsImports = 4
-		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{f376966c-ccab-4c5c-a81a-e2a754aa7a4c}*SharedItemsImports = 4
-		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
-		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{9ad3badd-4f48-4208-b601-e63987c12049}*SharedItemsImports = 4
-		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{8e6f8876-64f8-4483-adb2-d3aad5672f7c}*SharedItemsImports = 13
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{0bfc8b40-0659-4d45-b111-7cb4ccd22991}*SharedItemsImports = 13
-		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{ff87eed7-5de9-47e9-82f4-d1df659d1dc2}*SharedItemsImports = 13
-		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{79fc4a01-1e39-468f-8e55-195bc918232e}*SharedItemsImports = 13
-		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{2f81fd95-c9eb-40ab-a933-1ffb38d327df}*SharedItemsImports = 4
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{3eee8883-b6a9-4b71-b70e-67973f7687d5}*SharedItemsImports = 4
+		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{5aa87149-7173-42a0-8bbc-ac618b404d46}*SharedItemsImports = 13
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
+		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{666b3f9b-dc39-421e-9e4e-c5b666023fb0}*SharedItemsImports = 4
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{79fc4a01-1e39-468f-8e55-195bc918232e}*SharedItemsImports = 13
+		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8555f0b6-3f1a-4c80-8ccb-3eed653d6242}*SharedItemsImports = 13
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{88bb6717-85c9-46f0-923b-c263c08a189b}*SharedItemsImports = 4
+		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{891a08fc-f143-4325-bc16-b9864d036b99}*SharedItemsImports = 13
+		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8bfa15b7-957d-4ad1-9019-9df98f1ee9eb}*SharedItemsImports = 4
+		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{8e6f8876-64f8-4483-adb2-d3aad5672f7c}*SharedItemsImports = 13
+		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{9ad3badd-4f48-4208-b601-e63987c12049}*SharedItemsImports = 4
+		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{b357bac7-529e-4d81-a0d2-71041b19c8de}*SharedItemsImports = 4
+		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{c87e0c01-aad6-46da-9935-c772c112bb18}*SharedItemsImports = 4
+		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d2192e1b-3e4e-4b11-a134-747a54d614c2}*SharedItemsImports = 13
+		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{f376966c-ccab-4c5c-a81a-e2a754aa7a4c}*SharedItemsImports = 4
+		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{ff87eed7-5de9-47e9-82f4-d1df659d1dc2}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_All|Any CPU = Debug_All|Any CPU
@@ -165,20 +168,6 @@ Global
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Packaging|Any CPU.Build.0 = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_All|Any CPU.Build.0 = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{88BB6717-85C9-46F0-923B-C263C08A189B}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
@@ -221,6 +210,20 @@ Global
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{666B3F9B-DC39-421E-9E4E-C5B666023FB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Packaging|Any CPU.Build.0 = Packaging|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release_All|Any CPU.Build.0 = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -235,7 +238,6 @@ Global
 		{A31A98F1-8B95-479A-8E88-C770DDDB0292} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE} = {1825B796-D027-42E9-801B-CEAC3EA0F252}
 		{891A08FC-F143-4325-BC16-B9864D036B99} = {1825B796-D027-42E9-801B-CEAC3EA0F252}
-		{D68D4FED-CA32-4800-A628-58BAE485562C} = {1825B796-D027-42E9-801B-CEAC3EA0F252}
 		{224E4067-FD35-4C70-9F78-FDBF8806EB83} = {04FF2F69-CFD6-4C7E-AA54-A481F615167C}
 		{88BB6717-85C9-46F0-923B-C263C08A189B} = {224E4067-FD35-4C70-9F78-FDBF8806EB83}
 		{075CBF1F-BA9B-4C5D-92B5-B45806404360} = {04FF2F69-CFD6-4C7E-AA54-A481F615167C}
@@ -247,6 +249,8 @@ Global
 		{C51B445A-C6BB-4F34-8445-D1D2A71B812F} = {04FF2F69-CFD6-4C7E-AA54-A481F615167C}
 		{79FC4A01-1E39-468F-8E55-195BC918232E} = {C51B445A-C6BB-4F34-8445-D1D2A71B812F}
 		{D2192E1B-3E4E-4B11-A134-747A54D614C2} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
+		{59ACD5F4-4E76-40AC-BFD0-06921061B5B7} = {04FF2F69-CFD6-4C7E-AA54-A481F615167C}
+		{2F81FD95-C9EB-40AB-A933-1FFB38D327DF} = {59ACD5F4-4E76-40AC-BFD0-06921061B5B7}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
@@ -279,6 +283,10 @@ Global
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
+		$2.SpacingAfterMethodDeclarationName = False
+		$2.SpaceAfterMethodCallName = False
+		$2.SpaceAfterControlFlowStatementKeyword = False
+		$2.SpaceBeforeOpenSquareBracket = False
 		version = 1.1.1
 	EndGlobalSection
 EndGlobal

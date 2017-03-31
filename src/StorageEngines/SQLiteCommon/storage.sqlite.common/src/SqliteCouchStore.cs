@@ -59,7 +59,15 @@ namespace Couchbase.Lite.Storage.SQLCipher
         /// </summary>
         public static void Register()
         {
-            Database.RegisterStorageEngine(StorageEngineTypes.SQLite, typeof(SqliteCouchStore));
+#if SQLITE && __ANDROID__
+            var osVersion = global::Android.OS.Build.VERSION.SdkInt;
+            if (global::Android.OS.Build.VERSION.SdkInt > global::Android.OS.BuildVersionCodes.M) {
+                Log.To.Database.W("SqliteCouchStore",
+                    $"SystemSQLite cannot be used on '{osVersion}' because of new Google restrictions in API 24+, if another " +
+                    "storage engine is not registered this process will misbehave.");
+            }
+#endif
+                Database.RegisterStorageEngine(StorageEngineTypes.SQLite, typeof(SqliteCouchStore));
         }
     }
 
@@ -152,14 +160,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public int DocumentCount { 
             get {
                 return QueryOrDefault<int>(c => c.GetInt(0),
-                    false, -1, "SELECT COUNT(DISTINCT doc_id) FROM revs WHERE current=1 AND deleted=0");
+                     -1, "SELECT COUNT(DISTINCT doc_id) FROM revs WHERE current=1 AND deleted=0");
             }
         }
 
         public long LastSequence { 
             get {
                 return QueryOrDefault<long>(c => c.GetLong(0),
-                    false, 0L, "SELECT seq FROM sqlite_sequence WHERE name='revs'");
+                     0L, "SELECT seq FROM sqlite_sequence WHERE name='revs'");
             }
         }
 
@@ -220,7 +228,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             raw.SetProvider(new SQLite3Provider_sqlcipher());
 #endif
 #elif CUSTOM_SQLITE
-#error Don't forget to implement this after making the project
+#if __IOS__
+            raw.SetProvider(new SQLite3Provider_internal());
+#else
+            raw.SetProvider (new SQLite3Provider_cbsqlite());
+#endif
 #elif SQLITE && !__MOBILE__
             if(Environment.OSVersion.Platform == PlatformID.Win32NT)
             {
@@ -325,7 +337,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 result.SetBody(new Body(c.GetBlob(2)));
 
                 return false;
-            }, false, "SELECT revid, deleted, json FROM revs WHERE sequence=?", sequence);
+            }, "SELECT revid, deleted, json FROM revs WHERE sequence=?", sequence);
 
             return result;
         }
@@ -341,15 +353,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return rev;
         }
 
-        public Status TryQuery(Func<Cursor, bool> action, bool readUncommit, string sqlQuery, params object[] args)
+        public Status TryQuery(Func<Cursor, bool> action, string sqlQuery, params object[] args)
         {
             Cursor c = null;
             try {
-                if (readUncommit) {
-                    c = StorageEngine.IntransactionRawQuery(sqlQuery, args);
-                } else {
-                    c = StorageEngine.RawQuery(sqlQuery, args);
-                }
+                c = StorageEngine.RawQuery (sqlQuery, args);
 
                 var retVal = new Status(StatusCode.NotFound);
                 while(c.MoveToNext()) {
@@ -371,13 +379,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return new Status(StatusCode.DbError);
         }
 
-        public T QueryOrDefault<T>(Func<Cursor, T> action, bool readUncommit, T defaultVal, string sqlQuery, params object[] args)
+        public T QueryOrDefault<T>(Func<Cursor, T> action, T defaultVal, string sqlQuery, params object[] args)
         {
             T retVal = defaultVal;
             var success = TryQuery(c => {
                 retVal = action(c);
                 return false;
-            }, readUncommit, sqlQuery, args);
+            }, sqlQuery, args);
             if(success.IsError) {
                 return defaultVal;
             }
@@ -588,7 +596,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             {
                 docNumericId = c.GetLong(0);
                 return false;
-            }, true, "SELECT doc_id FROM docs WHERE docid=?", docId);
+            }, "SELECT doc_id FROM docs WHERE docid=?", docId);
 
             if (success.Code == StatusCode.DbError) {
                 return -1L;
@@ -644,7 +652,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         private bool SequenceHasAttachments(long sequence)
         {
-            return QueryOrDefault<bool>(c => c.GetInt(0) != 0, false, false, 
+            return QueryOrDefault<bool>(c => c.GetInt(0) != 0, false, 
                 "SELECT no_attachments=0 FROM revs WHERE sequence=?", sequence);
         }
 
@@ -682,7 +690,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             var sql = String.Format("SELECT sequence FROM revs WHERE doc_id=? AND revid=? {0} LIMIT 1",
                           (onlyCurrent ? "AND current=1" : ""));
 
-            return QueryOrDefault<long>(c => c.GetLong(0), true, 0L, sql, docNumericId, revId.ToString());
+            return QueryOrDefault<long>(c => c.GetLong(0), 0L, sql, docNumericId, revId.ToString());
         }
 
         private bool DocumentExists(string docId, RevisionID revId)
@@ -743,6 +751,28 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return null; // no change
         }
 
+        private HashSet<long> LosingSequences(long since)
+        {
+            var retVal = new HashSet<long>();
+            var sql = "SELECT sequence, revs.doc_id, docid, revid, deleted FROM revs, docs " +
+                "WHERE sequence > ? AND current=1 " +
+                "AND revs.doc_id = docs.doc_id " +
+                "ORDER BY revs.doc_id, deleted, revid DESC";
+            long lastDocId = 0L;
+            using(var c = StorageEngine.RawQuery(sql, since)) {
+                while(c.MoveToNext()) {
+                    var docNumericId = c.GetLong(1);
+                    if(docNumericId == lastDocId) {
+                        retVal.Add(c.GetLong(0));
+                    }
+
+                    lastDocId = docNumericId;
+                }
+            }
+
+            return retVal;  
+        }
+
         internal RevisionID GetWinner(long docNumericId, ValueTypePtr<bool> outDeleted, ValueTypePtr<bool> outConflict)
         {
             Debug.Assert(docNumericId > 0);
@@ -756,7 +786,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 // The document is in conflict if there are two+ result rows that are not deletions.
                 outConflict.Value = !outDeleted && c.MoveToNext() && c.GetInt(1) == 0;
                 return false;
-            }, true, "SELECT revid, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY deleted asc, revid desc LIMIT ?",
+            }, "SELECT revid, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY deleted asc, revid desc LIMIT ?",
                 docNumericId, (!outConflict.IsNull ? 2 : 1));
 
             return revId;
@@ -783,7 +813,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 revs.Add(rev);
 
                 return true;
-            }, true, sql.ToString(), docNumericId);
+            }, sql.ToString(), docNumericId);
                 
             if (innerStatus.IsError && innerStatus.Code != StatusCode.NotFound) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, innerStatus.Code, TAG,
@@ -898,7 +928,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             var success = TryQuery(c => {
                 retVal = c.GetString(0);
                 return false;
-            }, false, "SELECT value FROM info WHERE key=?", key);
+            }, "SELECT value FROM info WHERE key=?", key);
 
             return success.IsError ? null : retVal;
         }
@@ -951,6 +981,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public bool RunInTransaction(RunInTransactionDelegate block)
         {
             var retVal = StorageEngine.RunInTransaction(block);
+            if(!retVal) {
+                _docIDs.Clear(); // State of DB unknown, cache is now invalid
+            }
+
             if (!StorageEngine.InTransaction) {
                 Delegate?.StorageExitedTransaction(retVal);
             }
@@ -1003,7 +1037,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             action.AddLogic(() => 
             {
                 StorageEngine.ExecSQL("SELECT sqlcipher_export('rekeyed_db')");
-                var version = QueryOrDefault<int>(c => c.GetInt(0), false, 0, "PRAGMA user_version");
+                var version = QueryOrDefault<int>(c => c.GetInt(0), 0, "PRAGMA user_version");
                 StorageEngine.ExecSQL(String.Format("PRAGMA rekeyed_db.user_version = {0}", version));
             }, null, null);
 
@@ -1022,6 +1056,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             });
 
             // Overwrite the old db file with the new one:
+            action.AddLogic (AtomicAction.DeleteFile (Path.Combine (_directory, DB_FILENAME + "-wal")));
+            action.AddLogic (AtomicAction.DeleteFile (Path.Combine (_directory, DB_FILENAME + "-shm")));
             action.AddLogic(AtomicAction.MoveFile(tempPath, Path.Combine(_directory, DB_FILENAME)));
 
             return action;
@@ -1051,17 +1087,18 @@ namespace Couchbase.Lite.Storage.SQLCipher
             if (revId != null) {
                 sb.Append(" FROM revs WHERE revs.doc_id=? AND revid=? LIMIT 1");
             } else {
-                sb.Append(" FROM revs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1");
+                sb.Append(" FROM revs WHERE revs.doc_id=? and current=1 ORDER BY deleted, revid DESC LIMIT 1");
             }
                 
             var transactionStatus = TryQuery(c =>
             {
-                if(revId == null) {
-                    revId = c.GetString(0).AsRevID();
+                var revIDToUse = revId;
+                if(revIDToUse == null) {
+                    revIDToUse = c.GetString(0).AsRevID();
                 }
 
                 bool deleted = c.GetInt(1) != 0;
-                result = new RevisionInternal(docId, revId, deleted);
+                result = new RevisionInternal(docId, revIDToUse, deleted);
                 result.Sequence = c.GetLong(2);
                 if(withBody) {
                     result.SetJson(c.GetBlob(3));
@@ -1069,12 +1106,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     result.Missing = c.GetInt(3) == 0;
                 }
                     
-                return false;
-            }, true, sb.ToString(), docNumericId, revId?.ToString());
+                return revId == null && deleted;
+            }, sb.ToString(), docNumericId, revId?.ToString());
 
             if (transactionStatus.IsError) {
                 if (transactionStatus.Code == StatusCode.NotFound) {
-                    outStatus.Code = revId == null ? StatusCode.Deleted : StatusCode.NotFound;
+                    outStatus.Code = StatusCode.NotFound;
                     return null;
                 } else {
                     throw Misc.CreateExceptionAndLog(Log.To.Database, outStatus.Code, TAG,
@@ -1082,7 +1119,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
             }
 
-            outStatus.Code = StatusCode.Ok;
+            if(result.Deleted) {
+                outStatus.Code = StatusCode.Deleted;
+                return null;
+            } else {
+                outStatus.Code = StatusCode.Ok;
+            }
+
             return result;
         }
 
@@ -1109,7 +1152,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return false;
-            }, false, "SELECT sequence, json FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID.ToString());
+            }, "SELECT sequence, json FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID.ToString());
 
             if (status.IsError) {
                 throw Misc.CreateExceptionAndLog(Log.To.Database, status.Code, TAG,
@@ -1124,12 +1167,12 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return 0L;
             }
 
-            return QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT sequence FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID.ToString());
+            return QueryOrDefault<long>(c => c.GetLong(0), 0L, "SELECT sequence FROM revs WHERE doc_id=? AND revid=? LIMIT 1", docNumericId, rev.RevID.ToString());
         }
 
         public DateTime? NextDocumentExpiry()
         {
-            var result = QueryOrDefault<long?>(c => c.GetLong(0), true, null, "SELECT expiry_timestamp FROM " +
+            var result = QueryOrDefault<long?>(c => c.GetLong(0), null, "SELECT expiry_timestamp FROM " +
                 "docs WHERE expiry_timestamp IS NOT NULL ORDER BY expiry_timestamp ASC LIMIT 1");
             if(result == null) {
                 return null;
@@ -1145,7 +1188,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 return null;
             }
 
-            var result = QueryOrDefault<long?>(c => c.GetLong(0), false, null, "SELECT expiry_timestamp FROM docs WHERE doc_id=? AND expiry_timestamp IS NOT NULL", docNumericId);
+            var result = QueryOrDefault<long?>(c => c.GetLong(0), null, "SELECT expiry_timestamp FROM docs WHERE doc_id=? AND expiry_timestamp IS NOT NULL", docNumericId);
             if(result == null) {
                 return null;
             }
@@ -1176,14 +1219,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // First get the parent's sequence:
             var seq = rev.Sequence;
             if (seq != 0) {
-                seq = QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT parent FROM revs WHERE sequence=?", seq);
+                seq = QueryOrDefault<long>(c => c.GetLong(0), 0L, "SELECT parent FROM revs WHERE sequence=?", seq);
             } else {
                 var docNumericId = GetDocNumericID(rev.DocID);
                 if (docNumericId == 0L) {
                     return null;
                 }
 
-                seq = QueryOrDefault<long>(c => c.GetLong(0), false, 0L, "SELECT parent FROM revs WHERE doc_id=? and revid=?", docNumericId, rev.RevID.ToString());
+                seq = QueryOrDefault<long>(c => c.GetLong(0), 0L, "SELECT parent FROM revs WHERE doc_id=? and revid=?", docNumericId, rev.RevID.ToString());
             }
 
             if (seq == 0) {
@@ -1197,7 +1240,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 result = new RevisionInternal(rev.DocID, c.GetString(0).AsRevID(), c.GetInt(1) != 0);
                 result.Sequence = seq;
                 return false;
-            }, false, "SELECT revid, deleted FROM revs WHERE sequence=?", seq);
+            }, "SELECT revid, deleted FROM revs WHERE sequence=?", seq);
 
             return result;
         }
@@ -1243,7 +1286,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return true;
-            }, false, "SELECT sequence, parent, revid" +
+            }, "SELECT sequence, parent, revid" +
             " FROM revs WHERE doc_id=? ORDER BY sequence DESC", docNumericId);
 
             if (status.IsError) {
@@ -1296,7 +1339,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     }
 
                     return true;
-                }, false, sql, docNumericId, current, String.Format("{0}-", generation), sqlLimit);
+                }, sql, docNumericId, current, String.Format("{0}-", generation), sqlLimit);
 
                 if(status.Code != StatusCode.NotFound && status.IsError) {
                     return null;
@@ -1323,7 +1366,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 "WHERE doc_id=? and revid in ({0}) and revid <= ? " +
                 "ORDER BY revid DESC LIMIT 1", Utility.JoinQuoted(revIds.Select(x => x.ToString())));
 
-            return QueryOrDefault(c => c.GetString(0), false, null, sql, docNumericId, rev.RevID.ToString()).AsRevID();
+            return QueryOrDefault(c => c.GetString(0), null, sql, docNumericId, rev.RevID.ToString()).AsRevID();
         }
 
         public int FindMissingRevisions(RevisionList revs)
@@ -1348,7 +1391,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return true;
-            }, false, sql);
+            }, sql);
 
             return status.IsSuccessful ? count : 0;
         }
@@ -1377,7 +1420,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 return true;
-            }, false, "SELECT json FROM revs WHERE no_attachments != 1");
+            }, "SELECT json FROM revs WHERE no_attachments != 1");
 
             return status.IsError && status.Code != StatusCode.NotFound ? null : allKeys;
         }
@@ -1546,11 +1589,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
             var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
                 "WHERE sequence > ? AND current=1 " +
                 "AND revs.doc_id = docs.doc_id " +
-                "ORDER BY revs.doc_id, revid DESC",
+                "ORDER BY revs.doc_id, deleted, revid DESC",
                 (includeDocs ? @", json" : @""));
 
             var changes = new RevisionList();
             long lastDocId = 0L;
+
+            var returned = 0;
             TryQuery(c =>
             {
                 if(!options.IncludeConflicts) {
@@ -1572,36 +1617,80 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     rev.SetJson(c.GetBlob(5));
                 }
 
-                if(filter == null || filter(rev)) {
+                if((filter == null || filter(rev)) && returned++ < options.Limit) {
                     changes.Add(rev);
                 }
 
-                return true;
-            }, false, sql, lastSequence);
+                if(returned >= options.Limit) {
+                    return false;
+                }
 
-            if (options.SortBySequence) {
+                return true;
+            }, sql, lastSequence);
+
+            if(options.SortBySequence) {
                 changes.SortBySequence(!options.Descending);
-                changes.Limit(options.Limit);
             }
 
             return changes;
         }
 
+        public IEnumerable<RevisionInternal> ChangesSinceStreaming(long lastSequence, ChangesOptions options, RevisionFilter filter)
+        {
+            bool includeDocs = options.IncludeDocs || filter != null;
+            var orderby = options.SortBySequence ? options.Descending ? "sequence DESC" : "sequence" : "revs.doc_id, deleted, revid DESC";
+            var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
+                "WHERE sequence > ? AND current=1 " +
+                "AND revs.doc_id = docs.doc_id " +
+                "ORDER BY {1} ",
+                (includeDocs ? @", json" : @""), orderby);
+
+            var losingSequences = default(HashSet<long>);
+            if(options.SortBySequence && !options.IncludeConflicts) {
+                losingSequences = LosingSequences(lastSequence);
+            }
+
+            var returned = 0;
+            var lastDocId = 0L;
+            using(var c = StorageEngine.RawQuery(sql, lastSequence)) {
+                while(c.MoveToNext()) {
+                    if(options.SortBySequence) {
+                        if(losingSequences?.Contains(c.GetLong(0)) == true) {
+                            continue;
+                        }
+                    } else if(!options.IncludeConflicts) {
+                        // Only count the first rev for a given doc (the rest will be losing conflicts):
+                        var docNumericId = c.GetLong(1);
+                        if(docNumericId == lastDocId) {
+                            continue;
+                        }
+
+                        lastDocId = docNumericId;
+                    }
+
+                    string docId = c.GetString(2);
+                    var revId = c.GetString(3).AsRevID();
+                    bool deleted = c.GetInt(4) != 0;
+                    var rev = new RevisionInternal(docId, revId, deleted);
+                    rev.Sequence = c.GetLong(0);
+                    if(includeDocs) {
+                        rev.SetJson(c.GetBlob(5));
+                    }
+
+                    if(filter == null || filter(rev) && returned++ < options.Limit) {
+                        yield return rev;
+                    }
+
+                    if(returned >= options.Limit) {
+                        break;
+                    }
+                }
+            }
+        }
+
         public RevisionInternal PutRevision(string inDocId, RevisionID inPrevRevId, IDictionary<string, object> properties,
             bool deleting, bool allowConflict, Uri source, StoreValidation validationBlock)
         {
-            IEnumerable<byte> json = null;
-            if (properties != null) {
-                try {
-                    json = Manager.GetObjectMapper().WriteValueAsBytes(Database.StripDocumentJSON(properties), true);
-                } catch (Exception e) {
-                    throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
-                        "Unable to serialize document properties in PutRevision");
-                }
-            } else {
-                json = Encoding.UTF8.GetBytes("{}");
-            }
-
             RevisionInternal newRev = null;
             RevisionID winningRevID = null;
             bool inConflict = false;
@@ -1697,6 +1786,33 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 inConflict = wasConflicted || (!deleting && prevRevId != oldWinningRevId);
 
                 //// PART II: In which we prepare for insertion...
+
+                // https://github.com/couchbase/couchbase-lite-net/issues/749
+                // Need to ensure revpos is correct for a revision inserted on top
+                // of a deletion
+                if(oldWinnerWasDeletion) {
+                    var attachments = properties.CblAttachments();
+                    if(attachments != null) {
+                        foreach(var attach in attachments) {
+                            var metadata = attach.Value.AsDictionary<string, object>();
+                            if(metadata != null) {
+                                metadata["revpos"] = prevRevId.Generation + 1;
+                            }
+                        }
+                    }
+                }
+
+                IEnumerable<byte> json = null;
+                if(properties != null) {
+                    try {
+                        json = Manager.GetObjectMapper().WriteValueAsBytes(Database.StripDocumentJSON(properties), true);
+                    } catch(Exception e) {
+                        throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG,
+                            "Unable to serialize document properties in PutRevision");
+                    }
+                } else {
+                    json = Encoding.UTF8.GetBytes("{}");
+                }
 
                 // Bump the revID and update the JSON:
                 var newRevId = TreeRevisionID.RevIDForJSON(json, deleting, prevRevId);
@@ -1814,6 +1930,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             RevisionID winningRevId = null;
             ValueTypePtr<bool> inConflict = false;
+            bool created = false;
             RunInTransaction(() =>
             {
                 // First look up the document's row-id and all locally-known revisions of it:
@@ -1976,7 +2093,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 
                 // Delete the deepest revs in the tree to enforce the MaxRevTreeDepth:
-                if (inRev.Generation > MaxRevTreeDepth) {
+                if (localRevs != null && inRev.Generation > MaxRevTreeDepth) {
                     int minGen = rev.Generation, maxGen = rev.Generation;
                     foreach (var innerRev in localRevs.Values) {
                         var generation = innerRev.Generation;
@@ -1996,10 +2113,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                 // Figure out what the new winning rev ID is:
                 winningRevId = GetWinner(docNumericId, oldWinningRevId, oldWinnerWasDeletion, rev);
+                created = true;
                 return true;
             });
-                
-            Delegate.DatabaseStorageChanged(new DocumentChange(rev, winningRevId, inConflict, source));
+
+            if (created) {
+                Delegate.DatabaseStorageChanged (new DocumentChange (rev, winningRevId, inConflict, source));
+            }
         }
 
         public IDictionary<string, object> PurgeRevisions(IDictionary<string, IList<string>> docsToRev)
@@ -2067,7 +2187,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                 seqsToKeep.Add(parent);
                             }
                             return true;
-                        }, true, sql, docNumericId);
+                        }, sql, docNumericId);
 
                         seqsToPurge.ExceptWith(seqsToKeep);
                         Log.To.Database.I(TAG, "Purging doc '{0}' revs ({1}); asked for ({2})", 
@@ -2119,7 +2239,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     result.Add(c.GetString(1));
 
                     return true;
-                }, false, "SELECT * FROM docs WHERE expiry_timestamp <= ?", now);
+                }, "SELECT * FROM docs WHERE expiry_timestamp <= ?", now);
                     
                 if (result.Count > 0) {
                     var deleteSql = String.Format("sequence in ({0})", String.Join(", ", sequences.ToStringArray()));
@@ -2149,7 +2269,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
             {
                 result.Add(c.GetString(0));
                 return true;
-            }, false, "SELECT name FROM views");
+            }, "SELECT name FROM views");
 
             return result;
         }
@@ -2181,7 +2301,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 result.SetProperties(properties);
 
                 return false;
-            }, false, "SELECT revid, json FROM localdocs WHERE docid=?", docId);
+            }, "SELECT revid, json FROM localdocs WHERE docid=?", docId);
 
             return result;
         }

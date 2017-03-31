@@ -144,9 +144,14 @@ namespace Couchbase.Lite {
 
             Metadata = new Dictionary<String, Object> {
                 { AttachmentMetadataDictionaryKeys.ContentType, contentType },
-                { AttachmentMetadataDictionaryKeys.Follows, true },
-                { AttachmentMetadataDictionaryKeys.Length, contentStream.Length }
+                { AttachmentMetadataDictionaryKeys.Follows, true }
             };
+
+            try {
+                Metadata[AttachmentMetadataDictionaryKeys.Length] = contentStream.Length;
+            } catch(NotSupportedException) {
+                Log.To.Database.V(Tag, "Omitting length for non-seekable stream");
+            }
 
             Body = contentStream;
         }
@@ -290,7 +295,7 @@ namespace Couchbase.Lite {
         /// </exception>
         public Stream ContentStream { 
             get {
-                if (Body != null) {
+                if (Body?.CanSeek == true) {
                     Body.Reset();
                     return Body;
                 }
@@ -311,6 +316,8 @@ namespace Couchbase.Lite {
                         "Could not retrieve an attachment for revision sequence {0}.", Revision.Sequence);
                 }
 
+
+                Body?.Dispose();
                 Body = attachment.ContentStream;
                 Body.Reset();
 
@@ -326,7 +333,7 @@ namespace Couchbase.Lite {
         public IEnumerable<Byte> Content 
         { 
             get {
-                if (Body != null) {
+                if (Body?.CanSeek == true) {
                     Body.Reset();
                     return Body.ReadAllBytes();
                 }

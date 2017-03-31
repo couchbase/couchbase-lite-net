@@ -44,10 +44,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Couchbase.Lite;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using NUnit.Framework;
+using FluentAssertions;
 
 namespace Couchbase.Lite
 {
@@ -61,7 +60,7 @@ namespace Couchbase.Lite
 
         public BatcherTest(string storageType) : base(storageType) {}
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestBatcherSingleBatch()
         {
             doneSignal = new CountdownEvent(10);
@@ -70,8 +69,12 @@ namespace Couchbase.Lite
             processorDelay = TimeSpan.FromSeconds(1);
 
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var batcher = new Batcher<string>(new TaskFactory(scheduler), 
-                inboxCapacity, processorDelay, TestBatcherSingleBatchProcessor);
+            var batcher = new Batcher<string>(new BatcherOptions<string> {
+                WorkExecutor = new TaskFactory(scheduler),
+                Capacity = inboxCapacity,
+                Delay = processorDelay,
+                Processor = TestBatcherSingleBatchProcessor
+            });
 
             var objectsToQueue = new List<string>();
             for (var i = 0; i < inboxCapacity * 10; i++)
@@ -82,10 +85,10 @@ namespace Couchbase.Lite
             batcher.QueueObjects(objectsToQueue);
 
             var success = doneSignal.Wait(TimeSpan.FromSeconds(35));
-            Assert.IsTrue(success);
+            success.Should().BeTrue("beacuse otherwise the batcher didn't run the correct number of times");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestBatcherBatchSize5()
         {
             doneSignal = new CountdownEvent(10);
@@ -94,8 +97,12 @@ namespace Couchbase.Lite
             processorDelay = TimeSpan.FromSeconds(1);
 
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var batcher = new Batcher<string>(new TaskFactory(scheduler), 
-                inboxCapacity, processorDelay, TestBatcherBatchSize5Processor);
+            var batcher = new Batcher<string>(new BatcherOptions<string> {
+                WorkExecutor = new TaskFactory(scheduler),
+                Capacity = inboxCapacity,
+                Delay = processorDelay,
+                Processor = TestBatcherBatchSize5Processor
+            });
 
             var objectsToQueue = new List<string>();
             for (var i = 0; i < inboxCapacity * 10; i++)
@@ -109,47 +116,52 @@ namespace Couchbase.Lite
             }
 
             var success = doneSignal.Wait(TimeSpan.FromSeconds(35));
-            Assert.IsTrue(success);
+            success.Should().BeTrue("beacuse otherwise the batcher didn't run the correct number of times");
         }
             
-        [Test]
+        [NUnit.Framework.Test]
         public void TestBatcherCancel()
         {
             var mre = new ManualResetEventSlim();
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var batcher = new Batcher<int>(new TaskFactory(scheduler), 5, TimeSpan.FromMilliseconds(500), (inbox) =>
-            {
-                mre.Set();
+
+            var batcher = new Batcher<int>(new BatcherOptions<int> {
+                WorkExecutor = new TaskFactory(scheduler),
+                Capacity = 5,
+                Delay = TimeSpan.FromMilliseconds(500),
+                Processor = (inbox) => mre.Set()
             });
 
             batcher.QueueObject(0);
-            Assert.IsTrue(mre.Wait(1000), "Batcher didn't initially run");
+            mre.Wait(1000).Should().BeTrue("because otherwise the batcher didn't initially run");
             mre.Reset();
 
             batcher.QueueObject(0);
             batcher.Clear();
-            Assert.False(mre.Wait(TimeSpan.FromSeconds(1)), "Batcher ran after being cancelled");
+            mre.Wait(TimeSpan.FromSeconds(1)).Should().BeFalse("because otherwise the batcher ran after being cancelled");
         }
 
-        [Test]
+        [NUnit.Framework.Test]
         public void TestBatcherAddAfterCancel()
         {
             var evt = new CountdownEvent(1);
             var scheduler = new SingleTaskThreadpoolScheduler();
-            var batcher = new Batcher<int>(new TaskFactory(scheduler), 5, TimeSpan.FromMilliseconds(500), (inbox) =>
-            {
-                evt.Signal();
+            var batcher = new Batcher<int>(new BatcherOptions<int> {
+                WorkExecutor = new TaskFactory(scheduler),
+                Capacity = 5,
+                Delay = TimeSpan.FromMilliseconds(500),
+                Processor = (inbox) => evt.Signal()
             });
 
             batcher.QueueObject(0);
-            Assert.IsTrue(evt.Wait(1000), "Batcher didn't initially run");
+            evt.Wait(1000).Should().BeTrue("because otherwise the batcher didn't initially run");
             evt.Reset(2);
 
             batcher.QueueObject(0);
             batcher.Clear();
             batcher.QueueObject(0);
-            Assert.False(evt.Wait(TimeSpan.FromSeconds(1.5)), "Batcher ran too many times");
-            Assert.True(evt.CurrentCount == 1, "Batcher never ran");
+            evt.Wait(TimeSpan.FromSeconds(1.5)).Should().BeFalse("because otherwise the batcher ran too many times");
+            evt.CurrentCount.Should().Be(1, "because otherwise the batcher never ran");
         }
 
         private void TestBatcherSingleBatchProcessor(IList<string> itemsToProcess)
@@ -186,7 +198,7 @@ namespace Couchbase.Lite
                 else
                 {
                     var curItemNumber = Int32.Parse(itemString);
-                    Assert.IsTrue(curItemNumber == previousItemNumber + 1);
+                    curItemNumber.Should().Be(previousItemNumber + 1, "because otherwise the numbers are not consecutive");
                     previousItemNumber = curItemNumber;
                 }
             }

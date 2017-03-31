@@ -268,7 +268,7 @@ namespace Couchbase.Lite.Store
             }
 
             _cryptor.IV = iv;
-            return new CryptoStream(stream, _cryptor.CreateDecryptor(), CryptoStreamMode.Read);
+            return new SilentCryptoStream(stream, _cryptor.CreateDecryptor(), CryptoStreamMode.Read);
         }
 
         /// <summary>
@@ -282,7 +282,7 @@ namespace Couchbase.Lite.Store
                 return null;
             }
 
-            var retVal = new CryptoStream(baseStream, _cryptor.CreateEncryptor(), CryptoStreamMode.Write);
+            var retVal = new SilentCryptoStream(baseStream, _cryptor.CreateEncryptor(), CryptoStreamMode.Write);
             retVal.Write(_cryptor.IV, 0, IV_SIZE);
             return retVal;
         }

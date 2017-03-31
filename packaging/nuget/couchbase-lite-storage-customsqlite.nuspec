@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>Couchbase.Lite.Storage.CustomSQLite</id>
-    <title>Couchbase Lite System SQLite Storage</title>
+    <title>Couchbase Lite Custom SQLite Storage</title>
     <version>$version$</version>
     <authors>Jim Borden</authors>
     <owners>Couchbase</owners>
@@ -12,23 +12,29 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A storage engine provider for Couchbase Lite .NET that utilizies a custom built SQLite library</description>
     <releaseNotes>
-Starting with Couchbase Lite 1.2 the disk persistence mechanism is modularized, meaning that at least one support package is required for it to function properly.  The Couchbase.Lite.Storage.SystemSQLite package is added by default as a required dependency.
+NOTE: .NET 3.5 SUPPORT IS DEPRECATED AND WILL BE DROPPED IN 2.0
 
-For full details please see https://github.com/couchbase/couchbase-lite-net/releases/tag/1.2
+Couchbase Lite 1.4 brings initial LINQ support to Couchbase Lite, as well as a number of bug fixes and optimizations.
+
+For full notes see https://developer.couchbase.com/documentation/mobile/1.4/references/couchbase-lite/release-notes/Dot-Net.html
     </releaseNotes>
-    <copyright>Copyright 2016</copyright>
+    <copyright>Copyright 2017</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
       <group>
-        <dependency id="SQLitePCL.raw" version="[0.9.0]" />
-        <dependency id="SQLitePCL.ugly" version="[0.9.0]" />
+        <dependency id="SQLitePCL.raw" version="0.9.3" />
+        <dependency id="SQLitePCL.ugly" version="0.9.3" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file target="lib/net35/" src="staging/Couchbase.Lite.Storage.CustomSQLite/net35/*" />
-    <file target="lib/net45/" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/*" />
+    <file target="lib/net45/" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/Couchbase.Lite.Storage.CustomSQLite*" />
+    <file target="build/net45/" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/libcbsqlite3.dylib" />
+    <file target="build/net45/" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/libcbsqlite3.so" />
+    <file target="build/net45/x86/cbsqlite3.dll" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/x86/cbsqlite3.dll" />
+    <file target="build/net45/x64/cbsqlite3.dll" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/x64/cbsqlite3.dll" />
+    <file target="build/net45/Couchbase.Lite.Storage.CustomSQLite.targets" src="staging/Couchbase.Lite.Storage.CustomSQLite/net45/net45.targets" />
     <file target="lib/MonoAndroid/" src="staging/Couchbase.Lite.Storage.CustomSQLite/MonoAndroid/*" />
     <file target="lib/Xamarin.iOS10/" src="staging/Couchbase.Lite.Storage.CustomSQLite/Xamarin.iOS10/*" />
   </files>

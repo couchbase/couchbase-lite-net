@@ -669,11 +669,18 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 // Move attachments dir back to the old path
                 var newAttachmentsPath = _db.AttachmentStorePath;
                 if (_oldAttachmentsPath != null && Directory.Exists(newAttachmentsPath)) {
-                    if (CanRemoveOldAttachmentsDir) {
-                        try {
-                            Directory.CreateDirectory(_oldAttachmentsPath);
-                        } catch(IOException) {
+                    if(CanRemoveOldAttachmentsDir) {
+                        // Need to ensure upper case
+                        foreach(var file in Directory.GetFiles(newAttachmentsPath)) {
+                            var filename = Path.GetFileNameWithoutExtension(file).ToUpperInvariant();
+                            var extension = Path.GetExtension(file);
+                            var newPath = Path.Combine(_oldAttachmentsPath, filename + extension);
+                            File.Move(file, newPath);
                         }
+
+                        Directory.Delete(Path.ChangeExtension(newAttachmentsPath, null), true);
+                    } else {
+                        DirectoryCopy(_oldAttachmentsPath, newAttachmentsPath);
                     }
                 }
 

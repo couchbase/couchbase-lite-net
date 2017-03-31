@@ -23,7 +23,8 @@
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
@@ -31,19 +32,29 @@
     <ConsolePause>false</ConsolePause>
     <DefineConstants>CUSTOM_SQLITE</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Packaging</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <DefineConstants>__UNIFIED__;__MOBILE__;__IOS__;CUSTOM_SQLITE</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.0\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.0\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.iOS" />
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.3\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.3\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
@@ -66,7 +77,6 @@
     <Compile Include="..\util.cs">
       <Link>util.cs</Link>
     </Compile>
-    <Compile Include="SQLite3Plugin.cs" />
     <Compile Include="SQLite3Provider_internal.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -74,10 +84,15 @@
   </ItemGroup>
   <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" Condition="Exists('..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
+	<Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
+    <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.CustomSQLite\Xamarin.iOS10" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.dll;$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.CustomSQLite\Xamarin.iOS10" />
+  </Target>
   <Target Name="BeforeBuild">
      <Message Text="Downloading native SQLite binaries, if needed.  This may take a while..." />
-     <Exec Condition=" '$(OS)' == 'Windows_NT' " Command='powershell -executionpolicy Unrestricted $(ProjectDir)..\vendor\sqlite\download_native.ps1 ' />
-     <Exec Condition=" '$(OS)' != 'Windows_NT' " Command='bash $(ProjectDir)..\vendor\sqlite\download_native.sh ' />
+     <Exec Condition=" '$(OS)' == 'Windows_NT' " Command="powershell -executionpolicy Unrestricted $(ProjectDir)..\vendor\sqlite\download_native.ps1 " />
+     <Exec Condition=" '$(OS)' != 'Windows_NT' " Command="bash $(ProjectDir)..\vendor\sqlite\download_native.sh " />
      <Message Text="Finished Downloading!" />
   </Target>
 </Project>

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Net;
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite.Util
 {
@@ -28,7 +29,7 @@ namespace Couchbase.Lite.Util
         private Task<HttpResponseMessage> ResendHandler(HttpRequestMessage request, RetryStrategyExecutor executor)
         {
             return base.SendAsync(request, executor.Token)
-                .ContinueWith(t => HandleTransientErrors(t, executor), executor.Token)
+                .ContinueWith(t => HandleTransientErrors(t, executor))
                 .Unwrap();
         }
 
@@ -36,10 +37,23 @@ namespace Couchbase.Lite.Util
         static Task<HttpResponseMessage> HandleTransientErrors(Task<HttpResponseMessage> request, object state)
         {
             var executor = (RetryStrategyExecutor)state;
+            if(executor.Token.IsCancellationRequested) {
+                executor.Token = new CancellationToken();
+            }
+
             if (!request.IsFaulted) 
             {
+                if(request.IsCanceled) {
+                    if(executor.CanContinue) {
+                        Log.To.Sync.V(Tag, "Retrying after cancellation (i.e. HTTP timeout)");
+                        return executor.Retry();
+                    } else {
+                        throw new TaskCanceledException("HTTP timeout");
+                    }
+                }
+
                 var response = request.Result;
-                if (executor.CanContinue && Misc.IsTransientError(response)) {
+                if (executor.CanContinue && ExceptionResolver.IsTransientError(response)) {
                     Log.To.Sync.V(Tag, "Retrying after transient error...");
                     return executor.Retry();
                 }
@@ -67,10 +81,12 @@ namespace Couchbase.Lite.Util
                 return request;
             }
 
-            string statusCode;
-            if (!Misc.IsTransientNetworkError(request.Exception, out statusCode) || !executor.CanContinue)
-            {
-                if (!executor.CanContinue) {
+            var resolution = ExceptionResolver.Solve(request.Exception, new ExceptionResolverOptions {
+                HasRetries = executor.CanContinue
+            });
+
+            if(resolution.Resolution == ErrorResolution.Stop) {
+                if(resolution.ResolutionFlags.HasFlag(ErrorResolutionFlags.OutOfRetries)) {
                     Log.To.Sync.V(Tag, "Out of retries for error, throwing", request.Exception);
                 } else {
                     Log.To.Sync.V(Tag, "Non transient error received (status), throwing", request.Exception);
@@ -79,8 +95,7 @@ namespace Couchbase.Lite.Util
                 // If it's not transient, pass the exception along
                 // for any other handlers to respond to.
                 throw request.Exception;
-            }
-
+            } 
 
             // Retry again.
             Log.To.Sync.V(Tag, "Retrying after transient error...");

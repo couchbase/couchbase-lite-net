@@ -65,6 +65,59 @@ namespace Couchbase.Lite
         public DatabaseTest(string storageType) : base(storageType) {}
 
         [Test]
+        public void TestQueryIndependence()
+        {
+            if(_storageType != "SQLite") {
+                return;
+            }
+
+            CreateDocuments (database, 10);
+
+            var engine = (database.Storage as SqliteCouchStore).StorageEngine;
+            var are = new AutoResetEvent (false);
+            Task.Factory.StartNew (async () => {
+                var c = engine.RawQuery ("SELECT * FROM revs");
+                c.MoveToNext ();
+                are.Set ();
+                await Task.Delay (3000);
+                c.Close ();
+            });
+
+            are.WaitOne ();
+            database.GetDocument ("ghost").PutProperties (new Dictionary<string, object> {
+                ["line"] = "boo"
+            });
+
+            Assert.IsNotNull (database.GetExistingDocument ("ghost"));
+        }
+
+        [Test]
+        public void TestRollbackInvalidatesCache()
+        {
+            var props = new Dictionary<string, object> {
+                ["exists"] = false
+            };
+
+            database.RunInTransaction (() => {
+                database.GetDocument ("rogue").PutProperties (props);
+                return false; // Cancel the transaction
+            });
+
+            props ["exists"] = true;
+            var rev = database.GetDocument ("proper").PutProperties (props);
+
+            Assert.IsNull (database.GetExistingDocument ("rogue"));
+            if(_storageType == StorageEngineTypes.SQLite) {
+                Assert.AreEqual(1, rev.Sequence);
+            }
+
+            rev = database.GetDocument ("rogue").PutProperties (props);
+            if(_storageType == StorageEngineTypes.SQLite) {
+                Assert.AreEqual(2, rev.Sequence);
+            }
+        }
+
+        [Test]
         public void TestFindMissingRevisions()
         {
             var revs = new RevisionList();

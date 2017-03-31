@@ -11,6 +11,7 @@
     <AssemblyName>Couchbase.Lite.Listener</AssemblyName>
     <ReleaseVersion>1.1.1</ReleaseVersion>
     <RestorePackages>true</RestorePackages>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -59,7 +60,7 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener\Xamarin.iOS10" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.dll.mdb;&#xA;    $(OutputPath)Mono.Security.Couchbase.dll;$(OutputPath)Mono.Security.Couchbase.dll.mdb;&#xA;    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\Xamarin.iOS10" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\Xamarin.iOS10" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
@@ -71,10 +72,6 @@
     <ProjectReference Include="..\..\..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.ios.csproj">
       <Project>{DCE46CB2-0317-4A62-9613-AE6A240C46DB}</Project>
       <Name>websocket-sharp.ios</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\vendor\Mono\Mono.Security\Mono.Security-ios.csproj">
-      <Project>{83F75E53-48BE-4F3C-8D79-62CBD5050792}</Project>
-      <Name>Mono.Security-ios</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -19,6 +19,15 @@
 // limitations under the License.
 //
 
+[assembly: ObjCRuntime.LinkWith(
+        "libsqlite3.a",
+        LinkTarget = ObjCRuntime.LinkTarget.Simulator | ObjCRuntime.LinkTarget.Simulator64 | ObjCRuntime.LinkTarget.ArmV7 | ObjCRuntime.LinkTarget.ArmV7s | ObjCRuntime.LinkTarget.Arm64,
+        ForceLoad = true,
+        LinkerFlags = "",
+        Frameworks = ""
+        )
+        ]
+
 namespace SQLitePCL
 {
     using System;

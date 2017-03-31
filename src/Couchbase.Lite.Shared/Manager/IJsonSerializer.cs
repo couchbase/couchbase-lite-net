@@ -151,6 +151,8 @@ namespace Couchbase.Lite
         /// <param name="json">The stream containing JSON data</param>
         void StartIncrementalParse(Stream json);
 
+        void StopIncrementalParse();
+
         /// <summary>
         /// Reads the next token from a JSON stream.  Note that an incremental parse
         /// must be started first.

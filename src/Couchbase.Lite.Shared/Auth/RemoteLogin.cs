@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Auth
             _session.SendAsyncRequest(HttpMethod.Get, sessionPath, null, (result, e) => {
                 if(e != null) {
                     // If not at /db/_session, try CouchDB location /_session
-                    var statusCode = Misc.GetStatusCode(e);
+                    var statusCode = ExceptionResolver.GetStatusCode(e);
                     if(statusCode.HasValue && statusCode.Value == HttpStatusCode.NotFound &&
                     sessionPath == "_session") {
                         CheckSessionAtPath("/_session");

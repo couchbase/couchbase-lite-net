@@ -20,9 +20,10 @@
     <FileAlignment>512</FileAlignment>
     <AndroidResgenFile>Resources\Resource.Designer.cs</AndroidResgenFile>
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-    <AndroidUseLatestPlatformSdk>False</AndroidUseLatestPlatformSdk>
-    <TargetFrameworkVersion>v4.0.3</TargetFrameworkVersion>
+    <AndroidUseLatestPlatformSdk>true</AndroidUseLatestPlatformSdk>
+    <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
     <RestorePackages>True</RestorePackages>
+    <ReleaseVersion>1.1.1</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -34,6 +35,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -45,8 +47,9 @@
     <OutputPath>bin\Packaging\</OutputPath>
     <DefineConstants>TRACE;CUSTOM_SQLITE;</DefineConstants>
     <Optimize>true</Optimize>
+    <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PlatformTarget>anycpu</PlatformTarget>
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
@@ -54,18 +57,18 @@
   <ItemGroup>
     <Reference Include="Mono.Android" />
     <Reference Include="mscorlib" />
-    <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.0\lib\MonoAndroid\SQLitePCL.raw.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.0\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Xml" />
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\..\..\packages\SQLitePCL.raw.0.9.3\lib\MonoAndroid\SQLitePCL.raw.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>..\..\..\packages\SQLitePCL.ugly.0.9.3\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Couchbase.Lite.Android\Couchbase.Lite.Android.csproj">
@@ -75,55 +78,43 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedNativeLibrary Include="..\vendor\sqlite\arm64-v8a\libesqlite3.so">
-      <Link>arm64-v8a\libesqlite3.so</Link>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\arm64-v8a\libcbsqlite3.so">
+      <Link>arm64-v8a\libcbsqlite3.so</Link>
     </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\vendor\sqlite\armeabi\libesqlite3.so">
-      <Link>armeabi\libesqlite3.so</Link>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\armeabi\libcbsqlite3.so">
+      <Link>armeabi\libcbsqlite3.so</Link>
     </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\vendor\sqlite\armeabi-v7a\libesqlite3.so">
-      <Link>armeabi-v7a\libesqlite3.so</Link>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\armeabi-v7a\libcbsqlite3.so">
+      <Link>armeabi-v7a\libcbsqlite3.so</Link>
     </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\vendor\sqlite\x86\libesqlite3.so">
-      <Link>x86\libesqlite3.so</Link>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\x86\libcbsqlite3.so">
+      <Link>x86\libcbsqlite3.so</Link>
     </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\vendor\sqlite\x86_64\libesqlite3.so">
-      <Link>x86_64\libesqlite3.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\vendor\sqlite\mips\libesqlite3.so">
-      <Link>mips\libesqlite3.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\vendor\sqlite\mips64\libesqlite3.so">
-      <Link>mips64\libesqlite3.so</Link>
+    <EmbeddedNativeLibrary Include="..\vendor\sqlite\x86_64\libcbsqlite3.so">
+      <Link>x86_64\libcbsqlite3.so</Link>
     </EmbeddedNativeLibrary>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\util.cs">
       <Link>util.cs</Link>
     </Compile>
-    <Compile Include="SQLite3Plugin.cs" />
-    <Compile Include="SQLite3Provider_esqlite3.cs" />
+    <Compile Include="..\SQLite3Provider_cbsqlite.cs">
+      <Link>SQLite3Provider_cbsqlite.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+
   <Import Project="..\..\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
+	<Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Storage.SQLCipher\MonoAndroid" />
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.dll;$(OutputPath)Couchbase.Lite.Storage.CustomSQLite.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Storage.CustomSQLite\MonoAndroid" />
   </Target>
-  <Target Name="BeforeBuild">
-     <Message Text="Downloading native SQLite binaries, if needed.  This may take a while..." />
-     <Exec Condition=" '$(OS)' == 'Windows_NT' " Command='powershell -executionpolicy Unrestricted $(ProjectDir)..\vendor\sqlite\download_native.ps1 ' />
-     <Exec Condition=" '$(OS)' != 'Windows_NT' " Command='bash $(ProjectDir)..\vendor\sqlite\download_native.sh ' />
-     <Message Text="Finished Downloading!" />
+  <Target Name="DownloadNativeSQLite" BeforeTargets="_CreateNativeLibraryArchive">
+     <Exec Condition=" '$(OS)' == 'Windows_NT' " Command="powershell -executionpolicy Unrestricted $(ProjectDir)..\vendor\sqlite\download_native.ps1 " />
+     <Exec Condition=" '$(OS)' != 'Windows_NT' " Command=" bash $(ProjectDir)..\vendor\sqlite\download_native.sh " />
   </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
 </Project>

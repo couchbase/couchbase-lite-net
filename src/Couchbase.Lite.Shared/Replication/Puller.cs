@@ -156,6 +156,7 @@ namespace Couchbase.Lite.Replicator
                 RemoteSession = _remoteSession,
                 RetryStrategy = ReplicationOptions.RetryStrategy,
                 WorkExecutor = WorkExecutor,
+                UsePost = CheckServerCompatVersion("0.9.3")
             };
             _changeTracker = ChangeTrackerFactory.Create(changeTrackerOptions);
             _changeTracker.ActiveOnly = initialSync;
@@ -181,7 +182,7 @@ namespace Couchbase.Lite.Replicator
         }
 
 
-        private void ProcessChangeTrackerStopped(ChangeTracker tracker)
+        private void ProcessChangeTrackerStopped(ChangeTracker tracker, ErrorResolution resolution)
         {
             var webSocketTracker = tracker as WebSocketChangeTracker;
             if (webSocketTracker != null && !webSocketTracker.CanConnect) {
@@ -199,9 +200,16 @@ namespace Couchbase.Lite.Replicator
             }
 
             Batcher.FlushAll();
-            if (ChangesCount == CompletedChangesCount && IsSafeToStop) {
-                Log.To.Sync.V(TAG, "Change tracker stopped, firing StopGraceful...");
-                FireTrigger(ReplicationTrigger.StopGraceful);
+            if(resolution == ErrorResolution.RetryLater) {
+                Log.To.Sync.I(TAG, "Change tracked stopped, entering retry loop...");
+                ScheduleRetryIfReady();
+            } else if(resolution == ErrorResolution.GoOffline) {
+                GoOffline();
+            } else if(resolution == ErrorResolution.Stop) {
+                if(Continuous || (ChangesCount == CompletedChangesCount && IsSafeToStop)) {
+                    Log.To.Sync.V(TAG, "Change tracker stopped, firing StopGraceful...");
+                    FireTrigger(ReplicationTrigger.StopGraceful);
+                }
             }
         }
 
@@ -316,11 +324,10 @@ namespace Couchbase.Lite.Replicator
             Log.To.SyncPerf.I(TAG, "{0} bulk-getting {1} remote revisions...", ReplicatorID, nRevs);
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
             BulkDownloader dl = new BulkDownloader(new BulkDownloaderOptions {
-                ClientFactory = ClientFactory,
+                Session = _remoteSession,
                 DatabaseUri = RemoteUrl,
                 Revisions = bulkRevs,
                 Database = LocalDatabase,
-                RequestHeaders = RequestHeaders,
                 RetryStrategy = ReplicationOptions.RetryStrategy,
                 CookieStore = CookieContainer
             });
@@ -331,7 +338,7 @@ namespace Couchbase.Lite.Replicator
 
                 var rev = props.CblID() != null
                     ? new RevisionInternal(props)
-                    : new RevisionInternal(props.CblID(), props.CblRev(), false);
+                    : new RevisionInternal(props.GetCast<string>("id"), props.GetCast<string>("rev").AsRevID(), false);
 
 
                 var pos = remainingRevs.IndexOf(rev);
@@ -354,7 +361,10 @@ namespace Couchbase.Lite.Replicator
                     RevisionFailed();
                     SafeIncrementCompletedChangesCount();
                     if(IsDocumentError(error)) {
+                        Log.To.Sync.W(TAG, $"Error is permanent, {rev} will NOT be downloaded!");
                         _pendingSequences.RemoveSequence(rev.Sequence);
+                    } else {
+                        Log.To.Sync.I(TAG, $"Will try again later to get {rev}");
                     }
                 }
             };
@@ -383,7 +393,6 @@ namespace Couchbase.Lite.Replicator
 
                 SafeAddToCompletedChangesCount(remainingRevs.Count);
                 LastSequence = _pendingSequences.GetCheckpointedValue();
-                Misc.SafeDispose(ref dl);
 
                 PullRemoteRevisions();
             };
@@ -732,16 +741,19 @@ namespace Couchbase.Lite.Replicator
 
         public override IEnumerable<string> DocIds { get; set; }
 
-        public override IDictionary<string, string> Headers 
-        {
-            get { return ClientFactory.Headers; } 
-            set { ClientFactory.Headers = value; } 
+        public override IDictionary<string, string> Headers {
+            get {
+                return _remoteSession.RequestHeaders;
+            }
+            set {
+                _remoteSession.RequestHeaders = value;
+            }
         }
 
         protected override void Retry()
         {
             if (_changeTracker != null) {
-                _changeTracker.Stop();
+                _changeTracker.Stop(ErrorResolution.Ignore);
             }
 
             base.Retry();
@@ -755,7 +767,7 @@ namespace Couchbase.Lite.Replicator
 
                 changeTrackerCopy.Client = null;
                 // stop it from calling my changeTrackerStopped()
-                changeTrackerCopy.Stop();
+                changeTrackerCopy.Stop(ErrorResolution.Ignore);
                 _changeTracker = null;
             }
 
@@ -776,7 +788,7 @@ namespace Couchbase.Lite.Replicator
         {
             base.PerformGoOffline();
             if (_changeTracker != null) {
-                _changeTracker.Stop();
+                _changeTracker.Stop(ErrorResolution.GoOffline);
             }
 
             _remoteSession.CancelRequests();
@@ -880,9 +892,14 @@ namespace Couchbase.Lite.Replicator
                 this);
 
             if (_downloadsToInsert == null) {
-                const int capacity = INBOX_CAPACITY * 2;
+                const int capacity = InboxCapacity * 2;
                 TimeSpan delay = TimeSpan.FromSeconds(1);
-                _downloadsToInsert = new Batcher<RevisionInternal>(WorkExecutor, capacity, delay, InsertDownloads);
+                _downloadsToInsert = new Batcher<RevisionInternal>(new BatcherOptions<RevisionInternal> {
+                    WorkExecutor = WorkExecutor,
+                    Capacity = capacity,
+                    Delay = delay,
+                    Processor = InsertDownloads
+                });
             }
 
             if (_pendingSequences == null) {
@@ -998,14 +1015,9 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        public void ChangeTrackerStopped(ChangeTracker tracker)
+        public void ChangeTrackerStopped(ChangeTracker tracker, ErrorResolution resolution)
         {
-            WorkExecutor.StartNew(() => ProcessChangeTrackerStopped(tracker));
-        }
-
-        public CouchbaseLiteHttpClient GetHttpClient()
-        {
-            return ClientFactory.GetHttpClient(CookieContainer, ReplicationOptions.RetryStrategy);
+            WorkExecutor.StartNew(() => ProcessChangeTrackerStopped(tracker, resolution));
         }
 
         public CookieContainer GetCookieStore()

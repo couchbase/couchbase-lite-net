@@ -19,6 +19,7 @@
 // limitations under the License.
 //
 using System;
+using System.Collections.Generic;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
@@ -30,6 +31,8 @@ namespace Couchbase.Lite
     {
 
         #region Constants
+
+        private const string Tag = nameof(ReplicationOptions);
 
         /// <summary>
         /// The default value for Heartbeat (5 minutes)
@@ -87,9 +90,9 @@ namespace Couchbase.Lite
         /// Gets or sets the socket timeout for requests during
         /// the replication process (i.e. if the client cannot
         /// read data from the server response for longer than
-        /// X it is considered timed out)
+        /// X it is considered timed out).  This property is not supported
+        /// on Xamarin.iOS and Xamarin.Android
         /// </summary>
-        /// <value>The socket timeout.</value>
         public TimeSpan SocketTimeout { get; set; }
 
         /// <summary>
@@ -192,6 +195,35 @@ namespace Couchbase.Lite
             MaxRevsToGetInBulk = DefaultMaxRevsToGetInBulk;
             RetryStrategy = DefaultRetryStrategy.Copy();
             ReplicationRetryDelay = DefaultReplicationRetryDelay;
+        }
+
+        internal ReplicationOptions(IDictionary<string, object> dictionary)
+            : this()
+        {
+            long heartbeatMs;
+            if(dictionary.TryGetValue<long>("heartbeat", out heartbeatMs)) {
+                Heartbeat = TimeSpan.FromMilliseconds(heartbeatMs);
+            }
+
+            long requestTimeoutMs;
+            if(dictionary.TryGetValue<long>("connection_timeout", out requestTimeoutMs)) {
+                RequestTimeout = TimeSpan.FromMilliseconds(requestTimeoutMs);
+            }
+
+            long pollIntervalMs;
+            if(dictionary.TryGetValue<long>("poll", out pollIntervalMs)) {
+                if(pollIntervalMs >= 30000) {
+                    PollInterval = TimeSpan.FromMilliseconds(pollIntervalMs);
+                } else {
+                    Log.To.Sync.W(Tag, $"poll interval of {pollIntervalMs} seconds is too short!");
+                }
+            }
+
+            UseWebSocket = dictionary.GetCast<bool>("websocket", true);
+            RemoteUUID = dictionary.GetCast<string>("remoteUUID");
+            PurgePushed = dictionary.GetCast<bool>("purgePushed");
+            AllNew = dictionary.GetCast<bool>("allNew");
+            Reset = dictionary.GetCast<bool>("reset");
         }
 
         #endregion

@@ -148,18 +148,12 @@ namespace Couchbase.Lite.Internal
         {
             IDictionary<string, object> result = null;
             if(_body != null) {
-                IDictionary<string, object> prop;
                 try {
-                    prop = _body.GetProperties();
+                    result = _body.GetProperties();
                 } catch(InvalidOperationException) {
                     // handle when both object and json are null for this body
                     return null;
                 }
-
-                if(result == null) {
-                    result = new Dictionary<string, object>();
-                }
-                result.PutAll(prop);
 
                 if(_docId != null) {
                     result["_id"] = _docId;

@@ -192,10 +192,10 @@ namespace Couchbase.Lite
         /// </summary>
         public static readonly string SyncProtocolVersion = "1.3";
 
-        internal const string CHANNELS_QUERY_PARAM = "channels";
-        internal const string BY_CHANNEL_FILTER_NAME = "sync_gateway/bychannel";
-        internal const string REPLICATOR_DATABASE_NAME = "_replicator";
-        internal const int INBOX_CAPACITY = 100;
+        internal const string ChannelsQueryParam = "channels";
+        internal const string ByChannelFilterName = "sync_gateway/bychannel";
+        internal const string ReplicatorDatabaseName = "_replicator";
+        internal const int InboxCapacity = 100;
         private static readonly TimeSpan ProcessorDelay = TimeSpan.FromMilliseconds(500);
         private static readonly TimeSpan SaveLastSequenceDelay = TimeSpan.FromSeconds(5);
         private const string Tag = nameof(Replication);
@@ -263,6 +263,8 @@ namespace Couchbase.Lite
         
         private readonly Queue<ReplicationChangeEventArgs> _eventQueue = new Queue<ReplicationChangeEventArgs>();
         private HashSet<string> _pendingDocumentIDs;
+        private long _pendingDocumentIDsSequence;
+        private long _lastSequencePushed;
         private TaskFactory _eventContext; // Keep a separate reference since the localDB will be nulled on certain types of stop
         private Guid _replicatorID = Guid.NewGuid();
         private DateTime _startTime;
@@ -352,10 +354,10 @@ namespace Couchbase.Lite
                     return new List<string>();
                 }
 
-                var p = FilterParams.ContainsKey(CHANNELS_QUERY_PARAM)
-                    ? (string)FilterParams[CHANNELS_QUERY_PARAM]
+                var p = FilterParams.ContainsKey(ChannelsQueryParam)
+                    ? (string)FilterParams[ChannelsQueryParam]
                     : null;
-                if (!IsPull || Filter == null || !Filter.Equals(BY_CHANNEL_FILTER_NAME) || StringEx.IsNullOrWhiteSpace(p))
+                if (!IsPull || Filter == null || !Filter.Equals(ByChannelFilterName) || StringEx.IsNullOrWhiteSpace(p))
                 {
                     return new List<string>();
                 }
@@ -373,12 +375,12 @@ namespace Couchbase.Lite
                         return;
                     }
 
-                    Filter = BY_CHANNEL_FILTER_NAME;
+                    Filter = ByChannelFilterName;
                     var filterParams = new Dictionary<string, object>();
-                    filterParams[CHANNELS_QUERY_PARAM] = String.Join(",", value.ToStringArray());
+                    filterParams[ChannelsQueryParam] = String.Join(",", value.ToStringArray());
                     FilterParams = filterParams;
                 }
-                else if (Filter != null && Filter.Equals(BY_CHANNEL_FILTER_NAME))
+                else if (Filter != null && Filter.Equals(ByChannelFilterName))
                 {
                     Filter = null;
                     FilterParams = null;
@@ -608,13 +610,14 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the headers that should be used when making HTTP requests
         /// </summary>
+        [Obsolete("Use Headers, this method will throw an exception")]
         protected internal IDictionary<string, object> RequestHeaders
         {
             get {
-                return _remoteSession.RequestHeaders;
+                throw new NotSupportedException();
             }
-            set { 
-                _remoteSession.RequestHeaders = value ?? new Dictionary<string, object>();
+            set {
+                throw new NotSupportedException();
             }
         }
 
@@ -707,25 +710,14 @@ namespace Couchbase.Lite
                 }
             }
 
-            Batcher = new Batcher<RevisionInternal>(workExecutor, INBOX_CAPACITY, ProcessorDelay, inbox =>
-            {
-                try {
-                    Log.To.Sync.V(Tag, "*** {0} BEGIN ProcessInbox ({1} sequences)", this, inbox.Count);
-                    if(Continuous) {
-                        FireTrigger(ReplicationTrigger.Resume);
-                    }
-
-                    ProcessInbox (new RevisionList(inbox));
-
-                    Log.To.Sync.V(Tag, "*** {0} END ProcessInbox (lastSequence={1})", this, LastSequence);
-                } catch(Exception e) {
-                    throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag, 
-                        "{0} ProcessInbox failed", this);
-                }
+            Batcher = new Batcher<RevisionInternal>(new BatcherOptions<RevisionInternal> {
+                WorkExecutor = workExecutor,
+                Capacity = InboxCapacity,
+                Delay = ProcessorDelay,
+                Processor = BatcherCallback
             });
-
+                
             ClientFactory = clientFactory;
-
             _stateMachine = new StateMachine<ReplicationState, ReplicationTrigger>(ReplicationState.Initial);
             InitializeStateMachine();
         }
@@ -759,37 +751,29 @@ namespace Couchbase.Lite
         /// <returns>The pending document IDs.</returns>
         public ICollection<string> GetPendingDocumentIDs()
         {
-            if (IsPull || (_stateMachine.State > ReplicationState.Initial && _pendingDocumentIDs != null)) {
-                return _pendingDocumentIDs;
+            if(IsPull) {
+                return null;
             }
 
-            var lastSequence = LastSequence;
-            if (lastSequence == null || lastSequence == "0") {
-                var checkpointID = RemoteCheckpointDocID(LocalDatabase.PrivateUUID());
-                lastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointID);
-                if (lastSequence == null) {
-                    var doc = LocalDatabase.GetLocalCheckpointDoc();
-                    var importedUUID = doc == null ? null : doc.GetCast<string>(LOCAL_CHECKPOINT_LOCAL_UUID_KEY);
-                    if (importedUUID != null) {
-                        checkpointID = RemoteCheckpointDocID(importedUUID);
-                        lastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointID);
-                    }
+            if(_pendingDocumentIDs != null) {
+                if(_pendingDocumentIDsSequence == LocalDatabase.GetLastSequenceNumber()) {
+                    return _pendingDocumentIDs; // Still valid
                 }
+
+                _pendingDocumentIDs = null;
             }
 
-            if (!LocalDatabase.IsOpen) {
-                Log.To.Sync.W(Tag, "LocalDatabase is not open, so ruling Replication as stopped.  Returning empty pending ID set");
-                return new HashSet<string>();
+            var lastSequence = GetLastSequencePushed();
+            if(lastSequence < 0) {
+                return null;
             }
 
-            var revs = LocalDatabase.UnpushedRevisionsSince(lastSequence, LocalDatabase.GetFilter(Filter), FilterParams);
-            if (revs != null) {
-                _pendingDocumentIDs = new HashSet<string>(revs.GetAllDocIds());
-                return _pendingDocumentIDs;
-            }
+            var newPendingDocIDsSequence = LocalDatabase.GetLastSequenceNumber();
+            var revs = LocalDatabase.UnpushedRevisionsSince(lastSequence.ToString(), LocalDatabase.GetFilter(Filter), FilterParams);
 
-            Log.To.Sync.W(Tag, "Error getting unpushed revisions, returning empty set...");
-            return new HashSet<string>();
+            _pendingDocumentIDsSequence = newPendingDocIDsSequence;
+            _pendingDocumentIDs = new HashSet<string>(revs.Select(x => x.DocID));
+            return _pendingDocumentIDs;
         }
 
         /// <summary>
@@ -799,7 +783,31 @@ namespace Couchbase.Lite
         /// <param name="doc">The document to check.</param>
         public bool IsDocumentPending(Document doc)
         {
-            return doc != null && GetPendingDocumentIDs().Contains(doc.Id);
+            var lastSeq = GetLastSequencePushed();
+            if(lastSeq < 0) {
+                return false; // Error
+            }
+
+            var rev = doc.CurrentRevision;
+            var seq = rev.Sequence;
+            if(seq <= lastSeq) {
+                return false;
+            }
+
+            if(Filter != null) {
+                // Use _pendingDocumentIDs as a shortcut, if it's valid
+                if(_pendingDocumentIDs != null && _pendingDocumentIDsSequence == LocalDatabase.GetLastSequenceNumber()) {
+                    return _pendingDocumentIDs.Contains(doc.Id);
+                }
+
+                // Else run the filter on the doc
+                var filter = LocalDatabase.GetFilter(Filter);
+                if(filter != null && !filter(rev, FilterParams)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -891,6 +899,21 @@ namespace Couchbase.Lite
         internal void DeleteAllCookies()
         {
             _remoteSession.CookieStore.Delete(RemoteUrl);
+        }
+
+        internal long GetLastSequencePushed()
+        {
+            if(IsPull) {
+                return -1L;
+            }
+
+            if(_lastSequencePushed <= 0L) {
+                // If running replicator hasn't updated yet, fetch the checkpointed last sequence:
+                var lastSequence = LocalDatabase.LastSequenceWithCheckpointId(RemoteCheckpointDocID(LocalDatabase.PrivateUUID()));
+                _lastSequencePushed = lastSequence == null ? 0L : Int64.Parse(lastSequence);
+            }
+
+            return _lastSequencePushed;
         }
 
         /// <summary>
@@ -1073,7 +1096,7 @@ namespace Couchbase.Lite
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
             reachabilityManager.StatusChanged += NetworkStatusChanged;
 
-            if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri, ReplicationOptions.RequestTimeout)) {
+            if (!LocalDatabase.Manager.NetworkReachabilityManager.CanReach(_remoteSession, RemoteUrl.AbsoluteUri, ReplicationOptions.RequestTimeout)) {
                 Log.To.Sync.I(Tag, "Remote endpoint is not reachable, going offline...");
                 LastError = LocalDatabase.Manager.NetworkReachabilityManager.LastError;
                 FireTrigger(ReplicationTrigger.GoOffline);
@@ -1183,7 +1206,6 @@ namespace Couchbase.Lite
             }
 
             var newCount = Interlocked.Add(ref _completedChangesCount, value);
-            Log.To.Sync.I(Tag, "{0} progress {1} / {2}", this, newCount, _changesCount);
             NotifyChangeListeners();
             if (newCount == _changesCount && IsSafeToStop) {
                 if(Continuous) {
@@ -1206,7 +1228,6 @@ namespace Couchbase.Lite
             }
 
             var newCount = Interlocked.Add(ref _changesCount, value);
-            Log.To.Sync.I(Tag, "{0} progress {1} / {2}", this, _completedChangesCount, newCount);
             if(Continuous) {
                 FireTrigger(ReplicationTrigger.Resume);
             }
@@ -1256,6 +1277,7 @@ namespace Couchbase.Lite
             if(!LocalDatabase.IsOpen || remoteSession.Disposed) {
                 // This logic has already been handled by DatabaseClosing(), or
                 // this replication never started in the first place (client still null)
+                remoteSession?.Dispose();
                 return;
             }
 
@@ -1430,6 +1452,23 @@ namespace Couchbase.Lite
         #endregion
 
         #region Private Methods
+
+        private void BatcherCallback(IList<RevisionInternal> inbox)
+        {
+            try {
+                Log.To.Sync.V(Tag, "*** {0} BEGIN ProcessInbox ({1} sequences)", this, inbox.Count);
+                if(Continuous) {
+                    FireTrigger(ReplicationTrigger.Resume);
+                }
+
+                ProcessInbox(new RevisionList(inbox));
+
+                Log.To.Sync.V(Tag, "*** {0} END ProcessInbox (lastSequence={1})", this, LastSequence);
+            } catch(Exception e) {
+                throw Misc.CreateExceptionAndLog(Log.To.Sync, e, Tag,
+                    "{0} ProcessInbox failed", this);
+            }
+        }
 
         private void WaitForStopped (object sender, ReplicationChangeEventArgs e)
         {
@@ -1656,10 +1695,9 @@ namespace Couchbase.Lite
                 return (StatusCode)httpException.StatusCode;
             }
 
-            var webException = e as WebException;
-            if (webException != null)
-            {
-                return (StatusCode)(webException.Response as HttpWebResponse).StatusCode;
+            var webResponse = (e as WebException)?.Response as HttpWebResponse;
+            if (webResponse != null) {
+                return (StatusCode)webResponse.StatusCode;
             }
 
             return StatusCode.Unknown;
@@ -1687,7 +1725,7 @@ namespace Couchbase.Lite
                     lastSequenceChanged = true;
                     SaveLastSequence(null);
                 }         
-            });
+            }, true);
         }
 
         private void SetupRevisionBodyTransformationFunction()
@@ -1743,7 +1781,7 @@ namespace Couchbase.Lite
 
             _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.GoOffline, ReplicationState.Offline);
             _stateMachine.Configure(ReplicationState.Offline).PermitIf(ReplicationTrigger.GoOnline, ReplicationState.Running, 
-                () => LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri, ReplicationOptions.RequestTimeout));
+                () => LocalDatabase.Manager.NetworkReachabilityManager.CanReach(_remoteSession, RemoteUrl.AbsoluteUri, ReplicationOptions.RequestTimeout));
             
             _stateMachine.Configure(ReplicationState.Stopping).Permit(ReplicationTrigger.StopImmediate, ReplicationState.Stopped);
             _stateMachine.Configure(ReplicationState.Stopped).Permit(ReplicationTrigger.Start, ReplicationState.Running);
@@ -1810,7 +1848,10 @@ namespace Couchbase.Lite
             _stateMachine.Configure(ReplicationState.Offline).OnExit(transition =>
             {
                 Log.To.Sync.V(Tag, "{0} => {1} ({2})", transition.Source, transition.Destination, _replicatorID);
-                PerformGoOnline();
+                if(transition.Destination != ReplicationState.Stopping) {
+                    PerformGoOnline();
+                }
+
                 NotifyChangeListenersStateTransition(transition);
             });
 
@@ -1848,13 +1889,17 @@ namespace Couchbase.Lite
 
         private void NotifyChangeListeners(ReplicationStateTransition transition = null) 
         {
-            Log.To.Sync.I(Tag, "NotifyChangeListeners ({0}/{1}, state={2} (batch={3}, net={4}))",
+            Log.To.Sync.V(Tag, "NotifyChangeListeners ({0}/{1}, state={2} (batch={3}, net={4}))",
                 CompletedChangesCount, ChangesCount,
                 _stateMachine.State, Batcher == null ? 0 : Batcher.Count(), _remoteSession.RequestCount);
 
-            _pendingDocumentIDs = null;
-            Username = (Authenticator as IAuthorizer)?.Username;
+            var lastSequencePushed = (IsPull || LastSequence == null) ? -1L : Int64.Parse(LastSequence);
+            if(_lastSequencePushed != lastSequencePushed) {
+                _lastSequencePushed = lastSequencePushed;
+                _pendingDocumentIDs = null;
+            }
 
+            Username = (Authenticator as IAuthorizer)?.Username;
             var evt = _changed;
             if (evt == null) {
                 return;

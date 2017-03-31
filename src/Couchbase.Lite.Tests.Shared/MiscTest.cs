@@ -57,6 +57,8 @@ using System.Threading;
 using System.Net.Sockets;
 using System.Linq;
 using System.Collections;
+using Couchbase.Lite.Internal;
+using System.Net;
 
 namespace Couchbase.Lite
 {
@@ -66,6 +68,105 @@ namespace Couchbase.Lite
         const string Tag = "MiscTest";
 
         public MiscTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestExceptionResolution()
+        {
+            foreach(var continuous in new[] { false, true }) {
+                foreach(var hasRetries in new[] { false, true }) {
+                    var transientFlags = ErrorResolutionFlags.Transient;
+                    if(!hasRetries) {
+                        transientFlags |= ErrorResolutionFlags.OutOfRetries;
+                    }
+
+                    var se = new SocketException((int)SocketError.ConnectionRefused);
+                    var resolution = CheckResolution(se, continuous, hasRetries, ErrorResolutionFlags.Connectivity);
+
+                    se = new SocketException((int)SocketError.ConnectionReset);
+                    resolution = CheckResolution(se, continuous, hasRetries, transientFlags);
+
+                    se = new SocketException((int)SocketError.AddressFamilyNotSupported);
+                    resolution = CheckResolution(se, continuous, hasRetries, ErrorResolutionFlags.Permanent);
+
+                    var we = new WebException("Foo", WebExceptionStatus.ConnectFailure);
+                   
+
+                    resolution = CheckResolution(we, continuous, hasRetries, transientFlags);
+                    resolution = CheckResolution(new NullReferenceException(), continuous, hasRetries, ErrorResolutionFlags.Permanent);
+                    resolution = CheckResolution(new IOException(), continuous, hasRetries, transientFlags);
+                    resolution = CheckResolution(new TimeoutException(), continuous, hasRetries, transientFlags);
+
+                    for(var status = HttpStatusCode.BadRequest; status < HttpStatusCode.RequestTimeout; status++) {
+                        CheckResolution(status, continuous, hasRetries, ErrorResolutionFlags.Permanent);
+                    }
+
+                    CheckResolution(HttpStatusCode.RequestTimeout, continuous, hasRetries, transientFlags);
+
+                    for(var status = HttpStatusCode.Conflict; status < HttpStatusCode.ExpectationFailed; status++) {
+                        CheckResolution(status, continuous, hasRetries, ErrorResolutionFlags.Permanent);
+                    }
+
+                    CheckResolution(HttpStatusCode.UpgradeRequired, continuous, hasRetries, ErrorResolutionFlags.Permanent);
+                    CheckResolution(HttpStatusCode.BadGateway, continuous, hasRetries, transientFlags);
+                    CheckResolution(HttpStatusCode.ServiceUnavailable, continuous, hasRetries, transientFlags);
+                    CheckResolution(HttpStatusCode.GatewayTimeout, continuous, hasRetries, transientFlags);
+                    CheckResolution(HttpStatusCode.InternalServerError, continuous, hasRetries, transientFlags);
+                    CheckResolution(HttpStatusCode.NotImplemented, continuous, hasRetries, ErrorResolutionFlags.Permanent);
+                    CheckResolution(HttpStatusCode.HttpVersionNotSupported, continuous, hasRetries, ErrorResolutionFlags.Permanent);
+
+                }
+            }
+        }
+
+        private static IErrorResolution CheckResolution(Exception e, bool continuous, bool hasRetries, 
+                                                        ErrorResolutionFlags inputFlags) 
+        {
+            var actual = ExceptionResolver.Solve(e, new ExceptionResolverOptions {
+                Continuous = continuous,
+                HasRetries = hasRetries
+            });
+
+            CheckResolution(actual, continuous, hasRetries, inputFlags);
+            return actual;
+        }
+
+        private static IErrorResolution CheckResolution(HttpStatusCode statusCode, bool continuous, bool hasRetries,
+                                                        ErrorResolutionFlags inputFlags)
+        {
+            var actual = ExceptionResolver.Solve(statusCode, new ExceptionResolverOptions {
+                Continuous = continuous,
+                HasRetries = hasRetries
+            });
+
+            CheckResolution(actual, continuous, hasRetries, inputFlags);
+            return actual;
+        }
+
+        private static void CheckResolution(IErrorResolution resolution, bool continuous, bool hasRetries,
+                                                        ErrorResolutionFlags inputFlags)
+        {
+            if(inputFlags.HasFlag(ErrorResolutionFlags.Transient)) {
+                if(continuous) {
+                    if(hasRetries) {
+                        Assert.AreEqual(ErrorResolution.BackoffAndRetry, resolution.Resolution);
+                    } else {
+                        Assert.AreEqual(ErrorResolution.RetryLater, resolution.Resolution);
+                    }
+                } else {
+                    if(hasRetries) {
+                        Assert.AreEqual(ErrorResolution.BackoffAndRetry, resolution.Resolution);
+                    } else {
+                        Assert.AreEqual(ErrorResolution.Stop, resolution.Resolution);
+                    }
+                }
+            } else if(inputFlags == ErrorResolutionFlags.Connectivity) {
+                Assert.AreEqual(ErrorResolution.GoOffline, resolution.Resolution);
+            } else {
+                Assert.AreEqual(ErrorResolution.Stop, resolution.Resolution);
+            }
+
+            Assert.AreEqual(inputFlags, resolution.ResolutionFlags);
+        }
 
         [Test]
         public void TestRoundTripDateTimeOffset()
@@ -99,8 +200,6 @@ namespace Couchbase.Lite
             var otherNextException = new CouchbaseLiteException();
             var aggregate = new AggregateException("OMG", nextException, otherNextException);
 
-            string statusCode;
-            Assert.IsTrue(Misc.IsTransientNetworkError(aggregate, out statusCode));
             CollectionAssert.AreEqual(new Exception[] { innerException, nextException, otherNextException  }, 
                 new ExceptionEnumerable(aggregate).ToArray());
         }

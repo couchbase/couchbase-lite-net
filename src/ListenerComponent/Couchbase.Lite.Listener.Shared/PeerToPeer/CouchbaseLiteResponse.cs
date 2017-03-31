@@ -124,6 +124,25 @@ namespace Couchbase.Lite.Listener
         /// <value>The headers.</value>
         public IDictionary<string, string> Headers { get; set; }
 
+        public Action<CouchbaseLiteResponse, object> WriteBodyCallback
+        {
+            get {
+                return _writeBodyCallback;
+            }
+            set {
+                _binaryBody = null;
+                _jsonBody = null;
+                _multipartWriter = null;
+                _writeBodyCallback = value;
+            }
+        }
+        private Action<CouchbaseLiteResponse, object> _writeBodyCallback;
+
+        public object WriteBodyContext
+        {
+            get; set;
+        }
+
         /// <summary>
         /// The body of the response, as JSON (will clear
         /// the values of the other body objects)
@@ -134,6 +153,7 @@ namespace Couchbase.Lite.Listener
             }
             set {
                 _binaryBody = null;
+                _writeBodyCallback = null;
                 _jsonBody = value;
                 _multipartWriter = null;
             }
@@ -150,6 +170,7 @@ namespace Couchbase.Lite.Listener
             }
             set { 
                 _binaryBody = value;
+                _writeBodyCallback = null;
                 _jsonBody = null;
                 _multipartWriter = null;
             }
@@ -168,6 +189,7 @@ namespace Couchbase.Lite.Listener
             }
             set { 
                 _binaryBody = null;
+                _writeBodyCallback = null;
                 _jsonBody = null;
                 _multipartWriter = value;
                 if (value != null) {
@@ -286,6 +308,8 @@ namespace Couchbase.Lite.Listener
                         }
                     });
                     syncWrite = false;
+                } else {
+                    WriteBodyCallback?.Invoke(this, WriteBodyContext);
                 }
             }
 
@@ -312,12 +336,14 @@ namespace Couchbase.Lite.Listener
             Log.To.Router.V(TAG, "Attempting to send data over the wire: {0}", new SecureLogString(data.ToArray(),
                 LogMessageSensitivity.PotentiallyInsecure));
             if (!WriteToStream(data.ToArray())) {
+                Log.To.Router.W(TAG, "Failed to send data: {0}", 
+                                new SecureLogString(data.ToArray(), LogMessageSensitivity.PotentiallyInsecure));
                 TryClose();
                 return false;
             }
 
             if (finished) {
-                Log.To.Router.V(TAG, "Data sent, closing connectioned!");
+                Log.To.Router.V(TAG, "Data sent, closing connection!");
                 TryClose();
             }
 
@@ -533,9 +559,21 @@ namespace Couchbase.Lite.Listener
 
             try {
                 _writeLock.WaitOne();
+            } catch(ObjectDisposedException) {
+                Log.To.Router.W(TAG, "Data written after connection closed!");
+                return false;
+            } catch(Exception e) {
+                Log.To.Router.W(TAG, "Error acquiring write lock for response", e);
+                return false;
+            }
+
+            try {
                 _responseWriter.OutputStream.Write(data, 0, data.Length);
                 _responseWriter.OutputStream.Flush();
                 return true;
+            } 
+            catch(ObjectDisposedException) {
+                return false;
             } catch(Exception e) {
                 Log.To.Router.W(TAG, "Error writing to HTTP response stream", e);
                 return false;

@@ -29,8 +29,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "websocket-sharp", "..\vendo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jint", "..\vendor\Jint\Jint\Jint.csproj", "{678738DA-F723-4920-B9E5-CAD667104BDA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Security-net_4_5", "..\vendor\Mono\Mono.Security\Mono.Security-net_4_5.csproj", "{D68D4FED-CA32-4800-A628-58BAE485562C}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ListenerComponent", "ListenerComponent", "{93A9E803-DBF3-45BE-96FA-87D68422F401}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Listener.Shared", "ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.shproj", "{5AA87149-7173-42A0-8BBC-AC618B404D46}"
@@ -204,20 +202,6 @@ Global
 		{678738DA-F723-4920-B9E5-CAD667104BDA}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
 		{678738DA-F723-4920-B9E5-CAD667104BDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{678738DA-F723-4920-B9E5-CAD667104BDA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug_Testing|Any CPU.Build.0 = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Packaging|Any CPU.Build.0 = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_All|Any CPU.Build.0 = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D68D4FED-CA32-4800-A628-58BAE485562C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4}.Debug_Testing|Any CPU.ActiveCfg = Debug|Any CPU

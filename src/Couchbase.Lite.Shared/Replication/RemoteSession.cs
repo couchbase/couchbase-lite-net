@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Internal
 
         public RemoteServerVersion ServerType { get; set; }
 
-        public IDictionary<string, object> RequestHeaders { get; set; } = new Dictionary<string, object>();
+        public IDictionary<string, string> RequestHeaders { get; set; } = new Dictionary<string, string>();
 
         public bool Disposed { get; private set; }
 
@@ -132,6 +132,7 @@ namespace Couchbase.Lite.Internal
                 return;
             }
 
+            Disposed = true;
             _remoteRequestCancellationSource?.Cancel();
             _client.Dispose();
         }
@@ -191,6 +192,7 @@ namespace Couchbase.Lite.Internal
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
+            AddRequestHeaders(message);
 
             var bytes = default(byte[]);
             if(body != null) {
@@ -272,7 +274,7 @@ namespace Couchbase.Lite.Internal
                 } finally {
                     Task dummy;
                     _requests.TryRemove(message, out dummy);
-                    message.Dispose();
+                    response?.Dispose();
                 }
             }, token);
 

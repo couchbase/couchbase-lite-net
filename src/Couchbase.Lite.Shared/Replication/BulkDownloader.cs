@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Replicator
     internal sealed class BulkDownloaderOptions : ConstructorOptions
     {
         [RequiredProperty]
-        public IHttpClientFactory ClientFactory { get; set; }
+        public RemoteSession Session { get; set; }
 
         [RequiredProperty]
         public Uri DatabaseUri { get; set; }
@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Replicator
         public CookieStore CookieStore { get; set; }
     }
 
-    internal class BulkDownloader : IMultipartReaderDelegate, IDisposable
+    internal class BulkDownloader : IMultipartReaderDelegate
     {
         internal static readonly string Tag = typeof(BulkDownloader).Name;
 
@@ -89,7 +89,7 @@ namespace Couchbase.Lite.Replicator
         private CancellationTokenSource _tokenSource;
         private MultipartDocumentReader _docReader;
         private Database _db;
-        private readonly CouchbaseLiteHttpClient _httpClient;
+        private readonly RemoteSession _session;
         private readonly object _body;
 
         private int _docCount;
@@ -116,10 +116,11 @@ namespace Couchbase.Lite.Replicator
             options.Validate();
             _bulkGetUri = new Uri(AppendRelativeURLString(options.DatabaseUri, string.Format("/_bulk_get?revs=true&attachments={0}", ManagerOptions.Default.DownloadAttachmentsOnSync.ToString().ToLower())));
             _db = options.Database;
-            _httpClient = options.ClientFactory.GetHttpClient(options.CookieStore, options.RetryStrategy);
+            
             _requestHeaders = options.RequestHeaders;
             _tokenSource = options.TokenSource ?? new CancellationTokenSource();
             _body = CreatePostBody(options.Revisions, _db);
+            _session = options.Session;
         }
 
         public void Start()
@@ -138,14 +139,9 @@ namespace Couchbase.Lite.Replicator
 
             SetBody(requestMessage);
 
-            ExecuteRequest(_httpClient, requestMessage).ContinueWith(t => 
+            ExecuteRequest(requestMessage).ContinueWith(t => 
             {
                 Log.To.Sync.V(Tag, "RemoteRequest run() finished, url: {0}", _bulkGetUri);
-                if(_httpClient != null) {
-                    _httpClient.Dispose();
-                }
-
-                requestMessage.Dispose();
             });
         }
 
@@ -180,7 +176,7 @@ namespace Couchbase.Lite.Replicator
             return newRequest;
         }
 
-        private Task ExecuteRequest(CouchbaseLiteHttpClient httpClient, HttpRequestMessage request)
+        private Task ExecuteRequest(HttpRequestMessage request)
         {
             object fullBody = null;
             Exception error = null;
@@ -197,8 +193,8 @@ namespace Couchbase.Lite.Replicator
 
             Log.To.Sync.V(Tag, "Sending request: {0}", request);
             var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
-            httpClient.Authenticator = Authenticator;
-            return httpClient.SendAsync(request, requestTokenSource.Token).ContinueWith(t =>
+            
+            return _session.SendAsyncRequest(request, HttpCompletionOption.ResponseContentRead, requestTokenSource.Token).ContinueWith(t =>
             {
                 requestTokenSource.Dispose();
                 try {
@@ -403,11 +399,6 @@ namespace Couchbase.Lite.Replicator
         public override string ToString()
         {
             return String.Format("BulkDownloader ({0})", new SecureLogUri(_bulkGetUri));
-        }
-
-        public void Dispose()
-        {
-            _httpClient.Dispose();
         }
     }
 }

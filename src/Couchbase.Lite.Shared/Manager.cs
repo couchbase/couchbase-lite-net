@@ -60,8 +60,10 @@ using System.Reflection;
 
 #if !NET_3_5
 using StringEx = System.String;
+using System.Net;
 #else
 using Rackspace.Threading;
+using System.Net.Couchbase;
 #endif
 
 namespace Couchbase.Lite
@@ -141,7 +143,7 @@ namespace Couchbase.Lite
                 return true;
             }
 
-            return name.Equals(Replication.REPLICATOR_DATABASE_NAME);
+            return name.Equals(Replication.ReplicatorDatabaseName);
         }
 
         #endregion
@@ -381,17 +383,17 @@ namespace Couchbase.Lite
         /// the database</exception>
         public Database OpenDatabase(string name, DatabaseOptions options)
         {
-            if (name == null) {
+            if(name == null) {
                 Log.To.Database.E(TAG, "name cannot be null in OpenDatabase, throwing...");
                 throw new ArgumentNullException("name");
             }
 
-            if (options == null) {
+            if(options == null) {
                 options = new DatabaseOptions();
             }
 
             var db = GetDatabase(name, !options.Create);
-            if (db != null && !db.IsOpen) {
+            if(db != null && !db.IsOpen) {
                 db.OpenWithOptions(options);
                 Shared.SetValue("encryptionKey", "", name, options.EncryptionKey);
             }
@@ -405,7 +407,7 @@ namespace Couchbase.Lite
         /// <returns>The database.</returns>
         /// <param name="name">Name.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while gettings or createing the <see cref="Couchbase.Lite.Database"/>.</exception>
-        public Database GetDatabase(String name) 
+        public Database GetDatabase(String name)
         {
             var options = DefaultOptionsFor(name);
             options.Create = true;
@@ -685,7 +687,6 @@ namespace Couchbase.Lite
             }
 
             // remove from list of replications
-            // TODO: should there be something that actually stops the replication(s) first?
             if (replications.Count == 0) {
                 return;
             }
@@ -849,7 +850,21 @@ namespace Couchbase.Lite
             rep.Filter = properties.Get("filter") as string;
             rep.FilterParams = properties.Get("query_params").AsDictionary<string, object>();
             rep.DocIds = properties.Get("doc_ids").AsList<string>();
-            rep.RequestHeaders = results.Get("headers").AsDictionary<string, object>();
+            rep.Headers = new Dictionary<string, string>();
+            rep.ReplicationOptions = new ReplicationOptions(properties);
+            foreach(var header in results.Get("headers").AsDictionary<string, string>()) {
+                if(header.Key.ToLowerInvariant() == "cookie") {
+                    var cookie = default(Cookie);
+                    if(CookieParser.TryParse(header.Value, ((Uri)results["remote"]).GetLeftPart(UriPartial.Authority), out cookie)) {
+                        rep.SetCookie(cookie.Name, cookie.Value, cookie.Path, cookie.Expires, cookie.Secure, cookie.HttpOnly);
+                    } else {
+                        Log.To.Listener.W(TAG, "Invalid cookie string received ({0}), ignoring...", header.Value);
+                    }
+                } else {
+                    rep.Headers.Add(header.Key, header.Value);
+                }
+            }
+            rep.Headers = results.Get("headers").AsDictionary<string, string>();
             rep.Authenticator = results.Get("authorizer") as IAuthenticator;
             if (push) {
                 ((Pusher)rep).CreateTarget = createTarget;
@@ -951,7 +966,7 @@ namespace Couchbase.Lite
             }
 
             if (results.ContainsKey("headers")) {
-                results["headers"] = remoteDict.Get("headers");
+                results["headers"] = remoteDict.Get("headers") ?? new Dictionary<string, string>();
             }
 
             if (results.ContainsKey("authorizer")) {
@@ -971,6 +986,8 @@ namespace Couchbase.Lite
                     }
                 }
             }
+
+
 
             // Can't specify both a filter and doc IDs
             if (properties.ContainsKey("filter") && properties.ContainsKey("doc_ids")) {

@@ -110,6 +110,7 @@ namespace Couchbase.Lite.Storage.ForestDB
         private C4DatabaseFlags _config;
         private SymmetricKey _encryptionKey;
         private LruCache<string, ForestDBViewStore> _views = new LruCache<string, ForestDBViewStore>(100);
+        private object _closeLock = new object();
 
         #endregion
 
@@ -131,6 +132,10 @@ namespace Couchbase.Lite.Storage.ForestDB
         public int DocumentCount
         {
             get {
+                if(Forest == null) {
+                    return 0;
+                }
+
                 return (int)Native.c4db_getDocumentCount(Forest);
             }
         }
@@ -138,6 +143,10 @@ namespace Couchbase.Lite.Storage.ForestDB
         public long LastSequence
         {
             get {
+                if(Forest == null) {
+                    return 0L;
+                }
+
                 return (long)Native.c4db_getLastSequence(Forest);
             }
         }
@@ -145,6 +154,10 @@ namespace Couchbase.Lite.Storage.ForestDB
         public bool InTransaction
         {
             get {
+                if(Forest == null) {
+                    return false;
+                }
+
                 return Native.c4db_isInTransaction(Forest);
             }
         }
@@ -209,7 +222,7 @@ namespace Couchbase.Lite.Storage.ForestDB
         }
 
         #endregion
-
+         
         #region Public Methods
 
         public RevisionInternal GetDocument(string docId, long sequence)
@@ -525,6 +538,21 @@ namespace Couchbase.Lite.Storage.ForestDB
             return value;
         }
 
+        private ForestRevisionInternal CreateRevision(CBForestDocStatus s, bool loadBody)
+        {
+            return new ForestRevisionInternal(s.GetDocument(), loadBody);
+        }
+
+        private CBForestDocEnumerator EnumeratorFromSequence(long lastSequence, C4EnumeratorOptions options)
+        {
+            return new CBForestDocEnumerator(Forest, lastSequence, options); ;
+        }
+
+        private CBForestHistoryEnumerator EnumeratorUsingDoc(CBForestDocStatus doc, bool onlyLeaf, bool owner)
+        {
+            return new CBForestHistoryEnumerator(doc.GetDocument(), onlyLeaf, owner);
+        }
+
         #endregion
 
         #region ICouchStore
@@ -566,8 +594,10 @@ namespace Couchbase.Lite.Storage.ForestDB
             var connections = _fdbConnections;
             _fdbConnections = new ConcurrentDictionary<int, IntPtr>();
             foreach(var ptr in connections) {
-                ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
-                Native.c4db_free((C4Database*)ptr.Value.ToPointer());
+                if(!Native.c4db_isInTransaction((C4Database*)ptr.Value)) {
+                    ForestDBBridge.Check(err => Native.c4db_close((C4Database*)ptr.Value.ToPointer(), err));
+                    Native.c4db_free((C4Database*)ptr.Value.ToPointer());
+                }
             }
         }
 
@@ -608,8 +638,26 @@ namespace Couchbase.Lite.Storage.ForestDB
 
         public bool RunInTransaction(RunInTransactionDelegate block)
         {
+            var nativeDb = default(C4Database*);
+            nativeDb = Forest;
+            if(nativeDb == null) {
+                Log.To.Database.W(TAG, "RunInTransaction called on a closed database, returning false...");
+                return false;
+            }
             Log.To.Database.V(TAG, "BEGIN transaction...");
-            ForestDBBridge.Check(err => Native.c4db_beginTransaction(Forest, err));
+            try {
+                ForestDBBridge.Check(err => Native.c4db_beginTransaction(nativeDb, err));
+            } catch(CBForestException e) {
+                if(e.Code == (int)ForestDBStatus.InvalidHandle) {
+                    // Database was closed between the start of the method and now
+                    Log.To.Database.W(TAG, "RunInTransaction called on a closed database, caught InvalidHandle and returning false...");
+                    return false;
+                }
+
+                throw;
+            }
+
+            // At this point we can rest assured that the connection won't be closed from under us
             var success = false;
             try {
                 success = block();
@@ -630,9 +678,13 @@ namespace Couchbase.Lite.Storage.ForestDB
                 throw Misc.CreateExceptionAndLog(Log.To.Database, e, TAG, "Error running transaction");
             } finally {
                 Log.To.Database.V(TAG, "END transaction (success={0})", success);
-                ForestDBBridge.Check(err => Native.c4db_endTransaction(Forest, success, err));
+                ForestDBBridge.Check(err => Native.c4db_endTransaction(nativeDb, success, err));
                 if(!InTransaction && Delegate != null) {
                     Delegate.StorageExitedTransaction(success);
+                    if(!IsOpen) {
+                        ForestDBBridge.Check(err => Native.c4db_close(nativeDb, err));
+                        Native.c4db_free(nativeDb);
+                    }
                 }
             }
 
@@ -841,45 +893,101 @@ namespace Couchbase.Lite.Storage.ForestDB
                     "(see https://github.com/couchbase/couchbase-lite-ios/issues/641)");
             }
 
-            var forestOps = C4EnumeratorOptions.DEFAULT;
-            forestOps.flags |= C4EnumeratorFlags.IncludeDeleted | C4EnumeratorFlags.IncludeNonConflicted;
-            if(options.IncludeDocs || options.IncludeConflicts || filter != null) {
-                forestOps.flags |= C4EnumeratorFlags.IncludeBodies;
+            var revsWithBodies = (options.IncludeDocs || filter != null);
+            var loadC4Doc = (revsWithBodies || options.IncludeConflicts);
+            var limit = options.Limit;
+
+            var c4Opts = C4EnumeratorOptions.DEFAULT;
+            c4Opts.flags |= C4EnumeratorFlags.IncludeDeleted;
+            if(!loadC4Doc) {
+                c4Opts.flags &= ~C4EnumeratorFlags.IncludeBodies;
             }
 
+            var e = new CBForestDocEnumerator(Forest, lastSequence, c4Opts);
             var changes = new RevisionList();
-            var e = new CBForestDocEnumerator(Forest, lastSequence, forestOps);
-            foreach (var next in e) {
-                var revs = default(IEnumerable<RevisionInternal>);
+            foreach(var doc in e) {
                 if(options.IncludeConflicts) {
-                    using(var enumerator = new CBForestHistoryEnumerator(next.GetDocument(), true, false)) {
-                        var includeBody = forestOps.flags.HasFlag(C4EnumeratorFlags.IncludeBodies);
-                        revs = enumerator.Select<CBForestDocStatus, RevisionInternal>(x => new ForestRevisionInternal(x.GetDocument(), includeBody)).ToList();
+                    using(var enumerator = new CBForestHistoryEnumerator(doc.GetDocument(), true, false)) {
+                        var includeBody = c4Opts.flags.HasFlag(C4EnumeratorFlags.IncludeBodies);
+                        var selection = enumerator.Select<CBForestDocStatus, RevisionInternal>(x => new ForestRevisionInternal(x.GetDocument(), includeBody));
+                        if(filter != null) {
+                            selection = selection.Where(x => filter(x));
+                        }
+
+                        foreach(var rev in selection) {
+                            if(!options.IncludeDocs) {
+                                rev.SetBody(null);
+                            }
+
+                            changes.Add(rev);
+                        }
                     }
                 } else {
-                    revs = new List<RevisionInternal> { new ForestRevisionInternal(next.GetDocument(), forestOps.flags.HasFlag(C4EnumeratorFlags.IncludeBodies)) };
-                }
-
-                foreach(var rev in revs) {
-                    Debug.Assert(rev != null);
+                    var rev = new ForestRevisionInternal(doc.GetDocument(), c4Opts.flags.HasFlag(C4EnumeratorFlags.IncludeBodies));
                     if(filter == null || filter(rev)) {
                         if(!options.IncludeDocs) {
                             rev.SetBody(null);
                         }
 
-                        if(filter == null || filter(rev)) {
-                            changes.Add(rev);
-                        }
+                        changes.Add(rev);
                     }
                 }
             }
 
-            if(options.SortBySequence) {
-                changes.SortBySequence(!options.Descending);
-                changes.Limit(options.Limit);
+            return changes;
+        }
+
+        public IEnumerable<RevisionInternal> ChangesSinceStreaming(long lastSequence, ChangesOptions options, RevisionFilter filter)
+        {
+            // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
+            // Translate options to ForestDB:
+            if(options.Descending) {
+                // https://github.com/couchbase/couchbase-lite-ios/issues/641
+                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.NotImplemented, TAG,
+                    "Descending ChangesSince is not currently implemented " +
+                    "(see https://github.com/couchbase/couchbase-lite-ios/issues/641)");
             }
 
-            return changes;
+            var revsWithBodies = (options.IncludeDocs || filter != null);
+            var loadC4Doc = (revsWithBodies || options.IncludeConflicts);
+            var limit = options.Limit;
+
+            var c4Opts = C4EnumeratorOptions.DEFAULT;
+            c4Opts.flags |= C4EnumeratorFlags.IncludeDeleted;
+            if(!loadC4Doc) {
+                c4Opts.flags &= ~C4EnumeratorFlags.IncludeBodies;
+            }
+
+            var e = EnumeratorFromSequence(lastSequence, c4Opts);
+            var changes = new RevisionList();
+            foreach(var doc in e) {
+                if(options.IncludeConflicts) {
+                    using(var enumerator = EnumeratorUsingDoc(doc, true, false)) {
+                        var includeBody = c4Opts.flags.HasFlag(C4EnumeratorFlags.IncludeBodies);
+                        var selection = enumerator.Select<CBForestDocStatus, RevisionInternal>(x => CreateRevision(x, includeBody));
+                        if(filter != null) {
+                            selection = selection.Where(x => filter(x));
+                        }
+
+                        foreach(var rev in selection) {
+                            if(!options.IncludeDocs) {
+                                rev.SetBody(null);
+                            }
+
+                            yield return rev;
+                        }
+                    }
+                } else {
+                    var rev = CreateRevision(doc, c4Opts.flags.HasFlag(C4EnumeratorFlags.IncludeBodies));
+                    if(filter == null || filter(rev)) {
+                        if(!options.IncludeDocs) {
+                            rev.SetBody(null);
+                        }
+
+                        yield return rev;
+                    }
+                }
+            }
         }
 
         public IEnumerable<QueryRow> GetAllDocs(QueryOptions options)
@@ -1007,7 +1115,12 @@ namespace Couchbase.Lite.Storage.ForestDB
                         var body = doc->selectedRev.body;
                         if(body.size > 0) {
                             var rev = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(body);
-                            foreach(var entry in rev.Get("_attachments").AsDictionary<string, IDictionary<string, object>>()) {
+                            var attachments = rev.Get("_attachments").AsDictionary<string, IDictionary<string, object>>();
+                            if(attachments == null) {
+                                continue;
+                            }
+
+                            foreach(var entry in attachments) {
                                 try {
                                     var key = new BlobKey(entry.Value.GetCast<string>("digest"));
                                     keys.Add(key);
@@ -1214,13 +1327,6 @@ namespace Couchbase.Lite.Storage.ForestDB
                     "Attempting to write to a readonly database (PutRevision)");
             }
 
-            var json = default(string);
-            if(properties != null) {
-                json = Manager.GetObjectMapper().WriteValueAsString(Database.StripDocumentJSON(properties), true);
-            } else {
-                json = "{}";
-            }
-
             if(inDocId == null) {
                 inDocId = Misc.CreateGUID();
             }
@@ -1228,11 +1334,41 @@ namespace Couchbase.Lite.Storage.ForestDB
             C4Document* doc = null;
             var putRev = default(RevisionInternal);
             var change = default(DocumentChange);
+            var nativeDb = Forest;
             var success = RunInTransaction(() =>
             {
                 try {
                     var docId = inDocId;
                     var prevRevId = inPrevRevId;
+
+                    var attachments = properties.CblAttachments();
+                    if(attachments != null) {
+
+                        // https://github.com/couchbase/couchbase-lite-net/issues/749
+                        // Need to ensure revpos is correct for a revision inserted on top
+                        // of a deletion
+                        var existing = (C4Document*)ForestDBBridge.Check(err => Native.c4doc_getForPut(nativeDb, docId, prevRevId?.ToString(), deleting,
+                            allowConflict, err));
+
+                        if(existing->IsDeleted) {
+                            foreach(var attach in attachments) {
+                                var metadata = attach.Value.AsDictionary<string, object>();
+                                if(metadata != null) {
+                                    metadata["revpos"] = existing->revID.AsRevID().Generation + 1;
+                                }
+                            }
+                        }
+
+                        Native.c4doc_free(existing);
+                    }
+
+                    var json = default(string);
+                    if(properties != null) {
+                        json = Manager.GetObjectMapper().WriteValueAsString(Database.StripDocumentJSON(properties), true);
+                    } else {
+                        json = "{}";
+                    }
+
                     C4DocPutRequest rq = new C4DocPutRequest {
                         body = json,
                         docID = docId,
@@ -1248,7 +1384,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                     doc = (C4Document*)ForestDBBridge.Check(err =>
                     {
                         UIntPtr tmp;
-                        var retVal = Native.c4doc_put(Forest, rq, &tmp, err);
+                        var retVal = Native.c4doc_put(nativeDb, rq, &tmp, err);
                         commonAncestorIndex = tmp;
                         return retVal;
                     });

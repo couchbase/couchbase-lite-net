@@ -88,7 +88,6 @@ namespace Couchbase.Lite.Tests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Delay();
             var requestDeepCopy = CopyRequest(request);
             capturedRequests.Add(requestDeepCopy);
 
@@ -103,15 +102,16 @@ namespace Couchbase.Lite.Tests
             }
 
             if (responder != null) {
-                return Task.Factory.StartNew(() =>
+                return Task.Factory.StartNew(async () =>
                 {
+                    await Task.Delay(ResponseDelayMilliseconds, cancellationToken);
                     var message = responder(request);
                     if(message is RequestCorrectHttpMessage) {
-                        return base.SendAsync(request, cancellationToken).Result;
+                        return await base.SendAsync(request, cancellationToken);
                     }
 
                     return message;
-                }, TaskCreationOptions.LongRunning);
+                }, cancellationToken).Unwrap();
             } else if(DefaultFail) {
                 throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
             }
@@ -235,14 +235,6 @@ namespace Couchbase.Lite.Tests
             }
 
             return retVal;
-        }
-
-        private void Delay()
-        {
-            if (ResponseDelayMilliseconds > 0)
-            {
-                Thread.Sleep(ResponseDelayMilliseconds);
-            }
         }
 
         private void NotifyResponseListeners(HttpRequestMessage request, HttpResponseMessage response)

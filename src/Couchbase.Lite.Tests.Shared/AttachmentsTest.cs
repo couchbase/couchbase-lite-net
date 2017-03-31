@@ -54,10 +54,12 @@ using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Store;
+using Couchbase.Lite.Tests;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
 using Couchbase.Lite.Revisions;
+using FluentAssertions;
 
 namespace Couchbase.Lite
 {
@@ -67,6 +69,136 @@ namespace Couchbase.Lite
         private const string TAG = "AttachmentsTest";
 
         public AttachmentsTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestEncryptedAttachments()
+        {
+            var dbOptions = new DatabaseOptions {
+                EncryptionKey = new SymmetricKey("password"),
+                Create = true
+            };
+
+            var encryptedDb = manager.OpenDatabase("encrypted", dbOptions);
+            var rev = encryptedDb.GetDocument("test").CreateRevision();
+            var data = Encoding.UTF8.GetBytes("12345");
+            rev.SetAttachment("test", "text/plain", data);
+            rev.Save();
+            var originalAttach = rev.Attachments.First();
+
+            var loadedRev = encryptedDb.GetExistingDocument("test").CurrentRevision;
+            var attachment = loadedRev.Attachments.First();
+
+            // Make sure we can read multiple times without throwing
+            var stream = attachment.ContentStream;
+            var content = attachment.Content;
+            content.Should().Equal(data, "because otherwise the saved attachment is incorrect");
+            var stream2 = attachment.ContentStream;
+            var content2 = attachment.Content;
+            content2.Should().Equal(data, "because otherwise the saved attachment is incorrect");
+
+            attachment.Length.Should().Be(originalAttach.Length, "because the length should be preserved");
+
+            // Make sure this does not throw
+            var newAttach = new Attachment(stream2, attachment.ContentType);
+        }
+
+        [Test]
+        public void TestEmptyContentType()
+        {
+            var sg = new SyncGateway(GetReplicationProtocol(), GetReplicationServer());
+            using(var remoteDb = sg.CreateDatabase("empty-content-type")) {
+                var doc = database.CreateDocument();
+                var unsaved = doc.CreateRevision();
+
+                var data = Enumerable.Repeat<byte>((byte)80, 2500);
+                unsaved.SetAttachment("attach", "", data);
+                unsaved.Save();
+                database.GetDocumentCount().Should().Be(1, "because a document was added");
+
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                push.Start();
+                var now = DateTime.UtcNow;
+                while(push.CompletedChangesCount < 1) {
+                    Sleep(500);
+                    if(DateTime.UtcNow - now > TimeSpan.FromSeconds(10)) {
+                        throw new TimeoutException("Test timed out");
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void TestAttachmentMetadata()
+        {
+            var doc = database.CreateDocument();
+            var unsaved = doc.CreateRevision();
+
+            var data = new byte[] { 0, 1, 2, 3, 4 };
+            unsaved.SetAttachment("attach", "type", data);
+
+            var attachment = unsaved.GetAttachment("attach");
+            var metadata = attachment.Metadata;
+            Assert.AreEqual("type", metadata["content_type"]);
+            Assert.AreEqual(5, metadata["length"]);
+            Assert.AreEqual(true, metadata["follows"]);
+
+            CollectionAssert.AreEqual(data, attachment.ContentStream.ReadAllBytes());
+        }
+
+        [Test]
+        public void TestAttachmentSurvivesCompaction()
+        {
+            var doc = database.CreateDocument();
+            var unsaved = doc.CreateRevision();
+
+            var data = new byte[] { 0, 1, 2, 3, 4 };
+            unsaved.SetAttachment("attach", "type", data);
+            unsaved.SetUserProperties(new Dictionary<string, object> {
+                ["revision"] = 1
+            });
+            unsaved.Save();
+
+            doc = database.GetExistingDocument(doc.Id);
+            doc.Should().NotBeNull("because he document should have been saved");
+            doc.CurrentRevision.Attachments.Should().NotBeEmpty()
+                .And.HaveCount(1, "because only one attachment was specified");
+            doc.CurrentRevision.Attachments.First().Content.Should().BeEquivalentTo(data, "because that is the data that was saved");
+
+            doc.Update(rev =>
+            {
+                var props = rev.UserProperties;
+                props["revision"] = 2;
+                rev.SetUserProperties(props);
+                return true;
+            });
+
+            database.Compact();
+            doc.CurrentRevision.Attachments.Should().NotBeEmpty()
+                .And.HaveCount(1, "because the attachment is still valid");
+            doc.CurrentRevision.Attachments.First().Content.Should().BeEquivalentTo(data, "because the attachment should still be readable");
+
+            database.Close();
+            database = manager.GetDatabase(database.Name);
+
+            doc = database.GetExistingDocument(doc.Id);
+            doc.Should().NotBeNull();
+            doc.CurrentRevision.Attachments.Should().NotBeEmpty()
+             .And.HaveCount(1, "because the attachment is still valid");
+            doc.CurrentRevision.Attachments.First().Content.Should().BeEquivalentTo(data, "because the attachment should still be readable");
+
+            doc.Update(rev =>
+            {
+                rev.RemoveAttachment("attach");
+                return true;
+            });
+
+            doc.CurrentRevision.Attachments.Should().BeEmpty("because we removed the attachment from the revision");
+            Directory.GetFiles(database.AttachmentStorePath).Should().NotBeEmpty()
+                .And.HaveCount(1, "because the database has not been compacted yet");
+
+            database.Compact();
+            Directory.GetFiles(database.AttachmentStorePath).Should().BeEmpty("because the database was compacted");
+        }
 
         [Test(Description = "For issue 666")]
         public void TestAttachmentContentType()

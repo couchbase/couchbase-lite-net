@@ -290,6 +290,7 @@ namespace Couchbase.Lite {
         /// This property has no effect in other types of Queries.
         /// </summary>
         /// <value><c>true</c> if include deleted; otherwise, <c>false</c>.</value>
+        [Obsolete("Use AllDocsMode.IncludeDeleted")]
         public bool IncludeDeleted 
         {
             get { return AllDocsMode == AllDocsMode.IncludeDeleted; }
@@ -448,7 +449,7 @@ namespace Couchbase.Lite {
                         var error = runTask.Exception;
                         var completed = _completed;
                         if (completed != null) {
-                            var args = new QueryCompletedEventArgs(runTask.Result, error);
+                            var args = new QueryCompletedEventArgs(error == null ? runTask.Result : null, error);
                             completed(this, args);
                         }
 

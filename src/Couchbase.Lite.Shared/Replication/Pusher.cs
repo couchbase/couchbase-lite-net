@@ -281,10 +281,12 @@ namespace Couchbase.Lite.Replicator
                             // 403/Forbidden means validation failed; don't treat it as an error
                             // because I did my job in sending the revision. Other statuses are
                             // actual replication errors.
-                            if (status.Code != StatusCode.Forbidden)
-                            {
+                            if(status.Code != StatusCode.Forbidden) {
                                 var docId = itemObject.GetCast<string>("id");
                                 failedIds.Add(docId);
+                            } else {
+                                LastError = Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.Forbidden, TAG,
+                                    $"{itemObject["id"]} was rejected by the endpoint with message: {itemObject["reason"]}");
                             }
                         }
                     }
@@ -366,10 +368,12 @@ namespace Couchbase.Lite.Replicator
                         content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") {
                             FileName = attachmentKey
                         };
-                        content.Headers.ContentType = new MediaTypeHeaderValue(contentType ?? "application/octet-stream");
+                        if(!String.IsNullOrEmpty(contentType)) {
+                            content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+                        }
 
                         multiPart.Add(content);
-                        length += inputStream.Length;
+                        length += attachment.GetCast<double>("length");
                     }
                 }
             }
@@ -388,9 +392,12 @@ namespace Couchbase.Lite.Replicator
                 if (e != null) {
                     var httpError = Misc.Flatten(e).FirstOrDefault(ex => ex is HttpResponseException) as HttpResponseException;
                     if (httpError != null) {
-                        if (httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType) {
+                        if(httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType) {
                             _dontSendMultipart = true;
                             UploadJsonRevision(revision);
+                        } else if(httpError.StatusCode == System.Net.HttpStatusCode.Forbidden) {
+                            LastError = Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.Forbidden, TAG,
+                                                                       $"{revision.DocID} was rejected by the endpoint with message");
                         }
                     } else {
                         LastError = e;
@@ -403,7 +410,7 @@ namespace Couchbase.Lite.Replicator
                 }
             });
 
-            Log.To.Sync.V(TAG, "{0} queuing revision (multipart, {1}kb)", this, length / 1024.0);
+            Log.To.Sync.V(TAG, "{0} queuing revision (multipart, ~{1}kb)", this, length / 1024.0);
             return true;
         }
             
@@ -425,8 +432,14 @@ namespace Couchbase.Lite.Replicator
             {
                 if (e != null) 
                 {
-                    LastError = e;
-                    RevisionFailed();
+                    var httpError = Misc.Flatten(e).FirstOrDefault(ex => ex is HttpResponseException) as HttpResponseException;
+                    if(httpError != null) {
+                        LastError = Misc.CreateExceptionAndLog(Log.To.Sync, StatusCode.Forbidden, TAG,
+                                                                       $"{rev.DocID} was rejected by the endpoint");
+                    } else {
+                        LastError = e;
+                        RevisionFailed();
+                    }
                 } 
                 else 
                 {
@@ -469,7 +482,7 @@ namespace Couchbase.Lite.Replicator
                             "Unable to load revision body");
                     }
 
-                    properties = new Dictionary<string, object>(rev.GetProperties());
+                    properties = rev.GetProperties();
                 } catch (Exception e1) {
                     Log.To.Sync.E(TAG, String.Format("Couldn't get local contents of {0}, marking revision failed",
                         rev), e1);
@@ -533,15 +546,41 @@ namespace Couchbase.Lite.Replicator
             UploadBulkDocs(docsToSend, revsToSend);
         }
 
+        private void PurgeRevs(IList<RevisionInternal> revs)
+        {
+
+            Log.To.Sync.I(TAG, "Purging {0} docs ('purgePushed' option)", revs.Count);
+            var toPurge = new Dictionary<string, IList<string>>();
+            foreach(var rev in revs) {
+                toPurge[rev.DocID] = new List<string> { rev.RevID.ToString() };
+            }
+
+            var localDb = LocalDatabase;
+            if(localDb != null && localDb.IsOpen) {
+                var storage = localDb.Storage;
+                if(storage != null && storage.IsOpen) {
+                    storage.PurgeRevisions(toPurge);
+                } else {
+                    Log.To.Sync.W(TAG, "{0} storage is closed, cannot purge...", localDb);
+                }
+            } else {
+                Log.To.Sync.W(TAG, "Local database is closed or null, cannot purge...");
+            }
+        }
+
         #endregion
 
         #region Overrides
 
-        public override IEnumerable<String> DocIds { get; set; }
+        public override IEnumerable<string> DocIds { get; set; }
 
-        public override IDictionary<String, String> Headers {
-            get { return ClientFactory.Headers; }
-            set { ClientFactory.Headers = value; }
+        public override IDictionary<string, string> Headers {
+            get {
+                return _remoteSession.RequestHeaders;
+            }
+            set {
+                _remoteSession.RequestHeaders = value;
+            }
         }
 
         public override Boolean CreateTarget { get; set; }
@@ -615,27 +654,13 @@ namespace Couchbase.Lite.Replicator
             }
                 
             if (ReplicationOptions.PurgePushed) {
-                _purgeQueue = new Batcher<RevisionInternal>(WorkExecutor, EphemeralPurgeBatchSize, 
-                    EphemeralPurgeDelay, (revs) =>
-                {
-                    Log.To.Sync.I(TAG, "Purging {0} docs ('purgePushed' option)", revs.Count);
-                    var toPurge = new Dictionary<string, IList<string>>();
-                    foreach(var rev in revs) {
-                        toPurge[rev.DocID] = new List<string> { rev.RevID.ToString() };
-                    }
-
-                    var localDb = LocalDatabase;
-                    if(localDb != null && localDb.IsOpen) {
-                        var storage = localDb.Storage;
-                        if(storage != null && storage.IsOpen) {
-                            storage.PurgeRevisions(toPurge);
-                        } else {
-                            Log.To.Sync.W(TAG, "{0} storage is closed, cannot purge...", localDb);
-                        }
-                    } else {
-                        Log.To.Sync.W(TAG, "Local database is closed or null, cannot purge...");
-                    }
-                }, CancellationTokenSource);
+                _purgeQueue = new Batcher<RevisionInternal>(new BatcherOptions<RevisionInternal> {
+                    WorkExecutor = WorkExecutor,
+                    Capacity = EphemeralPurgeBatchSize,
+                    Delay = EphemeralPurgeDelay,
+                    Processor = PurgeRevs,
+                    TokenSource = CancellationTokenSource
+                });
             }
 
             // Now listen for future changes (in continuous mode):
@@ -651,19 +676,27 @@ namespace Couchbase.Lite.Replicator
 
             var options = ChangesOptions.Default;
             options.IncludeConflicts = true;
-            var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, _filter, FilterParams);
-            if (changes.Count > 0) {
-                Batcher.QueueObjects(changes);
+            var changes = LocalDatabase.ChangesSinceStreaming(lastSequenceLong, options, _filter, FilterParams);
+            bool hasItems = changes.Any();
+            foreach(var change in changes) {
+                Batcher.QueueObject(change);
+                if(Status == ReplicationStatus.Stopped) {
+                    Batcher.Clear();
+                    return;
+                }
+            }
+
+            if (hasItems) {
                 Batcher.Flush();
             }
 
             if (Continuous) {
-                if (changes.Count == 0) {
+                if (!hasItems) {
                     Log.To.Sync.V(TAG, "No changes to push, switching to idle...");
                     FireTrigger(ReplicationTrigger.WaitingForChanges);
                 }
             } else {
-                if(changes.Count == 0) {
+                if(!hasItems) {
                     Log.To.Sync.V(TAG, "No changes to push, firing StopGraceful...");
                     FireTrigger(ReplicationTrigger.StopGraceful);
                 }

@@ -11,7 +11,13 @@
                 "jim" : { "password": "borden", "admin_channels": ["*"]}
               },
              "bucket":"testing",
-             "sync":`function(doc) {channel(doc.channels);}`
+             "sync":`function(doc) {
+               if(doc.reject) {
+                throw({forbidden: "Reject was set to true!"})
+               }
+
+               channel(doc.channels);
+             }`
           },
           "openid_db": {
             "server":"walrus:",

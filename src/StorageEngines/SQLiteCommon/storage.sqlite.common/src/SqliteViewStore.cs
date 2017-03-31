@@ -73,10 +73,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
         {
             get {
                 var db = _dbStorage;
-                var totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), false, 0, "SELECT total_docs FROM views WHERE name=?", Name);
+                var totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), 0, "SELECT total_docs FROM views WHERE name=?", Name);
                 if (totalRows < 0) { //means unknown or somehow became invalid
                     CreateIndex();
-                    totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), false, 0, QueryString("SELECT COUNT(*) FROM 'maps_#'"));
+                    totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), 0, QueryString("SELECT COUNT(*) FROM 'maps_#'"));
                     var args = new ContentValues();
                     args["total_docs"] = totalRows;
                     db.StorageEngine.Update("views", args, "view_id=?", ViewID.ToString());
@@ -90,7 +90,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public long LastSequenceIndexed
         {
             get {
-                return _dbStorage.QueryOrDefault<long>(c => c.GetLong(0), true, 0, "SELECT lastsequence FROM views WHERE name=?", Name);
+                return _dbStorage.QueryOrDefault<long>(c => c.GetLong(0), 0, "SELECT lastsequence FROM views WHERE name=?", Name);
             }
         }
 
@@ -102,11 +102,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
             }
         }
 
-        private int ViewID
+        internal int ViewID
         {
             get {
                 if (_viewId < 0) {
-                    _viewId = _dbStorage.QueryOrDefault<int>(c => c.GetInt(0), false, 0, "SELECT view_id FROM views WHERE name=?", Name);
+                    _viewId = _dbStorage.QueryOrDefault<int>(c => c.GetInt(0), 0, "SELECT view_id FROM views WHERE name=?", Name);
                 }
 
                 return _viewId;
@@ -489,14 +489,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
             {
                 var docId = c.GetString(2);
                 status = action(new Lazy<byte[]>(() => c.GetBlob(0)), new Lazy<byte[]>(() => c.GetBlob(1)), docId, c);
-                if(status.IsError) {
+                if(status.IsError || status.Code == StatusCode.Reserved) {
                     return false;
                 } else if((int)status.Code <= 0) {
                     status.Code = StatusCode.Ok;
                 }
 
                 return true;
-            }, true, sql.ToString(), args.ToArray());
+            }, sql.ToString(), args.ToArray());
 
             return status;
         }
@@ -667,7 +667,16 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                                     view.DeleteIndex();
                                     view.CreateIndex();
-                                } catch (Exception) {
+                                } catch(SQLitePCL.Ugly.ugly.sqlite3_exception e) {
+                                    if(e.errcode == raw.SQLITE_MISUSE) {
+                                        // Somehow, the maps table does not exist
+                                        Log.To.View.I(Tag, "Maps table for view does not exist, trying to recover by creating it...");
+                                        view.CreateIndex();
+                                    } else {
+                                        ok = false;
+                                    }
+                                } 
+                                catch (Exception) {
                                     ok = false;
                                 }
                             } else {
@@ -749,7 +758,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     Cursor c = null;
                     Cursor c2 = null;
                     try {
-                        c = db.StorageEngine.IntransactionRawQuery(sql.ToString(), minLastSequence, dbMaxSequence);
+                        c = db.StorageEngine.RawQuery(sql.ToString(), minLastSequence, dbMaxSequence);
                         bool keepGoing = c.MoveToNext();
                         while (keepGoing) {
                             // Get row values now, before the code below advances 'c':
@@ -779,7 +788,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             long realSequence = sequence; // because sequence may be changed, below
                             if (minLastSequence > 0) {
                                 // Find conflicts with documents from previous indexings.
-                                using (c2 = db.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs " +
+                                using (c2 = db.StorageEngine.RawQuery("SELECT revid, sequence FROM revs " +
                                   "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " +
                                   "ORDER BY revID DESC ", doc_id, minLastSequence)) {
 
@@ -800,7 +809,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                                             revId = oldRevId;
                                             deleted = false;
                                             sequence = oldSequence;
-                                            json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
+                                            json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), null, "SELECT json FROM revs WHERE sequence=?", sequence);
                                         }
 
                                         if (!deleted) {
@@ -1033,6 +1042,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
             }
 
+            var limit = options.Limit;
+            var skip = options.Skip;
+            options.Limit = QueryOptions.DefaultLimit;
+            options.Skip = 0;
+
             List<object> keysToReduce = null, valuesToReduce = null;
             if (reduce != null) {
                 keysToReduce = new List<object>(100);
@@ -1041,6 +1055,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             Lazy<byte[]> lastKeyData = null;
             List<QueryRow> rows = new List<QueryRow>();
+            var skippedCount = 0;
+            var addedCount = 0;
             RunQuery(options, (keyData, valueData, docID, c) =>
             {
                 var lastKeyValue = lastKeyData != null ? lastKeyData.Value : null;
@@ -1050,9 +1066,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         var key = GroupKey(lastKeyData.Value, groupLevel);
                         var reduced = CallReduce(reduce, keysToReduce, valuesToReduce);
                         var row = new QueryRow(null, 0, key, reduced, null, this);
-                        if(options.Filter == null || options.Filter(row)) {
+                        if((options.Filter == null || options.Filter(row)) && skippedCount++ >= skip) {
+                            addedCount++;
                             rows.Add(row);
-                        }
+                            if(addedCount >= limit) {
+                                return new Status(StatusCode.Reserved);
+                            }
+                        } 
 
                         keysToReduce.Clear();
                         valuesToReduce.Clear();
@@ -1119,7 +1139,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 });
 
                 return true;
-            }, false, QueryString("SELECT sequence, key, value FROM 'maps_#' ORDER BY key"));
+            }, QueryString("SELECT sequence, key, value FROM 'maps_#' ORDER BY key"));
 
             return retVal;
         }

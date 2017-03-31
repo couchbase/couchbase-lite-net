@@ -83,12 +83,20 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         private const String TAG = "SqlitePCLRawStorageEngine";
         private sqlite3 _writeConnection;
-        private sqlite3 _readConnection;
+        private SymmetricKey _encryptionKey;
+        private ConnectionPool _readerConnections;
         private bool _readOnly; // Needed for issue with GetVersion()
 
         private string Path { get; set; }
         private TaskFactory Factory { get; set; }
         private CancellationTokenSource _cts = new CancellationTokenSource();
+
+        private bool IsOnDBThread {
+            get {
+                var scheduler = Factory.Scheduler as SingleThreadScheduler;
+                return scheduler.IsOnSpecialThread;
+            }
+        }
 
         #region ISQLiteStorageEngine
 
@@ -140,35 +148,19 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             Path = path;
             _readOnly = readOnly;
+            _encryptionKey = encryptionKey;
             Factory = new TaskFactory(new SingleThreadScheduler());
 
             try {
-                int readFlag = readOnly ? SQLITE_OPEN_READONLY : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-                int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | readFlag | SQLITE_OPEN_FULLMUTEX;
-                OpenSqliteConnection(writer_flags, encryptionKey, out _writeConnection);
-
-                #if ENCRYPTION
-                if (!Decrypt(encryptionKey, _writeConnection)) {
-                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Unauthorized, TAG,
-                        "Decryption of database failed");
-                }
-                #endif
-
+                
+                OpenRWConnection(_readOnly);
                 if(schema != null && GetVersion() == 0) {
                     foreach (var statement in schema.Split(';')) {
                         ExecSQL(statement);
                     }
                 }
 
-                const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
-                OpenSqliteConnection(reader_flags, encryptionKey, out _readConnection);
-
-                #if ENCRYPTION
-                if(!Decrypt(encryptionKey, _readConnection)) {
-                    throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.Unauthorized, TAG,
-                        "Decryption of database failed");
-                }
-                #endif
+                _readerConnections = new ConnectionPool (3, OpenROConnection, Close);
             } catch(CouchbaseLiteException) {
                 Log.To.Database.W(TAG, "Error opening SQLite storage engine, rethrowing...");
                 throw;
@@ -179,8 +171,37 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return true;
         }
 
-        void OpenSqliteConnection(int flags, SymmetricKey encryptionKey, out sqlite3 db)
+        sqlite3 OpenROConnection()
         {
+            const int reader_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
+            var db = OpenSqliteConnection (reader_flags);
+#if ENCRYPTION
+            if (!Decrypt (_encryptionKey, db)) {
+                throw Misc.CreateExceptionAndLog (Log.To.Database, StatusCode.Unauthorized, TAG,
+                    "Decryption of database failed");
+            }
+#endif
+
+            return db;
+        }
+
+        void OpenRWConnection(bool forceRo)
+        {
+            int readFlag = forceRo ? SQLITE_OPEN_READONLY : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+            int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | readFlag | SQLITE_OPEN_FULLMUTEX;
+            _writeConnection = OpenSqliteConnection (writer_flags);
+#if ENCRYPTION
+
+            if (!Decrypt (_encryptionKey, _writeConnection)) {
+                throw Misc.CreateExceptionAndLog (Log.To.Database, StatusCode.Unauthorized, TAG,
+                    "Decryption of database failed");
+            }
+#endif
+        }
+
+        sqlite3 OpenSqliteConnection(int flags)
+        {
+            sqlite3 db;
             LastErrorCode = raw.sqlite3_open_v2(Path, out db, flags, null);
             if (LastErrorCode != raw.SQLITE_OK) {
                 Path = null;
@@ -198,12 +219,14 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 }
 #endif
 
-            Log.To.Database.I(TAG, "Open {0} (flags={1}{2})", Path, flags, (encryptionKey != null ? ", encryption key given" : ""));
+            Log.To.Database.I(TAG, "Open {0} (flags={1}{2})", Path, flags, (_encryptionKey != null ? ", encryption key given" : ""));
 
             raw.sqlite3_create_collation(db, "JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
             raw.sqlite3_create_collation(db, "JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
             raw.sqlite3_create_collation(db, "JSON_RAW", null, CouchbaseSqliteJsonRawCollationFunction.Compare);
             raw.sqlite3_create_collation(db, "REVID", null, CouchbaseSqliteRevIdCollationFunction.Compare);
+
+            return db;
         }
 
         public int GetVersion()
@@ -474,50 +497,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
         /// <returns>The query.</returns>
         /// <param name="sql">Sql.</param>
         /// <param name="paramArgs">Parameter arguments.</param>
-        public Cursor IntransactionRawQuery(String sql, params Object[] paramArgs)
-        {
-            if (!IsOpen) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, StatusCode.BadRequest, TAG,
-                    "IntransactionRawQuery called on closed database");
-            }
-
-            if (transactionCount == 0) 
-            {
-                return RawQuery(sql, paramArgs);
-            }
-
-            Log.To.TaskScheduling.V(TAG, "Scheduling InTransactionRawQuery");
-            var t = Factory.StartNew(() =>
-            {
-                Log.To.TaskScheduling.V(TAG, "Running InTransactionRawQuery");
-                Cursor cursor = null;
-                sqlite3_stmt command = null;
-                try {
-                    Log.To.Database.V(TAG, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
-                    command = BuildCommand (_writeConnection, sql, paramArgs);
-                    cursor = new Cursor(command);
-                } catch (Exception e) {
-                    if (command != null) {
-                        command.Dispose();
-                    }
-
-                    Log.To.Database.E(TAG, String.Format("Error executing raw query '{0}', rethrowing...", sql), e);
-                    LastErrorCode = raw.sqlite3_errcode(_writeConnection);
-                    throw;
-                }
-                return cursor;
-            });
-
-            return t.Result;
-        }
-
-
-        /// <summary>
-        /// Executes only read-only SQL.
-        /// </summary>
-        /// <returns>The query.</returns>
-        /// <param name="sql">Sql.</param>
-        /// <param name="paramArgs">Parameter arguments.</param>
         public Cursor RawQuery(String sql, params Object[] paramArgs)
         {
             if (!IsOpen) {
@@ -527,15 +506,17 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             Cursor cursor = null;
             sqlite3_stmt command = null;
+            var connection = default (Connection);
 
             //Log.To.TaskScheduling.V(TAG, "Scheduling RawQuery");
             //var t = Factory.StartNew (() => 
             //{
                 Log.To.TaskScheduling.V(TAG, "Running RawQuery");
                 try {
-                    Log.To.Database.V (TAG, "RawQuery sql: {0} ({1})", sql, String.Join (", ", paramArgs.ToStringArray ()));
-                    command = BuildCommand (_readConnection, sql, paramArgs);
-                    cursor = new Cursor (command);
+                    connection = IsOnDBThread ? new Connection(_writeConnection, null) : _readerConnections.Acquire();
+                    Log.To.Database.V (TAG, "RawQuery sql ({2}): {0} ({1})", sql, String.Join (", ", paramArgs.ToStringArray ()), IsOnDBThread ? "read uncommit" : "read commit");
+                    command = BuildCommand (connection.Raw, sql, paramArgs);
+                    cursor = new Cursor (command, connection);
                 } catch (Exception e) {
                     if (command != null) {
                         command.Dispose ();
@@ -545,7 +526,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     Log.To.Database.E (TAG, String.Format("Error executing raw query '{0}' with values '{1}', rethrowing...", 
                         sql, paramArgs == null ? (object)String.Empty : 
                         new SecureLogJsonString(args, LogMessageSensitivity.PotentiallyInsecure)), e);
-                    LastErrorCode = raw.sqlite3_errcode(_readConnection);
+                    LastErrorCode = raw.sqlite3_errcode(connection.Raw);
                     throw;
                 }
                 return cursor;
@@ -730,20 +711,17 @@ namespace Couchbase.Lite.Storage.SQLCipher
         {
             _cts.Cancel();
             ((SingleThreadScheduler)Factory.Scheduler).Dispose();
-            Close(ref _readConnection);
-            Close(ref _writeConnection);
+            Close (ref _writeConnection);
+            _readerConnections?.Dispose ();
             Path = null;
         }
 
         static void Close(ref sqlite3 db)
         {
-            if (db == null)
-            {
+            var dbCopy = Interlocked.Exchange(ref db, null);
+            if (dbCopy == null) {
                 return;
             }
-
-            var dbCopy = db;
-            db = null;
 
             try
             {
@@ -766,8 +744,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 dbCopy.close();
             }
 
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
             try {
                 dbCopy.Dispose();
             } catch (Exception ex) {

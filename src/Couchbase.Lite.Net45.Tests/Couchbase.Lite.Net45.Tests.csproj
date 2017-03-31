@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -40,16 +40,24 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="FluentAssertions, Version=4.13.0.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
+      <HintPath>..\packages\FluentAssertions.4.13.0\lib\net45\FluentAssertions.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FluentAssertions.Core, Version=4.13.0.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
+      <HintPath>..\packages\FluentAssertions.4.13.0\lib\net45\FluentAssertions.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="SQLitePCL.raw, Version=0.9.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SQLitePCL.raw.0.9.1\lib\net45\SQLitePCL.raw.dll</HintPath>
+      <HintPath>..\packages\SQLitePCL.raw.0.9.3\lib\net45\SQLitePCL.raw.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SQLitePCL.ugly.0.9.1\lib\net35\SQLitePCL.ugly.dll</HintPath>
+      <HintPath>..\packages\SQLitePCL.ugly.0.9.3\lib\net35\SQLitePCL.ugly.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SQLitePCLPlugin_sqlcipher, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SQLitePCL.plugin.sqlcipher.net45.0.9.1\lib\net45\SQLitePCLPlugin_sqlcipher.dll</HintPath>
+      <HintPath>..\packages\SQLitePCL.plugin.sqlcipher.net45.0.9.3\lib\net45\SQLitePCLPlugin_sqlcipher.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -71,10 +79,20 @@
     <Reference Include="Stateless">
       <HintPath>..\packages\Stateless.2.5.62.0\lib\portable-net40+sl50+win+wp80+MonoAndroid10+xamarinios10+MonoTouch10\Stateless.dll</HintPath>
     </Reference>
+    <Reference Include="SQLitePCLPlugin_sqlcipher">
+      <HintPath>..\packages\SQLitePCL.plugin.sqlcipher.net45.0.9.3\lib\net45\SQLitePCLPlugin_sqlcipher.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\packages\SQLitePCL.raw.0.9.3\lib\net45\SQLitePCL.raw.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>..\packages\SQLitePCL.ugly.0.9.3\lib\net35\SQLitePCL.ugly.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\attachment.blob" />
-    <EmbeddedResource Include="Assets\withattachments.cblite" />
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios130-forestdb.zip">
       <Link>Assets\ios130-forestdb.zip</Link>
     </EmbeddedResource>
@@ -90,21 +108,6 @@
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
-      <Link>Assets\ios104.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios110.zip">
-      <Link>Assets\ios110.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
-      <Link>Assets\android104.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android110.zip">
-      <Link>Assets\android110.zip</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
-      <Link>Assets\noattachments.cblite</Link>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\perftest.properties">
       <Link>Assets\perftest.properties</Link>
     </EmbeddedResource>
@@ -137,6 +140,30 @@
       <Link>Assets\ios120-forestdb.zip</Link>
     </EmbeddedResource>
     <None Include="app.config" />
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net120-forestdb.zip">
+      <Link>Assets\net120-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net120.zip">
+      <Link>Assets\net120.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net130-forestdb.zip">
+      <Link>Assets\net130-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\net130.zip">
+      <Link>Assets\net130.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android140.zip">
+      <Link>Assets\android140.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android140-forestdb.zip">
+      <Link>Assets\android140-forestdb.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios140.zip">
+      <Link>Assets\ios140.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios140-forestdb.zip">
+      <Link>Assets\ios140-forestdb.zip</Link>
+    </EmbeddedResource>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
@@ -165,9 +192,6 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
-    <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets'))" />
-    <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets'))" />
-    <Error Condition="!Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets'))" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -211,7 +235,7 @@
     <EmbeddedResource Condition=" Exists('Assets\local-test.properties') " Include="Assets\local-test.properties" />
     <EmbeddedResource Include="Assets\test.properties" />
   </ItemGroup>
-  <Import Project="..\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.linux.0.9.1\build\SQLitePCL.native.sqlcipher.linux.targets')" />
-  <Import Project="..\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.osx.0.9.1\build\SQLitePCL.native.sqlcipher.osx.targets')" />
-  <Import Project="..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.1\build\SQLitePCL.native.sqlcipher.windows.targets')" />
+  <Import Project="..\packages\SQLitePCL.native.sqlcipher.linux.0.9.3\build\SQLitePCL.native.sqlcipher.linux.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.linux.0.9.3\build\SQLitePCL.native.sqlcipher.linux.targets')" />
+  <Import Project="..\packages\SQLitePCL.native.sqlcipher.osx.0.9.3\build\SQLitePCL.native.sqlcipher.osx.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.osx.0.9.3\build\SQLitePCL.native.sqlcipher.osx.targets')" />
+  <Import Project="..\packages\SQLitePCL.native.sqlcipher.windows.0.9.3\build\SQLitePCL.native.sqlcipher.windows.targets" Condition="Exists('..\packages\SQLitePCL.native.sqlcipher.windows.0.9.3\build\SQLitePCL.native.sqlcipher.windows.targets')" />
 </Project>

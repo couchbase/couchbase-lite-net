@@ -56,7 +56,7 @@ namespace Couchbase.Lite
     /// </remarks>
     internal class BlobStore
     {
-        private const string ENCRYPTION_MARKER_FILENAME = "_encryption";
+        internal const string EncryptionMarkerFilename = "_encryption";
         private const string ENCRYPTION_ALGORITHM = "AES";
         private const string TAG = "BlobStore";
 
@@ -146,17 +146,21 @@ namespace Couchbase.Lite
 
         public bool HasBlobForKey(BlobKey key)
         {
-            return File.Exists(PathForKey(key));
+            return File.Exists(RawPathForKey(key));
         }
 
         public string PathForKey(BlobKey key)
         {
-            return _path + Path.DirectorySeparatorChar + key + FileExtension;
+            if(EncryptionKey != null) {
+                return null;
+            }
+
+            return RawPathForKey(key);
         }
 
         public long GetSizeOfBlob(BlobKey key)
         {
-            string path = PathForKey(key);
+            string path = RawPathForKey(key);
             var info = new FileInfo(path);
             return info.Exists ? info.Length : 0;
         }
@@ -190,7 +194,7 @@ namespace Couchbase.Lite
                 return null;
             }
 
-            string keyPath = PathForKey(key);
+            string keyPath = RawPathForKey(key);
             var fileStream = default(Stream);
             try {
                 fileStream = File.Open(keyPath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -212,7 +216,7 @@ namespace Couchbase.Lite
         {
             BlobKey newKey = KeyForBlob(data);
             outKey.Bytes = newKey.Bytes;
-            string keyPath = PathForKey(outKey);
+            string keyPath = RawPathForKey(outKey);
             if (File.Exists(keyPath) && ((File.GetAttributes (keyPath) & FileAttributes.Offline) == 0)) {
                 Log.To.Database.V(TAG, "Blob {0} already exists in store, no action needed", newKey.Base64Digest());
                 return;
@@ -337,7 +341,7 @@ namespace Couchbase.Lite
             action.AddLogic(() =>
             {
                 tempStore = new BlobStore(tempPath, newKey);
-                tempStore.MarkEncrypted(true);
+                tempStore.MarkEncrypted(newKey != null);
             }, null, null);
 
             // Copy each of my blobs into the new store (which will update its encryption):
@@ -385,9 +389,14 @@ namespace Couchbase.Lite
             ActionToChangeEncryptionKey(newKey).Run();
         }
 
+        internal string RawPathForKey(BlobKey key)
+        {
+            return Path.Combine(_path, $"{key}{FileExtension}");
+        }
+
         internal void MarkEncrypted(bool encrypted)
         {
-            var encMarkerPath = Path.Combine(_path, ENCRYPTION_MARKER_FILENAME);
+            var encMarkerPath = Path.Combine(_path, EncryptionMarkerFilename);
             if (encrypted) {
                 try {
                     File.WriteAllText(encMarkerPath, ENCRYPTION_ALGORITHM);
@@ -405,7 +414,7 @@ namespace Couchbase.Lite
 
         private void VerifyExistingStore()
         {
-            var markerPath = Path.Combine(_path, ENCRYPTION_MARKER_FILENAME);
+            var markerPath = Path.Combine(_path, EncryptionMarkerFilename);
             var fileExists = File.Exists(markerPath);
             var encryptionAlg = default(string);
             try {

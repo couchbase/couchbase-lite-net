@@ -267,7 +267,12 @@ namespace Couchbase.Lite
                 _parsedValue = value;
             }
 
-            return (T)value;
+            T castVal = default(T);
+            if(!ExtensionMethods.TryCast(_parsedValue, out castVal)) {
+                throw new InvalidCastException();
+            }
+
+            return castVal;
         }
 
         /// <summary>

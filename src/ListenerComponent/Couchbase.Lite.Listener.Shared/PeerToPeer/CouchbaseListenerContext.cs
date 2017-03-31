@@ -159,7 +159,8 @@ namespace Couchbase.Lite.Listener
                         _queryOptions.Stale = IndexUpdateMode.Never;
                     } else if (stale.Equals("update_after")) {
                         _queryOptions.Stale = IndexUpdateMode.After;
-                    } else {
+                    } else if(!stale.Equals("false")) {
+                        Log.To.Router.W(Tag, $"Unrecognized stale option '{stale}', returning null...");
                         return null;
                     }
                 }

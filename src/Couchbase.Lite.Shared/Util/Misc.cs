@@ -53,6 +53,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.Util;
 using System.Collections;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -283,86 +284,6 @@ namespace Couchbase.Lite
             }
 
             return ex.StatusCode == HttpStatusCode.Unauthorized || ex.StatusCode == HttpStatusCode.ProxyAuthenticationRequired;
-        }
-
-        public static HttpStatusCode? GetStatusCode(Exception e)
-        {
-            var attempt = ((HttpWebResponse)(e as WebException)?.Response)?.StatusCode;
-            if(attempt.HasValue) {
-                return attempt;
-            }
-
-            return (e as HttpResponseException)?.StatusCode;
-        }
-
-        public static bool IsTransientNetworkError(Exception e, out string code)
-        {
-            const string Tag = "IsTransientNetworkError";
-            code = String.Empty;
-            foreach (var exception in Misc.Flatten(e)) {
-                if (exception is IOException
-                    || exception is TimeoutException
-                    || exception is SocketException) {
-                    code = e.GetType().Name;
-                    Log.To.Sync.V(Tag, "Rule #1: Exception is IOException, TimeoutException, or SocketException, " +
-                    "ruling transient...", exception);
-                    return true;
-                }
-
-                var we = exception as WebException;
-                if (we == null) {
-                    Log.To.Sync.V(Tag, "No further information can be gained from this exception, " +
-                    "attempting to find other nested exceptions...", exception);
-                    if (!String.IsNullOrEmpty(code)) {
-                        code = e.GetType().Name;
-                    }
-                    continue;
-                }
-
-                if (we.Status == WebExceptionStatus.ConnectFailure || we.Status == WebExceptionStatus.Timeout ||
-                    we.Status == WebExceptionStatus.ConnectionClosed || we.Status == WebExceptionStatus.RequestCanceled) {
-                    Log.To.Sync.V(Tag, "Rule #2: Exception is WebException and status is ConnectFailure, Timeout, " +
-                    "ConnectionClosed, or RequestCanceled, ruling transient...", we);
-                    code = we.Status.ToString();
-                    return true;
-                }
-
-                var statusCode = GetStatusCode(we);
-                if (!statusCode.HasValue) {
-                    Log.To.Sync.V(Tag, "No further information can be gained from this WebException (missing response?), " +
-                    "attempting to find other nested exceptions...", we);
-                    code = we.Status.ToString();
-                    continue;
-                }
-
-                if (IsTransientError(((HttpWebResponse)we.Response).StatusCode)) {
-                    Log.To.Sync.V(Tag, "Rule #3: {0} is considered a transient error code, ruling transient...", 
-                        ((HttpWebResponse)we.Response).StatusCode);
-                    code = statusCode.Value.ToString();
-                    return true;
-                }
-            }
-
-            Log.To.Sync.V(Tag, "No transient exceptions found, ruling fatal...");
-            return false;
-        }
-
-        public static bool IsTransientError(HttpResponseMessage response)
-        {
-            if (response == null) {
-                return false;
-            }
-
-            return IsTransientError(response.StatusCode);
-        }
-
-        public static bool IsTransientError(HttpStatusCode status)
-        {
-            return status == HttpStatusCode.InternalServerError || 
-                status == HttpStatusCode.BadGateway || 
-                status == HttpStatusCode.ServiceUnavailable || 
-                status == HttpStatusCode.GatewayTimeout ||
-                status == HttpStatusCode.RequestTimeout;
         }
 
         /// <summary>Like equals, but works even if either/both are null</summary>

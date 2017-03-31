@@ -63,12 +63,6 @@ namespace Couchbase.Lite.Support
         // Create an HTTP client based on the cookie store
         CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy);
 
-        /// <summary>
-        /// Gets or sets the headers used by default in the HttpClient
-        /// </summary>
-        /// <value>The headers.</value>
-        IDictionary<string,string> Headers { get; set; }
-
         TimeSpan SocketTimeout { get; set; }
     }
 }
