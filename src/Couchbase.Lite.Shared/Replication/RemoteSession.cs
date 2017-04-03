@@ -414,6 +414,7 @@ namespace Couchbase.Lite.Internal
             var message = new HttpRequestMessage(method, url);
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
+            AddRequestHeaders(message);
 
             var client = default(CouchbaseLiteHttpClient);
             if(!_client.AcquireFor(TimeSpan.FromSeconds(1), out client)) {
