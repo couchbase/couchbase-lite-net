@@ -37,11 +37,21 @@ namespace Couchbase.Lite.Query
         /// <returns>The results of running the query</returns>
         IEnumerable<IQueryRow> Run();
 
+        /// <summary>
+        /// Skips the first given number of items in the query
+        /// </summary>
+        /// <param name="skip">The number of items to skip before returning data</param>
+        /// <returns>The query object for further processing</returns>
         IQuery Skip(ulong skip);
 
+        /// <summary>
+        /// Sets the limit for the number of items to return from the query
+        /// </summary>
+        /// <param name="limit">The maximum number of items to return from the query</param>
+        /// <returns></returns>
         IQuery Limit(ulong limit);
 
-        IQuery SetParameters(IDictionary<string, object> parameters);
+        //IQuery SetParameters(IDictionary<string, object> parameters);
 
         #endregion
     }

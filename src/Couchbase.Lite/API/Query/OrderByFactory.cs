@@ -40,11 +40,24 @@ namespace Couchbase.Lite.Query
             return new SortOrder(expression);
         }
 
+        /// <summary>
+        /// Creates an object that will sort based on the value in the given
+        /// property path
+        /// </summary>
+        /// <param name="name">The path of the property whose value will be used
+        /// to sort the results of the query</param>
+        /// <returns>The object that will perform the sort</returns>
         public static ISortOrder Property(string name)
         {
             return Expression(ExpressionFactory.Property(name));
         }
 
+        /// <summary>
+        /// Creates an aggregate object that will sort based on the
+        /// passed child objects in order
+        /// </summary>
+        /// <param name="orderBy">The child objects to sort based on</param>
+        /// <returns>The object that will perform the sort</returns>
         public static IOrderBy OrderBy(params IOrderBy[] orderBy)
         {
             return new OrderBy(orderBy);

@@ -1,14 +1,44 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// 
+// DataSourceFactory.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+using System;
 using System.Linq;
-using System.Text;
+
 using Couchbase.Lite.DB;
 using Couchbase.Lite.Querying;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// A factory class for creating data sources for queries
+    /// </summary>
     public static class DataSourceFactory
     {
+        #region Public Methods
+
+        /// <summary>
+        /// Creates a data source for an <see cref="IQuery" /> that gets results from the given
+        /// <see cref="IDatabase" />
+        /// </summary>
+        /// <param name="database">The database to operate on</param>
+        /// <returns>The source of data for the <see cref="IQuery" /></returns>
         public static IDatabaseSource Database(IDatabase database)
         {
             var db = default(Database);
@@ -21,6 +51,10 @@ namespace Couchbase.Lite.Query
 
             return new DatabaseSource(db);
         }
+
+        #endregion
+
+        #region Internal Methods
 
         internal static IQueryable<TElement> LinqDataSource<TElement>(IDatabase database, bool prefetch)
             where TElement : class, IDocumentModel, new()
@@ -36,5 +70,7 @@ namespace Couchbase.Lite.Query
 
             return new DatabaseQueryable<TElement>(db, prefetch);
         }
+
+        #endregion
     }
 }

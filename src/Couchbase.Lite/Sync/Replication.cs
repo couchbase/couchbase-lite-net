@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Sync
 
         static Replication()
         {
-            
+            WebSocketTransport.RegisterWithC4();
         }
 
         public Replication(IDatabase db, Uri remoteUrl, IDatabase otherDb)

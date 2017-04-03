@@ -36,14 +36,14 @@ namespace Couchbase.Lite.Sync
             {
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(ConnectTimeout);
-                WebSocket.ConnectAsync(_url, cts.Token).ConfigureAwait(false).GetAwaiter().OnCompleted(() =>
+                WebSocket.ConnectAsync(_url, cts.Token).ContinueWith(t =>
                 {
                     Receive();
                     _c4Queue.DispatchAsync(() =>
                     {
                         Native.c4socket_opened(_socket);
                     });
-                });
+                }, cts.Token);
             });
         }
 

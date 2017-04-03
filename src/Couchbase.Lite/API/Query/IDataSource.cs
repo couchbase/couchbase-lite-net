@@ -29,6 +29,10 @@ namespace Couchbase.Lite.Query
         
     }
 
+    /// <summary>
+    /// An interface representing a source of data that comes from
+    /// an <see cref="IDatabase"/>
+    /// </summary>
     public interface IDatabaseSource : IDataSource
     {
         #region Public Methods
