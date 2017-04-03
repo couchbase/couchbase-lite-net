@@ -6,6 +6,8 @@ And while we welcome questions, **we prefer to answer questions on our [develope
 
 If you are ready to make a contribution,  please sign the [New Contributor Agreement](http://review.couchbase.org/#/settings/agreements) first.  It is completely online, and should only take a minute or two.  You only need to do this once.
 
+All posts are expected to meet the [Couchbase Code of Conduct](https://www.couchbase.com/code-of-conduct). 
+
 # 0. Where's The Bug Tracker?
 
 We use Github Issues, so there is one bug tracker for each repo. For your convenience, here's a list:
