@@ -234,11 +234,6 @@ namespace Couchbase.Lite.Querying
             Current = enumerator->fullTextTermCount > 0 ? new FullTextQueryRow(_db, _query, enumerator) : new QueryRow(_db, enumerator);
         }
 
-        protected override void Dispose(bool finalizing)
-        {
-            Native.c4query_free(_query);
-        }
-
         #endregion
     }
 

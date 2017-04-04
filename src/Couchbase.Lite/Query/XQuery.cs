@@ -32,6 +32,11 @@ namespace Couchbase.Lite.Query
 
         protected IOrderBy OrderByImpl { get; set; }
 
+        ~XQuery()
+        {
+            Dispose(true);
+        }
+
         public IEnumerable<IQueryRow> Run()
         {
             if (Database == null) {
@@ -64,6 +69,11 @@ namespace Couchbase.Lite.Query
             return this;
         }
 
+        public ILiveQuery ToLiveQuery()
+        {
+            return new LiveQuery(Database, this);
+        }
+
         public IQuery Limit(ulong limit)
         {
             _limit = limit;
@@ -84,6 +94,12 @@ namespace Couchbase.Lite.Query
             FromImpl = source.FromImpl;
             WhereImpl = source.WhereImpl;
             OrderByImpl = source.OrderByImpl;
+        }
+
+        protected virtual void Dispose(bool finalizing)
+        {
+            Native.c4query_free(_c4Query);
+            _c4Query = null;
         }
 
         internal string Explain()
@@ -136,6 +152,11 @@ namespace Couchbase.Lite.Query
             }
 
             return JsonConvert.SerializeObject(parameters);
+        }
+
+        public void Dispose()
+        {
+            Dispose(false);
         }
     }
 }

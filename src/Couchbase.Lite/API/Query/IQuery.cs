@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 
+using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
@@ -26,7 +27,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An interface representing a runnable query over a data source
     /// </summary>
-    public interface IQuery
+    public interface IQuery : IDisposable
     {
 
         #region Public Methods
@@ -43,6 +44,12 @@ namespace Couchbase.Lite.Query
         /// <param name="skip">The number of items to skip before returning data</param>
         /// <returns>The query object for further processing</returns>
         IQuery Skip(ulong skip);
+
+        /// <summary>
+        /// Converts a query to a <see cref="ILiveQuery"/> for realtime monitoring.
+        /// </summary>
+        /// <returns>The instantiated live query object</returns>
+        ILiveQuery ToLiveQuery();
 
         /// <summary>
         /// Sets the limit for the number of items to return from the query
