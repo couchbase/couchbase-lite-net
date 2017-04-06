@@ -43,140 +43,52 @@ namespace Couchbase.Lite.Logging
         /// Gets all the logging interfaces so logic can be applied to
         /// all of them
         /// </summary>
-        public IDomainLogging All
-        {
-            get {
-                return GetAll();
-            }
-        }
-
-        /// <summary>
-        /// Gets the logging interface for change tracker logging, which is responsible
-        /// for logging information about the change tracker portion of a pull replication
-        /// (where the incoming changes are received and parsed)
-        /// </summary>
-        public IDomainLogging ChangeTracker 
-        { 
-            get { 
-                return _source.ChangeTracker;
-            }
-        }
+        public IDomainLogging All => GetAll();
 
         /// <summary>
         /// Gets the logging interface for database logging, which is responsible
         /// for logging activity between the library and the disk, including creation
         /// of Documents / Revisions, disk I/O, etc
         /// </summary>
-        public IDomainLogging Database
-        {
-            get {
-                return _source.Database;
-            }
-        }
-
-        /// <summary>
-        /// Gets the logging interface for discovery logging, which is responsible
-        /// for logging information about P2P discovery.
-        /// </summary>
-        public IDomainLogging Discovery
-        {
-            get {
-                return _source.Discovery;
-            }
-        }
+        public IDomainLogging Database => _source.Database;
 
         /// <summary>
         /// Gets the logging interface for listener logging, which is responsible
         /// for logging information about the P2P REST API listener (connections,
         /// authorization, non-routing logic)
         /// </summary>
-        public IDomainLogging Listener
-        {
-            get { 
-                return _source.Listener;
-            }
-        }
+        public IDomainLogging Listener => _source.Listener;
+
+        /// <summary>
+        /// Gets the logging interface for the LiteCore logging, which is responsible
+        /// for messages sent up from the native LiteCore module
+        /// </summary>
+        public IDomainLogging LiteCore => _source.LiteCore;
 
         /// <summary>
         /// Gets the logging interface for query logging, which is responsible for
         /// logging information about in progress queries on data.
         /// </summary>
-        public IDomainLogging Query
-        { 
-            get { 
-                return _source.Query;
-            }
-        }
+        public IDomainLogging Query => _source.Query;
 
         /// <summary>
         /// Gets the logging interface for router logging, which is responsible for
         /// logging information about the routing logic in the listener component
         /// (i.e. REST API provider for P2P)
         /// </summary>
-        public IDomainLogging Router 
-        { 
-            get { 
-                return _source.Router;
-            }
-        }
+        public IDomainLogging Router => _source.Router;
 
         /// <summary>
         /// Gets the logging interface for sync logging, which is responsible for
         /// logging activity between the library and remote (network) endpoints.
         /// </summary>
-        public IDomainLogging Sync 
-        {
-            get { 
-                return _source.Sync;
-            }
-        }
+        public IDomainLogging Sync => _source.Sync;
 
         /// <summary>
         /// Gets the logging interface for task scheduling, which is responsible
         /// for logging information about scheduling tasks in task schedulers.
         /// </summary>
-        public IDomainLogging TaskScheduling
-        {
-            get {
-                return _source.TaskScheduling;
-            }
-        }
-
-        /// <summary>
-        /// Gets the logging interface for upgrade logging, which is responsible
-        /// for logging information about local database upgrades (when a new
-        /// version of Couchbase Lite changes the database layout in a way that
-        /// is not backwards compatible)
-        /// </summary>
-        public IDomainLogging Upgrade 
-        { 
-            get { 
-                return _source.Upgrade;
-            }
-        }
-
-        /// <summary>
-        /// Gets the logging interface for validation logging, which is responsible
-        /// for logging information about revision validation (a user-defined
-        /// function)
-        /// </summary>
-        public IDomainLogging Validation 
-        { 
-            get { 
-                return _source.Validation;
-            }
-        }
-
-        /// <summary>
-        /// Gets the logging interface for view logging, which is responsible for
-        /// logging information about constructed views on data.
-        /// </summary>
-        public IDomainLogging View 
-        { 
-            get { 
-                return _source.View; 
-            } 
-        }
+        public IDomainLogging TaskScheduling => _source.TaskScheduling;
 
         #endregion
 
@@ -225,8 +137,7 @@ namespace Couchbase.Lite.Logging
 
         private LogGroup GetAll()
         {
-            return new LogGroup(Database, Query, View, Router, Sync, ChangeTracker,
-                Validation, Upgrade, Listener, Discovery, TaskScheduling);
+            return new LogGroup(Database, Query, Router, Sync, Listener, TaskScheduling);
         }
 
         #endregion

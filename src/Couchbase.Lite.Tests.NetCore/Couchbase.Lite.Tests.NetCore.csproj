@@ -7,7 +7,8 @@
     <DelaySign>False</DelaySign -->
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>TRACE;DEBUG;NETCOREAPP1_0;LITECORE_PACKAGED;</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED;</DefineConstants>
+    <WarningLevel>0</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE;RELEASE;NETCOREAPP1_0;LITECORE_PACKAGED</DefineConstants>

@@ -151,7 +151,7 @@ namespace Couchbase.Lite.DB
         static Database()
         {
             _LogCallback = LiteCoreLog;
-            Native.c4log_register(C4LogLevel.Warning, _LogCallback);
+            Native.c4log_register(C4LogLevel.Verbose, _LogCallback);
             _DbObserverCallback = DbObserverCallback;
         }
 
@@ -269,23 +269,24 @@ namespace Couchbase.Lite.DB
         }
 
         [MonoPInvokeCallback(typeof(C4LogCallback))]
-        private static void LiteCoreLog(C4LogDomain domain, C4LogLevel level, C4Slice msg)
+        private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, C4Slice msg)
         {
+            var name = Native.c4log_getDomainName(domain);
             switch(level) {
                 case C4LogLevel.Error:
-                    Log.To.Database.E("LiteCore", msg.CreateString());
+                    Log.To.DomainOrLiteCore(name).E(name, msg.CreateString());
                     break;
                 case C4LogLevel.Warning:
-                    Log.To.Database.W("LiteCore", msg.CreateString());
+                    Log.To.DomainOrLiteCore(name).W(name, msg.CreateString());
                     break;
                 case C4LogLevel.Info:
-                    Log.To.Database.V("LiteCore", msg.CreateString()); // Noisy, so intentionally V
+                    Log.To.DomainOrLiteCore(name).I(name, msg.CreateString());
                     break;
                 case C4LogLevel.Verbose:
-                    Log.To.Database.V("LiteCore", msg.CreateString());
+                    Log.To.DomainOrLiteCore(name).V(name, msg.CreateString());
                     break;
                 case C4LogLevel.Debug:
-                    Log.To.Database.D("LiteCore", msg.CreateString());
+                    Log.To.DomainOrLiteCore(name).D(name, msg.CreateString());
                     break;
             }
         }

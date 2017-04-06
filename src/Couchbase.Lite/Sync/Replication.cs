@@ -1,8 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// 
+// Replication.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+using System;
 using System.Linq;
 using System.Text;
-using System.Threading;
+
 using Couchbase.Lite.DB;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
@@ -14,23 +33,38 @@ namespace Couchbase.Lite.Sync
 {
     internal sealed unsafe class Replication : ThreadSafe, IReplication
     {
-        private const string Tag = nameof(Replication);
-        private C4Replicator* _repl;
+        #region Constants
 
-        private static readonly C4ReplicatorMode[] _Modes = {
+        private static readonly C4ReplicatorMode[] Modes = {
             C4ReplicatorMode.Disabled, C4ReplicatorMode.Disabled, C4ReplicatorMode.OneShot, C4ReplicatorMode.Continuous
         };
 
+        private const string Tag = nameof(Replication);
+
+        #endregion
+
+        #region Variables
+
         public event EventHandler<ReplicationStatusChangedEventArgs> StatusChanged;
         public event EventHandler<ReplicationStoppedEventArgs> Stopped;
-        public IDatabase Database { get; }
-        public Uri RemoteUrl { get; }
-        public IDatabase OtherDatabase { get; }
-        public bool Push { get; set; }
-        public bool Pull { get; set; }
+        private C4Replicator* _repl;
+
+        #endregion
+
+        #region Properties
+
         public bool Continuous { get; set; }
-        public ReplicationStatus Status { get; private set; }
+        public IDatabase Database { get; }
         public Exception LastError { get; private set; }
+        public IDatabase OtherDatabase { get; }
+        public bool Pull { get; set; }
+        public bool Push { get; set; }
+        public Uri RemoteUrl { get; }
+        public ReplicationStatus Status { get; private set; }
+
+        #endregion
+
+        #region Constructors
 
         static Replication()
         {
@@ -50,9 +84,13 @@ namespace Couchbase.Lite.Sync
             Dispose(true);
         }
 
+        #endregion
+
+        #region Private Methods
+
         private static C4ReplicatorMode Mkmode(bool active, bool continuous)
         {
-            return _Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
+            return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
@@ -64,18 +102,9 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        private void StatusChangedCallback(C4ReplicatorStatus status)
+        private void Dispose(bool finalizing)
         {
-            SetC4Status(status);
-
-            StatusChanged?.Invoke(this, new ReplicationStatusChangedEventArgs(Status));
-            if (status.level == C4ReplicatorActivityLevel.Stopped) {
-                // Stopped:
-                Native.c4repl_free(_repl);
-                _repl = null;
-                Stopped?.Invoke(this, new ReplicationStoppedEventArgs(LastError));
-                (Database as Database)?.ActiveReplications.Remove(this);
-            }
+            Native.c4repl_free(_repl);
         }
 
         private void SetC4Status(C4ReplicatorStatus state)
@@ -93,8 +122,26 @@ namespace Couchbase.Lite.Sync
             var activity = (ReplicationActivityLevel) state.level;
             var progress = new ReplicationProgress(state.progress.completed, state.progress.total);
             Status = new ReplicationStatus(activity, progress);
-            Log.To.Sync.I(Tag, $"{this} is {Status}, progress {state.progress.completed}/{state.progress.total}");
+            Log.To.Sync.I(Tag, $"{this} is {state.level}, progress {state.progress.completed}/{state.progress.total}");
         }
+
+        private void StatusChangedCallback(C4ReplicatorStatus status)
+        {
+            SetC4Status(status);
+
+            StatusChanged?.Invoke(this, new ReplicationStatusChangedEventArgs(Status));
+            if (status.level == C4ReplicatorActivityLevel.Stopped) {
+                // Stopped:
+                Native.c4repl_free(_repl);
+                _repl = null;
+                Stopped?.Invoke(this, new ReplicationStoppedEventArgs(LastError));
+                (Database as Database)?.ActiveReplications.Remove(this);
+            }
+        }
+
+        #endregion
+
+        #region Overrides
 
         public override string ToString()
         {
@@ -114,6 +161,23 @@ namespace Couchbase.Lite.Sync
             var other = RemoteUrl?.AbsoluteUri ?? OtherDatabase.Name;
             return $"{GetType().Name}[{sb} {other}]";
         }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            DoSync(() =>
+            {
+                Dispose(false);
+            });
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
+
+        #region IReplication
 
         public void Start()
         {
@@ -189,18 +253,6 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        private void Dispose(bool finalizing)
-        {
-            Native.c4repl_free(_repl);
-        }
-
-        public void Dispose()
-        {
-            DoSync(() =>
-            {
-                Dispose(false);
-            });
-            GC.SuppressFinalize(this);
-        }
+        #endregion
     }
 }

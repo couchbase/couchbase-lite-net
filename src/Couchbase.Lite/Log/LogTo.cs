@@ -54,10 +54,7 @@ namespace Couchbase.Lite.Logging
 
         #region Properties
 
-        public string Domain 
-        {
-            get { return _domain; }
-        }
+        public string Domain => _domain;
 
         public Log.LogLevel Level { get; set; }
 
@@ -305,31 +302,23 @@ namespace Couchbase.Lite.Logging
 
         #region Properties
 
-        internal DomainLogger ChangeTracker { get { return _allLoggers[6]; } }
+        internal DomainLogger Database => _allLoggers[0];
 
-        internal DomainLogger Database { get { return _allLoggers[0]; } }
+        internal DomainLogger LiteCore => _allLoggers[7];
 
-        internal DomainLogger Discovery { get { return _allLoggers[10]; } }
+        internal DomainLogger Listener => _allLoggers[5];
 
-        internal DomainLogger Listener { get { return _allLoggers[9]; } }
+        internal DomainLogger NoDomain => _allLoggers[8];
 
-        internal DomainLogger NoDomain { get { return _allLoggers[12]; } }
+        internal DomainLogger Query => _allLoggers[1];
 
-        internal DomainLogger Query { get { return _allLoggers[1]; } }
+        internal DomainLogger Router => _allLoggers[2];
 
-        internal DomainLogger Router { get { return _allLoggers[3]; } }
+        internal DomainLogger Sync => _allLoggers[3];
 
-        internal DomainLogger Sync { get { return _allLoggers[4]; } }
+        internal DomainLogger SyncPerf => _allLoggers[4];
 
-        internal DomainLogger SyncPerf { get { return _allLoggers[5]; } }
-
-        internal DomainLogger TaskScheduling { get { return _allLoggers[11]; } }
-
-        internal DomainLogger Upgrade { get { return _allLoggers[8]; } }
-
-        internal DomainLogger Validation { get { return _allLoggers[7]; } }
-
-        internal DomainLogger View { get { return _allLoggers[2]; } }
+        internal DomainLogger TaskScheduling => _allLoggers[6];
 
         #endregion
 
@@ -337,9 +326,10 @@ namespace Couchbase.Lite.Logging
 
         internal LogTo()
         {
-            var domains = new[] { "DATABASE", "QUERY", "VIEW", "ROUTER", "SYNC",
-                "SYNC PERF", "CHANGE TRACKER", "VALIDATION", "UPGRADE", "LISTENER", "DISCOVERY",
-                "TASK SCHEDULING"};
+            var domains = new[] {
+                "DB", "QUERY", "ROUTER", "SYNC",
+                "SYNC PERF", "LISTENER", "TASK SCHEDULING", "LITECORE"
+            };
             _allLoggers = new DomainLogger[domains.Length + 1];
             int i = 0;
             foreach (var domain in domains) {
@@ -349,6 +339,21 @@ namespace Couchbase.Lite.Logging
             SyncPerf.Level = Log.LogLevel.None;
 
             _allLoggers[_allLoggers.Length - 1] = new DomainLogger(null, false) { Level = Log.LogLevel.Base };
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal DomainLogger DomainOrLiteCore(string domainName)
+        {
+            foreach (var logger in _allLoggers) {
+                if (logger.Domain?.ToUpper() == domainName) {
+                    return logger;
+                }
+            }
+
+            return LiteCore;
         }
 
         #endregion

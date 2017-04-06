@@ -93,9 +93,7 @@ namespace Couchbase.Lite.Logging
         /// </summary>
         public static readonly LogDomains Domains = new LogDomains(To);
 
-        internal static IEnumerable<ILogger> Loggers { 
-            get { return _Loggers; }
-        }
+        internal static IEnumerable<ILogger> Loggers => _Loggers;
 
         #endregion
 
