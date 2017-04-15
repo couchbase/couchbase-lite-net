@@ -552,57 +552,57 @@ namespace Test
             numRows.Should().Be(1, "because there is only one distinct row");
         }
 
-        [Fact]
-        public async Task TestLiveQuery()
-        {
-            IDocument doc1 = null, doc2 = null;
-            await Db.DoAsync(() =>
-            {
-                doc1 = Db.CreateDocument();
-                doc1["number"] = 1;
-                doc1.Save();
+        //[Fact]
+        //public async Task TestLiveQuery()
+        //{
+        //    IDocument doc1 = null, doc2 = null;
+        //    await Db.DoAsync(() =>
+        //    {
+        //        doc1 = Db.CreateDocument();
+        //        doc1["number"] = 1;
+        //        doc1.Save();
 
-                doc2 = Db.CreateDocument();
-                doc2["number"] = 0;
-                doc2.Save();
-            });
+        //        doc2 = Db.CreateDocument();
+        //        doc2["number"] = 0;
+        //        doc2.Save();
+        //    });
 
-            var liveQuery = QueryFactory.Select()
-                .From(DataSourceFactory.Database(Db))
-                .Where(ExpressionFactory.Property("number").GreaterThanOrEqualTo(1))
-                .ToLiveQuery();
+        //    var liveQuery = QueryFactory.Select()
+        //        .From(DataSourceFactory.Database(Db))
+        //        .Where(ExpressionFactory.Property("number").GreaterThanOrEqualTo(1))
+        //        .ToLiveQuery();
 
-            var are = new AutoResetEvent(false);
-            IEnumerable<IQueryRow> results = null;
-            liveQuery.Changed += (sender, args) =>
-            {
-                results = args.Results;
-                are.Set();
-            };
-            liveQuery.Start();
+        //    var are = new AutoResetEvent(false);
+        //    IEnumerable<IQueryRow> results = null;
+        //    liveQuery.Changed += (sender, args) =>
+        //    {
+        //        results = args.Results;
+        //        are.Set();
+        //    };
+        //    liveQuery.Start();
 
-            results = liveQuery.Results;
-            results.Should().HaveCount(1, "because there is only one document with this critera");
+        //    results = liveQuery.Results;
+        //    results.Should().HaveCount(1, "because there is only one document with this critera");
 
-            await Db.DoAsync(() =>
-            {
-                results.ElementAt(0).Document["number"].Should().Be(1L, "because that is what was stored");
-                doc1["number"] = 2;
-                doc1.Save();
-            });
+        //    await Db.DoAsync(() =>
+        //    {
+        //        results.ElementAt(0).Document["number"].Should().Be(1L, "because that is what was stored");
+        //        doc1["number"] = 2;
+        //        doc1.Save();
+        //    });
 
-            are.WaitOne(2000).Should().BeTrue("because otherwise the live query timed out");
-            results.Should().HaveCount(1, "because there is only one document with this critera");
-            liveQuery.Dispose();
-            await Db.DoAsync(() =>
-            {
-                results.ElementAt(0).Document["number"].Should().Be(2L, "because that is what was stored");
-                doc1["number"] = 3;
-                doc1.Save();
-            });
+        //    are.WaitOne(2000).Should().BeTrue("because otherwise the live query timed out");
+        //    results.Should().HaveCount(1, "because there is only one document with this critera");
+        //    liveQuery.Dispose();
+        //    await Db.DoAsync(() =>
+        //    {
+        //        results.ElementAt(0).Document["number"].Should().Be(2L, "because that is what was stored");
+        //        doc1["number"] = 3;
+        //        doc1.Save();
+        //    });
 
-            are.WaitOne(2000).Should().BeFalse("because the live query was disposed");
-        }
+        //    are.WaitOne(2000).Should().BeFalse("because the live query was disposed");
+        //}
 
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
         {
