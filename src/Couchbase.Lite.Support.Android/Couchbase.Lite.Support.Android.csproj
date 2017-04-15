@@ -105,11 +105,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">
+    <None Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">
       <Link>Properties\DynamicAssemblyInfo.tt</Link>
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
-    </Content>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
