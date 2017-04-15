@@ -45,11 +45,11 @@ namespace Couchbase.Lite.Query
         /// <returns>The query object for further processing</returns>
         IQuery Skip(ulong skip);
 
-        /// <summary>
-        /// Converts a query to a <see cref="ILiveQuery"/> for realtime monitoring.
-        /// </summary>
-        /// <returns>The instantiated live query object</returns>
-        ILiveQuery ToLiveQuery();
+        // <summary>
+        // Converts a query to a <see cref="ILiveQuery"/> for realtime monitoring.
+        // </summary>
+        // <returns>The instantiated live query object</returns>
+        //ILiveQuery ToLiveQuery();
 
         /// <summary>
         /// Sets the limit for the number of items to return from the query

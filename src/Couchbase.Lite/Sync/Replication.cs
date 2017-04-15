@@ -55,12 +55,37 @@ namespace Couchbase.Lite.Sync
 
         public bool Continuous { get; set; }
         public IDatabase Database { get; }
-        public Exception LastError { get; private set; }
         public IDatabase OtherDatabase { get; }
         public bool Pull { get; set; }
         public bool Push { get; set; }
         public Uri RemoteUrl { get; }
-        public ReplicationStatus Status { get; private set; }
+
+        public Exception LastError
+        {
+            get {
+                AssertSafety();
+                return _lastError;
+            }
+            set {
+                AssertSafety();
+                _lastError = value;
+            }
+        }
+        private Exception _lastError;
+
+
+        public ReplicationStatus Status
+        {
+            get {
+                AssertSafety();
+                return _status;
+            }
+            private set {
+                AssertSafety();
+                _status = value;
+            }
+        }
+        private ReplicationStatus _status;
 
         #endregion
 
@@ -114,28 +139,34 @@ namespace Couchbase.Lite.Sync
                 error = new LiteCoreException(state.error);
             }
 
-            if (LastError != error) {
-                LastError = error;
-            }
+            DoAsync(() =>
+            {
+                if (LastError != error) {
+                    LastError = error;
+                }
 
-            //NOTE: ReplicationStatus values need to match C4ReplicatorActivityLevel!
-            var activity = (ReplicationActivityLevel) state.level;
-            var progress = new ReplicationProgress(state.progress.completed, state.progress.total);
-            Status = new ReplicationStatus(activity, progress);
-            Log.To.Sync.I(Tag, $"{this} is {state.level}, progress {state.progress.completed}/{state.progress.total}");
+                //NOTE: ReplicationStatus values need to match C4ReplicatorActivityLevel!
+                var activity = (ReplicationActivityLevel)state.level;
+                var progress = new ReplicationProgress(state.progress.completed, state.progress.total);
+                Status = new ReplicationStatus(activity, progress);
+                Log.To.Sync.I(Tag, $"{this} is {state.level}, progress {state.progress.completed}/{state.progress.total}");
+            });
         }
 
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
             SetC4Status(status);
 
-            StatusChanged?.Invoke(this, new ReplicationStatusChangedEventArgs(Status));
+            DoAsync(() => StatusChanged?.Invoke(this, new ReplicationStatusChangedEventArgs(Status)));
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
                 // Stopped:
                 Native.c4repl_free(_repl);
                 _repl = null;
-                Stopped?.Invoke(this, new ReplicationStoppedEventArgs(LastError));
-                (Database as Database)?.ActiveReplications.Remove(this);
+                DoAsync(() =>
+                {
+                    Stopped?.Invoke(this, new ReplicationStoppedEventArgs(LastError));
+                    (Database as Database)?.ActiveReplications.Remove(this);
+                });
             }
         }
 

@@ -20,6 +20,7 @@
 // 
 using System;
 using System.Collections.Generic;
+using System.Net.WebSockets;
 using System.Threading;
 
 using LiteCore.Interop;
@@ -51,11 +52,11 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        private static void DoClose(C4Socket* socket)
+        private static void DoClose(C4Socket* socket, int status, string message)
         {
             var id = (int) socket->nativeHandle;
             var socketWrapper = Sockets[id];
-            socketWrapper.CloseSocket();
+            socketWrapper.CloseSocket((WebSocketCloseStatus)status, message);
         }
 
         private static void DoCompleteReceive(C4Socket* socket, ulong bytecount)

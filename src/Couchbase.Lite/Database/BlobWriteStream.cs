@@ -100,7 +100,7 @@ namespace Couchbase.Lite
         public override void Flush()
         {
             Key = Native.c4stream_computeBlobKey(_writeStream);
-            LiteCoreBridge.Check(err => Native.c4stream_install(_writeStream, err));
+            LiteCoreBridge.Check(err => Native.c4stream_install(_writeStream, null, err));
         }
 
         public override int Read(byte[] buffer, int offset, int count)

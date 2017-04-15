@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Couchbase.Lite.Query
 {
-    public sealed class LiveQueryChangedEventArgs : EventArgs
+    internal sealed class LiveQueryChangedEventArgs : EventArgs
     {
         public IEnumerable<IQueryRow> Results { get; }
 

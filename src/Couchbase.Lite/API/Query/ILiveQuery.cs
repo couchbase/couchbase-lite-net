@@ -27,7 +27,7 @@ namespace Couchbase.Lite.Query
     /// An interface for a query which reports any changes in its results in
     /// real time
     /// </summary>
-    public interface ILiveQuery : IDisposable
+    internal interface ILiveQuery : IDisposable
     {
         #region Variables
 

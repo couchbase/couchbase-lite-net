@@ -1,15 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿// 
+// ReplicationActivityLevel.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
 
 namespace Couchbase.Lite.Sync
 {
-    internal enum ReplicationActivityLevel
+    /// <summary>
+    /// An enum describing states for an <see cref="IReplication"/>
+    /// </summary>
+    public enum ReplicationActivityLevel
     {
+        /// <summary>
+        /// The replication is stopped
+        /// </summary>
         Stopped,
+        /// <summary>
+        /// The replication is offline
+        /// </summary>
         Offline,
+        /// <summary>
+        /// The replication is connecting
+        /// </summary>
         Connecting,
+        /// <summary>
+        /// The replication is waiting for new information
+        /// </summary>
         Idle,
+        /// <summary>
+        /// The replication is actively processing information
+        /// </summary>
         Busy
     }
 }
