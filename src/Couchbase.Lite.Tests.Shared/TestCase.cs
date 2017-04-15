@@ -46,13 +46,6 @@ namespace Test
             }
         }
 
-#if __NET46__
-        static TestCase()
-        {
-            Couchbase.Lite.Support.Net46.Activate();
-        }
-#endif
-
         public TestCase(ITestOutputHelper output)
         {
             Log.AddLogger(new XunitLogger(output));

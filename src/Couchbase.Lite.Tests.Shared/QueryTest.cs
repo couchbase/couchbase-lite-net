@@ -29,6 +29,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Query;
 using FluentAssertions;
@@ -116,76 +117,28 @@ namespace Test
         {
 
         }
-        //{"name":{"first":"Lue","last":"Laserna"},"gender":"female","birthday":"1983-09-18","contact":{"address":{"street":"19 Deer Loop","zip":"90732","city":"San Pedro","state":"CA"},"email":["lue.laserna@nosql-matters.org","laserna@nosql-matters.org"],"region":"310","phone":["310-8268551","310-7618427"]},"likes":["chatting"],"memberSince":"2011-05-05"}
-        //[Fact]
-        //public void TestQuery()
-        //{
-        //    var content = File.ReadAllLines("../Couchbase.Lite.Tests.Shared/data/names_100.json");
-        //    int n = 0;
-        //    var ok = Db.InBatch(() =>
-        //    {
-        //        foreach(var line in content) {
-        //            var doc = Db.GetDocument($"person-{++n:D3}");
-        //            doc.Properties = JsonConvert.DeserializeObject<Dictionary<string, object>>(line);
-        //            doc.Save();
-        //        }
-
-        //        return true;
-        //    });
-        //    ok.Should().BeTrue("because otherwise the batch failed");
-
-        //    var q = QueryableFactory.MakeQueryable<NamesModel>(Db);
-        //    var e = from model in q select model;
-
-        //    n = 0;
-        //    foreach(var result in e) {
-        //        Debug.WriteLine($"Row: docID='{result.Metadata.Id}', sequence={result.Metadata.Sequence}");
-        //        var expectedID = $"person-{++n:D3}";
-        //        result.Metadata.Id.Should().Be(expectedID, "because otherwise the results are out of order");
-        //        result.Metadata.Sequence.Should().Be((ulong)n, "because otherwise the results are out of order");
-        //    }
-
-        //    n.Should().Be(100, "because that is how many docuemnts are in the JSON file");
-        //    for(int pass = 0; pass < 2; pass++) {
-        //        n = 0;
-        //        e = from model in q where model.name.first == "Claude" select model;
-        //        foreach(var result in e) {
-        //            ++n;
-        //            Debug.WriteLine($"Row: docID='{result.Metadata.Id}', sequence={result.Metadata.Sequence}");
-        //            result.Metadata.Id.Should().Be("person-009", "because that is the only Claude in the document");
-        //            result.Metadata.Sequence.Should().Be(9UL, "beacuse that is the correct sequence number");
-        //        }
-
-        //        n.Should().Be(1, "because there is only one Claude in the document");
-
-        //        if(pass == 0) {
-        //            Db.CreateIndex("name.first");
-        //        }
-        //    }
-
-        //    Db.DeleteIndex("name.first", IndexType.ValueIndex);
-        //}
 
         [Fact]
         public void TestNoWhereQuery()
         {
             LoadJSONResource("names_100");
-            var q = QueryFactory.Select().From(DataSourceFactory.Database(Db));
-
-            var numRows = VerifyQuery(q, (n, row) =>
-            {
-                var expectedID = $"doc-{n:D3}";
-                row.DocumentID.Should().Be(expectedID, "because otherwise the IDs were out of order");
-                row.Sequence.Should().Be((uint)n, "because otherwise the sequences were out of order");
-                var doc = row.Document;
-                doc.DoSync(() =>
+            using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    doc.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
-                    doc.Sequence.Should().Be((ulong) n, "because the sequence on the row should match the document");
+                    var expectedID = $"doc-{n:D3}";
+                    row.DocumentID.Should().Be(expectedID, "because otherwise the IDs were out of order");
+                    row.Sequence.Should().Be((uint) n, "because otherwise the sequences were out of order");
+                    var doc = row.Document;
+                    doc.DoSync(() =>
+                    {
+                        doc.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
+                        doc.Sequence.Should()
+                            .Be((ulong) n, "because the sequence on the row should match the document");
+                    });
                 });
-            });
 
-            numRows.Should().Be(100, "because otherwise the incorrect number of rows was returned");
+                numRows.Should().Be(100, "because otherwise the incorrect number of rows was returned");
+            }
         }
 
         [Fact]
@@ -225,17 +178,18 @@ namespace Test
             foreach (var test in tests) {
                 var exp = test.Item1;
                 var expectedDocs = test.Item2;
-                var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(exp);
-                var numRows = VerifyQuery(q, (n, row) =>
-                {
-                    if (n <= expectedDocs.Length) {
-                        var doc = expectedDocs[n - 1];
-                        row.DocumentID.Should()
-                            .Be(doc.Id, "because otherwise the row results were different than expected");
-                    }
-                });
+                using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(exp)) {
+                    var numRows = VerifyQuery(q, (n, row) =>
+                    {
+                        if (n <= expectedDocs.Length) {
+                            var doc = expectedDocs[n - 1];
+                            row.DocumentID.Should()
+                                .Be(doc.Id, "because otherwise the row results were different than expected");
+                        }
+                    });
 
-                numRows.Should().Be(expectedDocs.Length, "because otherwise too many rows were returned");
+                    numRows.Should().Be(expectedDocs.Length, "because otherwise too many rows were returned");
+                }
             }
         }
 
@@ -350,35 +304,37 @@ namespace Test
                 doc1.Save();
             });
 
-            var q = QueryFactory.Select()
+            using (var q = QueryFactory.Select()
                 .From(DataSourceFactory.Database(Db))
-                .Where(ExpressionFactory.Property("string").Is("string"));
+                .Where(ExpressionFactory.Property("string").Is("string"))) {
 
-            var numRows = VerifyQuery(q, (n, row) =>
-            {
-                var doc = row.Document;
-                doc.DoSync(() =>
+                var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
-                    doc["string"].Should().Be("string", "because otherwise garbage data was inserted");
+                    var doc = row.Document;
+                    doc.DoSync(() =>
+                    {
+                        doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
+                        doc["string"].Should().Be("string", "because otherwise garbage data was inserted");
+                    });
                 });
-            });
-            numRows.Should().Be(1, "beacuse one row matches the given query");
+                numRows.Should().Be(1, "beacuse one row matches the given query");
+            }
 
-            q = QueryFactory.Select()
+            using (var q = QueryFactory.Select()
                 .From(DataSourceFactory.Database(Db))
-                .Where(ExpressionFactory.Property("string").IsNot("string1"));
+                .Where(ExpressionFactory.Property("string").IsNot("string1"))) {
 
-            numRows = VerifyQuery(q, (n, row) =>
-            {
-                var doc = row.Document;
-                doc.DoSync(() =>
+                var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
-                    doc["string"].Should().Be("string", "because otherwise garbage data was inserted");
+                    var doc = row.Document;
+                    doc.DoSync(() =>
+                    {
+                        doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
+                        doc["string"].Should().Be("string", "because otherwise garbage data was inserted");
+                    });
                 });
-            });
-            numRows.Should().Be(1, "because one row matches the 'IS NOT' query");
+                numRows.Should().Be(1, "because one row matches the 'IS NOT' query");
+            }
         }
 
         [Fact]
@@ -401,18 +357,19 @@ namespace Test
 
             var expected = new[] {"Marcy", "Margaretta", "Margrett", "Marlen", "Maryjo" };
             var firstName = ExpressionFactory.Property("name.first");
-            var q = QueryFactory.Select()
+            using (var q = QueryFactory.Select()
                 .From(DataSourceFactory.Database(Db))
                 .Where(firstName.InExpressions(expected))
-                .OrderBy(OrderByFactory.Property("name.first"));
+                .OrderBy(OrderByFactory.Property("name.first"))) {
 
-            var numRows = VerifyQuery(q, (n, row) =>
-            {
-                var name = row.Document.DoSync(() => row.Document.GetSubdocument("name").GetString("first"));
-                name.Should().Be(expected[n - 1], "because otherwise incorrect rows were returned");
-            });
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var name = row.Document.DoSync(() => row.Document.GetSubdocument("name").GetString("first"));
+                    name.Should().Be(expected[n - 1], "because otherwise incorrect rows were returned");
+                });
 
-            numRows.Should().Be(expected.Length, "because otherwise an incorrect number of rows were returned");
+                numRows.Should().Be(expected.Length, "because otherwise an incorrect number of rows were returned");
+            }
         }
 
         [Fact]
@@ -421,50 +378,53 @@ namespace Test
             LoadJSONResource("names_100");
 
             var where = ExpressionFactory.Property("name.first").Like("%Mar%");
-            var q = QueryFactory.Select()
+            using (var q = QueryFactory.Select()
                 .From(DataSourceFactory.Database(Db))
                 .Where(where)
-                .OrderBy(OrderByFactory.Property("name.first").Ascending());
+                .OrderBy(OrderByFactory.Property("name.first").Ascending())) {
 
-            var firstNames = new List<string>();
-            var numRows = VerifyQuery(q, (n, row) =>
-            {
-                var doc = row.Document;
-                var firstName = doc.DoSync(() => doc.GetSubdocument("name")?.GetString("first"));
-                if (firstName != null) {
-                    firstNames.Add(firstName);
-                }
-            });
+                var firstNames = new List<string>();
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var doc = row.Document;
+                    var firstName = doc.DoSync(() => doc.GetSubdocument("name")?.GetString("first"));
+                    if (firstName != null) {
+                        firstNames.Add(firstName);
+                    }
+                });
 
-            numRows.Should().Be(5, "because there are 5 rows like that in the data source");
-            firstNames.Should().OnlyContain(str => str.Contains("Mar"), "because otherwise an incorrect entry came in");
+                numRows.Should().Be(5, "because there are 5 rows like that in the data source");
+                firstNames.Should()
+                    .OnlyContain(str => str.Contains("Mar"), "because otherwise an incorrect entry came in");
+            }
         }
 
-        //[Fact]
+        [Fact]
         public void TestWhereRegex()
         {
-            // TODO: Not yet implemented in LiteCore
             LoadJSONResource("names_100");
 
             var where = ExpressionFactory.Property("name.first").Regex("^Mar.*");
-            var q = QueryFactory.Select()
+            using (var q = QueryFactory.Select()
                 .From(DataSourceFactory.Database(Db))
                 .Where(where)
-                .OrderBy(OrderByFactory.Property("name.first").Ascending());
+                .OrderBy(OrderByFactory.Property("name.first").Ascending())) {
 
-            var firstNames = new List<string>();
-            var numRows = VerifyQuery(q, (n, row) =>
-            {
-                var doc = row.Document;
-                var firstName = doc.DoSync(() => doc.GetSubdocument("name")?.GetString("first"));
-                if (firstName != null) {
-                    firstNames.Add(firstName);
-                }
-            });
+                var firstNames = new List<string>();
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var doc = row.Document;
+                    var firstName = doc.DoSync(() => doc.GetSubdocument("name")?.GetString("first"));
+                    if (firstName != null) {
+                        firstNames.Add(firstName);
+                    }
+                });
 
-            numRows.Should().Be(5, "because there are 5 rows like that in the data source");
-            var regex = new Regex("^Mar.*");
-            firstNames.Should().OnlyContain(str => regex.IsMatch(str), "because otherwise an incorrect entry came in");
+                numRows.Should().Be(5, "because there are 5 rows like that in the data source");
+                var regex = new Regex("^Mar.*");
+                firstNames.Should()
+                    .OnlyContain(str => regex.IsMatch(str), "because otherwise an incorrect entry came in");
+            }
         }
 
         [Fact]
@@ -473,22 +433,23 @@ namespace Test
             LoadJSONResource("sentences");
 
             await Db.DoAsync(() => Db.CreateIndex(new[] {"sentence"}, IndexType.FullTextIndex, null));
-            var q = QueryFactory.Select()
+            using (var q = QueryFactory.Select()
                 .From(DataSourceFactory.Database(Db))
                 .Where(ExpressionFactory.Property("sentence").Match("'Dummie woman'"))
-                .OrderBy(OrderByFactory.Property("rank(sentence)").Descending());
-            var numRows = VerifyQuery(q, (n, row) =>
-            {
-                var ftsRow = row as IFullTextQueryRow;
-                var text = ftsRow?.FullTextMatched;
-                text.Should()
-                    .Contain("Dummie")
-                    .And.Subject.Should()
-                    .Contain("woman", "because otherwise the full text query failed");
-                ftsRow.MatchCount.Should().Be(2u, "because otherwise an incorrect number of matches was returned");
-            });
+                .OrderBy(OrderByFactory.Property("rank(sentence)").Descending())) {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var ftsRow = row as IFullTextQueryRow;
+                    var text = ftsRow?.FullTextMatched;
+                    text.Should()
+                        .Contain("Dummie")
+                        .And.Subject.Should()
+                        .Contain("woman", "because otherwise the full text query failed");
+                    ftsRow.MatchCount.Should().Be(2u, "because otherwise an incorrect number of matches was returned");
+                });
 
-            numRows.Should().Be(2, "because two rows in the data match the query");
+                numRows.Should().Be(2, "because two rows in the data match the query");
+            }
         }
 
         [Fact]
@@ -503,26 +464,27 @@ namespace Test
                     order = OrderByFactory.Property("name.first").Descending();
                 }
 
-                var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(null).OrderBy(order);
-                var firstNames = new List<object>();
-                var numRows = VerifyQuery(q, (n, row) =>
-                {
-                    var doc = row.Document;
-                    var firstName = doc.DoSync(() => doc.GetSubdocument("name").GetString("first"));
-                    if (firstName != null) {
-                        firstNames.Add(firstName);
+                using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(null).OrderBy(order)) {
+                    var firstNames = new List<object>();
+                    var numRows = VerifyQuery(q, (n, row) =>
+                    {
+                        var doc = row.Document;
+                        var firstName = doc.DoSync(() => doc.GetSubdocument("name").GetString("first"));
+                        if (firstName != null) {
+                            firstNames.Add(firstName);
+                        }
+                    });
+
+                    numRows.Should().Be(100, "because otherwise the wrong number of rows was retrieved");
+                    firstNames.Should().HaveCount(numRows, "because otherwise some rows were null");
+                    var firstNamesCopy = new List<object>(firstNames);
+                    firstNames.Sort();
+                    if (!ascending) {
+                        firstNames.Reverse();
                     }
-                });
 
-                numRows.Should().Be(100, "because otherwise the wrong number of rows was retrieved");
-                firstNames.Should().HaveCount(numRows, "because otherwise some rows were null");
-                var firstNamesCopy = new List<object>(firstNames);
-                firstNames.Sort();
-                if (!ascending) {
-                    firstNames.Reverse();
+                    firstNames.Should().ContainInOrder(firstNamesCopy, "because otherwise the results were not sorted");
                 }
-
-                firstNames.Should().ContainInOrder(firstNamesCopy, "because otherwise the results were not sorted");
             }
         }
 
@@ -639,16 +601,18 @@ namespace Test
         {
             int index = 0;
             foreach (var c in validator) {
-                var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(c.Item1);
-                var lastN = 0;
-                VerifyQuery(q, (n, row) =>
-                {
-                    var props = row.Document.DoSync(() => row.Document.Properties);
-                    c.Item2(props, c.Item3).Should().BeTrue("because otherwise the row failed validation");
-                    lastN = n;
-                });
+                using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(c.Item1)) {
+                    var lastN = 0;
+                    VerifyQuery(q, (n, row) =>
+                    {
+                        var props = row.Document.DoSync(() => row.Document.Properties);
+                        c.Item2(props, c.Item3).Should().BeTrue("because otherwise the row failed validation");
+                        lastN = n;
+                    });
 
-                lastN.Should().Be(expectedResultCount[index++], "because otherwise there was an incorrect number of rows");
+                    lastN.Should()
+                        .Be(expectedResultCount[index++], "because otherwise there was an incorrect number of rows");
+                }
             }
         }
 

@@ -151,7 +151,7 @@ namespace Couchbase.Lite.DB
         static Database()
         {
             _LogCallback = LiteCoreLog;
-            Native.c4log_register(C4LogLevel.Verbose, _LogCallback);
+            Native.c4log_register(C4LogLevel.Warning, _LogCallback);
             _DbObserverCallback = DbObserverCallback;
         }
 
