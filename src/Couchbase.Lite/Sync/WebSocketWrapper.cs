@@ -48,6 +48,8 @@ namespace Couchbase.Lite.Sync
         private readonly SerialQueue _c4Queue = new SerialQueue();
         private readonly List<byte> _currentMessage = new List<byte>();
         private readonly SerialQueue _queue = new SerialQueue();
+		private readonly SemaphoreSlim _mutex = new SemaphoreSlim(1, 1);
+		private readonly ManualResetEventSlim _connected = new ManualResetEventSlim();
 
         private readonly C4Socket* _socket;
         private readonly Uri _url;
@@ -76,21 +78,28 @@ namespace Couchbase.Lite.Sync
         #region Public Methods
 
         public void CloseSocket(WebSocketCloseStatus status = WebSocketCloseStatus.NormalClosure, string message = null)
-        {
+		{
             _queue.DispatchAsync(() =>
             {
-                WebSocket.CloseAsync(status, message,
-                    CancellationToken.None).ContinueWith(t => 
-                {
-                    if (t.IsCanceled || t.Exception != null) {
-                        return;
-                    }
+				_connected.Wait();
+				var waitForReply = WebSocket.State == WebSocketState.Open;
+				if (!waitForReply)
+				{
+					WebSocket.CloseAsync(status, message,
+						CancellationToken.None).ContinueWith(t =>
+					{
+						if (t.IsCanceled || t.Exception != null) {
+							return;
+						}
 
-                    _c4Queue.DispatchAsync(() =>
-                    {
-                        Native.c4socket_closed(_socket, new C4Error());
-                    });
-                });
+						_c4Queue.DispatchAsync(() =>
+						{
+							Native.c4socket_closed(_socket, new C4Error(C4ErrorDomain.WebSocketDomain, (int)WebSocket.CloseStatus));
+						});
+					});
+				} else {
+					WebSocket.CloseOutputAsync(status, message, CancellationToken.None);
+				}
             });
         }
 
@@ -112,7 +121,8 @@ namespace Couchbase.Lite.Sync
                 WebSocket.ConnectAsync(_url, cts.Token).ContinueWith(t =>
                 {
                     if (t.IsCanceled) {
-                        Native.c4socket_closed(_socket, new C4Error());
+						// TODO: Cancel status?
+                        Native.c4socket_closed(_socket, new C4Error(LiteCoreError.UnexpectedError));
                         return;
                     }
 
@@ -121,6 +131,7 @@ namespace Couchbase.Lite.Sync
                         return;
                     }
 
+					_connected.Set();
                     _c4Queue.DispatchAsync(() =>
                     {
                         Native.c4socket_opened(_socket);
@@ -134,39 +145,24 @@ namespace Couchbase.Lite.Sync
         {
             _queue.DispatchAsync(() =>
             {
+				_connected.Wait();
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(IdleTimeout);
-                if (data[0] == 8) {
-                    var statusBytes = new byte[2];
-                    statusBytes[0] = data[1];
-                    statusBytes[1] = data[2];
-                    string message = null;
-                    if (data.Length > 3) {
-                        message = Encoding.UTF8.GetString(data, 3, data.Length - 3);
-                    }
-                    CloseSocket((WebSocketCloseStatus)BitConverter.ToUInt16(statusBytes, 0), message);
-                    return;
-                }
+				_mutex.Wait();
+                WebSocket.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Binary, true, cts.Token)
+                    .ContinueWith(t =>
+					{
+						_mutex.Release();
+                        if (t.IsCanceled || t.Exception != null) {
+                            return;
+                        }
 
-                if (data[0] != 2) {
-                    Log.To.Sync.W(Tag, $"Bogus message type from LiteCore ({data[0]}).  Should be 2 or 8, ignoring...");
-                    return;
-                }
-
-                WebSocket.SendAsync(new ArraySegment<byte>(data, 1, data.Length - 1), WebSocketMessageType.Binary, true, cts.Token)
-                    .ContinueWith(
-                        t =>
+                        _c4Queue.DispatchAsync(() =>
                         {
-                            if (t.IsCanceled || t.Exception != null) {
-                                return;
-                            }
-
-                            _c4Queue.DispatchAsync(() =>
-                            {
-                                Native.c4socket_completedWrite(_socket, (ulong) data.Length);
-                            });
-                        }, cts.Token);
-            });
+                            Native.c4socket_completedWrite(_socket, (ulong) data.Length);
+                        });
+                    }, cts.Token);
+	            });
         }
 
         #endregion
@@ -194,25 +190,43 @@ namespace Couchbase.Lite.Sync
                         // TODO
                         return;
                     }
-                    
-                    if (!t.Result.EndOfMessage && _receivedBytesPending < MaxReceivedBytesPending) {
-                        Receive();
-                    } else if (t.Result.EndOfMessage) {
-                        byte[] data;
-                        if (_currentMessage.Any()) {
-                            _currentMessage.AddRange(_buffer.Take(t.Result.Count));
-                            data = _currentMessage.ToArray();
-                            _currentMessage.Clear();
-                        } else {
-                            data = _buffer.Take(t.Result.Count).ToArray();
-                        }
 
-                        _receivedBytesPending += (uint)t.Result.Count;
-                        _c4Queue.DispatchAsync(() =>
-                        {
-                            Native.c4socket_received(_socket, data);
-                        });
-                    }
+					if(t.Result.MessageType == WebSocketMessageType.Close) {
+						if(WebSocket.State == WebSocketState.CloseSent) {
+							Native.c4socket_closed(_socket, new C4Error(C4ErrorDomain.WebSocketDomain, (int)t.Result.CloseStatus));
+						} else {
+							CloseSocket(t.Result.CloseStatus == null ? WebSocketCloseStatus.Empty : t.Result.CloseStatus.Value, t.Result.CloseStatusDescription);
+						}
+
+						return;
+					}
+	
+
+					if (!t.Result.EndOfMessage && _receivedBytesPending < MaxReceivedBytesPending)
+						{
+							_currentMessage.AddRange(_buffer.Take(t.Result.Count));
+							Receive();
+						}
+						else if (t.Result.EndOfMessage)
+						{
+							byte[] data;
+							if (_currentMessage.Any())
+							{
+								_currentMessage.AddRange(_buffer.Take(t.Result.Count));
+								data = _currentMessage.ToArray();
+								_currentMessage.Clear();
+							}
+							else
+							{
+								data = _buffer.Take(t.Result.Count).ToArray();
+							}
+
+							_receivedBytesPending += (uint)t.Result.Count;
+							_c4Queue.DispatchAsync(() =>
+							{
+								Native.c4socket_received(_socket, data);
+							});
+						}
                 }, cts.Token);
 
         }
