@@ -42,6 +42,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -50,6 +51,7 @@ using System.Threading.Tasks;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
+using FluentAssertions;
 using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
 using System.Text;
@@ -63,6 +65,49 @@ namespace Couchbase.Lite
         const String TooLongName = "a11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110";
 
         public DatabaseTest(string storageType) : base(storageType) {}
+
+        [Test]
+        public void TestAutoPruneKeepsConflictParent()
+        {
+            var doc = database.CreateDocument();
+            var rev = doc.CreateRevision();
+            rev.SetUserProperties(new Dictionary<string, object> {
+                ["test"] = true
+            });
+
+            var saved = rev.Save();
+            var rev2a = saved.CreateRevision();
+            var rev2b = saved.CreateRevision();
+
+            rev2a.SetUserProperties(new Dictionary<string, object> {
+                ["test"] = true,
+                ["version"] = 1
+            });
+            saved = rev2a.Save();
+
+            rev2b.SetUserProperties(new Dictionary<string, object> {
+                ["foo"] = "bar"
+            });
+            var conflict = rev2b.Save(true);
+
+            database.RunInTransaction(() => {
+                for(int i = 0; i < 30; i++) {
+                    var newRev = saved.CreateRevision();
+                    newRev.SetUserProperties(new Dictionary<string, object> {
+                        ["test"] = true,
+                        ["version"] = i + 2
+                    });
+                    saved = newRev.Save();
+                }
+
+                return true;
+            });
+
+            var gotDoc = database.GetDocument(doc.Id).ConflictingRevisions.Where(x => x.Id == conflict.Id).FirstOrDefault();
+            gotDoc.Should().NotBeNull("because the conflict should still exist");
+            gotDoc.Parent.Should().NotBeNull("because at least one parent should exist for a non-root revision");
+        }
+
 
         [Test]
         public void TestQueryIndependence()

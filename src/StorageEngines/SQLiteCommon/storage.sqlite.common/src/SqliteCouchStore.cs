@@ -436,10 +436,11 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
         private int PruneDocument(long docNumericID, int minGenToKeep)
         {
-            const string sql = "DELETE FROM revs WHERE doc_id=? AND revid < ? AND current=0";
+            const string sql = "DELETE FROM revs WHERE doc_id=? AND revid < ? AND current=0 AND" +
+                "sequence NOT IN (SELECT parent FROM revs WHERE doc_id=? AND current=1)";
             var minGen = String.Format("{0}-", minGenToKeep);
             try {
-                var retVal = StorageEngine?.ExecSQL(sql, docNumericID, minGen);
+                var retVal = StorageEngine?.ExecSQL(sql, docNumericID, minGen, docNumericID);
                 return retVal.HasValue ? retVal.Value : 0;
             } catch(Exception) {
                 Log.To.Database.W(TAG, "SQLite error {0} pruning generations < {1} of doc {2}", StorageEngine?.LastErrorCode, minGenToKeep, docNumericID);
