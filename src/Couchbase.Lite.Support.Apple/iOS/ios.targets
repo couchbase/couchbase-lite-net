@@ -1,0 +1,7 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Target Name="InjectReference_11513e9c-85e5-4aa3-93a0-c55433b2b66e" BeforeTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <BundleResource Include="$(MSBuildThisFileDirectory)libLiteCore.dylib" />
+        </ItemGroup>
+    </Target>
+</Project>

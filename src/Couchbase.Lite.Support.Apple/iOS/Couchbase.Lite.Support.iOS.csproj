@@ -74,7 +74,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{1CF95F79-7649-4FDA-A888-73B5C69316FC}</Project>
+      <Project>{C2A99111-BF57-405C-879E-AAFF5B50E8B6}</Project>
       <Name>Couchbase.Lite</Name>
     </ProjectReference>
   </ItemGroup>
@@ -82,7 +82,12 @@
     <None Include="..\..\Couchbase.Lite\Properties\version">
       <Link>Properties\version</Link>
     </None>
-    <BundleResource Include="Resources\libLiteCore.dylib" />
+    <BundleResource Include="Resources\libLiteCore.dylib">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </BundleResource>
+    <None Include="ios.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
