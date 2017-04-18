@@ -82,9 +82,11 @@
     <None Include="..\..\Couchbase.Lite\Properties\version">
       <Link>Properties\version</Link>
     </None>
-    <BundleResource Include="Resources\libLiteCore.dylib">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </BundleResource>
+    <!-- For some reason MSBuild won't copy BundleResources so this needs to be here twice -->
+    <None Include="Resources\libLiteCore.dylib">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <BundleResource Include="Resources\libLiteCore.dylib" />
     <None Include="ios.targets">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
