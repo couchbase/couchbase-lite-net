@@ -24,6 +24,11 @@ if not exist ..\..\nuget.exe (
 ..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
 popd
 
+mkdir ..\Couchbase.Lite.Support.Apple\iOS\Resources
+mkdir ..\Couchbase.Lite.Support.Apple\tvOS\Resources
+xcopy ..\..\vendor\couchbase-lite-core\build_cmake\ios-fat\libLiteCore.dylib ..\Couchbase.Lite.Support.Apple\iOS\Resources
+xcopy ..\..\vendor\couchbase-lite-core\build_cmake\tvos-fat\libLiteCore.dylib ..\Couchbase.Lite.Support.Apple\tvOS\Resources
+
 pushd ..
 "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" Couchbase.Lite.sln /p:Configuration=Packaging
 popd
