@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.26228.9
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.iOS", "Couchbase.Lite.Tests.iOS.csproj", "{F5F57919-BE42-46B6-B173-EB6F34CFB022}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Lite", "..\Couchbase.Lite\Couchbase.Lite.csproj", "{C2A99111-BF57-405C-879E-AAFF5B50E8B6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite", "..\Couchbase.Lite\Couchbase.Lite.csproj", "{C2A99111-BF57-405C-879E-AAFF5B50E8B6}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{11F38891-8397-49B4-9146-6DAF0A9D7866}"
 EndProject
