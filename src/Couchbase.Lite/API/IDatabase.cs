@@ -37,7 +37,7 @@ namespace Couchbase.Lite
         /// Gets or sets the conflict resolver to use when conflicts arise
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IConflictResolver ConflictResolver { get; set; }
 
         /// <summary>
@@ -46,7 +46,7 @@ namespace Couchbase.Lite
         /// <param name="id">The ID of the <see cref="IDocument"/> to retrieve</param>
         /// <returns>The instantiated <see cref="IDocument"/></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IDocument this[string id] { get; }
 
         /// <summary>
@@ -80,14 +80,14 @@ namespace Couchbase.Lite
         /// Closes the database
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Close();
 
         /// <summary>
         /// Creates a new <see cref="IDocument"/> with a unique ID
         /// </summary>
         /// <returns>The created document</returns>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IDocument CreateDocument();
 
         /// <summary>
@@ -95,7 +95,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="expressions">The expressions to create the index on</param>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void CreateIndex(IList<IExpression> expressions);
 
         /// <summary>
@@ -105,14 +105,14 @@ namespace Couchbase.Lite
         /// or IExpression)</param>
         /// <param name="indexType">The type of index to create</param>
         /// <param name="options">The options to apply to the index</param>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void CreateIndex(IList expressions, IndexType indexType, IndexOptions options);
 
         /// <summary>
         /// Deletes the database
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Delete();
 
         /// <summary>
@@ -121,7 +121,7 @@ namespace Couchbase.Lite
         /// <param name="propertyPath">The path of the index to delete</param>
         /// <param name="type">The type of the index to delete</param>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void DeleteIndex(string propertyPath, IndexType type);
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace Couchbase.Lite
         /// <param name="documentID">The ID to check</param>
         /// <returns><c>true</c> if the document exists, <c>false</c> otherwise</returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         bool DocumentExists(string documentID);
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace Couchbase.Lite
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated </returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IDocument GetDocument(string id);
 
         /// <summary>
@@ -150,7 +150,7 @@ namespace Couchbase.Lite
         /// on success and <c>false</c> on failure which will cause all the operations to be abandoned.</param>
         /// <returns>The return value of <c>a</c></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         bool InBatch(Func<bool> a);
 
         #endregion

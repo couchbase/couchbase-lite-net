@@ -256,8 +256,7 @@ namespace Couchbase.Lite.Querying
         [SuppressMessage("ReSharper", "PossibleNullReferenceException", Justification = "Current will always be IDocumentModel")]
         protected override void SetCurrent(C4QueryEnumerator* enumerator)
         {
-            var doc = default(C4Document*);
-            _db.ActionQueue.DispatchSync(() => doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_getBySequence(_db.c4db, enumerator->docSequence, err)));
+            var doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_getBySequence(_db.c4db, enumerator->docSequence, err));
             try {
                 if (_prefetch) {
                     FLValue* value = NativeRaw.FLValue_FromTrustedData((FLSlice) doc->selectedRev.body);

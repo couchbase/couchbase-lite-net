@@ -37,7 +37,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets whether or not this subdocument has been saved into a document yet
         /// </summary>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         bool Exists { get; }
 
         #endregion

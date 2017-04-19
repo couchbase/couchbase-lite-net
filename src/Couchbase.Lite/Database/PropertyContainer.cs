@@ -51,9 +51,10 @@ namespace Couchbase.Lite.DB
 
         private HashSet<string> _changesKeys;
         private bool _hasChanges;
-        private Dictionary<string, object> _properties;
         private FLDict* _root;
-        private SharedStringCache _sharedKeys;
+
+        protected Dictionary<string, object> _properties;
+        protected SharedStringCache _sharedKeys;
 
         #endregion
 
@@ -84,7 +85,7 @@ namespace Couchbase.Lite.DB
                     }
                 }
 
-                return _properties;
+                return _properties?.Keys.Where(x => _properties[x] != null).ToDictionary(x => x, x => _properties[x]);
             }
             set {
                 AssertSafety();
@@ -281,11 +282,7 @@ namespace Couchbase.Lite.DB
                     _properties = new Dictionary<string, object>();
                 }
 
-                if (value == null) {
-                    _properties[key] = new DBNull();
-                } else {
-                    _properties[key] = value;
-                }
+                _properties[key] = value;
             }
         }
 
@@ -294,8 +291,7 @@ namespace Couchbase.Lite.DB
             var sk = SharedKeys;
             var subDoc = new Subdocument(this, sk) {
                 Key = key,
-                CheckThreadSafety = CheckThreadSafety,
-                ActionQueue = ActionQueue
+                CheckThreadSafety = CheckThreadSafety
             };
 
             subDoc.SetOnMutate(GetOnMutateBlock(key));
@@ -761,8 +757,7 @@ namespace Couchbase.Lite.DB
 
         public IPropertyContainer Remove(string key)
         {
-            AssertSafety();
-            _properties.Remove(key);
+            Set(key, null);
             return this;
         }
 

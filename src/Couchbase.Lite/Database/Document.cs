@@ -23,7 +23,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
-
+using System.Threading.Tasks;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Serialization;
 using LiteCore;
@@ -66,12 +66,7 @@ namespace Couchbase.Lite.DB
             }
         }
 
-        public IDatabase Database
-        {
-            get {
-                return _database;
-            }
-        }
+        public IDatabase Database => _database;
 
         public bool Exists
         {
@@ -91,37 +86,20 @@ namespace Couchbase.Lite.DB
             }
         }
 
-        public ulong Sequence
-        {
-            get {
-                return _c4Doc->sequence;
-            }
-        }
+        public ulong Sequence => _c4Doc->sequence;
 
         internal override bool HasChanges
         {
-            get {
-                return base.HasChanges;
-            }
+            get => base.HasChanges;
             set {
                 base.HasChanges = value;
                 _database.SetHasUnsavedChanges(this, value);
             }
         }
 
-        private IConflictResolver EffectiveConflictResolver
-        {
-            get {
-                return ConflictResolver ?? Database.ConflictResolver;
-            }
-        }
+        private IConflictResolver EffectiveConflictResolver => ConflictResolver ?? Database.ConflictResolver;
 
-        private uint Generation
-        {
-            get {
-                return NativeRaw.c4rev_getGeneration(_c4Doc->revID);
-            }
-        }
+        private uint Generation => NativeRaw.c4rev_getGeneration(_c4Doc->revID);
 
         #endregion
 
@@ -173,10 +151,7 @@ namespace Couchbase.Lite.DB
 
         internal void PostChangedNotifications(bool external)
         {
-            ActionQueue.DispatchAsync(() =>
-            {
-                Saved?.Invoke(this, new DocumentSavedEventArgs(external));
-            });
+            Saved?.Invoke(this, new DocumentSavedEventArgs(external));
         }
 
         #endregion
@@ -339,7 +314,7 @@ namespace Couchbase.Lite.DB
         private void SaveInto(C4Document** outDoc, bool deletion, IDocumentModel model = null)
         {
             //TODO: Need to be able to save a deletion that has properties on it
-            var propertiesToSave = deletion ? null : Properties;
+            var propertiesToSave = deletion ? null : _properties;
             var put = new C4DocPutRequest {
                 docID = _c4Doc->docID,
                 history = &_c4Doc->revID,
@@ -404,7 +379,6 @@ namespace Couchbase.Lite.DB
         {
             AssertSafety();
             return new Blob(_database, properties) {
-                ActionQueue = ActionQueue,
                 CheckThreadSafety = CheckThreadSafety
             };
         }
@@ -412,11 +386,7 @@ namespace Couchbase.Lite.DB
         internal override void MarkChangedKey(string key)
         {
             base.MarkChangedKey(key);
-
-            ActionQueue.DispatchAsync(() =>
-            {
-                Changed?.Invoke(this, null);
-            });
+            Changed?.Invoke(this, null);
         }
 
         public override string ToString()
@@ -431,11 +401,7 @@ namespace Couchbase.Lite.DB
 
         public void Dispose()
         {
-            ActionQueue.DispatchSync(() =>
-            {
-                Dispose(true);
-            });
-
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 

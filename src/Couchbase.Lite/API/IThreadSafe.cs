@@ -18,8 +18,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
-using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -32,49 +30,10 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <summary>
-        /// Gets the queue that is used for scheduling operations on
-        /// the object.  If operations are performed outside of this queue
-        /// for properties marked with <see cref="AccessMode.FromQueueOnly"/>
-        /// a <see cref="ThreadSafetyViolationException"/> will be thrown. 
+        /// Gets whether or not this object can be used (i.e. its thread
+        /// safety conditions are met)
         /// </summary>
-        IDispatchQueue ActionQueue { get; set; }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Convenience method for asynchronously scheduling a job for this
-        /// object
-        /// </summary>
-        /// <param name="a">The job to schedule</param>
-        /// <returns>An awaitable task representing the scheduled job</returns>
-        Task DoAsync(Action a);
-
-        /// <summary>
-        /// Convenience method for asynchronously scheduling a job for this
-        /// object
-        /// </summary>
-        /// <typeparam name="T">The return value for the job</typeparam>
-        /// <param name="f">The job to schedule</param>
-        /// <returns>An awaitable task representing the scheduled job</returns>
-        Task<T> DoAsync<T>(Func<T> f);
-
-        /// <summary>
-        /// Convenience method for scheduling and waiting for a job
-        /// on this object's queue
-        /// </summary>
-        /// <param name="a">The job to schedule</param>
-        void DoSync(Action a);
-
-        /// <summary>
-        /// Convenience method for scheduling a job on this object's queue,
-        /// waiting for it to finish and returning the result
-        /// </summary>
-        /// <typeparam name="T">The return type of the scheduled job</typeparam>
-        /// <param name="f">The job to schedule</param>
-        /// <returns>The result of the job</returns>
-        T DoSync<T>(Func<T> f);
+        bool IsSafeToUse { get; }
 
         #endregion
     }

@@ -112,12 +112,9 @@ namespace Couchbase.Lite.Query
         {
             var jsonData = EncodeAsJSON();
             Log.To.Query.I(Tag, $"Query encoded as {jsonData}");
-            Database.DoSync(() =>
-            {
-                var query = (C4Query*) LiteCoreBridge.Check(err => Native.c4query_new(Database.c4db, jsonData, err));
-                Native.c4query_free(_c4Query);
-                _c4Query = query;
-            });
+            var query = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(Database.c4db, jsonData, err));
+            Native.c4query_free(_c4Query);
+            _c4Query = query;
         }
 
         private string EncodeAsJSON()

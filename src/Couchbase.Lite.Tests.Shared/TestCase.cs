@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.DB;
@@ -39,12 +40,7 @@ namespace Test
 
         protected IDatabase Db { get; private set; }
 
-        private static string Directory
-        {
-            get {
-                return Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
-            }
-        }
+        private static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
         public TestCase(ITestOutputHelper output)
         {
@@ -88,28 +84,25 @@ namespace Test
 
         protected void LoadJSONResource(string resourceName)
         {
-            Db.ActionQueue.DispatchSync(() =>
+            var ok = Db.InBatch(() =>
             {
-                var ok = Db.InBatch(() =>
+                var n = 0ul;
+                ReadFileByLines($"C/tests/data/{resourceName}.json", line =>
                 {
-                    var n = 0ul;
-                    ReadFileByLines($"C/tests/data/{resourceName}.json", line =>
-                    {
-                        var docID = $"doc-{++n:D3}";
-                        var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(line);
-                        json.Should().NotBeNull("because otherwise the line failed to parse");
-                        var doc = Db.GetDocument(docID);
-                        doc.Properties = json;
-                        doc.Save();
-
-                        return true;
-                    });
+                    var docID = $"doc-{++n:D3}";
+                    var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(line);
+                    json.Should().NotBeNull("because otherwise the line failed to parse");
+                    var doc = Db.GetDocument(docID);
+                    doc.Properties = json;
+                    doc.Save();
 
                     return true;
                 });
 
-                ok.Should().BeTrue("because otherwise the batch insert failed");
+                return true;
             });
+
+            ok.Should().BeTrue("because otherwise the batch insert failed");
         }
 
         internal bool ReadFileByLines(string path, Func<string, bool> callback)

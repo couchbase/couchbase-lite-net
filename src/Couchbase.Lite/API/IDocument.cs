@@ -34,7 +34,7 @@ namespace Couchbase.Lite
         /// Gets or sets the <see cref="IConflictResolver"/> that should resolve conflicts for this document
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IConflictResolver ConflictResolver { get; set; }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace Couchbase.Lite
         /// Gets whether or not this document exists (i.e. has been persisted)
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         bool Exists { get; }
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace Couchbase.Lite
         /// Gets whether or not this document is deleted
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         bool IsDeleted { get; }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace Couchbase.Lite
         /// Deletes the document
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Delete();
 
         /// <summary>
@@ -85,14 +85,14 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>Whether or not the purge succeeded</returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         bool Purge();
 
         /// <summary>
         /// Saves the document to disk
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Save();
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>The same <see cref="IDocument"/> object for chaining</returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         new IDocument Set(string key, object value);
 
         #endregion

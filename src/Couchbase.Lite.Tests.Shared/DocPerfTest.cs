@@ -60,24 +60,16 @@ namespace Test
 
         private void AddRevisions(uint count)
         {
-            var doc = Db.ActionQueue.DispatchSync(() => Db["doc"]);
-            var ok = Db.ActionQueue.DispatchSync(() =>
+            var doc = Db["doc"];
+            Db.InBatch(() =>
             {
-                return Db.InBatch(() =>
-                {
-                    for(uint i = 0; i < count; i++) {
-                        doc.ActionQueue.DispatchSync(() =>
-                        {
-                            doc.Set("count", i);
-                            doc.Save();
-                        });
-                    }
+                for(uint i = 0; i < count; i++) {
+                    doc.Set("count", i);
+                    doc.Save();
+                }
 
-                    return true;
-                });
-            });
-
-            ok.Should().BeTrue("because otherwise the batch operation failed");
+                return true;
+            }).Should().BeTrue("because otherwise the batch operation failed");
         }
     }
 }

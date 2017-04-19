@@ -37,14 +37,14 @@ namespace Couchbase.Lite
         /// <param name="key">The key to retrieve</param>
         /// <returns>The value for the key, or <c>null</c> if the key has no value</returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         object this[string key] { get; set; }
 
         /// <summary>
         /// Gets or sets the raw properties for the object
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IDictionary<string, object> Properties { get; set; }
 
         #endregion
@@ -57,7 +57,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to check for</param>
         /// <returns>whether or not this object contains a given key</returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         bool Contains(string key);
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to check</param>
         /// <returns>The value stored in the given key, or <c>null</c> if it doesn't exist</returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         object Get(string key);
 
         /// <summary>
@@ -76,7 +76,7 @@ namespace Couchbase.Lite
         /// <returns>The value stored in the given key, or <c>null</c> if it doesn't exist
         /// or is not an <see cref="IList{T}"/> of <see cref="Object"/></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IList<object> GetArray(string key);
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace Couchbase.Lite
         /// <returns>The value stored in the given key, or <c>null</c> if it doesn't exist
         /// or is not a <see cref="IBlob"/></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IBlob GetBlob(string key);
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace Couchbase.Lite
         /// <returns>The value stored in the given key, or <c>false</c> if it doesn't exist
         /// or is not a <see cref="Boolean"/></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         bool GetBoolean(string key);
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace Couchbase.Lite
         /// <returns>The value stored in the given key, or <c>null</c> if it doesn't exist
         /// or is not a <see cref="DateTimeOffset"/></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         DateTimeOffset? GetDate(string key);
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace Couchbase.Lite
         /// <returns>The value stored in the given key, or <c>0.0</c> if it doesn't exist
         /// or is not a <see cref="Double"/></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         double GetDouble(string key);
 
         /// <summary>
@@ -126,7 +126,7 @@ namespace Couchbase.Lite
         /// <returns>The value stored in the given key, or <c>0.0f</c> if it doesn't exist
         /// or is not a <see cref="Single"/></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         float GetFloat(string key);
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace Couchbase.Lite
         /// <returns>The value stored in the given key, or <c>0L</c> if it doesn't exist
         /// or is not a <see cref="Int64"/></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         long GetLong(string key);
 
         /// <summary>
@@ -146,7 +146,7 @@ namespace Couchbase.Lite
         /// <returns>The value stored in the given key, or <c>null</c> if it doesn't exist
         /// or is not a <see cref="String"/></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         string GetString(string key);
 
         /// <summary>
@@ -156,7 +156,7 @@ namespace Couchbase.Lite
         /// <returns>The value stored in the given key, or <c>null</c> if it doesn't exist
         /// or is not an <see cref="ISubdocument"/></returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         ISubdocument GetSubdocument(string key);
 
         /// <summary>
@@ -165,14 +165,14 @@ namespace Couchbase.Lite
         /// <param name="key">The key to remove</param>
         /// <returns>Returns itself (so that this call can be chained)</returns>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IPropertyContainer Remove(string key);
 
         /// <summary>
         /// Cancels all changes since the last save
         /// </summary>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Revert();
 
         /// <summary>
@@ -183,7 +183,7 @@ namespace Couchbase.Lite
         /// <returns>Returns itself (so that this call can be chained)</returns>
         /// <exception cref="ArgumentException"><c>value</c> is not a valid JSON type</exception>
         /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IPropertyContainer Set(string key, object value);
 
         #endregion

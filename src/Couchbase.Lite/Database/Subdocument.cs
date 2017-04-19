@@ -17,7 +17,6 @@ namespace Couchbase.Lite.DB
             var doc = Document;
             if (doc != null) {
                 return new Blob(doc.Database as Database, properties) {
-                    ActionQueue = ActionQueue,
                     CheckThreadSafety = CheckThreadSafety
                 };
             }
@@ -92,7 +91,6 @@ namespace Couchbase.Lite.DB
                 writer.Write(prop.Key, prop.Value);
             }
 
-            ActionQueue = Document.ActionQueue;
             CheckThreadSafety = (Document as ThreadSafe).CheckThreadSafety;
         }
     }

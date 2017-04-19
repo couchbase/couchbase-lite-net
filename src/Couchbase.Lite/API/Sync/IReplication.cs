@@ -62,7 +62,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the most recent error associated with this replication
         /// </summary>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         Exception LastError { get; }
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the current status of the <see cref="IReplication"/>
         /// </summary>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         ReplicationStatus Status { get; }
 
         #endregion
@@ -106,13 +106,13 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Starts the replication
         /// </summary>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Start();
 
         /// <summary>
         /// Stops the replication
         /// </summary>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Stop();
 
         #endregion

@@ -376,14 +376,7 @@ namespace Couchbase.Lite.Util
                     TValue foo;
                     if(val.TryGetTarget(out foo)) {
                         var disposable = foo as IDisposable;
-                        if(disposable != null) {
-                            var threadSafe = foo as ThreadSafe;
-                            if(threadSafe != null) {
-                                threadSafe.DoSync(() => disposable.Dispose());
-                            } else {
-                                disposable.Dispose();
-                            }
-                        }
+                        disposable?.Dispose();
                     }
                 }
 

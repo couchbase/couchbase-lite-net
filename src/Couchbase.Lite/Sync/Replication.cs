@@ -121,10 +121,7 @@ namespace Couchbase.Lite.Sync
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
         {
             var repl = context as Replication;
-            repl?.DoAsync(() =>
-            {
-                repl.StatusChangedCallback(status);
-            });
+            repl?.StatusChangedCallback(status);
         }
 
         private void Dispose(bool finalizing)
@@ -139,34 +136,28 @@ namespace Couchbase.Lite.Sync
                 error = new LiteCoreException(state.error);
             }
 
-            DoAsync(() =>
-            {
-                if (LastError != error) {
-                    LastError = error;
-                }
+            if (LastError != error) {
+                LastError = error;
+            }
 
-                //NOTE: ReplicationStatus values need to match C4ReplicatorActivityLevel!
-                var activity = (ReplicationActivityLevel)state.level;
-                var progress = new ReplicationProgress(state.progress.completed, state.progress.total);
-                Status = new ReplicationStatus(activity, progress);
-                Log.To.Sync.I(Tag, $"{this} is {state.level}, progress {state.progress.completed}/{state.progress.total}");
-            });
+            //NOTE: ReplicationStatus values need to match C4ReplicatorActivityLevel!
+            var activity = (ReplicationActivityLevel)state.level;
+            var progress = new ReplicationProgress(state.progress.completed, state.progress.total);
+            Status = new ReplicationStatus(activity, progress);
+            Log.To.Sync.I(Tag, $"{this} is {state.level}, progress {state.progress.completed}/{state.progress.total}");
         }
 
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
             SetC4Status(status);
 
-            DoAsync(() => StatusChanged?.Invoke(this, new ReplicationStatusChangedEventArgs(Status)));
+            StatusChanged?.Invoke(this, new ReplicationStatusChangedEventArgs(Status));
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
                 // Stopped:
                 Native.c4repl_free(_repl);
                 _repl = null;
-                DoAsync(() =>
-                {
-                    Stopped?.Invoke(this, new ReplicationStoppedEventArgs(LastError));
-                    (Database as Database)?.ActiveReplications.Remove(this);
-                });
+                Stopped?.Invoke(this, new ReplicationStoppedEventArgs(LastError));
+                (Database as Database)?.ActiveReplications.Remove(this);
             }
         }
 
@@ -199,10 +190,7 @@ namespace Couchbase.Lite.Sync
 
         public void Dispose()
         {
-            DoSync(() =>
-            {
-                Dispose(false);
-            });
+            Dispose(false);
             GC.SuppressFinalize(this);
         }
 

@@ -127,14 +127,11 @@ namespace Test
                 {
                     var expectedID = $"doc-{n:D3}";
                     row.DocumentID.Should().Be(expectedID, "because otherwise the IDs were out of order");
-                    row.Sequence.Should().Be((uint) n, "because otherwise the sequences were out of order");
+                    row.Sequence.Should().Be((uint)n, "because otherwise the sequences were out of order");
                     var doc = row.Document;
-                    doc.DoSync(() =>
-                    {
-                        doc.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
-                        doc.Sequence.Should()
-                            .Be((ulong) n, "because the sequence on the row should match the document");
-                    });
+                    doc.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
+                    doc.Sequence.Should()
+                        .Be((ulong)n, "because the sequence on the row should match the document");
                 });
 
                 numRows.Should().Be(100, "because otherwise the incorrect number of rows was returned");
@@ -142,22 +139,19 @@ namespace Test
         }
 
         [Fact]
-        public async Task TestWhereCheckNull()
+        public void TestWhereCheckNull()
         {
             IDocument doc1 = null, doc2 = null;
-            await Db.DoAsync(() =>
-            {
-                doc1 = Db["doc1"];
-                doc1["name"] = "Scott";
-                doc1["address"] = null;
-                doc1.Save();
+            doc1 = Db["doc1"];
+            doc1["name"] = "Scott";
+            doc1["address"] = null;
+            doc1.Save();
 
-                doc2 = Db["doc2"];
-                doc2["name"] = "Tiger";
-                doc2["address"] = "123 1st ave.";
-                doc2["age"] = 20;
-                doc2.Save();
-            });
+            doc2 = Db["doc2"];
+            doc2["name"] = "Tiger";
+            doc2["address"] = "123 1st ave.";
+            doc2["age"] = 20;
+            doc2.Save();
 
             var name = ExpressionFactory.Property("name");
             var address = ExpressionFactory.Property("address");
@@ -175,6 +169,7 @@ namespace Test
                 Tuple.Create(work.IsNull(), new IDocument[0])
             };
 
+            int testNum = 1;
             foreach (var test in tests) {
                 var exp = test.Item1;
                 var expectedDocs = test.Item2;
@@ -184,12 +179,14 @@ namespace Test
                         if (n <= expectedDocs.Length) {
                             var doc = expectedDocs[n - 1];
                             row.DocumentID.Should()
-                                .Be(doc.Id, "because otherwise the row results were different than expected");
+                                .Be(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
                         }
                     });
 
                     numRows.Should().Be(expectedDocs.Length, "because otherwise too many rows were returned");
                 }
+
+                testNum++;
             }
         }
 
@@ -294,15 +291,12 @@ namespace Test
         }
 
         [Fact]
-        public async Task TestWhereIs()
+        public void TestWhereIs()
         {
             var doc1 = default(IDocument);
-            await Db.DoAsync(() =>
-            {
-                doc1 = Db.CreateDocument();
-                doc1["string"] = "string";
-                doc1.Save();
-            });
+            doc1 = Db.CreateDocument();
+            doc1["string"] = "string";
+            doc1.Save();
 
             using (var q = QueryFactory.Select()
                 .From(DataSourceFactory.Database(Db))
@@ -311,11 +305,8 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
-                    doc.DoSync(() =>
-                    {
-                        doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
-                        doc["string"].Should().Be("string", "because otherwise garbage data was inserted");
-                    });
+                    doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
+                    doc["string"].Should().Be("string", "because otherwise garbage data was inserted");
                 });
                 numRows.Should().Be(1, "beacuse one row matches the given query");
             }
@@ -327,11 +318,8 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
-                    doc.DoSync(() =>
-                    {
-                        doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
-                        doc["string"].Should().Be("string", "because otherwise garbage data was inserted");
-                    });
+                    doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
+                    doc["string"].Should().Be("string", "because otherwise garbage data was inserted");
                 });
                 numRows.Should().Be(1, "because one row matches the 'IS NOT' query");
             }
@@ -364,7 +352,7 @@ namespace Test
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var name = row.Document.DoSync(() => row.Document.GetSubdocument("name").GetString("first"));
+                    var name = row.Document.GetSubdocument("name").GetString("first");
                     name.Should().Be(expected[n - 1], "because otherwise incorrect rows were returned");
                 });
 
@@ -387,7 +375,7 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
-                    var firstName = doc.DoSync(() => doc.GetSubdocument("name")?.GetString("first"));
+                    var firstName = doc.GetSubdocument("name")?.GetString("first");
                     if (firstName != null) {
                         firstNames.Add(firstName);
                     }
@@ -414,7 +402,7 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
-                    var firstName = doc.DoSync(() => doc.GetSubdocument("name")?.GetString("first"));
+                    var firstName = doc.GetSubdocument("name")?.GetString("first");
                     if (firstName != null) {
                         firstNames.Add(firstName);
                     }
@@ -428,11 +416,11 @@ namespace Test
         }
 
         [Fact]
-        public async Task TestWhereMatch()
+        public void TestWhereMatch()
         {
             LoadJSONResource("sentences");
 
-            await Db.DoAsync(() => Db.CreateIndex(new[] {"sentence"}, IndexType.FullTextIndex, null));
+            Db.CreateIndex(new[] {"sentence"}, IndexType.FullTextIndex, null);
             using (var q = QueryFactory.Select()
                 .From(DataSourceFactory.Database(Db))
                 .Where(ExpressionFactory.Property("sentence").Match("'Dummie woman'"))
@@ -469,7 +457,7 @@ namespace Test
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         var doc = row.Document;
-                        var firstName = doc.DoSync(() => doc.GetSubdocument("name").GetString("first"));
+                        var firstName = doc.GetSubdocument("name").GetString("first");
                         if (firstName != null) {
                             firstNames.Add(firstName);
                         }
@@ -489,26 +477,23 @@ namespace Test
         }
 
         //[Fact]
-        public async Task TestSelectDistinct()
+        public void TestSelectDistinct()
         {
             // TODO: Needs LiteCore fix
             IDocument doc1 = null, doc2 = null;
-            await Db.DoAsync(() =>
-            {
-                doc1 = Db.CreateDocument();
-                doc1["number"] = 1;
-                doc1.Save();
+            doc1 = Db.CreateDocument();
+            doc1["number"] = 1;
+            doc1.Save();
 
-                doc2 = Db.CreateDocument();
-                doc2["number"] = 1;
-                doc2.Save();
-            });
+            doc2 = Db.CreateDocument();
+            doc2["number"] = 1;
+            doc2.Save();
 
             var q = QueryFactory.SelectDistinct().From(DataSourceFactory.Database(Db));
             var numRows = VerifyQuery(q, (n, row) =>
             {
                 var doc = row.Document;
-                doc.DoSync(() => doc.Id.Should().Be(doc1.Id, "because doc2 is identical and should be skipped"));
+                doc.Id.Should().Be(doc1.Id, "because doc2 is identical and should be skipped");
             });
 
             numRows.Should().Be(1, "because there is only one distinct row");
@@ -605,7 +590,7 @@ namespace Test
                     var lastN = 0;
                     VerifyQuery(q, (n, row) =>
                     {
-                        var props = row.Document.DoSync(() => row.Document.Properties);
+                        var props =row.Document.Properties;
                         c.Item2(props, c.Item3).Should().BeTrue("because otherwise the row failed validation");
                         lastN = n;
                     });
@@ -619,24 +604,19 @@ namespace Test
         private void LoadNumbers(int num)
         {
             var numbers = new List<IDictionary<string, object>>();
-            Db.DoSync(() =>
+            Db.InBatch(() =>
             {
-                var ok = Db.InBatch(() =>
-                {
-                    for (int i = 1; i <= num; i++) {
-                        var docID = $"doc{i}";
-                        var doc = Db.GetDocument(docID);
-                        doc["number1"] = i;
-                        doc["number2"] = num - i;
-                        doc.Save();
-                        numbers.Add(doc.Properties);
-                    }
+                for (int i = 1; i <= num; i++) {
+                    var docID = $"doc{i}";
+                    var doc = Db.GetDocument(docID);
+                    doc["number1"] = i;
+                    doc["number2"] = num - i;
+                    doc.Save();
+                    numbers.Add(doc.Properties);
+                }
 
-                    return true;
-                });
-
-                ok.Should().BeTrue("because otherwise the batch operation failed");
-            });
+                return true;
+            }).Should().BeTrue("because otherwise the batch operation failed");
         }
 
         private int VerifyQuery(IQuery query, Action<int, IQueryRow> block)

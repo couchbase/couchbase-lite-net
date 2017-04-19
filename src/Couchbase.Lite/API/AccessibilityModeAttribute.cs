@@ -29,10 +29,10 @@ namespace Couchbase.Lite
     public enum AccessMode
     {
         /// <summary>
-        /// Access is only allowed from a block scheduled on the ActionQueue
+        /// Access is only allowed from the owning thread
         /// of the object
         /// </summary>
-        FromQueueOnly,
+        FromOwningThreadOnly,
 
         /// <summary>
         /// Access is allowed from anywhere
@@ -42,7 +42,7 @@ namespace Couchbase.Lite
 
     /// <summary>
     /// An attribute indicating when a given property or method is allowed to be accessed
-    /// (queue-only vs anytime)
+    /// (owning thread only vs anytime)
     /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Method)]
     public sealed class AccessibilityModeAttribute : Attribute

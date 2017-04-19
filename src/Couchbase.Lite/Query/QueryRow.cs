@@ -38,7 +38,7 @@ namespace Couchbase.Lite.Querying
         public IDocument Document
         {
             get {
-                var retVal = _db.DoSync(() => _db.GetDocument(DocumentID));
+                var retVal = _db.GetDocument(DocumentID);
                 Debug.Assert(retVal != null);
                 return retVal;
             }

@@ -34,13 +34,13 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the content as an in memory array
         /// </summary>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         byte[] Content { get; }
 
         /// <summary>
         /// Gets the content as a stream from the soruce
         /// </summary>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         Stream ContentStream { get; }
 
         /// <summary>
@@ -52,19 +52,19 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the digest of the object
         /// </summary>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         string Digest { get; }
 
         /// <summary>
         /// Gets the length of the data contained in the object
         /// </summary>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         ulong Length { get; }
 
         /// <summary>
         /// Gets the metadata about the object
         /// </summary>
-        [AccessibilityMode(AccessMode.FromQueueOnly)]
+        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IReadOnlyDictionary<string, object> Properties { get; }
 
         #endregion

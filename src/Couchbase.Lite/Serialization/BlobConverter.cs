@@ -82,7 +82,6 @@ namespace Couchbase.Lite.Serialization
             var blob = value as Blob;
             if(blob != null) {
                 blob.Install(_db);
-                blob.ActionQueue = _db.ActionQueue;
                 blob.CheckThreadSafety = _db.CheckThreadSafety;
                 serializer.Serialize(writer, blob.JsonRepresentation);
             }
@@ -149,7 +148,6 @@ namespace Couchbase.Lite.Serialization
             var type = props["_cbltype"] as string;
             if(type == "blob") {
                 return new Blob(_db, props) {
-                    ActionQueue = _db.ActionQueue,
                     CheckThreadSafety = _db.CheckThreadSafety
                 };
             }

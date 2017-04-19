@@ -19,10 +19,6 @@
 // limitations under the License.
 // 
 using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
@@ -30,20 +26,15 @@ namespace Couchbase.Lite.Support
     {
         #region Variables
 
-        private SerialQueue _serialQueue = new SerialQueue();
+        private readonly int _owningThread;
 
         #endregion
 
         #region Properties
 
-        public IDispatchQueue ActionQueue
+        public bool IsSafeToUse
         {
-            get {
-                return _serialQueue;
-            }
-            set {
-                _serialQueue = value as SerialQueue;
-            }
+            get => _owningThread == Environment.CurrentManagedThreadId;
         }
 
         internal bool CheckThreadSafety
@@ -53,39 +44,22 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
-        #region Protected Methods
+        #region Constructors
 
-        protected void AssertSafety()
+        internal ThreadSafe()
         {
-            if (!CheckThreadSafety) {
-                return;
-            }
-
-            _serialQueue.AssertInQueue();
+            _owningThread = Environment.CurrentManagedThreadId;
         }
 
         #endregion
 
-        #region IThreadSafe
+        #region Protected Methods
 
-        public Task DoAsync(Action a)
+        protected void AssertSafety()
         {
-            return _serialQueue.DispatchAsync(a);
-        }
-
-        public Task<T> DoAsync<T>(Func<T> f)
-        {
-            return _serialQueue.DispatchAsync(f);
-        }
-
-        public void DoSync(Action a)
-        {
-            _serialQueue.DispatchSync(a);
-        }
-
-        public T DoSync<T>(Func<T> f)
-        {
-            return _serialQueue.DispatchSync(f);
+            if (CheckThreadSafety && !IsSafeToUse) {
+                throw new ThreadSafetyViolationException();
+            }
         }
 
         #endregion

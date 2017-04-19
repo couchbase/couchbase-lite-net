@@ -30,14 +30,14 @@ namespace Couchbase.Lite
     {
         #region Constants
 
-        private const string QueueMessage =
-            "An attempt was made to use a thread safe object outside of its action queue";
+        private const string ThreadMessage =
+            "An attempt was made to use a thread safe object on a different thread than it was created";
 
         #endregion
 
         #region Constructors
 
-        internal ThreadSafetyViolationException() : base(QueueMessage)
+        internal ThreadSafetyViolationException() : base(ThreadMessage)
         {
 
         }

@@ -21,10 +21,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
@@ -66,8 +67,7 @@ namespace Couchbase.Lite.DB
 
         public event EventHandler<DatabaseChangedEventArgs> Changed;
         private IConflictResolver _conflictResolver;
-
-        private LruCache<string, Document> _documents = new LruCache<string, Document>(100);
+        
         private IJsonSerializer _jsonSerializer;
         private DatabaseObserver _obs;
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
@@ -153,6 +153,11 @@ namespace Couchbase.Lite.DB
             _LogCallback = LiteCoreLog;
             Native.c4log_register(C4LogLevel.Warning, _LogCallback);
             _DbObserverCallback = DbObserverCallback;
+        }
+
+        public Database(Database other) : this(other.Name, other.Options)
+        {
+            
         }
 
         public Database(string name) : this(name, DatabaseOptions.Default)
@@ -252,7 +257,7 @@ namespace Couchbase.Lite.DB
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
         {
             var dbObj = (Database)context;
-            dbObj.ActionQueue.DispatchAsync(() =>
+            Task.Factory.StartNew(() =>
             {
                 dbObj.PostDatabaseChanged();
             });
@@ -300,9 +305,8 @@ namespace Couchbase.Lite.DB
 
         private void Dispose(bool disposing)
         {
+            Debug.WriteLine("DISPOSE");
             if(disposing) {
-                var docs = Interlocked.Exchange(ref _documents, null);
-                docs?.Dispose();
                 var obs = Interlocked.Exchange(ref _obs, null);
                 obs?.Dispose();
                 if(_unsavedDocuments.Count > 0) {
@@ -323,25 +327,14 @@ namespace Couchbase.Lite.DB
         private Document GetDocument(string docID, bool mustExist)
         {
             CheckOpen();
-            if(_documents == null) {
-                Log.To.Database.W(Tag, "GetDocument called after Close(), returning null...");
+            var doc = new Document(this, docID, mustExist) {
+                CheckThreadSafety = CheckThreadSafety
+            };
+
+            if (mustExist && !doc.Exists) {
+                Log.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist", 
+                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                 return null;
-            }
-
-            var doc = _documents[docID];
-            if(doc == null) {
-                doc = new Document(this, docID, mustExist) {
-                    ActionQueue = ActionQueue,
-                    CheckThreadSafety = CheckThreadSafety
-                };
-
-                _documents[docID] = doc;
-            } else {
-                if(mustExist && !doc.Exists) {
-                    Log.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist", 
-                        new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
-                    return null;
-                }
             }
 
             return doc;
@@ -353,6 +346,7 @@ namespace Couchbase.Lite.DB
                 return;
             }
 
+            Debug.WriteLine("OPEN!");
             System.IO.Directory.CreateDirectory(Directory(Options.Directory));
             var path = DatabasePath(Name, Options.Directory);
             var config = _DBConfig;
@@ -406,10 +400,15 @@ namespace Couchbase.Lite.DB
                     if(docIDs.Count > 0) {
                         // Only notify if there are actually changes to send
                         var args = new DatabaseChangedEventArgs(docIDs.ToArray(), lastSequence, external);
-                        DoAsync(() =>
-                        {
-                            Changed?.Invoke(this, args);
-                        });
+                        var sender = IsSafeToUse ? this : new Database(this);
+                        try {
+                            Changed?.Invoke(sender, args);
+                        } finally {
+                            if (!IsSafeToUse) {
+                                sender.Dispose();
+                            }
+                        }
+
                         docIDs.Clear();
                     }
                 }
@@ -418,10 +417,6 @@ namespace Couchbase.Lite.DB
                 for(int i = 0; i < nChanges; i++) {
                     var docID = changes[i].docID.CreateString();
                     docIDs.Add(docID);
-                    if(external) {
-                        var existingDoc = _documents[docID];
-                        existingDoc?.ChangedExternally();
-                    }
                 }
 
                 if(nChanges > 0) {
@@ -528,7 +523,6 @@ namespace Couchbase.Lite.DB
             var repl = Replications.Get(remoteUrl);
             if (repl == null) {
                 repl = new Replication(this, remoteUrl, null) {
-                    ActionQueue = ActionQueue,
                     CheckThreadSafety = CheckThreadSafety
                 };
                 Replications[remoteUrl] = repl;
@@ -551,7 +545,6 @@ namespace Couchbase.Lite.DB
             var repl = Replications.Get(key);
             if (repl == null) {
                 repl = new Replication(this, null, otherDatabase) {
-                    ActionQueue = ActionQueue,
                     CheckThreadSafety = CheckThreadSafety
                 };
                 Replications[key] = repl;
@@ -566,11 +559,7 @@ namespace Couchbase.Lite.DB
 
         public void Dispose()
         {
-            ActionQueue.DispatchSync(() =>
-            {
-                Dispose(true);
-            });
-
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 
