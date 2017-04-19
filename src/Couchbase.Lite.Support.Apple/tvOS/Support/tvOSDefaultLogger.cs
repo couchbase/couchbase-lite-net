@@ -26,6 +26,11 @@ namespace Couchbase.Lite.Support
 {
     internal sealed class tvOSDefaultLogger : DefaultLogger
     {
+		public tvOSDefaultLogger() : base(false)
+		{
+			
+		}
+
         protected override void PerformWrite(string final)
         {
             Console.WriteLine(final); // Console.WriteLine == NSLog

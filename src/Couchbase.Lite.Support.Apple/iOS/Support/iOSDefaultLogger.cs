@@ -26,6 +26,10 @@ namespace Couchbase.Lite.Support
 {
     internal sealed class iOSDefaultLogger : DefaultLogger
     {
+		public iOSDefaultLogger() : base(false){
+			
+		}
+
         protected override void PerformWrite(string final)
         {
             Console.WriteLine(final); // Console.WriteLine == NSLog
