@@ -257,10 +257,7 @@ namespace Couchbase.Lite.DB
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
         {
             var dbObj = (Database)context;
-            Task.Factory.StartNew(() =>
-            {
-                dbObj.PostDatabaseChanged();
-            });
+            dbObj?.PostDatabaseChanged();
         }
 
         private static string DefaultDirectory()
