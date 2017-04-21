@@ -114,7 +114,7 @@ namespace Test
 
         internal bool ReadFileByLines(string path, Func<string, bool> callback)
         {
-        #if WINDOWS_UWP
+#if WINDOWS_UWP
                 var url = $"ms-appx:///Assets/{path}";
                 var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                     .AsTask()
@@ -124,22 +124,32 @@ namespace Test
 
                 var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
                 foreach(var line in lines) {
-        #elif __ANDROID__
+#elif __ANDROID__
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while ((line = tr.ReadLine()) != null) {
-        #else
-                using(var tr = new StreamReader(File.Open(path, FileMode.Open))) {
-                    string line;
-                    while((line = tr.ReadLine()) != null) {
-        #endif
-                    if (!callback(line)) {
-                        return false;
-                    }
-                }
-        #if !WINDOWS_UWP
-            }
+#elif __IOS__
+			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
+			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read)))
+			{
+				string line;
+				while ((line = tr.ReadLine()) != null)
+				{
+#else
+			using (var tr = new StreamReader(File.Open(path, FileMode.Open)))
+			{
+				string line;
+				while ((line = tr.ReadLine()) != null)
+				{
+#endif
+					if (!callback(line))
+					{
+						return false;
+					}
+				}
+#if !WINDOWS_UWP
+			}
         #endif
 
             return true;

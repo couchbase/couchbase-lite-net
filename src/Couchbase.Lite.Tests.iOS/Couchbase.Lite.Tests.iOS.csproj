@@ -218,6 +218,12 @@
     <Compile Include="AppDelegate.cs" />
     <Compile Include="Main.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <BundleResource Include="Resources\iTunesMusicLibrary.json" />
+    <BundleResource Include="Resources\names_100.json" />
+    <BundleResource Include="Resources\nested.json" />
+    <BundleResource Include="Resources\sentences.json" />
+  </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
