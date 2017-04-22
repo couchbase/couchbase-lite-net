@@ -1,19 +1,29 @@
 ﻿using Couchbase.Lite;
 using FluentAssertions;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System;
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-using System;
+#else
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test
 {
+#if WINDOWS_UWP
+    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
+#endif
     public sealed class SubdocumentTest : TestCase
     {
         private IDocument _doc;
 
+#if !WINDOWS_UWP
         public SubdocumentTest(ITestOutputHelper helper)
             : base(helper)
+#else
+        public SubdocumentTest()
+#endif
         {
             _doc = Db["doc1"];
         }

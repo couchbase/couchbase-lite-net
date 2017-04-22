@@ -29,25 +29,47 @@ using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using FluentAssertions;
 using Test.Util;
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test
 {
+#if WINDOWS_UWP
+    [TestClass]
+#endif
     public abstract class PerfTest
     {
+#if !WINDOWS_UWP
         private ITestOutputHelper _output;
+#else 
+        private TestContext _output;
+        public TestContext TestContext
+        {
+            get => _output;
+            set {
+                _output = value;
+                Log.AddLogger(new MSTestLogger(_output));
+            }
+        }
+#endif
         public static string ResourceDir;
         private DatabaseOptions _dbOptions;
         private string _dbName;
 
         public IDatabase Db { get; private set; }
 
+#if !WINDOWS_UWP
         protected PerfTest(ITestOutputHelper output)
         {
             _output = output;
             Log.SetLogger(new XunitLogger(output));
         }
+#endif
 
         protected void SetOptions(DatabaseOptions dbOptions)
         {
@@ -111,7 +133,11 @@ namespace Test
 
         protected void WriteLine(string line)
         {
+#if !WINDOWS_UWP
             _output.WriteLine(line);
+#else
+            Console.WriteLine(line);
+#endif
         }
 
         protected void Measure(uint count, string unit, Action a)

@@ -25,17 +25,26 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using FluentAssertions;
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+#else
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test
 {
+#if WINDOWS_UWP
+    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
+#endif
     public class DatabaseTest : TestCase
     {
+#if !WINDOWS_UWP
         public DatabaseTest(ITestOutputHelper output) : base(output)
         {
 
         }
+#endif
 
         [Fact]
         public void TestCreate()
@@ -89,29 +98,6 @@ namespace Test
             doc1.Properties.Should().BeNull("because no properties were saved");
             doc1.Save();
             Db.DocumentExists("doc1").Should().BeTrue("because now the document has been created");
-        }
-
-        [Theory]
-        [InlineData(true)]
-        //[InlineData(false)] //TODO
-        public void TestInBatch(bool commit)
-        {
-            var success = Db.InBatch(() =>
-            {
-                for(int i = 0; i < 10; i++) {
-                    var docId = $"doc{i}";
-                    var doc = Db.GetDocument(docId);
-                    doc.Save();
-                }
-
-                return commit;
-            });
-
-            success.Should().BeTrue("because otherwise the batch failed");
-            for (int i = 0; i < 10; i++) {
-                var docId = $"doc{i}";
-                Db.DocumentExists(docId).Should().Be(commit, "because otherwise the batch didn't commit or rollback properly");
-            }
         }
     }
 }

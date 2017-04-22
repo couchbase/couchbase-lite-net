@@ -25,17 +25,26 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using FluentAssertions;
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+#else
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test
 {
+#if WINDOWS_UWP
+    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
+#endif
     public class NotificationTest : TestCase
     {
+#if !WINDOWS_UWP
         public NotificationTest(ITestOutputHelper output) : base(output)
         {
 
         }
+#endif
 
         [Fact]
         public void TestDatabaseNotification()

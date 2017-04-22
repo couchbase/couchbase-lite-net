@@ -27,8 +27,12 @@ using Couchbase.Lite;
 using Couchbase.Lite.Query;
 using FluentAssertions;
 using Newtonsoft.Json;
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+#else
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test
 {
@@ -57,12 +61,17 @@ namespace Test
         }
     }
 
+#if WINDOWS_UWP
+    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
+#endif
     public class ModelTest : TestCase
     {
+#if !WINDOWS_UWP
         public ModelTest(ITestOutputHelper output) : base(output)
         {
 
         }
+#endif
 
         //[Fact]
         //public void TestModel()

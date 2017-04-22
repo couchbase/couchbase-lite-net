@@ -30,16 +30,27 @@ using Couchbase.Lite;
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+#else
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test
 {
+#if WINDOWS_UWP
+    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
+#endif
     public class DocumentTest : TestCase
     {
         private IDocument _doc;
 
+#if !WINDOWS_UWP
         public DocumentTest(ITestOutputHelper output) : base(output)
+#else
+        public DocumentTest()
+#endif
         {
             Db.ConflictResolver = new DoNotResolve();
             _doc = Db["doc1"];

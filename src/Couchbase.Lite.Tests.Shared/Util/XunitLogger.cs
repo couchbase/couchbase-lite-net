@@ -19,7 +19,7 @@
 //  limitations under the License.
 //
 
-
+#if !WINDOWS_UWP
 using Couchbase.Lite.Logging;
 using Xunit.Abstractions;
 
@@ -40,3 +40,25 @@ namespace Test.Util
         }
     }
 }
+#else
+using Couchbase.Lite.Logging;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace Test.Util
+{
+    internal sealed class MSTestLogger : DefaultLogger
+    {
+        private readonly TestContext _output;
+
+        public MSTestLogger(TestContext output) : base(false)
+        {
+            _output = output;
+        }
+
+        protected override void PerformWrite(string final)
+        {
+            _output.WriteLine(final);
+        }
+    }
+}
+#endif

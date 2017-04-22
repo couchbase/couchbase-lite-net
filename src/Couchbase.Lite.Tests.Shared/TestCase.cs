@@ -8,10 +8,14 @@ using Couchbase.Lite.Logging;
 using FluentAssertions;
 using Newtonsoft.Json;
 using Test.Util;
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test
 {
@@ -33,26 +37,50 @@ namespace Test
         }
     }
 
+#if WINDOWS_UWP
+    [TestClass]
+#endif
     public class TestCase : IDisposable
     {
         public const string DatabaseName = "testdb";
+#if !WINDOWS_UWP
         private readonly ITestOutputHelper _output;
+#else
+        private TestContext _testContext;
+        public TestContext TestContext
+        {
+            get => _testContext;
+            set {
+                _testContext = value;
+                Log.AddLogger(new MSTestLogger(_testContext));
+            }
+        }
+#endif
 
         protected IDatabase Db { get; private set; }
 
         private static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
+#if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
         {
             Log.AddLogger(new XunitLogger(output));
             _output = output;
+#else
+        public TestCase()
+        { 
+#endif
             Database.Delete(DatabaseName, Directory);
             OpenDB();
         }
 
         protected void WriteLine(string line)
         {
+#if !WINDOWS_UWP
             _output.WriteLine(line);
+#else
+            TestContext.WriteLine(line);
+#endif
         }
 
         protected void OpenDB()
@@ -143,7 +171,7 @@ namespace Test
 				}
 #if !WINDOWS_UWP
 			}
-        #endif
+#endif
 
             return true;
         }

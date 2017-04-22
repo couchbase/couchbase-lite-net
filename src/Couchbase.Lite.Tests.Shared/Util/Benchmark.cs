@@ -24,13 +24,23 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+#if !WINDOWS_UWP
+using Xunit;
 using Xunit.Abstractions;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test.Util
 {
     internal sealed class Benchmark
     {
+#if !WINDOWS_UWP
         private readonly ITestOutputHelper _output;
+#else
+        private readonly TestContext _output;
+#endif
         private Stopwatch _st = new Stopwatch();
         private List<TimeSpan> _times = new List<TimeSpan>();
 
@@ -41,7 +51,11 @@ namespace Test.Util
             }
         }
 
+#if !WINDOWS_UWP
         public Benchmark(ITestOutputHelper output)
+#else 
+        public Benchmark(TestContext output)
+#endif
         {
             _output = output;
         }

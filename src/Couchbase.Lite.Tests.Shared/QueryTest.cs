@@ -35,8 +35,12 @@ using Couchbase.Lite.Query;
 using FluentAssertions;
 using LiteCore.Interop;
 using Newtonsoft.Json;
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+#else
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test
 {
@@ -111,12 +115,17 @@ namespace Test
         public string State { get; set; }
     }
 
+#if WINDOWS_UWP
+    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
+#endif
     public class QueryTest : TestCase
     {
+#if !WINDOWS_UWP
         public QueryTest(ITestOutputHelper output) : base(output)
         {
 
         }
+#endif
 
         [Fact]
         public void TestNoWhereQuery()
