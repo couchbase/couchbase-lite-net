@@ -19,7 +19,8 @@
 //  limitations under the License.
 //
 
-using Couchbase.Lite.DB;
+
+using Couchbase.Lite.Internal.DB;
 
 namespace Couchbase.Lite
 {
@@ -44,36 +45,10 @@ namespace Couchbase.Lite
             return new Database(name);
         }
 
-        /// <summary>
-        /// Creates an <see cref="IDatabase"/> instance with the given name and options.  Internally
-        /// it may be operating on the same underlying data as another instance.
-        /// </summary>
-        /// <param name="name">The name of the database</param>
-        /// <param name="options">The options for creating / opening the underlying data</param>
-        /// <returns>The instantiated <see cref="IDatabase"/> object</returns>
-        /// <exception cref="System.ArgumentNullException">Thrown if <c>name</c> is <c>null</c></exception>
-        /// <exception cref="System.IO.IOException"><see cref="DatabaseOptions.Directory"/> is a file 
-        /// -or-The network name is not known.</exception>
-        /// <exception cref="System.UnauthorizedAccessException">The caller does not have the 
-        /// required permission to create <see cref="DatabaseOptions.Directory"/>.</exception>
-        /// <exception cref="System.ArgumentException"><see cref="DatabaseOptions.Directory"/> is a zero-length string, 
-        /// contains only white space, or contains one or more invalid characters. You can query 
-        /// for invalid characters by using the System.IO.Path.GetInvalidPathChars method.-or- 
-        /// <see cref="DatabaseOptions.Directory"/> is prefixed with, or contains, only a colon character (:).</exception>
-        /// <exception cref="System.IO.PathTooLongException"><see cref="DatabaseOptions.Directory"/> + <c>name</c>
-        /// exceed the system-defined maximum length. For example, on Windows-based platforms, paths 
-        /// must be less than 248 characters and file names must be less than 260 characters.</exception>
-        /// <exception cref="System.IO.DirectoryNotFoundException"><see cref="DatabaseOptions.Directory"/>
-        /// is invalid (for example, it is on an unmapped drive).</exception>
-        /// <exception cref="System.NotSupportedException"><see cref="DatabaseOptions.Directory"/> contains a 
-        /// colon character (:) that is not part of a drive label ("C:\")</exception>
-        /// <exception cref="System.ArgumentException"><c>name</c> contains invalid characters</exception> 
-        /// <exception cref="System.IO.InvalidDataException"><see cref="DatabaseOptions.EncryptionKey"/> contains
-        /// an invalid object for creating a <see cref="SymmetricKey" /> </exception> 
-        /// <exception cref="LiteCore.LiteCoreException">An error occurred during LiteCore interop</exception>
-        public static IDatabase Create(string name, DatabaseOptions options)
+        
+        public static IDatabase Create(string name, DatabaseConfiguration config)
         {
-            var retVal = new Database(name, options);
+            var retVal = new Database(name, config);
             return retVal;
         }
 
@@ -86,7 +61,7 @@ namespace Couchbase.Lite
         /// <exception cref="LiteCore.LiteCoreException">An error occurred during LiteCore interop</exception>
         public static IDatabase Create(IDatabase other)
         {
-            return Create(other.Name, other.Options);
+            return Create(other.Name, other.Config);
         }
 
         /// <summary>
@@ -105,7 +80,7 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Deletes underlying data for a given database given the database name and directory
-        /// (from <see cref="DatabaseOptions.Directory"/>).  Useful for deleting a database
+        /// (from <see cref="Directory"/>).  Useful for deleting a database
         /// that cannot be otherwise opened (e.g. encryption key forgotten) but 
         /// <see cref="IDatabase.Delete"/> is preferred. A <c>null</c> directory will check
         /// the library default directory for the platform.

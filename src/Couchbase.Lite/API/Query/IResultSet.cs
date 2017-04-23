@@ -19,11 +19,15 @@
 // limitations under the License.
 // 
 
+using System.Collections.Generic;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
     /// An interface representing the result set of a query
     /// </summary>
-    public interface IResultSet
-    {}
+    public interface IResultSet : IEnumerable<IResult>
+    {
+        
+    }
 }

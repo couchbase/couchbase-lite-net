@@ -21,8 +21,7 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-
-using Couchbase.Lite.DB;
+using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;

@@ -31,31 +31,18 @@ namespace Couchbase.Lite
     {
         #region Properties
 
-        /// <summary>
-        /// Gets the document IDs of the changes that occurred
-        /// </summary>
-        public IList<string> DocIDs { get; }
+        public IDatabase Database { get; }
 
-        /// <summary>
-        /// Gets whether or not this event was triggered by another 
-        /// <see cref="IDatabase"/> instnace.
-        /// </summary>
-        public bool External { get; }
-
-        /// <summary>
-        /// Gets the last sequence checked before this event fired
-        /// </summary>
-        public ulong LastSequence { get; }
+        public IDocument Document { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DatabaseChangedEventArgs(IList<string> docIDs, ulong lastSequence, bool external)
+        internal DatabaseChangedEventArgs(IDatabase database, IDocument document)
         {
-            DocIDs = docIDs;
-            LastSequence = lastSequence;
-            External = external;
+            Database = database;
+            Document = document;
         }
 
         #endregion

@@ -1,5 +1,5 @@
 ﻿// 
-// IThreadSafe.cs
+// ReadOnlySubdocument.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -19,22 +19,14 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite
+
+namespace Couchbase.Lite.Internal.Doc
 {
-    /// <summary>
-    /// An interface for an object that guarantees thread safety via
-    /// the use of dispatch queues
-    /// </summary>
-    public interface IThreadSafe
+    internal class ReadOnlySubdocument : ReadOnlyDictionary, IReadOnlySubdocument
     {
-        #region Properties
-
-        /// <summary>
-        /// Gets whether or not this object can be used (i.e. its thread
-        /// safety conditions are met)
-        /// </summary>
-        bool IsSafeToUse { get; }
-
-        #endregion
+        public ReadOnlySubdocument(IReadOnlyDictionary data) : base(data)
+        {
+            
+        }
     }
 }

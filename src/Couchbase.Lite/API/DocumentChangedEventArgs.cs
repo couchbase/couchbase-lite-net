@@ -1,5 +1,5 @@
 ﻿//
-//  QueryRow.cs
+//  DocumentChangedEventArgs.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,46 +19,23 @@
 //  limitations under the License.
 //
 
-using System.Diagnostics;
+using System;
 
-using Couchbase.Lite.Internal.DB;
-using LiteCore.Interop;
-
-namespace Couchbase.Lite.Querying
+namespace Couchbase.Lite
 {
-    internal unsafe class QueryRow : IQueryRow
+    public sealed class DocumentChangedEventArgs : EventArgs
     {
-        #region Variables
-
-        protected readonly Database _db;
-
-        #endregion
-
         #region Properties
 
-        public IDocument Document
-        {
-            get {
-                var retVal = _db.GetDocument(DocumentID);
-                Debug.Assert(retVal != null);
-                return retVal;
-            }
-        }
-
-        public string DocumentID { get; }
-
-        public ulong Sequence { get; set; }
+        public IDocument Document { get; }
 
         #endregion
 
         #region Constructors
 
-        internal QueryRow(Database db, C4QueryEnumerator* enumerator)
+        internal DocumentChangedEventArgs(IDocument document)
         {
-            _db = db;
-            DocumentID = enumerator->docID.CreateString();
-            Debug.Assert(DocumentID != null);
-            Sequence = enumerator->docSequence;
+            Document = document;
         }
 
         #endregion

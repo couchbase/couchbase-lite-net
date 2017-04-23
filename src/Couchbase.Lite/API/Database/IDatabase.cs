@@ -29,15 +29,13 @@ namespace Couchbase.Lite
     /// <summary>
     /// An interface describing a Couchbase Lite database
     /// </summary>
-    public interface IDatabase : IThreadSafe, IDisposable
+    public interface IDatabase : IDisposable
     {
         #region Properties
 
         /// <summary>
         /// Gets or sets the conflict resolver to use when conflicts arise
         /// </summary>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IConflictResolver ConflictResolver { get; set; }
 
         /// <summary>
@@ -45,26 +43,21 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="id">The ID of the <see cref="IDocument"/> to retrieve</param>
         /// <returns>The instantiated <see cref="IDocument"/></returns>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IDocument this[string id] { get; }
 
         /// <summary>
         /// Gets the name of the database
         /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
         string Name { get; }
 
         /// <summary>
         /// Gets the options that were used to create the database
         /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
-        DatabaseOptions Options { get; }
+        DatabaseConfiguration Config { get; }
 
         /// <summary>
         /// Gets the path on disk where the database exists
         /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
         string Path { get; }
 
         #endregion
@@ -76,26 +69,17 @@ namespace Couchbase.Lite
         /// </summary>
         event EventHandler<DatabaseChangedEventArgs> Changed;
 
+        event EventHandler<DocumentChangedEventArgs> DocumentChanged;
+
         /// <summary>
         /// Closes the database
         /// </summary>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Close();
-
-        /// <summary>
-        /// Creates a new <see cref="IDocument"/> with a unique ID
-        /// </summary>
-        /// <returns>The created document</returns>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
-        IDocument CreateDocument();
 
         /// <summary>
         /// Creates an <see cref="IndexType.ValueIndex"/> index on the given path
         /// </summary>
         /// <param name="expressions">The expressions to create the index on</param>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void CreateIndex(IList<IExpression> expressions);
 
         /// <summary>
@@ -105,41 +89,31 @@ namespace Couchbase.Lite
         /// or IExpression)</param>
         /// <param name="indexType">The type of index to create</param>
         /// <param name="options">The options to apply to the index</param>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void CreateIndex(IList expressions, IndexType indexType, IndexOptions options);
 
         /// <summary>
         /// Deletes the database
         /// </summary>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Delete();
+        
+        void Delete(IDocument document);
+        
+        void Save(IDocument document);
+        
+        void Purge(IDocument document);
 
         /// <summary>
         /// Deletes an index of the given <see cref="IndexType"/> on the given propertyPath
         /// </summary>
         /// <param name="propertyPath">The path of the index to delete</param>
         /// <param name="type">The type of the index to delete</param>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void DeleteIndex(string propertyPath, IndexType type);
-
-        /// <summary>
-        /// Checks if the <see cref="IDocument"/> with the given ID exists in the database
-        /// </summary>
-        /// <param name="documentID">The ID to check</param>
-        /// <returns><c>true</c> if the document exists, <c>false</c> otherwise</returns>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
-        bool DocumentExists(string documentID);
 
         /// <summary>
         /// Gets or creates an <see cref="IDocument"/> with the specified ID
         /// </summary>
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated </returns>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IDocument GetDocument(string id);
 
         /// <summary>
@@ -149,9 +123,7 @@ namespace Couchbase.Lite
         /// This function should return <c>true</c>
         /// on success and <c>false</c> on failure which will cause all the operations to be abandoned.</param>
         /// <returns>The return value of <c>a</c></returns>
-        /// <exception cref="ThreadSafetyViolationException">Thrown if an invalid access attempt is made</exception>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
-        bool InBatch(Func<bool> a);
+        void InBatch(Action a);
 
         #endregion
     }

@@ -23,16 +23,16 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-
+using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.DB
+namespace Couchbase.Lite.Internal.Doc
 {
-    internal sealed unsafe class Blob : ThreadSafe, IBlob, IJsonMapped
+    internal sealed unsafe class Blob : IBlob, IJsonMapped
     {
         #region Constants
 

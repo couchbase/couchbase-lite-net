@@ -18,6 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+#if false
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -34,7 +35,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.DB
 {
-    internal abstract unsafe class PropertyContainer : ThreadSafe, IPropertyContainer
+    internal abstract unsafe class PropertyContainer : ThreadSafe
     {
         #region Constants
 
@@ -755,11 +756,11 @@ namespace Couchbase.Lite.DB
             return Get(key) as ISubdocument;
         }
 
-        public IPropertyContainer Remove(string key)
-        {
-            Set(key, null);
-            return this;
-        }
+        //public IPropertyContainer Remove(string key)
+        //{
+        //    Set(key, null);
+        //    return this;
+        //}
 
         public void Revert()
         {
@@ -814,3 +815,4 @@ namespace Couchbase.Lite.DB
         #endregion
     }
 }
+#endif

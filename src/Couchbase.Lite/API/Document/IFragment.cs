@@ -1,5 +1,5 @@
 ﻿// 
-// ThreadSafe.cs
+// IFragment.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,41 +18,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite
 {
-    internal sealed class ThreadSafety
-    {
-        #region Variables
+    public interface IFragment : IObjectFragment, IDictionaryFragment, IArrayFragment
+    {}
 
-        private readonly Mutex _mutex = new Mutex();
+    public interface IObjectFragment : IReadOnlyObjectFragment
+    {
+        #region Properties
+
+        new object Value { get; set; }
 
         #endregion
 
-        #region Protected Methods
+        #region Public Methods
 
-        public void DoLocked(Action a)
-        {
-            _mutex.WaitOne();
-            try {
-                a();
-            } finally {
-                _mutex.ReleaseMutex();
-            }
-        }
+        new IArray ToArray();
 
-        public T DoLocked<T>(Func<T> f)
-        {
-            _mutex.WaitOne();
-            try {
-                return f();
-            } finally {
-                _mutex.ReleaseMutex();
-            }
-        }
+        new ISubdocument ToSubdocument();
+
+        #endregion
+    }
+
+    public interface IDictionaryFragment
+    {
+        #region Properties
+
+        IFragment this[string key] { get; }
+
+        #endregion
+    }
+
+    public interface IArrayFragment
+    {
+        #region Properties
+
+        IFragment this[int index] { get; }
 
         #endregion
     }

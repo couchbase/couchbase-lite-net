@@ -21,8 +21,7 @@
 using System;
 using System.Linq;
 using System.Text;
-
-using Couchbase.Lite.DB;
+using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using LiteCore;
@@ -31,7 +30,7 @@ using LiteCore.Util;
 
 namespace Couchbase.Lite.Sync
 {
-    internal sealed unsafe class Replication : ThreadSafe, IReplication
+    internal sealed unsafe class Replication : IReplication
     {
         #region Constants
 
@@ -46,7 +45,6 @@ namespace Couchbase.Lite.Sync
         #region Variables
 
         public event EventHandler<ReplicationStatusChangedEventArgs> StatusChanged;
-        public event EventHandler<ReplicationStoppedEventArgs> Stopped;
         private C4Replicator* _repl;
 
         #endregion
@@ -156,7 +154,6 @@ namespace Couchbase.Lite.Sync
                 // Stopped:
                 Native.c4repl_free(_repl);
                 _repl = null;
-                Stopped?.Invoke(this, new ReplicationStoppedEventArgs(LastError));
                 (Database as Database)?.ActiveReplications.Remove(this);
             }
         }

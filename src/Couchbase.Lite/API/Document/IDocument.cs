@@ -1,5 +1,5 @@
 ﻿//
-//  DocumentSavedEventArgs.cs
+//  IDocument.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -20,30 +20,15 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// Arguments for the <see cref="IDocument.Saved"/> event
+    /// An interface describing a Couchbase Lite document
     /// </summary>
-    public sealed class DocumentSavedEventArgs : EventArgs
+    public interface IDocument : IReadOnlyDocument, IDictionaryObject, IDisposable/*, IModellable*/
     {
-        #region Properties
 
-        /// <summary>
-        /// Gets whether or not another object triggered this event
-        /// </summary>
-        public bool IsExternal { get; }
-
-        #endregion
-
-        #region Constructors
-
-        internal DocumentSavedEventArgs(bool external)
-        {
-            IsExternal = external;
-        }
-
-        #endregion
     }
 }

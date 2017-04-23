@@ -28,7 +28,7 @@ namespace Couchbase.Lite
     /// An interface describing an operation queue that can execute arbitrary
     /// work items in a synchronous or asynchronous fashion
     /// </summary>
-    public interface IDispatchQueue
+    internal interface IDispatchQueue
     {
         #region Public Methods
 
@@ -68,7 +68,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class containing common IDispatchQueue operations
     /// </summary>
-    public static class DispatchQueueExtensions
+    internal static class DispatchQueueExtensions
     {
         #region Public Methods
 

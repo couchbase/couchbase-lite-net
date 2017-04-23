@@ -19,7 +19,7 @@
 // limitations under the License.
 // 
 
-using Couchbase.Lite.DB;
+using Couchbase.Lite.Internal.Doc;
 
 namespace Couchbase.Lite
 {
@@ -37,20 +37,6 @@ namespace Couchbase.Lite
         public static ISubdocument Create()
         {
             return new Subdocument();
-        }
-
-        /// <summary>
-        /// Creates a new <see cref="ISubdocument"/> using the given instance as a model
-        /// </summary>
-        /// <param name="other">The <see cref="ISubdocument"/> to use as a model for the new one</param>
-        /// <returns>A constructed <see cref="ISubdocument"/> object</returns>
-        public static ISubdocument Create(ISubdocument other)
-        {
-            var o = new Subdocument {
-                Properties = other.Properties
-            };
-
-            return o;
         }
 
         #endregion

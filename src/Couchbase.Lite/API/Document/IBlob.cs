@@ -27,44 +27,38 @@ namespace Couchbase.Lite
     /// <summary>
     /// An interface describing a typed binary data object
     /// </summary>
-    public interface IBlob : IThreadSafe
+    public interface IBlob
     {
         #region Properties
 
         /// <summary>
         /// Gets the content as an in memory array
         /// </summary>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         byte[] Content { get; }
 
         /// <summary>
         /// Gets the content as a stream from the soruce
         /// </summary>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         Stream ContentStream { get; }
 
         /// <summary>
         /// Gets the content type of the object (e.g. application/x-octet)
         /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
         string ContentType { get; }
 
         /// <summary>
         /// Gets the digest of the object
         /// </summary>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         string Digest { get; }
 
         /// <summary>
         /// Gets the length of the data contained in the object
         /// </summary>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         ulong Length { get; }
 
         /// <summary>
         /// Gets the metadata about the object
         /// </summary>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         IReadOnlyDictionary<string, object> Properties { get; }
 
         #endregion

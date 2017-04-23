@@ -1,5 +1,5 @@
 ﻿// 
-// ISubdocument.cs
+// IArray.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,27 +18,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using System.Collections;
 
 namespace Couchbase.Lite
 {
-    /// <summary>
-    /// An interface representing an embedded JSON object in an <see cref="IDocument"/>
-    /// </summary>
-    public interface ISubdocument : IPropertyContainer
+    public interface IArray : IReadOnlyArray, IArrayFragment
     {
         #region Properties
 
-        /// <summary>
-        /// Gets the parent document for this subdocument
-        /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
-        IDocument Document { get; }
+        new IFragment this[int index] { get; }
 
-        /// <summary>
-        /// Gets whether or not this subdocument has been saved into a document yet
-        /// </summary>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
-        bool Exists { get; }
+        #endregion
+
+        #region Public Methods
+
+        IArray Add(object value);
+
+        new IArray GetArray(int index);
+
+        new ISubdocument GetSubdocument(int index);
+
+        IArray Insert(int index, object value);
+
+        IArray RemoveAt(int index);
+
+        IArray Set(IList array);
+
+        IArray Set(int index, object value);
 
         #endregion
     }

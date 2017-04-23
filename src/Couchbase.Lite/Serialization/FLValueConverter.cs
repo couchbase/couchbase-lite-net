@@ -19,8 +19,10 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
-
+using Couchbase.Lite.Internal.DB;
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Serialization
@@ -34,6 +36,46 @@ namespace Couchbase.Lite.Serialization
         #endregion
 
         #region Public Methods
+
+        public static object ToTypedObject(FLValue* value, SharedStringCache sharedKeys, Database database)
+        {
+            if (Native.FLValue_GetType(value) == FLValueType.Dict) {
+                var dict = Native.FLValue_AsDict(value);
+                var type = TypeForDict(dict, sharedKeys);
+                if (type.buf == null) {
+                    var result = ToObject(value, sharedKeys) as IDictionary<string, object>;
+                    return ConvertDictionary(result, database);
+                }
+            }
+
+            return null;
+        }
+
+        public static object ToCouchbaseObject(FLValue* value, SharedStringCache sharedKeys, C4Document* document, Database database)
+        {
+                switch (Native.FLValue_GetType(value)) {
+                    case FLValueType.Array: {
+                        var array = Native.FLValue_AsArray(value);
+                        var data = new FleeceArray(array, document, database);
+                        return new ReadOnlyArray(data);
+                    }
+                    case FLValueType.Dict: {
+                        var dict = Native.FLValue_AsDict(value);
+                        var type = TypeForDict(dict, sharedKeys);
+                        if (type.buf == null) {
+                            var data = new FleeceDictionary(dict, document, database);
+                            return new ReadOnlySubdocument(data);
+                        }
+
+                        var result = ToObject(value, sharedKeys) as IDictionary<string, object>;
+                        return ConvertDictionary(result, database);
+                    }
+                    case FLValueType.Undefined:
+                        return null;
+                    default:
+                        return ToObject(value, sharedKeys);
+                }
+        }
 
         public static object ToObject(FLValue* value, SharedStringCache sharedKeys)
         {
@@ -101,7 +143,26 @@ namespace Couchbase.Lite.Serialization
                     return null;
             }
         }
-        
+
         #endregion
+
+        private static FLSlice TypeForDict(FLDict* dict, SharedStringCache sharedKeys)
+        {
+            var typeKey = FLSlice.Constant("_cbltype");
+            var type = sharedKeys.GetDictValue(dict, typeKey);
+            return NativeRaw.FLValue_AsString(type);
+        }
+
+        private static object ConvertDictionary(IDictionary<string, object> dict, Database database)
+        {
+            var type = dict.GetCast<string>("_cbltype");
+            if (type != null) {
+                if (type == "blob") {
+                    return new Blob(database, dict);
+                }
+            }
+
+            return null; // Invalid!
+        }
     }
 }

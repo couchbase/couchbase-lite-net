@@ -24,8 +24,10 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
-using Couchbase.Lite.DB;
+using Couchbase.Lite.Internal.DB;
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Query;
 using LiteCore;
 using LiteCore.Interop;
 
@@ -72,7 +74,7 @@ namespace Couchbase.Lite.Querying
         #endregion
     }
 
-    internal sealed unsafe class QueryRowEnumerable : QueryEnumerable<IQueryRow>
+    internal sealed unsafe class QueryRowEnumerable : QueryEnumerable<IResult>, IResultSet
     {
         #region Constructors
 
@@ -86,7 +88,7 @@ namespace Couchbase.Lite.Querying
 
         #region Overrides
 
-        public override IEnumerator<IQueryRow> GetEnumerator()
+        public override IEnumerator<IResult> GetEnumerator()
         {
             return new QueryRowEnumerator(_db, _query, _options, _encodedParameters);
         }
@@ -215,7 +217,7 @@ namespace Couchbase.Lite.Querying
         #endregion
     }
 
-    internal sealed unsafe class QueryRowEnumerator : QueryEnumerator<IQueryRow>
+    internal sealed unsafe class QueryRowEnumerator : QueryEnumerator<IResult>
     {
         #region Constructors
 

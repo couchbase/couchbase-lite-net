@@ -25,7 +25,7 @@ using System.IO;
 using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Internal.Doc
 {
     internal sealed unsafe class BlobWriteStream : Stream
     {

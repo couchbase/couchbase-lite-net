@@ -27,7 +27,7 @@ namespace Couchbase.Lite.Sync
     /// between two database endpoints.  The two endpoints are a local database, and 
     /// either another local database or a remote URL.
     /// </summary>
-    public interface IReplication : IThreadSafe, IDisposable
+    public interface IReplication : IDisposable
     {
         #region Variables
 
@@ -35,11 +35,6 @@ namespace Couchbase.Lite.Sync
         /// An event that fires when the replication's status changes
         /// </summary>
         event EventHandler<ReplicationStatusChangedEventArgs> StatusChanged;
-
-        /// <summary>
-        /// An event that fires when the replication stops
-        /// </summary>
-        event EventHandler<ReplicationStoppedEventArgs> Stopped;
 
         #endregion
 
@@ -50,53 +45,45 @@ namespace Couchbase.Lite.Sync
         /// Non-continuous replications stop when they finish processing their
         /// initial set of changes
         /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
         bool Continuous { get; set; }
 
         /// <summary>
         /// Gets the local <see cref="IDatabase"/> associated with this replication
         /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
         IDatabase Database { get; }
 
         /// <summary>
         /// Gets the most recent error associated with this replication
         /// </summary>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         Exception LastError { get; }
 
         /// <summary>
         /// Gets the remote <see cref="IDatabase"/> being replicated to, if this is
         /// a local replication.
         /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
         IDatabase OtherDatabase { get; }
 
         /// <summary>
         /// Gets or sets whether or not this replication should perform pull operations
         /// from the remote dataset
         /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
         bool Pull { get; set; }
 
         /// <summary>
         /// Gets or sets whether or not this replication should perform push operations
         /// from the remote dataset
         /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
         bool Push { get; set; }
 
         /// <summary>
         /// Gets the URL of the remote database being replicated to, if this is
         /// a network replication
         /// </summary>
-        [AccessibilityMode(AccessMode.FromAnywhere)]
         Uri RemoteUrl { get; }
 
         /// <summary>
         /// Gets the current status of the <see cref="IReplication"/>
         /// </summary>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         ReplicationStatus Status { get; }
 
         #endregion
@@ -106,13 +93,11 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Starts the replication
         /// </summary>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Start();
 
         /// <summary>
         /// Stops the replication
         /// </summary>
-        [AccessibilityMode(AccessMode.FromOwningThreadOnly)]
         void Stop();
 
         #endregion

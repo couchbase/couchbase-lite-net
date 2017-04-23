@@ -1,5 +1,5 @@
 ﻿// 
-// ReplicationStoppedEventArgs.cs
+// ISubdocument.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,31 +18,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
 
-namespace Couchbase.Lite.Sync
+namespace Couchbase.Lite
 {
     /// <summary>
-    /// Event arguments for the <see cref="IReplication.Stopped"/> event
+    /// An interface representing an embedded JSON object in an <see cref="IDocument"/>
     /// </summary>
-    public sealed class ReplicationStoppedEventArgs : EventArgs
+    public interface ISubdocument : IReadOnlySubdocument, IDictionaryObject
     {
-        #region Properties
 
-        /// <summary>
-        /// Gets the error that occurred, if any
-        /// </summary>
-        public Exception Error { get; }
-
-        #endregion
-
-        #region Constructors
-
-        internal ReplicationStoppedEventArgs(Exception error)
-        {
-            Error = error;
-        }
-
-        #endregion
     }
 }

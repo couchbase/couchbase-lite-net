@@ -1,5 +1,5 @@
 ﻿// 
-// ThreadSafetyViolationException.cs
+// Conflict.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,28 +18,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
-
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Internal.DB
 {
-    /// <summary>
-    /// An exception that is thrown when an <see cref="IThreadSafe"/> object is
-    /// accessed inappropriately
-    /// </summary>
-    public sealed class ThreadSafetyViolationException : Exception
+    internal sealed class Conflict : IConflict
     {
-        #region Constants
+        #region Properties
 
-        private const string ThreadMessage =
-            "An attempt was made to use a thread safe object on a different thread than it was created";
+        public IReadOnlyDocument CommonAncestor { get; }
+        public OperationType OperationType { get; }
+        public IReadOnlyDocument Source { get; }
+        public IReadOnlyDocument Target { get; }
 
         #endregion
 
         #region Constructors
 
-        internal ThreadSafetyViolationException() : base(ThreadMessage)
+        internal Conflict(IReadOnlyDocument source, IReadOnlyDocument target, IReadOnlyDocument commonAncestor,
+            OperationType opType)
         {
-
+            Source = source;
+            Target = target;
+            CommonAncestor = commonAncestor;
+            OperationType = opType;
         }
 
         #endregion
