@@ -25,7 +25,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Couchbase.Lite.Linq
+namespace Couchbase.Lite.Internal.Linq
 {
     /// <summary>
     /// A collection of methods for use with the new LINQ model

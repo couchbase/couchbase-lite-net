@@ -18,6 +18,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Couchbase.Lite.Logging;
 using LiteCore.Interop;
 
@@ -50,6 +52,22 @@ namespace Couchbase.Lite.Internal.Doc
             this.c4Doc = c4Doc;
         }
 
+        ~ReadOnlyDocument()
+        {
+            Dispose(false);
+        }
+
+        #endregion
+
+        #region Protected Methods
+
+        [SuppressMessage("ReSharper", "UnusedParameter.Local", Justification = "Only types that need to be disposed unconditionally are dealt with")]
+        protected virtual void Dispose(bool disposing)
+        {
+            Native.c4doc_free(c4Doc);
+            c4Doc = null;
+        }
+
         #endregion
 
         #region Overrides
@@ -58,6 +76,16 @@ namespace Couchbase.Lite.Internal.Doc
         {
             var id = new SecureLogString(Id, LogMessageSensitivity.PotentiallyInsecure);
             return $"{GetType().Name}[{id}]";
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            _threadSafety.DoLocked(() => Dispose(true));
+            GC.SuppressFinalize(this);
         }
 
         #endregion

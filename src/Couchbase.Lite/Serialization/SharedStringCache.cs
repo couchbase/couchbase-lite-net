@@ -20,9 +20,10 @@
 // 
 using System.Collections.Generic;
 using System.Text;
+
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Serialization
+namespace Couchbase.Lite.Internal.Serialization
 {
     internal sealed unsafe class SharedStringCache
     {

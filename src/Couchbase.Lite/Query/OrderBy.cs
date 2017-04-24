@@ -18,11 +18,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Couchbase.Lite.Query
+using Couchbase.Lite.Query;
+
+namespace Couchbase.Lite.Internal.Query
 {
     internal class OrderBy : XQuery, IOrderBy
     {

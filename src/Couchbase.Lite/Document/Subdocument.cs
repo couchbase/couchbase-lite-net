@@ -27,6 +27,8 @@ namespace Couchbase.Lite.Internal.Doc
     {
         #region Properties
 
+        public override ICollection<string> Keys => Dictionary.Keys;
+
         public new IFragment this[string key] => Dictionary[key];
         internal DictionaryObject Dictionary { get; }
 
@@ -55,11 +57,6 @@ namespace Couchbase.Lite.Internal.Doc
         #endregion
 
         #region Overrides
-
-        public override ICollection<string> AllKeys()
-        {
-            return Dictionary.AllKeys();
-        }
 
         public override bool Contains(string key)
         {

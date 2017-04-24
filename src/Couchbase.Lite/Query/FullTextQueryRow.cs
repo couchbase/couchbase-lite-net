@@ -22,12 +22,12 @@
 using System;
 using System.Text;
 
-using Couchbase.Lite.DB;
+using Couchbase.Lite.Internal.DB;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 
-namespace Couchbase.Lite.Querying
+namespace Couchbase.Lite.Internal.Query
 {
     internal sealed unsafe class FullTextQueryRow : QueryRow, IFullTextQueryRow
     {

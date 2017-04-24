@@ -58,7 +58,7 @@ namespace Test
         }
 #endif
         public static string ResourceDir;
-        private DatabaseOptions _dbOptions;
+        private DatabaseConfiguration _dbOptions;
         private string _dbName;
 
         public IDatabase Db { get; private set; }
@@ -71,7 +71,7 @@ namespace Test
         }
 #endif
 
-        protected void SetOptions(DatabaseOptions dbOptions)
+        protected void SetOptions(DatabaseConfiguration dbOptions)
         {
             _dbOptions = dbOptions;
             _dbName = "perfdb";

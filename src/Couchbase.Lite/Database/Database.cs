@@ -27,9 +27,10 @@ using System.Linq;
 using System.Threading;
 
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Query;
+using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
-using Couchbase.Lite.Serialization;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
@@ -521,9 +522,9 @@ namespace Couchbase.Lite.Internal.DB
             PostDatabaseChanged();
         }
 
-        public void Purge(IDocument document)
+        public bool Purge(IDocument document)
         {
-            _threadSafety.DoLocked(() => VerifyDB(document).Purge());
+            return _threadSafety.DoLocked(() => VerifyDB(document).Purge());
         }
 
         public void Save(IDocument document)

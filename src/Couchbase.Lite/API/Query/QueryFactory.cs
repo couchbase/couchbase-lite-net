@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Query;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>

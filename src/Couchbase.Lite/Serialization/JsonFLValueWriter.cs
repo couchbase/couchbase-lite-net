@@ -24,7 +24,7 @@ using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Serialization
+namespace Couchbase.Lite.Internal.Serialization
 {
     internal unsafe class JsonFLValueWriter : JsonWriter
     {

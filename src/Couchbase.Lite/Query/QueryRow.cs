@@ -24,7 +24,7 @@ using System.Diagnostics;
 using Couchbase.Lite.Internal.DB;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Querying
+namespace Couchbase.Lite.Internal.Query
 {
     internal unsafe class QueryRow : IQueryRow
     {

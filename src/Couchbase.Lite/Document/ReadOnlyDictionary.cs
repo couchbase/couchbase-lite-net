@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 using Couchbase.Lite.Support;
@@ -39,6 +40,8 @@ namespace Couchbase.Lite.Internal.Doc
 
         public IReadOnlyFragment this[string key] => new ReadOnlyFragment(GetObject(key));
 
+        public virtual ICollection<string> Keys => Data.Keys;
+
         internal IReadOnlyDictionary Data { get; set; }
 
         internal virtual bool IsEmpty => Data?.Count != 0;
@@ -54,12 +57,25 @@ namespace Couchbase.Lite.Internal.Doc
 
         #endregion
 
-        #region IReadOnlyDictionary
+        #region IEnumerable
 
-        public virtual ICollection<string> AllKeys()
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            return Data.AllKeys();
+            return GetEnumerator();
         }
+
+        #endregion
+
+        #region IEnumerable<KeyValuePair<string,object>>
+
+        public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        {
+            return Data.GetEnumerator();
+        }
+
+        #endregion
+
+        #region IReadOnlyDictionary
 
         public virtual bool Contains(string key)
         {
@@ -119,17 +135,16 @@ namespace Couchbase.Lite.Internal.Doc
         public virtual IDictionary<string, object> ToDictionary()
         {
             var dict = new Dictionary<string, object>();
-            foreach (var key in AllKeys()) {
-                var value = GetObject(key);
-                switch(value) {
+            foreach (var pair in this) {
+                switch(pair.Value) {
                     case IReadOnlyDictionary d:
-                        dict[key] = d.ToDictionary();
+                        dict[pair.Key] = d.ToDictionary();
                         break;
                     case IReadOnlyArray a:
-                        dict[key] = a.ToArray();
+                        dict[pair.Key] = a.ToList();
                         break;
                     default:
-                        dict[key] = value;
+                        dict[pair.Key] = pair.Value;
                         break;
                 }
             }
@@ -138,5 +153,6 @@ namespace Couchbase.Lite.Internal.Doc
         }
 
         #endregion
+
     }
 }

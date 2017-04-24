@@ -21,8 +21,8 @@
 using System;
 using System.Linq;
 
-using Couchbase.Lite.DB;
-using Couchbase.Lite.Querying;
+using Couchbase.Lite.Internal.DB;
+using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
 {

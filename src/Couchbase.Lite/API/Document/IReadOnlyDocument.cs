@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Couchbase.Lite
 {
-    public interface IReadOnlyDocument : IReadOnlyDictionary
+    public interface IReadOnlyDocument : IReadOnlyDictionary, IDisposable
     {
         string Id { get; }
 

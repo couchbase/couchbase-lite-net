@@ -1,29 +1,49 @@
-﻿using System;
+﻿// 
+// LiveQuery.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
-namespace Couchbase.Lite.Query
+using Couchbase.Lite.Query;
+
+namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class LiveQueryChangedEventArgs : EventArgs
-    {
-        public IEnumerable<IQueryRow> Results { get; }
-
-        internal LiveQueryChangedEventArgs(IEnumerable<IQueryRow> results)
-        {
-            Results = results;
-        }
-    }
-
     internal sealed class LiveQuery : ILiveQuery
     {
-        private readonly IQuery _underlying;
+        #region Variables
+
         private readonly IDatabase _database;
-        private bool _started;
-        
+        private readonly IQuery _underlying;
+
         public event EventHandler<LiveQueryChangedEventArgs> Changed;
+        private bool _started;
+
+        #endregion
+
+        #region Properties
 
         public IEnumerable<IQueryRow> Results { get; private set; }
+
+        #endregion
+
+        #region Constructors
 
         internal LiveQuery(IDatabase database, IQuery underlying)
         {
@@ -31,11 +51,36 @@ namespace Couchbase.Lite.Query
             _underlying = underlying;
         }
 
+        #endregion
+
+        #region Public Methods
+
+        public void Dispose()
+        {
+            if (!_started) {
+                return;
+            }
+
+            _started = false;
+            _underlying.Dispose();
+            _database.Changed -= RerunQuery;
+        }
+
         public void Start()
         {
             _database.Changed += RerunQuery;
             Results = _underlying.Run();
             _started = true;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private void FireChangedAndUpdate(IEnumerable<IQueryRow> newResults)
+        {
+            Changed?.Invoke(this, new LiveQueryChangedEventArgs(newResults));
+            Results = newResults;
         }
 
         private void RerunQuery(object sender, DatabaseChangedEventArgs e)
@@ -68,21 +113,6 @@ namespace Couchbase.Lite.Query
             }
         }
 
-        private void FireChangedAndUpdate(IEnumerable<IQueryRow> newResults)
-        {
-            Changed?.Invoke(this, new LiveQueryChangedEventArgs(newResults));
-            Results = newResults;
-        }
-
-        public void Dispose()
-        {
-            if (!_started) {
-                return;
-            }
-
-            _started = false;
-            _underlying.Dispose();
-            _database.Changed -= RerunQuery;
-        }
+        #endregion
     }
 }

@@ -47,6 +47,55 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Internal Methods
 
+        internal static bool ContainsBlob(object value)
+        {
+            switch (value) {
+                case IBlob b:
+                    return true;
+                case IReadOnlySubdocument s:
+                    return ContainsBlob(s);
+                case IReadOnlyArray a:
+                    return ContainsBlob(a);
+                case IList l:
+                    return ContainsBlob(l);
+                default:
+                    return false;
+            }
+        }
+
+        internal static bool ContainsBlob(IReadOnlySubdocument s)
+        {
+            foreach (var pair in s) {
+                if (ContainsBlob(pair.Value)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        internal static bool ContainsBlob(IReadOnlyArray a)
+        {
+            for (int i = 0; i < a.Count; i++) {
+                if (ContainsBlob(a.GetObject(i))) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        internal static bool ContainsBlob(IList l)
+        {
+            foreach (var item in l) {
+                if (ContainsBlob(l)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         [Conditional("DEBUG")]
         internal static void ValidateValue(object value)
         {

@@ -1,5 +1,5 @@
 ﻿// 
-// IModellable.cs
+// DocumentFactory.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,17 +18,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
 
+using System.Collections.Generic;
 using Couchbase.Lite.Internal.Doc;
 
 namespace Couchbase.Lite
 {
-    internal interface IModellable
+    public static class DocumentFactory
     {
         #region Public Methods
 
-        T AsModel<T>() where T : IDocumentModel, new();
+        public static IDocument Create()
+        {
+            return new Document();
+        }
+
+        public static IDocument Create(string documentID)
+        {
+            return new Document(documentID);
+        }
+
+        public static IDocument Create(IDictionary<string, object> properties)
+        {
+            return new Document(properties);
+        }
+
+        public static IDocument Create(string documentID, IDictionary<string, object> properties)
+        {
+            return new Document(documentID, properties);
+        }
+
+        public static IReadOnlyDocument CreateReadOnly(IDictionary<string, object> properties)
+        {
+            return new Document(properties);
+        }
 
         #endregion
     }

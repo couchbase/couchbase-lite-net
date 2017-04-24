@@ -1,9 +1,29 @@
-﻿using System;
+﻿// 
+// TestCase.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using Couchbase.Lite;
-using Couchbase.Lite.DB;
+using Couchbase.Lite.Internal.DB;
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using FluentAssertions;
 using Newtonsoft.Json;
@@ -21,6 +41,8 @@ namespace Test
 {
     internal static class Convert
     {
+        #region Internal Methods
+
         internal static Document ToConcrete(this IDocument doc)
         {
             return doc as Document;
@@ -35,6 +57,8 @@ namespace Test
         {
             return subdoc as Subdocument;
         }
+
+        #endregion
     }
 
 #if WINDOWS_UWP
@@ -89,9 +113,9 @@ namespace Test
                 throw new InvalidOperationException();
             }
 
-            var options = DatabaseOptions.Default;
-            options.Directory = Directory;
-            options.CheckThreadSafety = true;
+            var options = new DatabaseConfiguration(new DatabaseConfiguration.Builder {
+                Directory = Directory
+            });
             Db = DatabaseFactory.Create(DatabaseName, options);
             Db.Should().NotBeNull("because otherwise the database failed to open");
         }
@@ -112,7 +136,7 @@ namespace Test
 
         protected void LoadJSONResource(string resourceName)
         {
-            var ok = Db.InBatch(() =>
+            Db.InBatch(() =>
             {
                 var n = 0ul;
                 ReadFileByLines($"C/tests/data/{resourceName}.json", line =>
@@ -121,16 +145,12 @@ namespace Test
                     var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(line);
                     json.Should().NotBeNull("because otherwise the line failed to parse");
                     var doc = Db.GetDocument(docID);
-                    doc.Properties = json;
-                    doc.Save();
+                    doc.Set(json);
+                    Db.Save(doc);
 
                     return true;
                 });
-
-                return true;
             });
-
-            ok.Should().BeTrue("because otherwise the batch insert failed");
         }
 
         internal bool ReadFileByLines(string path, Func<string, bool> callback)

@@ -24,12 +24,9 @@ namespace Couchbase.Lite.Internal.Doc
 {
     internal class ReadOnlyFragment : IReadOnlyFragment
     {
-
         #region Properties
 
         public virtual bool Exists => Value != null;
-
-        public object Value { get; }
 
         public IReadOnlyFragment this[int index]
         {
@@ -53,6 +50,8 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
+        public object Value { get; }
+
         #endregion
 
         #region Constructors
@@ -60,6 +59,24 @@ namespace Couchbase.Lite.Internal.Doc
         public ReadOnlyFragment(object value)
         {
             Value = value;
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        public object ToObject()
+        {
+            return Value;
+        }
+
+        #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            return Value as string;
         }
 
         #endregion
@@ -119,11 +136,6 @@ namespace Couchbase.Lite.Internal.Doc
             } catch (InvalidCastException) {
                 return 0;
             }
-        }
-
-        public object ToObject()
-        {
-            return Value;
         }
 
         public IReadOnlySubdocument ToSubdocument()

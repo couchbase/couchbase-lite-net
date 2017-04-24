@@ -31,7 +31,7 @@ using Couchbase.Lite.Query;
 using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Querying
+namespace Couchbase.Lite.Internal.Query
 {
     internal abstract unsafe class QueryEnumerable<T> : IEnumerable<T>
     {
@@ -74,7 +74,7 @@ namespace Couchbase.Lite.Querying
         #endregion
     }
 
-    internal sealed unsafe class QueryRowEnumerable : QueryEnumerable<IResult>, IResultSet
+    internal sealed unsafe class QueryRowEnumerable : QueryEnumerable<IQueryRow>
     {
         #region Constructors
 
@@ -88,7 +88,7 @@ namespace Couchbase.Lite.Querying
 
         #region Overrides
 
-        public override IEnumerator<IResult> GetEnumerator()
+        public override IEnumerator<IQueryRow> GetEnumerator()
         {
             return new QueryRowEnumerator(_db, _query, _options, _encodedParameters);
         }
@@ -217,7 +217,7 @@ namespace Couchbase.Lite.Querying
         #endregion
     }
 
-    internal sealed unsafe class QueryRowEnumerator : QueryEnumerator<IResult>
+    internal sealed unsafe class QueryRowEnumerator : QueryEnumerator<IQueryRow>
     {
         #region Constructors
 
@@ -258,7 +258,7 @@ namespace Couchbase.Lite.Querying
         [SuppressMessage("ReSharper", "PossibleNullReferenceException", Justification = "Current will always be IDocumentModel")]
         protected override void SetCurrent(C4QueryEnumerator* enumerator)
         {
-            var doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_getBySequence(_db.c4db, enumerator->docSequence, err));
+            /*var doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_getBySequence(_db.c4db, enumerator->docSequence, err));
             try {
                 if (_prefetch) {
                     FLValue* value = NativeRaw.FLValue_FromTrustedData((FLSlice) doc->selectedRev.body);
@@ -268,10 +268,10 @@ namespace Couchbase.Lite.Querying
                 }
 
                 var idm = Current as IDocumentModel;
-                idm.Document = new Document(_db, doc);
+                idm.Document = new Document()
             } finally {
                 Native.c4doc_free(doc);
-            }
+            }*/
         }
 
         #endregion

@@ -4,12 +4,12 @@ using System.Linq;
 
 using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Querying;
+using Couchbase.Lite.Query;
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Internal.Query
 {
     internal abstract unsafe class XQuery : IQuery
     {

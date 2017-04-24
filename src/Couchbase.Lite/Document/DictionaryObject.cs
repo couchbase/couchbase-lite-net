@@ -23,6 +23,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Doc
 {
@@ -36,6 +38,35 @@ namespace Couchbase.Lite.Internal.Doc
         }
     }
 
+    internal sealed class DictionaryObjectConverter : JsonConverter
+    {
+        public override bool CanRead => false;
+
+        public override bool CanWrite => true;
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            var dict = (DictionaryObject)value;
+            writer.WriteStartObject();
+            foreach (var pair in dict) {
+                writer.WritePropertyName(pair.Key);
+                writer.WriteValue(pair.Value);
+            }
+            writer.WriteEndObject();
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType.GetTypeInfo().IsAssignableFrom(typeof(DictionaryObject).GetTypeInfo());
+        }
+    }
+
+    [JsonConverter(typeof(DictionaryObjectConverter))]
     internal sealed class DictionaryObject : ReadOnlyDictionary, IDictionaryObject
     {
         #region Variables
@@ -51,7 +82,7 @@ namespace Couchbase.Lite.Internal.Doc
         {
             get {
                 var count = _dict.Count;
-                foreach(var key in AllKeys()) {
+                foreach(var key in Keys) {
                     if(!_dict.ContainsKey(key)) {
                         count += 1;
                     }
@@ -64,6 +95,24 @@ namespace Couchbase.Lite.Internal.Doc
                 }
 
                 return count;
+            }
+        }
+
+        public override ICollection<string> Keys
+        {
+            get {
+                var result = new HashSet<string>();
+                foreach (var key in base.Keys) {
+                    result.Add(key);
+                }
+
+                foreach (var pair in _dict) {
+                    if (pair.Value != null) {
+                        result.Add(pair.Key);
+                    }
+                }
+
+                return result;
             }
         }
 
@@ -150,22 +199,6 @@ namespace Couchbase.Lite.Internal.Doc
         #endregion
 
         #region Overrides
-
-        public override ICollection<string> AllKeys()
-        {
-            var result = new HashSet<string>();
-            foreach(var key in base.AllKeys()) {
-                result.Add(key);
-            }
-
-            foreach(var pair in _dict) {
-                if(pair.Value != null) {
-                    result.Add(pair.Key);
-                }
-            }
-
-            return result;
-        }
 
         public override bool Contains(string key)
         {
@@ -320,7 +353,7 @@ namespace Couchbase.Lite.Internal.Doc
                         result[key] = dic.ToDictionary();
                         break;
                     case IReadOnlyArray arr:
-                        result[key] = arr.ToArray();
+                        result[key] = arr.ToList();
                         break;
                     default:
                         break;

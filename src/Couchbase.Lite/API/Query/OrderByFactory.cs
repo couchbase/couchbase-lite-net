@@ -19,7 +19,7 @@
 // limitations under the License.
 // 
 
-using System.Linq;
+using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
 {

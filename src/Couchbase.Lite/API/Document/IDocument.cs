@@ -27,7 +27,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// An interface describing a Couchbase Lite document
     /// </summary>
-    public interface IDocument : IReadOnlyDocument, IDictionaryObject, IDisposable/*, IModellable*/
+    public interface IDocument : IReadOnlyDocument, IDictionaryObject/*, IModellable*/
     {
 
     }

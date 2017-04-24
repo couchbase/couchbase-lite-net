@@ -5,7 +5,7 @@ using System.Reflection;
 
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Serialization
+namespace Couchbase.Lite.Internal.Serialization
 {
     internal sealed class IJsonMappedConverter : JsonConverter
     {

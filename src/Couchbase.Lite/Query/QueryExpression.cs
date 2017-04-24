@@ -1,24 +1,64 @@
-﻿using System;
+﻿// 
+// QueryExpression.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Couchbase.Lite.Query
+using Couchbase.Lite.Query;
+
+namespace Couchbase.Lite.Internal.Query
 {
     internal abstract class QueryExpression : IExpression
     {
+        #region Variables
+
         private object _serialized;
 
-        internal object ConvertToJSON()
-        {
-            return _serialized ?? (_serialized = ToJSON());
-        }
+        #endregion
+
+        #region Public Methods
 
         public static object EncodeToJSON(IList expressions)
         {
             return EncodeExpressions(expressions, false);
         }
 
+        #endregion
+
+        #region Protected Methods
+
         protected abstract object ToJSON();
+
+        #endregion
+
+        #region Internal Methods
+
+        internal object ConvertToJSON()
+        {
+            return _serialized ?? (_serialized = ToJSON());
+        }
+
+        #endregion
+
+        #region Private Methods
 
         private static IList EncodeExpressions(IList expressions, bool aggregate)
         {
@@ -65,6 +105,10 @@ namespace Couchbase.Lite.Query
 
             return new QueryBinaryExpression(lhs, rhs, type);
         }
+
+        #endregion
+
+        #region IExpression
 
         public IExpression Add(object expression)
         {
@@ -200,11 +244,6 @@ namespace Couchbase.Lite.Query
             return GetOperator(BinaryOpType.NotEqualTo, expression);
         }
 
-        public IExpression NotInExpressions(IList expressions)
-        {
-            return ExpressionFactory.Negated(InExpressions(expressions));
-        }
-
         public IExpression NotGreaterThan(object expression)
         {
             return LessThanOrEqualTo(expression);
@@ -213,6 +252,11 @@ namespace Couchbase.Lite.Query
         public IExpression NotGreaterThanOrEqualTo(object expression)
         {
             return LessThan(expression);
+        }
+
+        public IExpression NotInExpressions(IList expressions)
+        {
+            return ExpressionFactory.Negated(InExpressions(expressions));
         }
 
         public IExpression NotLessThan(object expression)
@@ -259,5 +303,7 @@ namespace Couchbase.Lite.Query
         {
             return GetOperator(BinaryOpType.Subtract, expression);
         }
+
+        #endregion
     }
 }

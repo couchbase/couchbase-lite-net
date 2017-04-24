@@ -1,34 +1,34 @@
-﻿//
-//  BlobConverter.cs
-//
-//  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
-//
-//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
-//
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
-//
-
+﻿// 
+// BlobConverter.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-using Couchbase.Lite.DB;
+using Couchbase.Lite.Internal.DB;
+using Couchbase.Lite.Internal.Doc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Couchbase.Lite.Serialization
+namespace Couchbase.Lite.Internal.Serialization
 {
     internal sealed class BlobWriteConverter : JsonConverter
     {
@@ -82,7 +82,6 @@ namespace Couchbase.Lite.Serialization
             var blob = value as Blob;
             if(blob != null) {
                 blob.Install(_db);
-                blob.CheckThreadSafety = _db.CheckThreadSafety;
                 serializer.Serialize(writer, blob.JsonRepresentation);
             }
         }
@@ -147,9 +146,7 @@ namespace Couchbase.Lite.Serialization
 
             var type = props["_cbltype"] as string;
             if(type == "blob") {
-                return new Blob(_db, props) {
-                    CheckThreadSafety = _db.CheckThreadSafety
-                };
+                return new Blob(_db, props);
             }
 
             throw new InvalidOperationException($"Unrecognized _cbltype in document ({type})");

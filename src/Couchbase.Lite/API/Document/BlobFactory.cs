@@ -22,7 +22,7 @@
 using System;
 using System.IO;
 
-using Couchbase.Lite.DB;
+using Couchbase.Lite.Internal.Doc;
 
 namespace Couchbase.Lite
 {

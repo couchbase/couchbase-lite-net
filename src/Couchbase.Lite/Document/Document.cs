@@ -19,13 +19,11 @@
 // limitations under the License.
 // 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+
 using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Serialization;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
@@ -43,7 +41,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Variablesp
 
-        private readonly C4Database* _c4Db;
+        private C4Database* _c4Db;
         private Database _database;
         private DictionaryObject _dict;
 
@@ -54,13 +52,13 @@ namespace Couchbase.Lite.Internal.Doc
         public IDatabase Database
         {
             get => _database;
-            set => _database = value as Database;
+            set {
+                _database = value as Database;
+                _c4Db = _database != null ? _database.c4db : null;
+            }
         }
 
-        public IFragment Get(string key)
-        {
-            throw new NotImplementedException();
-        }
+        public override ICollection<string> Keys => _dict.Keys;
 
         public new IFragment this[string key] => _dict[key];
 
@@ -100,21 +98,11 @@ namespace Couchbase.Lite.Internal.Doc
             LoadDoc(mustExist);
         }
 
-        ~Document()
-        {
-            Dispose(false);
-        }
-
         #endregion
 
         public override IDictionary<string, object> ToDictionary()
         {
             return _dict.ToDictionary();
-        }
-
-        public override ICollection<string> AllKeys()
-        {
-            return _dict.AllKeys();
         }
 
         public override bool Contains(string key)
@@ -162,13 +150,6 @@ namespace Couchbase.Lite.Internal.Doc
             return _dict.GetString(key);
         }
 
-        [SuppressMessage("ReSharper", "UnusedParameter.Local", Justification = "Only types that need to be disposed unconditionally are dealt with")]
-        private void Dispose(bool disposing)
-        {
-            Native.c4doc_free(_c4Doc);
-            _c4Doc = null;
-        }
-
         private void LoadDoc(bool mustExist)
         {
             var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(_c4Db, Id, mustExist, err));
@@ -177,38 +158,42 @@ namespace Couchbase.Lite.Internal.Doc
 
         private void Merge(IConflictResolver resolver, bool deletion)
         {
-            var currentDoc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(_c4Db, Id, true, err));
-            var currentData = currentDoc->selectedRev.body;
-            var current = default(IDictionary<string, object>);
-            if(currentData.size > 0) {
-                var currentRoot = NativeRaw.FLValue_FromTrustedData((FLSlice)currentData);
-                var currentKeys = new SharedStringCache(SharedKeys, (FLDict *)currentRoot);
-                current = FLValueConverter.ToObject(currentRoot, currentKeys) as IDictionary<string, object>;
+            var rawDoc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(_c4Db, Id, true, err));
+            FLDict* curRoot = null;
+            var curBody = rawDoc->selectedRev.body;
+            if (curBody.size > 0) {
+                curRoot = (FLDict*) NativeRaw.FLValue_FromTrustedData(new FLSlice(curBody.buf, curBody.size));
             }
 
-            IDictionary<string, object> resolved;
-            if(deletion) {
+            var curDict = new FleeceDictionary(curRoot, rawDoc, Database);
+            var current = new ReadOnlyDocument(Id, rawDoc, curDict);
+
+            IReadOnlyDocument resolved;
+            if (deletion) {
+                // Deletion always loses a conflict:
                 resolved = current;
             } else if (resolver != null) {
-                var empty = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
-                resolved = resolver.Resolve(Properties != null ? new ReadOnlyDictionary<string, object>(Properties) : empty,
-                    current != null ? new ReadOnlyDictionary<string, object>(current) : empty,
-                    SavedProperties);
-                if(resolved == null) {
-                    Native.c4doc_free(currentDoc);
-                    throw new LiteCoreException(new C4Error(LiteCoreError.Conflict));
+                // Call the custom conflict resolver:
+                var baseDoc = new ReadOnlyDocument(Id, c4Doc, Data);
+                var conflict = new Conflict(this, current, baseDoc, OperationType.DatabaseWrite);
+                resolved = resolver.Resolve(conflict);
+                if (resolved == null) {
+                    throw new CouchbaseLiteException(StatusCode.Conflict);
                 }
             } else {
                 // Thank Jens Alfke for this variable name (lol)
                 var myGgggeneration = Generation + 1;
-                var theirGgggeneration = NativeRaw.c4rev_getGeneration(currentDoc->revID);
-                resolved = myGgggeneration >= theirGgggeneration ? Properties : current;
+                var theirGgggeneration = NativeRaw.c4rev_getGeneration(rawDoc->revID);
+                resolved = myGgggeneration >= theirGgggeneration ? this : current;
             }
 
-            SetC4Doc(currentDoc);
-            Properties = resolved;
-            if(resolved != null && resolved.Equals(current) || resolved == null && current == null) {
-                HasChanges = false;
+            // Now update my tate to the current C4Document and the merged/resolved properties
+            if (!resolved.Equals(current)) {
+                var dict = resolved.ToDictionary();
+                SetC4Doc(rawDoc);
+                Set(dict);
+            } else {
+                SetC4Doc(rawDoc);
             }
         }
 
@@ -268,7 +253,7 @@ namespace Couchbase.Lite.Internal.Doc
                     put.revFlags = C4RevisionFlags.Deleted;
                 }
 
-                if(ContainsBlob(this)) {
+                if(Doc.Data.ContainsBlob(this)) {
                     put.revFlags |= C4RevisionFlags.HasAttachments;
                 }
 
@@ -320,16 +305,6 @@ namespace Couchbase.Lite.Internal.Doc
         {
             var id = new SecureLogString(Id, LogMessageSensitivity.PotentiallyInsecure);
             return $"{GetType().Name}[{id}]";
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
         }
 
         #endregion

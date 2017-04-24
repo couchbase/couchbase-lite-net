@@ -26,7 +26,7 @@ using Newtonsoft.Json;
 using Remotion.Linq;
 using Remotion.Linq.Clauses;
 
-namespace Couchbase.Lite.Linq
+namespace Couchbase.Lite.Internal.Linq
 {
     internal sealed class LiteCoreQueryModelVisitor : QueryModelVisitorBase
     {

@@ -30,7 +30,7 @@ using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
 using Remotion.Linq.Clauses.ResultOperators;
 
-namespace Couchbase.Lite.Linq
+namespace Couchbase.Lite.Internal.Linq
 {
     internal sealed class LiteCoreWhereExpressionVisitor : NotSupportedExpressionVisitor
     {

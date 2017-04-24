@@ -1,19 +1,47 @@
-﻿using System;
+﻿// 
+// FleeceArray.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 
 using Couchbase.Lite.Internal.DB;
-using Couchbase.Lite.Serialization;
+using Couchbase.Lite.Internal.Serialization;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Doc
 {
     internal sealed unsafe class FleeceArray : IReadOnlyArray
     {
-        private FLArray* _array;
-        private C4Document* _document;
-        private Database _database;
-        private SharedStringCache _sharedKeys;
+        #region Variables
+
+        private readonly FLArray* _array;
+        private readonly Database _database;
+        private readonly C4Document* _document;
+        private readonly SharedStringCache _sharedKeys;
+
+        #endregion
+
+        #region Properties
+
+        public int Count => (int) Native.FLArray_Count(_array);
 
         public IReadOnlyFragment this[int index]
         {
@@ -23,7 +51,9 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        public int Count => (int) Native.FLArray_Count(_array);
+        #endregion
+
+        #region Constructors
 
         public FleeceArray()
         {
@@ -39,39 +69,23 @@ namespace Couchbase.Lite.Internal.Doc
             _sharedKeys = db.SharedStrings;
         }
 
-        public object GetObject(int index)
-        {
-            return FLValueConverter.ToCouchbaseObject(Native.FLArray_Get(_array, (uint)index), _sharedKeys, _document, _database);
-        }
+        #endregion
 
-        public string GetString(int index)
-        {
-            return Native.FLValue_AsString(Native.FLArray_Get(_array, (uint) index));
-        }
+        #region IReadOnlyArray
 
-        public int GetInt(int index)
+        public IReadOnlyArray GetArray(int index)
         {
-            return (int)GetLong(index);
-        }
-
-        public long GetLong(int index)
-        {
-            return Native.FLValue_AsInt(Native.FLArray_Get(_array, (uint) index));
-        }
-
-        public double GetDouble(int index)
-        {
-            return Native.FLValue_AsDouble(Native.FLArray_Get(_array, (uint)index));
-        }
-
-        public bool GetBoolean(int index)
-        {
-            return Native.FLValue_AsBool(Native.FLArray_Get(_array, (uint)index));
+            return GetObject(index) as IReadOnlyArray;
         }
 
         public IBlob GetBlob(int index)
         {
             return GetObject(index) as IBlob;
+        }
+
+        public bool GetBoolean(int index)
+        {
+            return Native.FLValue_AsBool(Native.FLArray_Get(_array, (uint)index));
         }
 
         public DateTimeOffset GetDate(int index)
@@ -84,9 +98,29 @@ namespace Couchbase.Lite.Internal.Doc
             return DateTimeOffset.ParseExact(dateString, "o", CultureInfo.InvariantCulture, DateTimeStyles.None);
         }
 
-        public IReadOnlyArray GetArray(int index)
+        public double GetDouble(int index)
         {
-            return GetObject(index) as IReadOnlyArray;
+            return Native.FLValue_AsDouble(Native.FLArray_Get(_array, (uint)index));
+        }
+
+        public int GetInt(int index)
+        {
+            return (int)GetLong(index);
+        }
+
+        public long GetLong(int index)
+        {
+            return Native.FLValue_AsInt(Native.FLArray_Get(_array, (uint) index));
+        }
+
+        public object GetObject(int index)
+        {
+            return FLValueConverter.ToCouchbaseObject(Native.FLArray_Get(_array, (uint)index), _sharedKeys, _document, _database);
+        }
+
+        public string GetString(int index)
+        {
+            return Native.FLValue_AsString(Native.FLArray_Get(_array, (uint) index));
         }
 
         public IReadOnlySubdocument GetSubdocument(int index)
@@ -94,7 +128,7 @@ namespace Couchbase.Lite.Internal.Doc
             return GetObject(index) as IReadOnlySubdocument;
         }
 
-        public IList<object> ToArray()
+        public IList<object> ToList()
         {
             var array = new List<object>(Count);
             for (int i = 0; i < Count; i++) {
@@ -104,5 +138,7 @@ namespace Couchbase.Lite.Internal.Doc
 
             return array;
         }
+
+        #endregion
     }
 }

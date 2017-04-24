@@ -1,10 +1,28 @@
-﻿using System;
-using System.Collections;
+﻿// 
+// QueryBinaryExpression.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
 using System.Collections.Generic;
-using System.Text;
+
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Internal.Query
 {
     internal enum BinaryOpType
     {
@@ -30,9 +48,15 @@ namespace Couchbase.Lite.Query
 
     internal sealed class QueryBinaryExpression : QueryExpression
     {
-        private readonly BinaryOpType _type;
+        #region Variables
+
         private readonly QueryExpression _lhs;
         private readonly QueryExpression _rhs;
+        private readonly BinaryOpType _type;
+
+        #endregion
+
+        #region Constructors
 
         public QueryBinaryExpression(QueryExpression lhs, QueryExpression rhs, BinaryOpType type)
         {
@@ -41,10 +65,9 @@ namespace Couchbase.Lite.Query
             _type = type;
         }
 
-        public override string ToString()
-        {
-            return JsonConvert.SerializeObject(ConvertToJSON());
-        }
+        #endregion
+
+        #region Overrides
 
         protected override object ToJSON()
         {
@@ -114,5 +137,12 @@ namespace Couchbase.Lite.Query
             }
             return obj;
         }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(ConvertToJSON());
+        }
+
+        #endregion
     }
 }

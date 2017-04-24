@@ -23,6 +23,24 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
 {
+    internal sealed class LiveQueryChangedEventArgs : EventArgs
+    {
+        #region Properties
+
+        public IEnumerable<IQueryRow> Results { get; }
+
+        #endregion
+
+        #region Constructors
+
+        internal LiveQueryChangedEventArgs(IEnumerable<IQueryRow> results)
+        {
+            Results = results;
+        }
+
+        #endregion
+    }
+
     /// <summary>
     /// An interface for a query which reports any changes in its results in
     /// real time

@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Internal.Doc
             return Data.GetSubdocument(index);
         }
 
-        public virtual IList<object> ToArray()
+        public virtual IList<object> ToList()
         {
             var array = new List<object>();
             for (var i = 0; i < Count; i++) {
@@ -112,7 +112,7 @@ namespace Couchbase.Lite.Internal.Doc
                         array.Add(d.ToDictionary());
                         break;
                     case IReadOnlyArray a:
-                        array.Add(a.ToArray());
+                        array.Add(a.ToList());
                         break;
                     default:
                         array.Add(value);

@@ -72,18 +72,6 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
-        #region Internal Methods
-
-        internal void AssertInQueue()
-        {
-            if(!IsInQueue) {
-                Log.To.Database.E(Tag, $"Thread safety violation at {Environment.NewLine}{Environment.StackTrace}");
-                throw new ThreadSafetyViolationException();
-            }
-        }
-
-        #endregion
-
         #region Private Methods
 
         private void ProcessAsync()

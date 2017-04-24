@@ -21,6 +21,7 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+
 using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
@@ -28,7 +29,7 @@ using LiteCore.Interop;
 using LiteCore.Util;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Serialization
+namespace Couchbase.Lite.Internal.Serialization
 {
     [AttributeUsage(AttributeTargets.Property)]
     internal sealed class JsonPropertyAttribute : Attribute

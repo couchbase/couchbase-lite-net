@@ -22,9 +22,38 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reflection;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Doc
 {
+    internal sealed class ArrayObjectConverter : JsonConverter
+    {
+        public override bool CanRead => false;
+
+        public override bool CanWrite => true;
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            var arr = (ArrayObject)value;
+            writer.WriteStartArray();
+            for (int i = 0; i < arr.Count; i++) {
+                writer.WriteValue(arr.GetObject(i));
+            }
+            writer.WriteEndArray();
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType.GetTypeInfo().IsAssignableFrom(typeof(ArrayObject).GetTypeInfo());
+        }
+    }
+
     internal sealed class ArrayObject : ReadOnlyArray, IArray
     {
         #region Variables
@@ -219,7 +248,7 @@ namespace Couchbase.Lite.Internal.Doc
             return _list[index] as string;
         }
 
-        public override IList<object> ToArray()
+        public override IList<object> ToList()
         {
             var array = new List<object>();
             foreach (var item in _list) {
@@ -228,7 +257,7 @@ namespace Couchbase.Lite.Internal.Doc
                         array.Add(dict.ToDictionary());
                         break;
                     case IReadOnlyArray arr:
-                        array.Add(arr.ToArray());
+                        array.Add(arr.ToList());
                         break;
                     default:
                         array.Add(item);

@@ -27,7 +27,7 @@ using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace Couchbase.Lite.Serialization
+namespace Couchbase.Lite.Internal.Serialization
 {
     internal sealed class CouchbaseLiteContractResolver : DefaultContractResolver
     {

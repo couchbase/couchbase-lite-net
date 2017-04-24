@@ -1,11 +1,29 @@
-﻿using System;
+﻿// 
+// QueryTypeExpression.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Internal.Query
 {
     internal enum ExpressionType
     {
@@ -16,13 +34,22 @@ namespace Couchbase.Lite.Query
 
     internal sealed class QueryTypeExpression : QueryExpression
     {
+        #region Variables
+
+        private readonly IList _subpredicates;
+
+        #endregion
+
+        #region Properties
+
+        internal object ConstantValue { get; set; }
         internal ExpressionType ExpressionType { get; }
 
         internal string KeyPath { get; }
 
-        private readonly IList _subpredicates;
+        #endregion
 
-        internal object ConstantValue { get; set; }
+        #region Constructors
 
         public QueryTypeExpression()
         {
@@ -41,6 +68,10 @@ namespace Couchbase.Lite.Query
             _subpredicates = subpredicates;
         }
 
+        #endregion
+
+        #region Private Methods
+
         private object CalculateKeyPath()
         {
             if (KeyPath.StartsWith("rank(")) {
@@ -50,10 +81,9 @@ namespace Couchbase.Lite.Query
             return new[] { $".{KeyPath}" };
         }
 
-        public override string ToString()
-        {
-            return JsonConvert.SerializeObject(ConvertToJSON());
-        }
+        #endregion
+
+        #region Overrides
 
         protected override object ToJSON()
         {
@@ -76,5 +106,12 @@ namespace Couchbase.Lite.Query
 
             return null;
         }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(ConvertToJSON());
+        }
+
+        #endregion
     }
 }

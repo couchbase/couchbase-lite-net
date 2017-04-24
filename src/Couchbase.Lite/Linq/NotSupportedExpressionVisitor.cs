@@ -22,7 +22,7 @@
 using System;
 using System.Linq.Expressions;
 
-namespace Couchbase.Lite.Linq
+namespace Couchbase.Lite.Internal.Linq
 {
     internal abstract class NotSupportedExpressionVisitor : ExpressionVisitor
     {

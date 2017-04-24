@@ -100,7 +100,7 @@ namespace Couchbase.Lite
         
         void Save(IDocument document);
         
-        void Purge(IDocument document);
+        bool Purge(IDocument document);
 
         /// <summary>
         /// Deletes an index of the given <see cref="IndexType"/> on the given propertyPath

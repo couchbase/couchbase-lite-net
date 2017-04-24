@@ -28,6 +28,6 @@ namespace Couchbase.Lite
 
         IReadOnlySubdocument GetSubdocument(int index);
 
-        IList<object> ToArray();
+        IList<object> ToList();
     }
 }

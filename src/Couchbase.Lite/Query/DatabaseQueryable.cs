@@ -21,13 +21,12 @@
 using System.Linq;
 using System.Linq.Expressions;
 
-using Couchbase.Lite.DB;
-using Couchbase.Lite.Linq;
-using Couchbase.Lite.Query;
+using Couchbase.Lite.Internal.DB;
+using Couchbase.Lite.Internal.Linq;
 using Remotion.Linq;
 using Remotion.Linq.Parsing.Structure;
 
-namespace Couchbase.Lite.Querying
+namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class DatabaseQueryable<TElement> : QueryableBase<TElement> where TElement : class, IDocumentModel, new()
     {
