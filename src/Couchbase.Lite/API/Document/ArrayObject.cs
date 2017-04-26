@@ -22,10 +22,13 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
+using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Util;
 using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite
 {
     internal sealed class ArrayObjectConverter : JsonConverter
     {
@@ -37,8 +40,8 @@ namespace Couchbase.Lite.Internal.Doc
         {
             var arr = (ArrayObject)value;
             writer.WriteStartArray();
-            for (int i = 0; i < arr.Count; i++) {
-                writer.WriteValue(arr.GetObject(i));
+            foreach(var obj in arr) {
+                serializer.Serialize(writer, obj);
             }
             writer.WriteEndArray();
         }
@@ -54,7 +57,8 @@ namespace Couchbase.Lite.Internal.Doc
         }
     }
 
-    internal sealed class ArrayObject : ReadOnlyArray, IArray
+    [JsonConverter(typeof(ArrayObjectConverter))]
+    public sealed class ArrayObject : ReadOnlyArray, IArray
     {
         #region Variables
 
@@ -68,7 +72,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         public override int Count => _list.Count;
 
-        public new IFragment this[int index]
+        public new Fragment this[int index]
         {
             get {
                 var value = index >= 0 && index < Count ? GetObject(index) : null;
@@ -124,8 +128,8 @@ namespace Couchbase.Lite.Internal.Doc
 
         private object PrepareValue(object value)
         {
-            Doc.Data.ValidateValue(value);
-            return Doc.Data.ConvertValue(value, ObjectChanged, ObjectChanged);
+            DataOps.ValidateValue(value);
+            return DataOps.ConvertValue(value, ObjectChanged, ObjectChanged);
         }
 
         private void RemoveAllChangedListeners()
@@ -167,9 +171,14 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Overrides
 
-        public override IBlob GetBlob(int index)
+        public override IEnumerator<object> GetEnumerator()
         {
-            return _list[index] as IBlob;
+            return _list.Cast<object>().GetEnumerator();
+        }
+
+        public override Blob GetBlob(int index)
+        {
+            return _list[index] as Blob;
         }
 
         public override bool GetBoolean(int index)
@@ -272,31 +281,31 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region IArray
 
-        public IArray Add(object value)
+        public ArrayObject Add(object value)
         {
             _list.Add(PrepareValue(value));
             SetChanged();
             return this;
         }
 
-        public new IArray GetArray(int index)
+        public new ArrayObject GetArray(int index)
         {
-            return _list[index] as IArray;
+            return _list[index] as ArrayObject;
         }
 
-        public new ISubdocument GetSubdocument(int index)
+        public new Subdocument GetSubdocument(int index)
         {
-            return _list[index] as ISubdocument;
+            return _list[index] as Subdocument;
         }
 
-        public IArray Insert(int index, object value)
+        public ArrayObject Insert(int index, object value)
         {
             _list.Insert(index, PrepareValue(value));
             SetChanged();
             return this;
         }
 
-        public IArray RemoveAt(int index)
+        public ArrayObject RemoveAt(int index)
         {
             var value = _list[index];
             RemoveChangedListener(value);
@@ -305,7 +314,7 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        public IArray Set(IList array)
+        public ArrayObject Set(IList array)
         {
             RemoveAllChangedListeners();
 
@@ -319,7 +328,7 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        public IArray Set(int index, object value)
+        public ArrayObject Set(int index, object value)
         {
             var oldValue = _list[index];
             if (value?.Equals(oldValue) == false) {
@@ -332,5 +341,6 @@ namespace Couchbase.Lite.Internal.Doc
         }
 
         #endregion
+
     }
 }

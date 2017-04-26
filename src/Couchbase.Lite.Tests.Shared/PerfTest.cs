@@ -61,7 +61,7 @@ namespace Test
         private DatabaseConfiguration _dbOptions;
         private string _dbName;
 
-        public IDatabase Db { get; private set; }
+        public Database Db { get; private set; }
 
 #if !WINDOWS_UWP
         protected PerfTest(ITestOutputHelper output)
@@ -75,7 +75,7 @@ namespace Test
         {
             _dbOptions = dbOptions;
             _dbName = "perfdb";
-            DatabaseFactory.DeleteDatabase(_dbName, _dbOptions.Directory);
+            Database.Delete(_dbName, _dbOptions.Directory);
         }
 
         protected string ReadData(string resourceName)
@@ -88,7 +88,7 @@ namespace Test
         {
             _dbName.Should().NotBeNull("because otherwise we cannot open the database");
             Db.Should().BeNull("because otherwise we are trying to reopen the database incorrectly");
-            Db = DatabaseFactory.Create(_dbName, _dbOptions);
+            Db = new Database(_dbName, _dbOptions);
         }
 
         protected void ReopenDB()
@@ -102,7 +102,7 @@ namespace Test
         {
             Db?.Dispose();
             Db = null;
-            DatabaseFactory.DeleteDatabase(_dbName, _dbOptions.Directory);
+            Database.Delete(_dbName, _dbOptions.Directory);
             OpenDB();
         }
 

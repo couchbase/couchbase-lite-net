@@ -21,7 +21,7 @@
 using System;
 using System.Linq;
 using System.Text;
-using Couchbase.Lite.Internal.DB;
+
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using LiteCore;
@@ -53,8 +53,8 @@ namespace Couchbase.Lite.Sync
         #region Properties
 
         public bool Continuous { get; set; }
-        public IDatabase Database { get; }
-        public IDatabase OtherDatabase { get; }
+        public Database Database { get; }
+        public Database OtherDatabase { get; }
         public bool Pull { get; set; }
         public bool Push { get; set; }
         public Uri RemoteUrl { get; }
@@ -83,7 +83,7 @@ namespace Couchbase.Lite.Sync
             WebSocketTransport.RegisterWithC4();
         }
 
-        public Replication(IDatabase db, Uri remoteUrl, IDatabase otherDb)
+        public Replication(Database db, Uri remoteUrl, Database otherDb)
         {
             Database = db;
             RemoteUrl = remoteUrl;

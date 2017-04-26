@@ -1,5 +1,5 @@
 ﻿// 
-// Data.cs
+// DataOps.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -29,16 +29,16 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Internal.Doc
 {
-    internal static class Data
+    internal static class DataOps
     {
         #region Constants
 
         private static readonly TypeInfo[] ValidTypes = {
             typeof(string).GetTypeInfo(),
             typeof(DateTimeOffset).GetTypeInfo(),
-            typeof(IReadOnlySubdocument).GetTypeInfo(),
-            typeof(IBlob).GetTypeInfo(),
+            typeof(Blob).GetTypeInfo(),
             typeof(IReadOnlyArray).GetTypeInfo(),
+            typeof(IReadOnlyDictionary).GetTypeInfo(),
             typeof(IDictionary<string,object>).GetTypeInfo(),
             typeof(IList<>).GetTypeInfo()
         };
@@ -50,20 +50,20 @@ namespace Couchbase.Lite.Internal.Doc
         internal static bool ContainsBlob(object value)
         {
             switch (value) {
-                case IBlob b:
+                case Blob b:
                     return true;
-                case IReadOnlySubdocument s:
+                case string s:
+                    return false;
+                case IEnumerable<KeyValuePair<string, object>> s:
                     return ContainsBlob(s);
-                case IReadOnlyArray a:
+                case IEnumerable a:
                     return ContainsBlob(a);
-                case IList l:
-                    return ContainsBlob(l);
                 default:
                     return false;
             }
         }
 
-        internal static bool ContainsBlob(IReadOnlySubdocument s)
+        internal static bool ContainsBlob(IEnumerable<KeyValuePair<string, object>> s)
         {
             foreach (var pair in s) {
                 if (ContainsBlob(pair.Value)) {
@@ -74,21 +74,10 @@ namespace Couchbase.Lite.Internal.Doc
             return false;
         }
 
-        internal static bool ContainsBlob(IReadOnlyArray a)
+        internal static bool ContainsBlob(IEnumerable a)
         {
-            for (int i = 0; i < a.Count; i++) {
-                if (ContainsBlob(a.GetObject(i))) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        internal static bool ContainsBlob(IList l)
-        {
-            foreach (var item in l) {
-                if (ContainsBlob(l)) {
+            foreach(var obj in a) {
+                if (ContainsBlob(obj)) {
                     return true;
                 }
             }
@@ -108,10 +97,6 @@ namespace Couchbase.Lite.Internal.Doc
                 return;
             }
 
-            if (value is ISubdocument || value is IBlob) {
-                return;
-            }
-
             var jType = value as JToken;
             if (jType != null) {
                 if (jType.Type == JTokenType.Object || jType.Type == JTokenType.Array) {
@@ -128,14 +113,18 @@ namespace Couchbase.Lite.Internal.Doc
             switch (value) {
                 case null:
                     return null;
-                case ISubdocument subdoc:
+                case Subdocument subdoc:
                     return ConvertSubdocument(subdoc, callback1);
-                case IArray arr:
+                case ArrayObject arr:
                     return ConvertArray(arr, callback2);
-                case IReadOnlySubdocument rosubdoc:
+                case ReadOnlySubdocument rosubdoc:
                     return ConvertROSubdocument(rosubdoc, callback1);
-                case IReadOnlyArray roarr:
+                case ReadOnlyArray roarr:
                     return ConvertROArray(roarr, callback2);
+                case JObject jobj:
+                    return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>(), callback1);
+                case JArray jarr:
+                    return ConvertList(jarr.ToObject<IList>(), callback2);
                 case IDictionary<string, object> dict:
                     return ConvertDictionary(dict, callback1);
                 case IList list:
@@ -145,21 +134,19 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        internal static ISubdocument ConvertSubdocument(ISubdocument subdoc, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
+        internal static Subdocument ConvertSubdocument(Subdocument subdoc, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
         {
-            var converted = subdoc as Subdocument ?? throw new InvalidOperationException("Custom ISubdocument not supported");
-            converted.Dictionary.Changed += callback;
+            subdoc.Dictionary.Changed += callback;
             return subdoc;
         }
 
-        internal static IArray ConvertArray(IArray array, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
+        internal static ArrayObject ConvertArray(ArrayObject array, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
         {
-            var converted = array as ArrayObject ?? throw new InvalidOperationException("Custom IArray not supported");
-            converted.Changed += callback;
+            array.Changed += callback;
             return array;
         }
 
-        internal static ISubdocument ConvertDictionary(IDictionary<string, object> dictionary, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
+        internal static Subdocument ConvertDictionary(IDictionary<string, object> dictionary, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
         {
             var subdocument = new Subdocument();
             subdocument.Set(dictionary);
@@ -167,7 +154,7 @@ namespace Couchbase.Lite.Internal.Doc
             return subdocument;
         }
 
-        internal static IArray ConvertList(IList list, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
+        internal static ArrayObject ConvertList(IList list, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
         {
             var array = new ArrayObject();
             array.Set(list);
@@ -175,15 +162,14 @@ namespace Couchbase.Lite.Internal.Doc
             return array;
         }
 
-        internal static IArray ConvertROArray(IReadOnlyArray readOnlyArray, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
+        internal static ArrayObject ConvertROArray(ReadOnlyArray readOnlyArray, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
         {
-            var converted = readOnlyArray as ReadOnlyArray ?? throw new InvalidOperationException("Custom IReadOnlyArray not supported");
-            var array = new ArrayObject(converted.Data);
+            var array = new ArrayObject(readOnlyArray.Data);
             array.Changed += callback;
             return array;
         }
 
-        internal static ISubdocument ConvertROSubdocument(IReadOnlySubdocument readOnlySubdoc, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
+        internal static Subdocument ConvertROSubdocument(ReadOnlySubdocument readOnlySubdoc, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
         {
             var converted = readOnlySubdoc as ReadOnlySubdocument ?? throw new InvalidOperationException("Custom IReadOnlySubdocument not supported");
             var subdocument = new Subdocument(converted.Data);

@@ -350,14 +350,9 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the Status object holding the error code for this exception
         /// </summary>
-        public Status CBLStatus
-        {
-            get {
-                return new Status(Code);
-            }
-        }
+        public Status Status => new Status(Code);
 
-        internal StatusCode Code { get; set; }
+        public StatusCode Code { get; internal set;  }
 
         #endregion
 

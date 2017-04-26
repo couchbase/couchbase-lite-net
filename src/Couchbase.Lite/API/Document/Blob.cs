@@ -1,46 +1,46 @@
-﻿//
-//  Blob.cs
-//
-//  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
-//
-//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
-//
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
-//
-
+﻿// 
+// Blob.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using Couchbase.Lite.Internal.DB;
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite
 {
-    internal sealed unsafe class Blob : IBlob, IJsonMapped
+    using static CBLConstants;
+
+    public sealed unsafe class Blob
     {
         #region Constants
 
-        private const string BlobType = "blob";
+        internal const string BlobType = "blob";
         private const uint MaxCachedContentLength = 8 * 1024;
         private const int ReadBufferSize = 8 * 1024;
         private const string Tag = nameof(Blob);
-        private const string TypeMetaProperty = "_cbltype";
 
         #endregion
 
@@ -137,12 +137,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         public ulong Length { get; private set; }
 
-        public IReadOnlyDictionary<string, object> Properties
-        {
-            get {
-                return new ReadOnlyDictionary<string, object>(MutableProperties);
-            }
-        }
+        public IReadOnlyDictionary<string, object> Properties => new ReadOnlyDictionary<string, object>(MutableProperties);
 
         private IDictionary<string, object> MutableProperties
         {
@@ -163,27 +158,47 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Constructors
 
+        /// <summary>
+        /// Creates a blob given a type and in memory content
+        /// </summary>
+        /// <param name="contentType">The binary type of the blob</param>
+        /// <param name="content">The content of the blob</param>
+        /// <returns>An instantiated <see cref="IBlob" /> object</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <c>content</c> is <c>null</c></exception>
         public Blob(string contentType, byte[] content)
         {
-            if(content == null) {
-                throw new ArgumentNullException(nameof(content));
-            }
-
             ContentType = contentType;
-            _content = content;
+            _content = content ?? throw new ArgumentNullException(nameof(content));
             Length = (ulong)content.Length;
         }
 
+        /// <summary>
+        /// Creates a blob given a type and streaming content
+        /// </summary>
+        /// <param name="contentType">The binary type of the blob</param>
+        /// <param name="stream">The stream containing the blob content</param>
+        /// <returns>An instantiated <see cref="IBlob" /> object</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <c>stream</c> is <c>null</c></exception>
         public Blob(string contentType, Stream stream)
         {
-            if(stream == null) {
-                throw new ArgumentNullException(nameof(stream));
-            }
-
             ContentType = contentType;
-            _initialContentStream = stream;
+            _initialContentStream = stream ?? throw new ArgumentNullException(nameof(stream));
         }
 
+        /// <summary>
+        /// Creates an blob given a type and a URL to a file
+        /// </summary>
+        /// <param name="contentType">The binary type of the blob</param>
+        /// <param name="fileUrl">The url to the file to read</param>
+        /// <returns>An instantiated <see cref="IBlob" /> object</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <c>fileUrl</c> is <c>null</c></exception>
+        /// <exception cref="ArgumentException">Thrown if fileUrl is not a file based URL</exception>
+        /// <exception cref="DirectoryNotFoundException">The specified fileUrl is invalid, 
+        /// (for example, it is on an unmapped drive).</exception>
+        /// <exception cref="UnauthorizedAccessException">fileUrl specified a directory -or- The caller 
+        /// does not have the required permission.</exception>
+        /// <exception cref="FileNotFoundException">The file specified in fileUrl was not found.</exception>
+        /// <exception cref="IOException">An I/O error occurred while opening the file.</exception>
         public Blob(string contentType, Uri fileUrl)
         {
             if(fileUrl == null) {
@@ -200,15 +215,11 @@ namespace Couchbase.Lite.Internal.Doc
 
         internal Blob(Database db, IDictionary<string, object> properties)
         {
-            if(db == null) {
-                throw new ArgumentNullException(nameof(db));
-            }
-
             if(properties == null) {
                 throw new ArgumentNullException(nameof(properties));
             }
 
-            _db = db;
+            _db = db ?? throw new ArgumentNullException(nameof(db));
             _properties = new Dictionary<string, object>(properties) {
                 [TypeMetaProperty] = null
             };
@@ -289,18 +300,6 @@ namespace Couchbase.Lite.Internal.Doc
         public override string ToString()
         {
             return $"Blob[{ContentType}; {(Length + 512) / 1024} KB]";
-        }
-
-        #endregion
-
-        #region IJsonMapped
-
-        public void WriteTo(IJsonWriter writer)
-        {
-            writer.Write("digest", Digest);
-            writer.Write("length", Length);
-            writer.Write("content-type", ContentType);
-            writer.Write(TypeMetaProperty, BlobType);
         }
 
         #endregion

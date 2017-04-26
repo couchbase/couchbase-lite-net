@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the local <see cref="IDatabase"/> associated with this replication
         /// </summary>
-        IDatabase Database { get; }
+        Database Database { get; }
 
         /// <summary>
         /// Gets the most recent error associated with this replication
@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Sync
         /// Gets the remote <see cref="IDatabase"/> being replicated to, if this is
         /// a local replication.
         /// </summary>
-        IDatabase OtherDatabase { get; }
+        Database OtherDatabase { get; }
 
         /// <summary>
         /// Gets or sets whether or not this replication should perform pull operations

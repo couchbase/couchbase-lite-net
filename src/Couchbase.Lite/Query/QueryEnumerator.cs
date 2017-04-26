@@ -23,11 +23,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
-
-using Couchbase.Lite.Internal.DB;
-using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Query;
 using LiteCore;
 using LiteCore.Interop;
 

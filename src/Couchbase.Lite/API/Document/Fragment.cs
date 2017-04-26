@@ -19,10 +19,11 @@
 // limitations under the License.
 // 
 using System;
+using Couchbase.Lite.Internal.Doc;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite
 {
-    internal sealed class Fragment : ReadOnlyFragment, IFragment
+    public sealed class Fragment : ReadOnlyFragment, IDictionaryFragment, IArrayFragment
     {
         #region Variables
 
@@ -36,7 +37,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         public override bool Exists => _value != null;
 
-        public new IFragment this[string key]
+        public new Fragment this[string key]
         {
             get {
                 if (_value is IDictionaryObject d) {
@@ -47,7 +48,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        public new IFragment this[int index]
+        public new Fragment this[int index]
         {
             get {
                 if (_value is IArray a) {
@@ -62,11 +63,11 @@ namespace Couchbase.Lite.Internal.Doc
         {
             get => _value;
             set {
-                if (_parent is IDictionaryObject d) {
+                if (_parent is DictionaryObject d) {
                     var key = (string) _parentKey;
                     d.Set(key, value);
                     _value = d.GetObject(key);
-                } else if (_parent is IArray a) {
+                } else if (_parent is ArrayObject a) {
                     var index = (int) _parentKey;
                     try {
                         a.Set(index, value);
@@ -93,14 +94,14 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region IObjectFragment
 
-        public new IArray ToArray()
+        public new ArrayObject ToArray()
         {
-            return _value as IArray;
+            return _value as ArrayObject;
         }
 
-        public new ISubdocument ToSubdocument()
+        public new Subdocument ToSubdocument()
         {
-            return _value as ISubdocument;
+            return _value as Subdocument;
         }
 
         #endregion

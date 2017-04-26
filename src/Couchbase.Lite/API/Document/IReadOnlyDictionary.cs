@@ -39,7 +39,7 @@ namespace Couchbase.Lite
 
         IReadOnlyArray GetArray(string key);
 
-        IBlob GetBlob(string key);
+        Blob GetBlob(string key);
 
         bool GetBoolean(string key);
 
@@ -55,7 +55,7 @@ namespace Couchbase.Lite
 
         string GetString(string key);
 
-        IReadOnlySubdocument GetSubdocument(string key);
+        ReadOnlySubdocument GetSubdocument(string key);
 
         IDictionary<string, object> ToDictionary();
 

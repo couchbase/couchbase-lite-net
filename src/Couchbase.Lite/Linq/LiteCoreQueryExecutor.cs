@@ -22,7 +22,6 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Internal.Query;
 using LiteCore;
 using LiteCore.Interop;

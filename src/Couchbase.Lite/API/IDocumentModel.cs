@@ -33,7 +33,7 @@ namespace Couchbase.Lite
         /// Gets or sets the document that is used to populate this instance
         /// of a concrete class
         /// </summary>
-        IDocument Document { get; set; }
+        Document Document { get; set; }
 
         #endregion
     }

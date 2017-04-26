@@ -19,17 +19,18 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite
 {
-    internal class ReadOnlyArray : IReadOnlyArray
+    public class ReadOnlyArray : IReadOnlyArray
     {
         #region Properties
 
         public virtual int Count => Data.Count;
 
-        public IReadOnlyFragment this[int index]
+        public ReadOnlyFragment this[int index]
         {
             get {
                 var value = index >= 0 && index < Count ? GetObject(index) : null;
@@ -43,9 +44,27 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Constructors
 
-        public ReadOnlyArray(IReadOnlyArray data)
+        internal ReadOnlyArray(IReadOnlyArray data)
         {
             Data = data;
+        }
+
+        #endregion
+
+        #region IEnumerable
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+
+        #region IEnumerable<object>
+
+        public virtual IEnumerator<object> GetEnumerator()
+        {
+            return Data.GetEnumerator();
         }
 
         #endregion
@@ -57,7 +76,7 @@ namespace Couchbase.Lite.Internal.Doc
             return Data.GetArray(index);
         }
 
-        public virtual IBlob GetBlob(int index)
+        public virtual Blob GetBlob(int index)
         {
             return Data.GetBlob(index);
         }
@@ -97,7 +116,7 @@ namespace Couchbase.Lite.Internal.Doc
             return Data.GetString(index);
         }
 
-        public IReadOnlySubdocument GetSubdocument(int index)
+        public ReadOnlySubdocument GetSubdocument(int index)
         {
             return Data.GetSubdocument(index);
         }
@@ -105,8 +124,7 @@ namespace Couchbase.Lite.Internal.Doc
         public virtual IList<object> ToList()
         {
             var array = new List<object>();
-            for (var i = 0; i < Count; i++) {
-                var value = GetObject(i);
+            foreach(var value in Data) {
                 switch (value) {
                     case IReadOnlyDictionary d:
                         array.Add(d.ToDictionary());

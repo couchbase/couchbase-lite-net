@@ -1,5 +1,5 @@
 ﻿// 
-// ReadOnlySubdocument.cs
+// CBLConstants.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -19,14 +19,14 @@
 // limitations under the License.
 // 
 
-
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite.Support
 {
-    internal class ReadOnlySubdocument : ReadOnlyDictionary, IReadOnlySubdocument
+    internal static class CBLConstants
     {
-        public ReadOnlySubdocument(IReadOnlyDictionary data) : base(data)
-        {
-            
-        }
+        #region Constants
+
+        public const string TypeMetaProperty = "_cbltype";
+
+        #endregion
     }
 }

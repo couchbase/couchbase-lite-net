@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using LiteCore;

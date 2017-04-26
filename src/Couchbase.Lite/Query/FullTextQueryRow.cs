@@ -22,7 +22,6 @@
 using System;
 using System.Text;
 
-using Couchbase.Lite.Internal.DB;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;

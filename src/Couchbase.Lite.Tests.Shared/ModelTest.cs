@@ -45,7 +45,7 @@ namespace Test
 
         public TestModelReference Child { get; set; } = new TestModelReference();
 
-        public IDocument Document
+        public Document Document
         {
             get; set;
         }

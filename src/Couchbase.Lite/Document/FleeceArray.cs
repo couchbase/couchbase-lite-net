@@ -19,10 +19,10 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 
-using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Internal.Serialization;
 using LiteCore.Interop;
 
@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         public int Count => (int) Native.FLArray_Count(_array);
 
-        public IReadOnlyFragment this[int index]
+        public ReadOnlyFragment this[int index]
         {
             get {
                 var value = index >= 0 && index < Count ? GetObject(index) : null;
@@ -60,13 +60,31 @@ namespace Couchbase.Lite.Internal.Doc
             
         }
 
-        public FleeceArray(FLArray* array, C4Document* document, IDatabase database)
+        public FleeceArray(FLArray* array, C4Document* document, Database database)
         {
             var db = database as Database ?? throw new InvalidOperationException("Custom IDatabase not supported");
             _array = array;
             _document = document;
             _database = db;
             _sharedKeys = db.SharedStrings;
+        }
+
+        #endregion
+
+        #region IEnumerable
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+
+        #region IEnumerable<object>
+
+        public IEnumerator<object> GetEnumerator()
+        {
+            return new Enumerator(this);
         }
 
         #endregion
@@ -78,9 +96,9 @@ namespace Couchbase.Lite.Internal.Doc
             return GetObject(index) as IReadOnlyArray;
         }
 
-        public IBlob GetBlob(int index)
+        public Blob GetBlob(int index)
         {
-            return GetObject(index) as IBlob;
+            return GetObject(index) as Blob;
         }
 
         public bool GetBoolean(int index)
@@ -123,9 +141,9 @@ namespace Couchbase.Lite.Internal.Doc
             return Native.FLValue_AsString(Native.FLArray_Get(_array, (uint) index));
         }
 
-        public IReadOnlySubdocument GetSubdocument(int index)
+        public ReadOnlySubdocument GetSubdocument(int index)
         {
-            return GetObject(index) as IReadOnlySubdocument;
+            return GetObject(index) as ReadOnlySubdocument;
         }
 
         public IList<object> ToList()
@@ -137,6 +155,81 @@ namespace Couchbase.Lite.Internal.Doc
             }
 
             return array;
+        }
+
+        #endregion
+
+        #region Nested
+
+        private class Enumerator : IEnumerator<object>
+        {
+            #region Variables
+
+            private readonly FleeceArray _parent;
+            private bool _first;
+            private FLArrayIterator _iter;
+
+            #endregion
+
+            #region Properties
+
+            public object Current
+            {
+                get {
+                    fixed (FLArrayIterator* i = &_iter) {
+                        var val = Native.FLArrayIterator_GetValue(i);
+                        return FLValueConverter.ToObject(val, _parent._sharedKeys);
+                    }
+                }
+            }
+
+            object IEnumerator.Current => Current;
+
+            #endregion
+
+            #region Constructors
+
+            public Enumerator(FleeceArray parent)
+            {
+                _first = true;
+                _parent = parent;
+            }
+
+            #endregion
+
+            #region IDisposable
+
+            public void Dispose()
+            {
+                
+            }
+
+            #endregion
+
+            #region IEnumerator
+
+            public bool MoveNext()
+            {
+                if (_first) {
+                    _first = false;
+                    fixed (FLArrayIterator* i = &_iter) {
+                         Native.FLArrayIterator_Begin(_parent._array, i);
+                    }
+
+                    return true;
+                }
+
+                fixed (FLArrayIterator* i = &_iter) {
+                    return Native.FLArrayIterator_Next(i);
+                }
+            }
+
+            public void Reset()
+            {
+                _first = true;
+            }
+
+            #endregion
         }
 
         #endregion

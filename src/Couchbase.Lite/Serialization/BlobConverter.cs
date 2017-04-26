@@ -23,8 +23,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-using Couchbase.Lite.Internal.DB;
-using Couchbase.Lite.Internal.Doc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -40,19 +38,9 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Properties
 
-        public override bool CanRead
-        {
-            get {
-                return false;
-            }
-        }
+        public override bool CanRead => false;
 
-        public override bool CanWrite
-        {
-            get {
-                return true;
-            }
-        }
+        public override bool CanWrite => true;
 
         #endregion
 

@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using Couchbase.Lite.Util;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Doc
@@ -46,11 +47,11 @@ namespace Couchbase.Lite.Internal.Doc
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            var dict = (DictionaryObject)value;
+            var dict = (IDictionaryObject)value;
             writer.WriteStartObject();
             foreach (var pair in dict) {
                 writer.WritePropertyName(pair.Key);
-                writer.WriteValue(pair.Value);
+                serializer.Serialize(writer, pair.Value);
             }
             writer.WriteEndObject();
         }
@@ -62,7 +63,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType.GetTypeInfo().IsAssignableFrom(typeof(DictionaryObject).GetTypeInfo());
+            return typeof(DictionaryObject) == objectType || typeof(Subdocument) == objectType;
         }
     }
 
@@ -98,6 +99,8 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
+        internal override bool IsEmpty => _dict.All(x => x.Value == null) && base.IsEmpty;
+
         public override ICollection<string> Keys
         {
             get {
@@ -116,7 +119,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        public new IFragment this[string key]
+        public new Fragment this[string key]
         {
             get {
                 var value = GetObject(key);
@@ -159,15 +162,13 @@ namespace Couchbase.Lite.Internal.Doc
                 case ArrayObject arr:
                     arr.Changed -= ObjectChanged;
                     break;
-                default:
-                    break;
             }
         }
 
         private object PrepareValue(object value)
         {
-            Doc.Data.ValidateValue(value);
-            return Doc.Data.ConvertValue(value, ObjectChanged, ObjectChanged);
+            DataOps.ValidateValue(value);
+            return DataOps.ConvertValue(value, ObjectChanged, ObjectChanged);
         }
         
         private void ObjectChanged(object sender, ObjectChangedEventArgs<DictionaryObject> args)
@@ -200,19 +201,24 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Overrides
 
+        public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
+
         public override bool Contains(string key)
         {
             return (_dict.ContainsKey(key) && _dict[key] != null) || base.Contains(key);
         }
 
-        public override IBlob GetBlob(string key)
+        public override Blob GetBlob(string key)
         {
             object value;
             if (!_dict.TryGetValue(key, out value)) {
                 return base.GetBlob(key);
             }
 
-            return value as IBlob;
+            return value as Blob;
         }
 
         public override bool GetBoolean(string key)
@@ -307,15 +313,13 @@ namespace Couchbase.Lite.Internal.Doc
             if(!_dict.TryGetValue(key, out value)) {
                 value = base.GetObject(key);
                 switch(value) {
-                    case IReadOnlySubdocument sub:
-                        value = Doc.Data.ConvertROSubdocument(sub, ObjectChanged);
+                    case ReadOnlySubdocument sub:
+                        value = Doc.DataOps.ConvertROSubdocument(sub, ObjectChanged);
                         SetValue(key, value, false);
                         break;
-                    case IReadOnlyArray arr:
-                        value = Doc.Data.ConvertROArray(arr, ObjectChanged);
+                    case ReadOnlyArray arr:
+                        value = Doc.DataOps.ConvertROArray(arr, ObjectChanged);
                         SetValue(key, value, false);
-                        break;
-                    default:
                         break;
                 }
             }
@@ -355,8 +359,6 @@ namespace Couchbase.Lite.Internal.Doc
                     case IReadOnlyArray arr:
                         result[key] = arr.ToList();
                         break;
-                    default:
-                        break;
                 }
             }
 
@@ -367,34 +369,34 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region IDictionaryObject
 
-        public new IArray GetArray(string key)
+        public new ArrayObject GetArray(string key)
         {
             object value;
             if (!_dict.TryGetValue(key, out value)) {
                 value = base.GetArray(key);
                 if (value != null) {
-                    var array = Doc.Data.ConvertROArray((IReadOnlyArray)value, ObjectChanged);
+                    var array = Doc.DataOps.ConvertROArray((ReadOnlyArray)value, ObjectChanged);
                     SetValue(key, array, false);
                     return array;
                 }
             }
 
-            return value as IArray;
+            return value as ArrayObject;
         }
 
-        public new ISubdocument GetSubdocument(string key)
+        public new Subdocument GetSubdocument(string key)
         {
             object value;
             if(!_dict.TryGetValue(key, out value)) {
                 value = base.GetSubdocument(key);
                 if (value != null) {
-                    var subdoc = Doc.Data.ConvertROSubdocument((IReadOnlySubdocument)value, ObjectChanged);
+                    var subdoc = DataOps.ConvertROSubdocument((ReadOnlySubdocument)value, ObjectChanged);
                     SetValue(key, subdoc, false);
                     return subdoc;
                 }
             }
 
-            return value as ISubdocument;
+            return value as Subdocument;
         }
 
         public IDictionaryObject Remove(string key)
@@ -406,7 +408,11 @@ namespace Couchbase.Lite.Internal.Doc
         public IDictionaryObject Set(string key, object value)
         {
             var oldValue = GetObject(key);
-            if(value?.Equals(oldValue) == false) {
+            if (value == null && oldValue == null) {
+                return this;
+            }
+
+            if(value == null || !value.Equals(oldValue)) {
                 value = PrepareValue(value);
                 RemoveChangedListener(oldValue);
                 SetValue(key, value, true);
@@ -438,5 +444,52 @@ namespace Couchbase.Lite.Internal.Doc
         }
 
         #endregion
+
+        private sealed class Enumerator : IEnumerator<KeyValuePair<string, object>>
+        {
+            private readonly DictionaryObject _parent;
+            private readonly HashSet<string> _usedKeys = new HashSet<string>();
+            private AggregateEnumerator<KeyValuePair<string, object>> _underlying;
+
+            public Enumerator(DictionaryObject parent)
+            {
+                _parent = parent;
+                _underlying = new AggregateEnumerator<KeyValuePair<string, object>>(_parent._dict.GetEnumerator(),
+                    _parent.Data.GetEnumerator());
+            }
+
+            public bool MoveNext()
+            {
+                if (!_underlying.MoveNext()) {
+                    return false;
+                }
+
+                while (_usedKeys.Contains(Current.Key)) {
+                    if (!_underlying.MoveNext()) {
+                        return false;
+                    }
+                }
+
+                _usedKeys.Add(Current.Key);
+                return true;
+            }
+
+            public void Reset()
+            {
+                _underlying?.Dispose();
+                _underlying = new AggregateEnumerator<KeyValuePair<string, object>>(_parent._dict.GetEnumerator(),
+                    _parent.Data.GetEnumerator());
+                _usedKeys.Clear();
+            }
+
+            public KeyValuePair<string, object> Current => _underlying.Current;
+
+            object IEnumerator.Current => Current;
+
+            public void Dispose()
+            {
+                _underlying?.Dispose();
+            }
+        }
     }
 }

@@ -20,22 +20,34 @@
 // 
 using System;
 using System.Collections.Generic;
+using Couchbase.Lite.Internal.Doc;
+using Newtonsoft.Json;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite
 {
-    internal sealed class Subdocument : ReadOnlySubdocument, ISubdocument
+    [JsonConverter(typeof(DictionaryObjectConverter))]
+    public sealed class Subdocument : ReadOnlySubdocument, IDictionaryObject
     {
         #region Properties
 
+        public override int Count => Dictionary.Count;
+
+        public new Fragment this[string key] => Dictionary[key];
+
         public override ICollection<string> Keys => Dictionary.Keys;
 
-        public new IFragment this[string key] => Dictionary[key];
         internal DictionaryObject Dictionary { get; }
+
+        internal override bool IsEmpty => Dictionary.IsEmpty;
 
         #endregion
 
         #region Constructors
 
+        /// <summary>
+        /// Creates a new blank <see cref="Subdocument"/>
+        /// </summary>
+        /// <returns>A constructed <see cref="Subdocument"/> object</returns>
         public Subdocument()
             : this(new FleeceDictionary())
         {
@@ -48,7 +60,7 @@ namespace Couchbase.Lite.Internal.Doc
             Set(dictionary);
         }
 
-        public Subdocument(IReadOnlyDictionary data)
+        internal Subdocument(IReadOnlyDictionary data)
             : base(data)
         {
             Dictionary = new DictionaryObject(data);
@@ -63,7 +75,7 @@ namespace Couchbase.Lite.Internal.Doc
             return Dictionary.Contains(key);
         }
 
-        public override IBlob GetBlob(string key)
+        public override Blob GetBlob(string key)
         {
             return Dictionary.GetBlob(key);
         }
@@ -81,6 +93,11 @@ namespace Couchbase.Lite.Internal.Doc
         public override double GetDouble(string key)
         {
             return Dictionary.GetDouble(key);
+        }
+
+        public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        {
+            return Dictionary.GetEnumerator();
         }
 
         public override int GetInt(string key)
@@ -112,12 +129,12 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region IDictionaryObject
 
-        public new IArray GetArray(string key)
+        public new ArrayObject GetArray(string key)
         {
             return Dictionary.GetArray(key);
         }
 
-        public new ISubdocument GetSubdocument(string key)
+        public new Subdocument GetSubdocument(string key)
         {
             return Dictionary.GetSubdocument(key);
         }

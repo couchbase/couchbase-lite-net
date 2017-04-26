@@ -21,24 +21,6 @@
 
 namespace Couchbase.Lite
 {
-    public enum OperationType
-    {
-        DatabaseWrite,
-        PushReplication,
-        PullReplication
-    }
-
-    public interface IConflict
-    {
-        IReadOnlyDocument Source { get; }
-        
-        IReadOnlyDocument Target { get; }
-
-        IReadOnlyDocument CommonAncestor { get; }
-
-        OperationType OperationType { get; }
-    }
-
     /// <summary>
     /// An interface for resolving a conflict in a document (i.e. two edits to the same
     /// document at the same time)
@@ -47,14 +29,14 @@ namespace Couchbase.Lite
     {
         #region Public Methods
 
-        IReadOnlyDocument Resolve(IConflict conflict);
+        ReadOnlyDocument Resolve(Conflict conflict);
 
         #endregion
     }
 
     public sealed class MostActiveWinsConflictResolver : IConflictResolver
     {
-        public IReadOnlyDocument Resolve(IConflict conflict)
+        public ReadOnlyDocument Resolve(Conflict conflict)
         {
             throw new System.NotImplementedException();
         }

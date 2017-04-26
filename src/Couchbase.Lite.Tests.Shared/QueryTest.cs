@@ -63,7 +63,7 @@ namespace Test
         [JsonProperty(PropertyName = "memberSince")]
         public string MemberSince { get; set; }
 
-        public IDocument Document { get; set; }
+        public Document Document { get; set; }
 
         public NamesModel()
         {
@@ -147,7 +147,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        /*[Fact]
         public void TestWhereCheckNull()
         {
             IDocument doc1 = null, doc2 = null;
@@ -197,7 +197,7 @@ namespace Test
 
                 testNum++;
             }
-        }
+        }*/
 
         [Fact]
         public void TestWhereComparison()
@@ -302,10 +302,9 @@ namespace Test
         [Fact]
         public void TestWhereIs()
         {
-            var doc1 = default(IDocument);
-            doc1 = Db.CreateDocument();
-            doc1["string"] = "string";
-            doc1.Save();
+            var doc1 = new Document();
+            doc1.Set("string", "string");
+            Db.Save(doc1);
 
             using (var q = QueryFactory.Select()
                 .From(DataSourceFactory.Database(Db))
@@ -315,7 +314,7 @@ namespace Test
                 {
                     var doc = row.Document;
                     doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
-                    doc["string"].Should().Be("string", "because otherwise garbage data was inserted");
+                    doc["string"].ToString().Should().Be("string", "because otherwise garbage data was inserted");
                 });
                 numRows.Should().Be(1, "beacuse one row matches the given query");
             }
@@ -328,7 +327,7 @@ namespace Test
                 {
                     var doc = row.Document;
                     doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
-                    doc["string"].Should().Be("string", "because otherwise garbage data was inserted");
+                    doc["string"].ToString().Should().Be("string", "because otherwise garbage data was inserted");
                 });
                 numRows.Should().Be(1, "because one row matches the 'IS NOT' query");
             }
@@ -489,14 +488,13 @@ namespace Test
         public void TestSelectDistinct()
         {
             // TODO: Needs LiteCore fix
-            IDocument doc1 = null, doc2 = null;
-            doc1 = Db.CreateDocument();
-            doc1["number"] = 1;
-            doc1.Save();
+            var doc1 = new Document();
+            doc1.Set("number", 1);
+            Db.Save(doc1);
 
-            doc2 = Db.CreateDocument();
-            doc2["number"] = 1;
-            doc2.Save();
+            var doc2 = new Document();
+            doc2.Set("number", 1);
+            Db.Save(doc2);
 
             var q = QueryFactory.SelectDistinct().From(DataSourceFactory.Database(Db));
             var numRows = VerifyQuery(q, (n, row) =>
@@ -599,7 +597,7 @@ namespace Test
                     var lastN = 0;
                     VerifyQuery(q, (n, row) =>
                     {
-                        var props =row.Document.Properties;
+                        var props =row.Document.ToDictionary();
                         c.Item2(props, c.Item3).Should().BeTrue("because otherwise the row failed validation");
                         lastN = n;
                     });
@@ -618,14 +616,12 @@ namespace Test
                 for (int i = 1; i <= num; i++) {
                     var docID = $"doc{i}";
                     var doc = Db.GetDocument(docID);
-                    doc["number1"] = i;
-                    doc["number2"] = num - i;
-                    doc.Save();
-                    numbers.Add(doc.Properties);
+                    doc.Set("number1", i);
+                    doc.Set("number2", num - i);
+                    Db.Save(doc);
+                    numbers.Add(doc.ToDictionary());
                 }
-
-                return true;
-            }).Should().BeTrue("because otherwise the batch operation failed");
+            });
         }
 
         private int VerifyQuery(IQuery query, Action<int, IQueryRow> block)

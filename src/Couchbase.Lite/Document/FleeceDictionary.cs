@@ -23,7 +23,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 
-using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Internal.Serialization;
 using LiteCore.Interop;
 
@@ -44,7 +43,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         public int Count => (int)Native.FLDict_Count(_dict);
 
-        public IReadOnlyFragment this[string key] => new ReadOnlyFragment(GetObject(key));
+        public ReadOnlyFragment this[string key] => new ReadOnlyFragment(GetObject(key));
 
         public ICollection<string> Keys
         {
@@ -73,12 +72,11 @@ namespace Couchbase.Lite.Internal.Doc
             
         }
 
-        public FleeceDictionary(FLDict* dict, C4Document* document, IDatabase database)
+        public FleeceDictionary(FLDict* dict, C4Document* document, Database database)
         {
-            var db = database as Database ?? throw new InvalidOperationException("Custom IDatabase not supported");
             _dict = dict;
             _document = document;
-            _database = db;
+            _database = database;
             _sharedKeys = _database.SharedStrings;
         }
 
@@ -88,6 +86,10 @@ namespace Couchbase.Lite.Internal.Doc
 
         private FLValue* FleeceValueForKey(string key)
         {
+            if (_sharedKeys == null) {
+                return null;
+            }
+
             return _sharedKeys.GetDictValue(_dict, key);
         }
 
@@ -124,9 +126,9 @@ namespace Couchbase.Lite.Internal.Doc
             return GetObject(key) as IReadOnlyArray;
         }
 
-        public IBlob GetBlob(string key)
+        public Blob GetBlob(string key)
         {
-            return GetObject(key) as IBlob;
+            return GetObject(key) as Blob;
         }
 
         public bool GetBoolean(string key)
@@ -169,9 +171,9 @@ namespace Couchbase.Lite.Internal.Doc
             return Native.FLValue_AsString(FleeceValueForKey(key));
         }
 
-        public IReadOnlySubdocument GetSubdocument(string key)
+        public ReadOnlySubdocument GetSubdocument(string key)
         {
-            return GetObject(key) as IReadOnlySubdocument;
+            return GetObject(key) as ReadOnlySubdocument;
         }
 
         public IDictionary<string, object> ToDictionary()
@@ -250,6 +252,10 @@ namespace Couchbase.Lite.Internal.Doc
             public bool MoveNext()
             {
                 if (_first) {
+                    if (_parent._dict == null) {
+                        return false;
+                    }
+
                     _first = false;
                     fixed (FLDictIterator* i = &_iter) {
                         Native.FLDictIterator_Begin(_parent._dict, i);

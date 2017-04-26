@@ -23,10 +23,12 @@ using System.Diagnostics.CodeAnalysis;
 using Couchbase.Lite.Logging;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite
 {
-    internal unsafe class ReadOnlyDocument : ReadOnlyDictionary, IReadOnlyDocument
+    public unsafe class ReadOnlyDocument : ReadOnlyDictionary, IDisposable
     {
+        private readonly bool _owner;
+
         #region Properties
 
         public string Id { get; }
@@ -45,11 +47,15 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Constructors
 
-        public ReadOnlyDocument(string documentID, C4Document* c4Doc, IReadOnlyDictionary data)
+        internal ReadOnlyDocument(string documentID, C4Document* c4Doc, IReadOnlyDictionary data, bool owner = true)
             : base(data)
         {
             Id = documentID;
             this.c4Doc = c4Doc;
+            _owner = owner;
+            if (!owner) {
+                GC.SuppressFinalize(this);
+            }
         }
 
         ~ReadOnlyDocument()
@@ -64,7 +70,10 @@ namespace Couchbase.Lite.Internal.Doc
         [SuppressMessage("ReSharper", "UnusedParameter.Local", Justification = "Only types that need to be disposed unconditionally are dealt with")]
         protected virtual void Dispose(bool disposing)
         {
-            Native.c4doc_free(c4Doc);
+            if (_owner) {
+                Native.c4doc_free(c4Doc);
+            }
+
             c4Doc = null;
         }
 

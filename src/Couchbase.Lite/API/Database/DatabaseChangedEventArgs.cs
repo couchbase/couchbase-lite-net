@@ -31,15 +31,15 @@ namespace Couchbase.Lite
     {
         #region Properties
 
-        public IDatabase Database { get; }
+        public Database Database { get; }
 
-        public IDocument Document { get; }
+        public Document Document { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DatabaseChangedEventArgs(IDatabase database, IDocument document)
+        internal DatabaseChangedEventArgs(Database database, Document document)
         {
             Database = database;
             Document = document;

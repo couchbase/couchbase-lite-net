@@ -21,7 +21,6 @@
 
 using System.Diagnostics;
 
-using Couchbase.Lite.Internal.DB;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query
@@ -36,7 +35,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Properties
 
-        public IDocument Document
+        public Document Document
         {
             get {
                 var retVal = _db.GetDocument(DocumentID);

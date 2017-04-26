@@ -20,8 +20,6 @@
 // 
 using System.Linq;
 using System.Linq.Expressions;
-
-using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Internal.Linq;
 using Remotion.Linq;
 using Remotion.Linq.Parsing.Structure;

@@ -12,10 +12,10 @@ namespace Couchbase.Lite
 
         IDictionaryObject Remove(string key);
 
-        new IArray GetArray(string key);
+        new ArrayObject GetArray(string key);
 
-        new ISubdocument GetSubdocument(string key);
+        new Subdocument GetSubdocument(string key);
 
-        new IFragment this[string key] { get; }
+        new Fragment this[string key] { get; }
     }
 }

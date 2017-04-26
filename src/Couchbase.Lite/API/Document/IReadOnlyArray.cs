@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Couchbase.Lite
 {
-    public interface IReadOnlyArray : IReadOnlyArrayFragment
+    public interface IReadOnlyArray : IReadOnlyArrayFragment, IEnumerable<object>
     {
         int Count { get; }
 
@@ -20,13 +20,13 @@ namespace Couchbase.Lite
 
         bool GetBoolean(int index);
 
-        IBlob GetBlob(int index);
+        Blob GetBlob(int index);
 
         DateTimeOffset GetDate(int index);
 
         IReadOnlyArray GetArray(int index);
 
-        IReadOnlySubdocument GetSubdocument(int index);
+        ReadOnlySubdocument GetSubdocument(int index);
 
         IList<object> ToList();
     }

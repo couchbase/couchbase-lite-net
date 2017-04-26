@@ -19,16 +19,17 @@
 // limitations under the License.
 // 
 using System;
+using Couchbase.Lite.Internal.Doc;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite
 {
-    internal class ReadOnlyFragment : IReadOnlyFragment
+    public class ReadOnlyFragment
     {
         #region Properties
 
         public virtual bool Exists => Value != null;
 
-        public IReadOnlyFragment this[int index]
+        public ReadOnlyFragment this[int index]
         {
             get {
                 if (Value is IReadOnlyArray a) {
@@ -39,7 +40,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        public IReadOnlyFragment this[string key]
+        public ReadOnlyFragment this[string key]
         {
             get {
                 if (Value is IReadOnlyDictionary d) {
@@ -56,7 +57,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Constructors
 
-        public ReadOnlyFragment(object value)
+        internal ReadOnlyFragment(object value)
         {
             Value = value;
         }
@@ -65,32 +66,14 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Public Methods
 
-        public object ToObject()
-        {
-            return Value;
-        }
-
-        #endregion
-
-        #region Overrides
-
-        public override string ToString()
-        {
-            return Value as string;
-        }
-
-        #endregion
-
-        #region IReadOnlyObjectFragment
-
         public IReadOnlyArray ToArray()
         {
             return Value as IReadOnlyArray;
         }
 
-        public IBlob ToBlob()
+        public Blob ToBlob()
         {
-            return Value as IBlob;
+            return Value as Blob;
         }
 
         public bool ToBoolean()
@@ -138,9 +121,23 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        public IReadOnlySubdocument ToSubdocument()
+        public object ToObject()
         {
-            return Value as IReadOnlySubdocument;
+            return Value;
+        }
+
+        public ReadOnlySubdocument ToSubdocument()
+        {
+            return Value as ReadOnlySubdocument;
+        }
+
+        #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            return Value as string;
         }
 
         #endregion

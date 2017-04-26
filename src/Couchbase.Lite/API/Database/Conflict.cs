@@ -1,5 +1,5 @@
 ﻿// 
-// SubdocumentFactory.cs
+// Conflict.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,25 +18,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-
-using Couchbase.Lite.Internal.Doc;
-
 namespace Couchbase.Lite
 {
-    /// <summary>
-    /// A factory class for creating <see cref="ISubdocument"/> instances
-    /// </summary>
-    public static class SubdocumentFactory
+    public enum OperationType
     {
-        #region Public Methods
+        DatabaseWrite,
+        PushReplication,
+        PullReplication
+    }
 
-        /// <summary>
-        /// Creates a new blank <see cref="ISubdocument"/>
-        /// </summary>
-        /// <returns>A constructed <see cref="ISubdocument"/> object</returns>
-        public static ISubdocument Create()
+    public sealed class Conflict
+    {
+        #region Properties
+
+        public ReadOnlyDocument CommonAncestor { get; }
+        public OperationType OperationType { get; }
+        public ReadOnlyDocument Source { get; }
+        public ReadOnlyDocument Target { get; }
+
+        #endregion
+
+        #region Constructors
+
+        internal Conflict(ReadOnlyDocument source, ReadOnlyDocument target, ReadOnlyDocument commonAncestor,
+            OperationType opType)
         {
-            return new Subdocument();
+            Source = source;
+            Target = target;
+            CommonAncestor = commonAncestor;
+            OperationType = opType;
         }
 
         #endregion

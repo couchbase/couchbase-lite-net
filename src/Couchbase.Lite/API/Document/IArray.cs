@@ -26,25 +26,25 @@ namespace Couchbase.Lite
     {
         #region Properties
 
-        new IFragment this[int index] { get; }
+        new Fragment this[int index] { get; }
 
         #endregion
 
         #region Public Methods
 
-        IArray Add(object value);
+        ArrayObject Add(object value);
 
-        new IArray GetArray(int index);
+        new ArrayObject GetArray(int index);
 
-        new ISubdocument GetSubdocument(int index);
+        new Subdocument GetSubdocument(int index);
 
-        IArray Insert(int index, object value);
+        ArrayObject Insert(int index, object value);
 
-        IArray RemoveAt(int index);
+        ArrayObject RemoveAt(int index);
 
-        IArray Set(IList array);
+        ArrayObject Set(IList array);
 
-        IArray Set(int index, object value);
+        ArrayObject Set(int index, object value);
 
         #endregion
     }

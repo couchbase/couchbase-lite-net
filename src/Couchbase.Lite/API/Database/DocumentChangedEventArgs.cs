@@ -27,13 +27,13 @@ namespace Couchbase.Lite
     {
         #region Properties
 
-        public IDocument Document { get; }
+        public Document Document { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DocumentChangedEventArgs(IDocument document)
+        internal DocumentChangedEventArgs(Document document)
         {
             Document = document;
         }

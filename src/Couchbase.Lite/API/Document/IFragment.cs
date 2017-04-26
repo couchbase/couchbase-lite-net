@@ -21,31 +21,11 @@
 
 namespace Couchbase.Lite
 {
-    public interface IFragment : IObjectFragment, IDictionaryFragment, IArrayFragment
-    {}
-
-    public interface IObjectFragment : IReadOnlyObjectFragment
-    {
-        #region Properties
-
-        new object Value { get; set; }
-
-        #endregion
-
-        #region Public Methods
-
-        new IArray ToArray();
-
-        new ISubdocument ToSubdocument();
-
-        #endregion
-    }
-
     public interface IDictionaryFragment
     {
         #region Properties
 
-        IFragment this[string key] { get; }
+        Fragment this[string key] { get; }
 
         #endregion
     }
@@ -54,7 +34,7 @@ namespace Couchbase.Lite
     {
         #region Properties
 
-        IFragment this[int index] { get; }
+        Fragment this[int index] { get; }
 
         #endregion
     }

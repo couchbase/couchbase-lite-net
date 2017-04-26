@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using Couchbase.Lite.Internal.DB;
+
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query

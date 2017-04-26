@@ -19,7 +19,6 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
-using Couchbase.Lite.Internal.DB;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;

@@ -72,13 +72,11 @@ namespace Test
             var doc = Db["doc"];
             Db.InBatch(() =>
             {
-                for(uint i = 0; i < count; i++) {
+                for (uint i = 0; i < count; i++) {
                     doc.Set("count", i);
-                    doc.Save();
+                    Db.Save(doc);
                 }
-
-                return true;
-            }).Should().BeTrue("because otherwise the batch operation failed");
+            });
         }
     }
 }

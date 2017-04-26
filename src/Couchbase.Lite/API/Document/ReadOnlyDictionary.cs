@@ -24,13 +24,13 @@ using System.Collections.Generic;
 
 using Couchbase.Lite.Support;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite
 {
-    internal class ReadOnlyDictionary : IReadOnlyDictionary
+    public class ReadOnlyDictionary : IReadOnlyDictionary
     {
         #region Variables
 
-        protected readonly ThreadSafety _threadSafety = new ThreadSafety();
+        internal readonly ThreadSafety _threadSafety = new ThreadSafety();
 
         #endregion
 
@@ -38,19 +38,19 @@ namespace Couchbase.Lite.Internal.Doc
 
         public virtual int Count => Data.Count;
 
-        public IReadOnlyFragment this[string key] => new ReadOnlyFragment(GetObject(key));
+        public ReadOnlyFragment this[string key] => new ReadOnlyFragment(GetObject(key));
 
         public virtual ICollection<string> Keys => Data.Keys;
 
         internal IReadOnlyDictionary Data { get; set; }
 
-        internal virtual bool IsEmpty => Data?.Count != 0;
+        internal virtual bool IsEmpty => Data?.Count == 0;
 
         #endregion
 
         #region Constructors
 
-        public ReadOnlyDictionary(IReadOnlyDictionary data)
+        internal ReadOnlyDictionary(IReadOnlyDictionary data)
         {
             Data = data;
         }
@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region IEnumerable<KeyValuePair<string,object>>
 
-        public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        public virtual IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
             return Data.GetEnumerator();
         }
@@ -87,7 +87,7 @@ namespace Couchbase.Lite.Internal.Doc
             return Data.GetArray(key);
         }
 
-        public virtual IBlob GetBlob(string key)
+        public virtual Blob GetBlob(string key)
         {
             return Data.GetBlob(key);
         }
@@ -127,7 +127,7 @@ namespace Couchbase.Lite.Internal.Doc
             return Data.GetString(key);
         }
 
-        public IReadOnlySubdocument GetSubdocument(string key)
+        public ReadOnlySubdocument GetSubdocument(string key)
         {
             return Data.GetSubdocument(key);
         }
@@ -135,7 +135,7 @@ namespace Couchbase.Lite.Internal.Doc
         public virtual IDictionary<string, object> ToDictionary()
         {
             var dict = new Dictionary<string, object>();
-            foreach (var pair in this) {
+            foreach (var pair in Data) {
                 switch(pair.Value) {
                     case IReadOnlyDictionary d:
                         dict[pair.Key] = d.ToDictionary();

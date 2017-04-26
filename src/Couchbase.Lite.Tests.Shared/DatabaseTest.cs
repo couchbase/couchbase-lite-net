@@ -50,16 +50,17 @@ namespace Test
         public void TestCreate()
         {
             var dir = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
-            DatabaseFactory.DeleteDatabase("db", dir);
+            Database.Delete("db", dir);
 
-            var options = DatabaseOptions.Default;
-            options.Directory = dir;
+            var options = new DatabaseConfiguration(new DatabaseConfiguration.Builder {
+                Directory = dir
+            });
 
             try {
-                var db = DatabaseFactory.Create("db", options);
+                var db = new Database("db", options);
                 db.Dispose();
             } finally {
-                DatabaseFactory.DeleteDatabase("db", dir);
+                Database.Delete("db", dir);
             }
         }
 
@@ -76,28 +77,33 @@ namespace Test
         [Fact]
         public void TestCreateDocument()
         {
-            var doc = Db.CreateDocument();
-            doc.Id.Should().NotBeNullOrEmpty("because every document should have an ID immediately");
-            doc.Database.Should().Be(Db, "because the document should know its owning database");
-            doc.Exists.Should().BeFalse("because the document is not saved yet");
-            doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc.Properties.Should().BeNull("because no properties have been saved yet");
-            var doc1 = Db.GetDocument("doc1");
-            doc1.Id.Should().Be("doc1", "because that is the ID it was given");
-            doc1.Database.Should().Be(Db, "because the document should know its owning database");
-            doc1.Exists.Should().BeFalse("because the document is not saved yet");
-            doc1.IsDeleted.Should().BeFalse("because the document is not deleted");
-            doc1.Properties.Should().BeNull("because no properties have been saved yet");
+            using (var doc = new Document()) {
+                doc.Id.Should().NotBeNullOrEmpty("because every document should have an ID immediately");
+                doc.IsDeleted.Should().BeFalse("because the document is not deleted");
+                doc.ToDictionary().Should().BeEmpty("because no properties have been saved yet");
+            }
+
+            var docA = new Document("doc-a");
+            docA.Id.Should().Be("doc-a", "because that is the ID it was given");
+            docA.IsDeleted.Should().BeFalse("because the document is not deleted");
+            docA.ToDictionary().Should().BeEmpty("because no properties have been saved yet");
         }
 
         [Fact]
-        public void TestDocumentExists()
+        public void TestInBatch()
         {
-            Db.DocumentExists("doc1").Should().BeFalse("beacause the document has not been created yet");
-            var doc1 = Db.GetDocument("doc1");
-            doc1.Properties.Should().BeNull("because no properties were saved");
-            doc1.Save();
-            Db.DocumentExists("doc1").Should().BeTrue("because now the document has been created");
+            Db.InBatch(() =>
+            {
+                for (var i = 0; i < 10; i++) {
+                    var docId = $"doc{i}";
+                    var doc = new Document(docId);
+                    Db.Save(doc);
+                }
+            });
+
+            for (var i = 0; i < 10; i++) {
+                Db.GetDocument($"doc{i}").Should().NotBeNull("because otherwise the insertion in batch failed");
+            }
         }
     }
 }

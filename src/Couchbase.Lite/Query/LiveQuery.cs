@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Variables
 
-        private readonly IDatabase _database;
+        private readonly Database _database;
         private readonly IQuery _underlying;
 
         public event EventHandler<LiveQueryChangedEventArgs> Changed;
@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal LiveQuery(IDatabase database, IQuery underlying)
+        internal LiveQuery(Database database, IQuery underlying)
         {
             _database = database;
             _underlying = underlying;

@@ -22,8 +22,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite;
-using Couchbase.Lite.Internal.DB;
-using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using FluentAssertions;
 using Newtonsoft.Json;
@@ -39,28 +37,6 @@ using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 
 namespace Test
 {
-    internal static class Convert
-    {
-        #region Internal Methods
-
-        internal static Document ToConcrete(this IDocument doc)
-        {
-            return doc as Document;
-        }
-
-        internal static Database ToConcrete(this IDatabase db)
-        {
-            return db as Database;
-        }
-
-        internal static Subdocument ToConcrete(this ISubdocument subdoc)
-        {
-            return subdoc as Subdocument;
-        }
-
-        #endregion
-    }
-
 #if WINDOWS_UWP
     [TestClass]
 #endif
@@ -81,7 +57,7 @@ namespace Test
         }
 #endif
 
-        protected IDatabase Db { get; private set; }
+        protected Database Db { get; private set; }
 
         private static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
@@ -116,7 +92,7 @@ namespace Test
             var options = new DatabaseConfiguration(new DatabaseConfiguration.Builder {
                 Directory = Directory
             });
-            Db = DatabaseFactory.Create(DatabaseName, options);
+            Db = new Database(DatabaseName, options);
             Db.Should().NotBeNull("because otherwise the database failed to open");
         }
 

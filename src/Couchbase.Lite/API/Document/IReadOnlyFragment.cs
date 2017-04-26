@@ -18,51 +18,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Lite
 {
-    public interface IReadOnlyFragment : IReadOnlyObjectFragment, IReadOnlyDictionaryFragment, IReadOnlyArrayFragment
-    {}
-
-    public interface IReadOnlyObjectFragment
-    {
-        #region Properties
-
-        bool Exists { get; }
-
-        object Value { get; }
-
-        #endregion
-
-        #region Public Methods
-
-        IReadOnlyArray ToArray();
-
-        IBlob ToBlob();
-
-        bool ToBoolean();
-
-        DateTimeOffset ToDate();
-
-        double ToDouble();
-
-        int ToInt();
-
-        long ToLong();
-
-        IReadOnlySubdocument ToSubdocument();
-
-        #endregion
-    }
-
     public interface IReadOnlyDictionaryFragment
     {
         #region Properties
 
-        IReadOnlyFragment this[string key] { get; }
+        ReadOnlyFragment this[string key] { get; }
 
         #endregion
     }
@@ -71,7 +34,7 @@ namespace Couchbase.Lite
     {
         #region Properties
 
-        IReadOnlyFragment this[int index] { get; }
+        ReadOnlyFragment this[int index] { get; }
 
         #endregion
     }

@@ -44,7 +44,7 @@ namespace Test
 #endif
     public class DocumentTest : TestCase
     {
-        private IDocument _doc;
+        private Document _doc;
 
 #if !WINDOWS_UWP
         public DocumentTest(ITestOutputHelper output) : base(output)
@@ -59,13 +59,13 @@ namespace Test
         [Fact]
         public void TestNewDoc()
         {
-            var doc = DocumentFactory.Create();
+            var doc = new Document();
             doc.Id.Should().NotBeNullOrEmpty("because a document should always have an ID");
-            doc.ToConcrete().Exists.Should().BeFalse("because the document has not been saved yet");
+            doc.Exists.Should().BeFalse("because the document has not been saved yet");
             doc.IsDeleted.Should().BeFalse("because the document is not deleted");
 
             doc.ToDictionary().Should().BeEmpty("because no properties have been added");
-            doc["prop"].Should().BeNull("because this property does not exist");
+            doc.GetObject("prop").Should().BeNull("because this property does not exist");
             doc.GetBoolean("prop").Should().BeFalse("because this bool does not exist");
             doc.GetInt("prop").Should().Be(0, "because this int does not exist");
             doc.GetLong("prop").Should().Be(0L, "because this long does not exist");
@@ -80,12 +80,12 @@ namespace Test
         [Fact]
         public void TestNewDocWithID()
         {
-            var doc =  DocumentFactory.Create("doc-a");
-            doc.Id.Should().Be("doc1", "because that is the ID that was passed");
+            var doc =  new Document("doc-a");
+            doc.Id.Should().Be("doc-a", "because that is the ID that was passed");
             doc.IsDeleted.Should().BeFalse("because the document is not deleted");
 
             doc.ToDictionary().Should().BeEmpty("because no properties have been added");
-            doc["prop"].Should().BeNull("because this property does not exist");
+            doc.GetObject("prop").Should().BeNull("because this property does not exist");
             doc.GetBoolean("prop").Should().BeFalse("because this bool does not exist");
             doc.GetInt("prop").Should().Be(0, "because this int does not exist");
             doc.GetLong("prop").Should().Be(0L, "because this long does not exist");
@@ -115,7 +115,7 @@ namespace Test
                 .Set("date", date);
 
 
-            var subdoc = SubdocumentFactory.Create();
+            var subdoc = new Subdocument();
             subdoc.Set("firstname", "scottie")
                 .Set("lastname", "zebra");
 
@@ -200,7 +200,10 @@ namespace Test
             var address = _doc.GetSubdocument("address");
             _doc.ToDictionary().ShouldBeEquivalentTo(new Dictionary<string, object> {
                 ["type"] = "profile",
-                ["address"] = address
+                ["address"] = new Dictionary<string, object> {
+                    ["street"] = "1 milky way.",
+                    ["zip"] = 12345L
+                }
             });
             address.ToDictionary().ShouldBeEquivalentTo(new Dictionary<string, object> {
                 ["street"] = "1 milky way.",
@@ -243,7 +246,7 @@ namespace Test
             Db.Invoking(d => d.Delete(_doc)).ShouldThrow<LiteCoreException>().Which.Error.Should()
                 .Be(new C4Error(LiteCoreError.NotFound), "because an attempt to delete a non-existent document was made");
 
-            _doc["type"].ToString().Should().Be("Profile", "because the doc should still exist");
+            _doc["type"].ToString().Should().Be("profile", "because the doc should still exist");
             _doc["name"].ToString().Should().Be("Scott", "because the doc should still exist");
 
             // Save:
@@ -262,12 +265,12 @@ namespace Test
             _doc.Set("type", "profile");
             _doc.Set("name", "Scott");
             _doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
-            _doc.ToConcrete().Exists.Should().BeFalse("because the document has not been saved yet");
+            _doc.Exists.Should().BeFalse("because the document has not been saved yet");
             _doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
 
             // Purge before save:
             Db.Purge(_doc).Should().BeFalse("because deleting a non-existent document is invalid");
-            _doc["type"].ToString().Should().Be("Profile", "because the doc should still exist");
+            _doc["type"].ToString().Should().Be("profile", "because the doc should still exist");
             _doc["name"].ToString().Should().Be("Scott", "because the doc should still exist");
 
             // Save:
@@ -282,7 +285,7 @@ namespace Test
         [Fact]
         public void TestReopenDB()
         {
-            _doc.Set("str", "string");
+            _doc.Set("string", "str");
             Db.Save(_doc);
 
             ReopenDB();
@@ -300,7 +303,7 @@ namespace Test
             Db.Save(doc);
             doc["name"].ToString().Should().Be("Scotty", "because the 'theirs' version should win");
 
-            doc = DocumentFactory.Create("doc2");
+            doc = new Document("doc2");
             Db.ConflictResolver = new MergeThenTheirsWins();
             doc.Set("type", "profile");
             doc.Set("name", "Scott");
@@ -329,9 +332,9 @@ namespace Test
             Db.ConflictResolver = new GiveUp();
             var doc = SetupConflict();
             Db.Invoking(d => d.Save(doc))
-                .ShouldThrow<LiteCoreException>()
-                .Which.Error.Should()
-                .Be(new C4Error(LiteCoreError.Conflict), "because the conflict resolver gave up");
+                .ShouldThrow<CouchbaseLiteException>()
+                .Which.Code.Should()
+                .Be(StatusCode.Conflict, "because the conflict resolver gave up");
         }
 
         [Fact]
@@ -340,7 +343,7 @@ namespace Test
             Db.ConflictResolver = new DoNotResolve();
             var doc = SetupConflict();
             Db.Delete(doc);
-            doc.ToConcrete().Exists.Should().BeTrue("because there was a conflict in place of the deletion");
+            doc.Exists.Should().BeTrue("because there was a conflict in place of thgie deletion");
             doc.IsDeleted.Should().BeFalse("because there was a conflict in place of the deletion");
             doc["name"].ToString().Should().Be("Scotty", "because that was the pre-deletion value");
         }
@@ -373,15 +376,15 @@ namespace Test
         public void TestBlob()
         {
             var content = Encoding.UTF8.GetBytes("12345");
-            var data = BlobFactory.Create("text/plain", content);
+            var data = new Blob("text/plain", content);
             _doc.Set("data", data);
             _doc.Set("name", "Jim");
             Db.Save(_doc);
 
-            using(var otherDb = DatabaseFactory.Create(Db)) {
+            using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb["doc1"];
                 doc1["name"].ToString().Should().Be("Jim", "because the document should be persistent after save");
-                doc1["data"].Value.Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
 
                 data.Length.Should().Be(5, "because the data is 5 bytes long");
@@ -398,13 +401,13 @@ namespace Test
         public void TestEmptyBlob()
         {
             var content = new byte[0];
-            var data = BlobFactory.Create("text/plain", content);
+            var data = new Blob("text/plain", content);
             _doc.Set("data", data);
             Db.Save(_doc);
 
-            using(var otherDb = DatabaseFactory.Create(Db)) {
+            using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb["doc1"];
-                doc1["data"].Value.Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
 
                 data.Length.Should().Be(0, "because the data is 5 bytes long");
@@ -422,13 +425,13 @@ namespace Test
         {
             var content = new byte[0];
             Stream contentStream = new MemoryStream(content);
-            var data = BlobFactory.Create("text/plain", contentStream);
+            var data = new Blob("text/plain", contentStream);
             _doc.Set("data", data);
             Db.Save(_doc);
 
-            using(var otherDb = DatabaseFactory.Create(Db)) {
+            using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb["doc1"];
-                doc1["data"].Value.Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
 
                 data.Length.Should().Be(0, "because the data is 5 bytes long");
@@ -445,7 +448,7 @@ namespace Test
         public void TestMultipleBlobRead()
         {
             var content = Encoding.UTF8.GetBytes("12345");
-            var data = BlobFactory.Create("text/plain", content);
+            var data = new Blob("text/plain", content);
             _doc.Set("data", data);
             data = _doc.GetBlob("data");
             for (int i = 0; i < 5; i++) {
@@ -459,9 +462,9 @@ namespace Test
 
             Db.Save(_doc);
             
-            using(var otherDb = DatabaseFactory.Create(Db)) {
+            using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb["doc1"];
-                doc1["data"].Value.Should().BeAssignableTo<IBlob>("because otherwise the data did not save correctly");
+                doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
 
                 data.Length.Should().Be(5, "because the data is 5 bytes long");
@@ -478,7 +481,7 @@ namespace Test
         public void TestReadExistingBlob()
         {
             var content = Encoding.UTF8.GetBytes("12345");
-            var data = BlobFactory.Create("text/plain", content);
+            var data = new Blob("text/plain", content);
             _doc.Set("data", data);
             _doc.Set("name", "Jim");
             Db.Save(_doc);
@@ -496,7 +499,7 @@ namespace Test
             _doc.GetBlob("data").Content.Should().Equal(content, "because the data should have been retrieved correctly");
         }
 
-        private IDocument SetupConflict()
+        private Document SetupConflict()
         {
             _doc.Set("type", "profile");
             _doc.Set("name", "Scott");
@@ -516,7 +519,7 @@ namespace Test
             Db.InBatch(() =>
             {
                 var tricky =
-                    (C4Document*) LiteCoreBridge.Check(err => Native.c4doc_get(Db.ToConcrete().c4db, docID, true, err));
+                    (C4Document*) LiteCoreBridge.Check(err => Native.c4doc_get(Db.c4db, docID, true, err));
                 var put = new C4DocPutRequest {
                     docID = tricky->docID,
                     history = &tricky->revID,
@@ -524,13 +527,13 @@ namespace Test
                     save = true
                 };
 
-                var body = Db.ToConcrete().JsonSerializer.Serialize(props);
+                var body = Db.JsonSerializer.Serialize(props);
                 put.body = body;
 
                 LiteCoreBridge.Check(err =>
                 {
                     var localPut = put;
-                    var retVal = Native.c4doc_put(Db.ToConcrete().c4db, &localPut, null, err);
+                    var retVal = Native.c4doc_put(Db.c4db, &localPut, null, err);
                     Native.FLSliceResult_Free(body);
                     return retVal;
                 });
@@ -540,7 +543,7 @@ namespace Test
 
     internal class TheirsWins : IConflictResolver
     {
-        public IReadOnlyDocument Resolve(IConflict conflict)
+        public ReadOnlyDocument Resolve(Conflict conflict)
         {
             return conflict.Target;
         }
@@ -548,9 +551,9 @@ namespace Test
 
     internal class MergeThenTheirsWins : IConflictResolver
     {
-        public IReadOnlyDocument Resolve(IConflict conflict)
+        public ReadOnlyDocument Resolve(Conflict conflict)
         {
-            var resolved = DocumentFactory.Create(conflict.CommonAncestor.ToDictionary());
+            var resolved = new Document(conflict.CommonAncestor.ToDictionary());
             var changed = new HashSet<string>();
             foreach(var pair in conflict.Target) {
                 resolved.Set(pair.Key, pair.Value);
@@ -569,7 +572,7 @@ namespace Test
 
     internal class GiveUp : IConflictResolver
     {
-        public IReadOnlyDocument Resolve(IConflict conflict)
+        public ReadOnlyDocument Resolve(Conflict conflict)
         {
             return null;
         }
@@ -577,7 +580,7 @@ namespace Test
 
     internal class DoNotResolve : IConflictResolver
     {
-        public IReadOnlyDocument Resolve(IConflict conflict)
+        public ReadOnlyDocument Resolve(Conflict conflict)
         {
             throw new NotImplementedException();
         }

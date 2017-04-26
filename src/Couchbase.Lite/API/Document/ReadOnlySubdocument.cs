@@ -1,5 +1,5 @@
 ﻿// 
-// Conflict.cs
+// ReadOnlySubdocument.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,30 +18,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-namespace Couchbase.Lite.Internal.DB
+
+
+namespace Couchbase.Lite
 {
-    internal sealed class Conflict : IConflict
+    public class ReadOnlySubdocument : ReadOnlyDictionary
     {
-        #region Properties
-
-        public IReadOnlyDocument CommonAncestor { get; }
-        public OperationType OperationType { get; }
-        public IReadOnlyDocument Source { get; }
-        public IReadOnlyDocument Target { get; }
-
-        #endregion
-
-        #region Constructors
-
-        internal Conflict(IReadOnlyDocument source, IReadOnlyDocument target, IReadOnlyDocument commonAncestor,
-            OperationType opType)
+        internal ReadOnlySubdocument(IReadOnlyDictionary data) : base(data)
         {
-            Source = source;
-            Target = target;
-            CommonAncestor = commonAncestor;
-            OperationType = opType;
+            
         }
-
-        #endregion
     }
 }

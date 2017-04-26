@@ -34,7 +34,7 @@ namespace Couchbase.Lite
         /// Gets the document that was used for creating this
         /// entry
         /// </summary>
-        IDocument Document { get; }
+        Document Document { get; }
 
         /// <summary>
         /// Gets the ID of the document that was used for 
