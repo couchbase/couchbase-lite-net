@@ -126,6 +126,16 @@ namespace Couchbase.Lite
             seekrit = manager.OpenDatabase("seekrit", options);
             Assert.IsNotNull(seekrit, "Failed to reopen encrypted db");
             Assert.AreEqual(1, seekrit.GetDocumentCount());
+
+            seekrit.ChangeEncryptionKey(null);
+            var dbName = seekrit.Name;
+            Assert.DoesNotThrow(() => seekrit.Close().Wait(15000), "Couldn't close seekrit");
+            seekrit = null;
+
+            options.EncryptionKey = null;
+            seekrit = manager.OpenDatabase("seekrit", options);
+            Assert.IsNotNull(seekrit, "Failed to reopen encrypted db");
+            Assert.AreEqual(1, seekrit.GetDocumentCount());
             seekrit.Dispose();
         }
 

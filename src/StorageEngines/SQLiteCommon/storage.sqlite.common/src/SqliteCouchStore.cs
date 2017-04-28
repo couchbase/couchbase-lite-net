@@ -1015,8 +1015,13 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // Create & attach a temporary database encrypted with the new key:
             action.AddLogic(() =>
             {
-                var keyStr = newKey != null ? newKey.HexData : String.Empty;
-                var sql = String.Format("ATTACH DATABASE ? AS rekeyed_db KEY \"x'{0}'\"", keyStr);
+                string sql;
+                if(newKey != null) {
+                    sql = String.Format("ATTACH DATABASE ? AS rekeyed_db KEY \"x'{0}'\"", newKey.HexData);
+                } else {
+                    sql = "ATTACH DATABASE ? AS rekeyed_db KEY ''";
+                }
+
                 StorageEngine.ExecSQL(sql, tempPath);
             }, () =>
             {
