@@ -54,7 +54,9 @@ namespace Couchbase.Lite.Internal
             // Section 7.4 of RFC 6455 (http://tools.ietf.org/html/rfc6455#section-7.4).
             DisableActiveOnly = 4000,
 
-            GoOffline = 4001
+            GoOffline = 4001,
+
+            Ignore = 4002
         }
 
         #endregion
@@ -130,6 +132,9 @@ namespace Couchbase.Lite.Internal
                 if(args.Code == (ushort)PrivateCloseStatusCode.DisableActiveOnly) {
                     ActiveOnly = false;
                     Start(); //Switching to non-active-only mode
+                } else if(args.Code == (ushort)PrivateCloseStatusCode.Ignore) {
+                    Log.To.ChangeTracker.I(Tag, "{0} is closed [ignored]", this);
+                    Stopped(ErrorResolution.Ignore);
                 } else if(args.Code != (ushort)PrivateCloseStatusCode.GoOffline) {
                     Log.To.ChangeTracker.I(Tag, "{0} is closed", this);
                     Stopped(ErrorResolution.Stop);
@@ -295,8 +300,12 @@ namespace Couchbase.Lite.Internal
 
             IsRunning = false;
             var resolution = (ErrorResolution)resolutionWrapper;
-            ushort closeStatus = resolution == ErrorResolution.GoOffline ? 
-                                 (ushort)PrivateCloseStatusCode.GoOffline : (ushort)CloseStatusCode.Normal;
+            ushort closeStatus = (ushort)CloseStatusCode.Normal;
+            if(resolution == ErrorResolution.GoOffline) {
+                closeStatus = (ushort)PrivateCloseStatusCode.GoOffline;
+            } else if(resolution == ErrorResolution.Ignore) {
+                closeStatus = (ushort)PrivateCloseStatusCode.Ignore;
+            }
             
             Misc.SafeNull(ref _client, c =>
             {
