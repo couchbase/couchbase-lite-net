@@ -194,7 +194,12 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            Log.To.Sync.I(TAG, "Change tracker for {0} stopped; error={1}", ReplicatorID, tracker.Error);
+            if(tracker.Error != null) {
+                Log.To.Sync.I(TAG, "Change tracker for {0} stopped; error={1}", ReplicatorID, tracker.Error);
+            } else {
+                Log.To.Sync.I(TAG, "Change tracker for {0} stopped", ReplicatorID);
+            }
+
             if (LastError == null && tracker.Error != null) {
                 LastError = tracker.Error;
             }
@@ -351,19 +356,19 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 if(props.CblID() != null) {
-                        // Add to batcher ... eventually it will be fed to -insertRevisions:.
-                        QueueDownloadedRevision(rev);
+                    // Add to batcher ... eventually it will be fed to -insertRevisions:.
+                    QueueDownloadedRevision(rev);
                 } else {
                     var status = StatusFromBulkDocsResponseItem(props);
                     Log.To.Sync.W(TAG, "Error downloading {0}", rev);
                     var error = new CouchbaseLiteException(status.Code);
                     LastError = error;
-                    RevisionFailed();
                     SafeIncrementCompletedChangesCount();
                     if(IsDocumentError(error)) {
                         Log.To.Sync.W(TAG, $"Error is permanent, {rev} will NOT be downloaded!");
                         _pendingSequences.RemoveSequence(rev.Sequence);
                     } else {
+                        RevisionFailed();
                         Log.To.Sync.I(TAG, $"Will try again later to get {rev}");
                     }
                 }
