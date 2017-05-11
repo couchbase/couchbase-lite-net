@@ -743,17 +743,18 @@ namespace Couchbase.Lite.Storage.SQLCipher
                         sql.Append(", doc_type ");
                     }
 
-                    sql.Append("FROM revs, docs WHERE sequence>? AND sequence <=? AND current!=0 ");
+                    sql.Append("FROM revs " +
+                              "JOIN docs ON docs.doc_id = revs.doc_id " +
+                              "WHERE sequence>? AND +current>0 ");
                     if (minLastSequence == 0) {
-                        sql.Append("AND deleted=0 ");
+                        sql.Append("AND +deleted=0 ");
                     }
 
                     if (!allDocTypes && docTypes.Count > 0) {
                     sql.AppendFormat("AND doc_type IN ({0}) ", Utility.JoinQuoted(docTypes));
                     }
 
-                    sql.Append("AND revs.doc_id = docs.doc_id " +
-                    "ORDER BY revs.doc_id, deleted, revid DESC");
+                    sql.Append("ORDER BY +revs.doc_id, +deleted, +revid DESC");
 
                     Cursor c = null;
                     Cursor c2 = null;
@@ -789,7 +790,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                             if (minLastSequence > 0) {
                                 // Find conflicts with documents from previous indexings.
                                 using (c2 = db.StorageEngine.RawQuery("SELECT revid, sequence FROM revs " +
-                                  "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " +
+                                  "WHERE doc_id=? AND sequence<=? AND current>0 AND deleted=0 " +
                                   "ORDER BY revID DESC ", doc_id, minLastSequence)) {
 
                                     if (c2.MoveToNext()) {

@@ -933,7 +933,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Increments the count of failed revisions for the replication
         /// </summary>
-        protected void RevisionFailed()
+        protected internal void RevisionFailed()
         {
             _revisionsFailed++;
         }

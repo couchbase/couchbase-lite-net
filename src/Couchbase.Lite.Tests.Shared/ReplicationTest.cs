@@ -227,6 +227,22 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestFailedRevisionDuringPull()
+        {
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.AddDocuments(50, false);
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull.ReplicationOptions.ReplicationRetryDelay = TimeSpan.FromSeconds(5);
+                pull.Continuous = true;
+                pull.Start();
+                Thread.Sleep(500);
+                pull.RevisionFailed();
+                Thread.Sleep(20000);
+                pull.Status.Should().Be(ReplicationStatus.Idle, "because the replication should not stop");
+            }
+        }
+
+        [Test]
         public void TestRejectedDocument()
         {
             var push = database.CreatePushReplication(GetReplicationURL());

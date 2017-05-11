@@ -91,7 +91,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
             "CREATE TABLE docs ( " +
             "        doc_id INTEGER PRIMARY KEY, " +
             "        docid TEXT UNIQUE NOT NULL); " +
-            "    CREATE INDEX docs_docid ON docs(docid); " +
             // revs
             "    CREATE TABLE revs ( " +
             "        sequence INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -111,7 +110,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
             "        docid TEXT UNIQUE NOT NULL, " +
             "        revid TEXT NOT NULL COLLATE REVID, " +
             "        json BLOB); " +
-            "    CREATE INDEX localdocs_by_docid ON localdocs(docid); " +
             // views
             "    CREATE TABLE views ( " +
             "        view_id INTEGER PRIMARY KEY, " +
@@ -119,7 +117,6 @@ namespace Couchbase.Lite.Storage.SQLCipher
             "        version TEXT, " +
             "        lastsequence INTEGER DEFAULT 0," +
             "        total_docs INTEGER DEFAULT -1); " +
-            "    CREATE INDEX views_by_name ON views(name); " +
             // info
             "    CREATE TABLE info (" +
             "        key TEXT PRIMARY KEY," +
@@ -1585,10 +1582,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
             // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
 
             bool includeDocs = options.IncludeDocs || filter != null;
-            var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
-                "WHERE sequence > ? AND current=1 " +
-                "AND revs.doc_id = docs.doc_id " +
-                "ORDER BY revs.doc_id, deleted, revid DESC",
+            var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs " +
+                "JOIN docs ON docs.doc_id = revs.doc_id " +
+                "WHERE sequence > ? AND +current=1 " +
+                "ORDER BY +revs.doc_id, +deleted, revid DESC",
                 (includeDocs ? @", json" : @""));
 
             var changes = new RevisionList();
@@ -1637,10 +1634,10 @@ namespace Couchbase.Lite.Storage.SQLCipher
         public IEnumerable<RevisionInternal> ChangesSinceStreaming(long lastSequence, ChangesOptions options, RevisionFilter filter)
         {
             bool includeDocs = options.IncludeDocs || filter != null;
-            var orderby = options.SortBySequence ? options.Descending ? "sequence DESC" : "sequence" : "revs.doc_id, deleted, revid DESC";
-            var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs, docs " +
-                "WHERE sequence > ? AND current=1 " +
-                "AND revs.doc_id = docs.doc_id " +
+            var orderby = options.SortBySequence ? options.Descending ? "sequence DESC" : "sequence" : "+revs.doc_id, +deleted, revid DESC";
+            var sql = String.Format("SELECT sequence, revs.doc_id, docid, revid, deleted {0} FROM revs " +
+                "JOIN docs ON docs.doc_id = revs.doc_id " +
+                "WHERE sequence > ? AND +current=1 " +
                 "ORDER BY {1} ",
                 (includeDocs ? @", json" : @""), orderby);
 
@@ -2075,7 +2072,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                     args["doc_type"] = null;
                     int changes;
                     try {
-                        changes = StorageEngine.Update("revs", args, "sequence=? AND current != 0", commonAncestor.Sequence.ToString());
+                        changes = StorageEngine.Update("revs", args, "sequence=? AND current > 0", commonAncestor.Sequence.ToString());
                     } catch(CouchbaseLiteException) {
                         Log.To.Database.E(TAG, "Failed to update {0}, rethrowing...", 
                             new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
