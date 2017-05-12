@@ -71,13 +71,13 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        public Document() : this(Misc.CreateGuid())
+        public Document() : this(default(string))
         {
 
         }
 
         public Document(string documentID)
-            : base(documentID, null, new FleeceDictionary())
+            : base(documentID, null, null)
         {
             _dict = new DictionaryObject(Data);
         }
@@ -95,7 +95,7 @@ namespace Couchbase.Lite
         }
 
         internal Document(Database database, string documentID, bool mustExist)
-            : base(documentID, null, new FleeceDictionary())
+            : base(documentID, null, null)
         {
             Database = database;
             LoadDoc(mustExist);
@@ -110,16 +110,16 @@ namespace Couchbase.Lite
             _threadSafety.DoLocked(() => Save(_database.ConflictResolver, true));
         }
 
-        public bool Purge()
+        public void Purge()
         {
-            return _threadSafety.DoLocked(() =>
+            _threadSafety.DoLocked(() =>
             {
                 if(_database == null || _c4Db == null) {
                     throw new InvalidOperationException("Document's owning database has been closed");
                 }
 
                 if (!Exists) {
-                    return false;
+                    throw new CouchbaseLiteException(StatusCode.NotFound);
                 }
 
                 Database.InBatch(() =>
@@ -128,8 +128,7 @@ namespace Couchbase.Lite
                     LiteCoreBridge.Check(err => Native.c4doc_save(c4Doc, 0, err));
                 });
 
-                LoadDoc(false);
-                return true;
+                SetC4Doc(null);
             });
         }
 
@@ -204,6 +203,10 @@ namespace Couchbase.Lite
                 return;
             }
 
+            if (deletion && !Exists) {
+                throw new CouchbaseLiteException(StatusCode.NotFound);
+            }
+
             C4Document* newDoc = null;
             var endedEarly = false;
             Database.InBatch(() =>
@@ -266,16 +269,13 @@ namespace Couchbase.Lite
                 }
 
                 try {
-                    using (var type = new C4String(GetString("type"))) {
-                        *outDoc = (C4Document*)RetryHandler.RetryIfBusy()
-                            .AllowError(new C4Error(LiteCoreError.Conflict))
-                            .Execute(err =>
-                            {
-                                var localPut = put;
-                                localPut.docType = type.AsC4Slice();
-                                return Native.c4doc_put(_c4Db, &localPut, null, err);
-                            });
-                    }
+                    *outDoc = (C4Document*)RetryHandler.RetryIfBusy()
+                        .AllowError(new C4Error(LiteCoreError.Conflict))
+                        .Execute(err =>
+                        {
+                            var localPut = put;
+                            return Native.c4doc_put(_c4Db, &localPut, null, err);
+                        });
                 } finally {
                     Native.FLSliceResult_Free(body);
                 }
@@ -285,16 +285,24 @@ namespace Couchbase.Lite
 
         private void SetC4Doc(C4Document* doc)
         {
-            FLDict* root = null;
-            if (doc != null) {
+            c4Doc = doc;
+            if (c4Doc != null) {
+                FLDict* root = null;
                 var body = doc->selectedRev.body;
                 if (body.size > 0) {
                     root = Native.FLValue_AsDict(NativeRaw.FLValue_FromTrustedData(new FLSlice(body.buf, body.size)));
                 }
+
+                Data = new FleeceDictionary(root, doc, _database);
+            } else {
+                Data = null;
+            }
+            
+            if (doc != null) {
+                
             }
 
-            c4Doc = doc;
-            Data = new FleeceDictionary(root, doc, _database);
+
             _dict = new DictionaryObject(Data);
         }
 
@@ -367,14 +375,14 @@ namespace Couchbase.Lite
 
         #region IDictionaryObject
 
-        public new ArrayObject GetArray(string key)
+        public new IArray GetArray(string key)
         {
             return _dict.GetArray(key);
         }
 
-        public new Subdocument GetSubdocument(string key)
+        public new IDictionaryObject GetDictionary(string key)
         {
-            return _dict.GetSubdocument(key);
+            return _dict.GetDictionary(key);
         }
 
         public IDictionaryObject Remove(string key)

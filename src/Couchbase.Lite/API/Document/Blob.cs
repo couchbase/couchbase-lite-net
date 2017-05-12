@@ -220,9 +220,8 @@ namespace Couchbase.Lite
             }
 
             _db = db ?? throw new ArgumentNullException(nameof(db));
-            _properties = new Dictionary<string, object>(properties) {
-                [TypeMetaProperty] = null
-            };
+            _properties = new Dictionary<string, object>(properties);
+            _properties.Remove(TypeMetaProperty);
 
             Length = properties.GetCast<ulong>("length");
             Digest = properties.GetCast<string>("digest");
@@ -300,6 +299,34 @@ namespace Couchbase.Lite
         public override string ToString()
         {
             return $"Blob[{ContentType}; {(Length + 512) / 1024} KB]";
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Blob other) {
+                if (Digest != null && other.Digest != null) {
+                    return Digest.Equals(other.Digest);
+                }
+
+                if (Length != other.Length) {
+                    return false;
+                }
+
+                using (var stream1 = ContentStream)
+                using (var stream2 = other.ContentStream) {
+                    int next1;
+                    while((next1 = stream1.ReadByte()) != -1) {
+                        var next2 = stream2.ReadByte();
+                        if (next1 != next2) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         #endregion

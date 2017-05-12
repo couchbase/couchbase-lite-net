@@ -32,19 +32,19 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
-        ArrayObject Add(object value);
+        IArray Add(object value);
 
-        new ArrayObject GetArray(int index);
+        new IArray GetArray(int index);
 
-        new Subdocument GetSubdocument(int index);
+        new IDictionaryObject GetDictionary(int index);
 
-        ArrayObject Insert(int index, object value);
+        IArray Insert(int index, object value);
 
-        ArrayObject RemoveAt(int index);
+        IArray RemoveAt(int index);
 
-        ArrayObject Set(IList array);
+        IArray Set(IList array);
 
-        ArrayObject Set(int index, object value);
+        IArray Set(int index, object value);
 
         #endregion
     }

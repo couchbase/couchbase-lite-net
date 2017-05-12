@@ -22,6 +22,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 
@@ -85,6 +86,147 @@ namespace Couchbase.Lite.Internal.Doc
             return false;
         }
 
+        internal static ArrayObject ConvertArray(ArrayObject array, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
+        {
+            array.Changed += callback;
+            return array;
+        }
+
+        internal static DictionaryObject ConvertDictionary(IDictionary<string, object> dictionary, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
+        {
+            var subdocument = new DictionaryObject();
+            subdocument.Set(dictionary);
+            subdocument.Changed += callback;
+            return subdocument;
+        }
+
+        internal static DictionaryObject ConvertDictionaryObject(DictionaryObject subdoc, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
+        {
+            subdoc.Changed += callback;
+            return subdoc;
+        }
+
+        internal static ArrayObject ConvertList(IList list, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
+        {
+            var array = new ArrayObject();
+            array.Set(list);
+            array.Changed += callback;
+            return array;
+        }
+
+        internal static ArrayObject ConvertROArray(ReadOnlyArray readOnlyArray, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
+        {
+            var array = new ArrayObject(readOnlyArray.Data);
+            array.Changed += callback;
+            return array;
+        }
+
+        internal static DictionaryObject ConvertRODictionary(ReadOnlyDictionary readOnlySubdoc, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
+        {
+            var subdocument = new DictionaryObject(readOnlySubdoc.Data);
+            subdocument.Changed += callback;
+            return subdocument;
+        }
+
+        internal static bool ConvertToBoolean(object value)
+        {
+            switch (value) {
+                case null:
+                    return false;
+                case string s:
+                    return true; // string is IConvertible, but will throw on things other than true or false
+                case IConvertible c:
+                    return c.ToBoolean(CultureInfo.InvariantCulture);
+                default:
+                    return true;
+            }
+        }
+
+        internal static DateTimeOffset ConvertToDate(object value)
+        {
+            switch (value) {
+                case null:
+                    return DateTimeOffset.MinValue;
+                case DateTimeOffset dto:
+                    return dto;
+                case string s:
+                    DateTimeOffset retVal;
+                    if (DateTimeOffset.TryParseExact(s, "o", CultureInfo.InvariantCulture, DateTimeStyles.None,
+                        out retVal)) {
+                        return retVal;
+                    }
+
+                    return DateTimeOffset.MinValue;
+                default:
+                    return DateTimeOffset.MinValue;
+            }
+        }
+
+        internal static double ConvertToDouble(object value)
+        {
+            switch (value) {
+                case string s: // string is IConvertible, but will throw for non-numeric strings
+                    return 0.0;
+                case IConvertible c:
+                    return c.ToDouble(CultureInfo.InvariantCulture);
+                default:
+                    return 0.0;
+            }
+        }
+
+        internal static int ConvertToInt(object value)
+        {
+            switch (value) {
+                case string s:
+                    return 0; // string is IConvertible, but will throw for non-numeric strings
+                case IConvertible c:
+                    return c.ToInt32(CultureInfo.InvariantCulture);
+                default:
+                    return 0;
+            }
+        }
+
+        internal static long ConvertToLong(object value)
+        {
+            switch (value) {
+                case string s:
+                    return 0L; // string is IConvertible, but will throw for non-numeric strings
+                case IConvertible c:
+                    return c.ToInt64(CultureInfo.InvariantCulture);
+                default:
+                    return 0L;
+            }
+        }
+
+        internal static object ConvertValue(object value, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback1,
+             EventHandler<ObjectChangedEventArgs<ArrayObject>> callback2)
+        {
+            switch (value) {
+                case null:
+                    return null;
+                case DateTimeOffset dto:
+                    return dto.ToString("o");
+                case DictionaryObject subdoc:
+                    return ConvertDictionaryObject(subdoc, callback1);
+                case ArrayObject arr:
+                    return ConvertArray(arr, callback2);
+                case ReadOnlyDictionary rosubdoc:
+                    return ConvertRODictionary(rosubdoc, callback1);
+                case ReadOnlyArray roarr:
+                    return ConvertROArray(roarr, callback2);
+                case JObject jobj:
+                    return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>(), callback1);
+                case JArray jarr:
+                    return ConvertList(jarr.ToObject<IList>(), callback2);
+                case IDictionary<string, object> dict:
+                    return ConvertDictionary(dict, callback1);
+                case IList list:
+                    return ConvertList(list, callback2);
+                default:
+                    return value;
+            }
+        }
+
         [Conditional("DEBUG")]
         internal static void ValidateValue(object value)
         {
@@ -105,76 +247,6 @@ namespace Couchbase.Lite.Internal.Doc
 
                 throw new ArgumentException($"Invalid type in document properties: {type.Name}", nameof(value));
             }
-        }
-
-        internal static object ConvertValue(object value, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback1,
-             EventHandler<ObjectChangedEventArgs<ArrayObject>> callback2)
-        {
-            switch (value) {
-                case null:
-                    return null;
-                case Subdocument subdoc:
-                    return ConvertSubdocument(subdoc, callback1);
-                case ArrayObject arr:
-                    return ConvertArray(arr, callback2);
-                case ReadOnlySubdocument rosubdoc:
-                    return ConvertROSubdocument(rosubdoc, callback1);
-                case ReadOnlyArray roarr:
-                    return ConvertROArray(roarr, callback2);
-                case JObject jobj:
-                    return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>(), callback1);
-                case JArray jarr:
-                    return ConvertList(jarr.ToObject<IList>(), callback2);
-                case IDictionary<string, object> dict:
-                    return ConvertDictionary(dict, callback1);
-                case IList list:
-                    return ConvertList(list, callback2);
-                default:
-                    return value;
-            }
-        }
-
-        internal static Subdocument ConvertSubdocument(Subdocument subdoc, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
-        {
-            subdoc.Dictionary.Changed += callback;
-            return subdoc;
-        }
-
-        internal static ArrayObject ConvertArray(ArrayObject array, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
-        {
-            array.Changed += callback;
-            return array;
-        }
-
-        internal static Subdocument ConvertDictionary(IDictionary<string, object> dictionary, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
-        {
-            var subdocument = new Subdocument();
-            subdocument.Set(dictionary);
-            subdocument.Dictionary.Changed += callback;
-            return subdocument;
-        }
-
-        internal static ArrayObject ConvertList(IList list, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
-        {
-            var array = new ArrayObject();
-            array.Set(list);
-            array.Changed += callback;
-            return array;
-        }
-
-        internal static ArrayObject ConvertROArray(ReadOnlyArray readOnlyArray, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
-        {
-            var array = new ArrayObject(readOnlyArray.Data);
-            array.Changed += callback;
-            return array;
-        }
-
-        internal static Subdocument ConvertROSubdocument(ReadOnlySubdocument readOnlySubdoc, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
-        {
-            var converted = readOnlySubdoc as ReadOnlySubdocument ?? throw new InvalidOperationException("Custom IReadOnlySubdocument not supported");
-            var subdocument = new Subdocument(converted.Data);
-            subdocument.Dictionary.Changed += callback;
-            return subdocument;
         }
 
         #endregion

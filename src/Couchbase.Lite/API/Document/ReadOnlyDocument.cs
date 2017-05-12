@@ -20,7 +20,9 @@
 // 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite
@@ -47,10 +49,10 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal ReadOnlyDocument(string documentID, C4Document* c4Doc, IReadOnlyDictionary data, bool owner = true)
+        internal ReadOnlyDocument(string documentID, C4Document* c4Doc, FleeceDictionary data, bool owner = true)
             : base(data)
         {
-            Id = documentID;
+            Id = documentID ?? Misc.CreateGuid();
             this.c4Doc = c4Doc;
             _owner = owner;
             if (!owner) {

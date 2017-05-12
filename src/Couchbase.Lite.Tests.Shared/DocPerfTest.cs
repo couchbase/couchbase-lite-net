@@ -69,7 +69,7 @@ namespace Test
 
         private void AddRevisions(uint count)
         {
-            var doc = Db["doc"];
+            var doc = Db.GetDocument("doc");
             Db.InBatch(() =>
             {
                 for (uint i = 0; i < count; i++) {

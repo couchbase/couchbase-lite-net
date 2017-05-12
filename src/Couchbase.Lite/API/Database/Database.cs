@@ -24,6 +24,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 
 using Couchbase.Lite.Internal.Doc;
@@ -92,7 +94,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the options that were used to create the database
         /// </summary>
-        public DatabaseConfiguration Config { get; }
+        public DatabaseOptions Options { get; }
 
         /// <summary>
         /// Gets or sets the conflict resolver to use when conflicts arise
@@ -104,11 +106,16 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Bracket operator for retrieving <see cref="Document"/>s
+        /// Gets the total number of documents in the database
         /// </summary>
-        /// <param name="id">The ID of the <see cref="Document"/> to retrieve</param>
-        /// <returns>The instantiated <see cref="Document"/></returns>
-        public Document this[string id] => GetDocument(id);
+        public ulong DocumentCount => Native.c4db_getDocumentCount(_c4db);
+
+        /// <summary>
+        /// Bracket operator for retrieving <see cref="DocumentFragment"/> objects
+        /// </summary>
+        /// <param name="id">The ID of the <see cref="DocumentFragment"/> to retrieve</param>
+        /// <returns>The instantiated <see cref="DocumentFragment"/></returns>
+        public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
 
         /// <summary>
         /// Gets the name of the database
@@ -190,17 +197,23 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <c>name</c> is <c>null</c></exception>
         /// <exception cref="ArgumentException"><c>name</c> contains invalid characters</exception> 
         /// <exception cref="LiteCoreException">An error occurred during LiteCore interop</exception>
-        public Database(string name) : this(name, new DatabaseConfiguration())
+        public Database(string name) : this(name, new DatabaseOptions())
         {
             
         }
 
-        public Database(string name, DatabaseConfiguration options) 
+        public Database(string name, DatabaseOptions options) 
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
-            Config = options;
+            Options = options;
             Open();
             _sharedStrings = new SharedStringCache(_c4db);
+        }
+
+        public Database(Database other)
+            : this(other.Name, other.Options)
+        {
+            
         }
 
         ~Database()
@@ -413,9 +426,9 @@ namespace Couchbase.Lite
         /// <returns>Whether or not the document was actually purged.</returns>
         /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
         /// other than the one it was previously added to</exception>
-        public bool Purge(Document document)
+        public void Purge(Document document)
         {
-            return _threadSafety.DoLocked(() => VerifyDB(document).Purge());
+            _threadSafety.DoLocked(() => VerifyDB(document).Purge());
         }
 
         /// <summary>
@@ -468,26 +481,73 @@ namespace Couchbase.Lite
         }
 
         [MonoPInvokeCallback(typeof(C4LogCallback))]
-        private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, C4Slice msg)
+        private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, string message, IntPtr argsAddress)
         {
+            var format = new StringBuilder();
+            var args = ConvertFormat(format, message, argsAddress);
             var name = Native.c4log_getDomainName(domain);
             switch(level) {
                 case C4LogLevel.Error:
-                    Log.To.DomainOrLiteCore(name).E(name, msg.CreateString());
+                    Log.To.DomainOrLiteCore(name).E(name, format.ToString(), args);
                     break;
                 case C4LogLevel.Warning:
-                    Log.To.DomainOrLiteCore(name).W(name, msg.CreateString());
+                    Log.To.DomainOrLiteCore(name).W(name, format.ToString(), args);
                     break;
                 case C4LogLevel.Info:
-                    Log.To.DomainOrLiteCore(name).I(name, msg.CreateString());
+                    Log.To.DomainOrLiteCore(name).I(name, format.ToString(), args);
                     break;
                 case C4LogLevel.Verbose:
-                    Log.To.DomainOrLiteCore(name).V(name, msg.CreateString());
+                    Log.To.DomainOrLiteCore(name).V(name, format.ToString(), args);
                     break;
                 case C4LogLevel.Debug:
-                    Log.To.DomainOrLiteCore(name).D(name, msg.CreateString());
+                    Log.To.DomainOrLiteCore(name).D(name, format.ToString(), args);
                     break;
             }
+        }
+
+        private static object[] ConvertFormat(StringBuilder buf, string format, IntPtr argsAddress)
+        {
+            bool previousPercent = false;
+            int count = 0;
+            var formats = new List<char>();
+            foreach (var c in format) {
+                if (previousPercent) {
+                    switch (c) {
+                        case '%':
+                            buf.Append("%");
+                            break;
+                        case 's':
+                        case 'd':
+                            formats.Add(c);
+                            buf.Append($"{{{count++}}}");
+                            break;
+                    }
+
+                    previousPercent = false;
+                } else {
+                    if (c == '%') {
+                        previousPercent = true;
+                    } else {
+                        buf.Append(c);
+                    }
+                }
+            }
+
+            var retVal = new object[count];
+            var pointers = new IntPtr[count];
+            Marshal.Copy(argsAddress, pointers, 0, count);
+            for (int i = 0; i < count; i++) {
+                switch (formats[i]) {
+                    case 's':
+                        retVal[i] = Marshal.PtrToStringAnsi(pointers[i]);
+                        break;
+                    case 'd':
+                        retVal[i] = pointers[i].ToInt64();
+                        break;
+                }
+            }
+
+            return retVal;
         }
 
         private void CheckOpen()
@@ -539,15 +599,15 @@ namespace Couchbase.Lite
             }
 
             Debug.WriteLine("OPEN!");
-            System.IO.Directory.CreateDirectory(Directory(Config.Directory));
-            var path = DatabasePath(Name, Config.Directory);
+            System.IO.Directory.CreateDirectory(Directory(Options.Directory));
+            var path = DatabasePath(Name, Options.Directory);
             var config = _DBConfig;
-            //if(Config.ReadOnly) {
+            //if(Options.ReadOnly) {
             //    config.flags |= C4DatabaseFlags.ReadOnly;
             //}
 
             var encrypted = "";
-            if(Config.EncryptionKey != null) {
+            if(Options.EncryptionKey != null) {
 #if true
                 throw new NotImplementedException("Encryption is not yet supported");
 #else
@@ -598,15 +658,14 @@ namespace Couchbase.Lite
 
         private Document VerifyDB(Document document)
         {
-            var doc = document as Document ?? throw new InvalidOperationException("Custom IDocument not supported");
-            if (doc.Database == null) {
-                doc.Database = this;
-            } else if (doc.Database != this) {
-                throw new CouchbaseLiteException("Cannot delete a document from another database",
+            if (document.Database == null) {
+                document.Database = this;
+            } else if (document.Database != this) {
+                throw new CouchbaseLiteException("Cannot operate on a document from another database",
                     StatusCode.Forbidden);
             }
 
-            return doc;
+            return document;
         }
 
         #endregion

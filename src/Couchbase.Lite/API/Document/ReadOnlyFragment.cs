@@ -78,11 +78,7 @@ namespace Couchbase.Lite
 
         public bool ToBoolean()
         {
-            try {
-                return Convert.ToBoolean(Value);
-            } catch (InvalidCastException) {
-                return false;
-            }
+            return DataOps.ConvertToBoolean(Value);
         }
 
         public DateTimeOffset ToDate()
@@ -126,9 +122,9 @@ namespace Couchbase.Lite
             return Value;
         }
 
-        public ReadOnlySubdocument ToSubdocument()
+        public ReadOnlyDictionary ToDictionary()
         {
-            return Value as ReadOnlySubdocument;
+            return Value as ReadOnlyDictionary;
         }
 
         #endregion

@@ -21,14 +21,21 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Serialization;
+using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
-    public class ReadOnlyArray : IReadOnlyArray
+    public unsafe class ReadOnlyArray : IReadOnlyArray
     {
+        private readonly FLArray* _array;
+        private SharedStringCache _sharedKeys;
+
         #region Properties
 
-        public virtual int Count => Data.Count;
+        public virtual int Count => (int) Native.FLArray_Count(_array);
 
         public ReadOnlyFragment this[int index]
         {
@@ -38,18 +45,31 @@ namespace Couchbase.Lite
             }
         }
 
-        internal IReadOnlyArray Data { get; set; }
+        internal FleeceArray Data { get; set; }
 
         #endregion
 
         #region Constructors
 
-        internal ReadOnlyArray(IReadOnlyArray data)
+        internal ReadOnlyArray(FleeceArray data)
         {
             Data = data;
+            _array = data != null ? data.Array : null;
+            _sharedKeys = data?.Database?.SharedStrings;
         }
 
         #endregion
+
+        private object FleeceValueToObject(int index)
+        {
+            var value = Native.FLArray_Get(_array, (uint) index);
+            if (value != null) {
+                var c4Doc = Data != null ? Data.C4Doc : null;
+                return FLValueConverter.ToCouchbaseObject(value, _sharedKeys, c4Doc, Data?.Database);
+            }
+
+            return null;
+        }
 
         #region IEnumerable
 
@@ -73,72 +93,57 @@ namespace Couchbase.Lite
 
         public IReadOnlyArray GetArray(int index)
         {
-            return Data.GetArray(index);
+            return FleeceValueToObject(index) as IReadOnlyArray;
         }
 
         public virtual Blob GetBlob(int index)
         {
-            return Data.GetBlob(index);
+            return FleeceValueToObject(index) as Blob;
         }
 
         public virtual bool GetBoolean(int index)
         {
-            return Data.GetBoolean(index);
+            return Native.FLValue_AsBool(Native.FLArray_Get(_array, (uint) index));
         }
 
         public virtual DateTimeOffset GetDate(int index)
         {
-            return Data.GetDate(index);
+            return DataOps.ConvertToDate(FleeceValueToObject(index) as string);
         }
 
         public virtual double GetDouble(int index)
         {
-            return Data.GetDouble(index);
+            return Native.FLValue_AsDouble(Native.FLArray_Get(_array, (uint)index));
         }
 
         public virtual int GetInt(int index)
         {
-            return Data.GetInt(index);
+            return (int)Native.FLValue_AsInt(Native.FLArray_Get(_array, (uint)index));
         }
 
         public virtual long GetLong(int index)
         {
-            return Data.GetLong(index);
+            return Native.FLValue_AsInt(Native.FLArray_Get(_array, (uint)index));
         }
 
         public virtual object GetObject(int index)
         {
-            return Data.GetObject(index);
+            return FleeceValueToObject(index);
         }
 
         public virtual string GetString(int index)
         {
-            return Data.GetString(index);
+            return FleeceValueToObject(index) as string;
         }
 
-        public ReadOnlySubdocument GetSubdocument(int index)
+        public IReadOnlyDictionary GetDictionary(int index)
         {
-            return Data.GetSubdocument(index);
+            return FleeceValueToObject(index) as IReadOnlyDictionary;
         }
 
         public virtual IList<object> ToList()
         {
-            var array = new List<object>();
-            foreach(var value in Data) {
-                switch (value) {
-                    case IReadOnlyDictionary d:
-                        array.Add(d.ToDictionary());
-                        break;
-                    case IReadOnlyArray a:
-                        array.Add(a.ToList());
-                        break;
-                    default:
-                        array.Add(value);
-                        break;
-                }
-            }
-
-            return array;
+            return Data.ToList();
         }
 
         #endregion

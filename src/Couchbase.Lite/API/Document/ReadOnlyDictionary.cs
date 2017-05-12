@@ -21,41 +21,83 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-
+using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
+using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
-    public class ReadOnlyDictionary : IReadOnlyDictionary
+    public unsafe class ReadOnlyDictionary : IReadOnlyDictionary
     {
         #region Variables
 
         internal readonly ThreadSafety _threadSafety = new ThreadSafety();
+        private readonly FLDict* _dict;
+        private readonly SharedStringCache _sharedKeys;
 
         #endregion
 
         #region Properties
 
-        public virtual int Count => Data.Count;
+        public virtual int Count => (int)Native.FLDict_Count(_dict);
 
         public ReadOnlyFragment this[string key] => new ReadOnlyFragment(GetObject(key));
 
-        public virtual ICollection<string> Keys => Data.Keys;
+        public virtual ICollection<string> Keys
+        {
+            get {
+                var keys = new List<string>();
+                if (_dict != null) {
+                    FLDictIterator iter;
+                    Native.FLDictIterator_Begin(_dict, &iter);
+                    string key;
+                    while (null != (key = _sharedKeys.GetDictIterKey(&iter))) {
+                        keys.Add(key);
+                        Native.FLDictIterator_Next(&iter);
+                    }
+                }
 
-        internal IReadOnlyDictionary Data { get; set; }
+                return keys;
+            }
+        }
 
-        internal virtual bool IsEmpty => Data?.Count == 0;
+        internal FleeceDictionary Data { get; set; }
+
+        internal virtual bool IsEmpty => Count == 0;
 
         #endregion
 
         #region Constructors
 
-        internal ReadOnlyDictionary(IReadOnlyDictionary data)
+        internal ReadOnlyDictionary(FleeceDictionary data)
         {
             Data = data;
+            _dict = data != null ? data.Dict : null;
+            _sharedKeys = data?.Database?.SharedStrings;
         }
 
         #endregion
+
+        private FLValue* FleeceValueForKey(string key)
+        {
+            if (_sharedKeys == null) {
+                return null;
+            }
+
+            return _sharedKeys.GetDictValue(_dict, key);
+        }
+
+        private object FleeceValueToObject(string key)
+        {
+            var value = FleeceValueForKey(key);
+            if (value != null) {
+                var c4Doc = Data != null ? Data.C4Doc : null;
+                return FLValueConverter.ToCouchbaseObject(value, _sharedKeys, c4Doc, Data?.Database);
+            }
+
+            return null;
+        }
 
         #region IEnumerable
 
@@ -70,7 +112,7 @@ namespace Couchbase.Lite
 
         public virtual IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
-            return Data.GetEnumerator();
+            return new Enumerator(this);
         }
 
         #endregion
@@ -79,63 +121,64 @@ namespace Couchbase.Lite
 
         public virtual bool Contains(string key)
         {
-            return Data.Contains(key);
+            var type = Native.FLValue_GetType(FleeceValueForKey(key));
+            return type != FLValueType.Undefined;
         }
 
         public IReadOnlyArray GetArray(string key)
         {
-            return Data.GetArray(key);
+            return FleeceValueToObject(key) as IReadOnlyArray;
         }
 
         public virtual Blob GetBlob(string key)
         {
-            return Data.GetBlob(key);
+            return FleeceValueToObject(key) as Blob;
         }
 
         public virtual bool GetBoolean(string key)
         {
-            return Data.GetBoolean(key);
+            return Native.FLValue_AsBool(FleeceValueForKey(key));
         }
 
         public virtual DateTimeOffset GetDate(string key)
         {
-            return Data.GetDate(key);
+            return DataOps.ConvertToDate(FleeceValueToObject(key));
         }
 
         public virtual double GetDouble(string key)
         {
-            return Data.GetDouble(key);
+            return Native.FLValue_AsDouble(FleeceValueForKey(key));
         }
 
         public virtual int GetInt(string key)
         {
-            return Data.GetInt(key);
+            return (int)Native.FLValue_AsInt(FleeceValueForKey(key));
         }
 
         public virtual long GetLong(string key)
         {
-            return Data.GetLong(key);
+            return Native.FLValue_AsInt(FleeceValueForKey(key));
         }
 
         public virtual object GetObject(string key)
         {
-            return Data.GetObject(key);
+            return FleeceValueToObject(key);
         }
 
         public virtual string GetString(string key)
         {
-            return Data.GetString(key);
+            return FleeceValueToObject(key) as string;
         }
 
-        public ReadOnlySubdocument GetSubdocument(string key)
+        public IReadOnlyDictionary GetDictionary(string key)
         {
-            return Data.GetSubdocument(key);
+            return FleeceValueToObject(key) as IReadOnlyDictionary;
         }
 
         public virtual IDictionary<string, object> ToDictionary()
         {
             var dict = new Dictionary<string, object>();
-            foreach (var pair in Data) {
+            foreach (var pair in this) {
                 switch(pair.Value) {
                     case IReadOnlyDictionary d:
                         dict[pair.Key] = d.ToDictionary();
@@ -153,6 +196,82 @@ namespace Couchbase.Lite
         }
 
         #endregion
+
+        private class Enumerator : IEnumerator<KeyValuePair<string, object>>
+        {
+            #region Variables
+
+            private readonly ReadOnlyDictionary _parent;
+            private bool _first;
+            private FLDictIterator _iter;
+
+            #endregion
+
+            #region Properties
+
+            public KeyValuePair<string, object> Current
+            {
+                get {
+                    fixed (FLDictIterator* i = &_iter) {
+                        var key = _parent._sharedKeys.GetDictIterKey(i);
+                        var value = _parent.GetObject(key);
+                        return new KeyValuePair<string, object>(key, value);
+                    }
+                }
+            }
+
+            object IEnumerator.Current => Current;
+
+            #endregion
+
+            #region Constructors
+
+            public Enumerator(ReadOnlyDictionary parent)
+            {
+                _parent = parent;
+                _first = true;
+            }
+
+            #endregion
+
+            #region IDisposable
+
+            public void Dispose()
+            {
+                // No-op
+            }
+
+            #endregion
+
+            #region IEnumerator
+
+            public bool MoveNext()
+            {
+                if (_first) {
+                    if (_parent._dict == null) {
+                        return false;
+                    }
+
+                    _first = false;
+                    fixed (FLDictIterator* i = &_iter) {
+                        Native.FLDictIterator_Begin(_parent._dict, i);
+                    }
+
+                    return true;
+                }
+
+                fixed (FLDictIterator* i = &_iter) {
+                    return Native.FLDictIterator_Next(i);
+                }
+            }
+
+            public void Reset()
+            {
+                _first = true;
+            }
+
+            #endregion
+        }
 
     }
 }

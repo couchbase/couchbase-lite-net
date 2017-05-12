@@ -59,7 +59,7 @@ namespace Test
 
         protected Database Db { get; private set; }
 
-        private static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
+        protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
@@ -83,13 +83,27 @@ namespace Test
 #endif
         }
 
+        protected Document SaveDocument(Document document)
+        {
+            Db.Save(document);
+            return Db.GetDocument(document.Id);
+        }
+
+        protected Document SaveDocument(Document document, Action<Document> eval)
+        {
+            eval(document);
+            document = SaveDocument(document);
+            eval(document);
+            return document;
+        }
+
         protected void OpenDB()
         {
             if(Db != null) {
                 throw new InvalidOperationException();
             }
 
-            var options = new DatabaseConfiguration(new DatabaseConfiguration.Builder {
+            var options = new DatabaseOptions(new DatabaseOptions.Builder {
                 Directory = Directory
             });
             Db = new Database(DatabaseName, options);

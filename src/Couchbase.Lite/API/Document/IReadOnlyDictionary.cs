@@ -55,7 +55,7 @@ namespace Couchbase.Lite
 
         string GetString(string key);
 
-        ReadOnlySubdocument GetSubdocument(string key);
+        IReadOnlyDictionary GetDictionary(string key);
 
         IDictionary<string, object> ToDictionary();
 

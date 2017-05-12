@@ -85,7 +85,7 @@ namespace Couchbase.Lite
         #region Constructors
 
         public ArrayObject()
-            : this(new FleeceArray())
+            : this(default(FleeceArray))
         {
             
         }
@@ -96,7 +96,7 @@ namespace Couchbase.Lite
             Set(array);
         }
 
-        public ArrayObject(IReadOnlyArray data)
+        internal ArrayObject(FleeceArray data)
             : base(data)
         {
             _list = new List<object>();
@@ -112,7 +112,7 @@ namespace Couchbase.Lite
             var count = base.Count;
             for (int i = 0; i < count; i++) {
                 var value = base.GetObject(i);
-                _list.Add(PrepareValue(value));
+                _list.Add(DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
             }
         }
 
@@ -126,12 +126,6 @@ namespace Couchbase.Lite
             SetChanged();
         }
 
-        private object PrepareValue(object value)
-        {
-            DataOps.ValidateValue(value);
-            return DataOps.ConvertValue(value, ObjectChanged, ObjectChanged);
-        }
-
         private void RemoveAllChangedListeners()
         {
             foreach (var obj in _list) {
@@ -142,8 +136,8 @@ namespace Couchbase.Lite
         private void RemoveChangedListener(object value)
         {
             switch (value) {
-                case Subdocument subdoc:
-                    subdoc.Dictionary.Changed -= ObjectChanged;
+                case DictionaryObject subdoc:
+                    subdoc.Changed -= ObjectChanged;
                     break;
                 case ArrayObject array:
                     array.Changed -= ObjectChanged;
@@ -184,67 +178,31 @@ namespace Couchbase.Lite
         public override bool GetBoolean(int index)
         {
             var value = _list[index];
-            if (value == null) {
-                return false;
-            }
-
-            try {
-                return Convert.ToBoolean(value);
-            } catch (InvalidCastException) {
-                return false;
-            }
+            return DataOps.ConvertToBoolean(value);
         }
 
         public override DateTimeOffset GetDate(int index)
         {
-            var value = _list[index] as string;
-            if (value == null) {
-                return DateTimeOffset.MinValue;
-            }
-
-            return DateTimeOffset.ParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None);
+            var value = _list[index];
+            return DataOps.ConvertToDate(value);
         }
 
         public override double GetDouble(int index)
         {
             var value = _list[index];
-            if (value == null) {
-                return 0.0;
-            }
-
-            try {
-                return Convert.ToDouble(value);
-            } catch (InvalidCastException) {
-                return 0.0;
-            }
+            return DataOps.ConvertToDouble(value);
         }
 
         public override int GetInt(int index)
         {
             var value = _list[index];
-            if (value == null) {
-                return 0;
-            }
-
-            try {
-                return Convert.ToInt32(value);
-            } catch (InvalidCastException) {
-                return 0;
-            }
+            return DataOps.ConvertToInt(value);
         }
 
         public override long GetLong(int index)
         {
             var value = _list[index];
-            if (value == null) {
-                return 0L;
-            }
-
-            try {
-                return Convert.ToInt64(value);
-            } catch (InvalidCastException) {
-                return 0L;
-            }
+            return DataOps.ConvertToLong(value);
         }
 
         public override object GetObject(int index)
@@ -281,31 +239,31 @@ namespace Couchbase.Lite
 
         #region IArray
 
-        public ArrayObject Add(object value)
+        public IArray Add(object value)
         {
-            _list.Add(PrepareValue(value));
+            _list.Add(DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
             SetChanged();
             return this;
         }
 
-        public new ArrayObject GetArray(int index)
+        public new IArray GetArray(int index)
         {
-            return _list[index] as ArrayObject;
+            return _list[index] as IArray;
         }
 
-        public new Subdocument GetSubdocument(int index)
+        public new IDictionaryObject GetDictionary(int index)
         {
-            return _list[index] as Subdocument;
+            return _list[index] as IDictionaryObject;
         }
 
-        public ArrayObject Insert(int index, object value)
+        public IArray Insert(int index, object value)
         {
-            _list.Insert(index, PrepareValue(value));
+            _list.Insert(index, DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
             SetChanged();
             return this;
         }
 
-        public ArrayObject RemoveAt(int index)
+        public IArray RemoveAt(int index)
         {
             var value = _list[index];
             RemoveChangedListener(value);
@@ -314,13 +272,13 @@ namespace Couchbase.Lite
             return this;
         }
 
-        public ArrayObject Set(IList array)
+        public IArray Set(IList array)
         {
             RemoveAllChangedListeners();
 
             var result = new List<object>();
             foreach (var item in array) {
-                result.Add(PrepareValue(item));
+                result.Add(DataOps.ConvertValue(item, ObjectChanged, ObjectChanged));
             }
 
             _list = result;
@@ -328,11 +286,11 @@ namespace Couchbase.Lite
             return this;
         }
 
-        public ArrayObject Set(int index, object value)
+        public IArray Set(int index, object value)
         {
             var oldValue = _list[index];
             if (value?.Equals(oldValue) == false) {
-                value = PrepareValue(value);
+                value = DataOps.ConvertValue(value, ObjectChanged, ObjectChanged);
                 RemoveChangedListener(oldValue);
                 SetValue(index, value, true);
             }

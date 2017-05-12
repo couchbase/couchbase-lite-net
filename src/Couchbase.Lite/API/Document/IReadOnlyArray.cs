@@ -26,7 +26,7 @@ namespace Couchbase.Lite
 
         IReadOnlyArray GetArray(int index);
 
-        ReadOnlySubdocument GetSubdocument(int index);
+        IReadOnlyDictionary GetDictionary(int index);
 
         IList<object> ToList();
     }

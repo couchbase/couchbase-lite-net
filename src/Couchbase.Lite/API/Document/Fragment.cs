@@ -94,14 +94,14 @@ namespace Couchbase.Lite
 
         #region IObjectFragment
 
-        public new ArrayObject ToArray()
+        public new IArray ToArray()
         {
-            return _value as ArrayObject;
+            return _value as IArray;
         }
 
-        public new Subdocument ToSubdocument()
+        public new IDictionaryObject ToDictionary()
         {
-            return _value as Subdocument;
+            return _value as IDictionaryObject;
         }
 
         #endregion

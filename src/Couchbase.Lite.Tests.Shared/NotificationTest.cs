@@ -60,7 +60,7 @@ namespace Test
             Db.InBatch(() =>
             {
                 for (uint i = 0; i < 10; i++) {
-                    var doc = Db[$"doc-{i}"];
+                    var doc = Db.GetDocument($"doc-{i}");
                     doc.Set("type", "demo");
                     Db.Save(doc);
                 }

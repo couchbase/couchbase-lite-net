@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Internal.Serialization
                         var type = TypeForDict(dict, sharedKeys);
                         if (type.buf == null) {
                             var data = new FleeceDictionary(dict, document, database);
-                            return new ReadOnlySubdocument(data);
+                            return new ReadOnlyDictionary(data);
                         }
 
                         var result = ToObject(value, sharedKeys) as IDictionary<string, object>;
