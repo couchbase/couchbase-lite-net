@@ -83,38 +83,22 @@ namespace Couchbase.Lite
 
         public DateTimeOffset ToDate()
         {
-            if (Value is DateTimeOffset dto) {
-                return dto;
-            }
-
-            return DateTimeOffset.MinValue;
+            return DataOps.ConvertToDate(Value);
         }
 
         public double ToDouble()
         {
-            try {
-                return Convert.ToDouble(Value);
-            } catch (InvalidCastException) {
-                return 0;
-            }
+            return DataOps.ConvertToDouble(Value);
         }
 
         public int ToInt()
         {
-            try {
-                return Convert.ToInt32(Value);
-            } catch (InvalidCastException) {
-                return 0;
-            }
+            return DataOps.ConvertToInt(Value);
         }
 
         public long ToLong()
         {
-            try {
-                return Convert.ToInt64(Value);
-            } catch (InvalidCastException) {
-                return 0;
-            }
+            return DataOps.ConvertToLong(Value);
         }
 
         public object ToObject()

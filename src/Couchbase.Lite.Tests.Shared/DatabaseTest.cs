@@ -21,6 +21,7 @@
 
 using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
@@ -71,7 +72,7 @@ namespace Test
         {
             using (var db = OpenDB("`~@#$%&'()_+{}][=-.,;'")) {
                 db.Name.Should().Be("`~@#$%&'()_+{}][=-.,;'", "because that is the (weird) name that was set");
-                Path.GetExtension(db.Path).Should().Be(".cblite2", "because that is the current DB extension");
+                Path.GetDirectoryName(db.Path).Should().EndWith(".cblite2", "because that is the current DB extension");
                 db.DocumentCount.Should().Be(0UL, "because the database is empty");
 
                 db.Delete();
@@ -103,7 +104,7 @@ namespace Test
             var options = DatabaseOptions.Default;
             options.Directory = dir;
             using (var db = new Database("db", options)) {
-                Path.GetExtension(db.Path).Should().Be(".cblite2", "because that is the current CBL extension");
+                Path.GetDirectoryName(db.Path).Should().EndWith(".cblite2", "because that is the current CBL extension");
                 db.Path.Should().Contain(dir, "because the directory should be present in the custom path");
                 Database.Exists("db", dir).Should().BeTrue("because it was just created");
                 db.DocumentCount.Should().Be(0, "because the database is empty");
@@ -113,7 +114,7 @@ namespace Test
         }
 
         [Fact(Skip = "Not yet implemented")]
-        public void TestCreateWitHCustomConflictResolver()
+        public void TestCreateWithCustomConflictResolver()
         {
             
         }
@@ -133,59 +134,630 @@ namespace Test
         }
 
         [Fact]
-        public void TestDelete()
+        public void TestGetExistingDocWithIDFromDifferentDBInstance()
         {
-            var path = Db.Path;
-            System.IO.Directory.Exists(path).Should().BeTrue("because otherwise the database was not created");
+            var docID = "doc1";
+            GenerateDocument(docID);
 
-            Db.Delete();
-            System.IO.Directory.Exists(path).Should().BeFalse("because otherwise the database was not deleted");
-        }
+            using (var otherDB = OpenDB(Db.Name)) {
+                otherDB.DocumentCount.Should()
+                    .Be(1UL, "because the other database instance should reflect existing data");
+                otherDB.DocumentExists(docID)
+                    .Should()
+                    .BeTrue("because the other database should know about the document");
 
-        [Fact]
-        public void TestCreateDocument()
-        {
-            using (var doc = new Document()) {
-                doc.Id.Should().NotBeNullOrEmpty("because every document should have an ID immediately");
-                doc.IsDeleted.Should().BeFalse("because the document is not deleted");
-                doc.ToDictionary().Should().BeEmpty("because no properties have been saved yet");
+                VerifyGetDocument(otherDB, docID);
             }
-
-            var docA = new Document("doc-a");
-            docA.Id.Should().Be("doc-a", "because that is the ID it was given");
-            docA.IsDeleted.Should().BeFalse("because the document is not deleted");
-            docA.ToDictionary().Should().BeEmpty("because no properties have been saved yet");
         }
 
         [Fact]
-        public void TestInBatch()
+        public void TestGetExistingDocWithIDInBatch()
         {
+            CreateDocs(10);
+
+            Db.InBatch(() => ValidateDocs(10));
+        }
+
+        [Fact]
+        public void TestGetDocFromClosedDB()
+        {
+            GenerateDocument("doc1");
+
+            Db.Close();
+
+            Db.Invoking(d => d.GetDocument("doc1"))
+                .ShouldThrow<InvalidOperationException>()
+                .WithMessage("Attempt to perform an operation on a closed database",
+                    "because this operation is invalid");
+        }
+
+        [Fact]
+        public void TestSaveNewDocWithID()
+        {
+            TestSaveNewDoc("doc1");
+        }
+
+        [Fact]
+        public void TestSaveNewDocWithSpecialCharactersDocID()
+        {
+            TestSaveNewDoc("`~@#$%^&*()_+{}|\\][=-/.,<>?\":;'");
+        }
+
+        [Fact]
+        public void TestSaveDoc()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            doc.Set("key", 2);
+            SaveDocument(doc);
+
+            Db.DocumentCount.Should().Be(1, "because a document was updated, not added");
+            Db.DocumentExists(docID).Should().BeTrue("because the document still exists");
+
+            VerifyGetDocument(docID, 2);
+        }
+
+        [Fact]
+        public void TestSaveDocInDifferentDBInstance()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+            using (var otherDB = OpenDB(Db.Name)) {
+                otherDB.DocumentCount.Should()
+                    .Be(1UL, "because the other database instance should reflect existing data");
+                doc.Set("key", 2);
+                otherDB.Invoking(d => d.Save(doc))
+                    .ShouldThrow<CouchbaseLiteException>()
+                    .Which.Code.Should()
+                    .Be(StatusCode.Forbidden, "because a document cannot be saved into another database instance");
+            }
+        }
+
+        [Fact]
+        public void TestSaveDocInDifferentDB()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+            using (var otherDB = OpenDB("otherDB")) {
+                otherDB.DocumentCount.Should()
+                    .Be(0UL, "because the other database is empty");
+                doc.Set("key", 2);
+                otherDB.Invoking(d => d.Save(doc))
+                    .ShouldThrow<CouchbaseLiteException>()
+                    .Which.Code.Should()
+                    .Be(StatusCode.Forbidden, "because a document cannot be saved into another database");
+                DeleteDB(otherDB);
+            }
+        }
+
+        [Fact]
+        public void TestSaveSameDocTwice()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            SaveDocument(doc);
+
+            doc.Id.Should().Be(docID, "because the doc ID should never change");
+            Db.DocumentCount.Should().Be(1UL, "because there is still only one document");
+        }
+
+        [Fact]
+        public void TestSaveInBatch()
+        {
+            Db.InBatch(() => CreateDocs(10));
+            Db.DocumentCount.Should().Be(10UL, "because 10 documents were added");
+
+            ValidateDocs(10);
+        }
+
+        [Fact]
+        public void TestSaveDocToClosedDB()
+        {
+            Db.Close();
+            var doc = new Document("doc1");
+            doc.Set("key", 1);
+
+            Db.Invoking(d => d.Save(doc))
+                .ShouldThrow<InvalidOperationException>()
+                .WithMessage("Attempt to perform an operation on a closed database",
+                    "because this operation is invalid");
+        }
+
+        [Fact]
+        public void TestSaveDocToDeletedDB()
+        {
+            DeleteDB(Db);
+            var doc = new Document("doc1");
+            doc.Set("key", 1);
+
+            Db.Invoking(d => d.Save(doc))
+                .ShouldThrow<InvalidOperationException>()
+                .WithMessage("Attempt to perform an operation on a closed database",
+                    "because this operation is invalid");
+        }
+
+        [Fact]
+        public void TestDeletePreSaveDoc()
+        {
+            var doc = new Document("doc1");
+            doc.Set("key", 1);
+
+            Db.Invoking(d => d.Delete(doc))
+                .ShouldThrow<CouchbaseLiteException>()
+                .Which.Code.Should()
+                .Be(StatusCode.NotFound, "because deleting a non-existent document is not allowed");
+            Db.DocumentCount.Should().Be(0UL, "because the database should still be empty");
+        }
+
+        [Fact]
+        public void TestDeleteDoc()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            Db.Delete(doc);
+            Db.DocumentCount.Should().Be(0UL, "because the only document was deleted");
+
+            doc.Id.Should().Be(docID, "because the document ID should never change");
+            doc.IsDeleted.Should().BeTrue("because the document was deleted");
+            doc.Sequence.Should().Be(2UL, "because the deletion is the second revision");
+            doc.GetObject("key").Should().BeNull("because a deleted document has no properties");
+        }
+
+        [Fact]
+        public void TestDeleteDocInDifferentDBInstance()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            using (var otherDB = OpenDB(Db.Name)) {
+                otherDB.DocumentCount.Should()
+                    .Be(1UL, "because the other database instance should reflect existing data");
+                otherDB.Invoking(d => d.Delete(doc))
+                    .ShouldThrow<CouchbaseLiteException>()
+                    .Which.Code.Should()
+                    .Be(StatusCode.Forbidden, "because a document cannot be deleted from another database instance");
+
+                otherDB.DocumentCount.Should().Be(1UL, "because the delete failed");
+                Db.DocumentCount.Should().Be(1UL, "because the delete failed");
+                doc.IsDeleted.Should().BeFalse("because the delete failed");
+            }
+        }
+
+        [Fact]
+        public void TestDeleteDocInDifferentDB()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            using (var otherDB = OpenDB("otherDB")) {
+                otherDB.DocumentCount.Should()
+                    .Be(0UL, "because the other database should be empty");
+                otherDB.Invoking(d => d.Delete(doc))
+                    .ShouldThrow<CouchbaseLiteException>()
+                    .Which.Code.Should()
+                    .Be(StatusCode.Forbidden, "because a document cannot be deleted from another database");
+
+                otherDB.DocumentCount.Should().Be(0UL, "because the database is still empty");
+                Db.DocumentCount.Should().Be(1UL, "because the delete failed");
+                doc.IsDeleted.Should().BeFalse("because the delete failed");
+
+                otherDB.Delete();
+            }
+        }
+
+        [Fact]
+        public void TestDeleteSameDocTwice()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            Db.Delete(doc);
+            Db.DocumentCount.Should().Be(0UL, "because the only document was deleted");
+            doc.GetObject("key").Should().BeNull("because a deleted document has no properties");
+            doc.IsDeleted.Should().BeTrue("because the document was deleted");
+            doc.Sequence.Should().Be(2UL, "because the deletion is the second revision");
+
+            // Second deletion
+            Db.Delete(doc);
+            Db.DocumentCount.Should().Be(0UL, "because the only document was deleted");
+            doc.GetObject("key").Should().BeNull("because a deleted document has no properties");
+            doc.IsDeleted.Should().BeTrue("because the document was deleted");
+            doc.Sequence.Should().Be(3UL, "because the deletion is the third revision");
+        }
+
+        [Fact]
+        public void TestDeleteDocInBatch()
+        {
+            CreateDocs(10);
             Db.InBatch(() =>
             {
-                for (var i = 0; i < 10; i++) {
-                    var docId = $"doc{i}";
-                    var doc = new Document(docId);
-                    Db.Save(doc);
+                for (int i = 0; i < 10; i++) {
+                    var docID = $"doc_{i:D3}";
+                    var doc = Db.GetDocument(docID);
+                    Db.Delete(doc);
+                    doc.IsDeleted.Should().BeTrue("because the doc was just deleted");
+                    doc.GetObject("key").Should().BeNull("because deleted docs have no properties");
+                    Db.DocumentCount.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
                 }
             });
 
-            for (var i = 0; i < 10; i++) {
-                Db.GetDocument($"doc{i}").Should().NotBeNull("because otherwise the insertion in batch failed");
+            Db.DocumentCount.Should().Be(0, "because all documents were deleted");
+        }
+
+        [Fact]
+        public void TestDeleteDocOnClosedDB()
+        {
+            var doc = GenerateDocument("doc1");
+
+            Db.Close();
+            Db.Invoking(d => d.Delete(doc))
+                .ShouldThrow<InvalidOperationException>()
+                .WithMessage("Attempt to perform an operation on a closed database",
+                    "because this operation is invalid");
+        }
+
+        [Fact]
+        public void TestDeleteDocOnDeletedDB()
+        {
+            var doc = GenerateDocument("doc1");
+
+            DeleteDB(Db);
+            Db.Invoking(d => d.Delete(doc))
+                .ShouldThrow<InvalidOperationException>()
+                .WithMessage("Attempt to perform an operation on a closed database",
+                    "because this operation is invalid");
+        }
+
+        [Fact]
+        public void TestPurgePreSaveDoc()
+        {
+            var doc = new Document("doc1");
+            doc.Set("key", 1);
+
+            Db.Invoking(d => d.Purge(doc))
+                .ShouldThrow<CouchbaseLiteException>()
+                .Which.Code.Should()
+                .Be(StatusCode.NotFound, "because deleting a non-existent document is not allowed");
+            Db.DocumentCount.Should().Be(0UL, "because the database should still be empty");
+        }
+
+        [Fact]
+        public void TestPurgeDoc()
+        {
+            var doc = GenerateDocument("doc1");
+            PurgeDocAndVerify(doc);
+            Db.DocumentCount.Should().Be(0UL, "because the only document was purged");
+            SaveDocument(doc);
+            doc.Sequence.Should().Be(2UL, "because it is the second entry into the database");
+        }
+
+        [Fact]
+        public void TestPurgeDocInDifferentDBInstance()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            using (var otherDB = OpenDB(Db.Name)) {
+                otherDB.DocumentCount.Should()
+                    .Be(1UL, "because the other database instance should reflect existing data");
+                otherDB.Invoking(d => d.Purge(doc))
+                    .ShouldThrow<CouchbaseLiteException>()
+                    .Which.Code.Should()
+                    .Be(StatusCode.Forbidden, "because a document cannot be purged from another database instance");
+
+                otherDB.DocumentCount.Should().Be(1UL, "because the delete failed");
+                Db.DocumentCount.Should().Be(1UL, "because the delete failed");
+                doc.IsDeleted.Should().BeFalse("because the delete failed");
             }
         }
 
-        private Database OpenDB(string name)
+        [Fact]
+        public void TestPurgeDocInDifferentDB()
         {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            using (var otherDB = OpenDB("otherDB")) {
+                otherDB.DocumentCount.Should()
+                    .Be(0UL, "because the other database should be empty");
+                otherDB.Invoking(d => d.Purge(doc))
+                    .ShouldThrow<CouchbaseLiteException>()
+                    .Which.Code.Should()
+                    .Be(StatusCode.Forbidden, "because a document cannot be purged from another database");
+
+                otherDB.DocumentCount.Should().Be(0UL, "because the database is still empty");
+                Db.DocumentCount.Should().Be(1UL, "because the delete failed");
+                doc.IsDeleted.Should().BeFalse("because the delete failed");
+
+                otherDB.Delete();
+            }
+        }
+
+        [Fact]
+        public void TestPurgeSameDocTwice()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            var doc1 = Db.GetDocument(docID);
+            doc1.Should().NotBeNull("because the document was just created and it should exist");
+
+            PurgeDocAndVerify(doc);
+            Db.DocumentCount.Should().Be(0UL, "because the only document was purged");
+
+            // Second purge
+            PurgeDocAndVerify(doc1);
+            Db.DocumentCount.Should().Be(0UL, "because the only document was purged");
+        }
+
+        [Fact]
+        public void TestPurgeInBatch()
+        {
+            CreateDocs(10);
+            Db.InBatch(() =>
+            {
+                for (int i = 0; i < 10; i++) {
+                    var docID = $"doc_{i:D3}";
+                    var doc = Db.GetDocument(docID);
+                    Db.Purge(doc);
+                    doc.IsDeleted.Should().BeFalse("because the doc has no more record");
+                    doc.GetObject("key").Should().BeNull("because deleted docs have no properties");
+                    Db.DocumentCount.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
+                }
+            });
+
+            Db.DocumentCount.Should().Be(0, "because all documents were purged");
+        }
+
+        [Fact]
+        public void TestPurgeDocOnClosedDB()
+        {
+            var doc = GenerateDocument("doc1");
+
+            Db.Close();
+            Db.Invoking(d => d.Purge(doc))
+                .ShouldThrow<InvalidOperationException>()
+                .WithMessage("Attempt to perform an operation on a closed database",
+                    "because this operation is invalid");
+        }
+
+        [Fact]
+        public void TestPurgeDocOnDeletedDB()
+        {
+            var doc = GenerateDocument("doc1");
+
+            DeleteDB(Db);
+            Db.Invoking(d => d.Purge(doc))
+                .ShouldThrow<InvalidOperationException>()
+                .WithMessage("Attempt to perform an operation on a closed database",
+                    "because this operation is invalid");
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void TestClose(int count)
+        {
+            for (int i = 0; i < count; i++) {
+                Db.Close();
+            }
+        }
+
+        [Fact]
+        public void TestCloseThenAccessDoc()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            Db.Close();
+
+            doc.Id.Should().Be(docID, "because a document's ID should never change");
+            doc.GetInt("key").Should().Be(1, "because the document's data should still be accessible");
+
+            // Modification should still succeed
+            doc.Set("key", 2);
+            doc.Set("key1", "value");
+        }
+
+        [Fact]
+        public void TestCloseThenAccessBlob()
+        {
+            var doc = GenerateDocument("doc1");
+            StoreBlob(Db, doc, Encoding.UTF8.GetBytes("12345"));
+
+            Db.Close();
+            var blob = doc.GetBlob("data");
+            blob.Should().NotBeNull("because the blob should still exist and be accessible");
+            blob.Length.Should().Be(5UL, "because the blob's metadata should still be accessible");
+            blob.Content.Should().BeNull("because the content cannot be read from a closed database");
+        }
+
+        [Fact]
+        public void TestCloseThenGetDatabaseName()
+        {
+            Db.Close();
+            Db.Name.Should().Be("testdb", "because the name of the database should still be accessible");
+        }
+
+        [Fact]
+        public void TestCloseThenGetDatabasePath()
+        {
+            Db.Close();
+            Db.Path.Should().BeNull("because a non-open database has no path");
+        }
+
+        [Fact]
+        public void TestCloseThenCallInBatch()
+        {
+            Db.Invoking(d => d.InBatch(() =>
+            {
+                Db.Close();
+            }))
+            .ShouldThrow<LiteCoreException>()
+            .Which.Error.Should()
+            .Match<C4Error>(
+                e => e.code == (int) LiteCoreError.TransactionNotClosed && e.domain == C4ErrorDomain.LiteCoreDomain,
+                "because a database can't be closed in the middle of a batch");
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2, Skip = "Known failure, possibly invalid")]
+        public void TestDelete(int count)
+        {
+            DeleteDB(Db);
+        }
+
+        [Fact]
+        public void TestDeleteThenAccessDoc()
+        {
+            var docID = "doc1";
+            var doc = GenerateDocument(docID);
+
+            DeleteDB(Db);
+
+            doc.Id.Should().Be(docID, "because a document's ID should never change");
+            doc.GetInt("key").Should().Be(1, "because the document's data should still be accessible");
+
+            // Modification should still succeed
+            doc.Set("key", 2);
+            doc.Set("key1", "value");
+        }
+
+        [Fact]
+        public void TestDeleteThenAccessBlob()
+        {
+            var doc = GenerateDocument("doc1");
+            StoreBlob(Db, doc, Encoding.UTF8.GetBytes("12345"));
+
+            DeleteDB(Db);
+            var blob = doc.GetBlob("data");
+            blob.Should().NotBeNull("because the blob should still exist and be accessible");
+            blob.Length.Should().Be(5UL, "because the blob's metadata should still be accessible");
+            blob.Content.Should().BeNull("because the content cannot be read from a closed database");
+            //TODO: TO BE CLARIFIED: Instead of returning null should a Forbidden exception be thrown?
+        }
+
+        [Fact]
+        public void TestDeleteThenGetDatabaseName()
+        {
+            DeleteDB(Db);
+            Db.Name.Should().Be("testdb", "because the name of the database should still be accessible");
+        }
+
+        [Fact]
+        public void TestDeleteThenGetDatabasePath()
+        {
+            DeleteDB(Db);
+            Db.Path.Should().BeNull("because a non-open database has no path");
+        }
+
+        [Fact]
+        public void TestDeleteThenCallInBatch()
+        {
+            Db.Invoking(d => d.InBatch(() =>
+            {
+                Db.Delete();
+            }))
+            .ShouldThrow<LiteCoreException>()
+            .Which.Error.Should()
+            .Match<C4Error>(
+                e => e.code == (int)LiteCoreError.TransactionNotClosed && e.domain == C4ErrorDomain.LiteCoreDomain,
+                "because a database can't be closed in the middle of a batch");
+        }
+
+        [Fact]
+        public void TestDeleteDBOpenByOtherInstance()
+        {
+            using (var otherDB = OpenDB(Db.Name)) {
+                Db.Invoking(d => d.Delete())
+                    .ShouldThrow<LiteCoreException>()
+                    .Which.Error.Should()
+                    .Match<C4Error>(e => e.code == (int) LiteCoreError.Busy &&
+                                         e.domain == C4ErrorDomain.LiteCoreDomain,
+                        "because an in-use database cannot be deleted");
+            }
+        }
+
+        [Fact]
+        public void TestDeleteByStaticMethod()
+        {
+            var dir = Directory;
             var options = DatabaseOptions.Default;
-            options.Directory = Directory;
-            return new Database(name, options);
+            options.Directory = dir;
+            string path = null;
+            using (var db = new Database("db", options)) {
+                path = db.Path;
+            }
+
+            Database.Delete("db", dir);
+            System.IO.Directory.Exists(path).Should().BeFalse("because the database was deleted");
+        }
+
+        [Fact]
+        public void TestDeleteOpeningDBByStaticMethod()
+        {
+            var dir = Directory;
+            var options = DatabaseOptions.Default;
+            options.Directory = dir;
+            string path = null;
+            using (var db = new Database("db", options)) {
+                LiteCoreException e = null;
+                try {
+                    Database.Delete("db", dir);
+                } catch (LiteCoreException ex) {
+                    e = ex;
+                    ex.Error.code.Should().Be((int) LiteCoreError.Busy, "because an in-use database cannot be deleted");
+                    ex.Error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain, "because this is a LiteCore error");
+                }
+
+                e.Should().NotBeNull("because an exception is expected");
+            }
+        }
+
+        [Fact]
+        public void TestDeleteNonExistingDB()
+        {
+            // Expect no-op
+            Database.Delete("notexistdb", Directory);
+        }
+
+        [Fact]
+        public void TestDatabaseExistsWithDir()
+        {
+            var dir = Directory;
+            Database.Delete("db", dir);
+            Database.Exists("db", dir).Should().BeFalse("because this database has not been created");
+
+            var options = DatabaseOptions.Default;
+            options.Directory = dir;
+            string path = null;
+            using (var db = new Database("db", options)) {
+                path = db.Path;
+                Database.Exists("db", dir).Should().BeTrue("because the database is now created");
+            }
+
+            Database.Exists("db", dir).Should().BeTrue("because the database still exists after close");
+            Database.Delete("db", dir);
+            System.IO.Directory.Exists(path).Should().BeFalse("because the database was deleted");
+            Database.Exists("db", dir).Should().BeFalse("because the database was deleted");
+        }
+
+        [Fact]
+        public void TestDatabaseExistsAainstNonExistDB()
+        {
+            Database.Exists("nonexist", Directory).Should().BeFalse("because that DB does not exist");
         }
 
         private void DeleteDB(Database db)
         {
-            File.Exists(db.Path).Should().BeTrue("because the database should exist if it is going to be deleted");
+            var path = db.Path;
+            System.IO.Directory.Exists(path).Should().BeTrue("because the database should exist if it is going to be deleted");
             db.Delete();
-            File.Exists(db.Path).Should().BeFalse("because the database should not exist anymore");
+            System.IO.Directory.Exists(path).Should().BeFalse("because the database should not exist anymore");
         }
 
         private Document GenerateDocument(string docID)
@@ -209,12 +781,62 @@ namespace Test
             VerifyGetDocument(Db, docID, value);
         }
 
+        private void VerifyGetDocument(Database db, string docID)
+        {
+            VerifyGetDocument(db, docID, 1);
+        }
+
         private void VerifyGetDocument(Database db, string docID, int value)
         {
             var doc = Db.GetDocument(docID);
             doc.Id.Should().Be(docID, "because that was the requested ID");
             doc.IsDeleted.Should().BeFalse("because the test uses a non-deleted document");
-            doc.GetInt("value").Should().Be(value, "because that is the value that was passed as expected");
+            doc.GetInt("key").Should().Be(value, "because that is the value that was passed as expected");
+        }
+
+        private void CreateDocs(int n)
+        {
+            for (int i = 0; i < n; i++) {
+                var doc = new Document($"doc_{i:D3}");
+                doc.Set("key", i);
+                SaveDocument(doc);
+            }
+
+            Db.DocumentCount.Should().Be((ulong)n, "because otherwise an incorrect number of documents were made");
+        }
+
+        private void ValidateDocs(int n)
+        {
+            for (int i = 0; i < n; i++) {
+                VerifyGetDocument($"doc_{i:D3}", i);
+            }
+        }
+
+        private void TestSaveNewDoc(string docID)
+        {
+            GenerateDocument(docID);
+
+            Db.DocumentCount.Should().Be(1UL, "because the database only has one document");
+            Db.DocumentExists(docID).Should().BeTrue("because otherwise the wrong document is in the database");
+
+            VerifyGetDocument(docID);
+        }
+
+        private void PurgeDocAndVerify(Document doc)
+        {
+            var docID = doc.Id;
+            Db.Purge(doc);
+            doc.Id.Should().Be(docID, "because a document's ID should never change");
+            doc.Sequence.Should().Be(0UL, "because the document no longer has a database entry");
+            doc.IsDeleted.Should().BeFalse("because the document has no record of deletion");
+            doc.GetObject("key").Should().BeNull("because the content should now be empty");
+        }
+
+        private void StoreBlob(Database db, Document doc, byte[] content)
+        {
+            var blob = new Blob("text/plain", content);
+            doc.Set("data", blob);
+            SaveDocument(doc);
         }
     }
 }

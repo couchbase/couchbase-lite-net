@@ -143,7 +143,9 @@ namespace Couchbase.Lite
 
         private void LoadDoc(bool mustExist)
         {
-            var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(_c4Db, Id, mustExist, err));
+            var doc = (C4Document*) RetryHandler.RetryIfBusy()
+                .AllowError((int) LiteCoreError.NotFound, C4ErrorDomain.LiteCoreDomain)
+                .Execute(err => Native.c4doc_get(_c4Db, Id, mustExist, err));
             SetC4Doc(doc);
         }
 

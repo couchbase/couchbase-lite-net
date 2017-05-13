@@ -48,6 +48,8 @@ namespace Couchbase.Lite
     {
         #region Constants
 
+        private const string DBExtension = ".cblite2";
+
         private static readonly C4DatabaseConfig _DBConfig = new C4DatabaseConfig {
             flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.Bundled | C4DatabaseFlags.SharedKeys,
             storageEngine = "SQLite",
@@ -128,11 +130,7 @@ namespace Couchbase.Lite
         public string Path
         {
             get {
-                return _threadSafety.DoLocked(() =>
-                {
-                    CheckOpen();
-                    return Native.c4db_getPath(c4db);
-                });
+                return _threadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
             }
         }
 
@@ -245,7 +243,7 @@ namespace Couchbase.Lite
                 throw new ArgumentNullException(nameof(name));
             }
 
-            return File.Exists(DatabasePath(name, directory));
+            return System.IO.Directory.Exists(DatabasePath(name, directory));
         }
 
         public void ChangeEncryptionKey(object key)
@@ -308,6 +306,7 @@ namespace Couchbase.Lite
                 throw new ArgumentNullException(nameof(remoteUrl));
             }
 
+            CheckOpen();
             var repl = Replications.Get(remoteUrl);
             if (repl == null) {
                 repl = new Replication(this, remoteUrl, null);
@@ -327,6 +326,7 @@ namespace Couchbase.Lite
                 throw new InvalidOperationException("Source and target database are the same");
             }
 
+            CheckOpen();
             var key = new Uri(otherDatabase.Path);
             var repl = Replications.Get(key);
             if (repl == null) {
@@ -345,13 +345,9 @@ namespace Couchbase.Lite
             _threadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                var old = (C4Database*) Interlocked.Exchange(ref p_c4db, 0);
-                if (old == null) {
-                    throw new InvalidOperationException("Attempt to perform an operation on a closed database");
-                }
-
-                LiteCoreBridge.Check(err => Native.c4db_delete(old, err));
-                Native.c4db_free(old);
+                LiteCoreBridge.Check(err => Native.c4db_delete(_c4db, err));
+                Native.c4db_free(_c4db);
+                _c4db = null;
                 _obs?.Dispose();
                 _obs = null;
             });
@@ -365,7 +361,11 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         public void Delete(Document document)
         {
-            _threadSafety.DoLocked(() => VerifyDB(document).Delete());
+            _threadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                VerifyDB(document).Delete();
+            });
         }
 
         /// <summary>
@@ -382,12 +382,20 @@ namespace Couchbase.Lite
             });
         }
 
+        public bool DocumentExists(string docID)
+        {
+            CheckOpen();
+            using (var doc = GetDocument(docID, true)) {
+                return doc != null;
+            }
+        }
+
         /// <summary>
         /// Gets the <see cref="Document"/> with the specified ID
         /// </summary>
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
-        public Document GetDocument(string id) => _threadSafety.DoLocked(() => GetDocument(id, false));
+        public Document GetDocument(string id) => _threadSafety.DoLocked(() => GetDocument(id, true));
 
         /// <summary>
         /// Runs the given batch of operations as an atomic unit
@@ -428,7 +436,11 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         public void Purge(Document document)
         {
-            _threadSafety.DoLocked(() => VerifyDB(document).Purge());
+            _threadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                VerifyDB(document).Purge();
+            });
         }
 
         /// <summary>
@@ -439,7 +451,11 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         public void Save(Document document)
         {
-            _threadSafety.DoLocked(() => VerifyDB(document).Save());
+            _threadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                VerifyDB(document).Save();
+            });
         }
 
         #endregion
@@ -461,7 +477,7 @@ namespace Couchbase.Lite
 
         private static string DatabasePath(string name, string directory)
         {
-            return System.IO.Path.Combine(Directory(directory), name);
+            return System.IO.Path.Combine(Directory(directory), $"{name}{DBExtension}");
         }
 
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
@@ -559,22 +575,22 @@ namespace Couchbase.Lite
 
         private void Dispose(bool disposing)
         {
-            Debug.WriteLine("DISPOSE");
-            if(disposing) {
+            if (_c4db == null) {
+                return;
+            }
+
+            Log.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
+            LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
+            Native.c4db_free(_c4db);
+            _c4db = null;
+            if (disposing) {
                 var obs = Interlocked.Exchange(ref _obs, null);
                 obs?.Dispose();
-                if(_unsavedDocuments.Count > 0) {
+                if (_unsavedDocuments.Count > 0) {
                     Log.To.Database.W(Tag,
                         $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
                 }
                 _unsavedDocuments.Clear();
-            }
-
-            var old = (C4Database *)Interlocked.Exchange(ref p_c4db, 0);
-            if(old != null) {
-                Log.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(old)}");
-                LiteCoreBridge.Check(err => Native.c4db_close(old, err));
-                Native.c4db_free(old);
             }
         }
 
@@ -597,8 +613,7 @@ namespace Couchbase.Lite
             if(_c4db != null) {
                 return;
             }
-
-            Debug.WriteLine("OPEN!");
+            
             System.IO.Directory.CreateDirectory(Directory(Options.Directory));
             var path = DatabasePath(Name, Options.Directory);
             var config = _DBConfig;

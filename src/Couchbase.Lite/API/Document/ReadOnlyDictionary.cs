@@ -177,6 +177,10 @@ namespace Couchbase.Lite
 
         public virtual IDictionary<string, object> ToDictionary()
         {
+            if (Count == 0) {
+                return new Dictionary<string, object>();
+            }
+
             var dict = new Dictionary<string, object>();
             foreach (var pair in this) {
                 switch(pair.Value) {

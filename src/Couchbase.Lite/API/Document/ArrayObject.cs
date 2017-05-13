@@ -288,6 +288,11 @@ namespace Couchbase.Lite
 
         public IArray Set(int index, object value)
         {
+            if (index == Count) {
+                Add(value);
+                return this;
+            }
+
             var oldValue = _list[index];
             if (value?.Equals(oldValue) == false) {
                 value = DataOps.ConvertValue(value, ObjectChanged, ObjectChanged);

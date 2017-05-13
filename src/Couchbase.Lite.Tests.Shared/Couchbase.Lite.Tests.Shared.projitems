@@ -12,15 +12,19 @@
     <Compile Include="$(MSBuildThisFileDirectory)ArrayTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ConflictTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DictionaryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DocPerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)FragmentTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ModelTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NotificationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ReplicationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TestCase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TunesPerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Benchmark.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\WaitAssert.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\XunitLogger.cs" />
   </ItemGroup>
   <ItemGroup>

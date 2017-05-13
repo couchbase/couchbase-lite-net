@@ -103,11 +103,18 @@ namespace Test
                 throw new InvalidOperationException();
             }
 
-            var options = new DatabaseOptions(new DatabaseOptions.Builder {
+            var options = new DatabaseOptions {
                 Directory = Directory
-            });
+            };
             Db = new Database(DatabaseName, options);
             Db.Should().NotBeNull("because otherwise the database failed to open");
+        }
+
+        protected Database OpenDB(string name)
+        {
+            var options = DatabaseOptions.Default;
+            options.Directory = Directory;
+            return new Database(name, options);
         }
 
         protected virtual void ReopenDB()
@@ -134,7 +141,7 @@ namespace Test
                     var docID = $"doc-{++n:D3}";
                     var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(line);
                     json.Should().NotBeNull("because otherwise the line failed to parse");
-                    var doc = Db.GetDocument(docID);
+                    var doc = new Document(docID);
                     doc.Set(json);
                     Db.Save(doc);
 

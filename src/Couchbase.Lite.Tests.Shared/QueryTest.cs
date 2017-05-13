@@ -360,7 +360,7 @@ namespace Test
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var name = row.Document.GetSubdocument("name").GetString("first");
+                    var name = row.Document.GetDictionary("name").GetString("first");
                     name.Should().Be(expected[n - 1], "because otherwise incorrect rows were returned");
                 });
 
@@ -383,7 +383,7 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
-                    var firstName = doc.GetSubdocument("name")?.GetString("first");
+                    var firstName = doc.GetDictionary("name")?.GetString("first");
                     if (firstName != null) {
                         firstNames.Add(firstName);
                     }
@@ -410,7 +410,7 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
-                    var firstName = doc.GetSubdocument("name")?.GetString("first");
+                    var firstName = doc.GetDictionary("name")?.GetString("first");
                     if (firstName != null) {
                         firstNames.Add(firstName);
                     }
@@ -465,7 +465,7 @@ namespace Test
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         var doc = row.Document;
-                        var firstName = doc.GetSubdocument("name").GetString("first");
+                        var firstName = doc.GetDictionary("name").GetString("first");
                         if (firstName != null) {
                             firstNames.Add(firstName);
                         }
@@ -615,7 +615,7 @@ namespace Test
             {
                 for (int i = 1; i <= num; i++) {
                     var docID = $"doc{i}";
-                    var doc = Db.GetDocument(docID);
+                    var doc = new Document(docID);
                     doc.Set("number1", i);
                     doc.Set("number2", num - i);
                     Db.Save(doc);
