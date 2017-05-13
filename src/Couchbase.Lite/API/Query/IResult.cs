@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Couchbase.Lite.Query
 {
-    public interface IResult : IReadOnlyDictionary
+    internal interface IResult : IReadOnlyDictionary
     {
 
     }

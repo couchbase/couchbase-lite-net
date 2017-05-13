@@ -28,12 +28,16 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// A class representing a readonly ordered collection of objects
+    /// </summary>
     public unsafe class ReadOnlyArray : IReadOnlyArray
     {
         private readonly FLArray* _array;
         private SharedStringCache _sharedKeys;
 
         #region Properties
+#pragma warning disable 1591
 
         public virtual int Count => (int) Native.FLArray_Count(_array);
 
@@ -44,6 +48,7 @@ namespace Couchbase.Lite
                 return new ReadOnlyFragment(value);
             }
         }
+#pragma warning restore 1591
 
         internal FleeceArray Data { get; set; }
 
@@ -80,6 +85,7 @@ namespace Couchbase.Lite
 
         #endregion
 
+#pragma warning disable 1591
         #region IEnumerable<object>
 
         public virtual IEnumerator<object> GetEnumerator()
@@ -147,5 +153,6 @@ namespace Couchbase.Lite
         }
 
         #endregion
+#pragma warning restore 1591
     }
 }

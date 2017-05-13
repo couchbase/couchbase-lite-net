@@ -493,15 +493,11 @@ namespace Test
             var nuDate = date + TimeSpan.FromSeconds(60);
             var nuDateStr = nuDate.ToString("o");
             doc.Set("date", nuDate);
-
-            bool first = true;
+            
             SaveDocument(doc, d =>
             {
-                var expected = first ? (object)nuDate : nuDateStr;
-                first = false;
-                d.GetObject("date").Should().Be(expected, "because that is what was stored the second time");
+                d.GetDate("date").Should().Be(nuDate, "because that is what was stored the second time");
                 d.GetString("date").Should().Be(nuDateStr, "because the date is convertible to a string");
-                d.GetDate("date").Should().Be(nuDate, "because a date was stored");
             });
         }
 
@@ -1169,7 +1165,7 @@ namespace Test
         [Fact]
         public void TestContainsKey()
         {
-            var doc = Db.GetDocument("doc1");
+            var doc = new Document("doc1");
             doc.Set(new Dictionary<string, object> {
                 ["type"] = "profile",
                 ["name"] = "Jason",

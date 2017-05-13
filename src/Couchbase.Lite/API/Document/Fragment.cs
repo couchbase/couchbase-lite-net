@@ -19,10 +19,13 @@
 // limitations under the License.
 // 
 using System;
-using Couchbase.Lite.Internal.Doc;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// A class representing an arbitrary entry in a key path
+    /// (e.g. object["key"][index]["next_key"], etc)
+    /// </summary>
     public sealed class Fragment : ReadOnlyFragment, IDictionaryFragment, IArrayFragment
     {
         #region Variables
@@ -34,6 +37,7 @@ namespace Couchbase.Lite
         #endregion
 
         #region Properties
+#pragma warning disable 1591
 
         public override bool Exists => _value != null;
 
@@ -59,6 +63,11 @@ namespace Couchbase.Lite
             }
         }
 
+#pragma warning restore 1591
+
+        /// <summary>
+        /// Gets or sets the value of this object
+        /// </summary>
         public new object Value
         {
             get => _value;
@@ -70,7 +79,12 @@ namespace Couchbase.Lite
                 } else if (_parent is ArrayObject a) {
                     var index = (int) _parentKey;
                     try {
-                        a.Set(index, value);
+                        if (index == a.Count) {
+                            a.Add(value);
+                        } else {
+                            a.Set(index, value);
+                        }
+
                         _value = a.GetObject(index);
                     } catch (Exception) {
                     }
@@ -82,7 +96,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        public Fragment(object value, object parent, object parentKey)
+        internal Fragment(object value, object parent, object parentKey)
             : base(value)
         {
             _value = value;
@@ -92,16 +106,24 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region IObjectFragment
+        #region Public Methods
 
-        public new IArray ToArray()
+        /// <summary>
+        /// Gets the contained value as an <see cref="ArrayObject"/>
+        /// </summary>
+        /// <returns>The cast contained value, or <c>null</c></returns>
+        public new ArrayObject ToArray()
         {
-            return _value as IArray;
+            return _value as ArrayObject;
         }
 
-        public new IDictionaryObject ToDictionary()
+        /// <summary>
+        /// Gets the contained value as a <see cref="DictionaryObject"/>
+        /// </summary>
+        /// <returns>The cast contained value, or <c>null</c></returns>
+        public new DictionaryObject ToDictionary()
         {
-            return _value as IDictionaryObject;
+            return _value as DictionaryObject;
         }
 
         #endregion

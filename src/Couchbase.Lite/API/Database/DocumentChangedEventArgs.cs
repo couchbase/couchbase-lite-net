@@ -23,7 +23,7 @@ using System;
 
 namespace Couchbase.Lite
 {
-    public sealed class DocumentChangedEventArgs : EventArgs
+    internal sealed class DocumentChangedEventArgs : EventArgs
     {
         #region Properties
 

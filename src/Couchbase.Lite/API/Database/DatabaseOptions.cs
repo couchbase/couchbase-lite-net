@@ -1,5 +1,5 @@
 ﻿//
-//  DatabaseChangedEventArgs.cs
+//  DatabaseOptions.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,38 +19,32 @@
 //  limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// The parameters of a database changed event
+    /// A struct containing options for creating or opening database data
     /// </summary>
-    public sealed class DatabaseChangedEventArgs : EventArgs
+    public struct DatabaseOptions
     {
-        #region Properties
+        /// <summary>
+        /// The default set of options (useful to use as a starting point)
+        /// </summary>
+        public static readonly DatabaseOptions Default = new DatabaseOptions();
 
         /// <summary>
-        /// Gets the database in which the change occurred
+        /// Gets or sets the directory to use when creating or opening the data
         /// </summary>
-        public Database Database { get; }
+        public string Directory { get; set; }
 
         /// <summary>
-        /// Gets the document that was changed
+        /// Gets or sets the encryption key to use on the database
         /// </summary>
-        public Document Document { get; }
+        public IEncryptionKey EncryptionKey { get; set; }
 
-        #endregion
-
-        #region Constructors
-
-        internal DatabaseChangedEventArgs(Database database, Document document)
-        {
-            Database = database;
-            Document = document;
-        }
-
-        #endregion
+        /// <summary>
+        /// Gets or sets whether or not this database is readonly.
+        /// </summary>
+        public bool ReadOnly { get; set; }
     }
 }

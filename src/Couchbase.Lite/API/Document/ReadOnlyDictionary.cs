@@ -28,6 +28,9 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// A class representing a key-value collection that is read only
+    /// </summary>
     public unsafe class ReadOnlyDictionary : IReadOnlyDictionary
     {
         #region Variables
@@ -39,6 +42,7 @@ namespace Couchbase.Lite
         #endregion
 
         #region Properties
+#pragma warning disable 1591
 
         public virtual int Count => (int)Native.FLDict_Count(_dict);
 
@@ -61,6 +65,8 @@ namespace Couchbase.Lite
                 return keys;
             }
         }
+
+#pragma warning restore 1591
 
         internal FleeceDictionary Data { get; set; }
 
@@ -99,6 +105,7 @@ namespace Couchbase.Lite
             return null;
         }
 
+#pragma warning disable 1591
         #region IEnumerable
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -200,6 +207,7 @@ namespace Couchbase.Lite
         }
 
         #endregion
+#pragma warning restore 1591
 
         private class Enumerator : IEnumerator<KeyValuePair<string, object>>
         {

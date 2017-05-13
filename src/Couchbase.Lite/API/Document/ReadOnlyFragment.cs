@@ -23,11 +23,20 @@ using Couchbase.Lite.Internal.Doc;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// A class representing an arbitrary readonly entry in a key path
+    /// (e.g. object["key"][index]["next_key"], etc)
+    /// </summary>
     public class ReadOnlyFragment
     {
         #region Properties
 
+        /// <summary>
+        /// Gets whether or not this object exists in the hierarchy
+        /// </summary>
         public virtual bool Exists => Value != null;
+
+#pragma warning disable 1591
 
         public ReadOnlyFragment this[int index]
         {
@@ -51,6 +60,11 @@ namespace Couchbase.Lite
             }
         }
 
+#pragma warning restore 1591
+
+        /// <summary>
+        /// Gets the raw contained value of this object
+        /// </summary>
         public object Value { get; }
 
         #endregion
@@ -66,59 +80,110 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
-        public IReadOnlyArray ToArray()
+        /// <summary>
+        /// Gets the contained value as a <see cref="ReadOnlyArray"/>
+        /// </summary>
+        /// <returns>The cast contained value, or <c>null</c></returns>
+        public ReadOnlyArray ToArray()
         {
-            return Value as IReadOnlyArray;
+            return Value as ReadOnlyArray;
         }
 
+        /// <summary>
+        /// Gets the contained value as a <see cref="Blob"/>
+        /// </summary>
+        /// <returns>The cast contained value, or <c>null</c></returns>
         public Blob ToBlob()
         {
             return Value as Blob;
         }
 
+        /// <summary>
+        /// Gets the contained value as a <see cref="Boolean"/>
+        /// </summary>
+        /// <returns>The cast contained value</returns>
+        /// <remarks>Any non-zero object will be treated as true, so don't rely on 
+        /// any sort of parsing</remarks>
         public bool ToBoolean()
         {
             return DataOps.ConvertToBoolean(Value);
         }
 
+        /// <summary>
+        /// Gets the contained value as a <see cref="DateTimeOffset"/>
+        /// </summary>
+        /// <returns>The cast contained value, or a default value</returns>
         public DateTimeOffset ToDate()
         {
             return DataOps.ConvertToDate(Value);
         }
 
+        /// <summary>
+        /// Gets the contained value as a <see cref="ReadOnlyDictionary"/>
+        /// </summary>
+        /// <returns>The cast contained value, or <c>null</c></returns>
+        public ReadOnlyDictionary ToDictionary()
+        {
+            return Value as ReadOnlyDictionary;
+        }
+
+        /// <summary>
+        /// Gets the contained value as a <see cref="Double"/>
+        /// </summary>
+        /// <returns>The cast contained value</returns>
+        /// <remarks><c>true</c> will be converted to 1.0, and everything else that
+        /// is non-numeric will be 0.0</remarks>
         public double ToDouble()
         {
             return DataOps.ConvertToDouble(Value);
         }
 
+        /// <summary>
+        /// Gets the contained value as an <see cref="Int32"/>
+        /// </summary>
+        /// <returns>The cast contained value</returns>
+        /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
+        /// will be rounded, and everything else non-numeric will be 0</remarks>
         public int ToInt()
         {
             return DataOps.ConvertToInt(Value);
         }
 
+        /// <summary>
+        /// Gets the contained value as an <see cref="Int64"/>
+        /// </summary>
+        /// <returns>The cast contained value</returns>
+        /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
+        /// will be rounded, and everything else non-numeric will be 0</remarks>
         public long ToLong()
         {
             return DataOps.ConvertToLong(Value);
         }
 
+        /// <summary>
+        /// Gets the contained value as an untyped object
+        /// </summary>
+        /// <returns>The contained value, or <c>null</c></returns>
+        ///  <remarks>This method should be avoided for numeric types, whose
+        /// underlying representation is subject to change and thus
+        /// <see cref="InvalidCastException"/>s </remarks>
         public object ToObject()
         {
             return Value;
-        }
-
-        public ReadOnlyDictionary ToDictionary()
-        {
-            return Value as ReadOnlyDictionary;
         }
 
         #endregion
 
         #region Overrides
 
+#pragma warning disable 1591
+
         public override string ToString()
         {
             return Value as string;
         }
+
+#pragma warning restore 1591
 
         #endregion
     }

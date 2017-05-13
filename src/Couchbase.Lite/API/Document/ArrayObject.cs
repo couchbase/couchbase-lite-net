@@ -57,6 +57,9 @@ namespace Couchbase.Lite
         }
     }
 
+    /// <summary>
+    /// A class representing an editable collection of objects
+    /// </summary>
     [JsonConverter(typeof(ArrayObjectConverter))]
     public sealed class ArrayObject : ReadOnlyArray, IArray
     {
@@ -69,6 +72,7 @@ namespace Couchbase.Lite
         #endregion
 
         #region Properties
+#pragma warning disable 1591
 
         public override int Count => _list.Count;
 
@@ -80,16 +84,24 @@ namespace Couchbase.Lite
             }
         }
 
+#pragma warning restore 1591
         #endregion
 
         #region Constructors
 
+        /// <summary>
+        /// Default Constructor
+        /// </summary>
         public ArrayObject()
             : this(default(FleeceArray))
         {
             
         }
 
+        /// <summary>
+        /// Creates an array with the given data
+        /// </summary>
+        /// <param name="array">The data to populate the array with</param>
         public ArrayObject(IList array)
             : this()
         {
@@ -163,6 +175,7 @@ namespace Couchbase.Lite
 
         #endregion
 
+#pragma warning disable 1591
         #region Overrides
 
         public override IEnumerator<object> GetEnumerator()
@@ -288,11 +301,6 @@ namespace Couchbase.Lite
 
         public IArray Set(int index, object value)
         {
-            if (index == Count) {
-                Add(value);
-                return this;
-            }
-
             var oldValue = _list[index];
             if (value?.Equals(oldValue) == false) {
                 value = DataOps.ConvertValue(value, ObjectChanged, ObjectChanged);
@@ -304,6 +312,6 @@ namespace Couchbase.Lite
         }
 
         #endregion
-
+#pragma warning restore 1591
     }
 }

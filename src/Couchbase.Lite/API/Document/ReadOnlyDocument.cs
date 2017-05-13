@@ -27,16 +27,29 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// A class representing a document which cannot be altered
+    /// </summary>
     public unsafe class ReadOnlyDocument : ReadOnlyDictionary, IDisposable
     {
         private readonly bool _owner;
 
         #region Properties
 
+        /// <summary>
+        /// Gets this document's unique ID
+        /// </summary>
         public string Id { get; }
 
+        /// <summary>
+        /// Gets whether or not this document is deleted
+        /// </summary>
         public bool IsDeleted => _threadSafety.DoLocked(() => c4Doc != null && c4Doc->flags.HasFlag(C4DocumentFlags.Deleted));
 
+        /// <summary>
+        /// Gets the sequence of this document (a unique incrementing number
+        /// identifying its status in a database)
+        /// </summary>
         public ulong Sequence => _threadSafety.DoLocked(() => c4Doc != null ? c4Doc->sequence : 0UL);
 
         internal C4Document* c4Doc { get; set; }
@@ -60,6 +73,9 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Finalizer
+        /// </summary>
         ~ReadOnlyDocument()
         {
             Dispose(false);
@@ -69,6 +85,10 @@ namespace Couchbase.Lite
 
         #region Protected Methods
 
+        /// <summary>
+        /// Used for disposing this object
+        /// </summary>
+        /// <param name="disposing"><c>true</c> if disposing, <c>false</c> if finalizing</param>
         [SuppressMessage("ReSharper", "UnusedParameter.Local", Justification = "Only types that need to be disposed unconditionally are dealt with")]
         protected virtual void Dispose(bool disposing)
         {
@@ -81,6 +101,7 @@ namespace Couchbase.Lite
 
         #endregion
 
+#pragma warning disable 1591
         #region Overrides
 
         public override string ToString()
@@ -100,5 +121,6 @@ namespace Couchbase.Lite
         }
 
         #endregion
+#pragma warning restore 1591
     }
 }

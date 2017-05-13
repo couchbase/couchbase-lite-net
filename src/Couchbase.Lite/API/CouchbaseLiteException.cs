@@ -352,6 +352,9 @@ namespace Couchbase.Lite
         /// </summary>
         public Status Status => new Status(Code);
 
+        /// <summary>
+        /// Directly gets the status code of the exception for fast access
+        /// </summary>
         public StatusCode Code { get; internal set;  }
 
         #endregion

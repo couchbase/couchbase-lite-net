@@ -33,6 +33,9 @@ namespace Couchbase.Lite
 {
     using static CBLConstants;
 
+    /// <summary>
+    /// A class representing an arbitrary piece of binary data
+    /// </summary>
     public sealed unsafe class Blob
     {
         #region Constants
@@ -55,6 +58,9 @@ namespace Couchbase.Lite
 
         #region Properties
 
+        /// <summary>
+        /// Gets the contents of the blob as an in-memory array
+        /// </summary>
         public byte[] Content
         {
             get {
@@ -99,6 +105,9 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Gets the contents of the blob as a <see cref="Stream"/>
+        /// </summary>
         public Stream ContentStream
         {
             get {
@@ -116,14 +125,30 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Gets the content type of the blob
+        /// </summary>
         public string ContentType { get; }
 
+        /// <summary>
+        /// Gets the digest of the blob, once it is saved
+        /// </summary>
         public string Digest { get; private set; }
 
-        public IReadOnlyDictionary<string, object> JsonRepresentation
+        /// <summary>
+        /// Gets the length of the data that the blob contains
+        /// </summary>
+        public ulong Length { get; private set; }
+
+        /// <summary>
+        /// Gets the metadata of the blob instance
+        /// </summary>
+        public IReadOnlyDictionary<string, object> Properties => new ReadOnlyDictionary<string, object>(MutableProperties);
+
+        internal IReadOnlyDictionary<string, object> JsonRepresentation
         {
             get {
-                if(_db == null) {
+                if (_db == null) {
                     throw new InvalidOperationException("Blob hasn't been saved in the database yet");
                 }
 
@@ -134,10 +159,6 @@ namespace Couchbase.Lite
                 return json;
             }
         }
-
-        public ulong Length { get; private set; }
-
-        public IReadOnlyDictionary<string, object> Properties => new ReadOnlyDictionary<string, object>(MutableProperties);
 
         private IDictionary<string, object> MutableProperties
         {
@@ -163,7 +184,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="contentType">The binary type of the blob</param>
         /// <param name="content">The content of the blob</param>
-        /// <returns>An instantiated <see cref="IBlob" /> object</returns>
+        /// <returns>An instantiated <see cref="Blob" /> object</returns>
         /// <exception cref="ArgumentNullException">Thrown if <c>content</c> is <c>null</c></exception>
         public Blob(string contentType, byte[] content)
         {
@@ -177,7 +198,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="contentType">The binary type of the blob</param>
         /// <param name="stream">The stream containing the blob content</param>
-        /// <returns>An instantiated <see cref="IBlob" /> object</returns>
+        /// <returns>An instantiated <see cref="Blob" /> object</returns>
         /// <exception cref="ArgumentNullException">Thrown if <c>stream</c> is <c>null</c></exception>
         public Blob(string contentType, Stream stream)
         {
@@ -190,7 +211,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="contentType">The binary type of the blob</param>
         /// <param name="fileUrl">The url to the file to read</param>
-        /// <returns>An instantiated <see cref="IBlob" /> object</returns>
+        /// <returns>An instantiated <see cref="Blob" /> object</returns>
         /// <exception cref="ArgumentNullException">Thrown if <c>fileUrl</c> is <c>null</c></exception>
         /// <exception cref="ArgumentException">Thrown if fileUrl is not a file based URL</exception>
         /// <exception cref="DirectoryNotFoundException">The specified fileUrl is invalid, 
@@ -294,6 +315,7 @@ namespace Couchbase.Lite
 
         #endregion
 
+#pragma warning disable 1591
         #region Overrides
 
         public override string ToString()
@@ -330,5 +352,6 @@ namespace Couchbase.Lite
         }
 
         #endregion
+#pragma warning restore 1591
     }
 }

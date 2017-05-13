@@ -26,7 +26,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An interface representing the result set of a query
     /// </summary>
-    public interface IResultSet : IEnumerable<IResult>
+    internal interface IResultSet : IEnumerable<IResult>
     {
         
     }

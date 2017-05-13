@@ -44,11 +44,14 @@ using ObjCRuntime;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// A container for storing and maintaining Couchbase Lite <see cref="Document"/>s
+    /// </summary>
     public sealed unsafe class Database : IDisposable
     {
         #region Constants
 
-        private const string DBExtension = ".cblite2";
+        private const string DBExtension = "cblite2";
 
         private static readonly C4DatabaseConfig _DBConfig = new C4DatabaseConfig {
             flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.Bundled | C4DatabaseFlags.SharedKeys,
@@ -78,10 +81,10 @@ namespace Couchbase.Lite
         /// </summary>
         public event EventHandler<DatabaseChangedEventArgs> Changed;
 
-        /// <summary>
-        /// An event fired whenever a given document in the database changes
-        /// </summary>
-        public event EventHandler<DocumentChangedEventArgs> DocumentChanged;
+        ///// <summary>
+        ///// An event fired whenever a given document in the database changes
+        ///// </summary>
+        //public event EventHandler<DocumentChangedEventArgs> DocumentChanged;
 
         private IConflictResolver _conflictResolver;
 
@@ -182,7 +185,7 @@ namespace Couchbase.Lite
         static Database()
         {
             _LogCallback = LiteCoreLog;
-            Native.c4log_register(C4LogLevel.Warning, _LogCallback);
+            Native.c4log_writeToCallback(C4LogLevel.Warning, _LogCallback, true);
             _DbObserverCallback = DbObserverCallback;
         }
 
@@ -200,6 +203,11 @@ namespace Couchbase.Lite
             
         }
 
+        /// <summary>
+        /// Creates a database given a name and some options
+        /// </summary>
+        /// <param name="name">The name of the database</param>
+        /// <param name="options">The options to open it with</param>
         public Database(string name, DatabaseOptions options) 
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
@@ -208,12 +216,19 @@ namespace Couchbase.Lite
             _sharedStrings = new SharedStringCache(_c4db);
         }
 
+        /// <summary>
+        /// Copy constructor
+        /// </summary>
+        /// <param name="other">The database to copy from</param>
         public Database(Database other)
             : this(other.Name, other.Options)
         {
             
         }
 
+        /// <summary>
+        /// Finalizer
+        /// </summary>
         ~Database()
         {
             Dispose(false);
@@ -223,6 +238,12 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        /// <summary>
+        /// Deletes the contents of a database with the given name in the
+        /// given directory
+        /// </summary>
+        /// <param name="name">The name of the database to delete</param>
+        /// <param name="directory">The directory to search in</param>
         public static void Delete(string name, string directory)
         {
             if(name == null) {
@@ -237,6 +258,13 @@ namespace Couchbase.Lite
             });
         }
 
+        /// <summary>
+        /// Returns whether or not a database with the given name
+        /// exists in the given directory
+        /// </summary>
+        /// <param name="name">The name of the database to search for</param>
+        /// <param name="directory">The directory to search in</param>
+        /// <returns></returns>
         public static bool Exists(string name, string directory)
         {
             if(name == null) {
@@ -246,7 +274,7 @@ namespace Couchbase.Lite
             return System.IO.Directory.Exists(DatabasePath(name, directory));
         }
 
-        public void ChangeEncryptionKey(object key)
+        internal void ChangeEncryptionKey(object key)
         {
             throw new NotImplementedException();
         }
@@ -258,8 +286,6 @@ namespace Couchbase.Lite
         {
             Dispose();
         }
-
-        public Document CreateDocument() => _threadSafety.DoLocked(() => GetDocument(Misc.CreateGuid(), false));
 
         /// <summary>
         /// Creates an index of the given type on the given path with the given options
@@ -300,6 +326,13 @@ namespace Couchbase.Lite
             });
         }
 
+        /// <summary>
+        /// Creates a replication with the giveb remote URL
+        /// </summary>
+        /// <param name="remoteUrl">The remote URL to replicate with</param>
+        /// <returns>The replication object</returns>
+        /// <remarks>The 2.0 protocol requires a new version of Sync Gateway with
+        /// BLIP enabled (CouchDB, Cloudant, etc will NOT work)</remarks>
         public IReplication CreateReplication(Uri remoteUrl)
         {
             if (remoteUrl == null) {
@@ -316,6 +349,11 @@ namespace Couchbase.Lite
             return repl;
         }
 
+        /// <summary>
+        /// Creates a replication with another local database
+        /// </summary>
+        /// <param name="otherDatabase">The local database to replicate with</param>
+        /// <returns>The replication object</returns>
         public IReplication CreateReplication(Database otherDatabase)
         {
             if (otherDatabase == null) {
@@ -382,6 +420,11 @@ namespace Couchbase.Lite
             });
         }
 
+        /// <summary>
+        /// Checks whether a document with the given ID exists in the database
+        /// </summary>
+        /// <param name="docID">the ID to search for</param>
+        /// <returns><c>true</c> if a document exists with that ID, <c>false</c> otherwise</returns>
         public bool DocumentExists(string docID)
         {
             CheckOpen();
@@ -477,7 +520,11 @@ namespace Couchbase.Lite
 
         private static string DatabasePath(string name, string directory)
         {
-            return System.IO.Path.Combine(Directory(directory), $"{name}{DBExtension}");
+            if (String.IsNullOrWhiteSpace(name)) {
+                return directory;
+            }
+
+            return System.IO.Path.Combine(Directory(directory), $"{name}.{DBExtension}");
         }
 
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
@@ -497,73 +544,26 @@ namespace Couchbase.Lite
         }
 
         [MonoPInvokeCallback(typeof(C4LogCallback))]
-        private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, string message, IntPtr argsAddress)
+        private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, string message, IntPtr ignored)
         {
-            var format = new StringBuilder();
-            var args = ConvertFormat(format, message, argsAddress);
             var name = Native.c4log_getDomainName(domain);
             switch(level) {
                 case C4LogLevel.Error:
-                    Log.To.DomainOrLiteCore(name).E(name, format.ToString(), args);
+                    Log.To.DomainOrLiteCore(name).E(name, message);
                     break;
                 case C4LogLevel.Warning:
-                    Log.To.DomainOrLiteCore(name).W(name, format.ToString(), args);
+                    Log.To.DomainOrLiteCore(name).W(name, message);
                     break;
                 case C4LogLevel.Info:
-                    Log.To.DomainOrLiteCore(name).I(name, format.ToString(), args);
+                    Log.To.DomainOrLiteCore(name).I(name, message);
                     break;
                 case C4LogLevel.Verbose:
-                    Log.To.DomainOrLiteCore(name).V(name, format.ToString(), args);
+                    Log.To.DomainOrLiteCore(name).V(name, message);
                     break;
                 case C4LogLevel.Debug:
-                    Log.To.DomainOrLiteCore(name).D(name, format.ToString(), args);
+                    Log.To.DomainOrLiteCore(name).D(name, message);
                     break;
             }
-        }
-
-        private static object[] ConvertFormat(StringBuilder buf, string format, IntPtr argsAddress)
-        {
-            bool previousPercent = false;
-            int count = 0;
-            var formats = new List<char>();
-            foreach (var c in format) {
-                if (previousPercent) {
-                    switch (c) {
-                        case '%':
-                            buf.Append("%");
-                            break;
-                        case 's':
-                        case 'd':
-                            formats.Add(c);
-                            buf.Append($"{{{count++}}}");
-                            break;
-                    }
-
-                    previousPercent = false;
-                } else {
-                    if (c == '%') {
-                        previousPercent = true;
-                    } else {
-                        buf.Append(c);
-                    }
-                }
-            }
-
-            var retVal = new object[count];
-            var pointers = new IntPtr[count];
-            Marshal.Copy(argsAddress, pointers, 0, count);
-            for (int i = 0; i < count; i++) {
-                switch (formats[i]) {
-                    case 's':
-                        retVal[i] = Marshal.PtrToStringAnsi(pointers[i]);
-                        break;
-                    case 'd':
-                        retVal[i] = pointers[i].ToInt64();
-                        break;
-                }
-            }
-
-            return retVal;
         }
 
         private void CheckOpen()
@@ -686,6 +686,7 @@ namespace Couchbase.Lite
         #endregion
 
         #region IDisposable
+#pragma warning disable 1591
 
         public void Dispose()
         {
@@ -693,6 +694,7 @@ namespace Couchbase.Lite
             GC.SuppressFinalize(this);
         }
 
+#pragma warning restore 1591
         #endregion
     }
 }

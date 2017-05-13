@@ -5,14 +5,14 @@ using System.Text;
 namespace Couchbase.Lite.Sync
 {
     [Flags]
-    public enum ReplicationType
+    internal enum ReplicationType
     {
         Push = 1 << 0,
         Pull = 1 << 1,
         PushAndPull = Push | Pull
     }
 
-    public sealed class ReplicatorConfiguration
+    internal sealed class ReplicatorConfiguration
     {
         public object Source { get; }
 

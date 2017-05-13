@@ -21,19 +21,37 @@
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// An interface representing a writeable object capable of being indexed 
+    /// via <see cref="System.String"/>
+    /// </summary>
     public interface IDictionaryFragment
     {
         #region Properties
 
+        /// <summary>
+        /// Gets the value of an arbitrary <see cref="System.String"/> key
+        /// </summary>
+        /// <param name="key">The key to lookup the value for</param>
+        /// <returns>The value, or lack thereof, wrapped in a <see cref="Fragment"/></returns>
         Fragment this[string key] { get; }
 
         #endregion
     }
 
+    /// <summary>
+    /// An interface representing a writeable object capable of being indexed
+    /// via <see cref="System.Int32"/>
+    /// </summary>
     public interface IArrayFragment
     {
         #region Properties
 
+        /// <summary>
+        /// Gets the value of an arbitrary index
+        /// </summary>
+        /// <param name="index">The index to lookup the value for</param>
+        /// <returns>The value, or lack thereof, wrapped in a <see cref="Fragment"/></returns>
         Fragment this[int index] { get; }
 
         #endregion

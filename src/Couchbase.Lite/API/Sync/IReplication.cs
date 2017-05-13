@@ -48,7 +48,7 @@ namespace Couchbase.Lite.Sync
         bool Continuous { get; set; }
 
         /// <summary>
-        /// Gets the local <see cref="IDatabase"/> associated with this replication
+        /// Gets the local <see cref="Database"/> associated with this replication
         /// </summary>
         Database Database { get; }
 
@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Sync
         Exception LastError { get; }
 
         /// <summary>
-        /// Gets the remote <see cref="IDatabase"/> being replicated to, if this is
+        /// Gets the remote <see cref="Database"/> being replicated to, if this is
         /// a local replication.
         /// </summary>
         Database OtherDatabase { get; }

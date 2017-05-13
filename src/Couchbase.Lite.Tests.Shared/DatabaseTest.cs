@@ -703,7 +703,6 @@ namespace Test
             var dir = Directory;
             var options = DatabaseOptions.Default;
             options.Directory = dir;
-            string path = null;
             using (var db = new Database("db", options)) {
                 LiteCoreException e = null;
                 try {

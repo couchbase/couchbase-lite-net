@@ -19,19 +19,21 @@
 // limitations under the License.
 // 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// A class representing an entry in a Couchbase Lite <see cref="Database"/>.  
+    /// It consists of some metadata, and a collection of user-defined properties
+    /// </summary>
     public sealed unsafe class Document : ReadOnlyDocument, IDictionaryObject
     {
         #region Constants
@@ -50,12 +52,6 @@ namespace Couchbase.Lite
 
         #region Properties
 
-        public new Fragment this[string key] => _dict[key];
-
-        public override int Count => _dict.Count;
-
-        public override ICollection<string> Keys => _dict.Keys;
-
         internal Database Database
         {
             get => _database;
@@ -71,23 +67,39 @@ namespace Couchbase.Lite
 
         #region Constructors
 
+        /// <summary>
+        /// Default Constructor
+        /// </summary>
         public Document() : this(default(string))
         {
 
         }
 
+        /// <summary>
+        /// Creates a document given an ID
+        /// </summary>
+        /// <param name="documentID">The ID for the document</param>
         public Document(string documentID)
             : base(documentID, null, null)
         {
             _dict = new DictionaryObject(Data);
         }
 
+        /// <summary>
+        /// Creates a document with the given properties
+        /// </summary>
+        /// <param name="dictionary">The properties of the document</param>
         public Document(IDictionary<string, object> dictionary)
             : this()
         {
             Set(dictionary);
         }
 
+        /// <summary>
+        /// Creates a document with the given ID and properties
+        /// </summary>
+        /// <param name="documentID">The ID for the document</param>
+        /// <param name="dictionary">The properties for the document</param>
         public Document(string documentID, IDictionary<string, object> dictionary)
             : this(documentID)
         {
@@ -103,14 +115,14 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region Public Methods
+        #region Internal Methods
 
-        public void Delete()
+        internal void Delete()
         {
             _threadSafety.DoLocked(() => Save(_database.ConflictResolver, true));
         }
 
-        public void Purge()
+        internal void Purge()
         {
             _threadSafety.DoLocked(() =>
             {
@@ -132,7 +144,7 @@ namespace Couchbase.Lite
             });
         }
 
-        public void Save()
+        internal void Save()
         {
             _threadSafety.DoLocked(() => Save(_database.ConflictResolver, false));
         }
@@ -310,6 +322,18 @@ namespace Couchbase.Lite
 
         #endregion
 
+#pragma warning disable 1591
+
+        public override int Count => _dict.Count;
+
+        public new Fragment this[string key] => _dict[key];
+
+        public override ICollection<string> Keys => _dict.Keys;
+
+#pragma warning restore 1591
+
+#pragma warning disable 1591
+
         #region Overrides
 
         public override bool Contains(string key)
@@ -406,5 +430,7 @@ namespace Couchbase.Lite
         }
 
         #endregion
+
+#pragma warning restore 1591
     }
 }

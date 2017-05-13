@@ -1,5 +1,5 @@
 ﻿// 
-// IConflictResolver.cs
+// DocumentFragment.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -21,37 +21,38 @@
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An interface for resolving a <see cref="Conflict" /> in a document (i.e. two edits to the same
-    /// document at the same time)
+    /// A class representing a <see cref="Document"/> for use in the 
+    /// unified data API (i.e. subscript operator)
     /// </summary>
-    public interface IConflictResolver
+    public sealed class DocumentFragment : IDictionaryFragment
     {
-        #region Public Methods
+        #region Properties
 
         /// <summary>
-        /// Resolves a <see cref="Conflict"/> in a <see cref="Document"/>
+        /// Gets the document that this fragment holds
         /// </summary>
-        /// <param name="conflict">The conflict that occurred</param>
-        /// <returns>The new version of the document</returns>
-        ReadOnlyDocument Resolve(Conflict conflict);
+        public Document Document { get; }
 
-        #endregion
-    }
+        /// <summary>
+        /// Gets whether or not this document exists
+        /// </summary>
+        public bool Exists => Document != null;
 
-    /// <summary>
-    /// The default conflict resolver for the library
-    /// </summary>
-    public sealed class MostActiveWinsConflictResolver : IConflictResolver
-    {
-        #region IConflictResolver
 #pragma warning disable 1591
 
-        public ReadOnlyDocument Resolve(Conflict conflict)
-        {
-            throw new System.NotImplementedException();
-        }
+        public Fragment this[string key] => Exists ? Document[key] : new Fragment(null, this, key);
 
 #pragma warning restore 1591
+
+        #endregion
+
+        #region Constructors
+
+        internal DocumentFragment(Document document)
+        {
+            Document = document;
+        }
+
         #endregion
     }
 }
