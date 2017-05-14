@@ -113,7 +113,7 @@ namespace Test
             }
         }
 
-        [Fact(Skip = "Not yet implemented")]
+        //[Fact] Not yet implemented 
         public void TestCreateWithCustomConflictResolver()
         {
             
@@ -536,14 +536,17 @@ namespace Test
                     "because this operation is invalid");
         }
 
-        [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        public void TestClose(int count)
+        [Fact]
+        public void TestClose()
         {
-            for (int i = 0; i < count; i++) {
-                Db.Close();
-            }
+            Db.Close();
+        }
+
+        [Fact]
+        public void TestCloseTwice()
+        {
+            Db.Close();
+            Db.Close();
         }
 
         [Fact]
@@ -603,12 +606,17 @@ namespace Test
                 "because a database can't be closed in the middle of a batch");
         }
 
-        [Theory]
-        [InlineData(1)]
-        [InlineData(2, Skip = "Known failure, possibly invalid")]
-        public void TestDelete(int count)
+        [Fact]
+        public void TestDelete()
         {
             DeleteDB(Db);
+        }
+
+        //[Fact] Known failure, possibly invalid
+        public void TestDeleteTwice()
+        {
+            DeleteDB(db);
+            DeleteDB(db);
         }
 
         [Fact]

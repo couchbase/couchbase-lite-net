@@ -1181,7 +1181,7 @@ namespace Test
             doc.Contains("weight").Should().BeFalse("because 'weight' does not exist in the document");
         }
 
-        [Fact(Skip ="Known failure")]
+        //[Fact] known failure
         public void TestDeleteNewDocument()
         {
             var doc = new Document("doc1");
