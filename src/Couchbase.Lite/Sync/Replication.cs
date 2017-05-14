@@ -47,6 +47,7 @@ namespace Couchbase.Lite.Sync
         public event EventHandler<ReplicationStatusChangedEventArgs> StatusChanged;
         private C4Replicator* _repl;
         private ThreadSafety _threadSafety = new ThreadSafety();
+		private ReplicatorStateChangedCallback _callback;
 
         #endregion
 
@@ -114,6 +115,7 @@ namespace Couchbase.Lite.Sync
         private void Dispose(bool finalizing)
         {
             Native.c4repl_free(_repl);
+			_callback?.Dispose();
         }
 
         private void SetC4Status(C4ReplicatorStatus state)
@@ -227,11 +229,11 @@ namespace Couchbase.Lite.Sync
                         path = path.AsC4Slice()
                     };
 
-                    var callback = new ReplicatorStateChangedCallback(StatusChangedCallback, this);
+                    _callback = new ReplicatorStateChangedCallback(StatusChangedCallback, this);
 
                     var otherDb = otherDatabase == null ? null : otherDatabase.c4db;
                     _repl = Native.c4repl_new(database.c4db, addr, dbNameStr, otherDb, Mkmode(Push, Continuous),
-                        Mkmode(Pull, Continuous), callback, &err);
+                        Mkmode(Pull, Continuous), _callback, &err);
                 }
 
                 C4ReplicatorStatus status;

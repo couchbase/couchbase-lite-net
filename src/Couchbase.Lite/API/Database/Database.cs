@@ -27,6 +27,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Query;
@@ -365,7 +366,7 @@ namespace Couchbase.Lite
             }
 
             CheckOpen();
-            var key = new Uri(otherDatabase.Path);
+            var key = new Uri($"file://{otherDatabase.Path}");
             var repl = Replications.Get(key);
             if (repl == null) {
                 repl = new Replication(this, null, otherDatabase);
@@ -529,8 +530,10 @@ namespace Couchbase.Lite
 
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
         {
-            var dbObj = (Database)context;
-            dbObj?.PostDatabaseChanged();
+            Task.Factory.StartNew(() => {
+              var dbObj = (Database)context;
+              dbObj?.PostDatabaseChanged();
+            });
         }
 
         private static string DefaultDirectory()
@@ -649,26 +652,29 @@ namespace Couchbase.Lite
 
         private void PostDatabaseChanged()
         {
-            if(_obs == null || _c4db == null || Native.c4db_isInTransaction(_c4db)) {
-                return;
-            }
+			_threadSafety.DoLocked(() =>
+			{
+				if (_obs == null || _c4db == null || Native.c4db_isInTransaction(_c4db)) {
+					return;
+				}
 
-            const uint maxChanges = 100u;
-            uint nChanges;
-            var changes = new C4DatabaseChange[maxChanges];
-            do {
-                // Read changes in batches of MaxChanges:
-                bool newExternal;
-                nChanges = Native.c4dbobs_getChanges(_obs.Observer, changes, maxChanges, &newExternal);
-                for (int i = 0; i < nChanges; i++) {
-                    var docID = changes[i].docID.CreateString();
-                    using (var doc = new Document(this, docID, false)) {
-                        var args = new DatabaseChangedEventArgs(this, doc);
-                        Changed?.Invoke(this, args);
-                    }
-                }
-                
-            } while(nChanges > 0);
+				const uint maxChanges = 100u;
+				uint nChanges;
+				var changes = new C4DatabaseChange[maxChanges];
+				do {
+					// Read changes in batches of MaxChanges:
+					bool newExternal;
+					nChanges = Native.c4dbobs_getChanges(_obs.Observer, changes, maxChanges, &newExternal);
+					for (int i = 0; i < nChanges; i++) {
+						var docID = changes[i].docID.CreateString();
+						using (var doc = new Document(this, docID, false))
+						{
+							var args = new DatabaseChangedEventArgs(this, doc);
+							Changed?.Invoke(this, args);
+						}
+					}
+				} while (nChanges > 0);
+			});
         }
 
         private Document VerifyDB(Document document)
