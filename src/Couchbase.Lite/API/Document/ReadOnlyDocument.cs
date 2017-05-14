@@ -101,9 +101,12 @@ namespace Couchbase.Lite
 
         #endregion
 
-#pragma warning disable 1591
         #region Overrides
 
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        /// <returns>A string that represents the current object.</returns>
         public override string ToString()
         {
             var id = new SecureLogString(Id, LogMessageSensitivity.PotentiallyInsecure);
@@ -114,6 +117,9 @@ namespace Couchbase.Lite
 
         #region IDisposable
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public void Dispose()
         {
             _threadSafety.DoLocked(() => Dispose(true));
@@ -121,6 +127,5 @@ namespace Couchbase.Lite
         }
 
         #endregion
-#pragma warning restore 1591
     }
 }

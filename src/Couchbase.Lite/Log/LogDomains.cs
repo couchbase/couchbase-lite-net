@@ -108,6 +108,7 @@ namespace Couchbase.Lite.Logging
         /// so that logic can be applied to all of them
         /// </summary>
         /// <param name="loggers">The loggers to exclude</param>
+        /// <returns>The logging object representing the group</returns>
         public IDomainLogging Except(params IDomainLogging[] loggers)
         {
             var exclusiveList = from logger in GetAll()
@@ -126,6 +127,7 @@ namespace Couchbase.Lite.Logging
         /// </code>
         /// </summary>
         /// <param name="loggers">The loggers to apply the logic to.</param>
+        /// <returns>The logging object representing the group</returns>
         public IDomainLogging Group(params IDomainLogging[] loggers)
         {
             return new LogGroup(loggers);

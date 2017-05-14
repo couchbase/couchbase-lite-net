@@ -42,12 +42,14 @@ namespace Couchbase.Lite
         #endregion
 
         #region Properties
-#pragma warning disable 1591
 
+        /// <inheritdoc />
         public virtual int Count => (int)Native.FLDict_Count(_dict);
 
+        /// <inheritdoc />
         public ReadOnlyFragment this[string key] => new ReadOnlyFragment(GetObject(key));
 
+        /// <inheritdoc />
         public virtual ICollection<string> Keys
         {
             get {
@@ -65,8 +67,6 @@ namespace Couchbase.Lite
                 return keys;
             }
         }
-
-#pragma warning restore 1591
 
         internal FleeceDictionary Data { get; set; }
 
@@ -105,7 +105,6 @@ namespace Couchbase.Lite
             return null;
         }
 
-#pragma warning disable 1591
         #region IEnumerable
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -117,6 +116,10 @@ namespace Couchbase.Lite
 
         #region IEnumerable<KeyValuePair<string,object>>
 
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
         public virtual IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
             return new Enumerator(this);
@@ -126,62 +129,74 @@ namespace Couchbase.Lite
 
         #region IReadOnlyDictionary
 
+        /// <inheritdoc />
         public virtual bool Contains(string key)
         {
             var type = Native.FLValue_GetType(FleeceValueForKey(key));
             return type != FLValueType.Undefined;
         }
 
+        /// <inheritdoc />
         public IReadOnlyArray GetArray(string key)
         {
             return FleeceValueToObject(key) as IReadOnlyArray;
         }
 
+        /// <inheritdoc />
         public virtual Blob GetBlob(string key)
         {
             return FleeceValueToObject(key) as Blob;
         }
 
+        /// <inheritdoc />
         public virtual bool GetBoolean(string key)
         {
             return Native.FLValue_AsBool(FleeceValueForKey(key));
         }
 
+        /// <inheritdoc />
         public virtual DateTimeOffset GetDate(string key)
         {
             return DataOps.ConvertToDate(FleeceValueToObject(key));
         }
 
+        /// <inheritdoc />
         public virtual double GetDouble(string key)
         {
             return Native.FLValue_AsDouble(FleeceValueForKey(key));
         }
 
+        /// <inheritdoc />
         public virtual int GetInt(string key)
         {
             return (int)Native.FLValue_AsInt(FleeceValueForKey(key));
         }
 
+        /// <inheritdoc />
         public virtual long GetLong(string key)
         {
             return Native.FLValue_AsInt(FleeceValueForKey(key));
         }
 
+        /// <inheritdoc />
         public virtual object GetObject(string key)
         {
             return FleeceValueToObject(key);
         }
 
+        /// <inheritdoc />
         public virtual string GetString(string key)
         {
             return FleeceValueToObject(key) as string;
         }
 
+        /// <inheritdoc />
         public IReadOnlyDictionary GetDictionary(string key)
         {
             return FleeceValueToObject(key) as IReadOnlyDictionary;
         }
 
+        /// <inheritdoc />
         public virtual IDictionary<string, object> ToDictionary()
         {
             if (Count == 0) {
@@ -207,7 +222,6 @@ namespace Couchbase.Lite
         }
 
         #endregion
-#pragma warning restore 1591
 
         private class Enumerator : IEnumerator<KeyValuePair<string, object>>
         {

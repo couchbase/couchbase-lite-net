@@ -37,10 +37,11 @@ namespace Couchbase.Lite
         #endregion
 
         #region Properties
-#pragma warning disable 1591
 
+        /// <inheritdoc />
         public override bool Exists => _value != null;
 
+        /// <inheritdoc />
         public new Fragment this[string key]
         {
             get {
@@ -52,6 +53,7 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <inheritdoc />
         public new Fragment this[int index]
         {
             get {
@@ -62,8 +64,6 @@ namespace Couchbase.Lite
                 return new Fragment(null, null, null);
             }
         }
-
-#pragma warning restore 1591
 
         /// <summary>
         /// Gets or sets the value of this object

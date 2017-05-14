@@ -97,8 +97,7 @@ namespace Couchbase.Lite
 
         #region Properties
 
-#pragma warning disable 1591
-
+        /// <inheritdoc />
         public override int Count
         {
             get {
@@ -119,6 +118,7 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <inheritdoc />
         public override ICollection<string> Keys
         {
             get {
@@ -137,6 +137,7 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <inheritdoc />
         public new Fragment this[string key]
         {
             get {
@@ -144,8 +145,6 @@ namespace Couchbase.Lite
                 return new Fragment(value, this, key);
             }
         }
-
-#pragma warning restore 1591
 
         internal bool HasChanges
         {
@@ -240,20 +239,21 @@ namespace Couchbase.Lite
 
         #endregion
 
-#pragma warning disable 1591
-
         #region Overrides
 
+        /// <inheritdoc />
         public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
             return new Enumerator(this);
         }
 
+        /// <inheritdoc />
         public override bool Contains(string key)
         {
             return (_dict.ContainsKey(key) && _dict[key] != null) || base.Contains(key);
         }
 
+        /// <inheritdoc />
         public override Blob GetBlob(string key)
         {
             object value;
@@ -264,6 +264,7 @@ namespace Couchbase.Lite
             return value as Blob;
         }
 
+        /// <inheritdoc />
         public override bool GetBoolean(string key)
         {
             if(!_dict.ContainsKey(key)) {
@@ -274,6 +275,7 @@ namespace Couchbase.Lite
             return DataOps.ConvertToBoolean(value);
         }
 
+        /// <inheritdoc />
         public override DateTimeOffset GetDate(string key)
         {
             if (!_dict.ContainsKey(key)) {
@@ -283,6 +285,7 @@ namespace Couchbase.Lite
             return DataOps.ConvertToDate(_dict[key]);
         }
 
+        /// <inheritdoc />
         public override double GetDouble(string key)
         {
             if (!_dict.ContainsKey(key)) {
@@ -293,6 +296,7 @@ namespace Couchbase.Lite
             return DataOps.ConvertToDouble(value);
         }
 
+        /// <inheritdoc />
         public override int GetInt(string key)
         {
             if(!_dict.ContainsKey(key)) {
@@ -303,6 +307,7 @@ namespace Couchbase.Lite
             return DataOps.ConvertToInt(value);
         }
 
+        /// <inheritdoc />
         public override long GetLong(string key)
         {
             if (!_dict.ContainsKey(key)) {
@@ -313,6 +318,7 @@ namespace Couchbase.Lite
             return DataOps.ConvertToLong(value);
         }
 
+        /// <inheritdoc />
         public override object GetObject(string key)
         {
             object value = null;
@@ -333,6 +339,7 @@ namespace Couchbase.Lite
             return value;
         }
 
+        /// <inheritdoc />
         public override string GetString(string key)
         {
             object value;
@@ -347,6 +354,7 @@ namespace Couchbase.Lite
             return value as string;
         }
 
+        /// <inheritdoc />
         public override IDictionary<string, object> ToDictionary()
         {
             var result = new Dictionary<string, object>(_dict);
@@ -379,6 +387,7 @@ namespace Couchbase.Lite
 
         #region IDictionaryObject
 
+        /// <inheritdoc />
         public new IArray GetArray(string key)
         {
             object value;
@@ -394,6 +403,7 @@ namespace Couchbase.Lite
             return value as ArrayObject;
         }
 
+        /// <inheritdoc />
         public new IDictionaryObject GetDictionary(string key)
         {
             object value;
@@ -409,12 +419,14 @@ namespace Couchbase.Lite
             return value as DictionaryObject;
         }
 
+        /// <inheritdoc />
         public IDictionaryObject Remove(string key)
         {
             Set(key, null);
             return this;
         }
 
+        /// <inheritdoc />
         public IDictionaryObject Set(string key, object value)
         {
             var oldValue = GetObject(key);
@@ -431,6 +443,7 @@ namespace Couchbase.Lite
             return this;
         }
 
+        /// <inheritdoc />
         public IDictionaryObject Set(IDictionary<string, object> dictionary)
         {
             RemoveAllChangedListeners();
@@ -454,8 +467,6 @@ namespace Couchbase.Lite
         }
 
         #endregion
-
-#pragma warning restore 1591
 
         private sealed class Enumerator : IEnumerator<KeyValuePair<string, object>>
         {

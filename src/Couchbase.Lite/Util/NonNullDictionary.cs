@@ -1,23 +1,23 @@
-﻿//
-//  NonNullDictionary.cs
-//
-//  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
-//
-//  Copyright (c) 2015 Couchbase, Inc All rights reserved.
-//
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
-//
+﻿// 
+// NonNullDictionary.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -66,11 +66,46 @@ namespace Couchbase.Lite.Util
     [DebuggerDisplay("Count={Count}")]
     // ReSharper restore UseNameofExpression
     [DebuggerTypeProxy(typeof(CollectionDebuggerView<,>))]
-    public sealed class NonNullDictionary<TK, TV> : IDictionary<TK, TV>, IReadOnlyDictionary<TK, TV>
+    internal sealed class NonNullDictionary<TK, TV> : IDictionary<TK, TV>, IReadOnlyDictionary<TK, TV>
     {
         #region Variables
 
         private readonly IDictionary<TK, TV> _data = new Dictionary<TK, TV>();
+
+        #endregion
+
+        #region Properties
+
+        /// <inheritdoc />
+        public int Count => _data.Count;
+
+        /// <inheritdoc />
+        public bool IsReadOnly => _data.IsReadOnly;
+
+        /// <inheritdoc />
+        public TV this[TK index]
+        {
+            get {
+                return _data[index];
+            }
+            set {
+                if(IsAddable(value)) {
+                    _data[index] = value;
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public ICollection<TK> Keys => _data.Keys;
+
+        /// <inheritdoc />
+        public ICollection<TV> Values => _data.Values;
+
+        /// <inheritdoc />
+        IEnumerable<TK> IReadOnlyDictionary<TK, TV>.Keys => _data.Keys;
+
+        /// <inheritdoc />
+        IEnumerable<TV> IReadOnlyDictionary<TK, TV>.Values => _data.Values;
 
         #endregion
 
@@ -93,14 +128,73 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
-#pragma warning disable 1591
+        #region ICollection<KeyValuePair<TK,TV>>
+
+        /// <inheritdoc />
+        public void Add(KeyValuePair<TK, TV> item)
+        {
+            if(IsAddable(item.Value)) {
+                _data.Add(item);
+            }
+        }
+
+        /// <inheritdoc />
+        public void Clear()
+        {
+            _data.Clear();
+        }
+
+        /// <inheritdoc />
+        public bool Contains(KeyValuePair<TK, TV> item)
+        {
+            return _data.Contains(item);
+        }
+
+        /// <inheritdoc />
+        public void CopyTo(KeyValuePair<TK, TV>[] array, int arrayIndex)
+        {
+            _data.CopyTo(array, arrayIndex);
+        }
+
+        /// <inheritdoc />
+        public bool Remove(KeyValuePair<TK, TV> item)
+        {
+            return _data.Remove(item);
+        }
+
+        #endregion
+
+        #region IDictionary<TK,TV>
+
+        /// <inheritdoc />
+        public void Add(TK key, TV value)
+        {
+            if(IsAddable(value)) {
+                _data.Add(key, value);
+            }
+        }
+
+        /// <inheritdoc />
+        public bool ContainsKey(TK key)
+        {
+            return _data.ContainsKey(key);
+        }
+
+        /// <inheritdoc />
+        public bool Remove(TK key)
+        {
+            return _data.Remove(key);
+        }
+
+        /// <inheritdoc />
+        public bool TryGetValue(TK key, out TV value)
+        {
+            return _data.TryGetValue(key, out value);
+        }
+
+        #endregion
 
         #region IEnumerable
-
-        public IEnumerator<KeyValuePair<TK, TV>> GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
@@ -109,113 +203,14 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
-        #region IDictionary
+        #region IEnumerable<KeyValuePair<TK,TV>>
 
-        public void Add(TK key, TV value)
+        /// <inheritdoc />
+        public IEnumerator<KeyValuePair<TK, TV>> GetEnumerator()
         {
-            if(IsAddable(value)) {
-                _data.Add(key, value);
-            }
-        }
-
-        public bool ContainsKey(TK key)
-        {
-            return _data.ContainsKey(key);
-        }
-
-        public bool Remove(TK key)
-        {
-            return _data.Remove(key);
-        }
-
-        public bool TryGetValue(TK key, out TV value)
-        {
-            return _data.TryGetValue(key, out value);
-        }
-
-        public TV this[TK index]
-        {
-            get {
-                return _data[index];
-            }
-            set {
-                if(IsAddable(value)) {
-                    _data[index] = value;
-                }
-            }
-        }
-
-        public ICollection<TK> Keys
-        {
-            get {
-                return _data.Keys;
-            }
-        }
-
-        public ICollection<TV> Values
-        {
-            get {
-                return _data.Values;
-            }
-        }
-
-        IEnumerable<TK> IReadOnlyDictionary<TK, TV>.Keys
-        {
-            get {
-                return _data.Keys;
-            }
-        }
-
-        IEnumerable<TV> IReadOnlyDictionary<TK, TV>.Values
-        {
-            get {
-                return _data.Values;
-            }
-        }
-
-        public void Add(KeyValuePair<TK, TV> item)
-        {
-            if(IsAddable(item.Value)) {
-                _data.Add(item);
-            }
-        }
-
-        public void Clear()
-        {
-            _data.Clear();
-        }
-
-        public bool Contains(KeyValuePair<TK, TV> item)
-        {
-            return _data.Contains(item);
-        }
-
-        public void CopyTo(KeyValuePair<TK, TV>[] array, int arrayIndex)
-        {
-            _data.CopyTo(array, arrayIndex);
-        }
-
-        public bool Remove(KeyValuePair<TK, TV> item)
-        {
-            return _data.Remove(item);
-        }
-
-        public int Count
-        {
-            get {
-                return _data.Count;
-            }
-        }
-
-        public bool IsReadOnly
-        {
-            get {
-                return _data.IsReadOnly;
-            }
+            return _data.GetEnumerator();
         }
 
         #endregion
-
-#pragma warning restore 1591
     }
 }

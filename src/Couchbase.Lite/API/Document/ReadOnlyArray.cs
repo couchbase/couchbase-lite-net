@@ -37,10 +37,11 @@ namespace Couchbase.Lite
         private SharedStringCache _sharedKeys;
 
         #region Properties
-#pragma warning disable 1591
 
+        /// <inheritdoc />
         public virtual int Count => (int) Native.FLArray_Count(_array);
 
+        /// <inheritdoc />
         public ReadOnlyFragment this[int index]
         {
             get {
@@ -48,7 +49,6 @@ namespace Couchbase.Lite
                 return new ReadOnlyFragment(value);
             }
         }
-#pragma warning restore 1591
 
         internal FleeceArray Data { get; set; }
 
@@ -85,9 +85,12 @@ namespace Couchbase.Lite
 
         #endregion
 
-#pragma warning disable 1591
         #region IEnumerable<object>
 
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
         public virtual IEnumerator<object> GetEnumerator()
         {
             return Data.GetEnumerator();
@@ -97,62 +100,72 @@ namespace Couchbase.Lite
 
         #region IReadOnlyArray
 
+        /// <inheritdoc />
         public IReadOnlyArray GetArray(int index)
         {
             return FleeceValueToObject(index) as IReadOnlyArray;
         }
 
+        /// <inheritdoc />
         public virtual Blob GetBlob(int index)
         {
             return FleeceValueToObject(index) as Blob;
         }
 
+        /// <inheritdoc />
         public virtual bool GetBoolean(int index)
         {
             return Native.FLValue_AsBool(Native.FLArray_Get(_array, (uint) index));
         }
 
+        /// <inheritdoc />
         public virtual DateTimeOffset GetDate(int index)
         {
             return DataOps.ConvertToDate(FleeceValueToObject(index) as string);
         }
 
+        /// <inheritdoc />
         public virtual double GetDouble(int index)
         {
             return Native.FLValue_AsDouble(Native.FLArray_Get(_array, (uint)index));
         }
 
+        /// <inheritdoc />
         public virtual int GetInt(int index)
         {
             return (int)Native.FLValue_AsInt(Native.FLArray_Get(_array, (uint)index));
         }
 
+        /// <inheritdoc />
         public virtual long GetLong(int index)
         {
             return Native.FLValue_AsInt(Native.FLArray_Get(_array, (uint)index));
         }
 
+        /// <inheritdoc />
         public virtual object GetObject(int index)
         {
             return FleeceValueToObject(index);
         }
 
+        /// <inheritdoc />
         public virtual string GetString(int index)
         {
             return FleeceValueToObject(index) as string;
         }
 
+        /// <inheritdoc />
         public IReadOnlyDictionary GetDictionary(int index)
         {
             return FleeceValueToObject(index) as IReadOnlyDictionary;
         }
 
+        /// <inheritdoc />
         public virtual IList<object> ToList()
         {
             return Data.ToList();
         }
 
         #endregion
-#pragma warning restore 1591
     }
 }

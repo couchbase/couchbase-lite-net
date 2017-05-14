@@ -72,10 +72,11 @@ namespace Couchbase.Lite
         #endregion
 
         #region Properties
-#pragma warning disable 1591
 
+        /// <inheritdoc />
         public override int Count => _list.Count;
 
+        /// <inheritdoc />
         public new Fragment this[int index]
         {
             get {
@@ -84,7 +85,6 @@ namespace Couchbase.Lite
             }
         }
 
-#pragma warning restore 1591
         #endregion
 
         #region Constructors
@@ -175,59 +175,68 @@ namespace Couchbase.Lite
 
         #endregion
 
-#pragma warning disable 1591
         #region Overrides
 
+        /// <inheritdoc />
         public override IEnumerator<object> GetEnumerator()
         {
             return _list.Cast<object>().GetEnumerator();
         }
 
+        /// <inheritdoc />
         public override Blob GetBlob(int index)
         {
             return _list[index] as Blob;
         }
 
+        /// <inheritdoc />
         public override bool GetBoolean(int index)
         {
             var value = _list[index];
             return DataOps.ConvertToBoolean(value);
         }
 
+        /// <inheritdoc />
         public override DateTimeOffset GetDate(int index)
         {
             var value = _list[index];
             return DataOps.ConvertToDate(value);
         }
 
+        /// <inheritdoc />
         public override double GetDouble(int index)
         {
             var value = _list[index];
             return DataOps.ConvertToDouble(value);
         }
 
+        /// <inheritdoc />
         public override int GetInt(int index)
         {
             var value = _list[index];
             return DataOps.ConvertToInt(value);
         }
 
+        /// <inheritdoc />
         public override long GetLong(int index)
         {
             var value = _list[index];
             return DataOps.ConvertToLong(value);
         }
 
+        /// <inheritdoc />
         public override object GetObject(int index)
         {
             return _list[index];
         }
 
+        /// <inheritdoc />
         public override string GetString(int index)
         {
             return _list[index] as string;
         }
 
+        /// <inheritdoc />
         public override IList<object> ToList()
         {
             var array = new List<object>();
@@ -252,6 +261,7 @@ namespace Couchbase.Lite
 
         #region IArray
 
+        /// <inheritdoc />
         public IArray Add(object value)
         {
             _list.Add(DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
@@ -259,16 +269,19 @@ namespace Couchbase.Lite
             return this;
         }
 
+        /// <inheritdoc />
         public new IArray GetArray(int index)
         {
             return _list[index] as IArray;
         }
 
+        /// <inheritdoc />
         public new IDictionaryObject GetDictionary(int index)
         {
             return _list[index] as IDictionaryObject;
         }
 
+        /// <inheritdoc />
         public IArray Insert(int index, object value)
         {
             _list.Insert(index, DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
@@ -276,6 +289,7 @@ namespace Couchbase.Lite
             return this;
         }
 
+        /// <inheritdoc />
         public IArray RemoveAt(int index)
         {
             var value = _list[index];
@@ -285,6 +299,7 @@ namespace Couchbase.Lite
             return this;
         }
 
+        /// <inheritdoc />
         public IArray Set(IList array)
         {
             RemoveAllChangedListeners();
@@ -299,6 +314,7 @@ namespace Couchbase.Lite
             return this;
         }
 
+        /// <inheritdoc />
         public IArray Set(int index, object value)
         {
             var oldValue = _list[index];
@@ -312,6 +328,6 @@ namespace Couchbase.Lite
         }
 
         #endregion
-#pragma warning restore 1591
+
     }
 }

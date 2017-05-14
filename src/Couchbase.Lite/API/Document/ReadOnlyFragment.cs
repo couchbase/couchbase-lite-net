@@ -27,7 +27,7 @@ namespace Couchbase.Lite
     /// A class representing an arbitrary readonly entry in a key path
     /// (e.g. object["key"][index]["next_key"], etc)
     /// </summary>
-    public class ReadOnlyFragment
+    public class ReadOnlyFragment : IReadOnlyArrayFragment, IReadOnlyDictionaryFragment
     {
         #region Properties
 
@@ -36,8 +36,7 @@ namespace Couchbase.Lite
         /// </summary>
         public virtual bool Exists => Value != null;
 
-#pragma warning disable 1591
-
+        /// <inheritdoc />
         public ReadOnlyFragment this[int index]
         {
             get {
@@ -49,6 +48,7 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <inheritdoc />
         public ReadOnlyFragment this[string key]
         {
             get {
@@ -59,8 +59,6 @@ namespace Couchbase.Lite
                 return new ReadOnlyFragment(null);
             }
         }
-
-#pragma warning restore 1591
 
         /// <summary>
         /// Gets the raw contained value of this object
@@ -176,14 +174,14 @@ namespace Couchbase.Lite
 
         #region Overrides
 
-#pragma warning disable 1591
-
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        /// <returns>A string that represents the current object.</returns>
         public override string ToString()
         {
             return Value as string;
         }
-
-#pragma warning restore 1591
 
         #endregion
     }

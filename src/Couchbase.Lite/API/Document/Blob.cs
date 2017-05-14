@@ -315,14 +315,22 @@ namespace Couchbase.Lite
 
         #endregion
 
-#pragma warning disable 1591
         #region Overrides
 
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        /// <returns>A string that represents the current object.</returns>
         public override string ToString()
         {
             return $"Blob[{ContentType}; {(Length + 512) / 1024} KB]";
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <returns><c>true</c> if the specified object is equal to the current object; otherwise, <c>false</c>.</returns>
+        /// <param name="obj">The object to compare with the current object. </param>
         public override bool Equals(object obj)
         {
             if (obj is Blob other) {
@@ -352,6 +360,5 @@ namespace Couchbase.Lite
         }
 
         #endregion
-#pragma warning restore 1591
     }
 }

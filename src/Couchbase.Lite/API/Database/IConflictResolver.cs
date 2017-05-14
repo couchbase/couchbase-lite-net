@@ -44,14 +44,13 @@ namespace Couchbase.Lite
     public sealed class MostActiveWinsConflictResolver : IConflictResolver
     {
         #region IConflictResolver
-#pragma warning disable 1591
 
+        /// <inheritdoc />
         public ReadOnlyDocument Resolve(Conflict conflict)
         {
             throw new System.NotImplementedException();
         }
 
-#pragma warning restore 1591
         #endregion
     }
 }

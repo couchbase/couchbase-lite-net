@@ -38,11 +38,8 @@ namespace Couchbase.Lite
         /// </summary>
         public bool Exists => Document != null;
 
-#pragma warning disable 1591
-
+        /// <inheritdoc />
         public Fragment this[string key] => Exists ? Document[key] : new Fragment(null, this, key);
-
-#pragma warning restore 1591
 
         #endregion
 

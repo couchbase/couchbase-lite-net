@@ -31,7 +31,7 @@ using LiteCore.Util;
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// A class representing an entry in a Couchbase Lite <see cref="Database"/>.  
+    /// A class representing an entry in a Couchbase Lite <see cref="Lite.Database"/>.  
     /// It consists of some metadata, and a collection of user-defined properties
     /// </summary>
     public sealed unsafe class Document : ReadOnlyDocument, IDictionaryObject
@@ -51,6 +51,15 @@ namespace Couchbase.Lite
         #endregion
 
         #region Properties
+
+        /// <inheritdoc />
+        public override int Count => _dict.Count;
+
+        /// <inheritdoc />
+        public new Fragment this[string key] => _dict[key];
+
+        /// <inheritdoc />
+        public override ICollection<string> Keys => _dict.Keys;
 
         internal Database Database
         {
@@ -322,75 +331,75 @@ namespace Couchbase.Lite
 
         #endregion
 
-#pragma warning disable 1591
-
-        public override int Count => _dict.Count;
-
-        public new Fragment this[string key] => _dict[key];
-
-        public override ICollection<string> Keys => _dict.Keys;
-
-#pragma warning restore 1591
-
-#pragma warning disable 1591
-
         #region Overrides
 
+        /// <inheritdoc />
         public override bool Contains(string key)
         {
             return _dict.Contains(key);
         }
 
+        /// <inheritdoc />
         public override Blob GetBlob(string key)
         {
             return _dict.GetBlob(key);
         }
 
+        /// <inheritdoc />
         public override bool GetBoolean(string key)
         {
             return _dict.GetBoolean(key);
         }
 
+        /// <inheritdoc />
         public override DateTimeOffset GetDate(string key)
         {
             return _dict.GetDate(key);
         }
 
+        /// <inheritdoc />
         public override double GetDouble(string key)
         {
             return _dict.GetDouble(key);
         }
 
+        /// <inheritdoc />
         public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
             return _dict.GetEnumerator();
         }
 
+        /// <inheritdoc />
         public override int GetInt(string key)
         {
             return _dict.GetInt(key);
         }
 
+        /// <inheritdoc />
         public override long GetLong(string key)
         {
             return _dict.GetLong(key);
         }
 
+        /// <inheritdoc />
         public override object GetObject(string key)
         {
             return _dict.GetObject(key);
         }
 
+        /// <inheritdoc />
         public override string GetString(string key)
         {
             return _dict.GetString(key);
         }
 
+        /// <inheritdoc />
         public override IDictionary<string, object> ToDictionary()
         {
             return _dict.ToDictionary();
         }
 
+        /// <inheritdoc />
         public override string ToString()
         {
             var id = new SecureLogString(Id, LogMessageSensitivity.PotentiallyInsecure);
@@ -401,28 +410,33 @@ namespace Couchbase.Lite
 
         #region IDictionaryObject
 
+        /// <inheritdoc />
         public new IArray GetArray(string key)
         {
             return _dict.GetArray(key);
         }
 
+        /// <inheritdoc />
         public new IDictionaryObject GetDictionary(string key)
         {
             return _dict.GetDictionary(key);
         }
 
+        /// <inheritdoc />
         public IDictionaryObject Remove(string key)
         {
             _dict.Remove(key);
             return this;
         }
 
+        /// <inheritdoc />
         public IDictionaryObject Set(string key, object value)
         {
             _dict.Set(key, value);
             return this;
         }
 
+        /// <inheritdoc />
         public IDictionaryObject Set(IDictionary<string, object> dictionary)
         {
             _dict.Set(dictionary);
@@ -431,6 +445,5 @@ namespace Couchbase.Lite
 
         #endregion
 
-#pragma warning restore 1591
     }
 }

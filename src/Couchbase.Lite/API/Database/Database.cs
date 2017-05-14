@@ -265,7 +265,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name">The name of the database to search for</param>
         /// <param name="directory">The directory to search in</param>
-        /// <returns></returns>
+        /// <returns><c>true</c> if the database exists in the directory, otherwise <c>false</c></returns>
         public static bool Exists(string name, string directory)
         {
             if(name == null) {
@@ -692,15 +692,16 @@ namespace Couchbase.Lite
         #endregion
 
         #region IDisposable
-#pragma warning disable 1591
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public void Dispose()
         {
             _threadSafety.DoLocked(() => Dispose(true));
             GC.SuppressFinalize(this);
         }
 
-#pragma warning restore 1591
         #endregion
     }
 }

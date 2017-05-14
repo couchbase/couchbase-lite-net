@@ -225,14 +225,11 @@ namespace Couchbase.Lite
 
         #region IDisposable
 
-#pragma warning disable 1591
-
+        /// <inheritdoc />
         public void Dispose()
         {
             _cryptor.Dispose();
         }
-
-#pragma warning restore 1591
 
         #endregion
 
