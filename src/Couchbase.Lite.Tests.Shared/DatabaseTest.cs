@@ -615,8 +615,8 @@ namespace Test
         //[Fact] Known failure, possibly invalid
         public void TestDeleteTwice()
         {
-            DeleteDB(db);
-            DeleteDB(db);
+            DeleteDB(Db);
+            DeleteDB(Db);
         }
 
         [Fact]
