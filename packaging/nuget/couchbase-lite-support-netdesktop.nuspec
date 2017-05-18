@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package>
   <metadata>
-    <id>Couchbase.Lite.Support.UWP</id>
-    <title>Couchbase Lite UWP Support</title>
+    <id>Couchbase.Lite.Support.NetDesktop</id>
+    <title>Couchbase Lite .NET Desktop Support</title>
     <version>$version$</version>
     <authors>Jim Borden</authors>
     <owners>Couchbase</owners>
