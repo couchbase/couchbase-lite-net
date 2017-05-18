@@ -77,9 +77,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="desktop.targets">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Properties\DynamicAssemblyInfo.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>

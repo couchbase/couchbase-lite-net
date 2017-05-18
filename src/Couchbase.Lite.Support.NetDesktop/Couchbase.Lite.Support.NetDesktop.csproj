@@ -1,0 +1,68 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsMac>false</IsMac>
+    <IsMac Condition=" '$(OS)' == 'Unix' AND Exists('/Library/Frameworks') ">true</IsMac>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>netstandard1.4</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="desktop.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(OS)' == 'Windows_NT' OR '$(Configuration)' == 'Packaging' ">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\LiteCore.dll">
+      <Link>x86\LiteCore.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\LiteCore.pdb">
+      <Link>x86\LiteCore.pdb</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\sqlite3.dll">
+      <Link>x86\sqlite3.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\sqlite3.pdb">
+      <Link>x86\sqlite3.pdb</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\LiteCore.dll">
+      <Link>x64\LiteCore.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\LiteCore.pdb">
+      <Link>x64\LiteCore.pdb</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\sqlite3.dll">
+      <Link>x64\sqlite3.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\sqlite3.pdb">
+      <Link>x64\sqlite3.pdb</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition=" $(IsMac) OR '$(Configuration)' == 'Packaging' ">
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libLiteCore.dylib">
+      <Link>libLiteCore.dylib</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup Condition=" (!$(IsMac) AND '$(OS)' == 'Unix') OR '$(Configuration)' == 'Packaging' ">
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libLiteCore.so">
+      <Link>libLiteCore.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

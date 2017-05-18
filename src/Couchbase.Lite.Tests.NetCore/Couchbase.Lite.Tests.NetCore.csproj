@@ -1,25 +1,26 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netcoreapp1.0</TargetFramework>
+    <TargetFrameworks>netcoreapp1.0;net461</TargetFrameworks>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <!-- SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\couchbase.snk</AssemblyOriginatorKeyFile>
     <DelaySign>False</DelaySign -->
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED;</DefineConstants>
+    <DefineConstants>LITECORE_PACKAGED</DefineConstants>
     <WarningLevel>0</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DefineConstants>TRACE;RELEASE;NETCOREAPP1_0;LITECORE_PACKAGED</DefineConstants>
+    <DefineConstants>LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite" Version="2.0.0-b0015" />
     <Compile Remove="C\**" />
     <EmbeddedResource Remove="C\**" />
     <None Remove="C\**" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Couchbase.Lite" Version="2.0.0-b0074" />
+    <PackageReference Include="Couchbase.Lite.Support.NetDesktop" Version="2.0.0-b0074" />
     <PackageReference Include="FluentAssertions" Version="4.19.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />
     <PackageReference Include="xunit" Version="2.3.0-beta1-build3642" />

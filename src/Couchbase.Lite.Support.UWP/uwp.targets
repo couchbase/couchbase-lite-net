@@ -1,0 +1,30 @@
+﻿<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Target Name="InjectReference_11513e9c-85e5-4aa3-93a0-c55433b2b66d" BeforeTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <Content Condition=" '$(Platform)' == 'x86' " Include="$(MSBuildThisFileDirectory)..\runtimes\win10-x86\native\LiteCore.dll">
+                <Link>LiteCore.dll</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
+            <Content Condition=" '$(Platform)' == 'x64' " Include="$(MSBuildThisFileDirectory)..\runtimes\win10-x64\native\LiteCore.dll">
+                <Link>LiteCore.dll</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
+            <Content Condition=" '$(Platform)' == 'ARM' " Include="$(MSBuildThisFileDirectory)..\runtimes\win10-arm\native\LiteCore.dll">
+                <Link>LiteCore.dll</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
+            <Content Condition=" '$(Platform)' == 'x86' " Include="$(MSBuildThisFileDirectory)..\runtimes\win10-x86\native\sqlite3.dll">
+                <Link>sqlite3.dll</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
+            <Content Condition=" '$(Platform)' == 'x64' " Include="$(MSBuildThisFileDirectory)..\runtimes\win10-x64\native\sqlite3.dll">
+                <Link>sqlite3.dll</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
+            <Content Condition=" '$(Platform)' == 'ARM' " Include="$(MSBuildThisFileDirectory)..\runtimes\win10-arm\native\sqlite3.dll">
+                <Link>sqlite3.dll</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
+        </ItemGroup>
+    </Target>
+</Project>

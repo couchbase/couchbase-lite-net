@@ -11,7 +11,7 @@
     <AssemblyName>Couchbase.Lite.Tests.UWP</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
-    <TargetPlatformVersion>10.0.14393.0</TargetPlatformVersion>
+    <TargetPlatformVersion>10.0.15063.0</TargetPlatformVersion>
     <TargetPlatformMinVersion>10.0.10240.0</TargetPlatformMinVersion>
     <MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
     <FileAlignment>512</FileAlignment>
@@ -89,7 +89,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
-    <UseDotNetNativeToolchain>false</UseDotNetNativeToolchain>
+    <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|x86'">
@@ -105,6 +105,7 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|ARM'">
     <OutputPath>bin\ARM\Packaging\</OutputPath>
@@ -119,6 +120,7 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|x64'">
     <OutputPath>bin\x64\Packaging\</OutputPath>
@@ -133,11 +135,15 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
+    <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
   </PropertyGroup>
   <ItemGroup>
     <!--A reference to the entire .Net Framework and Windows SDK are automatically included-->
     <Content Include="Assets\C\tests\data\sentences.json" />
     <None Include="project.json" />
+    <SDKReference Include="Microsoft.VCLibs, Version=14.0">
+      <Name>Visual C++ 2015 Runtime for Universal Windows Platform Apps</Name>
+    </SDKReference>
     <SDKReference Include="TestPlatform.Universal, Version=$(UnitTestPlatformVersion)" />
   </ItemGroup>
   <ItemGroup>
@@ -175,22 +181,40 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Packaging'">
-    <Content Include="..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\LiteCore.dll">
-      <Link>x64\LiteCore.dll</Link>
+    <Content Condition="'$(Platform)' == 'x64'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\LiteCore.dll">
+      <Link>LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\sqlite3.dll">
-      <Link>x64\sqlite3.dll</Link>
+    <Content Condition="'$(Platform)' == 'x64'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\sqlite3.dll">
+      <Link>sqlite3.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\LiteCore.dll">
-      <Link>x86\LiteCore.dll</Link>
+    <Content Condition="'$(Platform)' == 'x86'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\LiteCore.dll">
+      <Link>LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\sqlite3.dll">
-      <Link>x86\sqlite3.dll</Link>
+    <Content Condition="'$(Platform)' == 'x86'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\sqlite3.dll">
+      <Link>sqlite3.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Condition="'$(Platform)' == 'ARM'" Include="..\..\vendor\couchbase-lite-core\build_cmake\arm\RelWithDebInfo\LiteCore.dll">
+      <Link>LiteCore.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Condition="'$(Platform)' == 'ARM'" Include="..\..\vendor\couchbase-lite-core\build_cmake\arm\RelWithDebInfo\sqlite3.dll">
+      <Link>sqlite3.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj">
+      <Project>{89c2b07b-a5e3-4be9-8d2c-22269b0aa921}</Project>
+      <Name>Couchbase.Lite.Support.UWP</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
+      <Project>{dd9cb298-f3a1-4653-883b-352e69c16f93}</Project>
+      <Name>Couchbase.Lite</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
   <Import Project="..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" />

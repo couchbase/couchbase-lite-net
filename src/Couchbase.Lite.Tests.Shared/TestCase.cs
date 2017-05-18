@@ -61,6 +61,13 @@ namespace Test
 
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
+#if NETCOREAPP1_0
+        static TestCase()
+        {
+            Couchbase.Lite.Support.NetDestkop.Activate();
+        }
+#endif
+
 #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
         {
