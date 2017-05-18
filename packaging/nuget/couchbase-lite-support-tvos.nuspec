@@ -21,6 +21,7 @@
   <files>
     <file target="lib\xamarintvos\" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\Couchbase.Lite.Support.tvOS.dll" />
     <file target="lib\xamarintvos\" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\Couchbase.Lite.Support.tvOS.pdb" />
-    <file target="lib\xamarintvos\" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\Couchbase.Lite.Support.tvOS.dll.mdb" />
+    <file target="build\xamarintvos\Couchbase.Lite.Support.tvOS.targets" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\tvos.targets" />
+    <file target="build\xamarintvos\" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\Resources\libLiteCore.dylib" />
   </files>
 </package>
