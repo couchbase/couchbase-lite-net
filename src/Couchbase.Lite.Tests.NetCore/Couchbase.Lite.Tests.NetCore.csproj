@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp1.0;net461</TargetFrameworks>
+    <TargetFramework>netcoreapp1.0</TargetFramework>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <!-- SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\couchbase.snk</AssemblyOriginatorKeyFile>

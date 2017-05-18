@@ -23,11 +23,11 @@ if not defined NUGET_REPO (
 )
 
 for /r %%i in (*.nuspec) do (
-    ..\..\nuget.exe pack %%i /Properties version=%NUGET_VERSION% /BasePath ..\..
+    ..\..\nuget.exe pack %%i /Properties version=%NUGET_VERSION% /BasePath ..\.. || exit /b 1
 )
 
 for /r %%i in (*.nupkg) do (
-    ..\..\nuget.exe push %%i %API_KEY% -Source %NUGET_REPO%
+    ..\..\nuget.exe push %%i %API_KEY% -Source %NUGET_REPO% || exit /b 1
 )
 
 del *.nupkg

@@ -1,7 +1,7 @@
 ﻿{
   "dependencies": {
-    "Couchbase.Lite": "2.0.0-b0067",
-    "Couchbase.Lite.Support.UWP": "2.0.0-b0067",
+    "Couchbase.Lite": "2.0.0-b0081",
+    "Couchbase.Lite.Support.UWP": "2.0.0-b0081",
     "FluentAssertions": "4.19.0",
     "Microsoft.NETCore.UniversalWindowsPlatform": "5.3.0",
     "MSTest.TestAdapter": "1.1.17",

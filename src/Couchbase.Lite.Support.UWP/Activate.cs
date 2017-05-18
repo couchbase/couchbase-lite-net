@@ -36,17 +36,9 @@ namespace Couchbase.Lite.Support
         /// </summary>
         public static void Activate()
         {
-            LoadPackagedLibrary("LiteCore", 0);
             InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
             InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
         }
-
-        #endregion
-
-        #region Private Methods
-
-        [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern IntPtr LoadPackagedLibrary(string lpFileName, uint reserved);
 
         #endregion
     }
