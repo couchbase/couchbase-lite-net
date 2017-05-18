@@ -16,6 +16,9 @@ if not defined NUGET_REPO (
 
 "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" Couchbase.Lite.csproj /t:Transform /p:TransformFile="Properties\DynamicAssemblyInfo.tt"
 dotnet restore -s %NUGET_REPO% -s https://api.nuget.org/v3/index.json
+pushd ..\Couchbase.Lite.Support.NetDesktop
+dotnet restore -s %NUGET_REPO% -s https://api.nuget.org/v3/index.json
+popd
 
 pushd ..\Couchbase.Lite.Support.UWP
 if not exist ..\..\nuget.exe (
