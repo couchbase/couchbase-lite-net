@@ -73,6 +73,10 @@ namespace Couchbase.Lite
             var dict = (IDictionaryObject)value;
             writer.WriteStartObject();
             foreach (var pair in dict) {
+                if (Object.ReferenceEquals(pair.Value, DictionaryObject.RemovedValue)) {
+                    continue;
+                }
+
                 writer.WritePropertyName(pair.Key);
                 serializer.Serialize(writer, pair.Value);
             }
@@ -88,6 +92,12 @@ namespace Couchbase.Lite
     [JsonConverter(typeof(DictionaryObjectConverter))]
     public sealed class DictionaryObject : ReadOnlyDictionary, IDictionaryObject
     {
+        #region Constants
+
+        internal static readonly object RemovedValue = new object();
+
+        #endregion
+
         #region Variables
 
         internal event EventHandler<ObjectChangedEventArgs<DictionaryObject>> Changed;
@@ -109,12 +119,21 @@ namespace Couchbase.Lite
                 }
 
                 foreach(var val in _dict.Values) {
-                    if(val == null) {
+                    if(Object.ReferenceEquals(val, RemovedValue)) {
                         count -= 1;
                     }
                 }
 
                 return count;
+            }
+        }
+
+        /// <inheritdoc />
+        public new Fragment this[string key]
+        {
+            get {
+                var value = GetObject(key);
+                return new Fragment(value, this, key);
             }
         }
 
@@ -128,7 +147,7 @@ namespace Couchbase.Lite
                 }
 
                 foreach (var pair in _dict) {
-                    if (pair.Value != null) {
+                    if (!ReferenceEquals(pair.Value, RemovedValue)) {
                         result.Add(pair.Key);
                     }
                 }
@@ -137,21 +156,12 @@ namespace Couchbase.Lite
             }
         }
 
-        /// <inheritdoc />
-        public new Fragment this[string key]
-        {
-            get {
-                var value = GetObject(key);
-                return new Fragment(value, this, key);
-            }
-        }
-
         internal bool HasChanges
         {
             get; private set;
         }
 
-        internal override bool IsEmpty => _dict.All(x => x.Value == null) && base.IsEmpty;
+        internal override bool IsEmpty => _dict.All(x => ReferenceEquals(x.Value, RemovedValue)) && base.IsEmpty;
 
         #endregion
 
@@ -187,6 +197,23 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
+        private IEnumerator<KeyValuePair<string, object>> GetGenerator()
+        {
+            foreach (var key in Keys) {
+                yield return new KeyValuePair<string, object>(key, GetObject(key));
+            }
+        }
+
+        private void ObjectChanged(object sender, ObjectChangedEventArgs<DictionaryObject> args)
+        {
+            SetChanged();
+        }
+
+        private void ObjectChanged(object sender, ObjectChangedEventArgs<ArrayObject> args)
+        {
+            SetChanged();
+        }
+
         private void RemoveAllChangedListeners()
         {
             foreach(var val in _dict.Values) {
@@ -206,16 +233,6 @@ namespace Couchbase.Lite
             }
         }
 
-        private void ObjectChanged(object sender, ObjectChangedEventArgs<DictionaryObject> args)
-        {
-            SetChanged();
-        }
-
-        private void ObjectChanged(object sender, ObjectChangedEventArgs<ArrayObject> args)
-        {
-            SetChanged();
-        }
-
         private void SetChanged()
         {
             if(!HasChanges) {
@@ -232,25 +249,14 @@ namespace Couchbase.Lite
             }
         }
 
-        private IEnumerator<KeyValuePair<string, object>> GetFleeceEnumerator()
-        {
-            return base.GetEnumerator();
-        }
-
         #endregion
 
         #region Overrides
 
         /// <inheritdoc />
-        public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
-        {
-            return new Enumerator(this);
-        }
-
-        /// <inheritdoc />
         public override bool Contains(string key)
         {
-            return (_dict.ContainsKey(key) && _dict[key] != null) || base.Contains(key);
+            return (_dict.ContainsKey(key) && !ReferenceEquals(_dict[key], RemovedValue)) || base.Contains(key);
         }
 
         /// <inheritdoc />
@@ -297,6 +303,16 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
+        public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        {
+            if (!HasChanges) {
+                return base.GetEnumerator();
+            }
+
+            return GetGenerator();
+        }
+
+        /// <inheritdoc />
         public override int GetInt(string key)
         {
             if(!_dict.ContainsKey(key)) {
@@ -334,6 +350,8 @@ namespace Couchbase.Lite
                         SetValue(key, value, false);
                         break;
                 }
+            } else if (Object.ReferenceEquals(value, RemovedValue)) {
+                value = null;
             }
 
             return value;
@@ -368,14 +386,17 @@ namespace Couchbase.Lite
             foreach(var key in result.Keys.ToArray()) {
                 var value = result[key];
                 switch(value) {
-                    case null:
-                        result.Remove(key);
-                        break;
                     case IReadOnlyDictionary dic:
                         result[key] = dic.ToDictionary();
                         break;
                     case IReadOnlyArray arr:
                         result[key] = arr.ToList();
+                        break;
+                    default:
+                        if (ReferenceEquals(value, RemovedValue)) {
+                            result.Remove(key);
+                        }
+
                         break;
                 }
             }
@@ -422,7 +443,10 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IDictionaryObject Remove(string key)
         {
-            Set(key, null);
+            if (Contains(key)) {
+                Set(key, RemovedValue);
+            }
+
             return this;
         }
 
@@ -456,7 +480,7 @@ namespace Couchbase.Lite
             var backingData = base.ToDictionary();
             foreach(var pair in backingData) {
                 if(!result.ContainsKey(pair.Key)) {
-                    result[pair.Key] = null;
+                    result[pair.Key] = RemovedValue;
                 }
             }
 
@@ -467,72 +491,5 @@ namespace Couchbase.Lite
         }
 
         #endregion
-
-        private sealed class Enumerator : IEnumerator<KeyValuePair<string, object>>
-        {
-            #region Variables
-
-            private readonly DictionaryObject _parent;
-            private readonly HashSet<string> _usedKeys = new HashSet<string>();
-            private AggregateEnumerator<KeyValuePair<string, object>> _underlying;
-
-            #endregion
-
-            #region Properties
-
-            public KeyValuePair<string, object> Current => _underlying.Current;
-
-            object IEnumerator.Current => Current;
-
-            #endregion
-
-            #region Constructors
-
-            public Enumerator(DictionaryObject parent)
-            {
-                _parent = parent;
-                _underlying = new AggregateEnumerator<KeyValuePair<string, object>>(_parent._dict.GetEnumerator(),
-                    _parent.GetFleeceEnumerator());
-            }
-
-            #endregion
-
-            #region IDisposable
-
-            public void Dispose()
-            {
-                _underlying?.Dispose();
-            }
-
-            #endregion
-
-            #region IEnumerator
-
-            public bool MoveNext()
-            {
-                if (!_underlying.MoveNext()) {
-                    return false;
-                }
-
-                while (_usedKeys.Contains(Current.Key)) {
-                    if (!_underlying.MoveNext()) {
-                        return false;
-                    }
-                }
-
-                _usedKeys.Add(Current.Key);
-                return true;
-            }
-
-            public void Reset()
-            {
-                _underlying?.Dispose();
-                _underlying = new AggregateEnumerator<KeyValuePair<string, object>>(_parent._dict.GetEnumerator(),
-                    _parent.GetFleeceEnumerator());
-                _usedKeys.Clear();
-            }
-
-            #endregion
-        }
     }
 }

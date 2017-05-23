@@ -55,7 +55,8 @@ namespace Test
             var dir = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
             Database.Delete("db", dir);
 
-            var options = new DatabaseOptions  {
+            var options = new DatabaseConfiguration
+            {
                 Directory = dir
             };
 
@@ -101,7 +102,7 @@ namespace Test
             Database.Delete("db", dir);
             Database.Exists("db", dir).Should().BeFalse("because it was just deleted");
 
-            var options = DatabaseOptions.Default;
+            var options = new DatabaseConfiguration();
             options.Directory = dir;
             using (var db = new Database("db", options)) {
                 Path.GetDirectoryName(db.Path).Should().EndWith(".cblite2", "because that is the current CBL extension");
@@ -694,7 +695,7 @@ namespace Test
         public void TestDeleteByStaticMethod()
         {
             var dir = Directory;
-            var options = DatabaseOptions.Default;
+            var options = new DatabaseConfiguration();
             options.Directory = dir;
             string path = null;
             using (var db = new Database("db", options)) {
@@ -709,7 +710,7 @@ namespace Test
         public void TestDeleteOpeningDBByStaticMethod()
         {
             var dir = Directory;
-            var options = DatabaseOptions.Default;
+            var options = new DatabaseConfiguration();
             options.Directory = dir;
             using (var db = new Database("db", options)) {
                 LiteCoreException e = null;
@@ -739,7 +740,7 @@ namespace Test
             Database.Delete("db", dir);
             Database.Exists("db", dir).Should().BeFalse("because this database has not been created");
 
-            var options = DatabaseOptions.Default;
+            var options = new DatabaseConfiguration();
             options.Directory = dir;
             string path = null;
             using (var db = new Database("db", options)) {
@@ -757,6 +758,66 @@ namespace Test
         public void TestDatabaseExistsAainstNonExistDB()
         {
             Database.Exists("nonexist", Directory).Should().BeFalse("because that DB does not exist");
+        }
+
+        [Fact]
+        public void TestCreateConfiguration()
+        {
+            var config1 = new DatabaseConfiguration();
+            config1.Directory.Should().NotBeNullOrEmpty("because the directory should have a default value");
+            config1.ConflictResolver.Should().BeNull("because it was not set");
+            config1.EncryptionKey.Should().BeNull("because it was not set");
+
+            var config1a = new DatabaseConfiguration(config1);
+            config1.Directory.Should().NotBeNullOrEmpty("because the directory should have a default value");
+            config1a.ConflictResolver.Should().BeNull("because it was not set");
+            config1a.EncryptionKey.Should().BeNull("because it was not set");
+
+            var resolver = new DummyResolver();
+            var config2 = new DatabaseConfiguration();
+            var key = new SymmetricKey("key");
+            config2.Directory = "/tmp/mydb";
+            config2.ConflictResolver = resolver;
+            config2.EncryptionKey = key;
+            config2.Directory.Should().Be("/tmp/mydb", "because that is what was set");
+            config2.ConflictResolver.Should().Be(resolver, "because that is what was set");
+            config2.EncryptionKey.Should().Be(key, "because that is what was set");
+
+            var config2a = new DatabaseConfiguration(config2);
+            config2.Directory.Should().Be("/tmp/mydb", "because that is what was set");
+            config2.ConflictResolver.Should().Be(resolver, "because that is what was set");
+            config2.EncryptionKey.Should().Be(key, "because that is what was set");
+        }
+
+        [Fact]
+        public void TestGetSetConfiguration()
+        {
+            var config = new DatabaseConfiguration();
+            using (var db = new Database("db", config))
+            {
+                db.Config.Should().NotBeNull("because it was set in the constructor");
+                db.Config.Should().NotBeSameAs(config, "because the configuration should be copied");
+                db.Config.Directory.Should().Be(config.Directory, "because the directory should be the same");
+                db.Config.ConflictResolver.Should().Be(config.ConflictResolver,
+                    "because the conflict resolver should be the same");
+                db.Config.EncryptionKey.Should().Be(config.EncryptionKey,
+                    "because the encryption key should be the same");
+            }
+        }
+
+        [Fact]
+        public void TestConfigurationIsCopiedWhenGetSet()
+        {
+            var config = new DatabaseConfiguration();
+            using (var db = new Database("db", config))
+            {
+                config.ConflictResolver = new DummyResolver();
+                db.Config.Should().NotBeNull("because it was set in the constructor");
+                db.Config.Should().NotBeSameAs(config, "because the configuration should be copied");
+                db.Config.Directory.Should().Be(config.Directory, "because the directory should be the same");
+                db.Config.ConflictResolver.Should().NotBe(config.ConflictResolver,
+                    "because the conflict resolver should be different now");
+            }
         }
 
         private void DeleteDB(Database db)
@@ -844,6 +905,14 @@ namespace Test
             var blob = new Blob("text/plain", content);
             doc.Set("data", blob);
             SaveDocument(doc);
+        }
+
+        internal sealed class DummyResolver : IConflictResolver
+        {
+            public ReadOnlyDocument Resolve(Conflict conflict)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

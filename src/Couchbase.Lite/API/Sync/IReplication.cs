@@ -25,8 +25,12 @@ namespace Couchbase.Lite.Sync
     /// <summary>
     /// An interface describing a replication.  A replication is a transfer of data
     /// between two database endpoints.  The two endpoints are a local database, and 
-    /// either another local database or a remote URL.
+    /// either another local database or a remote URL.  This API is not yet finalized.  
+    /// It WILL change.
     /// </summary>
+    /// <remarks>
+    /// This API is not yet finalized.  It WILL change.
+    /// </remarks>
     public interface IReplication : IDisposable
     {
         #region Variables

@@ -49,12 +49,11 @@ namespace Test
         [Fact]
         public void TestDatabaseNotification()
         {
-            var mre = new CountdownEvent(10);
+            var wa = new WaitAssert();
             Db.Changed += (sender, args) =>
             {
-                args.Database.Should().Be(Db, "because the event should fire for the correct database");
-                args.Document.Id.Should().StartWith("doc-", "because those are the documents added");
-                mre.Signal();
+                var docIDs = args.DocumentIDs;
+                wa.RunAssert(() => docIDs.Should().HaveCount(10, "because that is the number of expected rows"));
             };
 
             Db.InBatch(() =>
@@ -66,7 +65,7 @@ namespace Test
                 }
             });
 
-            mre.Wait(5000).Should().BeTrue("because otherwise the events never fired");
+            wa.WaitForResult(TimeSpan.FromSeconds(5));
         }
     }
 }

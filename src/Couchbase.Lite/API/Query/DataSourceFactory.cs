@@ -54,20 +54,20 @@ namespace Couchbase.Lite.Query
 
         #region Internal Methods
 
-        internal static IQueryable<TElement> LinqDataSource<TElement>(Database database, bool prefetch)
-            where TElement : class, IDocumentModel, new()
-        {
-            if (database == null) {
-                throw new ArgumentNullException(nameof(database));
-            }
+        //internal static IQueryable<TElement> LinqDataSource<TElement>(Database database, bool prefetch)
+        //    where TElement : class, IDocumentModel, new()
+        //{
+        //    if (database == null) {
+        //        throw new ArgumentNullException(nameof(database));
+        //    }
 
-            var db = database as Database;
-            if (db == null) {
-                throw new NotSupportedException("Custom IDatabase not supported");
-            }
+        //    var db = database as Database;
+        //    if (db == null) {
+        //        throw new NotSupportedException("Custom IDatabase not supported");
+        //    }
 
-            return new DatabaseQueryable<TElement>(db, prefetch);
-        }
+        //    return new DatabaseQueryable<TElement>(db, prefetch);
+        //}
 
         #endregion
     }

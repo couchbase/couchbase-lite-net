@@ -57,7 +57,7 @@ namespace Couchbase.Lite.Internal.Serialization
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
             DefaultValueHandling = DefaultValueHandling.Include,
             FloatFormatHandling = FloatFormatHandling.DefaultValue,
-            NullValueHandling = NullValueHandling.Ignore
+            NullValueHandling = NullValueHandling.Include
         };
 
         #endregion

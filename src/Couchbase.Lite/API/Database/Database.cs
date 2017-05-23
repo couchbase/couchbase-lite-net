@@ -87,8 +87,6 @@ namespace Couchbase.Lite
         ///// </summary>
         //public event EventHandler<DocumentChangedEventArgs> DocumentChanged;
 
-        private IConflictResolver _conflictResolver;
-
         private IJsonSerializer _jsonSerializer;
         private DatabaseObserver _obs;
         private long p_c4db;
@@ -98,18 +96,9 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <summary>
-        /// Gets the options that were used to create the database
+        /// Gets the configuration that were used to create the database
         /// </summary>
-        public DatabaseOptions Options { get; }
-
-        /// <summary>
-        /// Gets or sets the conflict resolver to use when conflicts arise
-        /// </summary>
-        public IConflictResolver ConflictResolver
-        {
-            get => _threadSafety.DoLocked(() => _conflictResolver);
-            set => _threadSafety.DoLocked(() => _conflictResolver = value);
-        }
+        public DatabaseConfiguration Config { get; }
 
         /// <summary>
         /// Gets the total number of documents in the database
@@ -199,20 +188,20 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <c>name</c> is <c>null</c></exception>
         /// <exception cref="ArgumentException"><c>name</c> contains invalid characters</exception> 
         /// <exception cref="LiteCoreException">An error occurred during LiteCore interop</exception>
-        public Database(string name) : this(name, new DatabaseOptions())
+        public Database(string name) : this(name, new DatabaseConfiguration())
         {
             
         }
 
         /// <summary>
-        /// Creates a database given a name and some options
+        /// Creates a database given a name and some configuration
         /// </summary>
         /// <param name="name">The name of the database</param>
-        /// <param name="options">The options to open it with</param>
-        public Database(string name, DatabaseOptions options) 
+        /// <param name="configuration">The configuration to open it with</param>
+        public Database(string name, DatabaseConfiguration configuration) 
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
-            Options = options;
+            Config = configuration;
             Open();
             _sharedStrings = new SharedStringCache(_c4db);
         }
@@ -222,7 +211,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="other">The database to copy from</param>
         public Database(Database other)
-            : this(other.Name, other.Options)
+            : this(other.Name, other.Config)
         {
             
         }
@@ -289,12 +278,12 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Creates an index of the given type on the given path with the given options
+        /// Creates an index of the given type on the given path with the given configuration
         /// </summary>
         /// <param name="expressions">The expressions to create the index on (must be either string
         /// or IExpression)</param>
         /// <param name="indexType">The type of index to create</param>
-        /// <param name="options">The options to apply to the index</param>
+        /// <param name="options">The configuration to apply to the index</param>
         public void CreateIndex(IList expressions, IndexType indexType, IndexOptions options)
         {
             _threadSafety.DoLocked(() =>
@@ -617,19 +606,16 @@ namespace Couchbase.Lite
                 return;
             }
             
-            System.IO.Directory.CreateDirectory(Directory(Options.Directory));
-            var path = DatabasePath(Name, Options.Directory);
+            System.IO.Directory.CreateDirectory(Directory(Config.Directory));
+            var path = DatabasePath(Name, Config.Directory);
             var config = _DBConfig;
-            //if(Options.ReadOnly) {
-            //    config.flags |= C4DatabaseFlags.ReadOnly;
-            //}
 
             var encrypted = "";
-            if(Options.EncryptionKey != null) {
+            if(Config.EncryptionKey != null) {
 #if true
                 throw new NotImplementedException("Encryption is not yet supported");
 #else
-                var key = Options.EncryptionKey;
+                var key = Config.EncryptionKey;
                 int i = 0;
                 config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
                 foreach(var b in key.KeyData) {
@@ -659,20 +645,27 @@ namespace Couchbase.Lite
 				}
 
 				const uint maxChanges = 100u;
+                var external = false;
 				uint nChanges;
 				var changes = new C4DatabaseChange[maxChanges];
+			    var docIDs = new List<string>();
 				do {
 					// Read changes in batches of MaxChanges:
 					bool newExternal;
 					nChanges = Native.c4dbobs_getChanges(_obs.Observer, changes, maxChanges, &newExternal);
-					for (int i = 0; i < nChanges; i++) {
-						var docID = changes[i].docID.CreateString();
-						using (var doc = new Document(this, docID, false))
-						{
-							var args = new DatabaseChangedEventArgs(this, doc);
-							Changed?.Invoke(this, args);
-						}
-					}
+				    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
+				        if (docIDs.Count > 0) {
+                            // Only notify if there are actually changes to send
+				            var args = new DatabaseChangedEventArgs(this, docIDs, external);
+				            Changed?.Invoke(this, args);
+				            docIDs = new List<string>();
+				        }
+				    }
+
+				    external = newExternal;
+				    for (int i = 0; i < nChanges; i++) {
+				        docIDs.Add(changes[i].docID.CreateString());
+				    }
 				} while (nChanges > 0);
 			});
         }

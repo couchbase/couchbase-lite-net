@@ -40,7 +40,7 @@ namespace Test
         private Benchmark _indexArtistsBench;
         private Benchmark _queryIndexedArtistsBench;
 
-        public TunesPerfTest(DatabaseOptions options) : base(options)
+        public TunesPerfTest(DatabaseConfiguration configuration) : base(configuration)
         {
 
         }

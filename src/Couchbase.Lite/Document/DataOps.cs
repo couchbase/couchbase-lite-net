@@ -138,7 +138,7 @@ namespace Couchbase.Lite.Internal.Doc
                 case IConvertible c:
                     return c.ToBoolean(CultureInfo.InvariantCulture);
                 default:
-                    return true;
+                    return !ReferenceEquals(value, DictionaryObject.RemovedValue);
             }
         }
 

@@ -23,29 +23,35 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
 {
-    internal sealed class LiveQueryChangedEventArgs : EventArgs
+    public sealed class LiveQueryChangedEventArgs : EventArgs
     {
         #region Properties
 
-        public IEnumerable<IQueryRow> Results { get; }
+        public IReadOnlyList<IQueryRow> Rows { get; }
+
+        public Exception Error { get; }
 
         #endregion
 
         #region Constructors
 
-        internal LiveQueryChangedEventArgs(IEnumerable<IQueryRow> results)
+        internal LiveQueryChangedEventArgs(IReadOnlyList<IQueryRow> rows, Exception e = null)
         {
-            Results = results;
+            Rows = rows;
+            Error = e;
         }
 
         #endregion
     }
 
     /// <summary>
-    /// An interface for a query which reports any changes in its results in
-    /// real time
+    /// An interface for a query which reports any changes in its rows in
+    /// real time.  This API is not yet finalized.  It WILL change.
     /// </summary>
-    internal interface ILiveQuery : IDisposable
+    /// <remarks>
+    /// This API is not yet finalized.  It WILL change.
+    /// </remarks>
+    public interface ILiveQuery : IDisposable
     {
         #region Variables
 
@@ -59,9 +65,23 @@ namespace Couchbase.Lite.Query
         #region Properties
 
         /// <summary>
-        /// The last retrieved results from this query
+        /// The last retrieved rows from this query
         /// </summary>
-        IEnumerable<IQueryRow> Results { get; }
+        IReadOnlyList<IQueryRow> Rows { get; }
+
+        /// <summary>
+        /// If not <c>null</c>, the error of the last execution of the query.
+        /// Otherwise, the query was sucessful
+        /// </summary>
+        Exception LastError { get; }
+
+        /// <summary>
+        /// Gets or sets the shortest interval at which the query will update, regardless
+        /// of how often the database changes.  Defaults to 0.2 seconds.  Increase this if
+        /// the query is expensive and the database updates frequently to limit CPU
+        /// consumption.
+        /// </summary>
+        TimeSpan UpdateInterval { get; set; }
 
         #endregion
 
@@ -69,9 +89,16 @@ namespace Couchbase.Lite.Query
 
         /// <summary>
         /// Starts the monitoring process for the live query (to stop, 
-        /// the live query must be disposed)
+        /// the live query must be disposed).  Accessing <see cref="Rows"/>
+        /// will automatically call this.
         /// </summary>
         void Start();
+
+        /// <summary>
+        /// Stops observing the database for changes.  Calling <see cref="Start"/>
+        /// or <see cref="Rows"/> will restart it.
+        /// </summary>
+        void Stop();
 
         #endregion
     }

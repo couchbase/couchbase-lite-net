@@ -1,5 +1,5 @@
 ﻿//
-//  DatabaseOptions.cs
+//  DatabaseConfiguration.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -20,22 +20,32 @@
 //
 
 
+using Couchbase.Lite.Support;
+
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// A struct containing options for creating or opening database data
+    /// A struct containing configuration for creating or opening database data
     /// </summary>
-    public struct DatabaseOptions
+    public struct DatabaseConfiguration
     {
+        private string _directory;
+
         /// <summary>
-        /// The default set of options (useful to use as a starting point)
+        /// Gets or sets the <see cref="IConflictResolver"/> used to handle conflicts by default
+        /// in the database to be created
         /// </summary>
-        public static readonly DatabaseOptions Default = new DatabaseOptions();
+        public IConflictResolver ConflictResolver { get; set; }
 
         /// <summary>
         /// Gets or sets the directory to use when creating or opening the data
         /// </summary>
-        public string Directory { get; set; }
+        public string Directory
+        {
+            get => _directory ?? InjectableCollection.GetImplementation<IDefaultDirectoryResolver>()
+                       .DefaultDirectory();
+            set => _directory = value;
+        }
 
         /// <summary>
         /// Gets or sets the encryption key to use on the database
@@ -43,8 +53,14 @@ namespace Couchbase.Lite
         public IEncryptionKey EncryptionKey { get; set; }
 
         /// <summary>
-        /// Gets or sets whether or not this database is readonly.
+        /// Copy constructor
         /// </summary>
-        public bool ReadOnly { get; set; }
+        /// <param name="other">The instance to copy from</param>
+        public DatabaseConfiguration(DatabaseConfiguration other)
+        {
+            ConflictResolver = other.ConflictResolver;
+            _directory = other._directory;
+            EncryptionKey = other.EncryptionKey;
+        }
     }
 }

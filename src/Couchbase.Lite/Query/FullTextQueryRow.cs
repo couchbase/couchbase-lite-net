@@ -33,7 +33,6 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private readonly C4FullTextTerm[] _matches;
-        private readonly C4Query* _query;
 
         #endregion
 
@@ -43,7 +42,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             get {
                 C4Error err;
-                var retVal = Native.c4query_fullTextMatched(_query, DocumentID, Sequence, &err);
+                var retVal = Native.c4query_fullTextMatched(_enum.C4Query, DocumentID, Sequence, &err);
                 if(retVal == null) {
                     throw new LiteCoreException(err);
                 }
@@ -58,14 +57,13 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal FullTextQueryRow(Database db, C4Query* query, C4QueryEnumerator* enumerator)
-            : base(db, enumerator)
+        internal FullTextQueryRow(QueryEnumerator enumerator, C4QueryEnumerator* e)
+            : base(enumerator, e)
         {
-            _query = query;
-            MatchCount = enumerator->fullTextTermCount;
+            MatchCount = e->fullTextTermCount;
             _matches = new C4FullTextTerm[MatchCount];
             for(int i = 0; i < MatchCount; i++) {
-                _matches[i] = enumerator->fullTextTerms[i];
+                _matches[i] = e->fullTextTerms[i];
             }
         }
 
@@ -92,7 +90,7 @@ namespace Couchbase.Lite.Internal.Query
             var length = _matches[matchNumber].length;
             using(var id = new C4String(DocumentID)) {
                 C4Error err;
-                var rawText = NativeRaw.c4query_fullTextMatched(_query, id.AsC4Slice(), Sequence, &err);
+                var rawText = NativeRaw.c4query_fullTextMatched(_enum.C4Query, id.AsC4Slice(), Sequence, &err);
                 if(rawText.buf == null) {
                     throw new LiteCoreException(err);
                 }

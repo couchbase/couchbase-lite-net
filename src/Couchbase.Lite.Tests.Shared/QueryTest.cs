@@ -35,6 +35,7 @@ using Couchbase.Lite.Query;
 using FluentAssertions;
 using LiteCore.Interop;
 using Newtonsoft.Json;
+using Couchbase.Lite.Internal.Query;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -132,7 +133,7 @@ namespace Test
         {
             LoadJSONResource("names_100");
             using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db))) {
-                var numRows = VerifyQuery(q, (n, row) =>
+                var numRows = VerifyQuery(q, true, (n, row) =>
                 {
                     var expectedID = $"doc-{n:D3}";
                     row.DocumentID.Should().Be(expectedID, "because otherwise the IDs were out of order");
@@ -310,7 +311,7 @@ namespace Test
                 .From(DataSourceFactory.Database(Db))
                 .Where(ExpressionFactory.Property("string").Is("string"))) {
 
-                var numRows = VerifyQuery(q, (n, row) =>
+                var numRows = VerifyQuery(q, true, (n, row) =>
                 {
                     var doc = row.Document;
                     doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
@@ -323,7 +324,7 @@ namespace Test
                 .From(DataSourceFactory.Database(Db))
                 .Where(ExpressionFactory.Property("string").IsNot("string1"))) {
 
-                var numRows = VerifyQuery(q, (n, row) =>
+                var numRows = VerifyQuery(q, true, (n, row) =>
                 {
                     var doc = row.Document;
                     doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
@@ -358,7 +359,7 @@ namespace Test
                 .Where(firstName.InExpressions(expected))
                 .OrderBy(OrderByFactory.Property("name.first"))) {
 
-                var numRows = VerifyQuery(q, (n, row) =>
+                var numRows = VerifyQuery(q, true, (n, row) =>
                 {
                     var name = row.Document.GetDictionary("name").GetString("first");
                     name.Should().Be(expected[n - 1], "because otherwise incorrect rows were returned");
@@ -380,7 +381,7 @@ namespace Test
                 .OrderBy(OrderByFactory.Property("name.first").Ascending())) {
 
                 var firstNames = new List<string>();
-                var numRows = VerifyQuery(q, (n, row) =>
+                var numRows = VerifyQuery(q, false, (n, row) =>
                 {
                     var doc = row.Document;
                     var firstName = doc.GetDictionary("name")?.GetString("first");
@@ -407,7 +408,7 @@ namespace Test
                 .OrderBy(OrderByFactory.Property("name.first").Ascending())) {
 
                 var firstNames = new List<string>();
-                var numRows = VerifyQuery(q, (n, row) =>
+                var numRows = VerifyQuery(q, false, (n, row) =>
                 {
                     var doc = row.Document;
                     var firstName = doc.GetDictionary("name")?.GetString("first");
@@ -433,7 +434,7 @@ namespace Test
                 .From(DataSourceFactory.Database(Db))
                 .Where(ExpressionFactory.Property("sentence").Match("'Dummie woman'"))
                 .OrderBy(OrderByFactory.Property("rank(sentence)").Descending())) {
-                var numRows = VerifyQuery(q, (n, row) =>
+                var numRows = VerifyQuery(q, true, (n, row) =>
                 {
                     var ftsRow = row as IFullTextQueryRow;
                     var text = ftsRow?.FullTextMatched;
@@ -462,7 +463,7 @@ namespace Test
 
                 using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(null).OrderBy(order)) {
                     var firstNames = new List<object>();
-                    var numRows = VerifyQuery(q, (n, row) =>
+                    var numRows = VerifyQuery(q, false, (n, row) =>
                     {
                         var doc = row.Document;
                         var firstName = doc.GetDictionary("name").GetString("first");
@@ -497,7 +498,7 @@ namespace Test
             Db.Save(doc2);
 
             var q = QueryFactory.SelectDistinct().From(DataSourceFactory.Database(Db));
-            var numRows = VerifyQuery(q, (n, row) =>
+            var numRows = VerifyQuery(q, true, (n, row) =>
             {
                 var doc = row.Document;
                 doc.Id.Should().Be(doc1.Id, "because doc2 is identical and should be skipped");
@@ -506,86 +507,82 @@ namespace Test
             numRows.Should().Be(1, "because there is only one distinct row");
         }
 
-        //[Fact]
-        //public async Task TestLiveQuery()
-        //{
-        //    IDocument doc1 = null, doc2 = null;
-        //    await Db.DoAsync(() =>
-        //    {
-        //        doc1 = Db.CreateDocument();
-        //        doc1["number"] = 1;
-        //        doc1.Save();
+        [Fact]
+        public async Task TestLiveQuery()
+        {
+            LoadNumbers(100);
+            using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db))
+                .Where(ExpressionFactory.Property("number1").LessThan(10)).OrderBy(OrderByFactory.Property("number1"))
+                .ToLiveQuery()) {
+                var wa = new WaitAssert();
+                q.Changed += (sender, args) =>
+                {
+                    var newRows = args.Rows;
+                    var foo = args.Rows[0];
+                    wa.RunConditionalAssert(
+                        () => args.Rows.Count == 10 && args.Rows[0].Document.GetInt("number1") == -1);
+                };
 
-        //        doc2 = Db.CreateDocument();
-        //        doc2["number"] = 0;
-        //        doc2.Save();
-        //    });
+                var rows = q.Rows;
+                rows.Count.Should().Be(9, "because there are 9 numbers less than 10");
+                await Task.Delay(500).ConfigureAwait(false);
 
-        //    var liveQuery = QueryFactory.Select()
-        //        .From(DataSourceFactory.Database(Db))
-        //        .Where(ExpressionFactory.Property("number").GreaterThanOrEqualTo(1))
-        //        .ToLiveQuery();
+                CreateDocInSeries(-1, 100);
+                wa.WaitForResult(TimeSpan.FromSeconds(5));
+            }
+        }
 
-        //    var are = new AutoResetEvent(false);
-        //    IEnumerable<IQueryRow> results = null;
-        //    liveQuery.Changed += (sender, args) =>
-        //    {
-        //        results = args.Results;
-        //        are.Set();
-        //    };
-        //    liveQuery.Start();
+        [Fact]
+        public async Task TestLiveQueryNoUpdate()
+        {
+            LoadNumbers(100);
+            using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db))
+                .Where(ExpressionFactory.Property("number1").LessThan(10)).OrderBy(OrderByFactory.Property("number1"))
+                .ToLiveQuery()) {
 
-        //    results = liveQuery.Results;
-        //    results.Should().HaveCount(1, "because there is only one document with this critera");
+                var mre = new ManualResetEventSlim();
+                q.Changed += (sender, args) =>
+                {
+                    mre.Set();
+                };
 
-        //    await Db.DoAsync(() =>
-        //    {
-        //        results.ElementAt(0).Document["number"].Should().Be(1L, "because that is what was stored");
-        //        doc1["number"] = 2;
-        //        doc1.Save();
-        //    });
+                await Task.Delay(500).ConfigureAwait(false);
 
-        //    are.WaitOne(2000).Should().BeTrue("because otherwise the live query timed out");
-        //    results.Should().HaveCount(1, "because there is only one document with this critera");
-        //    liveQuery.Dispose();
-        //    await Db.DoAsync(() =>
-        //    {
-        //        results.ElementAt(0).Document["number"].Should().Be(2L, "because that is what was stored");
-        //        doc1["number"] = 3;
-        //        doc1.Save();
-        //    });
-
-        //    are.WaitOne(2000).Should().BeFalse("because the live query was disposed");
-        //}
+                // This change will not affect the query results because 'number1 < 10' 
+                // is not true
+                CreateDocInSeries(111, 100);
+                mre.Wait(5000).Should().BeFalse("because the Changed event should not fire needlessly");
+            }
+        }
 
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
         {
             var ctx = (Func<int, bool>)context;
-            return ctx(System.Convert.ToInt32(properties["number1"]));
+            return ctx(Convert.ToInt32(properties["number1"]));
         }
 
         private bool TestWhereMathValidator(IDictionary<string, object> properties, object context)
         {
             var ctx = (Func<int, int, bool>)context;
-            return ctx(System.Convert.ToInt32(properties["number1"]), System.Convert.ToInt32(properties["number2"]));
+            return ctx(Convert.ToInt32(properties["number1"]), Convert.ToInt32(properties["number2"]));
         }
 
         private bool TestWhereBetweenValidator(IDictionary<string, object> properties, object context)
         {
-            return System.Convert.ToInt32(properties["number1"]) >= 3 &&
-                   System.Convert.ToInt32(properties["number1"]) <= 7;
+            return Convert.ToInt32(properties["number1"]) >= 3 &&
+                   Convert.ToInt32(properties["number1"]) <= 7;
         }
 
         private bool TestWhereAndValidator(IDictionary<string, object> properties, object context)
         {
-            return System.Convert.ToInt32(properties["number1"]) > 3 &&
-                   System.Convert.ToInt32(properties["number2"]) > 3;
+            return Convert.ToInt32(properties["number1"]) > 3 &&
+                   Convert.ToInt32(properties["number2"]) > 3;
         }
 
         private bool TestWhereOrValidator(IDictionary<string, object> properties, object context)
         {
-            return System.Convert.ToInt32(properties["number1"]) < 3 ||
-                   System.Convert.ToInt32(properties["number2"]) < 3;
+            return Convert.ToInt32(properties["number1"]) < 3 ||
+                   Convert.ToInt32(properties["number2"]) < 3;
         }
 
         private void RunTestWithNumbers(IList<int> expectedResultCount,
@@ -595,7 +592,7 @@ namespace Test
             foreach (var c in validator) {
                 using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(c.Item1)) {
                     var lastN = 0;
-                    VerifyQuery(q, (n, row) =>
+                    VerifyQuery(q, false, (n, row) =>
                     {
                         var props =row.Document.ToDictionary();
                         c.Item2(props, c.Item3).Should().BeTrue("because otherwise the row failed validation");
@@ -624,15 +621,34 @@ namespace Test
             });
         }
 
-        private int VerifyQuery(IQuery query, Action<int, IQueryRow> block)
+        private Document CreateDocInSeries(int entry, int max)
         {
-            var e = query.Run();
-            var n = 0;
-            foreach (var row in e) {
-                block?.Invoke(++n, row);
-            }
+            var docID = $"doc{entry}";
+            var doc = new Document(docID);
+            doc.Set("number1", entry);
+            doc.Set("number2", max - entry);
+            Db.Save(doc);
+            return doc;
+        }
 
-            return n;
+        private int VerifyQuery(IQuery query, bool randomAccess, Action<int, IQueryRow> block)
+        {
+            var result = query.Run();
+            using (var e = result.GetEnumerator()) {
+                var n = 0;
+                while(e.MoveNext()) { 
+                    block?.Invoke(++n, e.Current);
+                }
+
+                if (randomAccess && n > 0) {
+                    // Note:  The block's first parameter is 1-based, while IList is 0-based
+                    block(n, result[n - 1]);
+                    block(1, result[0]);
+                    block(n / 2 + 1, result[n / 2]);
+                }
+
+                return n;
+            }
         }
     }
 }

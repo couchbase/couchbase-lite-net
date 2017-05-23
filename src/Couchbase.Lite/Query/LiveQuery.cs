@@ -20,97 +20,191 @@
 // 
 using System;
 using System.Collections.Generic;
-
+using System.Threading.Tasks;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class LiveQuery : ILiveQuery
+    internal class LiveQuery : XQuery, ILiveQuery
     {
+        #region Constants
+
+        private static readonly TimeSpan DefaultLiveQueryUpdateInterval = TimeSpan.FromMilliseconds(200);
+        private const string Tag = nameof(LiveQuery);
+
+        #endregion
+
         #region Variables
 
-        private readonly Database _database;
-        private readonly IQuery _underlying;
+        private readonly ThreadSafety _threadSafety = new ThreadSafety();
 
         public event EventHandler<LiveQueryChangedEventArgs> Changed;
-        private bool _started;
+
+        private QueryEnumerator _enum;
+        private bool _forceReload;
+        private Exception _lastError;
+        private DateTime _lastUpdatedAt;
+
+        private AtomicBool _observing = false;
+        private IReadOnlyList<IQueryRow> _rows;
+        private TimeSpan _updateInterval;
+        private AtomicBool _willUpdate = false;
 
         #endregion
 
         #region Properties
 
-        public IEnumerable<IQueryRow> Results { get; private set; }
+        public Exception LastError
+        {
+            get => _threadSafety.DoLocked(() => _lastError);
+            private set => _threadSafety.DoLocked(() =>
+            {
+                if (_lastError != value) {
+                    _lastError = value;
+                    Task.Factory.StartNew(() => Changed?.Invoke(this, new LiveQueryChangedEventArgs(null, value)));
+                }
+            });
+        }
+
+        public IReadOnlyList<IQueryRow> Rows
+        {
+            get {
+                return _threadSafety.DoLocked(() =>
+                {
+                    Start();
+                    return _rows;
+                });
+            }
+            private set => _threadSafety.DoLocked(() =>
+            {
+                _rows = value;
+                Task.Factory.StartNew(() => Changed?.Invoke(this, new LiveQueryChangedEventArgs(value)));
+            });
+        }
+
+        public TimeSpan UpdateInterval
+        {
+            get => _threadSafety.DoLocked(() => _updateInterval);
+            set => _threadSafety.DoLocked(() => _updateInterval = value);
+        }
 
         #endregion
 
         #region Constructors
 
-        internal LiveQuery(Database database, IQuery underlying)
+        internal LiveQuery(XQuery query)
         {
-            _database = database;
-            _underlying = underlying;
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public void Dispose()
-        {
-            if (!_started) {
-                return;
-            }
-
-            _started = false;
-            _underlying.Dispose();
-            _database.Changed -= RerunQuery;
-        }
-
-        public void Start()
-        {
-            _database.Changed += RerunQuery;
-            Results = _underlying.Run();
-            _started = true;
+            UpdateInterval = DefaultLiveQueryUpdateInterval;
+            Copy(query);
         }
 
         #endregion
 
         #region Private Methods
 
-        private void FireChangedAndUpdate(IEnumerable<IQueryRow> newResults)
+        private void OnDatabaseChanged(object sender, DatabaseChangedEventArgs e)
         {
-            Changed?.Invoke(this, new LiveQueryChangedEventArgs(newResults));
-            Results = newResults;
+            if (_willUpdate) {
+                return;
+            }
+
+            // External updates should poll less frequently
+            var updateInterval = _updateInterval;
+            if (e.IsExternal) {
+                updateInterval += updateInterval;
+            }
+
+            var updateDelay = _lastUpdatedAt + updateInterval - DateTime.Now;
+            UpdateAfter(updateDelay);
         }
 
-        private void RerunQuery(object sender, DatabaseChangedEventArgs e)
+        private void Update()
         {
-            var newResults = _underlying.Run();
-            using (var e1 = Results.GetEnumerator())
-            using (var e2 = newResults.GetEnumerator()) {
-                while (true) {
-                    var moved1 = e1.MoveNext();
-                    var moved2 = e2.MoveNext();
-                    if (!moved1 && !moved2) {
-                        // Both finished with the same count, and every result 
-                        // was the same
-                        return;
-                    }
-
-                    if (!moved1 || !moved2) {
-                        // One of the results is shorter than the other, different
-                        // count means different results
-                        FireChangedAndUpdate(newResults);
-                        return;
-                    }
-
-                    if (!e1.Current.Equals(e2.Current)) {
-                        // Found a differing result!
-                        FireChangedAndUpdate(newResults);
-                        return;
-                    }
+            Log.To.Query.I(Tag, $"{this}: Querying...");
+            var oldEnum = _enum;
+            QueryEnumerator newEnum = null;
+            Exception error = null;
+            if (oldEnum == null || _forceReload) {
+                try {
+                    newEnum = (QueryEnumerator) Run();
+                } catch (Exception e) {
+                    error = e;
                 }
+            } else {
+                newEnum = oldEnum.Refresh();
             }
+
+            _willUpdate.Set(false);
+            _forceReload = false;
+            _lastUpdatedAt = DateTime.Now;
+
+            if (newEnum != null) {
+                if (oldEnum != null) {
+                    Log.To.Query.I(Tag, $"{this}: Changed!");
+                }
+
+                Misc.SafeSwap(ref _enum, newEnum);
+                Rows = newEnum;
+            } else if (error == null) {
+                Log.To.Query.V(Tag, $"{this}: ...no change");
+            } else {
+                Log.To.Query.E(Tag, $"{this}: Update failed: {error}");
+            }
+
+            if (error != null || _lastError != null) {
+                LastError = error;
+            }
+        }
+
+        private async void UpdateAfter(TimeSpan updateDelay)
+        {
+            if (_willUpdate.Set(true)) {
+                return;
+            }
+
+            if (updateDelay > TimeSpan.Zero) {
+                await Task.Delay(updateDelay).ConfigureAwait(false);
+            }
+
+            if (_willUpdate) {
+                Update();
+            }
+        }
+
+        #endregion
+
+        #region Overrides
+
+        protected override void Dispose(bool finalizing)
+        {
+            Stop();
+            Misc.SafeSwap(ref _enum, null);
+
+            base.Dispose(finalizing);
+        }
+
+        #endregion
+
+        #region ILiveQuery
+
+        public void Start()
+        {
+            if (!_observing.Set(true)) {
+                Database.Changed += OnDatabaseChanged;
+                Update();
+            }
+        }
+
+        public void Stop()
+        {
+            if (_observing.Set(false)) {
+                Database.Changed -= OnDatabaseChanged;
+            }
+
+            _willUpdate.Set(false);
         }
 
         #endregion

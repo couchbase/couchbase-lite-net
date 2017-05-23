@@ -1123,11 +1123,11 @@ namespace Test
             });
 
             SaveDocument(doc);
-            doc.Set("name", null);
-            doc.Set("weight", null);
-            doc.Set("age", null);
-            doc.Set("active", null);
-            doc.GetDictionary("address").Set("city", null);
+            doc.Remove("name");
+            doc.Remove("weight");
+            doc.Remove("age");
+            doc.Remove("active");
+            doc.GetDictionary("address").Remove("city");
 
             doc.GetString("name").Should().BeNull("because it was removed");
             doc.GetDouble("weight").Should().Be(0.0, "because it was removed");
@@ -1154,8 +1154,8 @@ namespace Test
             });
 
             // Remove the rest:
-            doc.Set("type", null);
-            doc.Set("address", null);
+            doc.Remove("type");
+            doc.Remove("address");
             doc.GetObject("type").Should().BeNull("because it was removed");
             doc.GetObject("address").Should().BeNull("because it was removed");
             doc.ToDictionary().Should().BeEmpty("because everything was removed");
@@ -1324,7 +1324,7 @@ namespace Test
             doc.Set("name", "Jim");
             Db.Save(doc);
 
-            using(var otherDb = new Database(Db.Name, Db.Options)) {
+            using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb.GetDocument("doc1");
                 doc1["name"].ToString().Should().Be("Jim", "because the document should be persistent after save");
                 doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
@@ -1349,7 +1349,7 @@ namespace Test
             doc.Set("data", data);
             Db.Save(doc);
 
-            using(var otherDb = new Database(Db.Name, Db.Options)) {
+            using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb.GetDocument("doc1");
                 doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
@@ -1374,7 +1374,7 @@ namespace Test
             doc.Set("data", data);
             Db.Save(doc);
 
-            using(var otherDb = new Database(Db.Name, Db.Options)) {
+            using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb.GetDocument("doc1");
                 doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
@@ -1408,7 +1408,7 @@ namespace Test
 
             Db.Save(doc);
             
-            using(var otherDb = new Database(Db.Name, Db.Options)) {
+            using(var otherDb = new Database(Db.Name, Db.Config)) {
                 var doc1 = otherDb.GetDocument("doc1");
                 doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
@@ -1444,6 +1444,45 @@ namespace Test
             doc.Set("foo", "bar");
             Db.Save(doc);
             doc.GetBlob("data").Content.Should().Equal(content, "because the data should have been retrieved correctly");
+        }
+
+        [Fact]
+        public void TestEnumeratingDocument()
+        {
+            var doc = new Document("doc1");
+            for (int i = 0; i < 20; i++)
+            {
+                doc.Set($"key{i}", i);
+            }
+
+            var content = doc.ToDictionary();
+            var result = new Dictionary<string, object>();
+            foreach (var item in doc)
+            {
+                result[item.Key] = item.Value;
+            }
+
+            result.ShouldBeEquivalentTo(content, "because that is the correct content");
+            content = doc.Remove("key2").Set("key20", 20).Set("key21", 21).ToDictionary();
+
+            result = new Dictionary<string, object>();
+            foreach (var item in doc)
+            {
+                result[item.Key] = item.Value;
+            }
+
+            result.ShouldBeEquivalentTo(content, "because that is the correct content");
+
+            SaveDocument(doc, d =>
+            {
+                result = new Dictionary<string, object>();
+                foreach (var item in d)
+                {
+                    result[item.Key] = item.Value;
+                }
+
+                result.ShouldBeEquivalentTo(content, "because that is the correct content");
+            });
         }
 
         private void PopulateData(Document doc)

@@ -52,9 +52,11 @@ namespace Test
         [Trait("slow", "true")]
         public void TestPerformance()
         {
-            var options = DatabaseOptions.Default;
-            options.Directory = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
-            SetOptions(options);
+            var configuration = new DatabaseConfiguration {
+                Directory = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
+            };
+
+            SetOptions(configuration);
             Run();
         }
 

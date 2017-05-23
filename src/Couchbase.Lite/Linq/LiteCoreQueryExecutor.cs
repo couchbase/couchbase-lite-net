@@ -19,84 +19,84 @@
 //  limitations under the License.
 //
 
-using System.Collections.Generic;
-using System.Linq;
+//using System.Collections.Generic;
+//using System.Linq;
 
-using Couchbase.Lite.Internal.Query;
-using LiteCore;
-using LiteCore.Interop;
-using Remotion.Linq;
+//using Couchbase.Lite.Internal.Query;
+//using LiteCore;
+//using LiteCore.Interop;
+//using Remotion.Linq;
 
-namespace Couchbase.Lite.Internal.Linq
-{
-    internal unsafe class LiteCoreQueryExecutor : IQueryExecutor
-    {
-        #region Variables
+//namespace Couchbase.Lite.Internal.Linq
+//{
+//    internal unsafe class LiteCoreQueryExecutor : IQueryExecutor
+//    {
+//        #region Variables
 
-        private readonly Database _db;
-        private readonly bool _prefetch;
+//        private readonly Database _db;
+//        private readonly bool _prefetch;
 
-        #endregion
+//        #endregion
 
-        #region Constructors
+//        #region Constructors
 
-        internal LiteCoreQueryExecutor(Database db, bool prefetch)
-        {
-            _db = db;
-            _prefetch = prefetch;
-        }
+//        internal LiteCoreQueryExecutor(Database db, bool prefetch)
+//        {
+//            _db = db;
+//            _prefetch = prefetch;
+//        }
 
-        #endregion
+//        #endregion
 
-        #region IQueryExecutor
+//        #region IQueryExecutor
 
-        public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
-        {
-            var visitor = new LiteCoreQueryModelVisitor();
-            visitor.VisitQueryModel(queryModel);
-            var query = visitor.GetJsonQuery();
-            var queryObj = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(_db.c4db, query, err));
-            return new LinqQueryEnumerable<T>(_db, queryObj, C4QueryOptions.Default, null, _prefetch);
-        }
+//        public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
+//        {
+//            var visitor = new LiteCoreQueryModelVisitor();
+//            visitor.VisitQueryModel(queryModel);
+//            var query = visitor.GetJsonQuery();
+//            var queryObj = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(_db.c4db, query, err));
+//            return new LinqQueryEnumerable<T>(_db, queryObj, C4QueryOptions.Default, null, _prefetch);
+//        }
 
-        public T ExecuteScalar<T>(QueryModel queryModel)
-        {
-            return ExecuteCollection<T>(queryModel).Single();
-        }
+//        public T ExecuteScalar<T>(QueryModel queryModel)
+//        {
+//            return ExecuteCollection<T>(queryModel).Single();
+//        }
 
-        public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)
-        {
-            var sequence = ExecuteCollection<T>(queryModel);
+//        public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)
+//        {
+//            var sequence = ExecuteCollection<T>(queryModel);
 
-            return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
-        }
+//            return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
+//        }
 
-        #endregion
-    }
+//        #endregion
+//    }
 
-    internal sealed class LiteCoreDebugExecutor : IQueryExecutor
-    {
-        #region IQueryExecutor
+//    internal sealed class LiteCoreDebugExecutor : IQueryExecutor
+//    {
+//        #region IQueryExecutor
 
-        public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
-        {
-            var visitor = new LiteCoreQueryModelVisitor();
-            visitor.VisitQueryModel(queryModel);
-            return new[] { visitor.GetJsonQuery() } as IEnumerable<T>;
-        }
+//        public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
+//        {
+//            var visitor = new LiteCoreQueryModelVisitor();
+//            visitor.VisitQueryModel(queryModel);
+//            return new[] { visitor.GetJsonQuery() } as IEnumerable<T>;
+//        }
 
-        public T ExecuteScalar<T>(QueryModel queryModel)
-        {
-            return ExecuteCollection<T>(queryModel).Single();
-        }
+//        public T ExecuteScalar<T>(QueryModel queryModel)
+//        {
+//            return ExecuteCollection<T>(queryModel).Single();
+//        }
 
-        public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)
-        {
-            var sequence = ExecuteCollection<T>(queryModel);
+//        public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)
+//        {
+//            var sequence = ExecuteCollection<T>(queryModel);
 
-            return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
-        }
+//            return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
+//        }
 
-        #endregion
-    }
-}
+//        #endregion
+//    }
+//}

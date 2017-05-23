@@ -39,16 +39,23 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the document that was changed
         /// </summary>
-        public Document Document { get; }
+        public IReadOnlyList<string> DocumentIDs { get; }
+
+        /// <summary>
+        /// If <c>true</c> this change was triggered by external factors (i.e.
+        /// pull replication)
+        /// </summary>
+        public bool IsExternal { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DatabaseChangedEventArgs(Database database, Document document)
+        internal DatabaseChangedEventArgs(Database database, IReadOnlyList<string> documentIDs, bool isExternal)
         {
             Database = database;
-            Document = document;
+            DocumentIDs = documentIDs;
+            IsExternal = isExternal;
         }
 
         #endregion

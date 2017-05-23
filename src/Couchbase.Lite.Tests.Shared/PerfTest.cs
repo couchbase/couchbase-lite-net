@@ -58,7 +58,7 @@ namespace Test
         }
 #endif
         public static string ResourceDir;
-        private DatabaseOptions _dbOptions;
+        private DatabaseConfiguration _dbConfiguration;
         private string _dbName;
 
         public Database Db { get; private set; }
@@ -71,11 +71,11 @@ namespace Test
         }
 #endif
 
-        protected void SetOptions(DatabaseOptions dbOptions)
+        protected void SetOptions(DatabaseConfiguration dbConfiguration)
         {
-            _dbOptions = dbOptions;
+            _dbConfiguration = dbConfiguration;
             _dbName = "perfdb";
-            Database.Delete(_dbName, _dbOptions.Directory);
+            Database.Delete(_dbName, _dbConfiguration.Directory);
         }
 
         protected string ReadData(string resourceName)
@@ -88,7 +88,7 @@ namespace Test
         {
             _dbName.Should().NotBeNull("because otherwise we cannot open the database");
             Db.Should().BeNull("because otherwise we are trying to reopen the database incorrectly");
-            Db = new Database(_dbName, _dbOptions);
+            Db = new Database(_dbName, _dbConfiguration);
         }
 
         protected void ReopenDB()
@@ -102,7 +102,7 @@ namespace Test
         {
             Db?.Dispose();
             Db = null;
-            Database.Delete(_dbName, _dbOptions.Directory);
+            Database.Delete(_dbName, _dbConfiguration.Directory);
             OpenDB();
         }
 

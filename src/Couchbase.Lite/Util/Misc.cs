@@ -20,6 +20,7 @@
 // 
 using System;
 using System.Text;
+using System.Threading;
 using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Util
@@ -27,6 +28,12 @@ namespace Couchbase.Lite.Util
     internal static class Misc
     {
         #region Public Methods
+
+        public static void SafeSwap<T>(ref T old, T @new) where T : class, IDisposable
+        {
+            var oldRef = Interlocked.Exchange(ref old, @new);
+            oldRef?.Dispose();
+        }
 
         public static CouchbaseLiteException CreateExceptionAndLog(DomainLogger domain, string tag, string message)
         {

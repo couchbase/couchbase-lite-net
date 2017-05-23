@@ -128,7 +128,7 @@ namespace Couchbase.Lite
 
         internal void Delete()
         {
-            _threadSafety.DoLocked(() => Save(_database.ConflictResolver, true));
+            _threadSafety.DoLocked(() => Save(_database.Config.ConflictResolver, true));
         }
 
         internal void Purge()
@@ -155,7 +155,7 @@ namespace Couchbase.Lite
 
         internal void Save()
         {
-            _threadSafety.DoLocked(() => Save(_database.ConflictResolver, false));
+            _threadSafety.DoLocked(() => Save(_database.Config.ConflictResolver, false));
         }
 
         #endregion
@@ -320,11 +320,6 @@ namespace Couchbase.Lite
             } else {
                 Data = null;
             }
-            
-            if (doc != null) {
-                
-            }
-
 
             _dict = new DictionaryObject(Data);
         }

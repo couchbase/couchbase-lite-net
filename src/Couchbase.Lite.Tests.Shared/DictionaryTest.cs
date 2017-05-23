@@ -275,5 +275,71 @@ namespace Test
             doc = Db.GetDocument("doc1");
             doc.GetString("profile").Should().Be("Daniel Tiger", "because that is what was saved");
         }
+
+        [Fact]
+        public void TestRemoveDictionary()
+        {
+            var doc = new Document("doc1");
+            var profile1 = new DictionaryObject();
+            profile1.Set("name", "Scott Tiger");
+            doc.Set("profile", profile1);
+            doc.GetDictionary("profile").ShouldBeEquivalentTo(profile1, "because that was what was inserted");
+            doc.Contains("profile").Should().BeTrue("because a value exists for that key");
+
+            doc.Remove("profile");
+            doc.GetObject("profile").Should().BeNull("beacuse the value for 'profile' was removed");
+            doc.Contains("profile").Should().BeFalse("because the value was removed");
+
+            profile1.Set("age", 20);
+            profile1.GetString("name").Should().Be("Scott Tiger", "because the dictionary object should be unaffected");
+            profile1.GetInt("age").Should().Be(20, "because the dictionary should still be editable");
+
+            doc.GetObject("profile").Should()
+                .BeNull("because changes to the dictionary should not have any affect anymore");
+
+            doc = SaveDocument(doc);
+
+            doc.GetObject("profile").Should().BeNull("beacuse the value for 'profile' was removed");
+            doc.Contains("profile").Should().BeFalse("because the value was removed");
+        }
+
+        [Fact]
+        public void TestEnumeratingDictionary()
+        {
+            var dict = new DictionaryObject();
+            for (int i = 0; i < 20; i++) {
+                dict.Set($"key{i}", i);
+            }
+
+            var content = dict.ToDictionary();
+            var result = new Dictionary<string, object>();
+            foreach (var item in dict) {
+                result[item.Key] = item.Value;
+            }
+
+            result.ShouldBeEquivalentTo(content, "because that is the correct content");
+            content = dict.Remove("key2").Set("key20", 20).Set("key21", 21).ToDictionary();
+
+            result = new Dictionary<string, object>();
+            foreach (var item in dict) {
+                result[item.Key] = item.Value;
+            }
+
+            result.ShouldBeEquivalentTo(content, "because that is the correct content");
+
+            var doc = new Document("doc1");
+            doc.Set("dict", dict);
+            SaveDocument(doc, d =>
+            {
+                result = new Dictionary<string, object>();
+                var dictObj = d.GetDictionary("dict");
+                foreach (var item in dictObj)
+                {
+                    result[item.Key] = item.Value;
+                }
+
+                result.ShouldBeEquivalentTo(content, "because that is the correct content");
+            });
+        }
     }
 }

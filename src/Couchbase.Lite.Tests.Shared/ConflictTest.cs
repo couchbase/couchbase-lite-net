@@ -46,19 +46,21 @@ namespace Test
         public ConflictTest()
 #endif
         {
-            Db.ConflictResolver = new DoNotResolve();
+            ConflictResolver = new DoNotResolve();
         }
 
         [Fact]
         public void TestConflict()
         {
-            Db.ConflictResolver = new TheirsWins();
+            ConflictResolver = new TheirsWins();
+            ReopenDB();
             var doc = SetupConflict();
             Db.Save(doc);
             doc["name"].ToString().Should().Be("Scotty", "because the 'theirs' version should win");
 
             doc = new Document("doc2");
-            Db.ConflictResolver = new MergeThenTheirsWins();
+            ConflictResolver = new MergeThenTheirsWins();
+            ReopenDB();
             doc.Set("type", "profile");
             doc.Set("name", "Scott");
             Db.Save(doc);
@@ -83,7 +85,8 @@ namespace Test
         [Fact]
         public void TestConflictResolverGivesUp()
         {
-            Db.ConflictResolver = new GiveUp();
+            ConflictResolver = new GiveUp();
+            ReopenDB();
             var doc = SetupConflict();
             Db.Invoking(d => d.Save(doc))
                 .ShouldThrow<CouchbaseLiteException>()
@@ -94,7 +97,8 @@ namespace Test
         [Fact]
         public void TestDeletionConflict()
         {
-            Db.ConflictResolver = new DoNotResolve();
+            ConflictResolver = new DoNotResolve();
+            ReopenDB();
             var doc = SetupConflict();
             Db.Delete(doc);
             doc.Exists.Should().BeTrue("because there was a conflict in place of thgie deletion");
@@ -105,7 +109,8 @@ namespace Test
         [Fact]
         public void TestConflictMineIsDeeper()
         {
-            Db.ConflictResolver = null;
+            ConflictResolver = null;
+            ReopenDB();
             var doc = SetupConflict();
             Db.Save(doc);
             doc["name"].ToString().Should().Be("Scott Pilgrim", "because the current in memory document has a longer history");
@@ -114,7 +119,8 @@ namespace Test
         [Fact]
         public void TestConflictTheirsIsDeeper()
         {
-            Db.ConflictResolver = null;
+            ConflictResolver = null;
+            ReopenDB();
             var doc = SetupConflict();
 
             // Add another revision to the conflict, so it'll have a higher generation

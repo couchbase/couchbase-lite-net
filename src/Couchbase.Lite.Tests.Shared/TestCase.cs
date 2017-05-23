@@ -59,6 +59,8 @@ namespace Test
 
         protected Database Db { get; private set; }
 
+        protected IConflictResolver ConflictResolver { get; set; }
+
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 #if NETCOREAPP1_0
@@ -110,8 +112,9 @@ namespace Test
                 throw new InvalidOperationException();
             }
 
-            var options = new DatabaseOptions {
-                Directory = Directory
+            var options = new DatabaseConfiguration {
+                Directory = Directory,
+                ConflictResolver = ConflictResolver
             };
             Db = new Database(DatabaseName, options);
             Db.Should().NotBeNull("because otherwise the database failed to open");
@@ -119,8 +122,10 @@ namespace Test
 
         protected Database OpenDB(string name)
         {
-            var options = DatabaseOptions.Default;
-            options.Directory = Directory;
+            var options = new DatabaseConfiguration {
+                Directory = Directory
+            };
+
             return new Database(name, options);
         }
 

@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal abstract unsafe class XQuery : IQuery
+    internal abstract unsafe class XQuery : IQuery, IQueryInternal
     {
         private const string Tag = nameof(XQuery);
 
@@ -18,7 +18,7 @@ namespace Couchbase.Lite.Internal.Query
         private ulong _limit = UInt64.MaxValue;
         private IDictionary<string, object> _parameters = new Dictionary<string, object>();
 
-        protected Database Database { get; set; }
+        public Database Database { get; set; }
 
         protected ISelect SelectImpl { get; set; }
 
@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Internal.Query
             Dispose(true);
         }
 
-        public IEnumerable<IQueryRow> Run()
+        public IReadOnlyList<IQueryRow> Run()
         {
             if (Database == null) {
                 throw new InvalidOperationException("Invalid query, Database == null");
@@ -58,7 +58,13 @@ namespace Couchbase.Lite.Internal.Query
                 paramJson = JsonConvert.SerializeObject(_parameters);
             }
 
-            return new QueryRowEnumerable(Database, _c4Query, options, paramJson);
+            var e = (C4QueryEnumerator*) LiteCoreBridge.Check(err =>
+            {
+                var localOpts = options;
+                return Native.c4query_run(_c4Query, &localOpts, paramJson, err);
+            });
+
+            return new QueryEnumerator(this, _c4Query, e);
         }
 
         public IQuery Skip(ulong skip)
@@ -69,7 +75,8 @@ namespace Couchbase.Lite.Internal.Query
 
         public ILiveQuery ToLiveQuery()
         {
-            return new LiveQuery(Database, this);
+            Dispose();
+            return new LiveQuery(this);
         }
 
         public IQuery Limit(ulong limit)

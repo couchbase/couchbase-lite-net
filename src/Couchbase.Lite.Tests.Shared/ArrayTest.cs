@@ -737,6 +737,40 @@ namespace Test
             doc.GetObject("array").Should().Be("Daniel Tiger", "because that is what was saved");
         }
 
+        [Fact]
+        public void TestEnumeratingArray()
+        {
+            var array = new ArrayObject();
+            for (int i = 0; i < 20; i++) {
+                array.Add(i);
+            }
+
+            var content = array.ToList();
+            var result = new List<object>();
+            result.AddRange(array);
+            result.Should().ContainInOrder(content, "because that is the correct content");
+
+            array.RemoveAt(1);
+            array.Add(20).Add(21);
+            content = array.ToList();
+
+            result = new List<object>();
+            result.AddRange(array);
+            result.Should().ContainInOrder(content, "because that is the correct content");
+
+            var doc = new Document("doc1");
+            doc.Set("array", array);
+            SaveArray(array, doc, "array", a =>
+            {
+                result = new List<object>();
+                result.AddRange(a);
+                for (int i = 0; i < 20; i++) {
+                    Convert.ToInt32(result[i]).Should().Be(Convert.ToInt32(content[i]),
+                        $"because that is the correct entry for index {i}");
+                }
+            });
+        }
+
         private IList<object> CreateArrayOfAllTypes()
         {
             var array = new List<object> {
