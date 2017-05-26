@@ -20,6 +20,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,6 +29,7 @@ using Couchbase.Lite;
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
+using System.Linq;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -74,7 +76,7 @@ namespace Test
             using (var db = OpenDB("`~@#$%&'()_+{}][=-.,;'")) {
                 db.Name.Should().Be("`~@#$%&'()_+{}][=-.,;'", "because that is the (weird) name that was set");
                 Path.GetDirectoryName(db.Path).Should().EndWith(".cblite2", "because that is the current DB extension");
-                db.DocumentCount.Should().Be(0UL, "because the database is empty");
+                db.Count.Should().Be(0UL, "because the database is empty");
 
                 db.Delete();
             }
@@ -108,7 +110,7 @@ namespace Test
                 Path.GetDirectoryName(db.Path).Should().EndWith(".cblite2", "because that is the current CBL extension");
                 db.Path.Should().Contain(dir, "because the directory should be present in the custom path");
                 Database.Exists("db", dir).Should().BeTrue("because it was just created");
-                db.DocumentCount.Should().Be(0, "because the database is empty");
+                db.Count.Should().Be(0, "because the database is empty");
 
                 DeleteDB(db);
             }
@@ -141,7 +143,7 @@ namespace Test
             GenerateDocument(docID);
 
             using (var otherDB = OpenDB(Db.Name)) {
-                otherDB.DocumentCount.Should()
+                otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
                 otherDB.DocumentExists(docID)
                     .Should()
@@ -193,7 +195,7 @@ namespace Test
             doc.Set("key", 2);
             SaveDocument(doc);
 
-            Db.DocumentCount.Should().Be(1, "because a document was updated, not added");
+            Db.Count.Should().Be(1, "because a document was updated, not added");
             Db.DocumentExists(docID).Should().BeTrue("because the document still exists");
 
             VerifyGetDocument(docID, 2);
@@ -205,7 +207,7 @@ namespace Test
             var docID = "doc1";
             var doc = GenerateDocument(docID);
             using (var otherDB = OpenDB(Db.Name)) {
-                otherDB.DocumentCount.Should()
+                otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
                 doc.Set("key", 2);
                 otherDB.Invoking(d => d.Save(doc))
@@ -221,7 +223,7 @@ namespace Test
             var docID = "doc1";
             var doc = GenerateDocument(docID);
             using (var otherDB = OpenDB("otherDB")) {
-                otherDB.DocumentCount.Should()
+                otherDB.Count.Should()
                     .Be(0UL, "because the other database is empty");
                 doc.Set("key", 2);
                 otherDB.Invoking(d => d.Save(doc))
@@ -241,14 +243,14 @@ namespace Test
             SaveDocument(doc);
 
             doc.Id.Should().Be(docID, "because the doc ID should never change");
-            Db.DocumentCount.Should().Be(1UL, "because there is still only one document");
+            Db.Count.Should().Be(1UL, "because there is still only one document");
         }
 
         [Fact]
         public void TestSaveInBatch()
         {
             Db.InBatch(() => CreateDocs(10));
-            Db.DocumentCount.Should().Be(10UL, "because 10 documents were added");
+            Db.Count.Should().Be(10UL, "because 10 documents were added");
 
             ValidateDocs(10);
         }
@@ -289,7 +291,7 @@ namespace Test
                 .ShouldThrow<CouchbaseLiteException>()
                 .Which.Code.Should()
                 .Be(StatusCode.NotFound, "because deleting a non-existent document is not allowed");
-            Db.DocumentCount.Should().Be(0UL, "because the database should still be empty");
+            Db.Count.Should().Be(0UL, "because the database should still be empty");
         }
 
         [Fact]
@@ -299,7 +301,7 @@ namespace Test
             var doc = GenerateDocument(docID);
 
             Db.Delete(doc);
-            Db.DocumentCount.Should().Be(0UL, "because the only document was deleted");
+            Db.Count.Should().Be(0UL, "because the only document was deleted");
 
             doc.Id.Should().Be(docID, "because the document ID should never change");
             doc.IsDeleted.Should().BeTrue("because the document was deleted");
@@ -314,15 +316,15 @@ namespace Test
             var doc = GenerateDocument(docID);
 
             using (var otherDB = OpenDB(Db.Name)) {
-                otherDB.DocumentCount.Should()
+                otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
                 otherDB.Invoking(d => d.Delete(doc))
                     .ShouldThrow<CouchbaseLiteException>()
                     .Which.Code.Should()
                     .Be(StatusCode.Forbidden, "because a document cannot be deleted from another database instance");
 
-                otherDB.DocumentCount.Should().Be(1UL, "because the delete failed");
-                Db.DocumentCount.Should().Be(1UL, "because the delete failed");
+                otherDB.Count.Should().Be(1UL, "because the delete failed");
+                Db.Count.Should().Be(1UL, "because the delete failed");
                 doc.IsDeleted.Should().BeFalse("because the delete failed");
             }
         }
@@ -334,15 +336,15 @@ namespace Test
             var doc = GenerateDocument(docID);
 
             using (var otherDB = OpenDB("otherDB")) {
-                otherDB.DocumentCount.Should()
+                otherDB.Count.Should()
                     .Be(0UL, "because the other database should be empty");
                 otherDB.Invoking(d => d.Delete(doc))
                     .ShouldThrow<CouchbaseLiteException>()
                     .Which.Code.Should()
                     .Be(StatusCode.Forbidden, "because a document cannot be deleted from another database");
 
-                otherDB.DocumentCount.Should().Be(0UL, "because the database is still empty");
-                Db.DocumentCount.Should().Be(1UL, "because the delete failed");
+                otherDB.Count.Should().Be(0UL, "because the database is still empty");
+                Db.Count.Should().Be(1UL, "because the delete failed");
                 doc.IsDeleted.Should().BeFalse("because the delete failed");
 
                 otherDB.Delete();
@@ -356,14 +358,14 @@ namespace Test
             var doc = GenerateDocument(docID);
 
             Db.Delete(doc);
-            Db.DocumentCount.Should().Be(0UL, "because the only document was deleted");
+            Db.Count.Should().Be(0UL, "because the only document was deleted");
             doc.GetObject("key").Should().BeNull("because a deleted document has no properties");
             doc.IsDeleted.Should().BeTrue("because the document was deleted");
             doc.Sequence.Should().Be(2UL, "because the deletion is the second revision");
 
             // Second deletion
             Db.Delete(doc);
-            Db.DocumentCount.Should().Be(0UL, "because the only document was deleted");
+            Db.Count.Should().Be(0UL, "because the only document was deleted");
             doc.GetObject("key").Should().BeNull("because a deleted document has no properties");
             doc.IsDeleted.Should().BeTrue("because the document was deleted");
             doc.Sequence.Should().Be(3UL, "because the deletion is the third revision");
@@ -381,11 +383,11 @@ namespace Test
                     Db.Delete(doc);
                     doc.IsDeleted.Should().BeTrue("because the doc was just deleted");
                     doc.GetObject("key").Should().BeNull("because deleted docs have no properties");
-                    Db.DocumentCount.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
+                    Db.Count.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
                 }
             });
 
-            Db.DocumentCount.Should().Be(0, "because all documents were deleted");
+            Db.Count.Should().Be(0, "because all documents were deleted");
         }
 
         [Fact]
@@ -422,7 +424,7 @@ namespace Test
                 .ShouldThrow<CouchbaseLiteException>()
                 .Which.Code.Should()
                 .Be(StatusCode.NotFound, "because deleting a non-existent document is not allowed");
-            Db.DocumentCount.Should().Be(0UL, "because the database should still be empty");
+            Db.Count.Should().Be(0UL, "because the database should still be empty");
         }
 
         [Fact]
@@ -430,7 +432,7 @@ namespace Test
         {
             var doc = GenerateDocument("doc1");
             PurgeDocAndVerify(doc);
-            Db.DocumentCount.Should().Be(0UL, "because the only document was purged");
+            Db.Count.Should().Be(0UL, "because the only document was purged");
             SaveDocument(doc);
             doc.Sequence.Should().Be(2UL, "because it is the second entry into the database");
         }
@@ -442,15 +444,15 @@ namespace Test
             var doc = GenerateDocument(docID);
 
             using (var otherDB = OpenDB(Db.Name)) {
-                otherDB.DocumentCount.Should()
+                otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
                 otherDB.Invoking(d => d.Purge(doc))
                     .ShouldThrow<CouchbaseLiteException>()
                     .Which.Code.Should()
                     .Be(StatusCode.Forbidden, "because a document cannot be purged from another database instance");
 
-                otherDB.DocumentCount.Should().Be(1UL, "because the delete failed");
-                Db.DocumentCount.Should().Be(1UL, "because the delete failed");
+                otherDB.Count.Should().Be(1UL, "because the delete failed");
+                Db.Count.Should().Be(1UL, "because the delete failed");
                 doc.IsDeleted.Should().BeFalse("because the delete failed");
             }
         }
@@ -462,15 +464,15 @@ namespace Test
             var doc = GenerateDocument(docID);
 
             using (var otherDB = OpenDB("otherDB")) {
-                otherDB.DocumentCount.Should()
+                otherDB.Count.Should()
                     .Be(0UL, "because the other database should be empty");
                 otherDB.Invoking(d => d.Purge(doc))
                     .ShouldThrow<CouchbaseLiteException>()
                     .Which.Code.Should()
                     .Be(StatusCode.Forbidden, "because a document cannot be purged from another database");
 
-                otherDB.DocumentCount.Should().Be(0UL, "because the database is still empty");
-                Db.DocumentCount.Should().Be(1UL, "because the delete failed");
+                otherDB.Count.Should().Be(0UL, "because the database is still empty");
+                Db.Count.Should().Be(1UL, "because the delete failed");
                 doc.IsDeleted.Should().BeFalse("because the delete failed");
 
                 otherDB.Delete();
@@ -487,11 +489,11 @@ namespace Test
             doc1.Should().NotBeNull("because the document was just created and it should exist");
 
             PurgeDocAndVerify(doc);
-            Db.DocumentCount.Should().Be(0UL, "because the only document was purged");
+            Db.Count.Should().Be(0UL, "because the only document was purged");
 
             // Second purge
             PurgeDocAndVerify(doc1);
-            Db.DocumentCount.Should().Be(0UL, "because the only document was purged");
+            Db.Count.Should().Be(0UL, "because the only document was purged");
         }
 
         [Fact]
@@ -506,11 +508,11 @@ namespace Test
                     Db.Purge(doc);
                     doc.IsDeleted.Should().BeFalse("because the doc has no more record");
                     doc.GetObject("key").Should().BeNull("because deleted docs have no properties");
-                    Db.DocumentCount.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
+                    Db.Count.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
                 }
             });
 
-            Db.DocumentCount.Should().Be(0, "because all documents were purged");
+            Db.Count.Should().Be(0, "because all documents were purged");
         }
 
         [Fact]
@@ -761,6 +763,48 @@ namespace Test
         }
 
         [Fact]
+        public void TestCompact()
+        {
+            var docs = CreateDocs(20);
+
+            Db.InBatch(() =>
+            {
+                foreach (var doc in docs) {
+                    for (int i = 0; i < 25; i++) {
+                        doc.Set("number", i);
+                        SaveDocument(doc);
+                    }
+                }
+            });
+
+            foreach (var doc in docs) {
+                var content = Encoding.UTF8.GetBytes(doc.Id);
+                var blob = new Blob("text/plain", content);
+                doc.Set("blob", blob);
+                SaveDocument(doc);
+            }
+
+            Db.Count.Should().Be(20, "because that is the number of documents that were added");
+
+            var attsDir = new DirectoryInfo(Path.Combine(Db.Path, "Attachments"));
+            var atts = attsDir.EnumerateFiles();
+            atts.Should().HaveCount(20, "because there should be one blob per document");
+
+            Db.Compact();
+
+            foreach (var doc in docs) {
+                Db.Delete(doc);
+                doc.IsDeleted.Should().BeTrue("because the document was just deleted");
+            }
+
+            Db.Count.Should().Be(0, "because all documents were deleted");
+            Db.Compact();
+
+            atts = attsDir.EnumerateFiles();
+            atts.Should().BeEmpty("because the blobs should be collected by the compaction");
+        }
+
+        [Fact]
         public void TestCreateConfiguration()
         {
             var config1 = new DatabaseConfiguration();
@@ -834,7 +878,7 @@ namespace Test
             doc.Set("key", 1);
 
             SaveDocument(doc);
-            Db.DocumentCount.Should().Be(1UL, "because this is the first document");
+            Db.Count.Should().Be(1UL, "because this is the first document");
             doc.Sequence.Should().Be(1UL, "because this is the first document");
             return doc;
         }
@@ -862,15 +906,18 @@ namespace Test
             doc.GetInt("key").Should().Be(value, "because that is the value that was passed as expected");
         }
 
-        private void CreateDocs(int n)
+        private IList<Document> CreateDocs(int n)
         {
+            var docs = new List<Document>();
             for (int i = 0; i < n; i++) {
                 var doc = new Document($"doc_{i:D3}");
                 doc.Set("key", i);
                 SaveDocument(doc);
+                docs.Add(doc);
             }
 
-            Db.DocumentCount.Should().Be((ulong)n, "because otherwise an incorrect number of documents were made");
+            Db.Count.Should().Be((ulong)n, "because otherwise an incorrect number of documents were made");
+            return docs;
         }
 
         private void ValidateDocs(int n)
@@ -884,7 +931,7 @@ namespace Test
         {
             GenerateDocument(docID);
 
-            Db.DocumentCount.Should().Be(1UL, "because the database only has one document");
+            Db.Count.Should().Be(1UL, "because the database only has one document");
             Db.DocumentExists(docID).Should().BeTrue("because otherwise the wrong document is in the database");
 
             VerifyGetDocument(docID);

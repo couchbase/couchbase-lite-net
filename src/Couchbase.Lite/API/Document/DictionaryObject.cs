@@ -454,10 +454,6 @@ namespace Couchbase.Lite
         public IDictionaryObject Set(string key, object value)
         {
             var oldValue = GetObject(key);
-            if (value == null && oldValue == null) {
-                return this;
-            }
-
             if(value == null || !value.Equals(oldValue)) {
                 value = DataOps.ConvertValue(value, ObjectChanged, ObjectChanged);
                 RemoveChangedListener(oldValue);

@@ -233,7 +233,7 @@ namespace Couchbase.Lite.Sync
 
                     var otherDb = otherDatabase == null ? null : otherDatabase.c4db;
                     _repl = Native.c4repl_new(database.c4db, addr, dbNameStr, otherDb, Mkmode(Push, Continuous),
-                        Mkmode(Pull, Continuous), _callback, &err);
+                        Mkmode(Pull, Continuous), null, _callback, &err);
                 }
 
                 C4ReplicatorStatus status;

@@ -20,11 +20,12 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Couchbase.Lite;
 using FluentAssertions;
+
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -39,6 +40,10 @@ namespace Test
 #endif
     public class NotificationTest : TestCase
     {
+        private HashSet<string> _expectedDocumentChanges;
+        private WaitAssert _wa;
+        private bool _docCallbackShouldThrow;
+
 #if !WINDOWS_UWP
         public NotificationTest(ITestOutputHelper output) : base(output)
         {
@@ -47,7 +52,7 @@ namespace Test
 #endif
 
         [Fact]
-        public void TestDatabaseNotification()
+        public void TestDatabaseChange()
         {
             var wa = new WaitAssert();
             Db.Changed += (sender, args) =>
@@ -66,6 +71,114 @@ namespace Test
             });
 
             wa.WaitForResult(TimeSpan.FromSeconds(5));
+        }
+
+        [Fact]
+        public void TestDocumentChange()
+        {
+            var doc1 = new Document("doc1");
+            doc1.Set("name", "Scott");
+            SaveDocument(doc1);
+
+            var doc2 = new Document("doc2");
+            doc2.Set("name", "Daniel");
+            SaveDocument(doc2);
+
+            Db.AddDocumentChangedListener("doc1", DocumentChanged);
+            Db.AddDocumentChangedListener("doc2", DocumentChanged);
+            Db.AddDocumentChangedListener("doc3", DocumentChanged);
+
+            _expectedDocumentChanges = new HashSet<string> {
+                "doc1",
+                "doc2",
+                "doc3"
+            };
+            _wa = new WaitAssert();
+
+            doc1.Set("name", "Scott Tiger");
+            SaveDocument(doc1);
+
+            Db.Delete(doc2);
+
+            var doc3 = new Document("doc3");
+            doc3.Set("name", "Jack");
+            SaveDocument(doc3);
+
+            _wa.WaitForResult(TimeSpan.FromSeconds(5));
+        }
+
+        [Fact]
+        public async Task TestAddSameChangeListeners()
+        {
+            var doc1 = new Document("doc1");
+            doc1.Set("name", "Scott");
+            SaveDocument(doc1);
+
+            Db.AddDocumentChangedListener("doc1", DocumentChanged);
+            Db.AddDocumentChangedListener("doc1", DocumentChanged);
+            Db.AddDocumentChangedListener("doc1", DocumentChanged);
+            Db.AddDocumentChangedListener("doc1", DocumentChanged);
+            Db.AddDocumentChangedListener("doc1", DocumentChanged);
+
+            _wa = new WaitAssert();
+            _expectedDocumentChanges = new HashSet<string> {
+                "doc1"
+            };
+            doc1.Set("name", "Scott Tiger");
+            SaveDocument(doc1);
+
+            await Task.Delay(500);
+            _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+        }
+
+        [Fact]
+        public async Task TestRemoveDocumentChangeListener()
+        {
+            var doc1 = new Document("doc1");
+            doc1.Set("name", "Scott");
+            SaveDocument(doc1);
+
+            Db.AddDocumentChangedListener("doc1", DocumentChanged);
+
+            _wa = new WaitAssert();
+            _expectedDocumentChanges = new HashSet<string> {
+                "doc1"
+            };
+
+            doc1.Set("name", "Scott Tiger");
+            SaveDocument(doc1);
+            _wa.WaitForResult(TimeSpan.FromSeconds(5));
+
+            Db.RemoveDocumentChangedListener("doc1", DocumentChanged);
+
+            _wa = new WaitAssert();
+            _docCallbackShouldThrow = true;
+            doc1.Set("name", "Scott Pilgrim");
+            SaveDocument(doc1);
+
+            await Task.Delay(500);
+            _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+
+            // Remove again
+            Db.RemoveDocumentChangedListener("doc1", DocumentChanged);
+
+            // Remove before add
+            Db.RemoveDocumentChangedListener("doc2", DocumentChanged);
+        }
+
+        private void DocumentChanged(object sender, DocumentChangedEventArgs args)
+        {
+            if (_docCallbackShouldThrow) {
+                _wa.RunAssert(() => throw new InvalidOperationException("Unexpected doc change notification"));
+            } else {
+                _wa.RunConditionalAssert(() =>
+                {
+                    _expectedDocumentChanges.Should()
+                        .Contain(args.DocumentID, "because otherwise a rogue notification came");
+                    _expectedDocumentChanges.Remove(args.DocumentID);
+                    return _expectedDocumentChanges.Count == 0;
+                });
+            }
         }
     }
 }

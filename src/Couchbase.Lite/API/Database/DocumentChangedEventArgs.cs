@@ -23,19 +23,25 @@ using System;
 
 namespace Couchbase.Lite
 {
-    internal sealed class DocumentChangedEventArgs : EventArgs
+    /// <summary>
+    /// The arguments for the <see cref="Database.DocumentChanged"/> event
+    /// </summary>
+    public sealed class DocumentChangedEventArgs : EventArgs
     {
         #region Properties
 
-        public Document Document { get; }
+        /// <summary>
+        /// The ID of the document that changed
+        /// </summary>
+        public string DocumentID { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DocumentChangedEventArgs(Document document)
+        internal DocumentChangedEventArgs(string documentID)
         {
-            Document = document;
+            DocumentID = documentID;
         }
 
         #endregion

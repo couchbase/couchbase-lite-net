@@ -19,6 +19,7 @@
 // limitations under the License.
 //
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace Couchbase.Lite
@@ -28,12 +29,15 @@ namespace Couchbase.Lite
         private ManualResetEvent _mre = new ManualResetEvent(false);
         private Exception _caughtException;
 
+        public IList<Exception> CaughtExceptions { get; } = new List<Exception>();
+
         public void RunAssert(Action assertAction)
         {
             try {
                 assertAction();
             } catch (Exception e) {
                 _caughtException = e;
+                CaughtExceptions.Add(e);
             } finally {
                 _mre.Set();
             }

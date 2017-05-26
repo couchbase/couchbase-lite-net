@@ -733,6 +733,18 @@ namespace Test
         }
 
         [Fact]
+        public void TestSetNull()
+        {
+            var doc = new Document("doc1");
+            doc.Set("null", null);
+            SaveDocument(doc, d =>
+            {
+                d.GetObject("null").Should().BeNull("because that is what was stored");
+                d.Count.Should().Be(1, "because the value is null, not missing");
+            });
+        }
+
+        [Fact]
         public void TestSetCSharpDictionary()
         {
             var dict = new Dictionary<string, object> {
@@ -1139,6 +1151,12 @@ namespace Test
             doc.GetObject("age").Should().BeNull("because it was removed");
             doc.GetObject("active").Should().BeNull("because it was removed");
             doc.GetDictionary("address").GetString("city").Should().BeNull("because it was removed");
+
+            doc.Contains("name").Should().BeFalse("because that key was removed");
+            doc.Contains("weight").Should().BeFalse("because that key was removed");
+            doc.Contains("age").Should().BeFalse("because that key was removed");
+            doc.Contains("address").Should().BeFalse("because that key was removed");
+            doc.GetDictionary("address").Contains("city").Should().BeFalse("because that key was removed");
 
             var address = doc.GetDictionary("address");
             doc.ToDictionary().ShouldBeEquivalentTo(new Dictionary<string, object> {

@@ -61,6 +61,7 @@ namespace Couchbase.Lite
         };
 
         private static readonly DatabaseObserverCallback _DbObserverCallback;
+        private static readonly DocumentObserverCallback _DocObserverCallback;
 
         // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
         private static readonly C4LogCallback _LogCallback;
@@ -76,20 +77,19 @@ namespace Couchbase.Lite
 
         private readonly ThreadSafety _threadSafety = new ThreadSafety();
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
+        private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
+            new FilteredEvent<string, DocumentChangedEventArgs>();
+        private readonly Dictionary<string, DocumentObserver> _docObs = new Dictionary<string, DocumentObserver>();
 
         /// <summary>
         /// An event fired whenever the database changes
         /// </summary>
         public event EventHandler<DatabaseChangedEventArgs> Changed;
 
-        ///// <summary>
-        ///// An event fired whenever a given document in the database changes
-        ///// </summary>
-        //public event EventHandler<DocumentChangedEventArgs> DocumentChanged;
-
         private IJsonSerializer _jsonSerializer;
         private DatabaseObserver _obs;
         private long p_c4db;
+        
 
         #endregion
 
@@ -103,7 +103,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the total number of documents in the database
         /// </summary>
-        public ulong DocumentCount => Native.c4db_getDocumentCount(_c4db);
+        public ulong Count => Native.c4db_getDocumentCount(_c4db);
 
         /// <summary>
         /// Bracket operator for retrieving <see cref="DocumentFragment"/> objects
@@ -177,6 +177,7 @@ namespace Couchbase.Lite
             _LogCallback = LiteCoreLog;
             Native.c4log_writeToCallback(C4LogLevel.Warning, _LogCallback, true);
             _DbObserverCallback = DbObserverCallback;
+            _DocObserverCallback = DocObserverCallback;
         }
 
         /// <summary>
@@ -264,6 +265,24 @@ namespace Couchbase.Lite
             return System.IO.Directory.Exists(DatabasePath(name, directory));
         }
 
+        /// <summary>
+        /// Adds a listener for changes on a certain document (by ID).  Similar to <see cref="Database.Changed"/>
+        /// but requires a parameter to add so it is a method instead of an event.
+        /// </summary>
+        /// <param name="documentID">The ID to add the listener for</param>
+        /// <param name="handler">The logic to handle the event</param>
+        public void AddDocumentChangedListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
+        {
+            _threadSafety.DoLocked(() =>
+            {
+                var count = _documentChanged.Add(documentID, handler);
+                if (count == 0) {
+                    var docObs = new DocumentObserver(_c4db, documentID, _DocObserverCallback, this);
+                    _docObs[documentID] = docObs;
+                }
+            });
+        }
+
         internal void ChangeEncryptionKey(object key)
         {
             throw new NotImplementedException();
@@ -275,6 +294,31 @@ namespace Couchbase.Lite
         public void Close()
         {
             Dispose();
+        }
+
+        /// <summary>
+        /// Checks whether or not a given <see cref="Document"/> exists 
+        /// in this database instance by searching for its ID.
+        /// </summary>
+        /// <param name="docID">The ID of the <see cref="Document"/> to search for</param>
+        /// <returns><c>true</c> if the <see cref="Document"/> exists, <c>false</c> otherwise</returns>
+        public bool Contains(string docID)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                using (var doc = GetDocument(docID, true)) {
+                    return doc != null;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Performs a manual compaction of this database, removing old irrelevant data
+        /// and decreasing the size of the database file on disk
+        /// </summary>
+        public void Compact()
+        {
+            _threadSafety.DoLocked(() => LiteCoreBridge.Check(err => Native.c4db_compact(_c4db, err)));
         }
 
         /// <summary>
@@ -477,6 +521,27 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Removes a listener for changes on a certain document (by ID).  Similar to <see cref="Database.Changed"/>
+        /// but requires a parameter to add so it is a method instead of an event.
+        /// </summary>
+        /// <param name="documentID">The ID to add the listener for</param>
+        /// <param name="handler">The logic to handle the event</param>
+        public void RemoveDocumentChangedListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
+        {
+            _threadSafety.DoLocked(() =>
+            {
+                var count = _documentChanged.Remove(documentID, handler);
+                if (count == 0) {
+                    DocumentObserver obs;
+                    if (_docObs.TryGetValue(documentID, out obs)) {
+                        obs.Dispose();
+                        _docObs.Remove(documentID);
+                    }
+                }
+            });
+        }
+
+        /// <summary>
         /// Saves the given <see cref="Document"/> into this database
         /// </summary>
         /// <param name="document">The document to save</param>
@@ -522,6 +587,15 @@ namespace Couchbase.Lite
             Task.Factory.StartNew(() => {
               var dbObj = (Database)context;
               dbObj?.PostDatabaseChanged();
+            });
+        }
+
+        private static void DocObserverCallback(C4DocumentObserver* obs, string docID, ulong sequence, object context)
+        {
+            Task.Factory.StartNew(() =>
+            {
+                var dbObj = (Database)context;
+                dbObj?.PostDocChanged(docID);
             });
         }
 
@@ -668,6 +742,19 @@ namespace Couchbase.Lite
 				    }
 				} while (nChanges > 0);
 			});
+        }
+
+        private void PostDocChanged(string documentID)
+        {
+            _threadSafety.DoLocked(() =>
+            {
+                if (!_docObs.ContainsKey(documentID) || _c4db == null || Native.c4db_isInTransaction(_c4db)) {
+                    return;
+                }
+
+                var change = new DocumentChangedEventArgs(documentID);
+                _documentChanged.Fire(documentID, this, change);
+            });
         }
 
         private Document VerifyDB(Document document)
