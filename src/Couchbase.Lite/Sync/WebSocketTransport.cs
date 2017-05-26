@@ -66,7 +66,7 @@ namespace Couchbase.Lite.Sync
             socketWrapper.CompletedReceive(bytecount);
         }
 
-        private static void DoOpen(C4Socket* socket, C4Address* address)
+        private static void DoOpen(C4Socket* socket, C4Address* address, C4Slice options)
         {
             var builder = new UriBuilder {
                 Host = address->hostname.CreateString(),
@@ -88,7 +88,10 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            var socketWrapper = new WebSocketWrapper(uri, socket);
+            var opts =
+                FLSliceExtensions.ToObject(NativeRaw.FLValue_FromTrustedData((FLSlice) options)) as
+                    IReadOnlyDictionary<string, object>;
+            var socketWrapper = new WebSocketWrapper(uri, socket, opts);
             var id = Interlocked.Increment(ref _NextID);
             socket->nativeHandle = (void*)id;
             Sockets[id] = socketWrapper;

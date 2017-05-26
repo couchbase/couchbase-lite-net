@@ -24,7 +24,8 @@ using System;
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// The arguments for the <see cref="Database.DocumentChanged"/> event
+    /// The arguments for the <see cref="Database.AddDocumentChangedListener(string, EventHandler{DocumentChangedEventArgs})"/> 
+    /// event
     /// </summary>
     public sealed class DocumentChangedEventArgs : EventArgs
     {

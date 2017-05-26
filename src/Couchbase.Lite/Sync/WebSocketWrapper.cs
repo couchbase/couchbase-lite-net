@@ -21,12 +21,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
@@ -50,6 +52,7 @@ namespace Couchbase.Lite.Sync
         private readonly SerialQueue _queue = new SerialQueue();
 		private readonly SemaphoreSlim _mutex = new SemaphoreSlim(1, 1);
 		private readonly ManualResetEventSlim _connected = new ManualResetEventSlim();
+        private readonly IReadOnlyDictionary<string, object> _options;
 
         private readonly C4Socket* _socket;
         private readonly Uri _url;
@@ -66,11 +69,12 @@ namespace Couchbase.Lite.Sync
 
         #region Constructors
 
-        public WebSocketWrapper(Uri url, C4Socket* socket)
+        public WebSocketWrapper(Uri url, C4Socket* socket, IReadOnlyDictionary<string, object> options)
         {
             WebSocket.Options.AddSubProtocol("BLIP");
             _socket = socket;
             _url = url;
+            _options = options;
         }
 
         #endregion
@@ -116,6 +120,7 @@ namespace Couchbase.Lite.Sync
         {
             _queue.DispatchAsync(() =>
             {
+                SetupAuth();
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(ConnectTimeout);
                 WebSocket.ConnectAsync(_url, cts.Token).ContinueWith(t =>
@@ -148,7 +153,7 @@ namespace Couchbase.Lite.Sync
 				_connected.Wait();
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(IdleTimeout);
-				_mutex.Wait();
+				_mutex.Wait(cts.Token);
                 WebSocket.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Binary, true, cts.Token)
                     .ContinueWith(t =>
 					{
@@ -229,6 +234,18 @@ namespace Couchbase.Lite.Sync
 						}
                 }, cts.Token);
 
+        }
+
+        private void SetupAuth()
+        {
+            var auth = _options?.Get(ReplicationOptionKeys.AuthOption) as IDictionary<string, object>;
+            if (auth != null) {
+                var username = auth.GetCast<string>(ReplicationOptionKeys.AuthUsername);
+                var password = auth.GetCast<string>(ReplicationOptionKeys.AuthPassword);
+                if (username != null && password != null) {
+                    WebSocket.Options.Credentials = new NetworkCredential(username, password);
+                }
+            }
         }
 
         #endregion

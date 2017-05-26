@@ -19,8 +19,6 @@
 // limitations under the License.
 // 
 using System;
-using Couchbase.Lite.Internal.Serialization;
-using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
@@ -54,18 +52,74 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        /// <summary>
+        /// Gets the <see cref="Boolean"/> value of the nth selected
+        /// value of the query row (in order of what was specified in the
+        /// SELECT portion of the query)
+        /// </summary>
+        /// <param name="index">The index of the element to retrieve in terms
+        /// of the SELECT query</param>
+        /// <returns>The value at the index</returns>
         bool GetBoolean(int index);
 
+        /// <summary>
+        /// Gets the <see cref="DateTimeOffset"/> value of the nth selected
+        /// value of the query row (in order of what was specified in the
+        /// SELECT portion of the query)
+        /// </summary>
+        /// <param name="index">The index of the element to retrieve in terms
+        /// of the SELECT query</param>
+        /// <returns>The value at the index</returns>
         DateTimeOffset GetDate(int index);
 
+        /// <summary>
+        /// Gets the <see cref="Double"/> value of the nth selected
+        /// value of the query row (in order of what was specified in the
+        /// SELECT portion of the query)
+        /// </summary>
+        /// <param name="index">The index of the element to retrieve in terms
+        /// of the SELECT query</param>
+        /// <returns>The value at the index</returns>
         double GetDouble(int index);
 
+        /// <summary>
+        /// Gets the <see cref="Int32"/> value of the nth selected
+        /// value of the query row (in order of what was specified in the
+        /// SELECT portion of the query)
+        /// </summary>
+        /// <param name="index">The index of the element to retrieve in terms
+        /// of the SELECT query</param>
+        /// <returns>The value at the index</returns>
         int GetInt(int index);
 
+        /// <summary>
+        /// Gets the <see cref="Int64"/> value of the nth selected
+        /// value of the query row (in order of what was specified in the
+        /// SELECT portion of the query)
+        /// </summary>
+        /// <param name="index">The index of the element to retrieve in terms
+        /// of the SELECT query</param>
+        /// <returns>The value at the index</returns>
         long GetLong(int index);
 
+        /// <summary>
+        /// Gets the value of the nth selected
+        /// value of the query row (in order of what was specified in the
+        /// SELECT portion of the query)
+        /// </summary>
+        /// <param name="index">The index of the element to retrieve in terms
+        /// of the SELECT query</param>
+        /// <returns>The value at the index</returns>
         object GetObject(int index);
 
+        /// <summary>
+        /// Gets the <see cref="String"/> value of the nth selected
+        /// value of the query row (in order of what was specified in the
+        /// SELECT portion of the query)
+        /// </summary>
+        /// <param name="index">The index of the element to retrieve in terms
+        /// of the SELECT query</param>
+        /// <returns>The value at the index</returns>
         string GetString(int index);
 
         #endregion

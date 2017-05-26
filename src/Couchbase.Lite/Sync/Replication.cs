@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -55,6 +56,7 @@ namespace Couchbase.Lite.Sync
 
         public bool Continuous { get; set; }
         public Database Database { get; }
+        public IDictionary<string, object> Options { get; set; }
         public Database OtherDatabase { get; }
         public bool Pull { get; set; }
         public bool Push { get; set; }
@@ -207,12 +209,6 @@ namespace Couchbase.Lite.Sync
                     dbNameStr = RemoteUrl.Segments.Last().TrimEnd('/');
                 }
 
-                var database = Database as Database;
-                var otherDatabase = OtherDatabase as Database;
-                if (database == null) {
-                    throw new NotSupportedException("Custom IDatabase not supported in Replication");
-                }
-
                 C4Error err;
                 using (var scheme = new C4String(RemoteUrl?.Scheme))
                 using (var host = new C4String(RemoteUrl?.Host))
@@ -229,17 +225,26 @@ namespace Couchbase.Lite.Sync
                         path = path.AsC4Slice()
                     };
 
+                    var options = Options ?? new Dictionary<string, object>();
+                    var userComponents = RemoteUrl?.UserInfo?.Split(':');
+                    if (userComponents?.Length == 2 && !options.ContainsKey(ReplicationOptionKeys.AuthOption)) {
+                        var auth = new Dictionary<string, object>(2);
+                        auth[ReplicationOptionKeys.AuthUsername] = userComponents[0];
+                        auth[ReplicationOptionKeys.AuthPassword] = userComponents[1];
+                        options[ReplicationOptionKeys.AuthOption] = auth;
+                    }
+
                     _callback = new ReplicatorStateChangedCallback(StatusChangedCallback, this);
 
-                    var otherDb = otherDatabase == null ? null : otherDatabase.c4db;
-                    _repl = Native.c4repl_new(database.c4db, addr, dbNameStr, otherDb, Mkmode(Push, Continuous),
-                        Mkmode(Pull, Continuous), null, _callback, &err);
+                    var otherDb = OtherDatabase == null ? null : OtherDatabase.c4db;
+                    _repl = Native.c4repl_new(Database.c4db, addr, dbNameStr, otherDb, Mkmode(Push, Continuous),
+                        Mkmode(Pull, Continuous), options, _callback, &err);
                 }
 
                 C4ReplicatorStatus status;
                 if (_repl != null) {
                     status = Native.c4repl_getStatus(_repl);
-                    database.ActiveReplications.Add(this);
+                    Database.ActiveReplications.Add(this);
                 } else {
                     status = new C4ReplicatorStatus {
                         level = C4ReplicatorActivityLevel.Stopped,

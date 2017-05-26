@@ -1155,7 +1155,7 @@ namespace Test
             doc.Contains("name").Should().BeFalse("because that key was removed");
             doc.Contains("weight").Should().BeFalse("because that key was removed");
             doc.Contains("age").Should().BeFalse("because that key was removed");
-            doc.Contains("address").Should().BeFalse("because that key was removed");
+            doc.Contains("active").Should().BeFalse("because that key was removed");
             doc.GetDictionary("address").Contains("city").Should().BeFalse("because that key was removed");
 
             var address = doc.GetDictionary("address");

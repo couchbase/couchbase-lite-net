@@ -23,12 +23,21 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// Arguments for the <see cref="ILiveQuery.Changed" /> event
+    /// </summary>
     public sealed class LiveQueryChangedEventArgs : EventArgs
     {
         #region Properties
 
+        /// <summary>
+        /// Gets the updated rows of the query
+        /// </summary>
         public IReadOnlyList<IQueryRow> Rows { get; }
 
+        /// <summary>
+        /// Gets the error that occurred, if any
+        /// </summary>
         public Exception Error { get; }
 
         #endregion

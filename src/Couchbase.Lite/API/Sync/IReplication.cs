@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Sync
 {
@@ -60,6 +61,12 @@ namespace Couchbase.Lite.Sync
         /// Gets the most recent error associated with this replication
         /// </summary>
         Exception LastError { get; }
+
+        ///// <summary>
+        ///// Get or set options affecting replication (See <see cref="ReplicationOptionKeys" />
+        ///// for a list of keys)
+        ///// </summary>
+        //IDictionary<string, object> Options { get; set; }
 
         /// <summary>
         /// Gets the remote <see cref="Database"/> being replicated to, if this is

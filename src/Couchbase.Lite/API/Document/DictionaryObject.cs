@@ -256,7 +256,11 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override bool Contains(string key)
         {
-            return (_dict.ContainsKey(key) && !ReferenceEquals(_dict[key], RemovedValue)) || base.Contains(key);
+            if (_dict.ContainsKey(key)) {
+                return !ReferenceEquals(_dict[key], RemovedValue);
+            }
+
+            return base.Contains(key);
         }
 
         /// <inheritdoc />
