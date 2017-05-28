@@ -114,7 +114,7 @@ namespace Couchbase.Lite.Replicator
         public BulkDownloader(BulkDownloaderOptions options)
         {
             options.Validate();
-            _bulkGetUri = new Uri(AppendRelativeURLString(options.DatabaseUri, "/_bulk_get?revs=true&attachments=true"));
+            _bulkGetUri = new Uri(AppendRelativeURLString(options.DatabaseUri, string.Format("/_bulk_get?revs=true&attachments={0}", ManagerOptions.Default.DownloadAttachmentsOnSync.ToString().ToLower())));
             _db = options.Database;
             
             _requestHeaders = options.RequestHeaders;

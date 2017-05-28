@@ -2,7 +2,7 @@
 // WebSocketChangeTracker.cs
 //
 // Author:
-// 	Jim Borden  <jim.borden@couchbase.com>
+//  Jim Borden  <jim.borden@couchbase.com>
 //
 // Copyright (c) 2016 Couchbase, Inc All rights reserved.
 //
@@ -323,4 +323,3 @@ namespace Couchbase.Lite.Internal
         #endregion
     }
 }
-

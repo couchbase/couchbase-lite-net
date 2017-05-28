@@ -321,6 +321,37 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestUnauthorized()
+        {
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.DisableGuestAccess();
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                var wait = new WaitAssert();
+                pull.Changed += (sender, e) => {
+                    var err = e.LastError as HttpResponseException;
+                    if(err != null) {
+                        wait.RunAssert(() => Assert.AreEqual(HttpStatusCode.Unauthorized, err.StatusCode));
+                    }
+                };
+                pull.Start();
+
+                wait.WaitForResult(TimeSpan.FromSeconds(5));
+
+                wait = new WaitAssert();
+                var push = database.CreatePushReplication(remoteDb.RemoteUri);
+                push.Changed += (sender, e) => {
+                    var err = e.LastError as HttpResponseException;
+                    if(err != null) {
+                        wait.RunAssert(() => Assert.AreEqual(HttpStatusCode.Unauthorized, err.StatusCode));
+                    }
+                };
+                push.Start();
+
+                wait.WaitForResult(TimeSpan.FromSeconds(5));
+            }
+        }
+
+        [Test]
         public void TestDeepRevTree()
         {
             const int NumRevisions = 200;

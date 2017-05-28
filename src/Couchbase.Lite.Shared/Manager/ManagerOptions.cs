@@ -132,6 +132,7 @@ namespace Couchbase.Lite
 
             RequestTimeout = TimeSpan.FromSeconds(60);
 
+            DownloadAttachmentsOnSync = true;
 #pragma warning restore 618
 
 #if __UNITY__
@@ -180,6 +181,11 @@ namespace Couchbase.Lite
         [Obsolete("Moving to the ReplicationOptions class")]
         public int MaxRevsToGetInBulk { get; set; }
 
+        /// <summary>
+        /// Get or sets a flag to indicated when to request attachments
+        /// </summary>
+        /// <value>true - download attachments with documents, false - defer attachment downloading until later</value>
+        public bool DownloadAttachmentsOnSync { get; set; }
 #pragma warning disable 1591
         public override string ToString()
         {

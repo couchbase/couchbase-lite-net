@@ -166,6 +166,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\TimeSeries.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\RecyclableMemoryStreamManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\RecyclableMemoryStream.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\AttachmentPuller.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\AttachmentRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\DatabaseQueryable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\MapReduceQueryProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\NotSupportedExpressionVisitor.cs" />

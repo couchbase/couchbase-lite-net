@@ -66,4 +66,3 @@ namespace Couchbase.Lite.Support
         TimeSpan SocketTimeout { get; set; }
     }
 }
-

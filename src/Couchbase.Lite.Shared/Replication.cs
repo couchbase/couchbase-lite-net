@@ -303,6 +303,12 @@ namespace Couchbase.Lite
         public abstract bool IsPull { get; }
 
         /// <summary>
+        /// Gets whether the <see cref="Couchbase.Lite.Replication"/> pulls from,
+        /// as opposed to pushes to, the target.
+        /// </summary>
+        public abstract bool IsAttachmentPull { get; }
+
+        /// <summary>
         /// Gets or sets whether the target <see cref="Couchbase.Lite.Database"/> should be created
         /// if it doesn't already exist. This only has an effect if the target supports it.
         /// </summary>
@@ -1288,9 +1294,6 @@ namespace Couchbase.Lite
                Log.To.Sync.I(Tag, "{0} stopped.  Elapsed time {1} sec", this, (DateTime.UtcNow - _startTime).TotalSeconds.ToString("F3"));
            });
         }
-        
-
-       
 
         // Pusher overrides this to implement the .createTarget option
         /// <summary>This is the _local document ID stored on the remote server to keep track of state.

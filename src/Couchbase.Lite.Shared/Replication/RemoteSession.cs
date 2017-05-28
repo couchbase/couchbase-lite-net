@@ -465,6 +465,82 @@ namespace Couchbase.Lite.Internal
             _requests.TryAdd(message, t);
         }
 
+        internal void SendAsyncAttachmentRequest (HttpMethod method, String relativePath,
+                                                        RemoteRequestProgress progressHandler)
+        {
+            Uri url = null;
+            try {
+                url = _baseUrl.Append(relativePath);
+            } catch (UriFormatException e) {
+                throw new ArgumentException ("Invalid URI format.", e);
+            }
+
+            var message = new HttpRequestMessage (method, url);
+            message.Headers.Add ("Accept", "*/*");
+
+            var client = default(CouchbaseLiteHttpClient);
+            if(!_client.AcquireFor(TimeSpan.FromSeconds(1), out client)) {
+                Log.To.Sync.I(Tag, "Client is disposed, aborting request to {0}", new SecureLogString(relativePath, LogMessageSensitivity.PotentiallyInsecure));
+                return;
+            }
+
+            var _lastError = default(Exception);
+            client.Authenticator = Authenticator;
+            try {
+                Log.To.Sync.I(Tag, "pulling attachment: " + relativePath);
+                var request = client.SendAsync (message, HttpCompletionOption.ResponseHeadersRead, _cancellationTokenSource.Token);
+
+                request.ContinueWith (response => {
+                    //Log.To.Sync.I(Tag, "pulling attachment response: " + relativePath);
+                    try
+                    {
+                        if (response.Status != TaskStatus.RanToCompletion) {
+                            Log.To.Sync.E (Tag, "SendAsyncRequest did not run to completion.");
+                            return null;
+                        }
+                        if ((int)response.Result.StatusCode > 300) {
+                            _lastError = new HttpResponseException (response.Result.StatusCode);
+                            Log.To.Sync.E (Tag, "Server returned HTTP Error", _lastError);
+                            return null;
+                        }
+                        return response.Result.Content.ReadAsStreamAsync ();
+                    }
+                    catch(Exception e)
+                    {
+                        Log.To.Sync.E(Tag, "client.SendAsync execption: ", e);
+                        return null;
+                    }
+                }, _cancellationTokenSource.Token, TaskContinuationOptions.LongRunning, _workExecutor.Scheduler)
+                .ContinueWith (response => {
+                    byte[] responseBuffer = new byte[4096];
+                    try {
+                        var hasEmptyResult = response.Result == null;
+                        if (response.Status != TaskStatus.RanToCompletion) {
+                            throw new CouchbaseLiteException("SendAsyncRequest did not run to completion");
+                        } else if (hasEmptyResult) {
+                            throw new CouchbaseLiteException("Empty result");
+                        }
+
+                        Stream stream = response.Result.Result;
+                        int byteRead = 0;
+                        do {
+                            byteRead = stream.Read (responseBuffer, 0, responseBuffer.Length);
+                            progressHandler (responseBuffer, byteRead, byteRead == 0, null);
+                        } while(byteRead != 0);
+                    } catch (Exception ex) {
+                        progressHandler (responseBuffer, 0, true, ex);
+                    } finally {
+                        Task dummy;
+                       _requests.TryRemove(message, out dummy);
+                    }
+                }, _cancellationTokenSource.Token, TaskContinuationOptions.LongRunning, _workExecutor.Scheduler);
+                _requests.TryAdd(message, request);
+            } catch (Exception e) {
+                Log.To.Sync.E (Tag, "SendAsyncAttachmentRequest response did not run to completion.", e);
+                progressHandler (new byte[1], 0, true, e);
+            }
+        }
+
         private void AddRequestHeaders(HttpRequestMessage request)
         {
             foreach(string requestHeaderKey in RequestHeaders.Keys) {

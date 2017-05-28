@@ -202,7 +202,10 @@ namespace Couchbase.Lite
                     fileStream = EncryptionKey.DecryptStream(fileStream);
                 }
             } catch (IOException e) {
-                Log.To.Database.E(TAG, "Error reading file (returning null)", e);
+                if (ManagerOptions.Default.DownloadAttachmentsOnSync == true)
+                {
+                    Log.To.Database.E(TAG, "Error reading file (returning null)", e);
+                }
                 return null;
             }
 

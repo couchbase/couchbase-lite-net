@@ -563,7 +563,7 @@ namespace Couchbase.Lite.Replicator
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
             var path = new StringBuilder($"/{Uri.EscapeUriString(rev.DocID)}?rev={Uri.EscapeUriString(rev.RevID.ToString())}&revs=true");
 
-            var attachments = true;
+            var attachments = ManagerOptions.Default.DownloadAttachmentsOnSync;
             if(attachments) {
                 // TODO: deferred attachments
                 path.Append("&attachments=true");
@@ -749,6 +749,8 @@ namespace Couchbase.Lite.Replicator
         public override bool CreateTarget { get { return false; } set { return; /* No-op intended. Only used in Pusher. */ } }
 
         public override bool IsPull { get { return true; } }
+
+        public override bool IsAttachmentPull { get { return true; } }
 
         public override IEnumerable<string> DocIds { get; set; }
 

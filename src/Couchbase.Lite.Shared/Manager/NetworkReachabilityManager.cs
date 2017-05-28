@@ -49,6 +49,10 @@ namespace Couchbase.Lite
 
         public bool CanReach(RemoteSession session, string remoteUri, TimeSpan timeout)
         {
+            if (remoteUri [remoteUri.Length - 1] != '/') {
+                remoteUri += "/";
+            }
+
             CouchbaseLiteHttpClientFactory.SetupSslCallback();
             var uri = new Uri(remoteUri);
             try
