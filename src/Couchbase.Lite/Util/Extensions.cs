@@ -22,6 +22,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Reflection;
+using System.Linq;
 
 namespace Couchbase.Lite.Util
 {
@@ -31,6 +33,21 @@ namespace Couchbase.Lite.Util
     public static class Extensions
     {
         #region Public Methods
+
+
+        public static Dictionary<string, object> ToDictionary(this object myObj)
+        {
+            return myObj.GetType().GetTypeInfo().DeclaredProperties
+                .Select(pi => new { Name = pi.Name, Value = pi.GetValue(myObj, null) })
+                .Union(
+                    myObj.GetType().GetTypeInfo().DeclaredFields
+                    
+                    .Select(fi => new { Name = fi.Name, Value = fi.GetValue(myObj) })
+                 )
+                .ToDictionary(ks => ks.Name, vs => vs.Value);
+        }
+
+
 
         /// <summary>
         /// Attempts to cast an object to a given type, and returning a default value if not successful
@@ -48,6 +65,7 @@ namespace Couchbase.Lite.Util
 
             return defaultVal;
         }
+
 
         /// <summary>
         /// Attempts to cast an object to a given type, and returning a compiler default value if not successful

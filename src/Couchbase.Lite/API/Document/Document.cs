@@ -27,6 +27,7 @@ using Couchbase.Lite.Logging;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
@@ -103,7 +104,7 @@ namespace Couchbase.Lite
         {
             Set(dictionary);
         }
-
+        
         /// <summary>
         /// Creates a document with the given ID and properties
         /// </summary>
@@ -123,6 +124,24 @@ namespace Couchbase.Lite
         }
 
         #endregion
+        #region Public Methods
+
+        /// <summary>
+        /// Creates a document from a given object based on a class
+        /// </summary>
+        /// <typeparam name="T">The type of your object</typeparam>
+        /// <param name="Object">Your object</param>
+        public void MapObject<T>(object Object)
+        {
+            
+            
+            IDictionary<string, object> GeneratedDic = ((T)Object).ToDictionary();
+            Set(GeneratedDic);
+
+        }
+
+        #endregion
+
 
         #region Internal Methods
 
