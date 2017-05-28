@@ -1,0 +1,4 @@
+source https://nuget.org/api/v2
+nuget FAKE
+
+http https://github.com/couchbaselabs/cbforest/releases/download/1.2-net/1.2-CBForest-Interop.zip

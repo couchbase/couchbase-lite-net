@@ -1,0 +1,8 @@
+NUGET
+  remote: https://www.nuget.org/api/v2
+  specs:
+    FAKE (4.23.1)
+HTTP
+  remote: https://github.com
+  specs:
+    1.2-CBForest-Interop.zip (/couchbaselabs/cbforest/releases/download/1.2-net/1.2-CBForest-Interop.zip)
