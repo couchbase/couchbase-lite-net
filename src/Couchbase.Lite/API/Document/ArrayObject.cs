@@ -21,6 +21,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -74,7 +75,16 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <inheritdoc />
-        public override int Count => _list.Count;
+        public override int Count
+        {
+            get {
+                if (_list == null) {
+                    return base.Count;
+                }
+
+                return _list.Count;
+            }
+        }
 
         /// <inheritdoc />
         public new Fragment this[int index]
@@ -93,7 +103,7 @@ namespace Couchbase.Lite
         /// Default Constructor
         /// </summary>
         public ArrayObject()
-            : this(default(FleeceArray))
+            : base(default(FleeceArray))
         {
             
         }
@@ -111,17 +121,18 @@ namespace Couchbase.Lite
         internal ArrayObject(FleeceArray data)
             : base(data)
         {
-            _list = new List<object>();
-            LoadBackingData();
+            
         }
 
         #endregion
 
         #region Private Methods
 
-        private void LoadBackingData()
+        private void CopyFleeceData()
         {
+            Debug.Assert(_list == null);
             var count = base.Count;
+            _list = new List<object>(count);
             for (int i = 0; i < count; i++) {
                 var value = base.GetObject(i);
                 _list.Add(DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
@@ -180,18 +191,26 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override IEnumerator<object> GetEnumerator()
         {
+            if (_list == null) {
+                return base.GetEnumerator();
+            }
+
             return _list.Cast<object>().GetEnumerator();
         }
 
         /// <inheritdoc />
         public override Blob GetBlob(int index)
         {
-            return _list[index] as Blob;
+            return GetObject(index) as Blob;
         }
 
         /// <inheritdoc />
         public override bool GetBoolean(int index)
         {
+            if (_list == null) {
+                return base.GetBoolean(index);
+            }
+
             var value = _list[index];
             return DataOps.ConvertToBoolean(value);
         }
@@ -199,13 +218,16 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override DateTimeOffset GetDate(int index)
         {
-            var value = _list[index];
-            return DataOps.ConvertToDate(value);
+            return DataOps.ConvertToDate(GetObject(index));
         }
 
         /// <inheritdoc />
         public override double GetDouble(int index)
         {
+            if (_list == null) {
+                return base.GetDouble(index);
+            }
+
             var value = _list[index];
             return DataOps.ConvertToDouble(value);
         }
@@ -213,6 +235,10 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override int GetInt(int index)
         {
+            if (_list == null) {
+                return base.GetInt(index);
+            }
+
             var value = _list[index];
             return DataOps.ConvertToInt(value);
         }
@@ -220,6 +246,10 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override long GetLong(int index)
         {
+            if (_list == null) {
+                return base.GetLong(index);
+            }
+
             var value = _list[index];
             return DataOps.ConvertToLong(value);
         }
@@ -227,18 +257,30 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override object GetObject(int index)
         {
+            if (_list == null) {
+                var value = base.GetObject(index);
+                if (value is IReadOnlyDictionary || value is IReadOnlyArray) {
+                    CopyFleeceData();
+                } else {
+                    return value;
+                }
+            }
             return _list[index];
         }
 
         /// <inheritdoc />
         public override string GetString(int index)
         {
-            return _list[index] as string;
+            return GetObject(index) as string;
         }
 
         /// <inheritdoc />
         public override IList<object> ToList()
         {
+            if (_list == null) {
+                CopyFleeceData();
+            }
+
             var array = new List<object>();
             foreach (var item in _list) {
                 switch (item) {
@@ -264,6 +306,10 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IArray Add(object value)
         {
+            if (_list == null) {
+                CopyFleeceData();
+            }
+
             _list.Add(DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
             SetChanged();
             return this;
@@ -272,18 +318,22 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public new IArray GetArray(int index)
         {
-            return _list[index] as IArray;
+            return GetObject(index) as IArray;
         }
 
         /// <inheritdoc />
         public new IDictionaryObject GetDictionary(int index)
         {
-            return _list[index] as IDictionaryObject;
+            return GetObject(index) as IDictionaryObject;
         }
 
         /// <inheritdoc />
         public IArray Insert(int index, object value)
         {
+            if (_list == null) {
+                CopyFleeceData();
+            }
+
             _list.Insert(index, DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
             SetChanged();
             return this;
@@ -292,6 +342,10 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IArray RemoveAt(int index)
         {
+            if (_list == null) {
+                CopyFleeceData();
+            }
+
             var value = _list[index];
             RemoveChangedListener(value);
             _list.RemoveAt(index);
@@ -317,6 +371,10 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IArray Set(int index, object value)
         {
+            if (_list == null) {
+                CopyFleeceData();
+            }
+
             var oldValue = _list[index];
             if (value?.Equals(oldValue) == false) {
                 value = DataOps.ConvertValue(value, ObjectChanged, ObjectChanged);
