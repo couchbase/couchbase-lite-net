@@ -22,7 +22,7 @@
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// A struct describing the current status of an <see cref="IReplication"/>
+    /// A struct describing the current status of an <see cref="IReplicator"/>
     /// </summary>
     public struct ReplicationStatus
     {
@@ -30,14 +30,14 @@ namespace Couchbase.Lite.Sync
         /// Gets the current state of the replication (i.e. whether or not it is
         /// actively processing changes)
         /// </summary>
-        public ReplicationActivityLevel Activity { get; }
+        public ReplicatorActivityLevel Activity { get; }
 
         /// <summary>
         /// Gets the current progress of the replication
         /// </summary>
         public ReplicationProgress Progress { get; }
 
-        internal ReplicationStatus(ReplicationActivityLevel activity, ReplicationProgress progress)
+        internal ReplicationStatus(ReplicatorActivityLevel activity, ReplicationProgress progress)
         {
             Activity = activity;
             Progress = progress;

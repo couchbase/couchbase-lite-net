@@ -238,14 +238,14 @@ namespace Couchbase.Lite.Sync
 
         private void SetupAuth()
         {
-            var auth = _options?.Get(ReplicationOptionKeys.AuthOption) as IDictionary<string, object>;
-            if (auth != null) {
-                var username = auth.GetCast<string>(ReplicationOptionKeys.AuthUsername);
-                var password = auth.GetCast<string>(ReplicationOptionKeys.AuthPassword);
-                if (username != null && password != null) {
-                    WebSocket.Options.Credentials = new NetworkCredential(username, password);
-                }
-            }
+            //var auth = _options?.Get(ReplicatorOptionKeys.AuthOption) as IDictionary<string, object>;
+            //if (auth != null) {
+            //    var username = auth.GetCast<string>(ReplicatorOptionKeys.AuthUsername);
+            //    var password = auth.GetCast<string>(ReplicatorOptionKeys.AuthPassword);
+            //    if (username != null && password != null) {
+            //        WebSocket.Options.Credentials = new NetworkCredential(username, password);
+            //    }
+            //}
         }
 
         #endregion

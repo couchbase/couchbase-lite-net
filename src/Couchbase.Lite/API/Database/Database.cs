@@ -127,7 +127,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal ICollection<IReplication> ActiveReplications { get; } = new HashSet<IReplication>();
+        internal ICollection<Replicator> ActiveReplications { get; } = new HashSet<Replicator>();
 
         internal C4BlobStore* BlobStore
         {
@@ -158,7 +158,7 @@ namespace Couchbase.Lite
             set => _jsonSerializer = value;
         }
 
-        internal IDictionary<Uri, IReplication> Replications { get; } = new Dictionary<Uri, IReplication>();
+        internal IDictionary<Uri, Replicator> Replications { get; } = new Dictionary<Uri, Replicator>();
 
         internal SharedStringCache SharedStrings => _threadSafety.DoLocked(() => _sharedStrings);
 
@@ -358,55 +358,6 @@ namespace Couchbase.Lite
                 CheckOpen();
                 CreateIndex(expressions as IList, IndexType.ValueIndex, null);
             });
-        }
-
-        /// <summary>
-        /// Creates a replication with the giveb remote URL
-        /// </summary>
-        /// <param name="remoteUrl">The remote URL to replicate with</param>
-        /// <returns>The replication object</returns>
-        /// <remarks>The 2.0 protocol requires a new version of Sync Gateway with
-        /// BLIP enabled (CouchDB, Cloudant, etc will NOT work)</remarks>
-        public IReplication CreateReplication(Uri remoteUrl)
-        {
-            if (remoteUrl == null) {
-                throw new ArgumentNullException(nameof(remoteUrl));
-            }
-
-            CheckOpen();
-            var repl = Replications.Get(remoteUrl);
-            if (repl == null) {
-                repl = new Replication(this, remoteUrl, null);
-                Replications[remoteUrl] = repl;
-            }
-
-            return repl;
-        }
-
-        /// <summary>
-        /// Creates a replication with another local database
-        /// </summary>
-        /// <param name="otherDatabase">The local database to replicate with</param>
-        /// <returns>The replication object</returns>
-        public IReplication CreateReplication(Database otherDatabase)
-        {
-            if (otherDatabase == null) {
-                throw new ArgumentNullException(nameof(otherDatabase));
-            }
-
-            if (otherDatabase == this) {
-                throw new InvalidOperationException("Source and target database are the same");
-            }
-
-            CheckOpen();
-            var key = new Uri($"file://{otherDatabase.Path}");
-            var repl = Replications.Get(key);
-            if (repl == null) {
-                repl = new Replication(this, null, otherDatabase);
-                Replications[key] = repl;
-            }
-
-            return repl;
         }
 
         /// <summary>

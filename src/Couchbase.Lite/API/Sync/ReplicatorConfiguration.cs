@@ -1,54 +1,97 @@
-﻿using System;
+﻿// 
+// ReplicatorConfiguration.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Lite.Sync
 {
     [Flags]
-    internal enum ReplicationType
+    public enum ReplicatorType
     {
         Push = 1 << 0,
         Pull = 1 << 1,
         PushAndPull = Push | Pull
     }
 
-    internal sealed class ReplicatorConfiguration
+    public sealed class ReplicatorConfiguration
     {
-        public object Source { get; }
+        /// <summary>
+        /// Gets or sets the local database participating in the replication.  This property
+        /// is required to create an <see cref="IReplicator"/>
+        /// </summary>
+        public Database Database { get; set; }
 
-        public object Target { get; }
+        /// <summary>
+        /// Gets or sets the target to replicate with.  This property
+        /// is required to create an <see cref="IReplicator"/>
+        /// </summary>
+        public ReplicatorTarget Target { get; set; }
 
-        public ReplicationType ReplicationType { get; }
+        /// <summary>
+        /// A value indicating the direction of the replication.  The default is
+        /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
+        /// </summary>
+        public ReplicatorType ReplicatorType { get; set; }
 
-        public bool Continuous { get; }
+        /// <summary>
+        /// Gets or sets whether or not the <see cref="IReplicator"/> should stay
+        /// active indefinitely.  The default is <c>false</c>
+        /// </summary>
+        public bool Continuous { get; set; }
 
-        public IConflictResolver ConflictResolver { get; }
+        /// <summary>
+        /// Gets or sets the object to use when resolving incoming conflicts.  The default
+        /// is <c>null</c> which will set up the default algorithm of the most active revision
+        /// </summary>
+        public IConflictResolver ConflictResolver { get; set; }
 
-        public ReplicatorConfiguration() : this(new Builder())
+        /// <summary>
+        /// Gets or sets extra options affecting replication.
+        /// </summary>
+        public ReplicatorOptionsDictionary Options { get; set; }
+
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        public ReplicatorConfiguration()
         {
-            
+            ReplicatorType = ReplicatorType.PushAndPull;
         }
 
-        public ReplicatorConfiguration(Builder builder)
+        internal static ReplicatorConfiguration Clone(ReplicatorConfiguration source)
         {
-            Source = builder.Source ?? throw new ArgumentNullException(nameof(builder.Source));
-            Target = builder.Target ?? throw new ArgumentNullException(nameof(builder.Target));
-            ReplicationType = builder.ReplicationType;
-            Continuous = builder.Continuous;
-            ConflictResolver = builder.ConflictResolver ?? new MostActiveWinsConflictResolver();
+            return (ReplicatorConfiguration) source.MemberwiseClone();
         }
 
-        public sealed class Builder
+        internal void Validate()
         {
-            public object Source { get; set; }
+            if (Database == null) {
+                throw new ArgumentNullException(nameof(Database));
+            }
 
-            public object Target { get; set; }
-
-            public ReplicationType ReplicationType { get; set; } = ReplicationType.Push;
-
-            public bool Continuous { get; set; }
-
-            public IConflictResolver ConflictResolver { get; set; }
+            if (Target == null) {
+                throw new ArgumentNullException(nameof(Target));
+            }
         }
+
+        
     }
 }

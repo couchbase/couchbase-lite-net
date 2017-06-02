@@ -22,28 +22,21 @@
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// An enum describing states for an <see cref="IReplication"/>
+    /// An enum describing states for an <see cref="IReplicator"/>
     /// </summary>
-    public enum ReplicationActivityLevel
+    public enum ReplicatorActivityLevel
     {
         /// <summary>
-        /// The replication is stopped
+        /// The replication is finished or hit a fatal error
         /// </summary>
         Stopped,
         /// <summary>
-        /// The replication is offline
-        /// </summary>
-        Offline,
-        /// <summary>
-        /// The replication is connecting
-        /// </summary>
-        Connecting,
-        /// <summary>
-        /// The replication is waiting for new information
+        /// The replication is inactive; either waiting for changes or offline
+        /// because the remote host is unreachable
         /// </summary>
         Idle,
         /// <summary>
-        /// The replication is actively processing information
+        /// The replication is actively transferring data
         /// </summary>
         Busy
     }

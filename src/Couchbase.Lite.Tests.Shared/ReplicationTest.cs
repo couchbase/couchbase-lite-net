@@ -42,7 +42,7 @@ namespace Test
     public sealed class ReplicationTest : TestCase
     {
         private Database _otherDB;
-        private IReplication _repl;
+        private Replicator _repl;
         private bool _stopped;
         private WaitAssert _waitAssert;
 
@@ -56,51 +56,105 @@ namespace Test
         }
 
         [Fact]
+        public void TestBadUrl()
+        {
+            var config = CreateConfig(false, true, new Uri("blxp://localhost/db"));
+            RunReplication(config, 15, C4ErrorDomain.LiteCoreDomain);
+        }
+
+        [Fact]
         public void TestEmptyPush()
         {
-            PerformReplication(true, false);
+            var config = CreateConfig(true, false);
+            RunReplication(config, 0, 0);
         }
 
         // TODO: Figure out what to do about the current .NET limitation
         // which doesn't give any information about why a web socket failed
         // to connect (https://github.com/dotnet/corefx/issues/13773)
-        //[Fact] 
+        [Fact] 
         public void TestAuthenticationFailure()
         {
-            _repl = Db.CreateReplication(new Uri("ws://localhost:4984/seekrit"));
-            RunReplication(false, true);
-            _repl.LastError.Should().BeAssignableTo<LiteCoreException>();
-            _repl.LastError.As<LiteCoreException>().Error.code.Should().Be(401);
-            _repl.LastError.As<LiteCoreException>().Error.domain.Should().Be(C4ErrorDomain.WebSocketDomain);
+            var config = CreateConfig(false, true, new Uri("blip://localhost:4984/seekrit"));
+            _repl = new Replicator(config);
+            RunReplication(config, 401, C4ErrorDomain.WebSocketDomain);
         }
 
-        //[Fact]
+        [Fact]
         public void TestAuthenticationPullHardcoded()
         {
-            _repl = Db.CreateReplication(new Uri("ws://pupshaw:frank@localhost:4984/seekrit"));
-            RunReplication(false, true);
-            _repl.LastError.Should().BeNull("because otherwise the authentication failed");
+            var config = CreateConfig(false, true, new Uri("blip://pupshaw:frank@localhost:4984/seekrit"));
+            RunReplication(config, 0, 0);
         }
 
-        private void RunReplication(bool push, bool pull)
+        [Fact]
+        public void TestAuthenticatedPull()
         {
-            _repl.Push = push;
-            _repl.Pull = pull;
-            _repl.StatusChanged += ReplicationStatusChanged;
+            var config = CreateConfig(false, true, new Uri("blip://localhost:4984/seekrit"));
+            config.Options = new ReplicatorOptionsDictionary {
+                Auth = new AuthOptionsDictionary {
+                    Username = "pupshaw",
+                    Password = "frank"
+                }
+            };
+
+            RunReplication(config, 0, 0);
+        }
+
+        private ReplicatorConfiguration CreateConfig(bool push, bool pull)
+        {
+            var target = new ReplicatorTarget(_otherDB);
+            return CreateConfig(push, pull, target);
+        }
+
+        private ReplicatorConfiguration CreateConfig(bool push, bool pull, Uri url)
+        {
+            return CreateConfig(push, pull, new ReplicatorTarget(url));
+        }
+
+        private ReplicatorConfiguration CreateConfig(bool push, bool pull, ReplicatorTarget target)
+        {
+            var type = (ReplicatorType) 0;
+            if (push) {
+                type |= ReplicatorType.Push;
+            }
+
+            if (pull) {
+                type |= ReplicatorType.Pull;
+            }
+
+            return new ReplicatorConfiguration {
+                Database = Db,
+                Target = target,
+                ReplicatorType = type
+            };
+        }
+
+        private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, C4ErrorDomain expectedErrDomain)
+        {
+            _repl = new Replicator(config);
             _waitAssert = new WaitAssert();
+            _repl.StatusChanged += (sender, args) =>
+            {
+                if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    _waitAssert.RunAssert(() =>
+                    {
+                        if (expectedErrCode != 0) {
+                            args.LastError.Should().BeAssignableTo<LiteCoreException>();
+                            var error = args.LastError.As<LiteCoreException>().Error;
+                            error.code.Should().Be(expectedErrCode);
+                            if ((int) expectedErrDomain != 0) {
+                                error.domain.As<C4ErrorDomain>().Should().Be(expectedErrDomain);
+                            }
+                        } else {
+                            args.LastError.Should().BeNull("because otherwise an unexpected error occurred");
+                        }
+                    });
+                }
+            };
+            
             _repl.Start();
             _waitAssert.WaitForResult(TimeSpan.FromSeconds(50));
-        }
-
-        private void PerformReplication(bool push, bool pull)
-        {
-            _repl = Db.CreateReplication(_otherDB);
-            RunReplication(push, pull);
-        }
-
-        private void ReplicationStatusChanged(object sender, ReplicationStatusChangedEventArgs e)
-        {
-            _waitAssert.RunConditionalAssert(() => e.Status.Activity == ReplicationActivityLevel.Stopped);
         }
 
         protected override void Dispose(bool disposing)

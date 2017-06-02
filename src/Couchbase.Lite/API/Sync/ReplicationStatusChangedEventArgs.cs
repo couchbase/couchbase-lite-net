@@ -23,24 +23,30 @@ using System;
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// Event arguments for the <see cref="IReplication.StatusChanged" /> event
+    /// Event arguments for the <see cref="IReplicator.StatusChanged" /> event
     /// </summary>
     public sealed class ReplicationStatusChangedEventArgs : EventArgs
     {
         #region Properties
 
         /// <summary>
-        /// The new status for the <see cref="IReplication"/> in question.
+        /// The new status for the <see cref="IReplicator"/> in question.
         /// </summary>
         public ReplicationStatus Status { get; }
+
+        /// <summary>
+        /// Gets the last error that occurred, if any
+        /// </summary>
+        public Exception LastError { get; }
 
         #endregion
 
         #region Constructors
 
-        internal ReplicationStatusChangedEventArgs(ReplicationStatus status)
+        internal ReplicationStatusChangedEventArgs(ReplicationStatus status, Exception lastError)
         {
             Status = status;
+            LastError = lastError;
         }
 
         #endregion
