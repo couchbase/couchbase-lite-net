@@ -151,6 +151,10 @@ namespace Couchbase.Lite
 
         private void RemoveAllChangedListeners()
         {
+            if (_list == null) {
+                return;
+            }
+
             foreach (var obj in _list) {
                 RemoveChangedListener(obj);
             }
