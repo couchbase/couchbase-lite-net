@@ -93,7 +93,13 @@ namespace Couchbase.Lite
         /// <returns>An enumerator that can be used to iterate through the collection.</returns>
         public virtual IEnumerator<object> GetEnumerator()
         {
-            return Data.GetEnumerator();
+            if (Data == null) {
+                yield break;
+            }
+
+            foreach (var item in Data) {
+                yield return item;
+            }
         }
 
         #endregion

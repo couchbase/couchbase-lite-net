@@ -69,10 +69,9 @@ namespace Test
             RunReplication(config, 0, 0);
         }
 
-        // TODO: Figure out what to do about the current .NET limitation
-        // which doesn't give any information about why a web socket failed
-        // to connect (https://github.com/dotnet/corefx/issues/13773)
-        [Fact] 
+        // The below tests are disabled because they require orchestration and should be moved
+        // to the functional test suite
+        //[Fact] 
         public void TestAuthenticationFailure()
         {
             var config = CreateConfig(false, true, new Uri("blip://localhost:4984/seekrit"));
@@ -80,14 +79,14 @@ namespace Test
             RunReplication(config, 401, C4ErrorDomain.WebSocketDomain);
         }
 
-        [Fact]
+        //[Fact]
         public void TestAuthenticationPullHardcoded()
         {
             var config = CreateConfig(false, true, new Uri("blip://pupshaw:frank@localhost:4984/seekrit"));
             RunReplication(config, 0, 0);
         }
 
-        [Fact]
+        //[Fact]
         public void TestAuthenticatedPull()
         {
             var config = CreateConfig(false, true, new Uri("blip://localhost:4984/seekrit"));
