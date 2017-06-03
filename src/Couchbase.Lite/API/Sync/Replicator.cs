@@ -61,6 +61,8 @@ namespace Couchbase.Lite.Sync
         private IDictionary<string, object> _responseHeaders;
         private int _retryCount;
         private ReplicationStatus _status;
+        private Reachability _reachability;
+        private readonly SerialQueue _dispatchQueue = new SerialQueue();
 
         #endregion
 
@@ -170,10 +172,10 @@ namespace Couchbase.Lite.Sync
 
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
         {
-            Task.Factory.StartNew(() =>
+            var repl = context as Replicator;
+            repl?._dispatchQueue.DispatchAsync(() =>
             {
-                var repl = context as Replicator;
-                repl?.StatusChangedCallback(status);
+                repl.StatusChangedCallback(status);
             });
         }
 
@@ -186,6 +188,10 @@ namespace Couchbase.Lite.Sync
 
         private void Dispose(bool finalizing)
         {
+            if (!finalizing) {
+                _reachability.Stop();
+            }
+
             Native.c4repl_free(_repl);
 			_callback?.Dispose();
         }
@@ -209,13 +215,35 @@ namespace Couchbase.Lite.Sync
                 var delay = RetryDelay(++_retryCount);
                 Log.To.Sync.I(Tag,
                     $"{this}: Transient error ({Native.c4error_getMessage(error)}); will retry in {delay}...");
-                Task.Delay(delay).ContinueWith(t => Retry());
+                _dispatchQueue.DispatchAfter(Retry, delay);
             } else {
                 Log.To.Sync.I(Tag,
                     $"{this}: Network error ({Native.c4error_getMessage(error)}); will retry when network changes...");
             }
 
+            // Also retry when the network changes
+            StartReachabilityObserver();
             return true;
+        }
+
+        private void StartReachabilityObserver()
+        {
+            if (_reachability != null) {
+                return;   
+            }
+
+            _reachability = new Reachability();
+            _reachability.StatusChanged += ReachabilityChanged;
+            _reachability.Start(_dispatchQueue);
+        }
+
+        private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
+        {
+            if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
+                Log.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
+                _retryCount = 0;
+                Retry();
+            }
         }
 
         private void Retry()
