@@ -39,6 +39,7 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <DebugSymbols>true</DebugSymbols>
+    <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.tvOS.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -76,7 +77,7 @@
   <ItemGroup>
     <!-- For some reason MSBuild won't copy BundleResources so this needs to be here twice -->
     <None Include="Resources\libLiteCore.dylib">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <BundleResource Include="Resources\libLiteCore.dylib" />
   </ItemGroup>

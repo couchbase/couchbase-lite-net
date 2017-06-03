@@ -21,5 +21,6 @@
   <files>
     <file target="lib\monodroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll" />
     <file target="lib\monodroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.pdb" />
+    <file target="lib\monodroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.xml" />
   </files>
 </package>

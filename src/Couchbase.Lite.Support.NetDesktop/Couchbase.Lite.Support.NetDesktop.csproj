@@ -7,7 +7,9 @@
     <TargetFramework>netstandard1.4</TargetFramework>
     <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
+    <DocumentationFile>bin\Packaging\netstandard1.4\Couchbase.Lite.Support.NetDesktop.xml</DocumentationFile>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj" />

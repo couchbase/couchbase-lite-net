@@ -47,6 +47,7 @@
     <SignAssembly>True</SignAssembly>
     <DelaySign>True</DelaySign>
     <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
+    <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.Android.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Mono.Android" />
@@ -80,22 +81,22 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\x86\libsqlite3.so">
-        <Link>x86\libsqlite3.so</Link>
+      <Link>x86\libsqlite3.so</Link>
     </EmbeddedNativeLibrary>
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\x86\libLiteCore.so">
-        <Link>x86\libLiteCore.so</Link>
+      <Link>x86\libLiteCore.so</Link>
     </EmbeddedNativeLibrary>
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\armeabi-v7a\libsqlite3.so">
-        <Link>armeabi-v7a\libsqlite3.so</Link>
+      <Link>armeabi-v7a\libsqlite3.so</Link>
     </EmbeddedNativeLibrary>
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\armeabi-v7a\libLiteCore.so">
-        <Link>armeabi-v7a\libLiteCore.so</Link>
+      <Link>armeabi-v7a\libLiteCore.so</Link>
     </EmbeddedNativeLibrary>
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\arm64-v8a\libsqlite3.so">
-        <Link>arm64-v8a\libsqlite3.so</Link>
+      <Link>arm64-v8a\libsqlite3.so</Link>
     </EmbeddedNativeLibrary>
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\arm64-v8a\libLiteCore.so">
-        <Link>arm64-v8a\libLiteCore.so</Link>
+      <Link>arm64-v8a\libLiteCore.so</Link>
     </EmbeddedNativeLibrary>
   </ItemGroup>
   <ItemGroup>
