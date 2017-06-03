@@ -69,6 +69,22 @@ namespace Test
             RunReplication(config, 0, 0);
         }
 
+        [Fact]
+        public void TestLocalPush()
+        {
+            Db.InBatch(() =>
+            {
+                for (int i = 0; i < 100; i++) {
+                    var doc = new Document();
+                    doc["foo"].Value = "bar";
+                    Db.Save(doc);
+                }
+            });
+
+            var config = CreateConfig(true, false);
+            RunReplication(config, 0, 0);
+        }
+
         // The below tests are disabled because they require orchestration and should be moved
         // to the functional test suite
         //[Fact] 
