@@ -220,6 +220,7 @@ namespace Test
         [Fact]
         public void TestSaveDocInDifferentDB()
         {
+            Database.Delete("otherDB", Directory);
             var docID = "doc1";
             var doc = GenerateDocument(docID);
             using (var otherDB = OpenDB("otherDB")) {
@@ -332,6 +333,7 @@ namespace Test
         [Fact]
         public void TestDeleteDocInDifferentDB()
         {
+            Database.Delete("otherDB", Directory);
             var docID = "doc1";
             var doc = GenerateDocument(docID);
 
@@ -462,6 +464,7 @@ namespace Test
         {
             var docID = "doc1";
             var doc = GenerateDocument(docID);
+            Database.Delete("otherDB", Directory);
 
             using (var otherDB = OpenDB("otherDB")) {
                 otherDB.Count.Should()

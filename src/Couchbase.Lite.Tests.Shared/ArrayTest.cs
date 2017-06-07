@@ -534,14 +534,14 @@ namespace Test
                 a.GetInt(1).Should().Be(1, "because that is the converted value");
                 a.GetLong(1).Should().Be(1L, "because that is the converted value");
                 a.GetDouble(1).Should().Be(1.49, "because that is the stored value");
-                a.GetInt(2).Should().Be(2, "because that is the converted value");
-                a.GetLong(2).Should().Be(2L, "because that is the converted value");
+                a.GetInt(2).Should().Be(1, "because that is the converted value");
+                a.GetLong(2).Should().Be(1L, "because that is the converted value");
                 a.GetDouble(2).Should().Be(1.50, "because that is the stored value");
-                a.GetInt(3).Should().Be(2, "because that is the converted value");
-                a.GetLong(3).Should().Be(2L, "because that is the converted value");
+                a.GetInt(3).Should().Be(1, "because that is the converted value");
+                a.GetLong(3).Should().Be(1L, "because that is the converted value");
                 a.GetDouble(3).Should().Be(1.51, "because that is the stored value");
-                a.GetInt(4).Should().Be(2, "because that is the converted value");
-                a.GetLong(4).Should().Be(2L, "because that is the converted value");
+                a.GetInt(4).Should().Be(1, "because that is the converted value");
+                a.GetLong(4).Should().Be(1L, "because that is the converted value");
                 a.GetDouble(4).Should().Be(1.99, "because that is the stored value");
             });
         }

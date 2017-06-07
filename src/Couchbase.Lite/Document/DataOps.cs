@@ -176,26 +176,12 @@ namespace Couchbase.Lite.Internal.Doc
 
         internal static int ConvertToInt(object value)
         {
-            switch (value) {
-                case string s:
-                    return 0; // string is IConvertible, but will throw for non-numeric strings
-                case IConvertible c:
-                    return c.ToInt32(CultureInfo.InvariantCulture);
-                default:
-                    return 0;
-            }
+            return (int)Math.Truncate(ConvertToDouble(value));
         }
 
         internal static long ConvertToLong(object value)
         {
-            switch (value) {
-                case string s:
-                    return 0L; // string is IConvertible, but will throw for non-numeric strings
-                case IConvertible c:
-                    return c.ToInt64(CultureInfo.InvariantCulture);
-                default:
-                    return 0L;
-            }
+            return (long)Math.Truncate(ConvertToDouble(value));
         }
 
         internal static object ConvertValue(object value, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback1,

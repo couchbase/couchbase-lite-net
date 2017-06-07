@@ -40,8 +40,15 @@ namespace Couchbase.Lite
         #region Constructors
 
         internal CouchbaseLiteException(StatusCode status)
+            : this(status, String.Empty)
         {
-            Status = status;    
+               
+        }
+
+        internal CouchbaseLiteException(StatusCode status, string message)
+            : base(message)
+        {
+            Status = status;
         }
 
         #endregion

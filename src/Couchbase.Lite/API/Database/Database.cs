@@ -713,7 +713,7 @@ namespace Couchbase.Lite
             if (document.Database == null) {
                 document.Database = this;
             } else if (document.Database != this) {
-                throw new InvalidOperationException("Cannot operate on a document from another database");
+                throw new CouchbaseLiteException(StatusCode.Forbidden, "Cannot operate on a document from another database");
             }
 
             return document;
