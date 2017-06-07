@@ -20,15 +20,19 @@
 //
 using System;
 using System.IO;
-
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.DI;
 using Foundation;
-using ObjCRuntime;
 
 namespace Couchbase.Lite.Support
 {
+    /// <summary>
+    /// Support classes for Xamarin iOS
+    /// </summary>
     public static class iOS
     {
+        /// <summary>
+        /// Activates the Xamarin iOS specific support classes
+        /// </summary>
         public static void Activate()
         {
             Console.WriteLine("Loading support items");
@@ -39,6 +43,7 @@ namespace Couchbase.Lite.Support
             InjectableCollection.RegisterImplementation<ILogger>(() => new tvOSDefaultLogger());
 #endif
 
+            InjectableCollection.RegisterImplementation<ISslStreamFactory>(() => new SslStreamFactory());
             Console.WriteLine("Loading libLiteCore.dylib");
             var dylibPath = Path.Combine(NSBundle.MainBundle.BundlePath, "libLiteCore.dylib");
             if(!File.Exists(dylibPath)) {

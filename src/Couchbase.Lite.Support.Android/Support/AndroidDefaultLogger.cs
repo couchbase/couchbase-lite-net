@@ -21,8 +21,7 @@
 
 using System;
 using System.Threading.Tasks;
-
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.DI;
 using Log = Android.Util.Log;
 
 namespace Couchbase.Lite.Support

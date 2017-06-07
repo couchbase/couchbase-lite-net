@@ -24,6 +24,12 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// An abstract base class for options dictionaries.  These dictionaries are simply
+    /// dictionaries of <see cref="String"/> and <see cref="Object"/> but they provide 
+    /// safe accessors to get the data without having to know the keys they are stored
+    /// under
+    /// </summary>
     public abstract class OptionsDictionary : IDictionary<string, object>
     {
         #region Variables
@@ -33,21 +39,15 @@ namespace Couchbase.Lite
 
         #endregion
 
-        protected OptionsDictionary()
-        {
-            
-        }
-
-        protected OptionsDictionary(Dictionary<string, object> raw)
-        {
-            _inner = raw;
-        }
-
         #region Properties
 
+        /// <inheritdoc />
         public int Count => _inner.Count;
+
+        /// <inheritdoc />
         public bool IsReadOnly => _readonly;
 
+        /// <inheritdoc />
         public object this[string key]
         {
             get => _inner[key];
@@ -64,19 +64,25 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <inheritdoc />
         public ICollection<string> Keys => _inner.Keys;
+
+        /// <inheritdoc />
         public ICollection<object> Values => _inner.Values;
 
         #endregion
 
-        #region Protected Methods
+        #region Constructors
 
-        protected abstract bool KeyIsRequired(string key);
+        internal OptionsDictionary()
+        {
+            
+        }
 
-        protected abstract bool Validate(string key, object value);
-
-        protected virtual void FreezeInternal()
-        { }
+        internal OptionsDictionary(Dictionary<string, object> raw)
+        {
+            _inner = raw;
+        }
 
         #endregion
 
@@ -88,10 +94,18 @@ namespace Couchbase.Lite
             _readonly = true;
         }
 
+        internal virtual void FreezeInternal()
+        { }
+
+        internal abstract bool KeyIsRequired(string key);
+
+        internal abstract bool Validate(string key, object value);
+
         #endregion
 
         #region ICollection<KeyValuePair<string,object>>
 
+        /// <inheritdoc />
         public void Add(KeyValuePair<string, object> item)
         {
             if (_readonly) {
@@ -105,6 +119,7 @@ namespace Couchbase.Lite
             ((ICollection<KeyValuePair<string, object>>)_inner).Add(item);
         }
 
+        /// <inheritdoc />
         public void Clear()
         {
             if (_readonly) {
@@ -114,16 +129,19 @@ namespace Couchbase.Lite
             _inner.Clear();
         }
 
+        /// <inheritdoc />
         public bool Contains(KeyValuePair<string, object> item)
         {
             return ((ICollection<KeyValuePair<string, object>>)_inner).Contains(item);
         }
 
+        /// <inheritdoc />
         public void CopyTo(KeyValuePair<string, object>[] array, int arrayIndex)
         {
             ((ICollection<KeyValuePair<string, object>>)_inner).CopyTo(array, arrayIndex);
         }
 
+        /// <inheritdoc />
         public bool Remove(KeyValuePair<string, object> item)
         {
             if (_readonly) {
@@ -141,6 +159,7 @@ namespace Couchbase.Lite
 
         #region IDictionary<string,object>
 
+        /// <inheritdoc />
         public void Add(string key, object value)
         {
             if (_readonly) {
@@ -154,11 +173,13 @@ namespace Couchbase.Lite
             _inner.Add(key, value);
         }
 
+        /// <inheritdoc />
         public bool ContainsKey(string key)
         {
             return _inner.ContainsKey(key);
         }
 
+        /// <inheritdoc />
         public bool Remove(string key)
         {
             if (_readonly) {
@@ -172,6 +193,7 @@ namespace Couchbase.Lite
             return _inner.Remove(key);
         }
 
+        /// <inheritdoc />
         public bool TryGetValue(string key, out object value)
         {
             return _inner.TryGetValue(key, out value);
@@ -190,6 +212,7 @@ namespace Couchbase.Lite
 
         #region IEnumerable<KeyValuePair<string,object>>
 
+        /// <inheritdoc />
         public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
             return _inner.GetEnumerator();

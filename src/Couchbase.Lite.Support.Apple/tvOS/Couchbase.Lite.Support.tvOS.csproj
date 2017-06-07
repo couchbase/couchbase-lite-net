@@ -55,6 +55,9 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\Couchbase.Lite.Support.NetDesktop\Support\SslStreamFactory.cs">
+      <Link>Support\SslStreamFactory.cs</Link>
+    </Compile>
     <Compile Include="..\..\Couchbase.Lite\Properties\DynamicAssemblyInfo.cs">
       <Link>Properties\DynamicAssemblyInfo.cs</Link>
       <AutoGen>True</AutoGen>

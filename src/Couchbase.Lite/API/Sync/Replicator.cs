@@ -23,7 +23,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
@@ -33,6 +32,12 @@ using LiteCore.Util;
 
 namespace Couchbase.Lite.Sync
 {
+    /// <summary>
+    /// An object that is responsible for the replication of data between two
+    /// endpoints.  The replication can set up to be pull only, push only, or both
+    /// (i.e. pusher and puller are no longer separate) between a database and a URL
+    /// or a database and another database on the same filesystem.
+    /// </summary>
     public sealed unsafe class Replicator
     {
         #region Constants
@@ -53,7 +58,12 @@ namespace Couchbase.Lite.Sync
         private readonly ReplicatorConfiguration _config;
         private readonly ThreadSafety _threadSafety = new ThreadSafety();
 
+        /// <summary>
+        /// An event that is fired when the replicator changes its status for reasons like
+        /// processing more data or changing its condition
+        /// </summary>
         public event EventHandler<ReplicationStatusChangedEventArgs> StatusChanged;
+
         private ReplicatorStateChangedCallback _callback;
         private string _desc;
         private Exception _lastError;
@@ -396,6 +406,7 @@ namespace Couchbase.Lite.Sync
 
         #region Overrides
 
+        /// <inheritdoc />
         public override string ToString()
         {
             if (_desc != null) {

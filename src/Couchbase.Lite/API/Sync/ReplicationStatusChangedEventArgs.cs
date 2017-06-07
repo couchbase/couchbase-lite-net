@@ -23,14 +23,14 @@ using System;
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// Event arguments for the <see cref="IReplicator.StatusChanged" /> event
+    /// Event arguments for the <see cref="Replicator.StatusChanged" /> event
     /// </summary>
     public sealed class ReplicationStatusChangedEventArgs : EventArgs
     {
         #region Properties
 
         /// <summary>
-        /// The new status for the <see cref="IReplicator"/> in question.
+        /// The new status for the <see cref="Replicator"/> in question.
         /// </summary>
         public ReplicationStatus Status { get; }
 

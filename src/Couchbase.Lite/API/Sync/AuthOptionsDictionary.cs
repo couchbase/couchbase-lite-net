@@ -23,11 +23,22 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Sync
 {
+    /// <summary>
+    /// The type of authentication credentials that an <see cref="AuthOptionsDictionary"/>
+    /// holds
+    /// </summary>
     public enum AuthType
     {
+        /// <summary>
+        /// HTTP Basic (RFC 2617)
+        /// </summary>
         HttpBasic
     }
 
+    /// <summary>
+    /// A container that stores login information for authenticating with
+    /// a remote endpoint
+    /// </summary>
     public sealed class AuthOptionsDictionary : OptionsDictionary
     {
         #region Constants
@@ -50,12 +61,18 @@ namespace Couchbase.Lite.Sync
 
         #region Properties
 
+        /// <summary>
+        /// Gets or sets the password for the credentials (not applicable in all cases)
+        /// </summary>
         public string Password
         {
             get => this[PasswordKey] as string;
             set => this[PasswordKey] = value;
         }
 
+        /// <summary>
+        /// Gets or sets the type of authentication to be used
+        /// </summary>
         public AuthType Type
         {
             get => _authType;
@@ -65,6 +82,9 @@ namespace Couchbase.Lite.Sync
             }
         }
 
+        /// <summary>
+        /// Gets or sets the username to be used
+        /// </summary>
         public string Username
         {
             get => this[UsernameKey] as string;
@@ -75,6 +95,9 @@ namespace Couchbase.Lite.Sync
 
         #region Constructors
 
+        /// <summary>
+        /// Default constructor
+        /// </summary>
         public AuthOptionsDictionary()
         {
             Type = AuthType.HttpBasic;
@@ -91,12 +114,12 @@ namespace Couchbase.Lite.Sync
 
         #region Overrides
 
-        protected override bool KeyIsRequired(string key)
+        internal override bool KeyIsRequired(string key)
         {
             return key == TypeKey || key == UsernameKey || key == PasswordKey;
         }
 
-        protected override bool Validate(string key, object value)
+        internal override bool Validate(string key, object value)
         {
             switch (key) {
                 case TypeKey:

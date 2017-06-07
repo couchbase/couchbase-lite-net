@@ -77,7 +77,6 @@ namespace Test
             {
                 for (int i = 0; i < 100; i++) {
                     var doc = new Document();
-                    doc["foo"].Value = "bar";
                     Db.Save(doc);
                 }
             });

@@ -164,6 +164,11 @@ namespace Couchbase.Lite.Logging
             return true;
         }
 
+        /// <summary>
+        /// An API for setting the logging level of the native LiteCore library
+        /// </summary>
+        /// <param name="domain">The domain to change</param>
+        /// <param name="level">The log level to set</param>
         public static void SetLiteCoreLogLevel(string domain, LogLevel level)
         {
             SetLiteCoreLogLevels(new Dictionary<string, LogLevel> {
@@ -171,6 +176,11 @@ namespace Couchbase.Lite.Logging
             });
         }
 
+        /// <summary>
+        /// An API for setting logging levels of various domains in the native
+        /// LiteCore library
+        /// </summary>
+        /// <param name="levels">A map of domains to levels</param>
         public static unsafe void SetLiteCoreLogLevels(IDictionary<string, LogLevel> levels)
         {
             foreach (var pair in levels) {

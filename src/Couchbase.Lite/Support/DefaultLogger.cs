@@ -26,6 +26,10 @@ using Couchbase.Lite.DI;
 
 namespace Couchbase.Lite.Support
 {
+    /// <summary>
+    /// A default logging implementation that has a virtual method for doing the actual
+    /// log writing (useful as a base class to get preformatted messages for a custom logger)
+    /// </summary>
     public class DefaultLogger : ILogger, IDisposable
     {
         #region Variables
@@ -36,11 +40,20 @@ namespace Couchbase.Lite.Support
 
         #region Constructors
 
+        /// <summary>
+        /// Default constructor, creates a file to log to.  Warning:
+        /// This is not allowed on some systems
+        /// </summary>
         public DefaultLogger() : this(true)
         {
             
         }
 
+        /// <summary>
+        /// Constructor which optionally creates a file to log to
+        /// </summary>
+        /// <param name="createWriter">If <c>true</c>, create a file in the "Logs" directory
+        /// next to the location of the executable that is running</param>
         protected DefaultLogger(bool createWriter)
         {
             if(!createWriter) {
@@ -59,12 +72,22 @@ namespace Couchbase.Lite.Support
 
         #region Protected Methods
 
+        /// <summary>
+        /// Used to free resources
+        /// </summary>
+        /// <param name="disposing">If <c>true</c>, <see cref="IDisposable.Dispose"/> is being called,
+        /// otherwise this object is being finalized.</param>
         protected virtual void Dispose(bool disposing)
         {
             _writer?.Dispose();
             _writer = null;
         }
 
+        /// <summary>
+        /// Writes the final formatted string to whatever mechanism this logger
+        /// chooses (to a file by default)
+        /// </summary>
+        /// <param name="final">The formatted string to write</param>
         protected virtual void PerformWrite(string final)
         {
             _writer.WriteLine(final);
@@ -106,6 +129,7 @@ namespace Couchbase.Lite.Support
 
         #region IDisposable
 
+        /// <inheritdoc />
         public void Dispose()
         {
             Dispose(true);
@@ -115,90 +139,105 @@ namespace Couchbase.Lite.Support
 
         #region ILogger
 
+        /// <inheritdoc />
         public void D(string tag, string msg)
         {
             var line = MakeLine("DEBUG", tag, msg);
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void D(string tag, string format, params object[] args)
         {
             var line = MakeLine("DEBUG", tag, String.Format(format, args));
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void D(string tag, string msg, Exception tr)
         {
             var line = MakeLine("DEBUG", tag, msg, tr);
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void E(string tag, string msg)
         {
             var line = MakeLine("ERROR", tag, msg);
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void E(string tag, string format, params object[] args)
         {
             var line = MakeLine("ERROR", tag, String.Format(format, args));
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void E(string tag, string msg, Exception tr)
         {
             var line = MakeLine("ERROR", tag, msg, tr);
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void I(string tag, string msg)
         {
             var line = MakeLine("INFO", tag, msg);
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void I(string tag, string format, params object[] args)
         {
             var line = MakeLine("INFO", tag, String.Format(format, args));
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void I(string tag, string msg, Exception tr)
         {
             var line = MakeLine("INFO", tag, msg, tr);
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void V(string tag, string msg)
         {
             var line = MakeLine("VERBOSE", tag, msg);
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void V(string tag, string format, params object[] args)
         {
             var line = MakeLine("VERBOSE", tag, String.Format(format, args));
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void V(string tag, string msg, Exception tr)
         {
             var line = MakeLine("VERBOSE", tag, msg, tr);
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void W(string tag, string msg)
         {
             var line = MakeLine("WARN", tag, msg);
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void W(string tag, string format, params object[] args)
         {
             var line = MakeLine("WARN", tag, String.Format(format, args));
             Task.Factory.StartNew(() => PerformWrite(line));
         }
 
+        /// <inheritdoc />
         public void W(string tag, string msg, Exception tr)
         {
             var line = MakeLine("WARN", tag, msg, tr);

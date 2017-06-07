@@ -22,17 +22,24 @@ using System;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// Indicates an exception that happened in the platform level of Couchbase Lite (i.e.
+    /// not at the LiteCore level)
+    /// </summary>
     public sealed class CouchbaseLiteException : Exception
     {
         #region Properties
 
+        /// <summary>
+        /// Gets the status code of what went wrong
+        /// </summary>
         public StatusCode Status { get; }
 
         #endregion
 
         #region Constructors
 
-        public CouchbaseLiteException(StatusCode status)
+        internal CouchbaseLiteException(StatusCode status)
         {
             Status = status;    
         }

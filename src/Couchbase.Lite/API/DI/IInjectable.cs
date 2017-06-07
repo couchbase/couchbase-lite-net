@@ -56,8 +56,17 @@ namespace Couchbase.Lite.DI
 
         #region Public Methods
 
+        /// <summary>
+        /// A list of the types that lack default implementations and need to be registered on any new platforms.
+        /// Others not here may have default implementations
+        /// </summary>
         public static Type[] NeededTypes => new[] {typeof(ILogger), typeof(IDefaultDirectoryResolver), typeof(ISslStreamFactory) };
 
+        /// <summary>
+        /// Gets the implementation of the given interface
+        /// </summary>
+        /// <typeparam name="T">The interface to retrieve the implementation for</typeparam>
+        /// <returns>The concrete implementation of the interface</returns>
         public static T GetImplementation<T>() where T : IInjectable
         {
             var type = typeof(T);
@@ -69,19 +78,14 @@ namespace Couchbase.Lite.DI
             return (T)retVal();
         }
 
-        public static bool HasImplementation<T>() where T : IInjectable
-        {
-            var type = typeof(T);
-            return _InjectableMap.ContainsKey(type);
-        }
-
+        /// <summary>
+        /// Registers an implementation of the given interface as a generator
+        /// </summary>
+        /// <typeparam name="T">The type of interface to register</typeparam>
+        /// <param name="generator">The function that creates the concrete implementation</param>
         public static void RegisterImplementation<T>(Func<IInjectable> generator) where T : IInjectable
         {
             var type = typeof(T);
-            //if(_injectableMap.ContainsKey(type)) {
-            //    throw new InvalidOperationException($"{type.FullName} is already registered!");
-            //}
-
             _InjectableMap[type] = generator;
         }
 

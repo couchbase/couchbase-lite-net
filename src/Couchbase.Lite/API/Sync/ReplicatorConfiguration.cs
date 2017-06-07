@@ -19,29 +19,45 @@
 // limitations under the License.
 // 
 using System;
-using System.Collections.Generic;
 
 namespace Couchbase.Lite.Sync
 {
+    /// <summary>
+    /// An enum representing the direction of a <see cref="Replicator"/>
+    /// </summary>
     [Flags]
     public enum ReplicatorType
     {
+        /// <summary>
+        /// The replication will push data from local to remote
+        /// </summary>
         Push = 1 << 0,
+
+        /// <summary>
+        /// The replication will pull data from remote to local
+        /// </summary>
         Pull = 1 << 1,
+
+        /// <summary>
+        /// The replication will operate in both directions
+        /// </summary>
         PushAndPull = Push | Pull
     }
 
+    /// <summary>
+    /// A class representing configuration options for a <see cref="Replicator"/>
+    /// </summary>
     public sealed class ReplicatorConfiguration
     {
         /// <summary>
         /// Gets or sets the local database participating in the replication.  This property
-        /// is required to create an <see cref="IReplicator"/>
+        /// is required to create an <see cref="Replicator"/>
         /// </summary>
         public Database Database { get; set; }
 
         /// <summary>
         /// Gets or sets the target to replicate with.  This property
-        /// is required to create an <see cref="IReplicator"/>
+        /// is required to create an <see cref="Replicator"/>
         /// </summary>
         public ReplicatorTarget Target { get; set; }
 
@@ -52,7 +68,7 @@ namespace Couchbase.Lite.Sync
         public ReplicatorType ReplicatorType { get; set; }
 
         /// <summary>
-        /// Gets or sets whether or not the <see cref="IReplicator"/> should stay
+        /// Gets or sets whether or not the <see cref="Replicator"/> should stay
         /// active indefinitely.  The default is <c>false</c>
         /// </summary>
         public bool Continuous { get; set; }

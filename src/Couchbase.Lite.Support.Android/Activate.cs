@@ -18,19 +18,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-using System;
 
 using Android.Content;
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.DI;
 
 namespace Couchbase.Lite.Support
 {
+    /// <summary>
+    /// Android specific support logic
+    /// </summary>
     public static class Droid
     {
+        /// <summary>
+        /// Activates the support classes for Android
+        /// </summary>
+        /// <param name="context">The main context of the Android application</param>
         public static void Activate(Context context)
         {
             InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(context));
             InjectableCollection.RegisterImplementation<ILogger>(() => new AndroidDefaultLogger());
+            InjectableCollection.RegisterImplementation<ISslStreamFactory>(() => new SslStreamFactory());
         }
     }
 }

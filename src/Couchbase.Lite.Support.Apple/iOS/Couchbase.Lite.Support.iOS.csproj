@@ -60,6 +60,9 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\Couchbase.Lite.Support.NetDesktop\Support\SslStreamFactory.cs">
+      <Link>Support\SslStreamFactory.cs</Link>
+    </Compile>
     <Compile Include="..\Activate.cs">
       <Link>Activate.cs</Link>
     </Compile>

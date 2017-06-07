@@ -22,23 +22,45 @@ using System;
 
 namespace Couchbase.Lite.Sync
 {
+    /// <summary>
+    /// An enum for errors during HTTP requests
+    /// </summary>
     public enum HttpLogicError
     {
+        /// <summary>
+        /// Too many redirect responses were received
+        /// </summary>
         TooManyRedirects,
-        BadRedirectLocation
+
+        /// <summary>
+        /// The redirect location is invalid or non-existent
+        /// </summary>
+        BadRedirectLocation,
+
+        /// <summary>
+        /// An HTTP 401 was received
+        /// </summary>
+        Unauthorized
     }
 
+    /// <summary>
+    /// An exception describing an error during the initial HTTP request
+    /// for replication
+    /// </summary>
     public sealed class HttpLogicException : Exception
     {
         #region Properties
 
+        /// <summary>
+        /// Gets the code indicating what went wrong
+        /// </summary>
         public HttpLogicError Code { get; }
 
         #endregion
 
         #region Constructors
 
-        public HttpLogicException(HttpLogicError error) : base(GetMessage(error))
+        internal HttpLogicException(HttpLogicError error) : base(GetMessage(error))
         {
             Code = error;
         }

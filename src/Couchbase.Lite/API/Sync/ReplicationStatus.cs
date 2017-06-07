@@ -22,7 +22,7 @@
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// A struct describing the current status of an <see cref="IReplicator"/>
+    /// A struct describing the current status of a <see cref="Replicator"/>
     /// </summary>
     public struct ReplicationStatus
     {

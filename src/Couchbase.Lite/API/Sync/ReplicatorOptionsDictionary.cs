@@ -24,6 +24,9 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Sync
 {
+    /// <summary>
+    ///  A container for options that have to do with a <see cref="Replicator"/>
+    /// </summary>
     public sealed class ReplicatorOptionsDictionary : OptionsDictionary
     {
         #region Constants
@@ -38,30 +41,46 @@ namespace Couchbase.Lite.Sync
 
         #region Properties
 
+        /// <summary>
+        /// Gets or sets the authentication parameters
+        /// </summary>
         public AuthOptionsDictionary Auth
         {
             get => this.GetCast<AuthOptionsDictionary>(AuthOption);
             set => this[AuthOption] = value;
         }
 
+        /// <summary>
+        /// Gets or sets the channels to replicate (pull only)
+        /// </summary>
         public IList<string> Channels
         {
             get => this.GetCast<IList<string>>(ChannelsKey);
             set => this[ChannelsKey] = value;
         }
 
+        /// <summary>
+        /// Gets or sets the filter to use when replicating
+        /// </summary>
         public string Filter
         {
             get => this.GetCast<string>(FilterKey);
             set => this[FilterKey] = value;
         }
 
+        /// <summary>
+        /// Gets or sets the parameters that will be passed along with the filter
+        /// </summary>
         public IDictionary<string, object> FilterParams
         {
             get => this.GetCast<IDictionary<string, object>>(FilterParamsKey);
             set => this[FilterParamsKey] = value;
         }
 
+        /// <summary>
+        /// Gets a mutable collection of headers to be passed along with the initial
+        /// HTTP request that starts replication
+        /// </summary>
         public IDictionary<string, object> Headers
         {
             get => this.GetCast<IDictionary<string, object>>(HeadersKey);
@@ -72,6 +91,9 @@ namespace Couchbase.Lite.Sync
 
         #region Constructors
 
+        /// <summary>
+        /// Default constructor
+        /// </summary>
         public ReplicatorOptionsDictionary()
         {
             Headers = new Dictionary<string, object>();
@@ -92,17 +114,17 @@ namespace Couchbase.Lite.Sync
 
         #region Overrides
 
-        protected override void FreezeInternal()
+        internal override void FreezeInternal()
         {
             Auth?.Freeze();
         }
 
-        protected override bool KeyIsRequired(string key)
+        internal override bool KeyIsRequired(string key)
         {
             return false;
         }
 
-        protected override bool Validate(string key, object value)
+        internal override bool Validate(string key, object value)
         {
             switch (key) {
                 case AuthOption:

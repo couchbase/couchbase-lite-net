@@ -22,7 +22,7 @@
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// An enum describing states for an <see cref="IReplicator"/>
+    /// An enum describing states for a <see cref="Replicator"/>
     /// </summary>
     public enum ReplicatorActivityLevel
     {

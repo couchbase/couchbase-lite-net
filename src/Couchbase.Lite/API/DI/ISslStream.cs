@@ -46,6 +46,10 @@ namespace Couchbase.Lite.DI
         #endregion
     }
 
+    /// <summary>
+    /// An interface of an abstract object which transports data over
+    /// a TLS encrypted stream
+    /// </summary>
     public interface ISslStream
     {
         #region Public Methods

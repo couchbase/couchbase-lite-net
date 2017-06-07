@@ -23,7 +23,7 @@ using System;
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// A class describing a remote endpoint for an <see cref="IReplicator"/>
+    /// A class describing a remote endpoint for a <see cref="Replicator"/>
     /// </summary>
     public sealed class ReplicatorTarget
     {
@@ -68,6 +68,7 @@ namespace Couchbase.Lite.Sync
 
         #region Overrides
 
+        /// <inheritdoc />
         public override string ToString()
         {
             return Url != null ? Url.AbsoluteUri : Database.Name;

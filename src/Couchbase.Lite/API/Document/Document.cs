@@ -164,7 +164,7 @@ namespace Couchbase.Lite
 
         private void LoadDoc(bool mustExist)
         {
-            var doc = (C4Document*) RetryHandler.RetryIfBusy()
+            var doc = (C4Document*)NativeHandler.Create()
                 .AllowError((int) LiteCoreError.NotFound, C4ErrorDomain.LiteCoreDomain)
                 .Execute(err => Native.c4doc_get(_c4Db, Id, mustExist, err));
             SetC4Doc(doc);
@@ -285,14 +285,20 @@ namespace Couchbase.Lite
                     if (model != null) {
                         body = _database.JsonSerializer.Serialize(model);
                         put.body = body;
-                    } else { 
+                    } else {
                         body = _database.JsonSerializer.Serialize(_dict);
                         put.body = body;
                     }
+                } else if(IsEmpty) {
+                    var encoder = Native.c4db_createFleeceEncoder(_c4Db);
+                    Native.FLEncoder_BeginDict(encoder, 0);
+                    Native.FLEncoder_EndDict(encoder);
+                    put.body = NativeRaw.FLEncoder_Finish(encoder, null);
+                    Native.FLEncoder_Free(encoder);
                 }
 
                 try {
-                    *outDoc = (C4Document*)RetryHandler.RetryIfBusy()
+                    *outDoc = (C4Document*)NativeHandler.Create()
                         .AllowError(new C4Error(LiteCoreError.Conflict))
                         .Execute(err =>
                         {

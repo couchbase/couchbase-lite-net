@@ -11,6 +11,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
+using LiteCore;
+using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
 {
@@ -138,6 +140,7 @@ namespace Couchbase.Lite.Sync
                     var auth = new SecureLogString(_authorizationHeader, LogMessageSensitivity.Insecure);
                     var wwwAuth = new SecureLogString(authResponse, LogMessageSensitivity.Insecure);
                     Log.To.Sync.I(Tag, $"HTTP auth failed; sent Authorization {auth} ; got WWW-Authenticate {wwwAuth}");
+                    Error = new HttpLogicException(HttpLogicError.Unauthorized);
 
                     break;
                 default:
