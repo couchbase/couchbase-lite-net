@@ -24,6 +24,7 @@ using System.Diagnostics.CodeAnalysis;
 
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
+using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 using Newtonsoft.Json;
@@ -153,7 +154,8 @@ namespace Couchbase.Lite.Internal.Serialization
                     return retVal;
                 }
             } catch(Exception e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, $"Unable to deserialize into type {typeof(T).FullName}!");
+                Log.To.Database.E(Tag, $"Exception during deserialization: {e}");
+                throw new LiteCoreException(new C4Error(FLError.JSONError));
             }
         }
 
@@ -166,7 +168,8 @@ namespace Couchbase.Lite.Internal.Serialization
                     serializer.Populate(reader, item);
                 }
             } catch(Exception e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, $"Unable to deserialize into type {typeof(T).FullName}!");
+                Log.To.Database.E(Tag, $"Exception during Populate: {e}");
+                throw new LiteCoreException(new C4Error(FLError.JSONError));
             }
         }
 
@@ -199,7 +202,8 @@ namespace Couchbase.Lite.Internal.Serialization
                     return writer.Result;
                 }
             } catch(Exception e) {
-                throw Misc.CreateExceptionAndLog(Log.To.Database, e, StatusCode.BadJson, Tag, "Unable to serialize object!");
+                Log.To.Database.E(Tag, $"Exception during serialization: {e}");
+                throw new LiteCoreException(new C4Error(FLError.EncodeError));
             }
         }
 

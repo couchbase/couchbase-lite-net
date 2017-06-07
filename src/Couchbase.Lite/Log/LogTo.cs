@@ -20,6 +20,7 @@
 //
 using System;
 using System.Collections.Generic;
+using Couchbase.Lite.DI;
 
 namespace Couchbase.Lite.Logging
 {

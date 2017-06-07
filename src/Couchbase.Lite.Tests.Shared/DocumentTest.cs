@@ -1208,7 +1208,7 @@ namespace Test
 
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
-                .Which.Code.Should()
+                .Which.Status.Should()
                 .Be(StatusCode.NotFound, "because deleting a non-existent document is invalid");
             doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
             doc.GetString("name").Should().Be("Scott Tiger", "because the delete was invalid");
@@ -1304,7 +1304,7 @@ namespace Test
             // Purge before save:
             Db.Invoking(d => d.Purge(doc))
                 .ShouldThrow<CouchbaseLiteException>()
-                .Which.Code.Should().Be(StatusCode.NotFound,
+                .Which.Status.Should().Be(StatusCode.NotFound,
                     "because purging a nonexisting revision is not valid");
             doc["type"].ToString().Should().Be("profile", "because the doc should still exist");
             doc["name"].ToString().Should().Be("Scott", "because the doc should still exist");

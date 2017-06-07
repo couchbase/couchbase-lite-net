@@ -20,6 +20,7 @@
 //
 
 
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite

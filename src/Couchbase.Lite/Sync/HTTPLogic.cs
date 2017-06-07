@@ -1,0 +1,216 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
+
+namespace Couchbase.Lite.Sync
+{
+    internal sealed class HTTPLogic
+    {
+        private const string Tag = nameof(HTTPLogic);
+        private const int MaxRedirects = 10;
+        private UriBuilder _urlRequest;
+        private string _authorizationHeader;
+        private uint _redirectCount;
+        private readonly Dictionary<string, string> _headers = new Dictionary<string, string>();
+
+        public string this[string key]
+        {
+            get => _headers[key];
+            set => _headers[key] = value;
+        }
+
+        public HTTPLogic(Uri url)
+        {
+            _urlRequest = new UriBuilder(url);
+            HandleRedirects = true;
+        }
+
+        public NetworkCredential Credential { get; set; }
+
+        public Exception Error { get; private set; }
+
+        public bool HandleRedirects { get; set; }
+
+        public ushort Port
+        {
+            get {
+                if (_urlRequest.Port == -1) {
+                    return UseTls ? (ushort)443 : (ushort)80;
+                }
+
+                return (ushort)_urlRequest.Port;
+            }
+        }
+
+        public int HttpStatus { get; private set; }
+
+        public bool ShouldContinue { get; private set; }
+
+        public bool ShouldRetry { get; private set; }
+
+        public Uri UrlRequest => _urlRequest.Uri;
+
+        public bool UseTls
+        {
+            get {
+                var scheme = _urlRequest.Scheme.ToLowerInvariant();
+                return "https".Equals(scheme) || "wss".Equals(scheme) || "blips".Equals(scheme);
+            }
+        }
+
+        public static string UserAgent()
+        {
+            var versionAtt = (AssemblyInformationalVersionAttribute)typeof(Database).GetTypeInfo().Assembly
+                .GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute));
+            var version = versionAtt?.InformationalVersion ?? "<unknown version>";
+            return $"Couchbase Lite .NET Application/{version} ({RuntimeInformation.OSDescription} " +
+                $"[{RuntimeInformation.ProcessArchitecture}] {RuntimeInformation.FrameworkDescription})";
+        }
+
+        public byte[] HTTPRequestData()
+        {
+            var stringBuilder = new StringBuilder($"GET {_urlRequest.Path} HTTP/1.1\r\n");
+            if (!_headers.ContainsKey("User-Agent")) {
+                _headers["User-Agent"] = UserAgent();
+            }
+
+            if (!_headers.ContainsKey("Host")) {
+                _headers["Host"] = $"{_urlRequest.Host}:{_urlRequest.Port}";
+            }
+
+            if (ShouldRetry && _authorizationHeader != null) {
+                _headers["Authorization"] = _authorizationHeader;
+            }
+
+            foreach (var header in _headers) {
+                stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+            }
+            stringBuilder.Append("\r\n");
+
+            ShouldContinue = ShouldRetry = false;
+            HttpStatus = 0;
+
+            return Encoding.ASCII.GetBytes(stringBuilder.ToString());
+        }
+
+        public void ReceivedResponse(HttpMessageParser parser)
+        {
+            ShouldContinue = ShouldRetry = false;
+            var httpStatus = parser.StatusCode;
+            switch (httpStatus) {
+                case HttpStatusCode.Moved:
+                case HttpStatusCode.Found:
+                case HttpStatusCode.RedirectKeepVerb:
+                    if (!HandleRedirects) {
+                        break;
+                    }
+
+                    if (++_redirectCount > MaxRedirects) {
+                        Error = new HttpLogicException(HttpLogicError.TooManyRedirects);
+                    } else if (!Redirect(parser)) {
+                        Error = new HttpLogicException(HttpLogicError.BadRedirectLocation);
+                    } else {
+                        ShouldRetry = true;
+                    }
+
+                    break;
+                case HttpStatusCode.Unauthorized:
+                case HttpStatusCode.ProxyAuthenticationRequired:
+                    var authResponse = parser.Headers.Get("www-authenticate");
+                    if (_authorizationHeader == null && Credential != null) {
+                        _authorizationHeader = CreateAuthHeader(authResponse);
+                        var password = new SecureLogString(Credential.Password, LogMessageSensitivity.Insecure);
+                        Log.To.Sync.I(Tag, $"Auth challenge; credential = {Credential.UserName} / {password}");
+                        ShouldRetry = true;
+                        break;
+                    }
+
+                    var auth = new SecureLogString(_authorizationHeader, LogMessageSensitivity.Insecure);
+                    var wwwAuth = new SecureLogString(authResponse, LogMessageSensitivity.Insecure);
+                    Log.To.Sync.I(Tag, $"HTTP auth failed; sent Authorization {auth} ; got WWW-Authenticate {wwwAuth}");
+
+                    break;
+                default:
+                    if ((int) httpStatus < 300) {
+                        ShouldContinue = true;
+                    }
+                    break;
+            }
+
+            HttpStatus = (int)httpStatus;
+        }
+
+        private bool Redirect(HttpMessageParser parser)
+        {
+            string location;
+            if (!parser.Headers.TryGetValue("location", out location)) {
+                return false;
+            }
+
+            Uri url;
+            if (!Uri.TryCreate(UrlRequest, location, out url)) {
+                return false;
+            }
+
+            if (!url.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
+                !url.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            _urlRequest = new UriBuilder(url);
+            return true;
+        }
+
+        private string CreateAuthHeader(string authResponse)
+        {
+            var challenge = ParseAuthHeader(authResponse);
+            if (challenge == null) {
+                return null;
+            }
+
+            if (challenge["Scheme"] == "Basic") {
+                var cipher = Encoding.UTF8.GetBytes($"{Credential.UserName}:{Credential.Password}");
+                var encodedVal = Convert.ToBase64String(cipher);
+                return $"Basic {encodedVal}";
+            }
+
+            if (challenge["Scheme"] == "Digest") {
+                var digestComponents = DigestCalculator.ParseIntoComponents(authResponse);
+                return $"Digest {DigestCalculator.Calculate(digestComponents)}";
+            }
+
+            return null;
+        }
+
+        private Dictionary<string, string> ParseAuthHeader(string authResponse)
+        {
+            if (authResponse == null) {
+                return null;
+            }
+
+            var challenge = new Dictionary<string, string>();
+            var re = new Regex("(\\w+)\\s+(\\w+)=((\\w+)|\"([^\"]+))");
+            var groups = re.Match(authResponse).Groups;
+            var key = authResponse.Substring(groups[2].Index, groups[2].Length);
+            var k = groups[4];
+            if (k.Length == 0) {
+                k = groups[5];
+            }
+
+            challenge[key] = authResponse.Substring(k.Index, k.Length);
+            challenge["Scheme"] = authResponse.Substring(groups[1].Index, groups[1].Length);
+            challenge["WWW-Authenticate"] = authResponse;
+            return challenge;
+        }
+    }
+}

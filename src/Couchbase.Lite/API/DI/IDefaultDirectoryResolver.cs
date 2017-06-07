@@ -1,5 +1,5 @@
 ﻿//
-//  DefaultDirectoryResolver.cs
+//  IDefaultPathResolver.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -18,20 +18,22 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-
-using System;
-using System.IO;
-
-namespace Couchbase.Lite.Support.Internal
+namespace Couchbase.Lite.DI
 {
-    internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
-    {
-        #region IDefaultDirectoryResolver
 
-        public string DefaultDirectory()
-        {
-            return Path.Combine(AppContext.BaseDirectory, "CouchbaseLite");
-        }
+    /// <summary>
+    /// An interface for resolving the default directory for a Couchbase Lite database
+    /// since we may be operating in a sandboxed environment
+    /// </summary>
+    public interface IDefaultDirectoryResolver : IInjectable
+    {
+        #region Public Methods
+
+        /// <summary>
+        /// Gets the default directory for a Couchbase Lite database to live in
+        /// </summary>
+        /// <returns>The default directory for a Couchbase Lite database to live in</returns>
+        string DefaultDirectory();
 
         #endregion
     }

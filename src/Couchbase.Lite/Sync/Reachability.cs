@@ -21,7 +21,7 @@
 using System;
 using System.Linq;
 using System.Net.NetworkInformation;
-
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 
@@ -52,7 +52,7 @@ namespace Couchbase.Lite.Sync
         #endregion
     }
 
-    internal sealed class Reachability
+    internal sealed class Reachability : IReachability
     {
         #region Constants
 
@@ -67,21 +67,6 @@ namespace Couchbase.Lite.Sync
         internal static bool AllowLoopback = false; // For unit tests
 
         private SerialQueue _dispatchQueue;
-
-        #endregion
-
-        #region Public Methods
-
-        public void Start(SerialQueue dispatchQueue)
-        {
-            _dispatchQueue = dispatchQueue;
-            NetworkChange.NetworkAddressChanged += OnNetworkChange;
-        }
-
-        public void Stop()
-        {
-            NetworkChange.NetworkAddressChanged -= OnNetworkChange;
-        }
 
         #endregion
 
@@ -145,6 +130,21 @@ namespace Couchbase.Lite.Sync
             }
 
             InvokeNetworkChangeEvent(status);
+        }
+
+        #endregion
+
+        #region IReachability
+
+        public void Start(SerialQueue dispatchQueue)
+        {
+            _dispatchQueue = dispatchQueue;
+            NetworkChange.NetworkAddressChanged += OnNetworkChange;
+        }
+
+        public void Stop()
+        {
+            NetworkChange.NetworkAddressChanged -= OnNetworkChange;
         }
 
         #endregion

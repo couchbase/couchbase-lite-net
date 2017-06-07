@@ -10,6 +10,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <DocumentationFile>bin\Packaging\netstandard1.4\Couchbase.Lite.Support.NetDesktop.xml</DocumentationFile>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Net.Security" Version="4.3.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj" />

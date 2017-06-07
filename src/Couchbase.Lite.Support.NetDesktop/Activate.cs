@@ -22,6 +22,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using LiteCore;
 
@@ -73,6 +74,10 @@ namespace Couchbase.Lite.Support
                     throw new BadImageFormatException("Could not load LiteCore.dll!  Nothing is going to work!");
                 }
             }
+
+            InjectableCollection.RegisterImplementation<ILogger>(() => new DefaultLogger());
+            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
+            InjectableCollection.RegisterImplementation<ISslStreamFactory>(() => new SslStreamFactory());
         }
 
         #endregion

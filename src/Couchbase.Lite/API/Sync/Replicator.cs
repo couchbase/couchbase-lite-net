@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using LiteCore;
@@ -61,7 +62,7 @@ namespace Couchbase.Lite.Sync
         private IDictionary<string, object> _responseHeaders;
         private int _retryCount;
         private ReplicationStatus _status;
-        private Reachability _reachability;
+        private IReachability _reachability;
         private readonly SerialQueue _dispatchQueue = new SerialQueue();
 
         #endregion
@@ -95,6 +96,11 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Constructors
+
+        static Replicator()
+        {
+            WebSocketTransport.RegisterWithC4();
+        }
 
         /// <summary>
         /// Constructs a replicator based on the given <see cref="ReplicatorConfiguration"/>
@@ -232,7 +238,7 @@ namespace Couchbase.Lite.Sync
                 return;   
             }
 
-            _reachability = new Reachability();
+            _reachability = InjectableCollection.GetImplementation<IReachability>();
             _reachability.StatusChanged += ReachabilityChanged;
             _reachability.Start(_dispatchQueue);
         }

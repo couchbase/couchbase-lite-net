@@ -28,7 +28,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
@@ -713,8 +713,7 @@ namespace Couchbase.Lite
             if (document.Database == null) {
                 document.Database = this;
             } else if (document.Database != this) {
-                throw new CouchbaseLiteException("Cannot operate on a document from another database",
-                    StatusCode.Forbidden);
+                throw new InvalidOperationException("Cannot operate on a document from another database");
             }
 
             return document;

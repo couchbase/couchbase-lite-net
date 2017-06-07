@@ -20,7 +20,6 @@
 // 
 using System;
 using System.Collections.Generic;
-using System.Net.WebSockets;
 using System.Threading;
 
 using LiteCore.Interop;
@@ -52,11 +51,11 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        private static void DoClose(C4Socket* socket, int status, string message)
+        private static void DoClose(C4Socket* socket)
         {
             var id = (int) socket->nativeHandle;
             var socketWrapper = Sockets[id];
-            socketWrapper.CloseSocket((WebSocketCloseStatus)status, message);
+            socketWrapper.CloseSocket();
         }
 
         private static void DoCompleteReceive(C4Socket* socket, ulong bytecount)
@@ -90,8 +89,9 @@ namespace Couchbase.Lite.Sync
 
             var opts =
                 FLSliceExtensions.ToObject(NativeRaw.FLValue_FromTrustedData((FLSlice) options)) as
-                    IReadOnlyDictionary<string, object>;
-            var socketWrapper = new WebSocketWrapper(uri, socket, opts);
+                    Dictionary<string, object>;
+            var replicationOptions = new ReplicatorOptionsDictionary(opts);
+            var socketWrapper = new WebSocketWrapper(uri, socket, replicationOptions);
             var id = Interlocked.Increment(ref _NextID);
             socket->nativeHandle = (void*)id;
             Sockets[id] = socketWrapper;

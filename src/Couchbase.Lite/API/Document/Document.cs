@@ -191,7 +191,7 @@ namespace Couchbase.Lite
                         var conflict = new Conflict(this, current, baseDoc, OperationType.DatabaseWrite);
                         resolved = resolver.Resolve(conflict);
                         if (resolved == null) {
-                            throw new CouchbaseLiteException(StatusCode.Conflict);
+                            throw new LiteCoreException(new C4Error(LiteCoreError.Conflict));
                         }
                     }
                 } else {
@@ -245,7 +245,7 @@ namespace Couchbase.Lite
 
                     SaveInto(&tmp, deletion, model);
                     if (tmp == null) {
-                        throw new CouchbaseLiteException("Conflict still occuring after resolution", StatusCode.DbError);
+                        throw new LiteCoreException(new C4Error(LiteCoreError.Conflict));
                     }
                 }
 

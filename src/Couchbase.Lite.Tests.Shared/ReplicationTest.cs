@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Lite;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Sync;
 using FluentAssertions;
 using LiteCore;
@@ -116,6 +117,44 @@ namespace Test
             RunReplication(config, 0, 0);
         }
 
+        //[Fact]
+        public void TestChannelPull()
+        {
+            Db.InBatch(() =>
+            {
+                for (int i = 0; i < 5; i++) {
+                    using (var doc = new Document($"doc-{i}")) {
+                        doc["foo"].Value = "bar";
+                        Db.Save(doc);
+                    }
+                }
+
+                for (int i = 0; i < 10; i++) {
+                    using (var doc = new Document($"doc-{i+5}")) {
+                        doc["channels"].Value = "my_channel";
+                        Db.Save(doc);
+                    }
+                }
+            });
+
+            
+            var config = CreateConfig(true, false, new ReplicatorTarget(new Uri("blip://localhost:4984/db")));
+            RunReplication(config, 0, 0);
+
+            config = CreateConfig(false, true, new ReplicatorTarget(new Uri("blip://localhost:4984/db")));
+            config.Options.Channels = new[] {"my_channel"};
+            config.Database = _otherDB; 
+            RunReplication(config, 0, 0);
+            _otherDB.Count.Should().Be(10, "because 10 documents should be in the given channel");
+        }
+
+        //[Fact]
+        public void TestSecurePull()
+        {
+            var config = CreateConfig(false, true, new Uri("blips://localhost:4984/db"));
+            RunReplication(config, 0, 0);
+        }
+
         private ReplicatorConfiguration CreateConfig(bool push, bool pull)
         {
             var target = new ReplicatorTarget(_otherDB);
@@ -169,7 +208,7 @@ namespace Test
             };
             
             _repl.Start();
-            _waitAssert.WaitForResult(TimeSpan.FromSeconds(50));
+            _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
         }
 
         protected override void Dispose(bool disposing)

@@ -89,9 +89,9 @@ namespace Test
             ReopenDB();
             var doc = SetupConflict();
             Db.Invoking(d => d.Save(doc))
-                .ShouldThrow<CouchbaseLiteException>()
-                .Which.Code.Should()
-                .Be(StatusCode.Conflict, "because the conflict resolver gave up");
+                .ShouldThrow<LiteCoreException>()
+                .Which.Error.code.Should()
+                .Be((int)LiteCoreError.Conflict, "because the conflict resolver gave up");
         }
 
         [Fact]

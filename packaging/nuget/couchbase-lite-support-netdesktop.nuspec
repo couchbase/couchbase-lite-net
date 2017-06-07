@@ -18,6 +18,9 @@
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
   </metadata>
+  <dependencies>
+    <dependency id="System.Net.Security" version="4.3.1" />
+  </dependencies>
   <files>
     <file target="build\Couchbase.Lite.Support.NetDesktop.targets" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\desktop.targets" />
     <file target="lib\netstandard1.4\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\Couchbase.Lite.Support.NetDesktop.dll" />

@@ -212,7 +212,7 @@ namespace Test
                 doc.Set("key", 2);
                 otherDB.Invoking(d => d.Save(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Code.Should()
+                    .Which.Status.Should()
                     .Be(StatusCode.Forbidden, "because a document cannot be saved into another database instance");
             }
         }
@@ -228,7 +228,7 @@ namespace Test
                 doc.Set("key", 2);
                 otherDB.Invoking(d => d.Save(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Code.Should()
+                    .Which.Status.Should()
                     .Be(StatusCode.Forbidden, "because a document cannot be saved into another database");
                 DeleteDB(otherDB);
             }
@@ -289,7 +289,7 @@ namespace Test
 
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
-                .Which.Code.Should()
+                .Which.Status.Should()
                 .Be(StatusCode.NotFound, "because deleting a non-existent document is not allowed");
             Db.Count.Should().Be(0UL, "because the database should still be empty");
         }
@@ -320,7 +320,7 @@ namespace Test
                     .Be(1UL, "because the other database instance should reflect existing data");
                 otherDB.Invoking(d => d.Delete(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Code.Should()
+                    .Which.Status.Should()
                     .Be(StatusCode.Forbidden, "because a document cannot be deleted from another database instance");
 
                 otherDB.Count.Should().Be(1UL, "because the delete failed");
@@ -340,7 +340,7 @@ namespace Test
                     .Be(0UL, "because the other database should be empty");
                 otherDB.Invoking(d => d.Delete(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Code.Should()
+                    .Which.Status.Should()
                     .Be(StatusCode.Forbidden, "because a document cannot be deleted from another database");
 
                 otherDB.Count.Should().Be(0UL, "because the database is still empty");
@@ -422,7 +422,7 @@ namespace Test
 
             Db.Invoking(d => d.Purge(doc))
                 .ShouldThrow<CouchbaseLiteException>()
-                .Which.Code.Should()
+                .Which.Status.Should()
                 .Be(StatusCode.NotFound, "because deleting a non-existent document is not allowed");
             Db.Count.Should().Be(0UL, "because the database should still be empty");
         }
@@ -448,7 +448,7 @@ namespace Test
                     .Be(1UL, "because the other database instance should reflect existing data");
                 otherDB.Invoking(d => d.Purge(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Code.Should()
+                    .Which.Status.Should()
                     .Be(StatusCode.Forbidden, "because a document cannot be purged from another database instance");
 
                 otherDB.Count.Should().Be(1UL, "because the delete failed");
@@ -468,7 +468,7 @@ namespace Test
                     .Be(0UL, "because the other database should be empty");
                 otherDB.Invoking(d => d.Purge(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Code.Should()
+                    .Which.Status.Should()
                     .Be(StatusCode.Forbidden, "because a document cannot be purged from another database");
 
                 otherDB.Count.Should().Be(0UL, "because the database is still empty");

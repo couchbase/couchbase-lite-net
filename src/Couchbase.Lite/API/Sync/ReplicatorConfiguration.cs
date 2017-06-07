@@ -66,7 +66,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets extra options affecting replication.
         /// </summary>
-        public ReplicatorOptionsDictionary Options { get; set; }
+        public ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
 
         /// <summary>
         /// Default constructor

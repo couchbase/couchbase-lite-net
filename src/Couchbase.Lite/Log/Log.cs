@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Support;
 using LiteCore.Interop;
 

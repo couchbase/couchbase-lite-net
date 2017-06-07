@@ -22,10 +22,11 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Couchbase.Lite.DI;
 
-namespace Couchbase.Lite.Logging
+namespace Couchbase.Lite.Support
 {
-    internal class DefaultLogger : ILogger, IDisposable
+    public class DefaultLogger : ILogger, IDisposable
     {
         #region Variables
 

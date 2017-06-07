@@ -1,5 +1,5 @@
 ﻿//
-//  IDefaultPathResolver.cs
+//  DefaultDirectoryResolver.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -18,13 +18,21 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
+using System;
+using System.IO;
+using Couchbase.Lite.DI;
+
 namespace Couchbase.Lite.Support
 {
-    internal interface IDefaultDirectoryResolver : IInjectable
+    internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
     {
-        #region Public Methods
+        #region IDefaultDirectoryResolver
 
-        string DefaultDirectory();
+        public string DefaultDirectory()
+        {
+            return Path.Combine(AppContext.BaseDirectory, "CouchbaseLite");
+        }
 
         #endregion
     }

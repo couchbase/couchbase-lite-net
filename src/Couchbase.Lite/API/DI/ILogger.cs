@@ -41,9 +41,8 @@
 //
 
 using System;
-using Couchbase.Lite.Support;
 
-namespace Couchbase.Lite.Logging
+namespace Couchbase.Lite.DI
 {
 
     /// <summary>

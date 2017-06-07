@@ -33,6 +33,16 @@ namespace Couchbase.Lite
 
         #endregion
 
+        protected OptionsDictionary()
+        {
+            
+        }
+
+        protected OptionsDictionary(Dictionary<string, object> raw)
+        {
+            _inner = raw;
+        }
+
         #region Properties
 
         public int Count => _inner.Count;

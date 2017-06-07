@@ -1,5 +1,5 @@
 ﻿// 
-// Activate.cs
+// IReachability.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,27 +18,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using Couchbase.Lite.DI;
+using System;
+using Couchbase.Lite.Support;
+using Couchbase.Lite.Sync;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.DI
 {
-    /// <summary>
-    /// The UWP support class
-    /// </summary>
-    public static class UWP
+    internal interface IReachability : IInjectable
     {
+        #region Variables
+
+        event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
+
+        #endregion
+
         #region Public Methods
 
-        /// <summary>
-        /// Activates the support classes for UWP
-        /// </summary>
-        public static void Activate()
-        {
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ILogger>(() => new UwpDefaultLogger());
-            InjectableCollection.RegisterImplementation<ISslStreamFactory>(() => new SslStreamFactory());
-            InjectableCollection.RegisterImplementation<IReachability>(() => new Reachability());
-        }
+        void Start(SerialQueue queue);
+
+        void Stop();
 
         #endregion
     }

@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Sync
 {
@@ -79,7 +80,11 @@ namespace Couchbase.Lite.Sync
             Type = AuthType.HttpBasic;
             Username = String.Empty;
             Password = String.Empty;
+        }
 
+        internal AuthOptionsDictionary(Dictionary<string, object> raw) : base(raw)
+        {
+            
         }
 
         #endregion

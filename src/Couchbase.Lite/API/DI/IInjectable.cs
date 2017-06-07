@@ -22,9 +22,9 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Support.Internal;
+using Couchbase.Lite.Sync;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.DI
 {
     /// <summary>
     /// A placeholder interface indicating that a class is meant to be used for
@@ -35,7 +35,11 @@ namespace Couchbase.Lite.Support
         
     }
 
-    internal static class InjectableCollection
+    /// <summary>
+    /// The central location for registering implementations for dependency injected classes.
+    /// Adding to this will allow support for platforms that are not officially supported.
+    /// </summary>
+    public static class InjectableCollection
     {
         #region Constants
 
@@ -45,17 +49,14 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
-        #region Constructors
-
         static InjectableCollection()
         {
-            RegisterImplementation<ILogger>(() => new DefaultLogger());
-            RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
+            RegisterImplementation<IReachability>(() => new Reachability());
         }
 
-        #endregion
-
         #region Public Methods
+
+        public static Type[] NeededTypes => new[] {typeof(ILogger), typeof(IDefaultDirectoryResolver), typeof(ISslStreamFactory) };
 
         public static T GetImplementation<T>() where T : IInjectable
         {
@@ -66,6 +67,12 @@ namespace Couchbase.Lite.Support
             }
 
             return (T)retVal();
+        }
+
+        public static bool HasImplementation<T>() where T : IInjectable
+        {
+            var type = typeof(T);
+            return _InjectableMap.ContainsKey(type);
         }
 
         public static void RegisterImplementation<T>(Func<IInjectable> generator) where T : IInjectable
