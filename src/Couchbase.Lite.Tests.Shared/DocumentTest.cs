@@ -92,7 +92,7 @@ namespace Test
             Db.Invoking(d => d.Save(doc1a))
                 .ShouldThrow<LiteCoreException>()
                 .Which.Error.Should()
-                .Match<C4Error>(e => e.code == (int) LiteCoreError.BadDocID &&
+                .Match<C4Error>(e => e.code == (int) C4ErrorCode.BadDocID &&
                                      e.domain == C4ErrorDomain.LiteCoreDomain);
         }
 

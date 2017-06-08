@@ -90,7 +90,7 @@ namespace Test
                 OpenDB("");
             } catch (LiteCoreException ex) {
                 e = ex;
-                ex.Error.code.Should().Be((int)LiteCoreError.WrongFormat, "because the database cannot have an empty name");
+                ex.Error.code.Should().Be((int)C4ErrorCode.WrongFormat, "because the database cannot have an empty name");
                 ex.Error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain, "because this is a LiteCore error");
             }
 
@@ -608,7 +608,7 @@ namespace Test
             .ShouldThrow<LiteCoreException>()
             .Which.Error.Should()
             .Match<C4Error>(
-                e => e.code == (int) LiteCoreError.TransactionNotClosed && e.domain == C4ErrorDomain.LiteCoreDomain,
+                e => e.code == (int) C4ErrorCode.TransactionNotClosed && e.domain == C4ErrorDomain.LiteCoreDomain,
                 "because a database can't be closed in the middle of a batch");
         }
 
@@ -679,7 +679,7 @@ namespace Test
             .ShouldThrow<LiteCoreException>()
             .Which.Error.Should()
             .Match<C4Error>(
-                e => e.code == (int)LiteCoreError.TransactionNotClosed && e.domain == C4ErrorDomain.LiteCoreDomain,
+                e => e.code == (int)C4ErrorCode.TransactionNotClosed && e.domain == C4ErrorDomain.LiteCoreDomain,
                 "because a database can't be closed in the middle of a batch");
         }
 
@@ -690,7 +690,7 @@ namespace Test
                 Db.Invoking(d => d.Delete())
                     .ShouldThrow<LiteCoreException>()
                     .Which.Error.Should()
-                    .Match<C4Error>(e => e.code == (int) LiteCoreError.Busy &&
+                    .Match<C4Error>(e => e.code == (int) C4ErrorCode.Busy &&
                                          e.domain == C4ErrorDomain.LiteCoreDomain,
                         "because an in-use database cannot be deleted");
             }
@@ -723,7 +723,7 @@ namespace Test
                     Database.Delete("db", dir);
                 } catch (LiteCoreException ex) {
                     e = ex;
-                    ex.Error.code.Should().Be((int) LiteCoreError.Busy, "because an in-use database cannot be deleted");
+                    ex.Error.code.Should().Be((int) C4ErrorCode.Busy, "because an in-use database cannot be deleted");
                     ex.Error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain, "because this is a LiteCore error");
                 }
 

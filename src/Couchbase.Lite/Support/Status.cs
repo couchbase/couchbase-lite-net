@@ -58,21 +58,21 @@ namespace Couchbase.Lite
     {
         public static unsafe void ConvertError(Exception e, C4Error* outError)
         {
-            C4Error c4err = new C4Error(LiteCoreError.RemoteError);
+            C4Error c4err = new C4Error(C4ErrorCode.RemoteError);
             switch (e) {
                 case SocketException se:
                     switch (se.SocketErrorCode) {
                         case SocketError.HostNotFound:
                             c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)NetworkError.UnknownHost;
+                            c4err.code = (int)C4NetworkErrorCode.UnknownHost;
                             break;
                         case SocketError.HostUnreachable:
                             c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)NetworkError.DNSFailure;
+                            c4err.code = (int)C4NetworkErrorCode.DNSFailure;
                             break;
                         case SocketError.TimedOut:
                             c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)NetworkError.Timeout;
+                            c4err.code = (int)C4NetworkErrorCode.Timeout;
                             break;
                         case SocketError.ConnectionAborted:
                         case SocketError.ConnectionReset:

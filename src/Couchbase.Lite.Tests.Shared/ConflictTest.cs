@@ -91,7 +91,7 @@ namespace Test
             Db.Invoking(d => d.Save(doc))
                 .ShouldThrow<LiteCoreException>()
                 .Which.Error.code.Should()
-                .Be((int)LiteCoreError.Conflict, "because the conflict resolver gave up");
+                .Be((int)C4ErrorCode.Conflict, "because the conflict resolver gave up");
         }
 
         [Fact]

@@ -78,12 +78,12 @@ namespace Couchbase.Lite.Sync
             try {
                 uri = builder.Uri;
             } catch (Exception) {
-                Native.c4socket_closed(socket, new C4Error(LiteCoreError.InvalidParameter));
+                Native.c4socket_closed(socket, new C4Error(C4ErrorCode.InvalidParameter));
                 return;
             }
 
             if (uri == null) {
-                Native.c4socket_closed(socket, new C4Error(LiteCoreError.InvalidParameter));
+                Native.c4socket_closed(socket, new C4Error(C4ErrorCode.InvalidParameter));
                 return;
             }
 

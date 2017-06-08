@@ -161,12 +161,12 @@ namespace Couchbase.Lite.Sync
         {
             if (t.IsCanceled) {
                 // TODO: Cancel status?
-                Native.c4socket_closed(_socket, new C4Error(LiteCoreError.UnexpectedError));
+                Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
                 return;
             }
 
             if (t.Exception != null) {
-                Native.c4socket_closed(_socket, new C4Error(LiteCoreError.UnexpectedError));
+                Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
                 return;
             }
 

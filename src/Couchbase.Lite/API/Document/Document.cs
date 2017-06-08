@@ -165,7 +165,7 @@ namespace Couchbase.Lite
         private void LoadDoc(bool mustExist)
         {
             var doc = (C4Document*)NativeHandler.Create()
-                .AllowError((int) LiteCoreError.NotFound, C4ErrorDomain.LiteCoreDomain)
+                .AllowError((int) C4ErrorCode.NotFound, C4ErrorDomain.LiteCoreDomain)
                 .Execute(err => Native.c4doc_get(_c4Db, Id, mustExist, err));
             SetC4Doc(doc);
         }
@@ -191,7 +191,7 @@ namespace Couchbase.Lite
                         var conflict = new Conflict(this, current, baseDoc, OperationType.DatabaseWrite);
                         resolved = resolver.Resolve(conflict);
                         if (resolved == null) {
-                            throw new LiteCoreException(new C4Error(LiteCoreError.Conflict));
+                            throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
                         }
                     }
                 } else {
@@ -245,7 +245,7 @@ namespace Couchbase.Lite
 
                     SaveInto(&tmp, deletion, model);
                     if (tmp == null) {
-                        throw new LiteCoreException(new C4Error(LiteCoreError.Conflict));
+                        throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
                     }
                 }
 
@@ -299,7 +299,7 @@ namespace Couchbase.Lite
 
                 try {
                     *outDoc = (C4Document*)NativeHandler.Create()
-                        .AllowError(new C4Error(LiteCoreError.Conflict))
+                        .AllowError(new C4Error(C4ErrorCode.Conflict))
                         .Execute(err =>
                         {
                             var localPut = put;
