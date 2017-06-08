@@ -164,6 +164,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         internal static double ConvertToDouble(object value)
         {
+            // NOTE: Cannot use ConvertToDecimal because double has a greater range
             switch (value) {
                 case string s: // string is IConvertible, but will throw for non-numeric strings
                     return 0.0;
@@ -176,12 +177,12 @@ namespace Couchbase.Lite.Internal.Doc
 
         internal static int ConvertToInt(object value)
         {
-            return (int)Math.Truncate(ConvertToDouble(value));
+            return (int)Math.Truncate(ConvertToDecimal(value));
         }
 
         internal static long ConvertToLong(object value)
         {
-            return (long)Math.Truncate(ConvertToDouble(value));
+            return (long)Math.Truncate(ConvertToDecimal(value));
         }
 
         internal static object ConvertValue(object value, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback1,
@@ -238,6 +239,18 @@ namespace Couchbase.Lite.Internal.Doc
         #endregion
 
         #region Private Methods
+
+        private static decimal ConvertToDecimal(object value)
+        {
+            switch (value) {
+                case string s: // string is IConvertible, but will throw for non-numeric strings
+                    return 0;
+                case IConvertible c:
+                    return c.ToDecimal(CultureInfo.InvariantCulture);
+                default:
+                    return 0;
+            }
+        }
 
         private static bool IsValidScalarType(Type type)
         {
