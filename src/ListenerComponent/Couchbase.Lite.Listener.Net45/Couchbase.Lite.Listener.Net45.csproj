@@ -40,6 +40,7 @@
     <DebugType>pdbonly</DebugType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>INSIDE_CORLIB;</DefineConstants>
+    <DocumentationFile>bin\Release\Couchbase.Lite.Listener.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

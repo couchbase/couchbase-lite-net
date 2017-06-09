@@ -55,6 +55,7 @@
     <DefineConstants>ANDROID;TRACE;</DefineConstants>
     <DebugType>pdbonly</DebugType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

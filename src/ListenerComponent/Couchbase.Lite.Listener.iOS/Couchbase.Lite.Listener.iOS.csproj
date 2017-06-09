@@ -32,6 +32,7 @@
     <DefineConstants>__IOS__;</DefineConstants>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
+    <DocumentationFile>bin\Release\Couchbase.Lite.Listener.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
     <Optimize>true</Optimize>

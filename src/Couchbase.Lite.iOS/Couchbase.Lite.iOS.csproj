@@ -43,6 +43,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugSymbols>false</DebugSymbols>
     <DebugType>pdbonly</DebugType>
+    <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

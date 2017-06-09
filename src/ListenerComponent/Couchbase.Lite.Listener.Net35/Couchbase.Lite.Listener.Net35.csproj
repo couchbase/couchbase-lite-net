@@ -38,6 +38,7 @@
     <ConsolePause>false</ConsolePause>
     <DebugSymbols>true</DebugSymbols>
     <DefineConstants>NET_3_5;</DefineConstants>
+    <DocumentationFile>bin\Release\Couchbase.Lite.Listener.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Packaging|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
