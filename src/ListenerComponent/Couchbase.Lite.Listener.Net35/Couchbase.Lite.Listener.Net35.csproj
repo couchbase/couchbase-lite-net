@@ -1,4 +1,4 @@
-ï»¿<?xml version="1.0" encoding="utf-8"?>
+?¿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
     <mdb>dll.mdb</mdb>
@@ -48,6 +48,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
+    <DocumentationFile>bin\Packaging\Couchbase.Lite.Listener.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -57,7 +58,7 @@
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net35" />
     <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.dll;$(OutputPath)Couchbase.Lite.Listener.$(mdb);
-    $(OutputPath)Jint.dll;$(OutputPath)Jint.$(mdb)" 
+    $(OutputPath)Jint.dll;$(OutputPath)Jint.$(mdb);$(OutputPath)Couchbase.Lite.Listener.xml" 
     DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener\net35" />
   </Target>
   <ItemGroup>

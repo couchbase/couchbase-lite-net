@@ -54,6 +54,7 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Packaging\Couchbase.Lite.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
@@ -75,7 +76,7 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);$(OutputPath)Stateless.dll;&#xD;&#xA;    $(OutputPath)Stateless.dll;$(OutputPath)System.Net.Http.Net35.dll;$(OutputPath)System.Threading.Tasks.Net35.dll;&#xD;&#xA;    $(OutputPath)Rackspace.Threading.dll;$(OutputPath)Stateless.$(mdb);$(OutputPath)System.Net.Http.Net35.$(mdb);&#xD;&#xA;    $(OutputPath)System.Threading.Tasks.Net35.$(mdb);$(OutputPath)Rackspace.Threading.$(mdb);&#xD;&#xA;    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);$(OutputPath)Stateless.dll;&#xD;&#xA;    $(OutputPath)Stateless.dll;$(OutputPath)System.Net.Http.Net35.dll;$(OutputPath)System.Threading.Tasks.Net35.dll;&#xD;&#xA;    $(OutputPath)Rackspace.Threading.dll;$(OutputPath)Stateless.$(mdb);$(OutputPath)System.Net.Http.Net35.$(mdb);&#xD;&#xA;    $(OutputPath)System.Threading.Tasks.Net35.$(mdb);$(OutputPath)Rackspace.Threading.$(mdb);&#xD;&#xA;    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb);$(OutputPath)Couchbase.Lite.xml" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
   </Target>
   <ItemGroup>
     <Compile Include="..\Couchbase.Lite.Net45\SecureStorage.cs">

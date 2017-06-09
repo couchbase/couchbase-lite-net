@@ -32,7 +32,6 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>bin\Debug\Couchbase.Lite.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <Platform Condition=" '$(Platform)' == '' ">iPhone</Platform>
@@ -42,7 +41,6 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
     <DebugSymbols>false</DebugSymbols>
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
@@ -58,6 +56,7 @@
     <DefineConstants>TRACE;__UNIFIED__;__MOBILE__;__IOS__</DefineConstants>
     <DebugType>pdbonly</DebugType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Packaging\Couchbase.Lite.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Data" />
@@ -90,7 +89,7 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\Xamarin.iOS10" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.dll.mdb;$(OutputPath)System.Net.Http.WebRequest.dll;$(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.dll.mdb" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\Xamarin.iOS10" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.dll.mdb;$(OutputPath)System.Net.Http.WebRequest.dll;$(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.dll.mdb;$(OutputPath)Couchbase.Lite.xml" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\Xamarin.iOS10" />
   </Target>
   <ItemGroup>
     <None Include="packages.config" />

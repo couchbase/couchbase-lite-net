@@ -1,8 +1,10 @@
 {
     "adminInterface": ":4985",
     "interface": ":4984",
-     "log":["REST", "REST+", "HTTP", "HTTP+", "Access", "Cache", "Shadow", "Shadow+", "CRUD", "CRUD+", "Changes", "Changes+", "JSON", "JSON+"],
+     "log":["*"],
      "verbose": true,
+     "SSLKey":"D:\\Development\\couchbase-lite-net\\localhost.key",
+     "SSLCert":"D:\\Development\\couchbase-lite-net\\localhost.cert",
      "databases": {
           "db": {
              "server":"walrus:",
@@ -17,7 +19,22 @@
                }
 
                channel(doc.channels);
-             }`
+             }`,
+             "unsupported": {
+                "replicator_2": true
+            }
+          },
+          "seekrit": {
+             "server":"walrus:",
+             "users": {
+                "GUEST": {"disabled": true, "admin_channels": ["*"]},
+                "pupshaw" : { "password": "frank", "admin_channels": ["*"]}
+              },
+             "bucket":"seekrit",
+             "sync":`function(doc) {channel(doc.channels);}`,
+             "unsupported": {
+                "replicator_2": true
+            }
           },
           "openid_db": {
             "server":"walrus:",

@@ -1,4 +1,4 @@
-ï»¿<?xml version="1.0" encoding="utf-8"?>
+?¿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
     <MonoPrefix>mono </MonoPrefix>
@@ -67,6 +67,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ConsolePause>false</ConsolePause>
     <AndroidUseSharedRuntime>false</AndroidUseSharedRuntime>
+    <DocumentationFile>bin\Packaging\Couchbase.Lite.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -112,7 +113,7 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\MonoAndroid" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);$(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb)" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\MonoAndroid" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);$(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb);$(OutputPath)Couchbase.Lite.xml" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\MonoAndroid" />
   </Target>
   <ItemGroup>
     <Content Include="..\Couchbase.Lite.Shared\Properties\DynamicAssemblyInfo.tt">
