@@ -143,9 +143,17 @@
     <MtouchFloat32>true</MtouchFloat32>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Couchbase.Lite, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Couchbase.Lite.2.0.0-b0120\lib\netstandard1.4\Couchbase.Lite.dll</HintPath>
+    </Reference>
+    <Reference Include="Couchbase.Lite.Support.iOS, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Couchbase.Lite.Support.iOS.2.0.0-b0120\lib\xamarinios\Couchbase.Lite.Support.iOS.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>packages\Newtonsoft.Json.9.0.1\lib\portable-net45+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="Remotion.Linq, Version=2.1.0.0, Culture=neutral, PublicKeyToken=fee00910d6e5f53b, processorArchitecture=MSIL">
       <HintPath>packages\Remotion.Linq.2.1.1\lib\portable-net45+win+wpa81+wp80\Remotion.Linq.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
@@ -191,15 +199,6 @@
     </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>packages\Newtonsoft.Json.9.0.2-beta1\lib\netstandard1.1\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Couchbase.Lite.Support.iOS">
-      <HintPath>packages\Couchbase.Lite.Support.iOS.2.0.0-b0060\lib\xamarinios\Couchbase.Lite.Support.iOS.dll</HintPath>
-    </Reference>
-    <Reference Include="Couchbase.Lite">
-      <HintPath>packages\Couchbase.Lite.2.0.0-b0060\lib\netstandard1.4\Couchbase.Lite.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json">
@@ -209,9 +208,7 @@
       <InProject>false</InProject>
     </ImageAsset>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Resources\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <None Include="Info.plist" />
     <None Include="Entitlements.plist" />
@@ -238,4 +235,11 @@
   <Import Project="packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets" Condition="Exists('packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets')" />
   <Import Project="packages\Couchbase.Lite.Support.iOS.2.0.0-b0060\build\xamarinios\Couchbase.Lite.Support.iOS.targets" Condition="Exists('packages\Couchbase.Lite.Support.iOS.2.0.0-b0060\build\xamarinios\Couchbase.Lite.Support.iOS.targets')" />
   <Import Project="packages\Couchbase.Lite.2.0.0-b0060\build\Couchbase.Lite.targets" Condition="Exists('packages\Couchbase.Lite.2.0.0-b0060\build\Couchbase.Lite.targets')" />
+  <Import Project="packages\Couchbase.Lite.Support.iOS.2.0.0-b0120\build\xamarinios\Couchbase.Lite.Support.iOS.targets" Condition="Exists('packages\Couchbase.Lite.Support.iOS.2.0.0-b0120\build\xamarinios\Couchbase.Lite.Support.iOS.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\Couchbase.Lite.Support.iOS.2.0.0-b0120\build\xamarinios\Couchbase.Lite.Support.iOS.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Couchbase.Lite.Support.iOS.2.0.0-b0120\build\xamarinios\Couchbase.Lite.Support.iOS.targets'))" />
+  </Target>
 </Project>
