@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-
+using Couchbase.Lite.Logging;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
@@ -30,6 +30,7 @@ namespace Couchbase.Lite.Sync
     {
         #region Constants
 
+        private const string Tag = nameof(WebSocketTransport);
         private static readonly Dictionary<int, WebSocketWrapper> Sockets = new Dictionary<int, WebSocketWrapper>();
 
         #endregion
@@ -45,6 +46,7 @@ namespace Couchbase.Lite.Sync
         public static void RegisterWithC4()
         {
             SocketFactory.RegisterFactory(DoOpen, DoClose, DoWrite, DoCompleteReceive);
+            SocketFactory.SetErrorHandler(DoError);
         }
 
         #endregion
@@ -54,6 +56,11 @@ namespace Couchbase.Lite.Sync
         private static void DoClose(C4Socket* socket)
         {
             var id = (int) socket->nativeHandle;
+            if (id == 0) {
+                Log.To.Sync.E(Tag, "DoClose reached after close");
+                return;
+            }
+
             var socketWrapper = Sockets[id];
             socketWrapper.CloseSocket();
         }
@@ -61,8 +68,18 @@ namespace Couchbase.Lite.Sync
         private static void DoCompleteReceive(C4Socket* socket, ulong bytecount)
         {
             var id = (int)socket->nativeHandle;
+            if (id == 0) {
+                Log.To.Sync.E(Tag, "DoCompletedReceive reached after close");
+                return;
+            }
+
             var socketWrapper = Sockets[id];
             socketWrapper.CompletedReceive(bytecount);
+        }
+
+        private static void DoError(C4Socket* socket, Exception e)
+        {
+            Log.To.Sync.E(Tag, "Websocket Error", e);
         }
 
         private static void DoOpen(C4Socket* socket, C4Address* address, C4Slice options)
@@ -101,6 +118,11 @@ namespace Couchbase.Lite.Sync
         private static void DoWrite(C4Socket* socket, byte[] data)
         {
             var id = (int)socket->nativeHandle;
+            if (id == 0) {
+                Log.To.Sync.E(Tag, "DoWrite reached after close");
+                return;
+            }
+
             var socketWrapper = Sockets[id];
             socketWrapper.Write(data);
         }

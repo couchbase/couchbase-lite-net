@@ -53,7 +53,8 @@ namespace Couchbase.Lite.Sync
         private readonly SerialQueue _c4Queue = new SerialQueue();
         private readonly List<byte> _currentMessage = new List<byte>();
         private readonly SerialQueue _queue = new SerialQueue();
-		private readonly SemaphoreSlim _mutex = new SemaphoreSlim(1, 1);
+        private readonly AutoResetEvent _readMutex = new AutoResetEvent(true);
+        private readonly AutoResetEvent _writeMutex = new AutoResetEvent(true);
 		private readonly ManualResetEventSlim _connected = new ManualResetEventSlim();
         private readonly HTTPLogic _logic;
         private readonly ReplicatorOptionsDictionary _options;
@@ -106,18 +107,36 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        public void Start()
+        public unsafe void Start()
         {
             if (_client != null) {
                 return;
             }
 
-            _client = new TcpClient(AddressFamily.InterNetwork | AddressFamily.InterNetworkV6);
+            _client = new TcpClient(AddressFamily.InterNetwork | AddressFamily.InterNetworkV6) {
+                SendTimeout = (int)IdleTimeout.TotalMilliseconds,
+                ReceiveTimeout = (int) IdleTimeout.TotalMilliseconds
+            };
+
             _queue.DispatchAsync(() =>
             {
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(ConnectTimeout);
-                _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(StartInternal, cts.Token);
+                _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
+                {
+                    if (t.IsCanceled) {
+                        // TODO: Cancel status?
+                        Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
+                        return;
+                    }
+
+                    if (t.Exception != null) {
+                        Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
+                        return;
+                    }
+
+                    _queue.DispatchAsync(StartInternal);
+                }, cts.Token);
             });
         }
 
@@ -126,14 +145,20 @@ namespace Couchbase.Lite.Sync
             _queue.DispatchAsync(() =>
             {
 				_connected.Wait();
+                _writeMutex.WaitOne();
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(IdleTimeout);
-				_mutex.Wait(cts.Token);
                 NetworkStream.WriteAsync(data, 0, data.Length, cts.Token)
                     .ContinueWith(t =>
-					{
-						_mutex.Release();
-                        if (t.IsCanceled || t.Exception != null) {
+                    {
+                        _writeMutex.Set();
+                        if (t.IsCanceled) {
+                            DidClose(new SocketException((int)SocketError.TimedOut));
+                            return;
+                        }
+
+                        if (t.Exception != null) {
+                            DidClose(t.Exception.Flatten().InnerException);
                             return;
                         }
 
@@ -157,19 +182,8 @@ namespace Couchbase.Lite.Sync
             return Convert.ToBase64String(hashed);
         }
 
-        private unsafe void StartInternal(Task t)
+        private unsafe void StartInternal()
         {
-            if (t.IsCanceled) {
-                // TODO: Cancel status?
-                Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
-                return;
-            }
-
-            if (t.Exception != null) {
-                Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
-                return;
-            }
-
             Log.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest.Host}:{_logic.UrlRequest.Port}");
             var rng = RandomNumberGenerator.Create();
             var nonceBytes = new byte[16];
@@ -188,24 +202,52 @@ namespace Couchbase.Lite.Sync
 
             if (_logic.UseTls) {
                 var stream = InjectableCollection.GetImplementation<ISslStreamFactory>().Create(_client.GetStream());
-                stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, null, false).ContinueWith(OnSocketReady);
+                stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, null, false).ContinueWith(
+                    t =>
+                    {
+                        if (t.IsCanceled) {
+                            // TODO: Cancel status?
+                            Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
+                            return;
+                        }
+
+                        if (t.Exception != null) {
+                            Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
+                            return;
+                        }
+
+                        _queue.DispatchAsync(OnSocketReady);
+                    });
                 NetworkStream = stream.AsStream();
             }
             else {
                 NetworkStream = _client.GetStream();
-                OnSocketReady(null);
+                OnSocketReady();
             }
         }
 
-        private void OnSocketReady(Task t)
+        private void OnSocketReady()
         {
             var httpData = _logic.HTTPRequestData();
             var cts = new CancellationTokenSource();
-            cts.CancelAfter(ConnectTimeout);
-            NetworkStream.WriteAsync(httpData, 0, httpData.Length, cts.Token).ContinueWith(HandleHTTPResponse, cts.Token);
+            cts.CancelAfter(IdleTimeout);
+            NetworkStream.WriteAsync(httpData, 0, httpData.Length, cts.Token).ContinueWith(t =>
+            {
+                if (t.IsCanceled) {
+                    DidClose(new SocketException((int) SocketError.TimedOut));
+                    return;
+                }
+
+                if (t.Exception != null) {
+                    DidClose(t.Exception.Flatten().InnerException);
+                    return;
+                }
+
+                _queue.DispatchAsync(HandleHTTPResponse);
+            }, cts.Token);
         }
 
-        private async void HandleHTTPResponse(Task t)
+        private async void HandleHTTPResponse()
         {
             Log.To.Sync.V(Tag, "WebSocket sent HTTP request...");
             
@@ -270,7 +312,6 @@ namespace Couchbase.Lite.Sync
             _c4Queue.DispatchAsync(() =>
             {
                 Native.c4socket_opened(socket);
-                Receive();
             });
         }
 
@@ -287,10 +328,13 @@ namespace Couchbase.Lite.Sync
 
         private void ResetConnections()
         {
-            _client?.Dispose();
-            _client = null;
-            NetworkStream?.Dispose();
-            NetworkStream = null;
+            _queue.DispatchAsync(() =>
+            {
+                _client?.Dispose();
+                _client = null;
+                NetworkStream?.Dispose();
+                NetworkStream = null;
+            });
         }
 
         private unsafe void DidClose(C4WebSocketCloseCode closeCode, string reason)
@@ -333,36 +377,43 @@ namespace Couchbase.Lite.Sync
 
         private unsafe void Receive()
         {
-            if (_receiving || NetworkStream == null) {
-                return;
-            }
+            _queue.DispatchAsync(() =>
+            {
+                if (_receiving || NetworkStream == null) {
+                    return;
+                }
 
-            _receiving = true;
-            var cts = new CancellationTokenSource();
-            cts.CancelAfter(IdleTimeout);
-            NetworkStream.ReadAsync(_buffer, 0, _buffer.Length, cts.Token)
-                .ContinueWith(t =>
-                {
-                    _receiving = false;
-                    if (t.IsCanceled) {
-                        DidClose(new SocketException((int) SocketError.TimedOut));
-                        return;
-                    }
+                _receiving = true;
+                _readMutex.WaitOne();
+                var cts = new CancellationTokenSource();
+                cts.CancelAfter(IdleTimeout);
+                NetworkStream.ReadAsync(_buffer, 0, _buffer.Length, cts.Token)
+                    .ContinueWith(t =>
+                    {
+                        _receiving = false;
+                        if (t.IsCanceled) {
+                            DidClose(new SocketException((int) SocketError.TimedOut));
+                            _readMutex.Set();
+                            return;
+                        }
 
-                    if (t.Exception != null) {
-                        DidClose(t.Exception.Flatten().InnerException);
-                        return;
-                    }
+                        if (t.Exception != null) {
+                            DidClose(t.Exception.Flatten().InnerException);
+                            _readMutex.Set();
+                            return;
+                        }
 
-                    _receivedBytesPending += (uint)t.Result;
-                    Log.To.Sync.V(Tag, $"<<< received {t.Result} bytes [now {_receivedBytesPending} pending]");
-                    var socket = _socket;
-                    _queue.DispatchAsync(() => Native.c4socket_received(socket, _buffer.Take(t.Result).ToArray()));
-                    if (_receivedBytesPending < MaxReceivedBytesPending) {
-                        Receive();
-                    }
-                }, cts.Token);
-
+                        _receivedBytesPending += (uint) t.Result;
+                        Log.To.Sync.V(Tag, $"<<< received {t.Result} bytes [now {_receivedBytesPending} pending]");
+                        var socket = _socket;
+                        var data = _buffer.Take(t.Result).ToArray();
+                        _readMutex.Set();
+                        _queue.DispatchAsync(() => Native.c4socket_received(socket, data));
+                        if (_receivedBytesPending < MaxReceivedBytesPending) {
+                            Receive();
+                        }
+                    }, cts.Token);
+            });
         }
 
         private void SetupAuth()
