@@ -35,7 +35,6 @@ namespace Couchbase.Lite
     {
         #region Variables
 
-        internal readonly ThreadSafety _threadSafety = new ThreadSafety();
         private readonly FLDict* _dict;
         private readonly SharedStringCache _sharedKeys;
 

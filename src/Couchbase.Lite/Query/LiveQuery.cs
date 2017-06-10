@@ -39,7 +39,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
-        private readonly ThreadSafety _threadSafety = new ThreadSafety();
+        private readonly ThreadSafety _threadSafety = new ThreadSafety(true);
 
         public event EventHandler<LiveQueryChangedEventArgs> Changed;
 
@@ -59,8 +59,8 @@ namespace Couchbase.Lite.Internal.Query
 
         public Exception LastError
         {
-            get => _threadSafety.DoLocked(() => _lastError);
-            private set => _threadSafety.DoLocked(() =>
+            get => _threadSafety.LockedForRead(() => _lastError);
+            private set => _threadSafety.LockedForWrite(() =>
             {
                 if (_lastError != value) {
                     _lastError = value;
@@ -72,13 +72,13 @@ namespace Couchbase.Lite.Internal.Query
         public IReadOnlyList<IQueryRow> Rows
         {
             get {
-                return _threadSafety.DoLocked(() =>
+                return _threadSafety.LockedForRead(() =>
                 {
                     Start();
                     return _rows;
                 });
             }
-            private set => _threadSafety.DoLocked(() =>
+            private set => _threadSafety.LockedForWrite(() =>
             {
                 _rows = value;
                 Task.Factory.StartNew(() => Changed?.Invoke(this, new LiveQueryChangedEventArgs(value)));
@@ -87,8 +87,8 @@ namespace Couchbase.Lite.Internal.Query
 
         public TimeSpan UpdateInterval
         {
-            get => _threadSafety.DoLocked(() => _updateInterval);
-            set => _threadSafety.DoLocked(() => _updateInterval = value);
+            get => _threadSafety.LockedForRead(() => _updateInterval);
+            set => _threadSafety.LockedForWrite(() => _updateInterval = value);
         }
 
         #endregion

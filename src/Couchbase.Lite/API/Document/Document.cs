@@ -128,12 +128,12 @@ namespace Couchbase.Lite
 
         internal void Delete()
         {
-            _threadSafety.DoLocked(() => Save(_database.Config.ConflictResolver, true));
+            _threadSafety.LockedForWrite(() => Save(_database.Config.ConflictResolver, true));
         }
 
         internal void Purge()
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
                 if(_database == null || _c4Db == null) {
                     throw new InvalidOperationException("Document's owning database has been closed");
@@ -155,7 +155,7 @@ namespace Couchbase.Lite
 
         internal void Save()
         {
-            _threadSafety.DoLocked(() => Save(_database.Config.ConflictResolver, false));
+            _threadSafety.LockedForWrite(() => Save(_database.Config.ConflictResolver, false));
         }
 
         #endregion

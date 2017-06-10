@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Sync
         #region Variables
 
         private readonly ReplicatorConfiguration _config;
-        private readonly ThreadSafety _threadSafety = new ThreadSafety();
+        private readonly ThreadSafety _threadSafety = new ThreadSafety(true);
 
         /// <summary>
         /// An event that is fired when the replicator changes its status for reasons like
@@ -89,8 +89,8 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public Exception LastError
         {
-            get => _threadSafety.DoLocked(() => _lastError);
-            set => _threadSafety.DoLocked(() => _lastError = value);
+            get => _threadSafety.LockedForRead(() => _lastError);
+            set => _threadSafety.LockedForWrite(() => _lastError = value);
         }
 
 
@@ -99,8 +99,8 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public ReplicationStatus Status
         {
-            get => _threadSafety.DoLocked(() => _status);
-            private set => _threadSafety.DoLocked(() => _status = value);
+            get => _threadSafety.LockedForRead(() => _status);
+            private set => _threadSafety.LockedForWrite(() => _status = value);
         }
 
         #endregion
@@ -145,7 +145,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Start()
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
                 if (_repl != null) {
                     Log.To.Sync.W(Tag, $"{this} has already started");
@@ -163,7 +163,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Stop()
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
                 if (_repl != null) {
                     Native.c4repl_stop(_repl);

@@ -75,7 +75,7 @@ namespace Couchbase.Lite
 
         private readonly SharedStringCache _sharedStrings;
 
-        private readonly ThreadSafety _threadSafety = new ThreadSafety();
+        private readonly ThreadSafety _threadSafety = new ThreadSafety(true);
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
         private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
             new FilteredEvent<string, DocumentChangedEventArgs>();
@@ -103,7 +103,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the total number of documents in the database
         /// </summary>
-        public ulong Count => Native.c4db_getDocumentCount(_c4db);
+        public ulong Count => _threadSafety.LockedForRead(() => Native.c4db_getDocumentCount(_c4db));
 
         /// <summary>
         /// Bracket operator for retrieving <see cref="DocumentFragment"/> objects
@@ -123,7 +123,7 @@ namespace Couchbase.Lite
         public string Path
         {
             get {
-                return _threadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
+                return _threadSafety.LockedForRead(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
             }
         }
 
@@ -133,7 +133,7 @@ namespace Couchbase.Lite
         {
             get {
                 var retVal = default(C4BlobStore*);
-                _threadSafety.DoLocked(() =>
+                _threadSafety.LockedForRead(() =>
                 {
                     CheckOpen();
                     retVal = (C4BlobStore*) LiteCoreBridge.Check(err => Native.c4db_getBlobStore(c4db, err));
@@ -147,7 +147,7 @@ namespace Couchbase.Lite
         {
             get {
                 var retVal = default(C4Database*);
-                _threadSafety.DoLocked(() => retVal = _c4db);
+                _threadSafety.LockedForRead(() => retVal = _c4db);
                 return retVal;
             }
         }
@@ -160,7 +160,7 @@ namespace Couchbase.Lite
 
         internal IDictionary<Uri, Replicator> Replications { get; } = new Dictionary<Uri, Replicator>();
 
-        internal SharedStringCache SharedStrings => _threadSafety.DoLocked(() => _sharedStrings);
+        internal SharedStringCache SharedStrings => _threadSafety.LockedForRead(() => _sharedStrings);
 
         private C4Database *_c4db
         {
@@ -273,8 +273,10 @@ namespace Couchbase.Lite
         /// <param name="handler">The logic to handle the event</param>
         public void AddDocumentChangedListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
+                CheckOpen();
+
                 var count = _documentChanged.Add(documentID, handler);
                 if (count == 0) {
                     var docObs = new DocumentObserver(_c4db, documentID, _DocObserverCallback, this);
@@ -304,8 +306,9 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if the <see cref="Document"/> exists, <c>false</c> otherwise</returns>
         public bool Contains(string docID)
         {
-            return _threadSafety.DoLocked(() =>
+            return _threadSafety.LockedForRead(() =>
             {
+                CheckOpen();
                 using (var doc = GetDocument(docID, true)) {
                     return doc != null;
                 }
@@ -318,7 +321,11 @@ namespace Couchbase.Lite
         /// </summary>
         public void Compact()
         {
-            _threadSafety.DoLocked(() => LiteCoreBridge.Check(err => Native.c4db_compact(_c4db, err)));
+            _threadSafety.LockedForWrite(() => LiteCoreBridge.Check(err =>
+            {
+                CheckOpen();
+                return Native.c4db_compact(_c4db, err);
+            }));
         }
 
         /// <summary>
@@ -330,7 +337,7 @@ namespace Couchbase.Lite
         /// <param name="options">The configuration to apply to the index</param>
         public void CreateIndex(IList expressions, IndexType indexType, IndexOptions options)
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
                 CheckOpen();
                 var jsonObj = QueryExpression.EncodeToJSON(expressions);
@@ -353,7 +360,7 @@ namespace Couchbase.Lite
         /// <param name="expressions">The expressions to create the index on</param>
         public void CreateIndex(IList<IExpression> expressions)
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
                 CheckOpen();
                 CreateIndex(expressions as IList, IndexType.ValueIndex, null);
@@ -365,7 +372,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Delete()
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
                 CheckOpen();
                 LiteCoreBridge.Check(err => Native.c4db_delete(_c4db, err));
@@ -384,7 +391,7 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         public void Delete(Document document)
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
                 CheckOpen();
                 VerifyDB(document).Delete();
@@ -398,7 +405,7 @@ namespace Couchbase.Lite
         /// <param name="type">The type of the index to delete</param>
         public void DeleteIndex(string propertyPath, IndexType type)
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
                 CheckOpen();
                 LiteCoreBridge.Check(err => Native.c4db_deleteIndex(c4db, propertyPath, (C4IndexType) type, err));
@@ -412,10 +419,13 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if a document exists with that ID, <c>false</c> otherwise</returns>
         public bool DocumentExists(string docID)
         {
-            CheckOpen();
-            using (var doc = GetDocument(docID, true)) {
-                return doc != null;
-            }
+            return _threadSafety.LockedForRead(() =>
+            {
+                CheckOpen();
+                using (var doc = GetDocument(docID, true)) {
+                    return doc != null;
+                }
+            });
         }
 
         /// <summary>
@@ -423,7 +433,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
-        public Document GetDocument(string id) => _threadSafety.DoLocked(() => GetDocument(id, true));
+        public Document GetDocument(string id) => _threadSafety.LockedForRead(() => GetDocument(id, true));
 
         /// <summary>
         /// Runs the given batch of operations as an atomic unit
@@ -431,7 +441,7 @@ namespace Couchbase.Lite
         /// <param name="a">The <see cref="Action"/> containing the operations. </param>
         public void InBatch(Action a)
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForPossibleWrite(() =>
             {
                 CheckOpen();
                 PerfTimer.StartEvent("InBatch_BeginTransaction");
@@ -464,7 +474,7 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         public void Purge(Document document)
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
                 CheckOpen();
                 VerifyDB(document).Purge();
@@ -479,8 +489,9 @@ namespace Couchbase.Lite
         /// <param name="handler">The logic to handle the event</param>
         public void RemoveDocumentChangedListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
+                CheckOpen();
                 var count = _documentChanged.Remove(documentID, handler);
                 if (count == 0) {
                     DocumentObserver obs;
@@ -500,7 +511,7 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         public void Save(Document document)
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForWrite(() =>
             {
                 CheckOpen();
                 VerifyDB(document).Save();
@@ -663,7 +674,7 @@ namespace Couchbase.Lite
 
         private void PostDatabaseChanged()
         {
-			_threadSafety.DoLocked(() =>
+			_threadSafety.LockedForRead(() =>
 			{
 				if (_obs == null || _c4db == null || Native.c4db_isInTransaction(_c4db)) {
 					return;
@@ -697,7 +708,7 @@ namespace Couchbase.Lite
 
         private void PostDocChanged(string documentID)
         {
-            _threadSafety.DoLocked(() =>
+            _threadSafety.LockedForRead(() =>
             {
                 if (!_docObs.ContainsKey(documentID) || _c4db == null || Native.c4db_isInTransaction(_c4db)) {
                     return;
@@ -728,8 +739,8 @@ namespace Couchbase.Lite
         /// </summary>
         public void Dispose()
         {
-            _threadSafety.DoLocked(() => Dispose(true));
             GC.SuppressFinalize(this);
+            _threadSafety.LockedForWrite(() => Dispose(true));
         }
 
         #endregion

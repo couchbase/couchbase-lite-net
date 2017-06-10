@@ -22,6 +22,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
 
@@ -32,7 +33,12 @@ namespace Couchbase.Lite
     /// </summary>
     public unsafe class ReadOnlyDocument : ReadOnlyDictionary, IDisposable
     {
+        #region Variables
+
         private readonly bool _owner;
+        internal readonly ThreadSafety _threadSafety = new ThreadSafety(true);
+
+        #endregion
 
         #region Properties
 
@@ -44,19 +50,19 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets whether or not this document is deleted
         /// </summary>
-        public bool IsDeleted => _threadSafety.DoLocked(() => c4Doc != null && c4Doc->flags.HasFlag(C4DocumentFlags.Deleted));
+        public bool IsDeleted => _threadSafety.LockedForRead(() => c4Doc != null && c4Doc->flags.HasFlag(C4DocumentFlags.Deleted));
 
         /// <summary>
         /// Gets the sequence of this document (a unique incrementing number
         /// identifying its status in a database)
         /// </summary>
-        public ulong Sequence => _threadSafety.DoLocked(() => c4Doc != null ? c4Doc->sequence : 0UL);
+        public ulong Sequence => _threadSafety.LockedForRead(() => c4Doc != null ? c4Doc->sequence : 0UL);
 
         internal C4Document* c4Doc { get; set; }
 
-        internal bool Exists => _threadSafety.DoLocked(() => c4Doc != null && c4Doc->flags.HasFlag(C4DocumentFlags.Exists));
+        internal bool Exists => _threadSafety.LockedForRead(() => c4Doc != null && c4Doc->flags.HasFlag(C4DocumentFlags.Exists));
 
-        internal uint Generation => _threadSafety.DoLocked(() => c4Doc != null ? NativeRaw.c4rev_getGeneration(c4Doc->revID) : 0U);
+        internal uint Generation => _threadSafety.LockedForRead(() => c4Doc != null ? NativeRaw.c4rev_getGeneration(c4Doc->revID) : 0U);
 
         #endregion
 
@@ -122,7 +128,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Dispose()
         {
-            _threadSafety.DoLocked(() => Dispose(true));
+            _threadSafety.LockedForWrite(() => Dispose(true));
             GC.SuppressFinalize(this);
         }
 
