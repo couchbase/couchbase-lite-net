@@ -24,6 +24,7 @@ using System.Diagnostics;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Support;
 using LiteCore.Interop;
+using ObjCRuntime;
 
 namespace Couchbase.Lite.Logging
 {
@@ -74,6 +75,11 @@ namespace Couchbase.Lite.Logging
 
         internal static IEnumerable<ILogger> Loggers => _Loggers;
 
+
+        // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
+        private static readonly C4LogCallback _LogCallback;
+        // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
+
         #endregion
 
         #region Variables
@@ -123,6 +129,16 @@ namespace Couchbase.Lite.Logging
 
         #endregion
 
+        #region Constructors
+
+        static unsafe Log()
+        {
+            _LogCallback = LiteCoreLog;
+            Native.c4log_writeToCallback(C4LogLevel.Verbose, _LogCallback, true);
+        }
+
+        #endregion
+
         #region Public Methods
 
         /// <summary>
@@ -143,25 +159,6 @@ namespace Couchbase.Lite.Logging
         public static bool SetDefaultLogger()
         {
             return SetLogger(InjectableCollection.GetImplementation<ILogger>());
-        }
-
-        /// <summary>
-        /// Sets the logger, disposing and removing all others.
-        /// </summary>
-        /// <returns><c>true</c>, if Logger was set, <c>false</c> otherwise.</returns>
-        /// <param name="customLogger">Custom logger.</param>
-        public static bool SetLogger(ILogger customLogger)
-        {
-            var loggers = _Loggers;
-            if (loggers != null) {
-                foreach (var logger in loggers) {
-                    var disposable = logger as IDisposable;
-                    disposable?.Dispose();
-                }
-            }
-
-            _Loggers = customLogger != null ? new List<ILogger> { customLogger } : new List<ILogger>();
-            return true;
         }
 
         /// <summary>
@@ -191,6 +188,52 @@ namespace Couchbase.Lite.Logging
                 }
 
                 Native.c4log_setLevel(log, Transform(pair.Value));
+            }
+        }
+
+        /// <summary>
+        /// Sets the logger, disposing and removing all others.
+        /// </summary>
+        /// <returns><c>true</c>, if Logger was set, <c>false</c> otherwise.</returns>
+        /// <param name="customLogger">Custom logger.</param>
+        public static bool SetLogger(ILogger customLogger)
+        {
+            var loggers = _Loggers;
+            if (loggers != null) {
+                foreach (var logger in loggers) {
+                    var disposable = logger as IDisposable;
+                    disposable?.Dispose();
+                }
+            }
+
+            _Loggers = customLogger != null ? new List<ILogger> { customLogger } : new List<ILogger>();
+            return true;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        [MonoPInvokeCallback(typeof(C4LogCallback))]
+        private static unsafe void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, string message, IntPtr ignored)
+        {
+            var name = Native.c4log_getDomainName(domain);
+            switch (level) {
+                case C4LogLevel.Error:
+                    Log.To.DomainOrLiteCore(name).E(name, message);
+                    break;
+                case C4LogLevel.Warning:
+                    Log.To.DomainOrLiteCore(name).W(name, message);
+                    break;
+                case C4LogLevel.Info:
+                    Log.To.DomainOrLiteCore(name).I(name, message);
+                    break;
+                case C4LogLevel.Verbose:
+                    Log.To.DomainOrLiteCore(name).V(name, message);
+                    break;
+                case C4LogLevel.Debug:
+                    Log.To.DomainOrLiteCore(name).D(name, message);
+                    break;
             }
         }
 

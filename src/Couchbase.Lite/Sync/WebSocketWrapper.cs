@@ -94,7 +94,7 @@ namespace Couchbase.Lite.Sync
             {
 				_connected.Wait();
                 ResetConnections();
-                Native.c4socket_closed(_socket, new C4Error());
+                _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, new C4Error()));
             });
         }
 
@@ -126,12 +126,12 @@ namespace Couchbase.Lite.Sync
                 {
                     if (t.IsCanceled) {
                         // TODO: Cancel status?
-                        Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
+                        _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError)));
                         return;
                     }
 
                     if (t.Exception != null) {
-                        Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
+                        _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError)));
                         return;
                     }
 
@@ -207,12 +207,12 @@ namespace Couchbase.Lite.Sync
                     {
                         if (t.IsCanceled) {
                             // TODO: Cancel status?
-                            Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
+                            _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError)));
                             return;
                         }
 
                         if (t.Exception != null) {
-                            Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError));
+                            _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError)));
                             return;
                         }
 
@@ -278,7 +278,7 @@ namespace Couchbase.Lite.Sync
             }
 
             var socket = _socket;
-            _queue.DispatchAsync(() =>
+            _c4Queue.DispatchAsync(() =>
             {
                 Dictionary<string, object> dict = parser.Headers.ToDictionary(x => x.Key, x => (object) x.Value);
                 Native.c4socket_gotHTTPResponse(socket, (int) httpStatus, dict);
@@ -352,7 +352,7 @@ namespace Couchbase.Lite.Sync
 
             Log.To.Sync.I(Tag, $"WebSocket CLOSED WITH STATUS {closeCode} \"{reason}\"");
             var c4Err = Native.c4error_make(C4ErrorDomain.WebSocketDomain, (int)closeCode, reason);
-            Native.c4socket_closed(_socket, c4Err);
+            _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, c4Err));
         }
 
         private unsafe void DidClose(Exception e)
@@ -372,7 +372,8 @@ namespace Couchbase.Lite.Sync
                 c4err = new C4Error();
             }
 
-            Native.c4socket_closed(_socket, c4err);
+            var c4errCopy = c4err;
+            _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, c4errCopy));
         }
 
         private unsafe void Receive()
@@ -408,7 +409,7 @@ namespace Couchbase.Lite.Sync
                         var socket = _socket;
                         var data = _buffer.Take(t.Result).ToArray();
                         _readMutex.Set();
-                        _queue.DispatchAsync(() => Native.c4socket_received(socket, data));
+                        _c4Queue.DispatchAsync(() => Native.c4socket_received(socket, data));
                         if (_receivedBytesPending < MaxReceivedBytesPending) {
                             Receive();
                         }

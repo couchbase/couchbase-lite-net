@@ -63,10 +63,6 @@ namespace Couchbase.Lite
         private static readonly DatabaseObserverCallback _DbObserverCallback;
         private static readonly DocumentObserverCallback _DocObserverCallback;
 
-        // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
-        private static readonly C4LogCallback _LogCallback;
-        // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
-
         private const string Tag = nameof(Database);
 
         #endregion
@@ -174,8 +170,6 @@ namespace Couchbase.Lite
 
         static Database()
         {
-            _LogCallback = LiteCoreLog;
-            Native.c4log_writeToCallback(C4LogLevel.Warning, _LogCallback, true);
             _DbObserverCallback = DbObserverCallback;
             _DocObserverCallback = DocObserverCallback;
         }
@@ -569,29 +563,6 @@ namespace Couchbase.Lite
         private static string Directory(string directory)
         {
             return directory ?? DefaultDirectory();
-        }
-
-        [MonoPInvokeCallback(typeof(C4LogCallback))]
-        private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, string message, IntPtr ignored)
-        {
-            var name = Native.c4log_getDomainName(domain);
-            switch(level) {
-                case C4LogLevel.Error:
-                    Log.To.DomainOrLiteCore(name).E(name, message);
-                    break;
-                case C4LogLevel.Warning:
-                    Log.To.DomainOrLiteCore(name).W(name, message);
-                    break;
-                case C4LogLevel.Info:
-                    Log.To.DomainOrLiteCore(name).I(name, message);
-                    break;
-                case C4LogLevel.Verbose:
-                    Log.To.DomainOrLiteCore(name).V(name, message);
-                    break;
-                case C4LogLevel.Debug:
-                    Log.To.DomainOrLiteCore(name).D(name, message);
-                    break;
-            }
         }
 
         private void CheckOpen()
