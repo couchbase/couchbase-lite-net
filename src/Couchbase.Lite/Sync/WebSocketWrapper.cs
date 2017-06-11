@@ -124,17 +124,16 @@ namespace Couchbase.Lite.Sync
                 cts.CancelAfter(ConnectTimeout);
                 _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
                 {
-                    if (t.IsCanceled) {
-                        // TODO: Cancel status?
-                        _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError)));
+                    if (!NetworkTaskSuccessful(t)) {
+                        if (t.IsCanceled) {
+                            Native.c4socket_closed(_socket, new C4Error(C4NetworkErrorCode.Timeout));
+                        } else {
+                            C4Error err;
+                            Status.ConvertError(t.Exception.Flatten().InnerException, &err);
+                            Native.c4socket_closed(_socket, err);
+                        }
                         return;
                     }
-
-                    if (t.Exception != null) {
-                        _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError)));
-                        return;
-                    }
-
                     _queue.DispatchAsync(StartInternal);
                 }, cts.Token);
             });
@@ -152,13 +151,7 @@ namespace Couchbase.Lite.Sync
                     .ContinueWith(t =>
                     {
                         _writeMutex.Set();
-                        if (t.IsCanceled) {
-                            DidClose(new SocketException((int)SocketError.TimedOut));
-                            return;
-                        }
-
-                        if (t.Exception != null) {
-                            DidClose(t.Exception.Flatten().InnerException);
+                        if (!NetworkTaskSuccessful(t)) {
                             return;
                         }
 
@@ -205,14 +198,7 @@ namespace Couchbase.Lite.Sync
                 stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, null, false).ContinueWith(
                     t =>
                     {
-                        if (t.IsCanceled) {
-                            // TODO: Cancel status?
-                            _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError)));
-                            return;
-                        }
-
-                        if (t.Exception != null) {
-                            _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, new C4Error(C4ErrorCode.UnexpectedError)));
+                        if (!NetworkTaskSuccessful(t)) {
                             return;
                         }
 
@@ -233,13 +219,7 @@ namespace Couchbase.Lite.Sync
             cts.CancelAfter(IdleTimeout);
             NetworkStream.WriteAsync(httpData, 0, httpData.Length, cts.Token).ContinueWith(t =>
             {
-                if (t.IsCanceled) {
-                    DidClose(new SocketException((int) SocketError.TimedOut));
-                    return;
-                }
-
-                if (t.Exception != null) {
-                    DidClose(t.Exception.Flatten().InnerException);
+                if (!NetworkTaskSuccessful(t)) {
                     return;
                 }
 
@@ -326,6 +306,21 @@ namespace Couchbase.Lite.Sync
             return value?.Equals(expectedValue, comparison) == true;
         }
 
+        private bool NetworkTaskSuccessful(Task t)
+        {
+            if (t.IsCanceled) {
+                DidClose(new SocketException((int)SocketError.TimedOut));
+                return false;
+            }
+
+            if (t.Exception != null) {
+                DidClose(t.Exception.Flatten().InnerException);
+                return false;
+            }
+
+            return true;
+        }
+
         private void ResetConnections()
         {
             _queue.DispatchAsync(() =>
@@ -392,14 +387,7 @@ namespace Couchbase.Lite.Sync
                     .ContinueWith(t =>
                     {
                         _receiving = false;
-                        if (t.IsCanceled) {
-                            DidClose(new SocketException((int) SocketError.TimedOut));
-                            _readMutex.Set();
-                            return;
-                        }
-
-                        if (t.Exception != null) {
-                            DidClose(t.Exception.Flatten().InnerException);
+                        if (!NetworkTaskSuccessful(t)) {
                             _readMutex.Set();
                             return;
                         }

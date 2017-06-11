@@ -72,17 +72,13 @@ namespace Couchbase.Lite.Internal.Query
         public IReadOnlyList<IQueryRow> Rows
         {
             get {
-                return _threadSafety.LockedForRead(() =>
-                {
-                    Start();
-                    return _rows;
-                });
+                Start();
+                return _threadSafety.LockedForRead(() => _rows);
             }
-            private set => _threadSafety.LockedForWrite(() =>
-            {
-                _rows = value;
+            private set {
+                _threadSafety.LockedForWrite(() =>_rows = value);
                 Task.Factory.StartNew(() => Changed?.Invoke(this, new LiveQueryChangedEventArgs(value)));
-            });
+            }
         }
 
         public TimeSpan UpdateInterval

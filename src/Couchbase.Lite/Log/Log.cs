@@ -134,7 +134,7 @@ namespace Couchbase.Lite.Logging
         static unsafe Log()
         {
             _LogCallback = LiteCoreLog;
-            Native.c4log_writeToCallback(C4LogLevel.Verbose, _LogCallback, true);
+            Native.c4log_writeToCallback(C4LogLevel.Debug, _LogCallback, true);
         }
 
         #endregion
@@ -180,6 +180,7 @@ namespace Couchbase.Lite.Logging
         /// <param name="levels">A map of domains to levels</param>
         public static unsafe void SetLiteCoreLogLevels(IDictionary<string, LogLevel> levels)
         {
+            var maxLevel = Log.LogLevel.None;
             foreach (var pair in levels) {
                 var log = Native.c4log_getDomain(pair.Key, false);
                 if (log == null) {
@@ -187,7 +188,12 @@ namespace Couchbase.Lite.Logging
                     continue;
                 }
 
+                maxLevel = (LogLevel)Math.Max((int) maxLevel, (int)pair.Value);
                 Native.c4log_setLevel(log, Transform(pair.Value));
+            }
+
+            if (levels.Count > 0) {
+                Domains.LiteCore.Level = maxLevel;
             }
         }
 
