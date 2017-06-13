@@ -19,8 +19,8 @@
     <Language>en-US</Language>
     <DocumentationSources>
       <DocumentationSource sourceFile="..\src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.dll" />
-      <DocumentationSource sourceFile="..\src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.xml" />
-    </DocumentationSources>
+<DocumentationSource sourceFile="..\src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.xml" />
+<DocumentationSource sourceFile="C:\Users\borrrden\.nuget\packages\system.runtime\4.3.0\ref\netstandard1.3\System.Runtime.xml" /></DocumentationSources>
     <HelpFileVersion>2.0.0.0</HelpFileVersion>
     <MaximumGroupParts>2</MaximumGroupParts>
     <NamespaceGrouping>False</NamespaceGrouping>
@@ -76,6 +76,9 @@
     </Reference>
     <Reference Include="Remotion.Linq">
       <HintPath>C:\Users\borrrden\.nuget\packages\Remotion.Linq\2.1.1\lib\netstandard1.0\Remotion.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.NetworkInformation">
+      <HintPath>C:\Users\borrrden\.nuget\packages\system.net.networkinformation\4.3.0\ref\netstandard1.3\System.Net.NetworkInformation.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.WebSockets">
       <HintPath>C:\Users\borrrden\.nuget\packages\system.net.websockets\4.3.0\ref\netstandard1.3\System.Net.WebSockets.dll</HintPath>

@@ -37,10 +37,11 @@ namespace Couchbase.Lite.DI
         #region Public Methods
 
         /// <summary>
-        /// Creates a stream for writing TLS encrypted data over TCP
+        /// Creates a stream for reading and writing
+        /// TLS encrypted data over TCP
         /// </summary>
         /// <param name="inner">The underlying </param>
-        /// <returns></returns>
+        /// <returns>The instantiated stream ready for communication</returns>
         ISslStream Create(Stream inner);
 
         #endregion

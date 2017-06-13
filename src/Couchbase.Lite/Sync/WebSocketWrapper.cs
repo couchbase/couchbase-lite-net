@@ -109,17 +109,18 @@ namespace Couchbase.Lite.Sync
 
         public unsafe void Start()
         {
-            if (_client != null) {
-                return;
-            }
-
-            _client = new TcpClient(AddressFamily.InterNetwork | AddressFamily.InterNetworkV6) {
-                SendTimeout = (int)IdleTimeout.TotalMilliseconds,
-                ReceiveTimeout = (int) IdleTimeout.TotalMilliseconds
-            };
-
             _queue.DispatchAsync(() =>
             {
+                if (_client != null) {
+                    return;
+                }
+
+                _client = new TcpClient(AddressFamily.InterNetwork | AddressFamily.InterNetworkV6)
+                {
+                    SendTimeout = (int)IdleTimeout.TotalMilliseconds,
+                    ReceiveTimeout = (int)IdleTimeout.TotalMilliseconds
+                };
+
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(ConnectTimeout);
                 _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
