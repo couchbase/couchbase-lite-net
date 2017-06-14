@@ -119,6 +119,7 @@ namespace Test
         //[Fact]
         public void TestChannelPull()
         {
+            _otherDB.Count.Should().Be(0);
             Db.InBatch(() =>
             {
                 for (int i = 0; i < 5; i++) {
@@ -214,7 +215,7 @@ namespace Test
         {
             base.Dispose(disposing);
 
-            _otherDB.Dispose();
+            _otherDB.Delete();
             _otherDB = null;
             _repl = null;
         }

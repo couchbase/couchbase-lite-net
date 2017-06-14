@@ -53,7 +53,6 @@ namespace Test
             get => _output;
             set {
                 _output = value;
-                Log.ClearLoggerProviders();
                 Log.AddLoggerProvider(new MSTestLoggerProvider(_output));
             }
         }
@@ -68,7 +67,6 @@ namespace Test
         protected PerfTest(ITestOutputHelper output)
         {
             _output = output;
-            Log.ClearLoggerProviders();
             Log.AddLoggerProvider(new XunitLoggerProvider(output));
         }
 #endif
@@ -120,6 +118,7 @@ namespace Test
             Log.Disabled = false;
             Db?.Dispose();
             Db = null;
+            Log.ClearLoggerProviders();
         }
 
         protected void Run()
