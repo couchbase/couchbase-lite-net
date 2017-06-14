@@ -27,6 +27,18 @@ if not exist ..\..\nuget.exe (
 ..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
 popd
 
+pushd ..\Couchbase.Lite.Support.Apple\iOS
+..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
+popd
+
+pushd ..\Couchbase.Lite.Support.Apple\tvOS
+..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
+popd
+
+pushd ..\Couchbase.Lite.Support.Android
+..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
+popd
+
 mkdir -ErrorAction Ignore ..\Couchbase.Lite.Support.Apple\iOS\Resources
 mkdir -ErrorAction Ignore ..\Couchbase.Lite.Support.Apple\tvOS\Resources
 xcopy /Y ..\..\vendor\couchbase-lite-core\build_cmake\ios-fat\libLiteCore.dylib ..\Couchbase.Lite.Support.Apple\iOS\Resources
