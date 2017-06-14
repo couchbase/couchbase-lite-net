@@ -28,11 +28,11 @@ if not exist ..\..\nuget.exe (
 popd
 
 pushd ..\Couchbase.Lite.Support.Apple\iOS
-..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
+..\..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
 popd
 
 pushd ..\Couchbase.Lite.Support.Apple\tvOS
-..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
+..\..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json"
 popd
 
 pushd ..\Couchbase.Lite.Support.Android
