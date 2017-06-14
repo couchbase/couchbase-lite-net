@@ -239,7 +239,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{dd9cb298-f3a1-4653-883b-352e69c16f93}</Project>
+      <Project>{1cf95f79-7649-4fda-a888-73b5c69316fc}</Project>
       <Name>Couchbase.Lite</Name>
     </ProjectReference>
   </ItemGroup>

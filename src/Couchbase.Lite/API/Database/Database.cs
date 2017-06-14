@@ -40,6 +40,7 @@ using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using ObjCRuntime;
 
@@ -557,7 +558,7 @@ namespace Couchbase.Lite
 
         private static string DefaultDirectory()
         {
-            return InjectableCollection.GetImplementation<IDefaultDirectoryResolver>().DefaultDirectory();
+            return Service.Provider.GetRequiredService<IDefaultDirectoryResolver>().DefaultDirectory();
         }
 
         private static string Directory(string directory)

@@ -24,7 +24,12 @@ using Couchbase.Lite.Sync;
 
 namespace Couchbase.Lite.DI
 {
-    internal interface IReachability : IInjectable
+    internal interface IReachabilityFactory
+    {
+        IReachability Create();
+    }
+
+    internal interface IReachability
     {
         #region Variables
 

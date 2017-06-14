@@ -19,6 +19,7 @@
     <language>en-US</language>
   <dependencies>
     <dependency id="System.Net.Security" version="4.3.1" />
+    <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="1.1.1" />
   </dependencies>
   </metadata>
   <files>
@@ -32,5 +33,6 @@
     <file target="runtimes\win7-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\x64\*.pdb" />
     <file target="runtimes\osx-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\libLiteCore.dylib" />
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\libLiteCore.so" />
+    <file target="src" src="src\Couchbase.Lite.Support.NetDesktop\**\*.cs" />
   </files>
 </package>

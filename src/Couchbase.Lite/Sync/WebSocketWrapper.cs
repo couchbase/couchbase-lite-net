@@ -33,6 +33,7 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using LiteCore.Interop;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Sync
 {
@@ -195,7 +196,7 @@ namespace Couchbase.Lite.Sync
             _logic["Sec-WebSocket-Key"] = nonceKey;
 
             if (_logic.UseTls) {
-                var stream = InjectableCollection.GetImplementation<ISslStreamFactory>().Create(_client.GetStream());
+                var stream = Service.Provider.GetRequiredService<ISslStreamFactory>().Create(_client.GetStream());
                 stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, null, false).ContinueWith(
                     t =>
                     {

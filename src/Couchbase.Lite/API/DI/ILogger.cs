@@ -48,7 +48,7 @@ namespace Couchbase.Lite.DI
     /// <summary>
     /// An interface describing an object capable of receiving Couchbase Lite log messages
     /// </summary>
-    public interface ILogger : IInjectable
+    public interface ILogger
     {
         #region Public Methods
 

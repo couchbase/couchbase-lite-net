@@ -25,7 +25,7 @@ namespace Couchbase.Lite.DI
     /// An interface for resolving the default directory for a Couchbase Lite database
     /// since we may be operating in a sandboxed environment
     /// </summary>
-    public interface IDefaultDirectoryResolver : IInjectable
+    public interface IDefaultDirectoryResolver
     {
         #region Public Methods
 

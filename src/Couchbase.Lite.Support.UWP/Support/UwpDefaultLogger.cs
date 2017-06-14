@@ -27,7 +27,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Lite.Logging;
 using Windows.Storage;
 
 namespace Couchbase.Lite.Support

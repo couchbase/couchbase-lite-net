@@ -17,10 +17,14 @@
     <copyright>Copyright 2017</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
+    <dependencies>
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="1.1.1" />
+    </dependencies>
   </metadata>
   <files>
     <file target="lib\monodroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll" />
     <file target="lib\monodroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.pdb" />
     <file target="lib\monodroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.xml" />
+    <file target="src" src="src\Couchbase.Lite.Support.Android\**\*.cs" />
   </files>
 </package>

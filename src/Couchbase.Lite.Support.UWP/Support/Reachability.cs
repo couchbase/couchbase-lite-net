@@ -25,6 +25,14 @@ using Windows.Networking.Connectivity;
 
 namespace Couchbase.Lite.Support
 {
+    internal sealed class ReachabilityFactory : IReachabilityFactory
+    {
+        public IReachability Create()
+        {
+            return new Reachability();
+        }
+    }
+
     internal sealed class Reachability : IReachability
     {
         #region Variables
@@ -44,7 +52,7 @@ namespace Couchbase.Lite.Support
                 ? NetworkReachabilityStatus.Unreachable
                 : NetworkReachabilityStatus.Reachable;
 
-            StatusChanged?.Invoke(this, new NetworkReachabilityChangeEventArgs(status));
+            _dispatchQueue.DispatchAsync(() => StatusChanged?.Invoke(this, new NetworkReachabilityChangeEventArgs(status)));
         }
 
         #endregion

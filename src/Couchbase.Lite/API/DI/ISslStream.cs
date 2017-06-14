@@ -32,7 +32,7 @@ namespace Couchbase.Lite.DI
     /// a TLS encrypted TCP connection.  Normally, we could just use <c>System.Net.Security.SslStream</c>
     /// but UWP does not provide an implementation of that!
     /// </summary>
-    public interface ISslStreamFactory : IInjectable
+    public interface ISslStreamFactory
     {
         #region Public Methods
 

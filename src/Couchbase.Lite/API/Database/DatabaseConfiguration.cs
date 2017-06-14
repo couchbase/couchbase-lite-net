@@ -22,6 +22,7 @@
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Support;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite
 {
@@ -43,7 +44,7 @@ namespace Couchbase.Lite
         /// </summary>
         public string Directory
         {
-            get => _directory ?? InjectableCollection.GetImplementation<IDefaultDirectoryResolver>()
+            get => _directory ?? Service.Provider.GetRequiredService<IDefaultDirectoryResolver>()
                        .DefaultDirectory();
             set => _directory = value;
         }

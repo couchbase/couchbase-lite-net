@@ -24,6 +24,7 @@ using System.Diagnostics;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Support;
 using LiteCore.Interop;
+using Microsoft.Extensions.DependencyInjection;
 using ObjCRuntime;
 
 namespace Couchbase.Lite.Logging
@@ -84,7 +85,7 @@ namespace Couchbase.Lite.Logging
 
         #region Variables
 
-        private static List<ILogger> _Loggers = new List<ILogger> { InjectableCollection.GetImplementation<ILogger>() };
+        private static List<ILogger> _Loggers = new List<ILogger> { Service.Provider.GetRequiredService<ILogger>() };
         private static LogScrubSensitivity _ScrubSensitivity;
 
         #endregion
@@ -158,7 +159,7 @@ namespace Couchbase.Lite.Logging
         /// <returns><c>true</c>, if logger was set, <c>false</c> otherwise.</returns>
         public static bool SetDefaultLogger()
         {
-            return SetLogger(InjectableCollection.GetImplementation<ILogger>());
+            return SetLogger(Service.Provider.GetRequiredService<ILogger>());
         }
 
         /// <summary>

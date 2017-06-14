@@ -25,6 +25,7 @@ using System.Runtime.InteropServices;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using LiteCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Support
 {
@@ -75,9 +76,12 @@ namespace Couchbase.Lite.Support
                 }
             }
 
-            InjectableCollection.RegisterImplementation<ILogger>(() => new DefaultLogger());
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
-            InjectableCollection.RegisterImplementation<ISslStreamFactory>(() => new SslStreamFactory());
+            Service.RegisterServices(collection =>
+            {
+                collection.AddSingleton<ILogger, DefaultLogger>();
+                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>();
+                collection.AddSingleton<ISslStreamFactory, SslStreamFactory>();
+            });
         }
 
         #endregion

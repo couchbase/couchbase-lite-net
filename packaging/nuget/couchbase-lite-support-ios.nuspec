@@ -17,6 +17,9 @@
     <copyright>Copyright 2017</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
+    <dependencies>
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="1.1.1" />
+    </dependencies>
   </metadata>
   <files>
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll" />
@@ -24,5 +27,7 @@
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.xml" />
     <file target="build\xamarinios\Couchbase.Lite.Support.iOS.targets" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\ios.targets" />
     <file target="build\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Resources\libLiteCore.dylib" />
+    <file target="src" src="src\Couchbase.Lite.Support.Apple\Activate.cs" />
+    <file traget="src" src="src\Couchbase.Lite.Support.Apple\iOS\**\*.cs" />
   </files>
 </package>

@@ -22,6 +22,7 @@ using System;
 using System.IO;
 using Couchbase.Lite.DI;
 using Foundation;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Support
 {
@@ -36,14 +37,18 @@ namespace Couchbase.Lite.Support
         public static void Activate()
         {
             Console.WriteLine("Loading support items");
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver());
+            Service.RegisterServices(collection =>
+            {
+                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>();
 #if __IOS__
-            InjectableCollection.RegisterImplementation<ILogger>(() => new iOSDefaultLogger());
+                collection.AddSingleton<ILogger, iOSDefaultLogger>();
 #else
-            InjectableCollection.RegisterImplementation<ILogger>(() => new tvOSDefaultLogger());
+                collection.AddSingleton<ILogger, tvOSDefaultLogger>();
 #endif
 
-            InjectableCollection.RegisterImplementation<ISslStreamFactory>(() => new SslStreamFactory());
+                collection.AddSingleton<ISslStreamFactory, SslStreamFactory>();
+            });
+ 
             Console.WriteLine("Loading libLiteCore.dylib");
             var dylibPath = Path.Combine(NSBundle.MainBundle.BundlePath, "libLiteCore.dylib");
             if(!File.Exists(dylibPath)) {

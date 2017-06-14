@@ -17,6 +17,9 @@
     <copyright>Copyright 2017</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
+    <dependencies>
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="1.1.1" />
+    </dependencies>
   </metadata>
   <files>
     <file target="build\Couchbase.Lite.Support.UWP.targets" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\uwp.targets" />
@@ -29,5 +32,6 @@
     <file target="runtimes\win10-x86\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x86\*.pdb" />
     <file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\*.pdb" />
     <file target="runtimes\win10-arm\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\ARM\*.pdb" />
+    <file target="src" src="src\Couchbase.Lite.Support.UWP\**\*.cs" />
   </files>
 </package>

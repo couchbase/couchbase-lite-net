@@ -21,6 +21,7 @@
 
 using Android.Content;
 using Couchbase.Lite.DI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Support
 {
@@ -35,9 +36,12 @@ namespace Couchbase.Lite.Support
         /// <param name="context">The main context of the Android application</param>
         public static void Activate(Context context)
         {
-            InjectableCollection.RegisterImplementation<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(context));
-            InjectableCollection.RegisterImplementation<ILogger>(() => new AndroidDefaultLogger());
-            InjectableCollection.RegisterImplementation<ISslStreamFactory>(() => new SslStreamFactory());
+            Service.RegisterServices(collection =>
+            {
+                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
+                    .AddSingleton<ILogger, AndroidDefaultLogger>()
+                    .AddSingleton<ISslStreamFactory, SslStreamFactory>();
+            });
         }
     }
 }

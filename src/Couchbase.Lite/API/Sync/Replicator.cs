@@ -29,6 +29,7 @@ using Couchbase.Lite.Support;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Sync
 {
@@ -248,7 +249,7 @@ namespace Couchbase.Lite.Sync
                 return;   
             }
 
-            _reachability = InjectableCollection.GetImplementation<IReachability>();
+            _reachability = Service.Provider.GetService<IReachabilityFactory>()?.Create() ?? new Reachability();
             _reachability.StatusChanged += ReachabilityChanged;
             _reachability.Start(_dispatchQueue);
         }
