@@ -262,54 +262,48 @@ namespace Couchbase.Lite
         [SuppressMessage("ReSharper", "AccessToDisposedClosure", Justification = "The closure is executed synchronously")]
         private void SaveInto(C4Document** outDoc, bool deletion, IDocumentModel model = null)
         {
-            var put = new C4DocPutRequest();
-            using(var docId = new C4String(Id)) {
-                put.docID = docId.AsC4Slice();
-                if(c4Doc != null) {
-                    put.history = &c4Doc->revID;
-                    put.historyCount = 1;
+            var revFlags = (C4RevisionFlags) 0;
+            if (deletion) {
+                revFlags = C4RevisionFlags.Deleted;
+            }
+
+            if (DataOps.ContainsBlob(this)) {
+                revFlags |= C4RevisionFlags.HasAttachments;
+            }
+
+            var body = new FLSliceResult();
+            if (!deletion && !IsEmpty) {
+                if (model != null) {
+                    body = _database.JsonSerializer.Serialize(model);
                 }
-
-                put.save = true;
-
-                if(deletion) {
-                    put.revFlags = C4RevisionFlags.Deleted;
-                }
-
-                if(DataOps.ContainsBlob(this)) {
-                    put.revFlags |= C4RevisionFlags.HasAttachments;
-                }
-
-                var body = new FLSliceResult();
-                if (!deletion && !IsEmpty) {
-                    if (model != null) {
-                        body = _database.JsonSerializer.Serialize(model);
-                        put.body = body;
-                    } else {
-                        body = _database.JsonSerializer.Serialize(_dict);
-                        put.body = body;
-                    }
-                } else if(IsEmpty) {
-                    var encoder = Native.c4db_createFleeceEncoder(_c4Db);
-                    Native.FLEncoder_BeginDict(encoder, 0);
-                    Native.FLEncoder_EndDict(encoder);
-                    put.body = NativeRaw.FLEncoder_Finish(encoder, null);
-                    Native.FLEncoder_Free(encoder);
-                }
-
-                try {
-                    *outDoc = (C4Document*)NativeHandler.Create()
-                        .AllowError(new C4Error(C4ErrorCode.Conflict))
-                        .Execute(err =>
-                        {
-                            var localPut = put;
-                            return Native.c4doc_put(_c4Db, &localPut, null, err);
-                        });
-                } finally {
-                    Native.FLSliceResult_Free(body);
+                else {
+                    body = _database.JsonSerializer.Serialize(_dict);
                 }
             }
-           
+            else if (IsEmpty) {
+                var encoder = Native.c4db_createFleeceEncoder(_c4Db);
+                Native.FLEncoder_BeginDict(encoder, 0);
+                Native.FLEncoder_EndDict(encoder);
+                body = NativeRaw.FLEncoder_Finish(encoder, null);
+                Native.FLEncoder_Free(encoder);
+            }
+
+            try {
+                var rawDoc = c4Doc;
+                if (rawDoc != null) {
+                    *outDoc = (C4Document*) NativeHandler.Create()
+                        .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                            err => NativeRaw.c4doc_update(c4Doc, body, revFlags, err));
+                } else {
+                    using (var docID_ = new C4String(Id)) {
+                        *outDoc = (C4Document*) NativeHandler.Create()
+                            .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                err => NativeRaw.c4doc_create(_c4Db, docID_.AsC4Slice(), body, revFlags, err));
+                    }
+                }
+            } finally {
+                Native.FLSliceResult_Free(body);
+            }
         }
 
         private void SetC4Doc(C4Document* doc)
