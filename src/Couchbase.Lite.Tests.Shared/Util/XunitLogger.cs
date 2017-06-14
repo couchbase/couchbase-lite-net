@@ -19,58 +19,124 @@
 // limitations under the License.
 // 
 #if !WINDOWS_UWP
+using System;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
+using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
 namespace Test.Util
 {
-    internal sealed class XunitLogger : DefaultLogger
+    internal sealed class XunitLoggerProvider : ILoggerProvider
     {
         private readonly ITestOutputHelper _output;
 
-        public XunitLogger(ITestOutputHelper output) : base(false)
+        public XunitLoggerProvider(ITestOutputHelper output)
         {
             _output = output;
         }
 
-        protected override void PerformWrite(string final)
+        public ILogger CreateLogger(string categoryName)
         {
-            _output.WriteLine(final);
+            return new XunitLogger(_output, categoryName);
+        }
+
+        public void Dispose()
+        {
+            
+        }
+    }
+
+    internal sealed class XunitLogger : ILogger
+    {
+        private readonly ITestOutputHelper _output;
+        private readonly string _category;
+
+        public XunitLogger(ITestOutputHelper output, string categoryName)
+        {
+            _output = output;
+            _category = categoryName;
+        }
+
+        public IDisposable BeginScope<TState>(TState state)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return true;
+        }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        {
+            var finalStr = formatter(state, exception);
+            _output.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {_category} {finalStr}");
         }
     }
 }
 #else
+using System;
 using Couchbase.Lite.Support;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Util
 {
-    internal sealed class MSTestLogger : DefaultLogger
+    internal sealed class MSTestLoggerProvider : ILoggerProvider
+    {
+        private readonly TestContext _output;
+
+        public MSTestLoggerProvider(TestContext output)
+        {
+            _output = output;
+        }
+
+        public void Dispose()
+        {
+            
+        }
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return new MSTestLogger(categoryName, _output);
+        }
+    }
+
+    internal sealed class MSTestLogger : ILogger
     {
         #region Variables
 
         private readonly TestContext _output;
+        private readonly string _category;
 
         #endregion
 
         #region Constructors
 
-        public MSTestLogger(TestContext output) : base(false)
+        public MSTestLogger(string categoryName, TestContext output)
         {
+            _category = categoryName;
             _output = output;
         }
 
         #endregion
 
-        #region Overrides
-
-        protected override void PerformWrite(string final)
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
-            _output.WriteLine(final);
+            var finalStr = formatter(state, exception);
+            _output.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {_category} {finalStr}");
         }
 
-        #endregion
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return true;
+        }
+
+        public IDisposable BeginScope<TState>(TState state)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 #endif

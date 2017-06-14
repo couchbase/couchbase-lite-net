@@ -20,7 +20,9 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Couchbase.Lite.DI;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Logging
 {
@@ -39,7 +41,7 @@ namespace Couchbase.Lite.Logging
         /// <summary>
         /// Gets or sets the current logging level of this logger
         /// </summary>
-        Log.LogLevel Level { get; set; }
+        LogLevel Level { get; set; }
 
         #endregion
     }
@@ -49,7 +51,7 @@ namespace Couchbase.Lite.Logging
         #region Variables
 
         private readonly string _domain;
-        private readonly bool _makeTag;
+        private readonly ILogger _logger;
 
         #endregion
 
@@ -57,16 +59,16 @@ namespace Couchbase.Lite.Logging
 
         public string Domain => _domain;
 
-        public Log.LogLevel Level { get; set; }
+        public LogLevel Level { get; set; }
 
         #endregion
 
         #region Constructors
 
-        internal DomainLogger(string domain, bool makeTag)
+        internal DomainLogger(string domain)
         {
-            _domain = domain;
-            _makeTag = makeTag;
+            _domain = domain ?? "Default";
+            _logger = Log.Factory.CreateLogger(_domain);
         }
 
         #endregion
@@ -76,115 +78,132 @@ namespace Couchbase.Lite.Logging
         [System.Diagnostics.Conditional("DEBUG")]
         internal void D(string tag, string msg)
         {
-            PerformLog(logger => logger.D(MakeTag(tag), msg), Log.LogLevel.Debug);
+            if (ShouldLog(LogLevel.Debug)) {
+                _logger.LogDebug(FormatMessage(tag, msg));
+            }
         }
 
         [System.Diagnostics.Conditional("DEBUG")]
         internal void D(string tag, string msg, Exception tr)
         {
-            PerformLog(logger => logger.D(MakeTag(tag), msg, tr), Log.LogLevel.Debug);
+            if (ShouldLog(LogLevel.Debug)) {
+                _logger.LogDebug(FormatMessage(tag, msg, tr));
+            }
         }
 
         [System.Diagnostics.Conditional("DEBUG")]
         internal void D(string tag, string format, params object[] args)
         {
-            PerformLog(logger => logger.D(MakeTag(tag), format, args), Log.LogLevel.Debug);
+            if (ShouldLog(LogLevel.Debug)) {
+                _logger.LogDebug(FormatMessage(tag, format), args);
+            }
         }
 
         internal void E(string tag, string msg)
         {
-            PerformLog(logger => logger.E(MakeTag(tag), msg), Log.LogLevel.Base);
+            if (ShouldLog(LogLevel.Critical)) {
+                _logger.LogError(FormatMessage(tag, msg));
+            }
         }
 
         internal void E(string tag, string msg, Exception tr)
         {
-            PerformLog(logger => logger.E(MakeTag(tag), msg, tr), Log.LogLevel.Base);
+            if (ShouldLog(LogLevel.Critical)) {
+                _logger.LogError(FormatMessage(tag, msg, tr));
+            }
         }
 
         internal void E(string tag, string format, params object[] args)
         {
-            PerformLog(logger => logger.E(MakeTag(tag), format, args), Log.LogLevel.Base);
+            if (ShouldLog(LogLevel.Critical)) {
+                _logger.LogError(FormatMessage(tag, format), args);
+            }
         }
 
         internal void I(string tag, string msg)
         {
-            PerformLog(logger => logger.I(MakeTag(tag), msg), Log.LogLevel.Base);
+            if (ShouldLog(LogLevel.Information)) {
+                _logger.LogInformation(FormatMessage(tag, msg));
+            }
         }
 
         internal void I(string tag, string msg, Exception tr)
         {
-            PerformLog(logger => logger.I(MakeTag(tag), msg, tr), Log.LogLevel.Base);
+            if (ShouldLog(LogLevel.Information)) {
+                _logger.LogInformation(FormatMessage(tag, msg, tr));
+            }
         }
 
         internal void I(string tag, string format, params object[] args)
         {
-            PerformLog(logger => logger.I(MakeTag(tag), format, args), Log.LogLevel.Base);
+            if (ShouldLog(LogLevel.Information)) {
+                _logger.LogInformation(FormatMessage(tag, format), args);
+            }
         }
 
         internal void V(string tag, string msg)
         {
-            PerformLog(logger => logger.V(MakeTag(tag), msg), Log.LogLevel.Verbose);
+            if (ShouldLog(LogLevel.Debug)) {
+                _logger.LogDebug(FormatMessage(tag, msg));
+            }
         }
 
         internal void V(string tag, string msg, Exception tr)
         {
-            PerformLog(logger => logger.V(MakeTag(tag), msg, tr), Log.LogLevel.Verbose);
+            if (ShouldLog(LogLevel.Debug)) {
+                _logger.LogDebug(FormatMessage(tag, msg, tr));
+            }
         }
 
         internal void V(string tag, string format, params object[] args)
         {
-            PerformLog(logger => logger.V(MakeTag(tag), format, args), Log.LogLevel.Verbose);
+            if (ShouldLog(LogLevel.Debug)) {
+                _logger.LogDebug(FormatMessage(tag, format), args);
+            }
         }
 
         internal void W(string tag, string msg)
         {
-            PerformLog(logger => logger.W(MakeTag(tag), msg), Log.LogLevel.Base);
+            if (ShouldLog(LogLevel.Warning)) {
+                _logger.LogWarning(FormatMessage(tag, msg));
+            }
         }
 
         internal void W(string tag, string msg, Exception tr)
         {
-            PerformLog(logger => logger.W(MakeTag(tag), msg, tr), Log.LogLevel.Base);
+            if (ShouldLog(LogLevel.Warning)) {
+                _logger.LogWarning(FormatMessage(tag, msg, tr));
+            }
         }
 
         internal void W(string tag, string format, params object[] args)
         {
-            PerformLog(logger => logger.W(MakeTag(tag), format, args), Log.LogLevel.Base);
+            if (ShouldLog(LogLevel.Warning)) {
+                _logger.LogWarning(FormatMessage(tag, format), args);
+            }
         }
 
         #endregion
 
         #region Private Methods
 
-        private string MakeTag(string tag)
+        private string FormatMessage(string tag, string message)
         {
-            return _makeTag ? String.Format("{0} ({1})", _domain, tag) : tag;
+            return $"({tag}) [{Environment.CurrentManagedThreadId}] {DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture)} {message}";
         }
 
-        private void PerformLog(Action<ILogger> callback, Log.LogLevel level)
+        private string FormatMessage(string tag, string message, Exception e)
         {
-            if (callback == null) {
-                return;
-            }
-
-            var loggers = Log.Loggers;
-            if (loggers == null) {
-                return;
-            }
-
-            if (ShouldLog(level)) {
-                foreach (var logger in loggers) {
-                    callback(logger);
-                }
-            }
+            return $"({tag}) [{Environment.CurrentManagedThreadId}] {DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture)} {message}: {e}";
         }
 
-        private bool ShouldLog(Log.LogLevel level)
+        private bool ShouldLog(LogLevel level)
         {
-            if (Log.Disabled) {
+            if (Log.Disabled || Level == LogLevel.None) {
                 return false;
             }
 
-            return Level >= level;
+            return Level <= level;
         }
 
         #endregion
@@ -337,9 +356,9 @@ namespace Couchbase.Lite.Logging
                 CreateAndAddLogger(domain, i++);
             }
 
-            SyncPerf.Level = Log.LogLevel.None;
+            SyncPerf.Level = LogLevel.None;
 
-            _allLoggers[_allLoggers.Length - 1] = new DomainLogger(null, false) { Level = Log.LogLevel.Base };
+            _allLoggers[_allLoggers.Length - 1] = new DomainLogger(null) { Level = LogLevel.Information };
         }
 
         #endregion
@@ -363,7 +382,7 @@ namespace Couchbase.Lite.Logging
 
         private void CreateAndAddLogger(string domain, int index)
         {
-            var logger = new DomainLogger(domain, true) { Level = Log.LogLevel.Base };
+            var logger = new DomainLogger(domain) { Level = LogLevel.Information };
             _allLoggers[index] = logger;
         }
 

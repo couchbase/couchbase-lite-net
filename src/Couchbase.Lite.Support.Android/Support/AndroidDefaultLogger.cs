@@ -1,38 +1,67 @@
-﻿//
-//  DefaultLogger.cs
-//
-//  Author:
-//      Jim Borden  <jim.borden@couchbase.com>
-//
-//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
-//
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
-//
-
+﻿// 
+// AndroidDefaultLogger.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
 using System;
-using System.Threading.Tasks;
-using Couchbase.Lite.DI;
-using Log = Android.Util.Log;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Support
 {
+    internal sealed class AndroidLoggerProvider : ILoggerProvider
+    {
+        #region IDisposable
+
+        public void Dispose()
+        {
+            
+        }
+
+        #endregion
+
+        #region ILoggerProvider
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return new AndroidDefaultLogger(categoryName);
+        }
+
+        #endregion
+    }
+
     internal sealed class AndroidDefaultLogger : ILogger
     {
-        private string MakeMessage(string msg, Exception tr)
+        #region Variables
+
+        private readonly string _category;
+
+        #endregion
+
+        #region Constructors
+
+        public AndroidDefaultLogger(string categoryName)
         {
-            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
-            return $"[{Environment.CurrentManagedThreadId}] {dateTime} {msg}:\r\n{tr}";
+            _category = categoryName;
         }
+
+        #endregion
+
+        #region Private Methods
 
         private string MakeMessage(string msg)
         {
@@ -40,104 +69,41 @@ namespace Couchbase.Lite.Support
             return $"[{Environment.CurrentManagedThreadId}] {dateTime} {msg}";
         }
 
-        private string MakeLine(string tag, string msg)
+        #endregion
+
+        #region ILogger
+
+        public IDisposable BeginScope<TState>(TState state)
         {
-            return $"{tag} {MakeMessage(msg)}";
+            throw new NotImplementedException();
         }
 
-        private string MakeLine(string tag, string msg, Exception tr)
+        public bool IsEnabled(LogLevel logLevel)
         {
-            return $"{tag} {MakeMessage(msg, tr)}";
+            return true;
         }
 
-        public void D(string tag, string msg)
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
-            var line = MakeLine(tag, msg);
-            Task.Factory.StartNew(() => Log.Debug("CouchbaseLite", line));
+            var finalStr = MakeMessage($"{_category} {formatter(state, exception)}");
+            switch (logLevel) {
+                case LogLevel.Critical:
+                case LogLevel.Error:
+                    global::Android.Util.Log.Error("CouchbaseLite", finalStr);
+                    break;
+                case LogLevel.Warning:
+                    global::Android.Util.Log.Warn("CouchbaseLite", finalStr);
+                    break;
+                case LogLevel.Information:
+                    global::Android.Util.Log.Info("CouchbaseLite", finalStr);
+                    break;
+                case LogLevel.Debug:
+                case LogLevel.Trace:
+                    global::Android.Util.Log.Verbose("CouchbaseLite", finalStr);
+                    break;
+            }
         }
 
-        public void D(string tag, string format, params object[] args)
-        {
-            var line = MakeLine(tag, String.Format(format, args));
-            Task.Factory.StartNew(() => Log.Debug("CouchbaseLite", line));
-        }
-
-        public void D(string tag, string msg, Exception tr)
-        {
-            var line = MakeLine(tag, msg, tr);
-            Task.Factory.StartNew(() => Log.Debug("CouchbaseLite", line));
-        }
-
-        public void E(string tag, string msg)
-        {
-            var line = MakeLine(tag, msg);
-            Task.Factory.StartNew(() => Log.Error("CouchbaseLite", line));
-        }
-
-        public void E(string tag, string format, params object[] args)
-        {
-            var line = MakeLine(tag, String.Format(format, args));
-            Task.Factory.StartNew(() => Log.Error("CouchbaseLite", line));
-        }
-
-        public void E(string tag, string msg, Exception tr)
-        {
-            var line = MakeLine(tag, msg, tr);
-            Task.Factory.StartNew(() => Log.Error("CouchbaseLite", line));
-        }
-
-        public void I(string tag, string msg)
-        {
-            var line = MakeLine(tag, msg);
-            Task.Factory.StartNew(() => Log.Info("CouchbaseLite", line));
-        }
-
-        public void I(string tag, string format, params object[] args)
-        {
-            var line = MakeLine(tag, String.Format(format, args));
-            Task.Factory.StartNew(() => Log.Info("CouchbaseLite", line));
-        }
-
-        public void I(string tag, string msg, Exception tr)
-        {
-            var line = MakeLine(tag, msg, tr);
-            Task.Factory.StartNew(() => Log.Info("CouchbaseLite", line));
-        }
-
-        public void V(string tag, string msg)
-        {
-            var line = MakeLine(tag, msg);
-            Task.Factory.StartNew(() => Log.Verbose("CouchbaseLite", line));
-        }
-
-        public void V(string tag, string format, params object[] args)
-        {
-            var line = MakeLine(tag, String.Format(format, args));
-            Task.Factory.StartNew(() => Log.Verbose("CouchbaseLite", line));
-        }
-
-        public void V(string tag, string msg, Exception tr)
-        {
-            var line = MakeLine(tag, msg, tr);
-            Task.Factory.StartNew(() => Log.Verbose("CouchbaseLite", line));
-        }
-
-        public void W(string tag, string msg)
-        {
-            var line = MakeLine(tag, msg);
-            Task.Factory.StartNew(() => Log.Warn("CouchbaseLite", line));
-        }
-
-        public void W(string tag, string format, params object[] args)
-        {
-            var line = MakeLine(tag, String.Format(format, args));
-            Task.Factory.StartNew(() => Log.Warn("CouchbaseLite", line));
-        }
-
-        public void W(string tag, string msg, Exception tr)
-        {
-            var line = MakeLine(tag, msg, tr);
-            Task.Factory.StartNew(() => Log.Warn("CouchbaseLite", line));
-        }
+        #endregion
     }
 }

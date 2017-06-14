@@ -11,6 +11,7 @@
     <DocumentationFile>bin\Packaging\netstandard1.4\Couchbase.Lite.Support.NetDesktop.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.1.2" />
     <PackageReference Include="System.Net.Security" Version="4.3.1" />
   </ItemGroup>
 

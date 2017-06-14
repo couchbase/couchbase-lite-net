@@ -20,11 +20,11 @@
 // 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ObjCRuntime;
 
 namespace Couchbase.Lite.Logging
@@ -34,48 +34,7 @@ namespace Couchbase.Lite.Logging
     /// </summary>
     public static class Log
     {
-        #region Enums
-
-        /// <summary>
-        /// A level of logging verbosity
-        /// </summary>
-        public enum LogLevel
-        {
-            /// <summary>
-            /// No logs are output
-            /// </summary>
-            None,
-
-            /// <summary>
-            /// Informational logs are output (the default for most)
-            /// </summary>
-            Base,
-
-            /// <summary>
-            /// Verbose logs are output
-            /// </summary>
-            Verbose,
-
-            /// <summary>
-            /// Debugging logs are output (Only applicable in debug builds)
-            /// </summary>
-            Debug
-        }
-
-        #endregion
-
         #region Constants
-
-        internal static readonly LogTo To = new LogTo();
-
-        /// <summary>
-        /// The available logging domains (for use with setting the
-        /// logging level on various domains)
-        /// </summary>
-        public static readonly LogDomains Domains = new LogDomains(To);
-
-        internal static IEnumerable<ILogger> Loggers => _Loggers;
-
 
         // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
         private static readonly C4LogCallback _LogCallback;
@@ -84,8 +43,9 @@ namespace Couchbase.Lite.Logging
         #endregion
 
         #region Variables
-
-        private static List<ILogger> _Loggers = new List<ILogger> { Service.Provider.GetRequiredService<ILogger>() };
+            
+        private static LogTo _To;
+        private static AtomicBool _ProvidersAdded = new AtomicBool(false);
         private static LogScrubSensitivity _ScrubSensitivity;
 
         #endregion
@@ -97,6 +57,12 @@ namespace Couchbase.Lite.Logging
         /// nothing will be logged)
         /// </summary>
         public static bool Disabled { get; set; }
+
+        /// <summary>
+        /// The available logging domains (for use with setting the
+        /// logging level on various domains)
+        /// </summary>
+        public static LogDomains Domains { get; private set; }
 
         /// <summary>
         /// Gets or sets the logging level for Log.* calls (domains
@@ -118,14 +84,27 @@ namespace Couchbase.Lite.Logging
             set { 
                 if (value != _ScrubSensitivity) {
                     if (value == LogScrubSensitivity.AllOk) {
-                        foreach (var logger in Loggers) {
-                            logger.I("Log", "SCRUBBING DISABLED, THIS LOG MAY CONTAIN SENSITIVE INFORMATION");
-                        }
+                        Factory.CreateLogger("Log")
+                            .LogInformation("SCRUBBING DISABLED, THIS LOG MAY CONTAIN SENSITIVE INFORMATION");
                     }
 
                     _ScrubSensitivity = value;
                 }
             }
+        }
+
+        internal static ILoggerFactory Factory { get; private set; }
+
+        internal static LogTo To
+        {
+            get {
+                if (!_ProvidersAdded.Set(true)) {
+                    AddLoggerProvider(Service.Provider.GetRequiredService<ILoggerProvider>());
+                }
+
+                return _To;
+            }
+            set => _To = value;
         }
 
         #endregion
@@ -134,6 +113,9 @@ namespace Couchbase.Lite.Logging
 
         static unsafe Log()
         {
+            Factory = new LoggerFactory();
+            To = new LogTo();
+            Domains = new LogDomains(_To);
             _LogCallback = LiteCoreLog;
             Native.c4log_writeToCallback(C4LogLevel.Debug, _LogCallback, true);
         }
@@ -142,24 +124,23 @@ namespace Couchbase.Lite.Logging
 
         #region Public Methods
 
-        /// <summary>
-        /// Add a logger to the list of loggers to write output to
-        /// </summary>
-        /// <param name="logger">The logger to add</param>
-        public static void AddLogger(ILogger logger)
+        public static void AddLoggerProvider(ILoggerProvider provider, bool keepDefault = false)
         {
-            if (logger != null) {
-                _Loggers.Add (logger);
+            if (!keepDefault) {
+                _ProvidersAdded.Set(true);
             }
+
+            Factory.AddProvider(provider);
         }
 
-        /// <summary>
-        /// Sets the logger to the library provided logger
-        /// </summary>
-        /// <returns><c>true</c>, if logger was set, <c>false</c> otherwise.</returns>
-        public static bool SetDefaultLogger()
+        internal static void ClearLoggerProviders()
         {
-            return SetLogger(Service.Provider.GetRequiredService<ILogger>());
+            _ProvidersAdded.Set(true);
+            var oldFactory = Factory;
+            Factory = new LoggerFactory();
+            oldFactory.Dispose();
+            To = new LogTo();
+            Domains = new LogDomains(_To);
         }
 
         /// <summary>
@@ -181,7 +162,7 @@ namespace Couchbase.Lite.Logging
         /// <param name="levels">A map of domains to levels</param>
         public static unsafe void SetLiteCoreLogLevels(IDictionary<string, LogLevel> levels)
         {
-            var maxLevel = Log.LogLevel.None;
+            var maxLevel = LogLevel.None;
             foreach (var pair in levels) {
                 var log = Native.c4log_getDomain(pair.Key, false);
                 if (log == null) {
@@ -196,25 +177,6 @@ namespace Couchbase.Lite.Logging
             if (levels.Count > 0) {
                 Domains.LiteCore.Level = maxLevel;
             }
-        }
-
-        /// <summary>
-        /// Sets the logger, disposing and removing all others.
-        /// </summary>
-        /// <returns><c>true</c>, if Logger was set, <c>false</c> otherwise.</returns>
-        /// <param name="customLogger">Custom logger.</param>
-        public static bool SetLogger(ILogger customLogger)
-        {
-            var loggers = _Loggers;
-            if (loggers != null) {
-                foreach (var logger in loggers) {
-                    var disposable = logger as IDisposable;
-                    disposable?.Dispose();
-                }
-            }
-
-            _Loggers = customLogger != null ? new List<ILogger> { customLogger } : new List<ILogger>();
-            return true;
         }
 
         #endregion
@@ -247,14 +209,18 @@ namespace Couchbase.Lite.Logging
         private static C4LogLevel Transform(LogLevel level)
         {
             switch (level) {
-                case LogLevel.Base:
+                case LogLevel.Information:
                     return C4LogLevel.Info;
                 case LogLevel.Debug:
+                case LogLevel.Trace:
                     return C4LogLevel.Debug;
                 case LogLevel.None:
                     return C4LogLevel.None;
-                case LogLevel.Verbose:
-                    return C4LogLevel.Verbose;
+                case LogLevel.Warning:
+                    return C4LogLevel.Warning;
+                case LogLevel.Critical:
+                case LogLevel.Error:
+                    return C4LogLevel.Error;
                 default:
                     throw new ArgumentOutOfRangeException($"Invalid log level {level}");
             }

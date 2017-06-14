@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Logging
 {
@@ -36,11 +37,11 @@ namespace Couchbase.Lite.Logging
 
         public string Domain { get; }
 
-        public Log.LogLevel Level
+        public LogLevel Level
         {
             get {
                 var tmp = _components.FirstOrDefault();
-                return tmp?.Level ?? Log.LogLevel.None;
+                return tmp?.Level ?? LogLevel.None;
             }
             set { 
                 foreach (var component in _components) {

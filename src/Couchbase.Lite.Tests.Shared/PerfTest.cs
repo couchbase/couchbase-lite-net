@@ -53,7 +53,8 @@ namespace Test
             get => _output;
             set {
                 _output = value;
-                Log.AddLogger(new MSTestLogger(_output));
+                Log.ClearLoggerProviders();
+                Log.AddLoggerProvider(new MSTestLoggerProvider(_output));
             }
         }
 #endif
@@ -67,7 +68,8 @@ namespace Test
         protected PerfTest(ITestOutputHelper output)
         {
             _output = output;
-            Log.SetLogger(new XunitLogger(output));
+            Log.ClearLoggerProviders();
+            Log.AddLoggerProvider(new XunitLoggerProvider(output));
         }
 #endif
 

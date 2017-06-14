@@ -26,6 +26,7 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using LiteCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Support
 {
@@ -78,9 +79,13 @@ namespace Couchbase.Lite.Support
 
             Service.RegisterServices(collection =>
             {
-                collection.AddSingleton<ILogger, DefaultLogger>();
-                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>();
-                collection.AddSingleton<ISslStreamFactory, SslStreamFactory>();
+                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
+                    .AddSingleton<ISslStreamFactory, SslStreamFactory>()
+                    .AddSingleton<ILoggerProvider>(
+                        provider =>
+                        {
+                            return new FileLoggerProvider(Path.Combine(AppContext.BaseDirectory, "Logs"));
+                        });
             });
         }
 

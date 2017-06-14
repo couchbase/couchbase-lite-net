@@ -52,7 +52,8 @@ namespace Test
             get => _testContext;
             set {
                 _testContext = value;
-                Log.AddLogger(new MSTestLogger(_testContext));
+                Log.ClearLoggerProviders();
+                Log.AddLoggerProvider(new MSTestLoggerProvider(_testContext));
             }
         }
 #endif
@@ -73,7 +74,8 @@ namespace Test
 #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
         {
-            Log.AddLogger(new XunitLogger(output));
+            Log.ClearLoggerProviders();
+            Log.AddLoggerProvider(new XunitLoggerProvider(output));
             _output = output;
 #else
         public TestCase()
@@ -140,7 +142,6 @@ namespace Test
         {
             Db?.Dispose();
             Db = null;
-            Log.SetDefaultLogger();
         }
 
         protected void LoadJSONResource(string resourceName)

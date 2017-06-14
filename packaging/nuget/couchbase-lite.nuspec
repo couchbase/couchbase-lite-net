@@ -25,6 +25,7 @@
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
         <dependency id="Microsoft.Extensions.DependencyInjection" version="1.1.1" />
+        <dependency id="Microsoft.Extensions.Logging" version="1.1.2" />
       </group>
       <group targetFramework="netcoreapp1.0">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
@@ -33,6 +34,7 @@
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
         <dependency id="Microsoft.Extensions.DependencyInjection" version="1.1.1" />
+        <dependency id="Microsoft.Extensions.Logging" version="1.1.2" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="$version$" />
       </group>
       <group targetFramework="net461">
@@ -42,6 +44,7 @@
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
         <dependency id="Microsoft.Extensions.DependencyInjection" version="1.1.1" />
+        <dependency id="Microsoft.Extensions.Logging" version="1.1.2" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="$version$" />
       </group>
       <group targetFramework="uap10.0">
@@ -51,6 +54,7 @@
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
         <dependency id="Microsoft.Extensions.DependencyInjection" version="1.1.1" />
+        <dependency id="Microsoft.Extensions.Logging" version="1.1.2" />
         <dependency id="Couchbase.Lite.Support.UWP" version="$version$" />
       </group>
       <group targetFramework="monoandroid">
@@ -60,6 +64,7 @@
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
         <dependency id="Microsoft.Extensions.DependencyInjection" version="1.1.1" />
+        <dependency id="Microsoft.Extensions.Logging" version="1.1.2" />
         <dependency id="Couchbase.Lite.Support.Android" version="$version$" />
       </group>
       <group targetFramework="xamarinios">
@@ -69,6 +74,7 @@
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
         <dependency id="Microsoft.Extensions.DependencyInjection" version="1.1.1" />
+        <dependency id="Microsoft.Extensions.Logging" version="1.1.2" />
         <dependency id="Couchbase.Lite.Support.iOS" version="$version$" />
       </group>
       <group targetFramework="xamarintvos">
@@ -78,6 +84,7 @@
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
         <dependency id="Microsoft.Extensions.DependencyInjection" version="1.1.1" />
+        <dependency id="Microsoft.Extensions.Logging" version="1.1.2" />
         <dependency id="Couchbase.Lite.Support.tvOS" version="$version$" />
       </group>
     </dependencies>

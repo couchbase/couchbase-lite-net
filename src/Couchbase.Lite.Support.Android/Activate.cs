@@ -21,7 +21,9 @@
 
 using Android.Content;
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Support
 {
@@ -39,8 +41,8 @@ namespace Couchbase.Lite.Support
             Service.RegisterServices(collection =>
             {
                 collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
-                    .AddSingleton<ILogger, AndroidDefaultLogger>()
-                    .AddSingleton<ISslStreamFactory, SslStreamFactory>();
+                    .AddSingleton<ISslStreamFactory, SslStreamFactory>()
+                    .AddSingleton<ILoggerProvider>(provider => new AndroidLoggerProvider());
             });
         }
     }

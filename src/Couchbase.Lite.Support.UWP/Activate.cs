@@ -19,7 +19,9 @@
 // limitations under the License.
 // 
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Support
 {
@@ -37,10 +39,10 @@ namespace Couchbase.Lite.Support
         {
             Service.RegisterServices(collection =>
             {
-                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>();
-                collection.AddSingleton<ILogger, UwpDefaultLogger>();
-                collection.AddSingleton<ISslStreamFactory, SslStreamFactory>();
-                collection.AddSingleton<IReachabilityFactory, ReachabilityFactory>();
+                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
+                    .AddSingleton<ISslStreamFactory, SslStreamFactory>()
+                    .AddSingleton<IReachabilityFactory, ReachabilityFactory>()
+                    .AddSingleton<ILoggerProvider>(provider => new UwpLoggerProvider());
             });
         }
 

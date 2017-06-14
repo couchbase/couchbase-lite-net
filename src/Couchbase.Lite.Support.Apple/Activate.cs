@@ -21,8 +21,10 @@
 using System;
 using System.IO;
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Logging;
 using Foundation;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Support
 {
@@ -39,14 +41,14 @@ namespace Couchbase.Lite.Support
             Console.WriteLine("Loading support items");
             Service.RegisterServices(collection =>
             {
-                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>();
+                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
 #if __IOS__
-                collection.AddSingleton<ILogger, iOSDefaultLogger>();
+                    .AddSingleton<ILoggerProvider>(provider => new iOSLoggerProvider())
 #else
-                collection.AddSingleton<ILogger, tvOSDefaultLogger>();
+                    .AddSingleton<ILoggerProvider>(provider => new tvOSLoggerProvider())
 #endif
 
-                collection.AddSingleton<ISslStreamFactory, SslStreamFactory>();
+                    .AddSingleton<ISslStreamFactory, SslStreamFactory>();
             });
  
             Console.WriteLine("Loading libLiteCore.dylib");

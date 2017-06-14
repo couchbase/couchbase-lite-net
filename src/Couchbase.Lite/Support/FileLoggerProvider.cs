@@ -1,5 +1,5 @@
 ﻿// 
-// UwpDefaultLogger.cs
+// FileLoggerProvider.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -21,16 +21,29 @@
 using System;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Windows.Storage;
 
 namespace Couchbase.Lite.Support
 {
-    public sealed class UwpLoggerProvider : ILoggerProvider
+    internal sealed class FileLoggerProvider : ILoggerProvider
     {
-        public readonly string _filename = $"Log-{GetTimeStamp()}.txt";
+        #region Variables
 
+        private readonly string _logDirectory;
+        private readonly string _filename = $"Log-{GetTimeStamp()}.txt";
+
+        #endregion
+
+        #region Constructors
+
+        public FileLoggerProvider(string logDirectory)
+        {
+            _logDirectory = logDirectory;
+        }
+
+        #endregion
+
+        #region Private Methods
 
         private static string GetTimeStamp()
         {
@@ -38,11 +51,12 @@ namespace Couchbase.Lite.Support
             return $"{now.Year:D4}{now.Month:D2}{now.Day:D2}-{now.Hour:D2}{now.Minute:D2}{now.Second:D2}{now.Millisecond:D3}";
         }
 
+        #endregion
+
         #region IDisposable
 
         public void Dispose()
         {
-            
         }
 
         #endregion
@@ -51,61 +65,53 @@ namespace Couchbase.Lite.Support
 
         public ILogger CreateLogger(string categoryName)
         {
-            return new UwpDefaultLogger(categoryName, _filename);
+            var directory = _logDirectory ?? Path.Combine(AppContext.BaseDirectory, "Logs");
+            Directory.CreateDirectory(directory);
+            return new FileLogger(categoryName, Path.Combine(_logDirectory, _filename));
         }
 
         #endregion
     }
 
-    internal sealed class UwpDefaultLogger : ILogger, IDisposable
+    /// <summary>
+    /// A default logging implementation that has a virtual method for doing the actual
+    /// log writing (useful as a base class to get preformatted messages for a custom logger)
+    /// </summary>
+    internal sealed class FileLogger : ILogger, IDisposable
     {
+        #region Constants
+
+        private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
+
+        #endregion
+
         #region Variables
 
         private readonly string _category;
-        private readonly ManualResetEventSlim _loggingReady = new ManualResetEventSlim();
-        private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
-        private bool _disposed;
         private StreamWriter _writer;
 
         #endregion
 
         #region Constructors
 
-        public UwpDefaultLogger(string categoryName, string filename)
+        internal FileLogger(string category, string filePath)
         {
-            _category = categoryName;
-            OpenAsync(filename);
+            _writer = new StreamWriter(File.Open(filePath, FileMode.Create,
+                FileAccess.Write, FileShare.ReadWrite)) {
+                AutoFlush = true
+            };
+            _category = category;
         }
 
         #endregion
 
-        private async Task OpenAsync(string filename)
-        {
-            var result = await ApplicationData.Current.LocalFolder.CreateFolderAsync("Logs", CreationCollisionOption.OpenIfExists);
-            if (_disposed) {
-                _loggingReady.Set();
-                return;
-            }
-
-            _writer = new StreamWriter(File.Open(Path.Combine(result.Path, filename), FileMode.Create,
-                FileAccess.Write, FileShare.ReadWrite))
-            {
-                AutoFlush = true
-            };
-            _loggingReady.Set();
-        }
-
         #region IDisposable
 
+        /// <inheritdoc />
         public void Dispose()
         {
-            if(_disposed) {
-                return;
-            }
-
-            _disposed = true;
             _writer?.Dispose();
-            _loggingReady.Dispose();
+            _writer = null;
         }
 
         #endregion
@@ -124,15 +130,10 @@ namespace Couchbase.Lite.Support
 
         public async void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
-            if (_disposed) {
-                return;
-            }
-
-            _loggingReady.Wait();
-            await Semaphore.WaitAsync().ConfigureAwait(false);
+            await Semaphore.WaitAsync();
             try {
                 var finalStr = formatter(state, exception);
-                _writer.WriteLine($"{_category} {finalStr}");
+                _writer?.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {_category} {finalStr}");
             } finally {
                 Semaphore.Release();
             }
