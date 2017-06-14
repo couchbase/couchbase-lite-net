@@ -29,6 +29,6 @@
     <file target="build\xamarintvos\Couchbase.Lite.Support.tvOS.targets" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\tvos.targets" />
     <file target="build\xamarintvos\" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\Resources\libLiteCore.dylib" />
     <file target="src" src="src\Couchbase.Lite.Support.Apple\Activate.cs" />
-    <file traget="src" src="src\Couchbase.Lite.Support.Apple\tvOS\**\*.cs" />
+    <file target="src" src="src\Couchbase.Lite.Support.Apple\tvOS\**\*.cs" />
   </files>
 </package>
