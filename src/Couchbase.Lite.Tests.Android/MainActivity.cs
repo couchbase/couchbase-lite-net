@@ -13,7 +13,7 @@ using Xunit.Runners.UI;
 
 namespace Couchbase.Lite.Tests.Android
 {
-    [Activity(Label = "CBLUnit", MainLauncher = true, Theme = "@android:style/Theme.Material.Light", Name ="Test.Activity")]
+    [Activity(Label = "CBLUnit", MainLauncher = true, Theme = "@android:style/Theme.Material.Light", Name ="test.activity")]
     public class MainActivity : RunnerActivity
     {
         public static Context ActivityContext { get; private set; }
