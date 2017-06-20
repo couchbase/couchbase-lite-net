@@ -18,8 +18,8 @@
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="1.1.1" />
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="1.1.2" />
+        <dependency id="Microsoft.Extensions.DependencyInjection" version="1.1.1" />
+        <dependency id="Microsoft.Extensions.Logging" version="1.1.2" />
     </dependencies>
   </metadata>
   <files>
