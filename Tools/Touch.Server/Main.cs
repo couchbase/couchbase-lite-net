@@ -139,6 +139,7 @@ class SimpleListener {
               line = br.ReadLine(out more);
               if(line.StartsWith("Tests run")) {
                   lastLine = line;
+                  more = false;
               }
 
               Console.Out.WriteLine(line);

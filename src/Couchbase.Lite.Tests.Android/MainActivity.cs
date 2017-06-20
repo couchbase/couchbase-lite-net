@@ -28,6 +28,8 @@ namespace Couchbase.Lite.Tests.Android
 
             AddExecutionAssembly(typeof(ExtensibilityPointFactory).Assembly);
             AutoStart = true;
+
+            // This doesn't seem to work on Android...at least not on GenyMotion
             TerminateAfterExecution = true;
             using (var str = GetType().Assembly.GetManifestResourceStream("result_ip"))
             using (var sr = new StreamReader(str)) {
