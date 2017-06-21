@@ -215,6 +215,11 @@ namespace Couchbase.Lite
         private IEnumerator<KeyValuePair<string, object>> GetGenerator()
         {
             foreach (var key in Keys) {
+                object value;
+                if (_dict.TryGetValue(key, out value) && Object.ReferenceEquals(value, RemovedValue)) {
+                    continue;
+                }
+
                 yield return new KeyValuePair<string, object>(key, GetObject(key));
             }
         }

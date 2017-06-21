@@ -1179,6 +1179,31 @@ namespace Test
             doc.ToDictionary().Should().BeEmpty("because everything was removed");
         }
 
+        [Fact]
+        public void TestRemoveKeysBySettingDictionary()
+        {
+            var props = new Dictionary<string, object> {
+                ["PropName1"] = "Val1",
+                ["PropName2"] = 42
+            };
+
+            var newDoc = new Document("docName", props);
+            Db.Save(newDoc);
+
+            var newProps = new Dictionary<string, object> {
+                ["PropName3"] = "Val3",
+                ["PropName4"] = 84
+            };
+
+            var existingDoc = Db.GetDocument("docName");
+            existingDoc.Set(newProps);
+            Db.Save(existingDoc);
+
+            existingDoc.ToDictionary().ShouldBeEquivalentTo(new Dictionary<string, object> {
+                ["PropName3"] = "Val3",
+                ["PropName4"] = 84
+            });
+        }
 
         [Fact]
         public void TestContainsKey()
