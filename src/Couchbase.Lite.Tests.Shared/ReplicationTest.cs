@@ -85,6 +85,26 @@ namespace Test
             RunReplication(config, 0, 0);
         }
 
+        [Fact]
+        public void TestPullDoc()
+        {
+            // For https://github.com/couchbase/couchbase-lite-core/issues/156
+            var doc1 = new Document("doc1");
+            doc1.Set("name", "Tiger");
+            Db.Save(doc1);
+            Db.Count.Should().Be(1, "because only one document was saved so far");
+
+            var doc2 = new Document("doc2");
+            doc2.Set("name", "Cat");
+            _otherDB.Save(doc2);
+
+            var config = CreateConfig(false, true);
+            RunReplication(config, 0, 0);
+
+            Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
+            doc2.GetString("name").Should().Be("Cat");
+        }
+
         // The below tests are disabled because they require orchestration and should be moved
         // to the functional test suite
         //[Fact] 
