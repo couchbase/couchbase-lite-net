@@ -86,45 +86,29 @@ namespace Couchbase.Lite.Internal.Doc
             return false;
         }
 
-        internal static ArrayObject ConvertArray(ArrayObject array, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
-        {
-            array.Changed += callback;
-            return array;
-        }
-
-        internal static DictionaryObject ConvertDictionary(IDictionary<string, object> dictionary, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
+        internal static DictionaryObject ConvertDictionary(IDictionary<string, object> dictionary)
         {
             var subdocument = new DictionaryObject();
             subdocument.Set(dictionary);
-            subdocument.Changed += callback;
             return subdocument;
         }
 
-        internal static DictionaryObject ConvertDictionaryObject(DictionaryObject subdoc, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
-        {
-            subdoc.Changed += callback;
-            return subdoc;
-        }
-
-        internal static ArrayObject ConvertList(IList list, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
+        internal static ArrayObject ConvertList(IList list)
         {
             var array = new ArrayObject();
             array.Set(list);
-            array.Changed += callback;
             return array;
         }
 
-        internal static ArrayObject ConvertROArray(ReadOnlyArray readOnlyArray, EventHandler<ObjectChangedEventArgs<ArrayObject>> callback)
+        internal static ArrayObject ConvertROArray(ReadOnlyArray readOnlyArray)
         {
             var array = new ArrayObject(readOnlyArray.Data);
-            array.Changed += callback;
             return array;
         }
 
-        internal static DictionaryObject ConvertRODictionary(ReadOnlyDictionary readOnlySubdoc, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback)
+        internal static DictionaryObject ConvertRODictionary(ReadOnlyDictionary readOnlySubdoc)
         {
             var subdocument = new DictionaryObject(readOnlySubdoc.Data);
-            subdocument.Changed += callback;
             return subdocument;
         }
 
@@ -185,8 +169,7 @@ namespace Couchbase.Lite.Internal.Doc
             return (long)Math.Truncate(ConvertToDecimal(value));
         }
 
-        internal static object ConvertValue(object value, EventHandler<ObjectChangedEventArgs<DictionaryObject>> callback1,
-             EventHandler<ObjectChangedEventArgs<ArrayObject>> callback2)
+        internal static object ConvertValue(object value)
         {
             switch (value) {
                 case null:
@@ -194,21 +177,21 @@ namespace Couchbase.Lite.Internal.Doc
                 case DateTimeOffset dto:
                     return dto.ToString("o");
                 case DictionaryObject subdoc:
-                    return ConvertDictionaryObject(subdoc, callback1);
+                    return subdoc;
                 case ArrayObject arr:
-                    return ConvertArray(arr, callback2);
+                    return arr;
                 case ReadOnlyDictionary rosubdoc:
-                    return ConvertRODictionary(rosubdoc, callback1);
+                    return ConvertRODictionary(rosubdoc);
                 case ReadOnlyArray roarr:
-                    return ConvertROArray(roarr, callback2);
+                    return ConvertROArray(roarr);
                 case JObject jobj:
-                    return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>(), callback1);
+                    return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>());
                 case JArray jarr:
-                    return ConvertList(jarr.ToObject<IList>(), callback2);
+                    return ConvertList(jarr.ToObject<IList>());
                 case IDictionary<string, object> dict:
-                    return ConvertDictionary(dict, callback1);
+                    return ConvertDictionary(dict);
                 case IList list:
-                    return ConvertList(list, callback2);
+                    return ConvertList(list);
                 default:
                     return value;
             }

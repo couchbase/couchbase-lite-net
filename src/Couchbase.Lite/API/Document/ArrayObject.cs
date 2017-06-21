@@ -79,7 +79,6 @@ namespace Couchbase.Lite
         private readonly ThreadSafety _changedSafety = new ThreadSafety(false);
         private readonly ThreadSafety _threadSafety = new ThreadSafety(true);
 
-        internal event EventHandler<ObjectChangedEventArgs<ArrayObject>> Changed;
         private bool _changed;
         private IList _list;
 
@@ -160,40 +159,7 @@ namespace Couchbase.Lite
             _list = new List<object>(count);
             for (int i = 0; i < count; i++) {
                 var value = base.GetObject(i);
-                _list.Add(DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
-            }
-        }
-
-        private void ObjectChanged(object sender, ObjectChangedEventArgs<DictionaryObject> args)
-        {
-            SetChanged();
-        }
-
-        private void ObjectChanged(object sender, ObjectChangedEventArgs<ArrayObject> args)
-        {
-            SetChanged();
-        }
-
-        private void RemoveAllChangedListeners()
-        {
-            if (_list == null) {
-                return;
-            }
-
-            foreach (var obj in _list) {
-                RemoveChangedListener(obj);
-            }
-        }
-
-        private void RemoveChangedListener(object value)
-        {
-            switch (value) {
-                case DictionaryObject subdoc:
-                    subdoc.Changed -= ObjectChanged;
-                    break;
-                case ArrayObject array:
-                    array.Changed -= ObjectChanged;
-                    break;
+                _list.Add(DataOps.ConvertValue(value));
             }
         }
 
@@ -203,7 +169,6 @@ namespace Couchbase.Lite
             {
                 if (!_changed) {
                     _changed = true;
-                    Changed?.Invoke(this, new ObjectChangedEventArgs<ArrayObject>(this));
                 }
             });
         }
@@ -365,7 +330,7 @@ namespace Couchbase.Lite
                     CopyFleeceData();
                 }
 
-                _list.Add(DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
+                _list.Add(DataOps.ConvertValue(value));
                 SetChanged();
                 return this;
             });
@@ -392,7 +357,7 @@ namespace Couchbase.Lite
                     CopyFleeceData();
                 }
 
-                _list.Insert(index, DataOps.ConvertValue(value, ObjectChanged, ObjectChanged));
+                _list.Insert(index, DataOps.ConvertValue(value));
                 SetChanged();
                 return this;
             });
@@ -408,7 +373,6 @@ namespace Couchbase.Lite
                 }
 
                 var value = _list[index];
-                RemoveChangedListener(value);
                 _list.RemoveAt(index);
                 SetChanged();
                 return this;
@@ -420,11 +384,9 @@ namespace Couchbase.Lite
         {
             return _threadSafety.LockedForWrite(() =>
             {
-                RemoveAllChangedListeners();
-
                 var result = new List<object>();
                 foreach (var item in array) {
-                    result.Add(DataOps.ConvertValue(item, ObjectChanged, ObjectChanged));
+                    result.Add(DataOps.ConvertValue(item));
                 }
 
                 _list = result;
@@ -444,8 +406,7 @@ namespace Couchbase.Lite
 
                 var oldValue = _list[index];
                 if (value?.Equals(oldValue) == false) {
-                    value = DataOps.ConvertValue(value, ObjectChanged, ObjectChanged);
-                    RemoveChangedListener(oldValue);
+                    value = DataOps.ConvertValue(value);
                     SetValue(index, value, true);
                 }
 

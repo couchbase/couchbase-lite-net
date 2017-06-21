@@ -222,10 +222,6 @@ namespace Couchbase.Lite
                 throw new InvalidOperationException("Save attempted after database was closed");
             }
 
-            if(!_dict.HasChanges && !deletion && Exists) {
-                return;
-            }
-
             if (deletion && !Exists) {
                 throw new CouchbaseLiteException(StatusCode.NotFound);
             }

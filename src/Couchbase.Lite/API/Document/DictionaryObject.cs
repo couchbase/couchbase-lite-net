@@ -103,8 +103,7 @@ namespace Couchbase.Lite
 
         private readonly ThreadSafety _changedSafety = new ThreadSafety(false);
         private readonly ThreadSafety _threadSafety = new ThreadSafety(true);
-
-        internal event EventHandler<ObjectChangedEventArgs<DictionaryObject>> Changed;
+        
         private Dictionary<string, object> _dict = new Dictionary<string, object>();
 
         private bool _hasChanges;
@@ -220,42 +219,12 @@ namespace Couchbase.Lite
             }
         }
 
-        private void ObjectChanged(object sender, ObjectChangedEventArgs<DictionaryObject> args)
-        {
-            SetChanged();
-        }
-
-        private void ObjectChanged(object sender, ObjectChangedEventArgs<ArrayObject> args)
-        {
-            SetChanged();
-        }
-
-        private void RemoveAllChangedListeners()
-        {
-            foreach(var val in _dict.Values) {
-                RemoveChangedListener(val);
-            }
-        }
-
-        private void RemoveChangedListener(object value)
-        {
-            switch(value) {
-                case DictionaryObject dict:
-                    dict.Changed -= ObjectChanged;
-                    break;
-                case ArrayObject arr:
-                    arr.Changed -= ObjectChanged;
-                    break;
-            }
-        }
-
         private void SetChanged()
         {
             _changedSafety.LockedForWrite(() =>
             {
                 if (!_hasChanges) {
                     _hasChanges = true;
-                    Changed?.Invoke(this, new ObjectChangedEventArgs<DictionaryObject>(this));
                 }
             });
         }
@@ -373,11 +342,11 @@ namespace Couchbase.Lite
                     value = base.GetObject(key);
                     switch (value) {
                         case ReadOnlyDictionary sub:
-                            value = DataOps.ConvertRODictionary(sub, ObjectChanged);
+                            value = DataOps.ConvertRODictionary(sub);
                             SetValue(key, value, false);
                             break;
                         case ReadOnlyArray arr:
-                            value = DataOps.ConvertROArray(arr, ObjectChanged);
+                            value = DataOps.ConvertROArray(arr);
                             SetValue(key, value, false);
                             break;
                     }
@@ -472,8 +441,7 @@ namespace Couchbase.Lite
             {
                 var oldValue = GetObject(key);
                 if (value == null || !value.Equals(oldValue)) {
-                    value = DataOps.ConvertValue(value, ObjectChanged, ObjectChanged);
-                    RemoveChangedListener(oldValue);
+                    value = DataOps.ConvertValue(value);
                     SetValue(key, value, true);
                 }
 
@@ -486,11 +454,9 @@ namespace Couchbase.Lite
         {
             return _threadSafety.LockedForWrite(() =>
             {
-                RemoveAllChangedListeners();
-
                 var result = new Dictionary<string, object>();
                 foreach (var pair in dictionary) {
-                    result[pair.Key] = DataOps.ConvertValue(pair.Value, ObjectChanged, ObjectChanged);
+                    result[pair.Key] = DataOps.ConvertValue(pair.Value);
                 }
 
                 var backingData = base.ToDictionary();
