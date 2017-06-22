@@ -97,9 +97,15 @@ namespace Couchbase.Lite
         internal virtual void FreezeInternal()
         { }
 
-        internal abstract bool KeyIsRequired(string key);
+        internal virtual bool KeyIsRequired(string key)
+        {
+            return false;
+        }
 
-        internal abstract bool Validate(string key, object value);
+        internal virtual bool Validate(string key, object value)
+        {
+            return true;
+        }
 
         #endregion
 

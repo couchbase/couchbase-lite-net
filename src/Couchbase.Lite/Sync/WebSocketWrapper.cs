@@ -177,7 +177,7 @@ namespace Couchbase.Lite.Sync
             return Convert.ToBase64String(hashed);
         }
 
-        private unsafe void StartInternal()
+        private void StartInternal()
         {
             Log.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest.Host}:{_logic.UrlRequest.Port}");
             var rng = RandomNumberGenerator.Create();
@@ -190,6 +190,7 @@ namespace Couchbase.Lite.Sync
                 _logic[header.Key] = header.Value as string;
             }
 
+            _logic["Cookie"] = _options.CookieString;
             _logic["Connection"] = "Upgrade";
             _logic["Upgrade"] = "websocket";
             _logic["Sec-WebSocket-Version"] = "13";

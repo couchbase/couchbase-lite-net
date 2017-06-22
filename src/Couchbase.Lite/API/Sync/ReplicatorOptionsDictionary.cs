@@ -20,6 +20,8 @@
 // 
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Sync
@@ -36,6 +38,8 @@ namespace Couchbase.Lite.Sync
         private const string ChannelsKey = "channels";
         private const string FilterKey = "filter";
         private const string FilterParamsKey = "filterParams";
+        private const string CookiesKey = "cookies";
+        private const string PinnedCertKey = "pinnedCert";
 
         #endregion
 
@@ -87,6 +91,20 @@ namespace Couchbase.Lite.Sync
             private set => this[HeadersKey] = value;
         }
 
+        /// <summary>
+        /// Gets or sets a collection of cookie objects to be passed along
+        /// with the initial HTTP request of the <see cref="Replicator"/>
+        /// </summary>
+        public ICollection<Cookie> Cookies { get; set; } = new List<Cookie>();
+
+        /// <summary>
+        /// Gets or sets a certificate to trust.  All other certificates received
+        /// by a <see cref="Replicator"/> with this configuration will be rejected.
+        /// </summary>
+        public X509Certificate2 PinnedServerCertificate { get; set; }
+
+        internal string CookieString => this[CookiesKey] as string;
+
         #endregion
 
         #region Constructors
@@ -117,11 +135,13 @@ namespace Couchbase.Lite.Sync
         internal override void FreezeInternal()
         {
             Auth?.Freeze();
-        }
+            if (Cookies?.Count > 0) {
+                this[CookiesKey] = Cookies.Select(x => $"{x.Name}={x.Value}").Aggregate((l, r) => $"{l}; {r}");
+            }
 
-        internal override bool KeyIsRequired(string key)
-        {
-            return false;
+            if (PinnedServerCertificate != null) {
+                this[PinnedCertKey] = PinnedServerCertificate.Export(X509ContentType.Cert);
+            }
         }
 
         internal override bool Validate(string key, object value)
@@ -129,6 +149,10 @@ namespace Couchbase.Lite.Sync
             switch (key) {
                 case AuthOption:
                     return value is AuthOptionsDictionary;
+                case CookiesKey:
+                    return value is string;
+                case PinnedCertKey:
+                    return value is byte[];
                 default:
                     return true;
             }

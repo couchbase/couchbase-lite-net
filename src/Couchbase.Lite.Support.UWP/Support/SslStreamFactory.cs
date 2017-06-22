@@ -22,13 +22,13 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
-using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Lite.DI;
 using Windows.Networking;
 using Windows.Networking.Sockets;
+using Windows.Security.Cryptography.Certificates;
 using Windows.Storage.Streams;
 
 namespace Couchbase.Lite.Support
@@ -53,6 +53,14 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
+        #region Properties
+
+        public bool AllowSelfSigned { get; set; }
+
+        public X509Certificate2 PinnedServerCertificate { get; set; }
+
+        #endregion
+
         #region Constructors
 
         public SslStream(Stream inner)
@@ -72,8 +80,31 @@ namespace Couchbase.Lite.Support
         public async Task ConnectAsync(string targetHost, ushort targetPort, X509CertificateCollection clientCertificates, 
             bool checkCertificateRevocation)
         {
+            if (AllowSelfSigned) {
+                _innerStream.Control.IgnorableServerCertificateErrors.Add(ChainValidationResult.Untrusted);
+            }
+
             await _innerStream.ConnectAsync(new HostName(targetHost), targetPort.ToString());
             await _innerStream.UpgradeToSslAsync(SocketProtectionLevel.Tls12, new HostName(targetHost));
+
+            var receivedCert = _innerStream.Information.ServerCertificate;
+            if (PinnedServerCertificate != null) {
+                var serverData = receivedCert.GetCertificateBlob().ToArray();
+                if (!serverData.SequenceEqual(PinnedServerCertificate.Export(X509ContentType.Cert))) {
+                    _innerStream.Dispose();
+                    throw new SslException();
+                }
+
+                return;
+            }
+
+            if (_innerStream.Information.ServerCertificateErrors.Count == 1 &&
+                _innerStream.Information.ServerCertificateErrors[0] == ChainValidationResult.Success) {
+                return;
+            }
+
+            //TODO
+            throw new NotImplementedException();
         }
 
         #endregion
@@ -85,8 +116,8 @@ namespace Couchbase.Lite.Support
             #region Variables
 
             private readonly StreamSocket _parent;
-            private readonly DataWriter _writer;
             private readonly DataReader _reader;
+            private readonly DataWriter _writer;
 
             #endregion
 
@@ -120,6 +151,11 @@ namespace Couchbase.Lite.Support
 
             #region Overrides
 
+            public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+            {
+                return _parent.InputStream.AsStreamForRead().CopyToAsync(destination, bufferSize, cancellationToken);
+            }
+
             protected override void Dispose(bool disposing)
             {
                 base.Dispose(disposing);
@@ -133,19 +169,14 @@ namespace Couchbase.Lite.Support
                 _parent.OutputStream.AsStreamForWrite().Flush();
             }
 
-            public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
-            {
-                return _parent.InputStream.AsStreamForRead().CopyToAsync(destination, bufferSize, cancellationToken);
-            }
-
             public override Task FlushAsync(CancellationToken cancellationToken)
             {
                 return _parent.OutputStream.FlushAsync().AsTask(cancellationToken);
             }
 
-            public override int ReadByte()
+            public override int Read(byte[] buffer, int offset, int count)
             {
-                return _parent.InputStream.AsStreamForRead().ReadByte();
+                throw new NotSupportedException("Sync reading not supported");
             }
 
             public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
@@ -159,9 +190,9 @@ namespace Couchbase.Lite.Support
                 return (int)read;
             }
 
-            public override int Read(byte[] buffer, int offset, int count)
+            public override int ReadByte()
             {
-                throw new NotSupportedException("Sync reading not supported");
+                return _parent.InputStream.AsStreamForRead().ReadByte();
             }
 
             public override long Seek(long offset, SeekOrigin origin)

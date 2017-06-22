@@ -18,12 +18,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite.DI
 {
+    public sealed class SslException : Exception
+    {
+        internal SslException() : base("The server certificate was rejected")
+        {
+            
+        }
+    }
+
     /// <summary>
     /// WARNING: This interface is a temporary solution to https://github.com/dotnet/corefx/issues/19783
     /// and is not meant to be permanent.  Once UWP 6.0 is out, this interface will be removed.
@@ -53,6 +63,23 @@ namespace Couchbase.Lite.DI
     /// </summary>
     public interface ISslStream
     {
+
+        #region Properties
+
+        /// <summary>
+        /// Gets or sets whether or not to allow self signed certificates
+        /// (WARNING: insecure, only for development use)
+        /// </summary>
+        bool AllowSelfSigned { get; set; }
+
+        /// <summary>
+        /// Gets or sets the certificate to use for server validation.  All other
+        /// certificates will be rejected
+        /// </summary>
+        X509Certificate2 PinnedServerCertificate { get; set; }
+
+        #endregion
+
         #region Public Methods
 
         /// <summary>

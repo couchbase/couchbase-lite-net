@@ -47,11 +47,60 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
+        #region Properties
+
+        public bool AllowSelfSigned { get; set; }
+
+        public X509Certificate2 PinnedServerCertificate { get; set; }
+
+        #endregion
+
         #region Constructors
 
         public SslStreamImpl(Stream inner)
         {
-            _innerStream = new SslStream(inner);
+            _innerStream = new SslStream(inner, false, ValidateServerCert);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private bool ValidateServerCert(object sender, X509Certificate certificate, X509Chain chain,
+            SslPolicyErrors sslPolicyErrors)
+        {
+            if (PinnedServerCertificate != null) {
+                // Pinned certs take priority over everything
+                return certificate.Equals(PinnedServerCertificate);
+            }
+
+            if (sslPolicyErrors == SslPolicyErrors.None) {
+                return true;
+            }
+
+            if (sslPolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateChainErrors)) {
+                if (chain?.ChainStatus != null) {
+                    foreach (var status in chain.ChainStatus) {
+                        if (certificate.Subject == certificate.Issuer &&
+                            status.Status == X509ChainStatusFlags.UntrustedRoot) {
+                            // Self-signed certificates with an untrusted root are potentially valid. 
+                            continue;
+                        }
+
+                        if (status.Status != X509ChainStatusFlags.NoError) {
+                            // If there are any other errors in the certificate chain, the certificate is invalid,
+                            // so the method returns false.
+                            return false;
+                        }
+                    }
+
+                    // When processing reaches this line, the only errors in the certificate chain are 
+                    // untrusted root errors for self-signed certificates. Go by the overall setting
+                    return AllowSelfSigned;
+                }
+            }
+
+            return false;
         }
 
         #endregion
