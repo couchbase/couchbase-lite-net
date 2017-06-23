@@ -103,7 +103,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public X509Certificate2 PinnedServerCertificate { get; set; }
 
-        internal string CookieString => this[CookiesKey] as string;
+        internal string CookieString => this.GetCast<string>(CookiesKey);
 
         #endregion
 
