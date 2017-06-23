@@ -50,6 +50,7 @@
     <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
     <MtouchTlsProvider>Default</MtouchTlsProvider>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DeviceSpecificBuild>true</DeviceSpecificBuild>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhoneSimulator' ">
     <DebugType>pdbonly</DebugType>
@@ -141,6 +142,7 @@
     <MtouchTlsProvider>Default</MtouchTlsProvider>
     <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
     <MtouchFloat32>true</MtouchFloat32>
+    <DeviceSpecificBuild>true</DeviceSpecificBuild>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Couchbase.Lite, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
