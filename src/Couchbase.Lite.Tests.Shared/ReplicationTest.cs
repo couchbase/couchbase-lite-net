@@ -228,7 +228,12 @@ namespace Test
             };
             
             _repl.Start();
-            _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+            try {
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+            } catch {
+                _repl.Stop();
+                throw;
+            }
         }
 
         protected override void Dispose(bool disposing)

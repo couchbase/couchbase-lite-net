@@ -116,12 +116,14 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
-                _client = new TcpClient(AddressFamily.InterNetwork | AddressFamily.InterNetworkV6)
+                // ReSharper disable once UseObjectOrCollectionInitializer
+                _client = new TcpClient(AddressFamily.InterNetworkV6)
                 {
                     SendTimeout = (int)IdleTimeout.TotalMilliseconds,
                     ReceiveTimeout = (int)IdleTimeout.TotalMilliseconds
                 };
 
+                _client.Client.DualMode = true;
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(ConnectTimeout);
                 _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
