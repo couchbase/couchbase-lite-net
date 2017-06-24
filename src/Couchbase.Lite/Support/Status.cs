@@ -86,6 +86,17 @@ namespace Couchbase.Lite
                     }
 
                     break;
+
+                default:
+                    //HACK: System.Net.Security not available on current UWP, so it can't be used
+                    if (e.GetType().Name == "AuthenticationException") {
+                        if (e.Message == "The remote certificate is invalid according to the validation procedure.") {
+                            c4err.domain = C4ErrorDomain.NetworkDomain;
+                            c4err.code = (int) C4NetworkErrorCode.TLSCertUntrusted;
+                        }
+                    }
+
+                    break;
             }
 
             *outError = Native.c4error_make(c4err.domain, c4err.code, e.Message);

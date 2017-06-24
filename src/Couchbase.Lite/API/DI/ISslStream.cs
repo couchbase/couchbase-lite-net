@@ -67,12 +67,6 @@ namespace Couchbase.Lite.DI
         #region Properties
 
         /// <summary>
-        /// Gets or sets whether or not to allow self signed certificates
-        /// (WARNING: insecure, only for development use)
-        /// </summary>
-        bool AllowSelfSigned { get; set; }
-
-        /// <summary>
         /// Gets or sets the certificate to use for server validation.  All other
         /// certificates will be rejected
         /// </summary>

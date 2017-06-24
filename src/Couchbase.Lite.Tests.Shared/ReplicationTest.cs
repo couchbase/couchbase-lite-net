@@ -21,7 +21,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Sync;
@@ -107,7 +110,9 @@ namespace Test
 
         // The below tests are disabled because they require orchestration and should be moved
         // to the functional test suite
-        //[Fact] 
+#if HAVE_SG
+        [Fact] 
+#endif
         public void TestAuthenticationFailure()
         {
             var config = CreateConfig(false, true, new Uri("blip://localhost:4984/seekrit"));
@@ -115,28 +120,55 @@ namespace Test
             RunReplication(config, 401, C4ErrorDomain.WebSocketDomain);
         }
 
-        //[Fact]
+#if HAVE_SG
+        [Fact] 
+#endif
         public void TestAuthenticationPullHardcoded()
         {
             var config = CreateConfig(false, true, new Uri("blip://pupshaw:frank@localhost:4984/seekrit"));
             RunReplication(config, 0, 0);
         }
 
-        //[Fact]
+#if HAVE_SG
+        [Fact] 
+#endif
         public void TestAuthenticatedPull()
         {
             var config = CreateConfig(false, true, new Uri("blip://localhost:4984/seekrit"));
-            config.Options = new ReplicatorOptionsDictionary {
-                Auth = new AuthOptionsDictionary {
-                    Username = "pupshaw",
-                    Password = "frank"
-                }
-            };
-
+            config.Authenticator = new SessionAuthenticator("78376efd8cc74dadfc395f4049a115b7cd0ef5e3", null,
+                "SyncGatewaySession");
             RunReplication(config, 0, 0);
         }
 
-        //[Fact]
+#if HAVE_SG
+        [Fact]
+#endif
+        public void TestSelfSignedSSLFailure()
+        {
+            var config = CreateConfig(false, true, new Uri("blips://localhost:4984/db"));
+            RunReplication(config, (int)C4NetworkErrorCode.TLSCertUntrusted, C4ErrorDomain.NetworkDomain);
+        }
+
+#if HAVE_SG
+        [Fact]
+#endif
+        public async Task TestSelfSignedSSLPinned()
+        {
+            var config = CreateConfig(false, true, new Uri("blips://localhost:4984/db"));
+#if WINDOWS_UWP
+            var installedLocation = Windows.ApplicationModel.Package.Current.InstalledLocation;
+            var file = await installedLocation.GetFileAsync("Assets\\localhost-wrong.cert");
+            var bytes = File.ReadAllBytes(file.Path);
+            config.Options.PinnedServerCertificate = new X509Certificate2(bytes);
+#else
+            config.Options.PinnedServerCertificate = new X509Certificate2("localhost-wrong.cert");
+#endif
+            RunReplication(config, 0, 0);
+        }
+
+#if HAVE_SG
+        [Fact] 
+#endif
         public void TestChannelPull()
         {
             _otherDB.Count.Should().Be(0);
@@ -158,37 +190,37 @@ namespace Test
             });
 
             
-            var config = CreateConfig(true, false, new ReplicatorTarget(new Uri("blip://localhost:4984/db")));
+            var config = CreateConfig(true, false, new Uri("blip://localhost:4984/db"));
             RunReplication(config, 0, 0);
 
-            config = CreateConfig(false, true, new ReplicatorTarget(new Uri("blip://localhost:4984/db")));
+            config = new ReplicatorConfiguration(Db, new Uri("blip://localhost:4984/db"));
+            ModifyConfig(config, false, true);
             config.Options.Channels = new[] {"my_channel"};
-            config.Database = _otherDB; 
             RunReplication(config, 0, 0);
             _otherDB.Count.Should().Be(10, "because 10 documents should be in the given channel");
         }
 
-        //[Fact]
-        public void TestSecurePull()
-        {
-            var config = CreateConfig(false, true, new Uri("blips://localhost:4984/db"));
-            RunReplication(config, 0, 0);
-        }
-
         private ReplicatorConfiguration CreateConfig(bool push, bool pull)
         {
-            var target = new ReplicatorTarget(_otherDB);
+            var target = _otherDB;
             return CreateConfig(push, pull, target);
         }
 
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, Uri url)
         {
-            return CreateConfig(push, pull, new ReplicatorTarget(url));
+            var retVal = new ReplicatorConfiguration(Db, url);
+            return ModifyConfig(retVal, push, pull);
         }
 
-        private ReplicatorConfiguration CreateConfig(bool push, bool pull, ReplicatorTarget target)
+        private ReplicatorConfiguration CreateConfig(bool push, bool pull, Database target)
         {
-            var type = (ReplicatorType) 0;
+            var retVal = new ReplicatorConfiguration(Db, target);
+            return ModifyConfig(retVal, push, pull);
+        }
+
+        private ReplicatorConfiguration ModifyConfig(ReplicatorConfiguration config, bool push, bool pull)
+        {
+            var type = (ReplicatorType)0;
             if (push) {
                 type |= ReplicatorType.Push;
             }
@@ -197,11 +229,8 @@ namespace Test
                 type |= ReplicatorType.Pull;
             }
 
-            return new ReplicatorConfiguration {
-                Database = Db,
-                Target = target,
-                ReplicatorType = type
-            };
+            config.ReplicatorType = type;
+            return config;
         }
 
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, C4ErrorDomain expectedErrDomain)

@@ -50,22 +50,21 @@ namespace Couchbase.Lite.Sync
     public sealed class ReplicatorConfiguration
     {
         /// <summary>
-        /// Gets or sets the local database participating in the replication.  This property
-        /// is required to create an <see cref="Replicator"/>
+        /// Gets or sets the local database participating in the replication. 
         /// </summary>
-        public Database Database { get; set; }
+        public Database Database { get; }
 
         /// <summary>
-        /// Gets or sets the target to replicate with.  This property
-        /// is required to create an <see cref="Replicator"/>
+        /// Gets the target to replicate with (either <see cref="Database"/>
+        /// or <see cref="Uri"/>
         /// </summary>
-        public ReplicatorTarget Target { get; set; }
+        public object Target { get; }
 
         /// <summary>
         /// A value indicating the direction of the replication.  The default is
         /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
         /// </summary>
-        public ReplicatorType ReplicatorType { get; set; }
+        public ReplicatorType ReplicatorType { get; set; } = ReplicatorType.PushAndPull;
 
         /// <summary>
         /// Gets or sets whether or not the <see cref="Replicator"/> should stay
@@ -85,29 +84,39 @@ namespace Couchbase.Lite.Sync
         public ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
 
         /// <summary>
-        /// Default constructor
+        /// Gets or sets the class which will authenticate the replication
         /// </summary>
-        public ReplicatorConfiguration()
+        public Authenticator Authenticator { get; set; }
+
+        internal Database OtherDB { get; }
+
+        internal Uri RemoteUrl { get; }
+
+        /// <summary>
+        /// Constructs a configuration between two databases
+        /// </summary>
+        /// <param name="localDatabase">The local database for replication</param>
+        /// <param name="targetDatabase">The target database to use as the endpoint</param>
+        public ReplicatorConfiguration(Database localDatabase, Database targetDatabase)
         {
-            ReplicatorType = ReplicatorType.PushAndPull;
+            Database = localDatabase;
+            Target = OtherDB = targetDatabase;
+        }
+
+        /// <summary>
+        /// Constructs a configuration between a database and a remote URL
+        /// </summary>
+        /// <param name="localDatabase">The local database for replication</param>
+        /// <param name="endpoint">The URL to replicate with</param>
+        public ReplicatorConfiguration(Database localDatabase, Uri endpoint)
+        {
+            Database = localDatabase;
+            Target = RemoteUrl = endpoint;
         }
 
         internal static ReplicatorConfiguration Clone(ReplicatorConfiguration source)
         {
             return (ReplicatorConfiguration) source.MemberwiseClone();
         }
-
-        internal void Validate()
-        {
-            if (Database == null) {
-                throw new ArgumentNullException(nameof(Database));
-            }
-
-            if (Target == null) {
-                throw new ArgumentNullException(nameof(Target));
-            }
-        }
-
-        
     }
 }

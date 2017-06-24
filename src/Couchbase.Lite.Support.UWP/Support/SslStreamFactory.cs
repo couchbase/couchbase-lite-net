@@ -30,9 +30,24 @@ using Windows.Networking;
 using Windows.Networking.Sockets;
 using Windows.Security.Cryptography.Certificates;
 using Windows.Storage.Streams;
+using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
+    // HACK: This class is not available currently in UWP (System.Net.Security)
+    internal sealed class AuthenticationException : Exception
+    {
+        #region Constructors
+
+        public AuthenticationException() : base(
+            "The remote certificate is invalid according to the validation procedure.")
+        {
+            
+        }
+
+        #endregion
+    }
+
     internal sealed class SslStreamFactory : ISslStreamFactory
     {
         #region ISslStreamFactory
@@ -47,6 +62,12 @@ namespace Couchbase.Lite.Support
 
     internal sealed class SslStream : ISslStream
     {
+        #region Constants
+
+        private const string Tag = nameof(SslStream);
+
+        #endregion
+
         #region Variables
 
         private readonly StreamSocket _innerStream;
@@ -54,8 +75,6 @@ namespace Couchbase.Lite.Support
         #endregion
 
         #region Properties
-
-        public bool AllowSelfSigned { get; set; }
 
         public X509Certificate2 PinnedServerCertificate { get; set; }
 
@@ -70,6 +89,23 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
+        private bool VerifyCert()
+        {
+            var receivedCert = _innerStream.Information.ServerCertificate;
+            if (PinnedServerCertificate == null) {
+                return false;
+            }
+
+            var serverData = receivedCert.GetCertificateBlob().ToArray();
+            if (serverData.SequenceEqual(PinnedServerCertificate.Export(X509ContentType.Cert))) {
+                return true;
+            }
+
+            _innerStream.Dispose();
+            Log.To.Sync.W(Tag, "Server certificate did not match the pinned one");
+            throw new AuthenticationException();
+        }
+
         #region ISslStream
 
         public Stream AsStream()
@@ -80,31 +116,46 @@ namespace Couchbase.Lite.Support
         public async Task ConnectAsync(string targetHost, ushort targetPort, X509CertificateCollection clientCertificates, 
             bool checkCertificateRevocation)
         {
-            if (AllowSelfSigned) {
+            if (PinnedServerCertificate != null) {
                 _innerStream.Control.IgnorableServerCertificateErrors.Add(ChainValidationResult.Untrusted);
             }
 
             await _innerStream.ConnectAsync(new HostName(targetHost), targetPort.ToString());
-            await _innerStream.UpgradeToSslAsync(SocketProtectionLevel.Tls12, new HostName(targetHost));
-
-            var receivedCert = _innerStream.Information.ServerCertificate;
-            if (PinnedServerCertificate != null) {
-                var serverData = receivedCert.GetCertificateBlob().ToArray();
-                if (!serverData.SequenceEqual(PinnedServerCertificate.Export(X509ContentType.Cert))) {
-                    _innerStream.Dispose();
-                    throw new SslException();
+            try {
+                await _innerStream.UpgradeToSslAsync(SocketProtectionLevel.Tls12, new HostName(targetHost));
+            } catch (Exception e) {
+                if (VerifyCert()) {
+                    return;
                 }
 
-                return;
+                Log.To.Sync.W(Tag, "Exception while negotiating SSL connection", e);
+                var rethrow = false;
+                for (var i = 0; i < _innerStream.Information.ServerCertificateErrors.Count; i++) {
+                    var err = _innerStream.Information.ServerCertificateErrors[i];
+                    if (err == ChainValidationResult.Success) {
+                        continue;
+                    }
+
+                    var cert = (i == _innerStream.Information.ServerCertificateErrors.Count - 1)
+                        ? _innerStream.Information.ServerCertificate : _innerStream.Information.ServerIntermediateCertificates[i];
+                    Log.To.Sync.V(Tag, $"Got result {err} for certificate: " +
+                                       $"{Environment.NewLine}[SN]{cert.Subject} " +
+                                       $"{Environment.NewLine}[Issuer]{cert.Issuer}" +
+                                       $"{Environment.NewLine}[Serial]{BitConverter.ToString(cert.SerialNumber)}" +
+                                       $"{Environment.NewLine}[Hash]{BitConverter.ToString(cert.GetHashValue())}");
+                    if (err != ChainValidationResult.Untrusted) {
+                        rethrow = true;
+                    }
+                }
+
+                if (rethrow) {
+                    throw;
+                }
+
+                throw new AuthenticationException();
             }
 
-            if (_innerStream.Information.ServerCertificateErrors.Count == 1 &&
-                _innerStream.Information.ServerCertificateErrors[0] == ChainValidationResult.Success) {
-                return;
-            }
-
-            //TODO
-            throw new NotImplementedException();
+            VerifyCert();
         }
 
         #endregion

@@ -24,7 +24,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -200,6 +199,7 @@ namespace Couchbase.Lite.Sync
 
             if (_logic.UseTls) {
                 var stream = Service.Provider.GetRequiredService<ISslStreamFactory>().Create(_client.GetStream());
+                stream.PinnedServerCertificate = _options.PinnedServerCertificate;
                 stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, null, false).ContinueWith(
                     t =>
                     {

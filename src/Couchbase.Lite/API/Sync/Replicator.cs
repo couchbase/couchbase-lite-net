@@ -275,8 +275,6 @@ namespace Couchbase.Lite.Sync
 
         private void StartInternal()
         {
-            _config.Validate();
-
             _desc = ToString(); // Cache this; it may be called a lot when logging
 
             // Target:
@@ -285,7 +283,7 @@ namespace Couchbase.Lite.Sync
             var host = new C4String();
             var path = new C4String();
             Database otherDB = null;
-            var remoteUrl = _config.Target.Url;
+            var remoteUrl = _config.RemoteUrl;
             string dbNameStr = null;
             if (remoteUrl != null) {
                 string pathStr = String.Concat(remoteUrl.Segments.Take(remoteUrl.Segments.Length - 1));
@@ -298,20 +296,16 @@ namespace Couchbase.Lite.Sync
                 addr.port = (ushort) remoteUrl.Port;
                 addr.path = path.AsC4Slice();
             } else {
-                otherDB = _config.Target.Database;
-                if (otherDB == null) {
-                    throw new InvalidOperationException("Replicator started with a target without a URL or remote DB");
-                }
+                otherDB = _config.OtherDB;
             }
 
             var options = _config.Options ?? new ReplicatorOptionsDictionary();
             var userInfo = remoteUrl?.UserInfo?.Split(':');
             if (userInfo?.Length == 2 && options.Auth == null) {
-                options.Auth = new AuthOptionsDictionary {
-                    Username = userInfo[0],
-                    Password = userInfo[1]
-                };
+                _config.Authenticator = new BasicAuthenticator(userInfo[0], userInfo[1]);
             }
+
+            _config.Authenticator?.Authenticate(_config.Options);
 
             options.Freeze();
             var push = _config.ReplicatorType.HasFlag(ReplicatorType.Push);

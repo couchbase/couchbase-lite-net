@@ -18,12 +18,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System;
 using System.IO;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
@@ -41,6 +44,12 @@ namespace Couchbase.Lite.Support
 
     internal sealed class SslStreamImpl : ISslStream
     {
+        #region Constants
+
+        private const string Tag = nameof(SslStreamImpl);
+
+        #endregion
+
         #region Variables
 
         private readonly SslStream _innerStream;
@@ -48,8 +57,6 @@ namespace Couchbase.Lite.Support
         #endregion
 
         #region Properties
-
-        public bool AllowSelfSigned { get; set; }
 
         public X509Certificate2 PinnedServerCertificate { get; set; }
 
@@ -70,37 +77,29 @@ namespace Couchbase.Lite.Support
             SslPolicyErrors sslPolicyErrors)
         {
             if (PinnedServerCertificate != null) {
-                // Pinned certs take priority over everything
-                return certificate.Equals(PinnedServerCertificate);
+                var retVal = certificate.Equals(PinnedServerCertificate);
+                if (!retVal) {
+                    Log.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
+                }
+
+                return retVal;
             }
 
-            if (sslPolicyErrors == SslPolicyErrors.None) {
-                return true;
-            }
-
-            if (sslPolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateChainErrors)) {
+            if (sslPolicyErrors != SslPolicyErrors.None) {
+                Log.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
                 if (chain?.ChainStatus != null) {
-                    foreach (var status in chain.ChainStatus) {
-                        if (certificate.Subject == certificate.Issuer &&
-                            status.Status == X509ChainStatusFlags.UntrustedRoot) {
-                            // Self-signed certificates with an untrusted root are potentially valid. 
-                            continue;
-                        }
-
+                    for (int i = 0; i < chain.ChainStatus.Length; i++) {
+                        var element = chain.ChainElements[i];
+                        var status = chain.ChainStatus[i];
                         if (status.Status != X509ChainStatusFlags.NoError) {
-                            // If there are any other errors in the certificate chain, the certificate is invalid,
-                            // so the method returns false.
-                            return false;
+                            Log.To.Sync.V(Tag,
+                                $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
                         }
                     }
-
-                    // When processing reaches this line, the only errors in the certificate chain are 
-                    // untrusted root errors for self-signed certificates. Go by the overall setting
-                    return AllowSelfSigned;
                 }
             }
 
-            return false;
+            return sslPolicyErrors == SslPolicyErrors.None;
         }
 
         #endregion

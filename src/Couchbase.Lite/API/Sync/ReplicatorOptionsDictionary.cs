@@ -126,6 +126,18 @@ namespace Couchbase.Lite.Sync
             if (raw.ContainsKey(ChannelsKey)) {
                 Channels = (this[ChannelsKey] as IList<object>).Cast<string>().ToList();
             }
+
+            if (raw.ContainsKey(PinnedCertKey)) {
+                PinnedServerCertificate = new X509Certificate2(this[PinnedCertKey] as byte[]);
+            }
+
+            if (raw.ContainsKey(CookiesKey)) {
+                var split = ((string) this[CookiesKey]).Split(';');
+                foreach (var entry in split) {
+                    var pieces = entry.Split('=');
+                    Cookies.Add(new Cookie(pieces[0].Trim(), pieces[1].Trim()));
+                }
+            }
         }
 
         #endregion

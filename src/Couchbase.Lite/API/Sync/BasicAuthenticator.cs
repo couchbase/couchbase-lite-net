@@ -64,7 +64,8 @@ namespace Couchbase.Lite.Sync
             var authDict = new AuthOptionsDictionary
             {
                 Username = Username,
-                Password = Password
+                Password = Password,
+                Type = AuthType.HttpBasic
             };
 
             options.Auth = authDict;
