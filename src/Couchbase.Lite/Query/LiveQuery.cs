@@ -142,6 +142,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             Stop();
             Misc.SafeSwap(ref _enum, null);
+            _query.Dispose();
         }
 
         #endregion
