@@ -28,7 +28,7 @@
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.0-beta1-build3642" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Couchbase.Lite.Tests.UWP\Assets\localhost-wrong.cert" Link="localhost-wrong.cert">
+    <None Condition="$(DefineConstants.Contains('HAVE_SG'))" Include="..\Couchbase.Lite.Tests.UWP\Assets\localhost-wrong.cert" Link="localhost-wrong.cert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
