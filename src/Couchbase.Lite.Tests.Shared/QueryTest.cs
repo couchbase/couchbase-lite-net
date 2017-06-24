@@ -513,22 +513,27 @@ namespace Test
             LoadNumbers(100);
             using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db))
                 .Where(ExpressionFactory.Property("number1").LessThan(10)).OrderBy(OrderByFactory.Property("number1"))
-                .ToLiveQuery()) {
+                .ToLive()) {
                 var wa = new WaitAssert();
+                var wa2 = new WaitAssert();
+                var count = 1;
                 q.Changed += (sender, args) =>
                 {
-                    var newRows = args.Rows;
-                    var foo = args.Rows[0];
-                    wa.RunConditionalAssert(
-                        () => args.Rows.Count == 10 && args.Rows[0].Document.GetInt("number1") == -1);
+                    if (count++ == 1) {
+                        wa.RunConditionalAssert(
+                            () => args.Rows.Count == 9);
+                    } else {
+                        wa2.RunConditionalAssert(
+                            () => args.Rows.Count == 10 && args.Rows[0].Document.GetInt("number1") == -1);
+                    }
+                    
                 };
 
-                var rows = q.Rows;
-                rows.Count.Should().Be(9, "because there are 9 numbers less than 10");
+                q.Run();
                 await Task.Delay(500).ConfigureAwait(false);
-
-                CreateDocInSeries(-1, 100);
                 wa.WaitForResult(TimeSpan.FromSeconds(5));
+                CreateDocInSeries(-1, 100);
+                wa2.WaitForResult(TimeSpan.FromSeconds(5));
             }
         }
 
@@ -538,7 +543,7 @@ namespace Test
             LoadNumbers(100);
             using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db))
                 .Where(ExpressionFactory.Property("number1").LessThan(10)).OrderBy(OrderByFactory.Property("number1"))
-                .ToLiveQuery()) {
+                .ToLive()) {
 
                 var mre = new ManualResetEventSlim();
                 q.Changed += (sender, args) =>

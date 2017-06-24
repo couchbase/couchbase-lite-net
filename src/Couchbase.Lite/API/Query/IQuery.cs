@@ -49,7 +49,7 @@ namespace Couchbase.Lite.Query
         /// Converts a query to a <see cref="ILiveQuery"/> for realtime monitoring.
         /// </summary>
         /// <returns>The instantiated live query object</returns>
-        ILiveQuery ToLiveQuery();
+        ILiveQuery ToLive();
 
         // <summary>
         // Sets the limit for the number of items to return from the query

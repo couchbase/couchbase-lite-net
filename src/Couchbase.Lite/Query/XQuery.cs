@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal abstract unsafe class XQuery : IQuery, IQueryInternal
+    internal unsafe class XQuery : IQuery, IQueryInternal
     {
         private const string Tag = nameof(XQuery);
 
@@ -73,10 +73,17 @@ namespace Couchbase.Lite.Internal.Query
             return this;
         }
 
-        public ILiveQuery ToLiveQuery()
+        public ILiveQuery ToLive()
         {
             Dispose();
-            return new LiveQuery(this);
+            return new LiveQuery(new XQuery {
+                Database = Database,
+                SelectImpl = SelectImpl,
+                Distinct = Distinct,
+                FromImpl = FromImpl,
+                WhereImpl = WhereImpl,
+                OrderByImpl = OrderByImpl
+            });
         }
 
         public IQuery Limit(ulong limit)

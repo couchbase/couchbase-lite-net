@@ -28,7 +28,7 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal class LiveQuery : XQuery, ILiveQuery
+    internal sealed class LiveQuery : ILiveQuery
     {
         #region Constants
 
@@ -39,53 +39,17 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
+        private readonly XQuery _query;
+
         private readonly ThreadSafety _threadSafety = new ThreadSafety(true);
 
         public event EventHandler<LiveQueryChangedEventArgs> Changed;
 
         private QueryEnumerator _enum;
-        private bool _forceReload;
-        private Exception _lastError;
         private DateTime _lastUpdatedAt;
-
         private AtomicBool _observing = false;
-        private IReadOnlyList<IQueryRow> _rows;
         private TimeSpan _updateInterval;
         private AtomicBool _willUpdate = false;
-
-        #endregion
-
-        #region Properties
-
-        public Exception LastError
-        {
-            get => _threadSafety.LockedForRead(() => _lastError);
-            private set => _threadSafety.LockedForWrite(() =>
-            {
-                if (_lastError != value) {
-                    _lastError = value;
-                    Task.Factory.StartNew(() => Changed?.Invoke(this, new LiveQueryChangedEventArgs(null, value)));
-                }
-            });
-        }
-
-        public IReadOnlyList<IQueryRow> Rows
-        {
-            get {
-                Start();
-                return _threadSafety.LockedForRead(() => _rows);
-            }
-            private set {
-                _threadSafety.LockedForWrite(() =>_rows = value);
-                Task.Factory.StartNew(() => Changed?.Invoke(this, new LiveQueryChangedEventArgs(value)));
-            }
-        }
-
-        public TimeSpan UpdateInterval
-        {
-            get => _threadSafety.LockedForRead(() => _updateInterval);
-            set => _threadSafety.LockedForWrite(() => _updateInterval = value);
-        }
 
         #endregion
 
@@ -93,8 +57,8 @@ namespace Couchbase.Lite.Internal.Query
 
         internal LiveQuery(XQuery query)
         {
-            UpdateInterval = DefaultLiveQueryUpdateInterval;
-            Copy(query);
+            _updateInterval = DefaultLiveQueryUpdateInterval;
+            _query = query;
         }
 
         #endregion
@@ -123,9 +87,9 @@ namespace Couchbase.Lite.Internal.Query
             var oldEnum = _enum;
             QueryEnumerator newEnum = null;
             Exception error = null;
-            if (oldEnum == null || _forceReload) {
+            if (oldEnum == null) {
                 try {
-                    newEnum = (QueryEnumerator) Run();
+                    newEnum = (QueryEnumerator) _query.Run();
                 } catch (Exception e) {
                     error = e;
                 }
@@ -134,24 +98,24 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             _willUpdate.Set(false);
-            _forceReload = false;
             _lastUpdatedAt = DateTime.Now;
 
+            var changed = true;
             if (newEnum != null) {
                 if (oldEnum != null) {
                     Log.To.Query.I(Tag, $"{this}: Changed!");
                 }
 
                 Misc.SafeSwap(ref _enum, newEnum);
-                Rows = newEnum;
-            } else if (error == null) {
-                Log.To.Query.V(Tag, $"{this}: ...no change");
-            } else {
+            } else if (error != null) {
                 Log.To.Query.E(Tag, $"{this}: Update failed: {error}");
+            } else {
+                changed = false;
+                Log.To.Query.V(Tag, $"{this}: ...no change");
             }
 
-            if (error != null || _lastError != null) {
-                LastError = error;
+            if (changed) {
+                Changed?.Invoke(this, new LiveQueryChangedEventArgs(newEnum, error));
             }
         }
 
@@ -172,24 +136,22 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        #region Overrides
+        #region IDisposable
 
-        protected override void Dispose(bool finalizing)
+        public void Dispose()
         {
             Stop();
             Misc.SafeSwap(ref _enum, null);
-
-            base.Dispose(finalizing);
         }
 
         #endregion
 
         #region ILiveQuery
 
-        public void Start()
+        public void Run()
         {
             if (!_observing.Set(true)) {
-                Database.Changed += OnDatabaseChanged;
+                _query.Database.Changed += OnDatabaseChanged;
                 Update();
             }
         }
@@ -197,7 +159,7 @@ namespace Couchbase.Lite.Internal.Query
         public void Stop()
         {
             if (_observing.Set(false)) {
-                Database.Changed -= OnDatabaseChanged;
+                _query.Database.Changed -= OnDatabaseChanged;
             }
 
             _willUpdate.Set(false);
