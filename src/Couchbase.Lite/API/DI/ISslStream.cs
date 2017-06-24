@@ -19,21 +19,12 @@
 // limitations under the License.
 // 
 
-using System;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite.DI
 {
-    public sealed class SslException : Exception
-    {
-        internal SslException() : base("The server certificate was rejected")
-        {
-            
-        }
-    }
-
     /// <summary>
     /// WARNING: This interface is a temporary solution to https://github.com/dotnet/corefx/issues/19783
     /// and is not meant to be permanent.  Once UWP 6.0 is out, this interface will be removed.

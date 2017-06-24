@@ -24,6 +24,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.DI
 {
+    /// <summary>
+    /// This is the entry point for registering dependency injection implementation in Couchbase Lite .NET
+    /// </summary>
     public static class Service
     {
         #region Constants

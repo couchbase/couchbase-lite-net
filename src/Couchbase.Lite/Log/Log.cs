@@ -124,6 +124,13 @@ namespace Couchbase.Lite.Logging
 
         #region Public Methods
 
+        /// <summary>
+        /// Adds a provider to accept logging messages to the Log implementation (if none are added
+        /// by the time the first log message comes then a default one will be chosen)
+        /// </summary>
+        /// <param name="provider">The provider to add</param>
+        /// <param name="keepDefault">If <c>true</c>, then the logging provider will exist along with
+        /// the default one, otherwise the default logger will also be added if applicable</param>
         public static void AddLoggerProvider(ILoggerProvider provider, bool keepDefault = false)
         {
             if (!keepDefault) {
