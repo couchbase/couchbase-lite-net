@@ -120,7 +120,8 @@ namespace api_walkthrough
                 Console.WriteLine($"document properties {JsonConvert.SerializeObject(row.Document.ToDictionary(), Formatting.Indented)}");
             }
 
-            // replication
+            // replication (Note: Linux / Mac requires .NET Core 2.0+ due to
+            // https://github.com/dotnet/corefx/issues/8768)
 			/*
              * Tested with SG 1.5 https://www.couchbase.com/downloads
              * Config file:
