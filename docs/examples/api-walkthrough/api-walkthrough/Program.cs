@@ -84,6 +84,17 @@ namespace api_walkthrough
                 Console.WriteLine($"doc ID :: ${row.DocumentID}");
             }
 
+            // live query
+            var liveQuery = query.ToLive();
+            liveQuery.Changed += (sender, e) => {
+                Console.WriteLine($"Number of rows :: {e.Rows.Count}");
+            };
+            liveQuery.Run();
+            var newDoc = new Document();
+            newDoc.Set("type", "user");
+            newDoc.Set("admin", false);
+            database.Save(newDoc);
+
             // fts example
             // insert documents
             var tasks = new[] { "buy groceries", "play chess", "book travels", "buy museum tickets" };
@@ -113,6 +124,13 @@ namespace api_walkthrough
             var config = new ReplicatorConfiguration(database, url);
             var replication = new Replicator(config);
             replication.Start();
+
+            // replication change listener
+            replication.StatusChanged += (object sender, ReplicationStatusChangedEventArgs e) => {
+                Console.WriteLine(replication.Status.Activity);
+            };
+
+            Console.ReadLine();
 
             // This is important to do because otherwise the native connection
             // won't be released until the next garbage collection
