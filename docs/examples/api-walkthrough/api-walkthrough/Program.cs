@@ -120,6 +120,23 @@ namespace api_walkthrough
             }
 
             // replication
+			/*
+             * Tested with SG 1.5 https://www.couchbase.com/downloads
+             * Config file:
+             * {
+				  "databases": {
+				    "db": {
+				      "server":"walrus:",
+				      "users": {
+				        "GUEST": {"disabled": false, "admin_channels": ["*"]}
+				      },
+				      "unsupported": {
+				        "replicator_2":true
+				      }
+				    }
+				  }
+				}
+             */
             var url = new Uri("blip://localhost:4984/db");
             var config = new ReplicatorConfiguration(database, url);
             var replication = new Replicator(config);
@@ -127,7 +144,9 @@ namespace api_walkthrough
 
             // replication change listener
             replication.StatusChanged += (object sender, ReplicationStatusChangedEventArgs e) => {
-                Console.WriteLine(replication.Status.Activity);
+                if (e.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    Console.WriteLine("Replication has completed.");
+                }
             };
 
             Console.ReadLine();
