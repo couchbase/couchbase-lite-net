@@ -20,6 +20,7 @@ using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Sync;
+using Newtonsoft.Json;
 
 namespace api_walkthrough
 {
@@ -85,11 +86,11 @@ namespace api_walkthrough
             }
 
             // live query
-            var liveQuery = query.ToLive();
+            var liveQuery = query.ToLiveQuery();
             liveQuery.Changed += (sender, e) => {
                 Console.WriteLine($"Number of rows :: {e.Rows.Count}");
             };
-            liveQuery.Run();
+            liveQuery.Start();
             var newDoc = new Document();
             newDoc.Set("type", "user");
             newDoc.Set("admin", false);
@@ -116,7 +117,7 @@ namespace api_walkthrough
             var ftsRows = ftsQuery.Run();
             foreach (var row in ftsRows)
             {
-                Console.WriteLine($"document properties {row.Document.ToDictionary()}");
+                Console.WriteLine($"document properties {JsonConvert.SerializeObject(row.Document.ToDictionary(), Formatting.Indented)}");
             }
 
             // replication
