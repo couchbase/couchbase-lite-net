@@ -20,6 +20,7 @@ using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Sync;
+using Newtonsoft.Json;
 
 namespace api_walkthrough
 {
@@ -84,6 +85,17 @@ namespace api_walkthrough
                 Console.WriteLine($"doc ID :: ${row.DocumentID}");
             }
 
+            // live query
+            var liveQuery = query.ToLiveQuery();
+            liveQuery.Changed += (sender, e) => {
+                Console.WriteLine($"Number of rows :: {e.Rows.Count}");
+            };
+            liveQuery.Start();
+            var newDoc = new Document();
+            newDoc.Set("type", "user");
+            newDoc.Set("admin", false);
+            database.Save(newDoc);
+
             // fts example
             // insert documents
             var tasks = new[] { "buy groceries", "play chess", "book travels", "buy museum tickets" };
@@ -105,14 +117,41 @@ namespace api_walkthrough
             var ftsRows = ftsQuery.Run();
             foreach (var row in ftsRows)
             {
-                Console.WriteLine($"document properties {row.Document.ToDictionary()}");
+                Console.WriteLine($"document properties {JsonConvert.SerializeObject(row.Document.ToDictionary(), Formatting.Indented)}");
             }
 
-            // replication
+            // replication (Note: Linux / Mac requires .NET Core 2.0+ due to
+            // https://github.com/dotnet/corefx/issues/8768)
+			/*
+             * Tested with SG 1.5 https://www.couchbase.com/downloads
+             * Config file:
+             * {
+				  "databases": {
+				    "db": {
+				      "server":"walrus:",
+				      "users": {
+				        "GUEST": {"disabled": false, "admin_channels": ["*"]}
+				      },
+				      "unsupported": {
+				        "replicator_2":true
+				      }
+				    }
+				  }
+				}
+             */
             var url = new Uri("blip://localhost:4984/db");
             var config = new ReplicatorConfiguration(database, url);
             var replication = new Replicator(config);
             replication.Start();
+
+            // replication change listener
+            replication.StatusChanged += (object sender, ReplicationStatusChangedEventArgs e) => {
+                if (e.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    Console.WriteLine("Replication has completed.");
+                }
+            };
+
+            Console.ReadLine();
 
             // This is important to do because otherwise the native connection
             // won't be released until the next garbage collection
