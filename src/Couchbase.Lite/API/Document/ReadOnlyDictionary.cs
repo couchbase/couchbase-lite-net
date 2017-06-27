@@ -23,7 +23,6 @@ using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
-using Couchbase.Lite.Support;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite

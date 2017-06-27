@@ -65,8 +65,8 @@ namespace Couchbase.Lite.Sync
             var ha2Hash = ha2md5.ComputeHash(Encoding.UTF8.GetBytes(ha2Str));
             var ha2 = BitConverter.ToString(ha2Hash).Replace("-", "").ToLowerInvariant();
 
-            var responseStr = String.Format("{0}:{1}:{2}:{3}:{4}:{5}", ha1, components.Get("nonce"), components.Get("nc"),
-                components.Get("cnonce"), components.Get("qop"), ha2);
+            var responseStr =
+                $"{ha1}:{components.Get("nonce")}:{components.Get("nc")}:{components.Get("cnonce")}:{components.Get("qop")}:{ha2}";
             var responseHash = responsemd5.ComputeHash(Encoding.UTF8.GetBytes(responseStr));
             return BitConverter.ToString(responseHash).Replace("-", "").ToLowerInvariant();
         }

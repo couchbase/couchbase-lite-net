@@ -214,7 +214,7 @@ namespace Couchbase.Lite.Internal.Linq
                 _currentExpression = new List<object> { countOperator != null ? "ARRAY_COUNT()" : "ARRAY_SUM()" };
                 var from = subquery.QueryModel.MainFromClause.FromExpression;
                 Visit(from);
-                overallExpression.Add(_currentExpression);
+                overallExpression?.Add(_currentExpression);
                 _currentExpression = overallExpression;
                 return true;
             }

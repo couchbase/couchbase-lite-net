@@ -85,9 +85,7 @@ namespace Couchbase.Lite.Util
         /// <inheritdoc />
         public TV this[TK index]
         {
-            get {
-                return _data[index];
-            }
+            get => _data[index];
             set {
                 if(IsAddable(value)) {
                     _data[index] = value;

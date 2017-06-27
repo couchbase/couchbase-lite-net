@@ -371,8 +371,7 @@ namespace Couchbase.Lite
                 if (_list == null) {
                     CopyFleeceData();
                 }
-
-                var value = _list[index];
+                
                 _list.RemoveAt(index);
                 SetChanged();
                 return this;

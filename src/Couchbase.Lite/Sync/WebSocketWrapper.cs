@@ -51,7 +51,6 @@ namespace Couchbase.Lite.Sync
 
         private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
         private readonly SerialQueue _c4Queue = new SerialQueue();
-        private readonly List<byte> _currentMessage = new List<byte>();
         private readonly SerialQueue _queue = new SerialQueue();
         private readonly AutoResetEvent _readMutex = new AutoResetEvent(true);
         private readonly AutoResetEvent _writeMutex = new AutoResetEvent(true);
@@ -266,7 +265,7 @@ namespace Couchbase.Lite.Sync
             _c4Queue.DispatchAsync(() =>
             {
                 Dictionary<string, object> dict = parser.Headers.ToDictionary(x => x.Key, x => (object) x.Value);
-                Native.c4socket_gotHTTPResponse(socket, (int) httpStatus, dict);
+                Native.c4socket_gotHTTPResponse(socket, httpStatus, dict);
             });
 
             if (httpStatus != 101) {
@@ -284,11 +283,11 @@ namespace Couchbase.Lite.Sync
             } else if (!CheckHeader(parser, "Sec-WebSocket-Accept", _expectedAcceptHeader, true)) {
                 DidClose(C4WebSocketCloseCode.WebSocketCloseProtocolError, "Invalid 'Sec-WebSocket-Accept' header");
             } else {
-                Connected(parser);
+                Connected();
             }
         }
 
-        private unsafe void Connected(HttpMessageParser parser)
+        private unsafe void Connected()
         {
             Log.To.Sync.I(Tag, "WebSocket CONNECTED!");
             Receive();

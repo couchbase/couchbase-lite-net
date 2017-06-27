@@ -1,47 +1,68 @@
-﻿using System;
+﻿// 
+// HTTPLogic.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
-using LiteCore;
-using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
 {
     internal sealed class HTTPLogic
     {
-        private const string Tag = nameof(HTTPLogic);
+        #region Constants
+
         private const int MaxRedirects = 10;
-        private UriBuilder _urlRequest;
+        private const string Tag = nameof(HTTPLogic);
+
+        #endregion
+
+        #region Variables
+
+        private readonly Dictionary<string, string> _headers = new Dictionary<string, string>();
         private string _authorizationHeader;
         private uint _redirectCount;
-        private readonly Dictionary<string, string> _headers = new Dictionary<string, string>();
+        private UriBuilder _urlRequest;
 
-        public string this[string key]
-        {
-            get => _headers[key];
-            set => _headers[key] = value;
-        }
+        #endregion
 
-        public HTTPLogic(Uri url)
-        {
-            _urlRequest = new UriBuilder(url);
-            HandleRedirects = true;
-        }
+        #region Properties
 
         public NetworkCredential Credential { get; set; }
 
         public Exception Error { get; private set; }
 
         public bool HandleRedirects { get; set; }
+
+        public int HttpStatus { get; private set; }
+
+        public string this[string key]
+        {
+            get => _headers[key];
+            set => _headers[key] = value;
+        }
 
         public ushort Port
         {
@@ -53,8 +74,6 @@ namespace Couchbase.Lite.Sync
                 return (ushort)_urlRequest.Port;
             }
         }
-
-        public int HttpStatus { get; private set; }
 
         public bool ShouldContinue { get; private set; }
 
@@ -69,6 +88,20 @@ namespace Couchbase.Lite.Sync
                 return "https".Equals(scheme) || "wss".Equals(scheme) || "blips".Equals(scheme);
             }
         }
+
+        #endregion
+
+        #region Constructors
+
+        public HTTPLogic(Uri url)
+        {
+            _urlRequest = new UriBuilder(url);
+            HandleRedirects = true;
+        }
+
+        #endregion
+
+        #region Public Methods
 
         public static string UserAgent()
         {
@@ -153,26 +186,9 @@ namespace Couchbase.Lite.Sync
             HttpStatus = (int)httpStatus;
         }
 
-        private bool Redirect(HttpMessageParser parser)
-        {
-            string location;
-            if (!parser.Headers.TryGetValue("location", out location)) {
-                return false;
-            }
+        #endregion
 
-            Uri url;
-            if (!Uri.TryCreate(UrlRequest, location, out url)) {
-                return false;
-            }
-
-            if (!url.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
-                !url.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)) {
-                return false;
-            }
-
-            _urlRequest = new UriBuilder(url);
-            return true;
-        }
+        #region Private Methods
 
         private string CreateAuthHeader(string authResponse)
         {
@@ -216,5 +232,28 @@ namespace Couchbase.Lite.Sync
             challenge["WWW-Authenticate"] = authResponse;
             return challenge;
         }
+
+        private bool Redirect(HttpMessageParser parser)
+        {
+            string location;
+            if (!parser.Headers.TryGetValue("location", out location)) {
+                return false;
+            }
+
+            Uri url;
+            if (!Uri.TryCreate(UrlRequest, location, out url)) {
+                return false;
+            }
+
+            if (!url.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
+                !url.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            _urlRequest = new UriBuilder(url);
+            return true;
+        }
+
+        #endregion
     }
 }

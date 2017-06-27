@@ -22,6 +22,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Couchbase.Lite.Logging;
 using LiteCore;
 using LiteCore.Interop;
@@ -103,6 +104,7 @@ namespace Couchbase.Lite.Internal.Query
             return new QueryEnumerator(query, C4Query, newEnum);
         }
 
+        [SuppressMessage("ReSharper", "UnusedParameter.Local")]
         private void Dispose(bool disposing)
         {
             Native.c4queryenum_free(_c4Enum);

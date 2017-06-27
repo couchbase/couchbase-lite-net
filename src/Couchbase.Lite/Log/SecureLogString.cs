@@ -73,12 +73,7 @@ namespace Couchbase.Lite.Logging
 
         #region Properties
 
-        protected bool ShouldLog
-        {
-            get {
-                return (int)_sensitivity <= (int)Log.ScrubSensitivity;
-            }
-        }
+        protected bool ShouldLog => (int)_sensitivity <= (int)Log.ScrubSensitivity;
 
         #endregion
 
@@ -214,12 +209,7 @@ namespace Couchbase.Lite.Logging
 
         #region Properties
 
-        private string UriString
-        {
-            get {
-                return _str ?? (_str = _uri.ToString().ReplaceAll("://.*:.*@", "://<redacted>:<redacted>@"));
-            }
-        }
+        private string UriString => _str ?? (_str = _uri.ToString().ReplaceAll("://.*:.*@", "://<redacted>:<redacted>@"));
 
         #endregion
 

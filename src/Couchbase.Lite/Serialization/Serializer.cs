@@ -23,7 +23,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;

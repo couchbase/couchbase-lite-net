@@ -37,45 +37,20 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Properties
 
-        public override bool CanRead
-        {
-            get {
-                return false;
-            }
-        }
+        public override bool CanRead => false;
 
-        public override bool CanSeek
-        {
-            get {
-                return false;
-            }
-        }
+        public override bool CanSeek => false;
 
-        public override bool CanWrite
-        {
-            get {
-                return true;
-            }
-        }
+        public override bool CanWrite => true;
 
         public C4BlobKey Key { get; private set; }
 
-        public override long Length
-        {
-            get {
-                throw new NotSupportedException();
-            }
-        }
+        public override long Length => throw new NotSupportedException();
 
         public override long Position
         {
-            get {
-                throw new NotSupportedException();
-            }
-
-            set {
-                throw new NotSupportedException();
-            }
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
         }
 
         #endregion

@@ -21,7 +21,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,21 +52,12 @@ namespace Couchbase.Lite.Support
 
         public int Count { get; private set; }
 
-        internal bool IsInQueue
-        {
-            get {
-                return Environment.CurrentManagedThreadId == _currentProcessingThread;
-            }
-        }
+        internal bool IsInQueue => Environment.CurrentManagedThreadId == _currentProcessingThread;
 
         private SerialQueueState State
         {
-            get {
-                return (SerialQueueState)_state;
-            }
-            set {
-                _state = (int)value;
-            }
+            get => (SerialQueueState)_state;
+            set => _state = (int)value;
         }
 
         #endregion

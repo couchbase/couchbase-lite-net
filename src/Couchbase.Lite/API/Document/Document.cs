@@ -38,7 +38,7 @@ namespace Couchbase.Lite
     {
         #region Constants
 
-        private const string Tag = nameof(Document);
+        //private const string Tag = nameof(Document);
 
         #endregion
 
@@ -269,14 +269,8 @@ namespace Couchbase.Lite
 
             var body = new FLSliceResult();
             if (!deletion && !IsEmpty) {
-                if (model != null) {
-                    body = _database.JsonSerializer.Serialize(model);
-                }
-                else {
-                    body = _database.JsonSerializer.Serialize(_dict);
-                }
-            }
-            else if (IsEmpty) {
+                body = model != null ? _database.JsonSerializer.Serialize(model) : _database.JsonSerializer.Serialize(_dict);
+            } else if (IsEmpty) {
                 var encoder = Native.c4db_createFleeceEncoder(_c4Db);
                 Native.FLEncoder_BeginDict(encoder, 0);
                 Native.FLEncoder_EndDict(encoder);

@@ -21,7 +21,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Couchbase.Lite.DI;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Logging
@@ -258,19 +257,9 @@ namespace Couchbase.Lite.Logging
 
             #region Properties
 
-            public IDomainLogging Current
-            {
-                get {
-                    return _parent;
-                }
-            }
+            public IDomainLogging Current => _parent;
 
-            object System.Collections.IEnumerator.Current
-            {
-                get {
-                    return _parent;
-                }
-            }
+            object System.Collections.IEnumerator.Current => _parent;
 
             #endregion
 

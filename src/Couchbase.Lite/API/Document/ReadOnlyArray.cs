@@ -34,7 +34,7 @@ namespace Couchbase.Lite
     public unsafe class ReadOnlyArray : IReadOnlyArray
     {
         private readonly FLArray* _array;
-        private SharedStringCache _sharedKeys;
+        private readonly SharedStringCache _sharedKeys;
 
         #region Properties
 

@@ -21,7 +21,6 @@
 using System;
 using System.Text;
 using System.Threading;
-using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Util
 {

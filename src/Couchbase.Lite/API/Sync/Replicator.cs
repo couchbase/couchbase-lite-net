@@ -65,7 +65,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public event EventHandler<ReplicationStatusChangedEventArgs> StatusChanged;
 
-        private ReplicatorStateChangedCallback _callback;
+        private ReplicatorParameters _nativeParams;
         private string _desc;
         private Exception _lastError;
         private C4ReplicatorStatus _rawStatus;
@@ -187,6 +187,11 @@ namespace Couchbase.Lite.Sync
             return TimeSpan.FromSeconds(Math.Min(delaySecs, MaxRetryDelay.TotalSeconds));
         }
 
+        private static void ErrorCallback(bool pushing, string docID, C4Error error, bool transient, object context)
+        {
+            
+        }
+
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
         {
             var repl = context as Replicator;
@@ -194,6 +199,11 @@ namespace Couchbase.Lite.Sync
             {
                 repl.StatusChangedCallback(status);
             });
+        }
+
+        private static void ValidateCallback(string docID, IntPtr body, object context)
+        {
+            
         }
 
         private void ClearRepl()
@@ -210,7 +220,7 @@ namespace Couchbase.Lite.Sync
             }
 
             Native.c4repl_free(_repl);
-			_callback?.Dispose();
+			_nativeParams?.Dispose();
         }
 
         private bool HandleError(C4Error error)
@@ -311,11 +321,12 @@ namespace Couchbase.Lite.Sync
             var push = _config.ReplicatorType.HasFlag(ReplicatorType.Push);
             var pull = _config.ReplicatorType.HasFlag(ReplicatorType.Pull);
             var continuous = _config.Continuous;
-            _callback = new ReplicatorStateChangedCallback(StatusChangedCallback, this);
+            _nativeParams = new ReplicatorParameters(Mkmode(push, continuous), Mkmode(pull, continuous), options, ValidateCallback, 
+                ErrorCallback, StatusChangedCallback, this);
 
             C4Error err;
             _repl = Native.c4repl_new(_config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
-                    Mkmode(push, continuous), Mkmode(pull, continuous), options, _callback, &err);
+                _nativeParams.C4Params, &err);
 
             scheme.Dispose();
             path.Dispose();

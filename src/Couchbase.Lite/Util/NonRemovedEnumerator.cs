@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Util
 
         public bool MoveNext()
         {
-            var moved = false;
+            bool moved;
             do {
                 moved = _source.MoveNext();
             } while (moved && ReferenceEquals(Current.Value, DictionaryObject.RemovedValue));

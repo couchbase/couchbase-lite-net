@@ -64,12 +64,12 @@ namespace Couchbase.Lite.Internal.Query
         {
             var result = new List<object>();
             foreach (var r in expressions) {
-                var jsonObj = default(object);
+                object jsonObj;
                 var arr = r as IList;
                 if (arr != null) {
                     jsonObj = arr;
                 } else {
-                    var expr = default(QueryExpression);
+                    QueryExpression expr;
                     var str = r as string;
                     if (str != null) {
                         expr = new QueryTypeExpression(str);

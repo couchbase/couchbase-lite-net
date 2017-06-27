@@ -20,9 +20,7 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Security.Authentication;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite

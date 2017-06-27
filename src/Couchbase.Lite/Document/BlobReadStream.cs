@@ -39,26 +39,11 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Properties
 
-        public override bool CanRead
-        {
-            get {
-                return true;
-            }
-        }
+        public override bool CanRead => true;
 
-        public override bool CanSeek
-        {
-            get {
-                return true;
-            }
-        }
+        public override bool CanSeek => true;
 
-        public override bool CanWrite
-        {
-            get {
-                return false;
-            }
-        }
+        public override bool CanWrite => false;
 
         public override long Length
         {
@@ -80,13 +65,10 @@ namespace Couchbase.Lite.Internal.Doc
 
         public override long Position
         {
-            get {
-                return _position;
-            }
-
+            get => _position;
             set {
-                Seek(Position, SeekOrigin.Begin);
                 _position = value;
+                Seek(Position, SeekOrigin.Begin);
             }
         }
 

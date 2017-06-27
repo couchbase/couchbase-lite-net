@@ -18,8 +18,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
-using System.Linq;
 using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
@@ -39,15 +37,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
         public static IDatabaseSource Database(Database database)
         {
-            var db = default(Database);
-            if (database != null) {
-                db = database as Database;
-                if (db == null) {
-                    throw new NotSupportedException("Custom IDatabase not supported");
-                }
-            }
-
-            return new DatabaseSource(db);
+            return new DatabaseSource(database);
         }
 
         #endregion

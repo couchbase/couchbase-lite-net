@@ -19,11 +19,9 @@
 // limitations under the License.
 // 
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal.Query
@@ -41,14 +39,12 @@ namespace Couchbase.Lite.Internal.Query
 
         private readonly XQuery _query;
 
-        private readonly ThreadSafety _threadSafety = new ThreadSafety(true);
-
         public event EventHandler<LiveQueryChangedEventArgs> Changed;
 
         private QueryEnumerator _enum;
         private DateTime _lastUpdatedAt;
         private AtomicBool _observing = false;
-        private TimeSpan _updateInterval;
+        private readonly TimeSpan _updateInterval;
         private AtomicBool _willUpdate = false;
 
         #endregion

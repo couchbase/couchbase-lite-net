@@ -108,7 +108,7 @@ namespace Couchbase.Lite.Sync
         private void OnNetworkChange(object sender, EventArgs e)
         {
             Log.To.Sync.I(Tag, "Network change detected, analyzing connection status...");
-            var status = NetworkReachabilityStatus.Unknown;
+            NetworkReachabilityStatus status;
             // https://social.msdn.microsoft.com/Forums/vstudio/en-US/a6b3541b-b7de-49e2-a7a6-ba0687761af5/networkavailabilitychanged-event-does-not-fire
             if (!NetworkInterface.GetIsNetworkAvailable()) {
                 Log.To.Sync.I(Tag, "NetworkInterface.GetIsNetworkAvailable() indicated no network available");

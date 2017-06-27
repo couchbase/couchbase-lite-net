@@ -28,7 +28,7 @@ namespace Couchbase.Lite.Util
     {
         #region Variables
 
-        private ConcurrentDictionary<TFilterType, HashSet<EventHandler<TEventType>>> _eventMap =
+        private readonly ConcurrentDictionary<TFilterType, HashSet<EventHandler<TEventType>>> _eventMap =
             new ConcurrentDictionary<TFilterType, HashSet<EventHandler<TEventType>>>();
 
         #endregion

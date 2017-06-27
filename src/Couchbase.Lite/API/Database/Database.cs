@@ -21,16 +21,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Logging;
@@ -43,7 +40,6 @@ using LiteCore.Interop;
 using LiteCore.Util;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
-using ObjCRuntime;
 
 namespace Couchbase.Lite
 {
@@ -56,7 +52,7 @@ namespace Couchbase.Lite
 
         private const string DBExtension = "cblite2";
 
-        private static readonly C4DatabaseConfig _DBConfig = new C4DatabaseConfig {
+        private static readonly C4DatabaseConfig DBConfig = new C4DatabaseConfig {
             flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.Bundled | C4DatabaseFlags.SharedKeys,
             storageEngine = "SQLite",
             versioning = C4DocumentVersioning.RevisionTrees
@@ -255,7 +251,7 @@ namespace Couchbase.Lite
             var path = DatabasePath(name, directory);
             LiteCoreBridge.Check(err =>
             {
-                var localConfig = _DBConfig;
+                var localConfig = DBConfig;
                 return Native.c4db_deleteAtPath(path, &localConfig, err) || err->code == 0;
             });
         }
@@ -632,7 +628,7 @@ namespace Couchbase.Lite
             
             System.IO.Directory.CreateDirectory(Directory(Config.Directory));
             var path = DatabasePath(Name, Config.Directory);
-            var config = _DBConfig;
+            var config = DBConfig;
 
             var encrypted = "";
             if(Config.EncryptionKey != null) {

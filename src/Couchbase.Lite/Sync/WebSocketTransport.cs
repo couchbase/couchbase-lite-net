@@ -91,7 +91,7 @@ namespace Couchbase.Lite.Sync
                 Path = address->path.CreateString()
             };
 
-            Uri uri = null;
+            Uri uri;
             try {
                 uri = builder.Uri;
             } catch (Exception) {

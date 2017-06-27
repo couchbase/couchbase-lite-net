@@ -173,7 +173,7 @@ namespace Couchbase.Lite.Logging
             foreach (var pair in levels) {
                 var log = Native.c4log_getDomain(pair.Key, false);
                 if (log == null) {
-                    Log.To.LiteCore.W("Log", $"Invalid log specified in SetLiteCoreLogLevels: {pair.Key}, ignoring...");
+                    To.LiteCore.W("Log", $"Invalid log specified in SetLiteCoreLogLevels: {pair.Key}, ignoring...");
                     continue;
                 }
 
@@ -196,19 +196,19 @@ namespace Couchbase.Lite.Logging
             var name = Native.c4log_getDomainName(domain);
             switch (level) {
                 case C4LogLevel.Error:
-                    Log.To.DomainOrLiteCore(name).E(name, message);
+                    To.DomainOrLiteCore(name).E(name, message);
                     break;
                 case C4LogLevel.Warning:
-                    Log.To.DomainOrLiteCore(name).W(name, message);
+                    To.DomainOrLiteCore(name).W(name, message);
                     break;
                 case C4LogLevel.Info:
-                    Log.To.DomainOrLiteCore(name).I(name, message);
+                    To.DomainOrLiteCore(name).I(name, message);
                     break;
                 case C4LogLevel.Verbose:
-                    Log.To.DomainOrLiteCore(name).V(name, message);
+                    To.DomainOrLiteCore(name).V(name, message);
                     break;
                 case C4LogLevel.Debug:
-                    Log.To.DomainOrLiteCore(name).D(name, message);
+                    To.DomainOrLiteCore(name).D(name, message);
                     break;
             }
         }

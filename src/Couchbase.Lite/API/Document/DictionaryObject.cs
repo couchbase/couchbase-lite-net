@@ -19,12 +19,10 @@
 // limitations under the License.
 // 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite
@@ -74,7 +72,7 @@ namespace Couchbase.Lite
             var dict = (IDictionaryObject)value;
             writer.WriteStartObject();
             foreach (var pair in dict) {
-                if (Object.ReferenceEquals(pair.Value, DictionaryObject.RemovedValue)) {
+                if (ReferenceEquals(pair.Value, DictionaryObject.RemovedValue)) {
                     continue;
                 }
 
@@ -126,7 +124,7 @@ namespace Couchbase.Lite
                     }
 
                     foreach (var val in _dict.Values) {
-                        if (Object.ReferenceEquals(val, RemovedValue)) {
+                        if (ReferenceEquals(val, RemovedValue)) {
                             count -= 1;
                         }
                     }
@@ -216,7 +214,7 @@ namespace Couchbase.Lite
         {
             foreach (var key in Keys) {
                 object value;
-                if (_dict.TryGetValue(key, out value) && Object.ReferenceEquals(value, RemovedValue)) {
+                if (_dict.TryGetValue(key, out value) && ReferenceEquals(value, RemovedValue)) {
                     continue;
                 }
 
@@ -342,7 +340,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.LockedForRead(() =>
             {
-                object value = null;
+                object value;
                 if (!_dict.TryGetValue(key, out value)) {
                     value = base.GetObject(key);
                     switch (value) {
@@ -355,7 +353,7 @@ namespace Couchbase.Lite
                             SetValue(key, value, false);
                             break;
                     }
-                } else if (Object.ReferenceEquals(value, RemovedValue)) {
+                } else if (ReferenceEquals(value, RemovedValue)) {
                     value = null;
                 }
 

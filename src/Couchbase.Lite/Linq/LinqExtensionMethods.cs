@@ -25,12 +25,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Couchbase.Lite.Internal.Linq
+namespace Couchbase.Lite.Linq
 {
     /// <summary>
     /// A collection of methods for use with the new LINQ model
     /// </summary>
-    public static class LinqExtensionMethods
+    internal static class LinqExtensionMethods
     {
         #region Public Methods
 

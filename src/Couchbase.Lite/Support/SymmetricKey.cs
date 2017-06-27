@@ -24,7 +24,6 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Collections.Generic;
-using Microsoft.IO;
 using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite
@@ -80,20 +79,12 @@ namespace Couchbase.Lite
         /// <summary>
         /// The key data encoded as hex.
         /// </summary>
-        public string HexData { 
-            get {
-                return BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
-            }
-        }
+        public string HexData => BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
 
         /// <summary>
         /// The SymmetricKey's key data; can be used to reconstitute it.
         /// </summary>
-        public byte[] KeyData { 
-            get {
-                return _cryptor.Key;
-            }
-        }
+        public byte[] KeyData => _cryptor.Key;
 
         #endregion
 
@@ -190,8 +181,7 @@ namespace Couchbase.Lite
         public byte[] DecryptData(byte[] encryptedData)
         {
             var buffer = new List<byte>();
-            using(var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream("SymmetricKey", 
-                encryptedData, 0, encryptedData.Length))
+            using(var ms = new MemoryStream(encryptedData))
             using(var cs = DecryptStream(ms)) {
                 int next;
                 while((next = cs.ReadByte()) != -1) {
@@ -246,12 +236,12 @@ namespace Couchbase.Lite
 
             byte[] encrypted;
             _cryptor.GenerateIV();
-            using(var ms = RecyclableMemoryStreamManager.SharedInstance.GetStream())
+            using(var ms = new MemoryStream())
             using(var cs = new CryptoStream(ms, _cryptor.CreateEncryptor(), CryptoStreamMode.Write)) {
                 ms.Write(_cryptor.IV, 0, IvSize);
                 cs.Write(data, 0, data.Length);
                 cs.FlushFinalBlock();
-                encrypted = ms.GetBuffer().Take((int)ms.Length).ToArray();
+                encrypted = ms.ToArray();
             }
 
             return encrypted;

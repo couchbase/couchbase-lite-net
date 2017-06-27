@@ -183,19 +183,19 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Packaging'">
-    <Content Condition="'$(Platform)' == 'x64'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\LiteCore.dll">
-      <Link>LiteCore.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'x64'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\sqlite3.dll">
-      <Link>sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Condition="'$(Platform)' == 'x86'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\LiteCore.dll">
       <Link>LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Condition="'$(Platform)' == 'x86'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\sqlite3.dll">
+      <Link>sqlite3.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Condition="'$(Platform)' == 'x64'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\LiteCore.dll">
+      <Link>LiteCore.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Condition="'$(Platform)' == 'x64'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\sqlite3.dll">
       <Link>sqlite3.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
