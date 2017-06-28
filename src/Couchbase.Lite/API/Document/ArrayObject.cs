@@ -75,8 +75,7 @@ namespace Couchbase.Lite
     public sealed class ArrayObject : ReadOnlyArray, IArray
     {
         #region Variables
-
-        private readonly ThreadSafety _changedSafety = new ThreadSafety();
+        
         private readonly ThreadSafety _threadSafety = new ThreadSafety();
 
         private bool _changed;
@@ -163,22 +162,9 @@ namespace Couchbase.Lite
             }
         }
 
-        private void SetChanged()
-        {
-            _changedSafety.DoLocked(() =>
-            {
-                if (!_changed) {
-                    _changed = true;
-                }
-            });
-        }
-
         private void SetValue(int index, object value, bool isChange)
         {
             _list[index] = value;
-            if (isChange) {
-                SetChanged();
-            }
         }
 
         #endregion
@@ -331,7 +317,6 @@ namespace Couchbase.Lite
                 }
 
                 _list.Add(DataOps.ConvertValue(value));
-                SetChanged();
                 return this;
             });
         }
@@ -358,7 +343,6 @@ namespace Couchbase.Lite
                 }
 
                 _list.Insert(index, DataOps.ConvertValue(value));
-                SetChanged();
                 return this;
             });
         }
@@ -373,7 +357,6 @@ namespace Couchbase.Lite
                 }
                 
                 _list.RemoveAt(index);
-                SetChanged();
                 return this;
             });
         }
@@ -389,7 +372,6 @@ namespace Couchbase.Lite
                 }
 
                 _list = result;
-                SetChanged();
                 return this;
             });
         }

@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Lite.Internal.Doc;
@@ -99,12 +100,7 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private readonly ThreadSafety _changedSafety = new ThreadSafety();
-        private readonly ThreadSafety _threadSafety = new ThreadSafety();
-        
-        private Dictionary<string, object> _dict = new Dictionary<string, object>();
-
-        private bool _hasChanges;
+        private ConcurrentDictionary<string, object> _dict = new ConcurrentDictionary<string, object>();
 
         #endregion
 
@@ -114,23 +110,20 @@ namespace Couchbase.Lite
         public override int Count
         {
             get {
-                return _threadSafety.DoLocked(() =>
-                {
-                    var count = _dict.Count;
-                    foreach (var key in Keys) {
-                        if (!_dict.ContainsKey(key)) {
-                            count += 1;
-                        }
+                var count = _dict.Count;
+                foreach (var key in Keys) {
+                    if (!_dict.ContainsKey(key)) {
+                        count += 1;
                     }
+                }
 
-                    foreach (var val in _dict.Values) {
-                        if (ReferenceEquals(val, RemovedValue)) {
-                            count -= 1;
-                        }
+                foreach (var val in _dict.Values) {
+                    if (ReferenceEquals(val, RemovedValue)) {
+                        count -= 1;
                     }
+                }
 
-                    return count;
-                });
+                return count;
             }
         }
 
@@ -147,34 +140,24 @@ namespace Couchbase.Lite
         public override ICollection<string> Keys
         {
             get {
-                return _threadSafety.DoLocked(() =>
-                {
-                    var result = new HashSet<string>();
-                    foreach (var key in base.Keys) {
-                        result.Add(key);
-                    }
+                var result = new HashSet<string>();
+                foreach (var key in base.Keys) {
+                    result.Add(key);
+                }
 
-                    foreach (var pair in _dict) {
-                        if (!ReferenceEquals(pair.Value, RemovedValue)) {
-                            result.Add(pair.Key);
-                        }
+                foreach (var pair in _dict) {
+                    if (!ReferenceEquals(pair.Value, RemovedValue)) {
+                        result.Add(pair.Key);
                     }
+                }
 
-                    return result;
-                });
+                return result;
             }
         }
 
-        internal bool HasChanges
-        {
-            get => _changedSafety.DoLocked(() => _hasChanges);
-            set => _changedSafety.DoLocked(() => _hasChanges = value);
-        }
+        internal bool HasChanges { get; private set; }
 
-        internal override bool IsEmpty => _threadSafety.DoLocked(() =>
-        {
-            return _dict.All(x => ReferenceEquals(x.Value, RemovedValue)) && base.IsEmpty;
-        });
+        internal override bool IsEmpty => _dict.All(x => ReferenceEquals(x.Value, RemovedValue)) && base.IsEmpty;
 
         #endregion
 
@@ -224,12 +207,7 @@ namespace Couchbase.Lite
 
         private void SetChanged()
         {
-            _changedSafety.DoLocked(() =>
-            {
-                if (!_hasChanges) {
-                    _hasChanges = true;
-                }
-            });
+            HasChanges = true;
         }
 
         private void SetValue(string key, object value, bool isChange)
@@ -247,14 +225,12 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override bool Contains(string key)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (_dict.ContainsKey(key)) {
-                    return !ReferenceEquals(_dict[key], RemovedValue);
-                }
+            object value;
+            if (_dict.TryGetValue(key, out value)) {
+                return !ReferenceEquals(value, RemovedValue);
+            }
 
-                return base.Contains(key);
-            });
+            return base.Contains(key);
         }
 
         /// <inheritdoc />
@@ -266,15 +242,12 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override bool GetBoolean(string key)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (!_dict.ContainsKey(key)) {
-                    return base.GetBoolean(key);
-                }
+            object value;
+            if (!_dict.TryGetValue(key, out value)) {
+                return base.GetBoolean(key);
+            }
 
-                var value = _dict[key];
-                return DataOps.ConvertToBoolean(value);
-            });
+            return DataOps.ConvertToBoolean(value);
         }
 
         /// <inheritdoc />
@@ -286,15 +259,12 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override double GetDouble(string key)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (!_dict.ContainsKey(key)) {
-                    return base.GetDouble(key);
-                }
+            object value;
+            if (!_dict.TryGetValue(key, out value)) {
+                return base.GetDouble(key);
+            }
 
-                var value = _dict[key];
-                return DataOps.ConvertToDouble(value);
-            });
+            return DataOps.ConvertToDouble(value);
         }
 
         /// <inheritdoc />
@@ -310,55 +280,46 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override int GetInt(string key)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (!_dict.ContainsKey(key)) {
-                    return base.GetInt(key);
-                }
+            object value;
+            if (!_dict.TryGetValue(key, out value)) {
+                return base.GetInt(key);
+            }
 
-                var value = _dict[key];
-                return DataOps.ConvertToInt(value);
-            });
+            return DataOps.ConvertToInt(value);
         }
 
         /// <inheritdoc />
         public override long GetLong(string key)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (!_dict.ContainsKey(key)) {
-                    return base.GetLong(key);
-                }
+            object value;
+            if (!_dict.TryGetValue(key, out value)) {
+                return base.GetLong(key);
+            }
 
-                var value = _dict[key];
-                return DataOps.ConvertToLong(value);
-            });
+            return DataOps.ConvertToLong(value);
         }
 
         /// <inheritdoc />
         public override object GetObject(string key)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                object value;
-                if (!_dict.TryGetValue(key, out value)) {
-                    value = base.GetObject(key);
-                    switch (value) {
-                        case ReadOnlyDictionary sub:
-                            value = DataOps.ConvertRODictionary(sub);
-                            SetValue(key, value, false);
-                            break;
-                        case ReadOnlyArray arr:
-                            value = DataOps.ConvertROArray(arr);
-                            SetValue(key, value, false);
-                            break;
-                    }
-                } else if (ReferenceEquals(value, RemovedValue)) {
-                    value = null;
+            object value;
+            if (!_dict.TryGetValue(key, out value)) {
+                value = base.GetObject(key);
+                switch (value) {
+                    case ReadOnlyDictionary sub:
+                        value = DataOps.ConvertRODictionary(sub);
+                        SetValue(key, value, false);
+                        break;
+                    case ReadOnlyArray arr:
+                        value = DataOps.ConvertROArray(arr);
+                        SetValue(key, value, false);
+                        break;
                 }
+            } else if (ReferenceEquals(value, RemovedValue)) {
+                value = null;
+            }
 
-                return value;
-            });
+            return value;
         }
 
         /// <inheritdoc />
@@ -376,36 +337,33 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override IDictionary<string, object> ToDictionary()
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                var result = new Dictionary<string, object>(_dict);
-                var backingData = base.ToDictionary();
-                foreach (var pair in backingData) {
-                    if (!result.ContainsKey(pair.Key)) {
-                        result[pair.Key] = pair.Value;
-                    }
+            var result = new Dictionary<string, object>(_dict);
+            var backingData = base.ToDictionary();
+            foreach (var pair in backingData) {
+                if (!result.ContainsKey(pair.Key)) {
+                    result[pair.Key] = pair.Value;
                 }
+            }
 
-                foreach (var key in result.Keys.ToArray()) {
-                    var value = result[key];
-                    switch (value) {
-                        case IReadOnlyDictionary dic:
-                            result[key] = dic.ToDictionary();
-                            break;
-                        case IReadOnlyArray arr:
-                            result[key] = arr.ToList();
-                            break;
-                        default:
-                            if (ReferenceEquals(value, RemovedValue)) {
-                                result.Remove(key);
-                            }
+            foreach (var key in result.Keys.ToArray()) {
+                var value = result[key];
+                switch (value) {
+                    case IReadOnlyDictionary dic:
+                        result[key] = dic.ToDictionary();
+                        break;
+                    case IReadOnlyArray arr:
+                        result[key] = arr.ToList();
+                        break;
+                    default:
+                        if (ReferenceEquals(value, RemovedValue)) {
+                            result.Remove(key);
+                        }
 
-                            break;
-                    }
+                        break;
                 }
+            }
 
-                return result;
-            });
+            return result;
         }
 
         #endregion
@@ -427,53 +385,44 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IDictionaryObject Remove(string key)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (Contains(key)) {
-                    Set(key, RemovedValue);
-                }
+            if (Contains(key)) {
+                Set(key, RemovedValue);
+            }
 
-                return this;
-            });
+            return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, object value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                var oldValue = GetObject(key);
-                if (value == null || !value.Equals(oldValue)) {
-                    value = DataOps.ConvertValue(value);
-                    SetValue(key, value, true);
-                }
+        { 
+            var oldValue = GetObject(key);
+            if (value == null || !value.Equals(oldValue)) {
+                value = DataOps.ConvertValue(value);
+                SetValue(key, value, true);
+            }
 
-                return this;
-            });
+            return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(IDictionary<string, object> dictionary)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                var result = new Dictionary<string, object>();
-                foreach (var pair in dictionary) {
-                    result[pair.Key] = DataOps.ConvertValue(pair.Value);
+            var result = new ConcurrentDictionary<string, object>();
+            foreach (var pair in dictionary) {
+                result[pair.Key] = DataOps.ConvertValue(pair.Value);
+            }
+
+            var backingData = base.ToDictionary();
+            foreach (var pair in backingData) {
+                if (!result.ContainsKey(pair.Key)) {
+                    result[pair.Key] = RemovedValue;
                 }
+            }
 
-                var backingData = base.ToDictionary();
-                foreach (var pair in backingData) {
-                    if (!result.ContainsKey(pair.Key)) {
-                        result[pair.Key] = RemovedValue;
-                    }
-                }
+            _dict = result;
 
-                _dict = result;
-
-                SetChanged();
-                return this;
-            });
+            SetChanged();
+            return this;
         }
 
         #endregion
