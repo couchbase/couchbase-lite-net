@@ -101,7 +101,6 @@ namespace Test
             ReopenDB();
             var doc = SetupConflict();
             Db.Delete(doc);
-            doc.Exists.Should().BeTrue("because there was a conflict in place of thgie deletion");
             doc.IsDeleted.Should().BeFalse("because there was a conflict in place of the deletion");
             doc["name"].ToString().Should().Be("Scotty", "because that was the pre-deletion value");
         }

@@ -89,9 +89,9 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="documentID">The ID for the document</param>
         public Document(string documentID)
-            : base(null, documentID ?? Misc.CreateGuid(), null, null)
+            : this(null, documentID ?? Misc.CreateGuid(), null, null)
         {
-            _dict = new DictionaryObject(Data);
+            
         }
 
         /// <summary>
@@ -196,7 +196,7 @@ namespace Couchbase.Lite
             }
 
             var database = Database;
-            using (var current = new ReadOnlyDocument(database, Id, true)) {
+            using (var current = new ReadOnlyDocument(database, Id, true, false)) {
                 var curC4doc = current.c4Doc;
 
                 // Resolve conflict:
@@ -206,7 +206,7 @@ namespace Couchbase.Lite
                     resolved = current;
                 } else {
                     // Call the conflict resolver:
-                    using (var baseDoc = new ReadOnlyDocument(database, Id, base.c4Doc, Data)) {
+                    using (var baseDoc = new ReadOnlyDocument(database, Id, base.c4Doc, Data, false)) {
                         var conflict = new Conflict(this, current, baseDoc);
                         resolved = resolver.Resolve(conflict);
                         if (resolved == null) {
@@ -222,10 +222,6 @@ namespace Couchbase.Lite
                     Set(dict);
                 } else {
                     c4Doc = curC4doc;
-                }
-
-                if (resolved != this) {
-                    resolved.Dispose();
                 }
             }
         }

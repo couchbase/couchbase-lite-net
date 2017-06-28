@@ -115,11 +115,11 @@ namespace Couchbase.Lite
             }
         }
 
-        internal ReadOnlyDocument(Database database, string documentID, bool mustExist)
-            : this(database, documentID, null, null)
+        internal ReadOnlyDocument(Database database, string documentID, bool mustExist, bool owner = true)
+            : this(database, documentID, null, null, owner)
         {
             var db = database ?? throw new ArgumentNullException(nameof(database));
-            var doc = (C4Document*) LiteCoreBridge.Check(
+            var doc = (C4Document*) NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
                 err => Native.c4doc_get(db.c4db, documentID, mustExist, err));
             c4Doc = doc;
         }

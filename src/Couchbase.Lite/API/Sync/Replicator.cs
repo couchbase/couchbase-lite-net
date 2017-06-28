@@ -378,9 +378,11 @@ namespace Couchbase.Lite.Sync
         {
             if (_responseHeaders == null && _repl != null) {
                 var h = Native.c4repl_getResponseHeaders(_repl);
-                _responseHeaders =
-                    FLSliceExtensions.ToObject(NativeRaw.FLValue_FromTrustedData((FLSlice) h)) as
-                        IDictionary<string, object>;
+                if (h.buf != null) {
+                    _responseHeaders =
+                        FLSliceExtensions.ToObject(NativeRaw.FLValue_FromTrustedData((FLSlice) h)) as
+                            IDictionary<string, object>;
+                }
             }
 
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
