@@ -76,8 +76,8 @@ namespace Couchbase.Lite
     {
         #region Variables
 
-        private readonly ThreadSafety _changedSafety = new ThreadSafety(false);
-        private readonly ThreadSafety _threadSafety = new ThreadSafety(true);
+        private readonly ThreadSafety _changedSafety = new ThreadSafety();
+        private readonly ThreadSafety _threadSafety = new ThreadSafety();
 
         private bool _changed;
         private IList _list;
@@ -90,7 +90,7 @@ namespace Couchbase.Lite
         public override int Count
         {
             get {
-                return _threadSafety.LockedForRead(() =>
+                return _threadSafety.DoLocked(() =>
                 {
                     if (_list == null) {
                         return base.Count;
@@ -145,7 +145,7 @@ namespace Couchbase.Lite
 
         internal void LockedForRead(Action a)
         {
-            _threadSafety.LockedForRead(a);
+            _threadSafety.DoLocked(a);
         }
 
         #endregion
@@ -165,7 +165,7 @@ namespace Couchbase.Lite
 
         private void SetChanged()
         {
-            _changedSafety.LockedForWrite(() =>
+            _changedSafety.DoLocked(() =>
             {
                 if (!_changed) {
                     _changed = true;
@@ -194,7 +194,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override bool GetBoolean(int index)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     return base.GetBoolean(index);
@@ -214,7 +214,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override double GetDouble(int index)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     return base.GetDouble(index);
@@ -228,7 +228,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override IEnumerator<object> GetEnumerator()
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     return base.GetEnumerator();
@@ -241,7 +241,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override int GetInt(int index)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     return base.GetInt(index);
@@ -255,7 +255,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override long GetLong(int index)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     return base.GetLong(index);
@@ -269,7 +269,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override object GetObject(int index)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     var value = base.GetObject(index);
@@ -292,7 +292,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override IList<object> ToList()
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     CopyFleeceData();
@@ -324,7 +324,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IArray Add(object value)
         {
-            return _threadSafety.LockedForWrite(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     CopyFleeceData();
@@ -351,7 +351,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IArray Insert(int index, object value)
         {
-            return _threadSafety.LockedForWrite(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     CopyFleeceData();
@@ -366,7 +366,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IArray RemoveAt(int index)
         {
-            return _threadSafety.LockedForWrite(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     CopyFleeceData();
@@ -381,7 +381,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IArray Set(IList array)
         {
-            return _threadSafety.LockedForWrite(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 var result = new List<object>();
                 foreach (var item in array) {
@@ -397,7 +397,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IArray Set(int index, object value)
         {
-            return _threadSafety.LockedForWrite(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_list == null) {
                     CopyFleeceData();

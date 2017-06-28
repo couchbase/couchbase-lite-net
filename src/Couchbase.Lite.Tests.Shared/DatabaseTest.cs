@@ -145,7 +145,7 @@ namespace Test
             using (var otherDB = OpenDB(Db.Name)) {
                 otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
-                otherDB.DocumentExists(docID)
+                otherDB.Contains(docID)
                     .Should()
                     .BeTrue("because the other database should know about the document");
 
@@ -196,7 +196,7 @@ namespace Test
             SaveDocument(doc);
 
             Db.Count.Should().Be(1, "because a document was updated, not added");
-            Db.DocumentExists(docID).Should().BeTrue("because the document still exists");
+            Db.Contains(docID).Should().BeTrue("because the document still exists");
 
             VerifyGetDocument(docID, 2);
         }
@@ -935,7 +935,7 @@ namespace Test
             GenerateDocument(docID);
 
             Db.Count.Should().Be(1UL, "because the database only has one document");
-            Db.DocumentExists(docID).Should().BeTrue("because otherwise the wrong document is in the database");
+            Db.Contains(docID).Should().BeTrue("because otherwise the wrong document is in the database");
 
             VerifyGetDocument(docID);
         }

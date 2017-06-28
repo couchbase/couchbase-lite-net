@@ -27,105 +27,32 @@ namespace Couchbase.Lite.Support
     {
         #region Variables
 
-        private readonly ReaderWriterLockSlim _lock;
-
-        #endregion
-
-        #region Constructors
-
-        public ThreadSafety(bool recursive)
-        {
-            _lock = new ReaderWriterLockSlim(recursive
-                ? LockRecursionPolicy.SupportsRecursion
-                : LockRecursionPolicy.NoRecursion);
-        }
+        private readonly object _lock = new object();
 
         #endregion
 
         #region Public Methods
 
-        public void LockedForRead(Action a)
+        public void DoLocked(Action a)
         {
-            bool tookLock = false;
-            if (!_lock.IsUpgradeableReadLockHeld && !_lock.IsWriteLockHeld) {
-                tookLock = true;
-                _lock.EnterReadLock();
-            }
-
-            try {
+#if !NO_THREADSAFE
+            lock (_lock) {
+#endif
                 a();
-            } finally {
-                if (tookLock) {
-                    _lock.ExitReadLock();
-                }
+#if !NO_THREADSAFE
             }
+#endif
         }
 
-        public void LockedForWrite(Action a)
+        public T DoLocked<T>(Func<T> f)
         {
-            _lock.EnterWriteLock();
-            try {
-                a();
-            } finally {
-                _lock.ExitWriteLock();
-            }
-        }
-
-        public void LockedForPossibleWrite(Action a)
-        {
-            bool tookLock = false;
-            if (!_lock.IsWriteLockHeld) {
-                tookLock = true;
-                _lock.EnterUpgradeableReadLock();
-            }
-            try {
-                a();
-            }
-            finally {
-                if (tookLock) {
-                    _lock.ExitUpgradeableReadLock();
-                }
-            }
-        }
-
-        public T LockedForRead<T>(Func<T> f)
-        {
-            bool tookLock = false;
-            if (!_lock.IsUpgradeableReadLockHeld && !_lock.IsWriteLockHeld) {
-                tookLock = true;
-                _lock.EnterReadLock();
-            }
-
-            try {
+#if !NO_THREADSAFE
+            lock (_lock) {
+#endif
                 return f();
+#if !NO_THREADSAFE
             }
-            finally {
-                if (tookLock) {
-                    _lock.ExitReadLock();
-                }
-            }
-        }
-
-        public T LockedForWrite<T>(Func<T> f)
-        {
-            _lock.EnterWriteLock();
-            try {
-                return f();
-            }
-            finally {
-                _lock.ExitWriteLock();
-            }
-        }
-
-        public T LockedForPossibleWrite<T>(Func<T> f)
-        {
-            _lock.EnterUpgradeableReadLock();
-            try {
-                return f();
-            }
-            finally {
-                _lock.ExitUpgradeableReadLock();
-            }
+#endif
         }
 
         #endregion

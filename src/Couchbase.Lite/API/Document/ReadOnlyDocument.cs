@@ -38,7 +38,7 @@ namespace Couchbase.Lite
 
         private readonly bool _owner;
         private C4Document* _c4Doc;
-        internal readonly ThreadSafety _threadSafety = new ThreadSafety(true);
+        internal readonly ThreadSafety _threadSafety = new ThreadSafety();
 
         #endregion
 
@@ -52,13 +52,13 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets whether or not this document is deleted
         /// </summary>
-        public bool IsDeleted => _threadSafety.LockedForRead(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.Deleted));
+        public bool IsDeleted => _threadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.Deleted));
 
         /// <summary>
         /// Gets the sequence of this document (a unique incrementing number
         /// identifying its status in a database)
         /// </summary>
-        public ulong Sequence => _threadSafety.LockedForRead(() => _c4Doc != null ? _c4Doc->sequence : 0UL);
+        public ulong Sequence => _threadSafety.DoLocked(() => _c4Doc != null ? _c4Doc->sequence : 0UL);
 
         public Database Database { get; internal set; }
 
@@ -90,9 +90,9 @@ namespace Couchbase.Lite
             }
         }
 
-        internal bool Exists => _threadSafety.LockedForRead(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.Exists));
+        internal bool Exists => _threadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.Exists));
 
-        internal virtual uint Generation => _threadSafety.LockedForRead(() => _c4Doc != null ? NativeRaw.c4rev_getGeneration(_c4Doc->revID) : 0U);
+        internal virtual uint Generation => _threadSafety.DoLocked(() => _c4Doc != null ? NativeRaw.c4rev_getGeneration(_c4Doc->revID) : 0U);
 
         internal string RevID => _c4Doc != null ? _c4Doc->selectedRev.revID.CreateString() : null;
 
@@ -200,7 +200,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Dispose()
         {
-            _threadSafety.LockedForWrite(() => Dispose(true));
+            _threadSafety.DoLocked(() => Dispose(true));
             GC.SuppressFinalize(this);
         }
 

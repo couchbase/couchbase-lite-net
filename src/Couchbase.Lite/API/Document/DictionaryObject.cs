@@ -99,8 +99,8 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private readonly ThreadSafety _changedSafety = new ThreadSafety(false);
-        private readonly ThreadSafety _threadSafety = new ThreadSafety(true);
+        private readonly ThreadSafety _changedSafety = new ThreadSafety();
+        private readonly ThreadSafety _threadSafety = new ThreadSafety();
         
         private Dictionary<string, object> _dict = new Dictionary<string, object>();
 
@@ -114,7 +114,7 @@ namespace Couchbase.Lite
         public override int Count
         {
             get {
-                return _threadSafety.LockedForRead(() =>
+                return _threadSafety.DoLocked(() =>
                 {
                     var count = _dict.Count;
                     foreach (var key in Keys) {
@@ -147,7 +147,7 @@ namespace Couchbase.Lite
         public override ICollection<string> Keys
         {
             get {
-                return _threadSafety.LockedForRead(() =>
+                return _threadSafety.DoLocked(() =>
                 {
                     var result = new HashSet<string>();
                     foreach (var key in base.Keys) {
@@ -167,11 +167,11 @@ namespace Couchbase.Lite
 
         internal bool HasChanges
         {
-            get => _changedSafety.LockedForRead(() => _hasChanges);
-            set => _changedSafety.LockedForWrite(() => _hasChanges = value);
+            get => _changedSafety.DoLocked(() => _hasChanges);
+            set => _changedSafety.DoLocked(() => _hasChanges = value);
         }
 
-        internal override bool IsEmpty => _threadSafety.LockedForRead(() =>
+        internal override bool IsEmpty => _threadSafety.DoLocked(() =>
         {
             return _dict.All(x => ReferenceEquals(x.Value, RemovedValue)) && base.IsEmpty;
         });
@@ -224,7 +224,7 @@ namespace Couchbase.Lite
 
         private void SetChanged()
         {
-            _changedSafety.LockedForWrite(() =>
+            _changedSafety.DoLocked(() =>
             {
                 if (!_hasChanges) {
                     _hasChanges = true;
@@ -247,7 +247,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override bool Contains(string key)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (_dict.ContainsKey(key)) {
                     return !ReferenceEquals(_dict[key], RemovedValue);
@@ -266,7 +266,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override bool GetBoolean(string key)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (!_dict.ContainsKey(key)) {
                     return base.GetBoolean(key);
@@ -286,7 +286,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override double GetDouble(string key)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (!_dict.ContainsKey(key)) {
                     return base.GetDouble(key);
@@ -310,7 +310,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override int GetInt(string key)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (!_dict.ContainsKey(key)) {
                     return base.GetInt(key);
@@ -324,7 +324,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override long GetLong(string key)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (!_dict.ContainsKey(key)) {
                     return base.GetLong(key);
@@ -338,7 +338,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override object GetObject(string key)
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 object value;
                 if (!_dict.TryGetValue(key, out value)) {
@@ -376,7 +376,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override IDictionary<string, object> ToDictionary()
         {
-            return _threadSafety.LockedForRead(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 var result = new Dictionary<string, object>(_dict);
                 var backingData = base.ToDictionary();
@@ -427,7 +427,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IDictionaryObject Remove(string key)
         {
-            return _threadSafety.LockedForWrite(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 if (Contains(key)) {
                     Set(key, RemovedValue);
@@ -440,7 +440,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IDictionaryObject Set(string key, object value)
         {
-            return _threadSafety.LockedForWrite(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 var oldValue = GetObject(key);
                 if (value == null || !value.Equals(oldValue)) {
@@ -455,7 +455,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IDictionaryObject Set(IDictionary<string, object> dictionary)
         {
-            return _threadSafety.LockedForWrite(() =>
+            return _threadSafety.DoLocked(() =>
             {
                 var result = new Dictionary<string, object>();
                 foreach (var pair in dictionary) {

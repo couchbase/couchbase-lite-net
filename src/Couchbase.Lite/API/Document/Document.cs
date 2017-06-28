@@ -133,12 +133,12 @@ namespace Couchbase.Lite
 
         internal void Delete()
         {
-            _threadSafety.LockedForWrite(() => Save(EffectiveConflictResolver, true));
+            _threadSafety.DoLocked(() => Save(EffectiveConflictResolver, true));
         }
 
         internal void Purge()
         {
-            _threadSafety.LockedForWrite(() =>
+            _threadSafety.DoLocked(() =>
             {
                 if (!Exists) {
                     throw new CouchbaseLiteException(StatusCode.NotFound);
@@ -182,7 +182,7 @@ namespace Couchbase.Lite
 
         internal void Save()
         {
-            _threadSafety.LockedForWrite(() => Save(EffectiveConflictResolver, false));
+            _threadSafety.DoLocked(() => Save(EffectiveConflictResolver, false));
         }
 
         #endregion
