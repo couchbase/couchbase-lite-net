@@ -56,6 +56,8 @@ namespace Test
         public ReplicationTest()
 #endif
         {
+            ConflictResolver = new MergeThenTheirsWins();
+            ReopenDB();
             _otherDB = OpenDB("otherdb");
         }
 
@@ -106,6 +108,32 @@ namespace Test
 
             Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
             doc2.GetString("name").Should().Be("Cat");
+        }
+
+        [Fact]
+        public void TestPullConflict()
+        {
+            var doc1 = new Document("doc");
+            doc1.Set("species", "Tiger");
+            Db.Save(doc1);
+            doc1.Set("name", "Hobbes");
+            Db.Save(doc1);
+
+            var doc2 = new Document("doc");
+            doc2.Set("species", "Tiger");
+            _otherDB.Save(doc2);
+            doc2.Set("pattern", "striped");
+            _otherDB.Save(doc2);
+
+            var config = CreateConfig(false, true);
+            RunReplication(config, 0, 0);
+            Db.Count.Should().Be(1, "because the document should go through the conflict handler");
+            doc1 = Db.GetDocument("doc");
+            doc1.ShouldBeEquivalentTo(new Dictionary<string, object> {
+                ["species"] = "Tiger",
+                ["name"] = "Hobbes",
+                ["pattern"] = "striped"
+            });
         }
 
         // The below tests are disabled because they require orchestration and should be moved

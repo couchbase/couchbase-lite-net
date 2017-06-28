@@ -179,7 +179,7 @@ namespace Test
     {
         public ReadOnlyDocument Resolve(Conflict conflict)
         {
-            return conflict.Target;
+            return conflict.Theirs;
         }
     }
 
@@ -187,14 +187,18 @@ namespace Test
     {
         public ReadOnlyDocument Resolve(Conflict conflict)
         {
-            var resolved = new Document(conflict.CommonAncestor.ToDictionary());
+            var resolved = new Document();
+            foreach (var pair in conflict.Base) {
+                resolved.Set(pair.Key, pair.Value);
+            }
+
             var changed = new HashSet<string>();
-            foreach (var pair in conflict.Target) {
+            foreach (var pair in conflict.Theirs) {
                 resolved.Set(pair.Key, pair.Value);
                 changed.Add(pair.Key);
             }
 
-            foreach (var pair in conflict.Source) {
+            foreach (var pair in conflict.Mine) {
                 if (!changed.Contains(pair.Key)) {
                     resolved.Set(pair.Key, pair.Value);
                 }

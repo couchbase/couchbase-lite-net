@@ -111,19 +111,15 @@ namespace Test
             if(Db != null) {
                 throw new InvalidOperationException();
             }
-
-            var options = new DatabaseConfiguration {
-                Directory = Directory,
-                ConflictResolver = ConflictResolver
-            };
-            Db = new Database(DatabaseName, options);
-            Db.Should().NotBeNull("because otherwise the database failed to open");
+            
+            Db = OpenDB(DatabaseName);
         }
 
         protected Database OpenDB(string name)
         {
             var options = new DatabaseConfiguration {
-                Directory = Directory
+                Directory = Directory,
+                ConflictResolver = ConflictResolver
             };
 
             return new Database(name, options);

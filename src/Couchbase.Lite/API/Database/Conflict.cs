@@ -51,35 +51,28 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the state of the document before any edits were made
         /// </summary>
-        public ReadOnlyDocument CommonAncestor { get; }
-
-        /// <summary>
-        /// Gets the type of operation that caused the conflict
-        /// </summary>
-        public OperationType OperationType { get; }
+        public ReadOnlyDocument Base { get; }
 
         /// <summary>
         /// Gets the version of the document that is already existing
         /// </summary>
-        public ReadOnlyDocument Source { get; }
+        public ReadOnlyDocument Mine { get; }
 
         /// <summary>
         /// Gets the version of the document that is attempting to be
         /// written but cannot due to an existing version
         /// </summary>
-        public ReadOnlyDocument Target { get; }
+        public ReadOnlyDocument Theirs { get; }
 
         #endregion
 
         #region Constructors
 
-        internal Conflict(ReadOnlyDocument source, ReadOnlyDocument target, ReadOnlyDocument commonAncestor,
-            OperationType opType)
+        internal Conflict(ReadOnlyDocument mine, ReadOnlyDocument theirs, ReadOnlyDocument @base)
         {
-            Source = source;
-            Target = target;
-            CommonAncestor = commonAncestor;
-            OperationType = opType;
+            Mine = mine;
+            Theirs = theirs;
+            Base = @base;
         }
 
         #endregion

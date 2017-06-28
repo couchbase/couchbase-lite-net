@@ -34,8 +34,9 @@ namespace Couchbase.Lite
     {
         #region Variables
 
-        private readonly FLDict* _dict;
-        private readonly SharedStringCache _sharedKeys;
+        private FleeceDictionary _data;
+        private FLDict* _dict;
+        private SharedStringCache _sharedKeys;
 
         #endregion
 
@@ -66,7 +67,15 @@ namespace Couchbase.Lite
             }
         }
 
-        internal FleeceDictionary Data { get; set; }
+        internal FleeceDictionary Data
+        {
+            get => _data;
+            set {
+                _data = value;
+                _dict = value != null ? value.Dict : null;
+                _sharedKeys = value?.Database?.SharedStrings;
+            }
+        }
 
         internal virtual bool IsEmpty => Count == 0;
 
@@ -77,8 +86,6 @@ namespace Couchbase.Lite
         internal ReadOnlyDictionary(FleeceDictionary data)
         {
             Data = data;
-            _dict = data != null ? data.Dict : null;
-            _sharedKeys = data?.Database?.SharedStrings;
         }
 
         #endregion

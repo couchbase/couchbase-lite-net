@@ -187,9 +187,13 @@ namespace Couchbase.Lite.Sync
             return TimeSpan.FromSeconds(Math.Min(delaySecs, MaxRetryDelay.TotalSeconds));
         }
 
-        private static void ErrorCallback(bool pushing, string docID, C4Error error, bool transient, object context)
+        private static void OnDocError(bool pushing, string docID, C4Error error, bool transient, object context)
         {
-            
+            var replicator = context as Replicator;
+            replicator?._dispatchQueue.DispatchAsync(() =>
+            {
+                replicator.OnDocError(error, pushing, docID, transient);
+            });
         }
 
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
@@ -221,6 +225,26 @@ namespace Couchbase.Lite.Sync
 
             Native.c4repl_free(_repl);
 			_nativeParams?.Dispose();
+        }
+
+        private void OnDocError(C4Error error, bool pushing, string docID, bool transient)
+        {
+            var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+            if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain && error.code == (int) C4ErrorCode.Conflict) {
+                // Conflict pulling a document -- the revision was added but app needs to resolve it:
+                var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+                Log.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
+                try {
+                    _config.Database.ResolveConflict(docID);
+                } catch (Exception e) {
+                    Log.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
+                }
+            } else {
+                var transientStr = transient ? "transient" : String.Empty;
+                var dirStr = pushing ? "pushing" : "pulling";
+                Log.To.Sync.I(Tag,
+                    $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
+            }
         }
 
         private bool HandleError(C4Error error)
@@ -322,7 +346,7 @@ namespace Couchbase.Lite.Sync
             var pull = _config.ReplicatorType.HasFlag(ReplicatorType.Pull);
             var continuous = _config.Continuous;
             _nativeParams = new ReplicatorParameters(Mkmode(push, continuous), Mkmode(pull, continuous), options, ValidateCallback, 
-                ErrorCallback, StatusChangedCallback, this);
+                OnDocError, StatusChangedCallback, this);
 
             C4Error err;
             _repl = Native.c4repl_new(_config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,

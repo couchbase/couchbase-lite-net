@@ -1,4 +1,4 @@
-﻿// 
+// 
 // Document.cs
 // 
 // Author:
@@ -24,6 +24,7 @@ using System.Diagnostics.CodeAnalysis;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
@@ -44,8 +45,6 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private C4Database* _c4Db;
-        private Database _database;
         private DictionaryObject _dict;
 
         #endregion
@@ -58,19 +57,20 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public new Fragment this[string key] => _dict[key];
 
-        /// <inheritdoc />
-        public override ICollection<string> Keys => _dict.Keys;
 
-        internal Database Database
+        internal override bool IsEmpty => _dict.IsEmpty;
+
+        internal override uint Generation => base.Generation + Convert.ToUInt32(Changed);
+        internal override C4Document* c4Doc
         {
-            get => _database;
+            get => base.c4Doc;
             set {
-                _database = value;
-                _c4Db = _database != null ? _database.c4db : null;
+                base.c4Doc = value;
+                _dict = new DictionaryObject(Data);
             }
         }
 
-        internal override bool IsEmpty => _dict.IsEmpty;
+        private bool Changed => _dict?.HasChanges ?? false;
 
         #endregion
 
@@ -89,7 +89,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="documentID">The ID for the document</param>
         public Document(string documentID)
-            : base(documentID, null, null)
+            : base(null, documentID ?? Misc.CreateGuid(), null, null)
         {
             _dict = new DictionaryObject(Data);
         }
@@ -116,10 +116,15 @@ namespace Couchbase.Lite
         }
 
         internal Document(Database database, string documentID, bool mustExist)
-            : base(documentID, null, null)
+            : base(database, documentID, mustExist)
         {
-            Database = database;
-            LoadDoc(mustExist);
+
+        }
+
+        internal Document(Database database, string documentID, C4Document* c4Doc, FleeceDictionary data)
+            : base(database, documentID, c4Doc, data)
+        {
+            _dict = new DictionaryObject(Data);
         }
 
         #endregion
@@ -128,17 +133,13 @@ namespace Couchbase.Lite
 
         internal void Delete()
         {
-            _threadSafety.LockedForWrite(() => Save(_database.Config.ConflictResolver, true));
+            _threadSafety.LockedForWrite(() => Save(EffectiveConflictResolver, true));
         }
 
         internal void Purge()
         {
             _threadSafety.LockedForWrite(() =>
             {
-                if(_database == null || _c4Db == null) {
-                    throw new InvalidOperationException("Document's owning database has been closed");
-                }
-
                 if (!Exists) {
                     throw new CouchbaseLiteException(StatusCode.NotFound);
                 }
@@ -149,65 +150,78 @@ namespace Couchbase.Lite
                     LiteCoreBridge.Check(err => Native.c4doc_save(c4Doc, 0, err));
                 });
 
-                SetC4Doc(null);
+                c4Doc = null;
             });
         }
 
+        //internal bool ResolveExistingConflict()
+        //{
+        //    // Read the conflicting remote revision:
+        //    var otherDoc = new ReadOnlyDocument(Database, Id, true);
+        //    if (!otherDoc.SelectConflictingRevision()) {
+        //        return false;
+        //    }
+
+        //    // Read the common ancestor revision (if it's available)
+        //    var baseDoc = new ReadOnlyDocument(Database, Id, true);
+        //    if (!baseDoc.SelectCommonAncestor(this, otherDoc) || baseDoc.Data == null) {
+        //        baseDoc = null;
+        //    }
+
+        //    // Call the conflict resolver:
+        //    ReadOnlyDocument resolved;
+        //    if (otherDoc.IsDeleted) {
+        //        resolved = this;
+        //    } else if (IsDeleted) {
+        //        resolved = otherDoc;
+        //    } else {
+        //        var resolver = Database?.Config?.ConflictResolver ?? new MostActiveWinsConflictResolver();
+
+        //    }
+        //}
+
         internal void Save()
         {
-            _threadSafety.LockedForWrite(() => Save(_database.Config.ConflictResolver, false));
+            _threadSafety.LockedForWrite(() => Save(EffectiveConflictResolver, false));
         }
 
         #endregion
 
         #region Private Methods
 
-        private void LoadDoc(bool mustExist)
-        {
-            var doc = (C4Document*)NativeHandler.Create()
-                .AllowError((int) C4ErrorCode.NotFound, C4ErrorDomain.LiteCoreDomain)
-                .Execute(err => Native.c4doc_get(_c4Db, Id, mustExist, err));
-            SetC4Doc(doc);
-        }
-
         private void Merge(IConflictResolver resolver, bool deletion)
         {
-            var rawDoc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(_c4Db, Id, true, err));
-            FLDict* curRoot = null;
-            var curBody = rawDoc->selectedRev.body;
-            if (curBody.size > 0) {
-                curRoot = (FLDict*) NativeRaw.FLValue_FromTrustedData(new FLSlice(curBody.buf, curBody.size));
+            if (resolver == null) {
+                throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
             }
 
-            var curDict = new FleeceDictionary(curRoot, rawDoc, Database);
-            using (var current = new ReadOnlyDocument(Id, rawDoc, curDict, false)) {
+            var database = Database;
+            using (var current = new ReadOnlyDocument(database, Id, true)) {
+                var curC4doc = current.c4Doc;
+
+                // Resolve conflict:
                 ReadOnlyDocument resolved;
                 if (deletion) {
                     // Deletion always loses a conflict:
                     resolved = current;
-                } else if (resolver != null) {
-                    // Call the custom conflict resolver:
-                    using (var baseDoc = new ReadOnlyDocument(Id, c4Doc, Data, false)) {
-                        var conflict = new Conflict(this, current, baseDoc, OperationType.DatabaseWrite);
+                } else {
+                    // Call the conflict resolver:
+                    using (var baseDoc = new ReadOnlyDocument(database, Id, base.c4Doc, Data)) {
+                        var conflict = new Conflict(this, current, baseDoc);
                         resolved = resolver.Resolve(conflict);
                         if (resolved == null) {
                             throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
                         }
                     }
-                } else {
-                    // Thank Jens Alfke for this variable name (lol)
-                    var myGgggeneration = Generation + 1;
-                    var theirGgggeneration = NativeRaw.c4rev_getGeneration(rawDoc->revID);
-                    resolved = myGgggeneration >= theirGgggeneration ? this : current;
                 }
 
                 // Now update my state to the current C4Document and the merged/resolved properties
                 if (!resolved.Equals(current)) {
                     var dict = resolved.ToDictionary();
-                    SetC4Doc(rawDoc);
+                    c4Doc = curC4doc;
                     Set(dict);
                 } else {
-                    SetC4Doc(rawDoc);
+                    c4Doc = curC4doc;
                 }
 
                 if (resolved != this) {
@@ -218,10 +232,6 @@ namespace Couchbase.Lite
 
         private void Save(IConflictResolver resolver, bool deletion, IDocumentModel model = null)
         {
-            if(_database == null || _c4Db == null) {
-                throw new InvalidOperationException("Save attempted after database was closed");
-            }
-
             if (deletion && !Exists) {
                 throw new CouchbaseLiteException(StatusCode.NotFound);
             }
@@ -252,7 +262,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            SetC4Doc(newDoc);
+            c4Doc = newDoc;
         }
 
         [SuppressMessage("ReSharper", "AccessToDisposedClosure", Justification = "The closure is executed synchronously")]
@@ -269,9 +279,9 @@ namespace Couchbase.Lite
 
             var body = new FLSliceResult();
             if (!deletion && !IsEmpty) {
-                body = model != null ? _database.JsonSerializer.Serialize(model) : _database.JsonSerializer.Serialize(_dict);
+                body = model != null ? Database.JsonSerializer.Serialize(model) : Database.JsonSerializer.Serialize(_dict);
             } else if (IsEmpty) {
-                var encoder = Native.c4db_createFleeceEncoder(_c4Db);
+                var encoder = Native.c4db_createFleeceEncoder(c4Db);
                 Native.FLEncoder_BeginDict(encoder, 0);
                 Native.FLEncoder_EndDict(encoder);
                 body = NativeRaw.FLEncoder_Finish(encoder, null);
@@ -283,12 +293,12 @@ namespace Couchbase.Lite
                 if (rawDoc != null) {
                     *outDoc = (C4Document*) NativeHandler.Create()
                         .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                            err => NativeRaw.c4doc_update(c4Doc, body, revFlags, err));
+                            err => NativeRaw.c4doc_update(rawDoc, body, revFlags, err));
                 } else {
                     using (var docID_ = new C4String(Id)) {
                         *outDoc = (C4Document*) NativeHandler.Create()
                             .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4doc_create(_c4Db, docID_.AsC4Slice(), body, revFlags, err));
+                                err => NativeRaw.c4doc_create(c4Db, docID_.AsC4Slice(), body, revFlags, err));
                     }
                 }
             } finally {
@@ -296,27 +306,16 @@ namespace Couchbase.Lite
             }
         }
 
-        private void SetC4Doc(C4Document* doc)
-        {
-            c4Doc = doc;
-            if (c4Doc != null) {
-                FLDict* root = null;
-                var body = doc->selectedRev.body;
-                if (body.size > 0) {
-                    root = Native.FLValue_AsDict(NativeRaw.FLValue_FromTrustedData(new FLSlice(body.buf, body.size)));
-                }
-
-                Data = new FleeceDictionary(root, doc, _database);
-            } else {
-                Data = null;
-            }
-
-            _dict = new DictionaryObject(Data);
-        }
-
         #endregion
 
         #region Overrides
+
+        internal override byte[] Encode()
+        {
+            using (var raw = Database.JsonSerializer.Serialize(_dict)) {
+                return ((C4Slice) raw).ToArrayFast();
+            }
+        }
 
         /// <inheritdoc />
         public override bool Contains(string key)

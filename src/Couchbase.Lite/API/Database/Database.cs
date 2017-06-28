@@ -50,7 +50,8 @@ namespace Couchbase.Lite
     {
         #region Constants
 
-        private const string DBExtension = "cblite2";
+        private static readonly DatabaseObserverCallback _DbObserverCallback;
+        private static readonly DocumentObserverCallback _DocObserverCallback;
 
         private static readonly C4DatabaseConfig DBConfig = new C4DatabaseConfig {
             flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.Bundled | C4DatabaseFlags.SharedKeys,
@@ -58,8 +59,7 @@ namespace Couchbase.Lite
             versioning = C4DocumentVersioning.RevisionTrees
         };
 
-        private static readonly DatabaseObserverCallback _DbObserverCallback;
-        private static readonly DocumentObserverCallback _DocObserverCallback;
+        private const string DBExtension = "cblite2";
 
         private const string Tag = nameof(Database);
 
@@ -67,13 +67,15 @@ namespace Couchbase.Lite
 
         #region Variables
 
+        private readonly Dictionary<string, DocumentObserver> _docObs = new Dictionary<string, DocumentObserver>();
+
+        private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
+            new FilteredEvent<string, DocumentChangedEventArgs>();
+
         private readonly SharedStringCache _sharedStrings;
 
         private readonly ThreadSafety _threadSafety = new ThreadSafety(true);
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
-        private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
-            new FilteredEvent<string, DocumentChangedEventArgs>();
-        private readonly Dictionary<string, DocumentObserver> _docObs = new Dictionary<string, DocumentObserver>();
 
         /// <summary>
         /// An event fired whenever the database changes
@@ -83,7 +85,6 @@ namespace Couchbase.Lite
         private IJsonSerializer _jsonSerializer;
         private DatabaseObserver _obs;
         private long p_c4db;
-        
 
         #endregion
 
@@ -292,17 +293,25 @@ namespace Couchbase.Lite
             });
         }
 
-        internal void ChangeEncryptionKey(object key)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Closes the database
         /// </summary>
         public void Close()
         {
             Dispose();
+        }
+
+        /// <summary>
+        /// Performs a manual compaction of this database, removing old irrelevant data
+        /// and decreasing the size of the database file on disk
+        /// </summary>
+        public void Compact()
+        {
+            _threadSafety.LockedForWrite(() => LiteCoreBridge.Check(err =>
+            {
+                CheckOpen();
+                return Native.c4db_compact(_c4db, err);
+            }));
         }
 
         /// <summary>
@@ -320,19 +329,6 @@ namespace Couchbase.Lite
                     return doc != null;
                 }
             });
-        }
-
-        /// <summary>
-        /// Performs a manual compaction of this database, removing old irrelevant data
-        /// and decreasing the size of the database file on disk
-        /// </summary>
-        public void Compact()
-        {
-            _threadSafety.LockedForWrite(() => LiteCoreBridge.Check(err =>
-            {
-                CheckOpen();
-                return Native.c4db_compact(_c4db, err);
-            }));
         }
 
         /// <summary>
@@ -529,6 +525,68 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
+        internal void ChangeEncryptionKey(object key)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void ResolveConflict(string docID)
+        {
+            InBatch(() =>
+            {
+                using (var doc = new ReadOnlyDocument(this, docID, true))
+                using (var otherDoc = new ReadOnlyDocument(this, docID, true)) {
+                    otherDoc.SelectConflictingRevision();
+                    using (var tmp = new ReadOnlyDocument(this, docID, true)) {
+                        var baseDoc = tmp;
+                        if (!baseDoc.SelectCommonAncestor(doc, otherDoc)) {
+                            baseDoc = null;
+                        }
+
+                        ReadOnlyDocument resolved;
+                        var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+                        if (otherDoc.IsDeleted) {
+                            resolved = doc;
+                        } else if (doc.IsDeleted) {
+                            resolved = otherDoc;
+                        } else {
+                            var resolver = doc.EffectiveConflictResolver;
+                            var conflict = new Conflict(doc, otherDoc, baseDoc);
+                            Log.To.Database.I(Tag,
+                                $"Resolving doc '{logDocID}' with {resolver.GetType().Name} (mine={doc.RevID}, theirs={otherDoc.RevID}, base={baseDoc?.RevID}");
+                            resolved = resolver.Resolve(conflict);
+                            if (resolved == null) {
+                                throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
+                            }
+                        }
+
+                        // Figure out what revision to delete and what if anything to add:
+                        string winningRevID, losingRevID;
+                        byte[] mergedBody = null;
+                        if (resolved == otherDoc) {
+                            winningRevID = otherDoc.RevID;
+                            losingRevID = doc.RevID;
+                        } else {
+                            winningRevID = doc.RevID;
+                            losingRevID = otherDoc.RevID;
+                            if (resolved != doc) {
+                                resolved.Database = this;
+                                mergedBody = resolved.Encode();
+                            }
+                        }
+
+                        // Tell LiteCore to do the resolution
+                        var rawDoc = doc.c4Doc;
+                        LiteCoreBridge.Check(
+                            err => Native.c4doc_resolveConflict(rawDoc, winningRevID, losingRevID,
+                                       mergedBody, err) && Native.c4doc_save(rawDoc, 0, err));
+                        Log.To.Database.I(Tag,
+                            $"Conflict resolved as doc '{logDocID}' rev {rawDoc->revID.CreateString()}");
+                    }
+                }
+            });
+        }
+
         internal void SetHasUnsavedChanges(Document doc, bool hasChanges)
         {
             if (hasChanges) {
@@ -559,15 +617,6 @@ namespace Couchbase.Lite
             });
         }
 
-        private static void DocObserverCallback(C4DocumentObserver* obs, string docID, ulong sequence, object context)
-        {
-            Task.Factory.StartNew(() =>
-            {
-                var dbObj = (Database)context;
-                dbObj?.PostDocChanged(docID);
-            });
-        }
-
         private static string DefaultDirectory()
         {
             return Service.Provider.GetRequiredService<IDefaultDirectoryResolver>().DefaultDirectory();
@@ -576,6 +625,15 @@ namespace Couchbase.Lite
         private static string Directory(string directory)
         {
             return directory ?? DefaultDirectory();
+        }
+
+        private static void DocObserverCallback(C4DocumentObserver* obs, string docID, ulong sequence, object context)
+        {
+            Task.Factory.StartNew(() =>
+            {
+                var dbObj = (Database)context;
+                dbObj?.PostDocChanged(docID);
+            });
         }
 
         private void CheckOpen()

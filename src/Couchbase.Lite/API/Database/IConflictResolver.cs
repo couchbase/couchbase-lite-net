@@ -38,17 +38,17 @@ namespace Couchbase.Lite
         #endregion
     }
 
-    /// <summary>
-    /// The default conflict resolver for the library
-    /// </summary>
-    public sealed class MostActiveWinsConflictResolver : IConflictResolver
+    internal sealed class DefaultConflictResolver : IConflictResolver
     {
         #region IConflictResolver
 
         /// <inheritdoc />
         public ReadOnlyDocument Resolve(Conflict conflict)
         {
-            throw new System.NotImplementedException();
+            // Default resolution algorithm is "most active wins", i.e. higher generation number
+            var mine = conflict.Mine;
+            var theirs = conflict.Theirs;
+            return mine.Generation >= theirs.Generation ? mine : theirs;
         }
 
         #endregion
