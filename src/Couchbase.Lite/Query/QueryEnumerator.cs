@@ -46,18 +46,9 @@ namespace Couchbase.Lite.Internal.Query
 
         public int Count { get; }
 
-        public IQueryRow Current
-        {
-            get {
-                if (_c4Enum->docID.buf == null) {
-                    return null;
-                }
-
-                return _c4Enum->fullTextTermCount > 0
-                    ? new FullTextQueryRow(this, _c4Enum)
-                    : new QueryRow(this, _c4Enum);
-            }
-        }
+        public IQueryRow Current => _c4Enum->fullTextTermCount > 0
+            ? new FullTextQueryRow(this, _c4Enum)
+            : new QueryRow(this, _c4Enum);
 
         object IEnumerator.Current => Current;
 

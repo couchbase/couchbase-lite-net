@@ -27,7 +27,6 @@ namespace Couchbase.Lite.Internal.Query
         #region Constructors
 
         public From(XQuery query, IDataSource impl)
-            :base(query)
         {
             Copy(query);
 
@@ -37,10 +36,23 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
+        #region Public Methods
+
         public object ToJSON()
         {
             return (FromImpl as DataSource)?.ToJSON();
         }
+
+        #endregion
+
+        #region IGroupByRouter
+
+        public IGroupBy GroupBy(params IGroupBy[] groupBy)
+        {
+            return new GroupBy(this, groupBy);
+        }
+
+        #endregion
 
         #region IJoinRouter
 

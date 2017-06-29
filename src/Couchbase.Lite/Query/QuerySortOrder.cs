@@ -23,7 +23,7 @@ using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal class QueryOrderBy : XQuery, IOrderBy
+    internal class QueryOrderBy : LimitedQuery, IOrderBy
     {}
 
     internal sealed class QuerySortOrder : QueryOrderBy

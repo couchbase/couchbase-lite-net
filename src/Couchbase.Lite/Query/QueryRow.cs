@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
@@ -40,6 +42,8 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Properties
 
+        public int Count => (int)Native.c4query_columnCount(_enum.C4Query);
+
         public Document Document => DocumentID != null ? _enum.Database.GetDocument(DocumentID) : null;
 
         public string DocumentID { get; }
@@ -47,8 +51,6 @@ namespace Couchbase.Lite.Internal.Query
         public object this[int index] => GetObject(index);
 
         public ulong Sequence { get; set; }
-
-        public uint ValueCount => Native.c4query_columnCount(_enum.C4Query);
 
         #endregion
 
@@ -58,7 +60,6 @@ namespace Couchbase.Lite.Internal.Query
         {
             _enum = enumerator;
             DocumentID = e->docID.CreateString();
-            Debug.Assert(DocumentID != null);
             Sequence = e->docSequence;
             _columns = e->columns;
             _current = true;
@@ -67,6 +68,31 @@ namespace Couchbase.Lite.Internal.Query
         #endregion
 
         #region Public Methods
+
+        public void StopBeingCurrent()
+        {
+            _current = false;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private FLValue* FLValueAtIndex(int index)
+        {
+            if (!_current) {
+                throw new InvalidOperationException(
+                    "You cannot access an IQueryRow value after the enumerator has advanced past that row");
+            }
+
+            fixed (FLArrayIterator* columns = &_columns) {
+                return Native.FLArrayIterator_GetValueAt(columns, (uint)index);
+            }
+        }
+
+        #endregion
+
+        #region IQueryRow
 
         public bool GetBoolean(int index)
         {
@@ -101,37 +127,6 @@ namespace Couchbase.Lite.Internal.Query
         public string GetString(int index)
         {
             return Native.FLValue_AsString(FLValueAtIndex(index));
-        }
-
-        public void StopBeingCurrent()
-        {
-            _current = false;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private FLValue* FLValueAtIndex(int index)
-        {
-            if (!_current) {
-                throw new InvalidOperationException(
-                    "You cannot access an IQueryRow value after the enumerator has advanced past that row");
-            }
-
-            fixed (FLArrayIterator* columns = &_columns) {
-                return Native.FLArrayIterator_GetValueAt(columns, (uint)index);
-            }
-        }
-
-        #endregion
-
-        #region Overrides
-
-        public override string ToString()
-        {
-            var docID = new SecureLogString(DocumentID, LogMessageSensitivity.PotentiallyInsecure);
-            return $"{GetType().Name}[docID='{docID}']";
         }
 
         #endregion

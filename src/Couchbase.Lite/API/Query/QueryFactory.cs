@@ -31,41 +31,24 @@ namespace Couchbase.Lite.Query
         #region Public Methods
 
         /// <summary>
-        /// Selects all the results of the query
-        /// </summary>
-        /// <returns>The initial SELECT portion of the query</returns>
-        public static ISelect Select()
-        {
-            return Select(null);
-        }
-
-        /// <summary>
         /// Selects the given property path from the query under construction
         /// </summary>
-        /// <param name="propertyPath">The property path to select</param>
+        /// <param name="pathsToSelect">The property paths to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
-        public static ISelect Select(string propertyPath)
+        public static ISelect Select(params string[] pathsToSelect)
         {
-            return new Select(propertyPath, false);
+            return new Select(pathsToSelect, false);
         }
+
 
         /// <summary>
         /// Selects only the distinct results of the query
         /// </summary>
+        /// <param name="pathsToSelect">The property paths to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
-        public static ISelect SelectDistinct()
+        public static ISelect SelectDistinct(params string[] pathsToSelect)
         {
-            return SelectDistinct(null);
-        }
-
-        /// <summary>
-        /// Selects only the distinct results of the query
-        /// </summary>
-        /// <param name="propertyPath">The property path to select</param>
-        /// <returns>The initial SELECT portion of the query</returns>
-        public static ISelect SelectDistinct(string propertyPath)
-        {
-            return new Select(propertyPath, true);
+            return new Select(pathsToSelect, true);
         }
 
         #endregion

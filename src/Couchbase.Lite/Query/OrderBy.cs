@@ -25,7 +25,7 @@ using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal class OrderBy : XQuery, IOrderBy
+    internal class OrderBy : LimitedQuery, IOrderBy
     {
         #region Properties
 

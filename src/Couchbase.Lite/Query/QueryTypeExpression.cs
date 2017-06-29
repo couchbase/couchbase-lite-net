@@ -20,6 +20,7 @@
 // 
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Couchbase.Lite.Query;
 using Newtonsoft.Json;
 
@@ -29,7 +30,9 @@ namespace Couchbase.Lite.Internal.Query
     {
         Constant,
         KeyPath,
-        Aggregate
+        Parameter,
+        Variable,
+        Aggregate,
     }
 
     internal sealed class QueryTypeExpression : QueryExpression, IPropertySource
@@ -57,10 +60,21 @@ namespace Couchbase.Lite.Internal.Query
             ExpressionType = ExpressionType.Constant;
         }
 
-        public QueryTypeExpression(string keyPath)
+        public QueryTypeExpression(string[] keyPaths)
         {
-            ExpressionType = ExpressionType.KeyPath;
-            KeyPath = keyPath;
+            if (keyPaths.Length == 1) {
+                ExpressionType = ExpressionType.KeyPath;
+                KeyPath = keyPaths[0];
+            } else {
+                ExpressionType = ExpressionType.Aggregate;
+                var list = new IExpression[keyPaths.Length];
+                int i = 0;
+                foreach (var path in keyPaths) {
+                    list[i++] = new QueryTypeExpression(path, ExpressionType.KeyPath);
+                }
+
+                _subpredicates = list;
+            }
         }
 
         public QueryTypeExpression(IList subpredicates)
@@ -69,17 +83,30 @@ namespace Couchbase.Lite.Internal.Query
             _subpredicates = subpredicates;
         }
 
+        public QueryTypeExpression(string keyPath, ExpressionType type)
+        {
+            Debug.Assert(type >= ExpressionType.KeyPath && type <= ExpressionType.Variable);
+            ExpressionType = type;
+            KeyPath = keyPath;
+        }
+
         #endregion
 
         #region Private Methods
 
         private object CalculateKeyPath()
         {
+            var op = ExpressionType == ExpressionType.Parameter
+                ? '$'
+                : ExpressionType == ExpressionType.Variable
+                    ? '?'
+                    : '.';
+
             if (KeyPath.StartsWith("rank(")) {
-                return new object[] {"rank()", new[] {".", KeyPath.Substring(5, KeyPath.Length - 6)}};
+                return new object[] {"rank()", new[] {op.ToString(), KeyPath.Substring(5, KeyPath.Length - 6)}};
             }
 
-            return _from != null ? new[] { $".{_from}.{KeyPath}" } : new[] { $".{KeyPath}" };
+            return _from != null ? new[] { $"{op}{_from}.{KeyPath}" } : new[] { $"{op}{KeyPath}" };
         }
 
         #endregion
@@ -92,6 +119,8 @@ namespace Couchbase.Lite.Internal.Query
                 case ExpressionType.Constant:
                     return ConstantValue;
                 case ExpressionType.KeyPath:
+                case ExpressionType.Parameter:
+                case ExpressionType.Variable:
                     return CalculateKeyPath();
                 case ExpressionType.Aggregate:
                 {

@@ -32,6 +32,10 @@ namespace Couchbase.Lite.Internal.Query
 
         protected IJoin JoinImpl { get; set; }
 
+        protected IGroupBy GroupByImpl { get; set; }
+
+        protected IHaving HavingImpl { get; set; }
+
         protected object SkipValue { get; set; }
 
         protected object LimitValue { get; set; }
@@ -77,7 +81,12 @@ namespace Couchbase.Lite.Internal.Query
                 Distinct = Distinct,
                 FromImpl = FromImpl,
                 WhereImpl = WhereImpl,
-                OrderByImpl = OrderByImpl
+                OrderByImpl = OrderByImpl,
+                JoinImpl = JoinImpl,
+                GroupByImpl = GroupByImpl,
+                HavingImpl = HavingImpl,
+                LimitValue = LimitValue,
+                SkipValue = SkipValue
             });
         }
 
@@ -89,6 +98,11 @@ namespace Couchbase.Lite.Internal.Query
             FromImpl = source.FromImpl;
             WhereImpl = source.WhereImpl;
             OrderByImpl = source.OrderByImpl;
+            JoinImpl = source.JoinImpl;
+            GroupByImpl = source.GroupByImpl;
+            HavingImpl = source.HavingImpl;
+            LimitValue = source.LimitValue;
+            SkipValue = source.SkipValue;
         }
 
         protected virtual void Dispose(bool finalizing)
@@ -167,6 +181,21 @@ namespace Couchbase.Lite.Internal.Query
                 parameters["FROM"] = joinJson;
             } else if(JoinImpl != null) {
                 throw new NotSupportedException("Custom IJoin not supported");
+            }
+
+            var groupBy = GroupByImpl as GroupBy;
+            if (groupBy != null) {
+                parameters["GROUP_BY"] = groupBy.ToJSON();
+            } else if (GroupByImpl != null) {
+                throw new NotSupportedException("Custom IGroupBy not supported");
+            }
+
+            var having = HavingImpl as Having;
+            if (having != null) {
+                parameters["HAVING"] = having.ToJSON();
+            }
+            else if (HavingImpl != null) {
+                throw new NotSupportedException("Custom IHaving not supported");
             }
 
             return JsonConvert.SerializeObject(parameters);

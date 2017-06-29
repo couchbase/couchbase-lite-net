@@ -1,5 +1,5 @@
 ﻿// 
-// QueryParameters.cs
+// GroupByFactory.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,30 +18,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using Couchbase.Lite.Internal.Query;
 
-using System.Collections.Generic;
-using Couchbase.Lite.Query;
-using Newtonsoft.Json;
-
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Query
 {
-    internal sealed class QueryParameters : IParameters
+    public static class GroupByFactory
     {
-        private readonly Dictionary<object, object> _params = new Dictionary<object, object>();
+        #region Public Methods
 
-        public void Set(string name, object value)
+        public static IGroupBy GroupBy(IExpression expression)
         {
-            _params[name] = value;
+            return new GroupBy(expression);
         }
 
-        public void Set(int index, object value)
-        {
-            _params[index] = value;
-        }
-
-        public override string ToString()
-        {
-            return _params != null ? JsonConvert.SerializeObject(_params) : null;
-        }
+        #endregion
     }
 }

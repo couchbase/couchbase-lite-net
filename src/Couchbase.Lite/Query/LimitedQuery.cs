@@ -18,25 +18,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using Couchbase.Lite.Internal.Query;
 
-namespace Couchbase.Lite.Query
+using Couchbase.Lite.Query;
+
+namespace Couchbase.Lite.Internal.Query
 {
     internal abstract class LimitedQuery : XQuery, ILimitRouter, ILimit
     {
-        #region Constructors
-
-        protected LimitedQuery()
-        {
-            
-        }
-
-        protected LimitedQuery(XQuery source)
-        {
-            Copy(source);
-        }
-
-        #endregion
 
         #region ILimitRouter
 

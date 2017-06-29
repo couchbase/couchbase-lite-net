@@ -24,6 +24,6 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An interface representing the FROM portion of an <see cref="IQuery"/>
     /// </summary>
-    public interface IFrom : IQuery, IJoinRouter, IWhereRouter, IOrderByRouter, ILimitRouter
+    public interface IFrom : IQuery, IJoinRouter, IWhereRouter, IGroupByRouter, IOrderByRouter, ILimitRouter
     {}
 }

@@ -18,12 +18,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class Where : XQuery, IWhere
+    internal sealed class Where : LimitedQuery, IWhere
     {
         #region Constructors
 
@@ -35,7 +34,16 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        #region Public Methods
+        #region IGroupByRouter
+
+        public IGroupBy GroupBy(params IGroupBy[] groupBy)
+        {
+            return new GroupBy(this, groupBy);
+        }
+
+        #endregion
+
+        #region IOrderByRouter
 
         public IOrderBy OrderBy(params IOrderBy[] orderBy)
         {

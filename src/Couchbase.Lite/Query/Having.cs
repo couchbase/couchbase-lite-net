@@ -1,5 +1,5 @@
 ﻿// 
-// QueryParameters.cs
+// Having.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,30 +18,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-
-using System.Collections.Generic;
 using Couchbase.Lite.Query;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class QueryParameters : IParameters
+    internal sealed class Having : LimitedQuery, IHaving
     {
-        private readonly Dictionary<object, object> _params = new Dictionary<object, object>();
+        #region Variables
 
-        public void Set(string name, object value)
+        private readonly IExpression _expression;
+
+        #endregion
+
+        #region Constructors
+
+        internal Having(IExpression expression)
         {
-            _params[name] = value;
+            _expression = expression;
+            HavingImpl = this;
         }
 
-        public void Set(int index, object value)
+        #endregion
+
+        #region Public Methods
+
+        public object ToJSON()
         {
-            _params[index] = value;
+            return (_expression as QueryExpression)?.ConvertToJSON();
         }
 
-        public override string ToString()
+        #endregion
+
+        #region IOrderByRouter
+
+        public IOrderBy OrderBy(params IOrderBy[] orderBy)
         {
-            return _params != null ? JsonConvert.SerializeObject(_params) : null;
+            return new OrderBy(this, orderBy);
         }
+
+        #endregion
     }
 }

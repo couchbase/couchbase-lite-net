@@ -68,12 +68,12 @@ namespace Couchbase.Lite.Query
 
         public static IExpression Parameter(int index)
         {
-            throw new NotImplementedException();
+            return new QueryTypeExpression(index.ToString(), ExpressionType.Parameter);
         }
 
         public static IExpression Parameter(string name)
         {
-            throw new NotImplementedException();
+            return new QueryTypeExpression(name, ExpressionType.Parameter);
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace Couchbase.Lite.Query
         /// <returns>An expression representing the value of a named property</returns>
         public static IPropertySource Property(string property)
         {
-            return new QueryTypeExpression(property);
+            return new QueryTypeExpression(property, ExpressionType.KeyPath);
         }
 
         #endregion

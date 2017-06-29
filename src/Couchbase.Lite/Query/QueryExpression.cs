@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Internal.Query
                     QueryExpression expr;
                     var str = r as string;
                     if (str != null) {
-                        expr = new QueryTypeExpression(str);
+                        expr = new QueryTypeExpression(str, ExpressionType.KeyPath);
                     } else {
                         expr = r as QueryExpression;
                         if (expr == null) {

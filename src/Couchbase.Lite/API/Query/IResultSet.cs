@@ -24,6 +24,10 @@ namespace Couchbase.Lite.Query
 {
     public interface IResultSet : IEnumerable<IQueryRow>
     {
+        #region Properties
+
         int Count { get; }
+
+        #endregion
     }
 }
