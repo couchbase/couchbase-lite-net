@@ -1,5 +1,5 @@
 ﻿// 
-// IQuery.cs
+// IResultSet.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,36 +18,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
 {
-    /// <summary>
-    /// An interface representing a runnable query over a data source
-    /// </summary>
-    public interface IQuery : IDisposable
+    public interface IResultSet : IEnumerable<IQueryRow>
     {
-        #region Properties
-
-        IParameters Parameters { get; }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Runs the query
-        /// </summary>
-        /// <returns>The results of running the query</returns>
-        IResultSet Run();
-
-        /// <summary>
-        /// Converts a query to a <see cref="ILiveQuery"/> for realtime monitoring.
-        /// </summary>
-        /// <returns>The instantiated live query object</returns>
-        ILiveQuery ToLive();
-
-        #endregion
+        int Count { get; }
     }
 }

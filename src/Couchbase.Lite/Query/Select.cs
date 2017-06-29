@@ -18,7 +18,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
@@ -47,14 +46,27 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Public Methods
 
+        public object ToJSON()
+        {
+            return _select?.ConvertToJSON();
+        }
+
+        #endregion
+
+        #region IFromRouter
+
         public IFrom From(IDataSource dataSource)
         {
             return new From(this, dataSource);
         }
 
-        public object ToJSON()
+        #endregion
+
+        #region IJoinRouter
+
+        public IJoin Join(params IJoin[] @join)
         {
-            return _select?.ConvertToJSON();
+            return new Join(this, join);
         }
 
         #endregion

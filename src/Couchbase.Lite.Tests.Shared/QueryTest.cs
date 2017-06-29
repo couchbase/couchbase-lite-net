@@ -133,7 +133,7 @@ namespace Test
         {
             LoadJSONResource("names_100");
             using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db))) {
-                var numRows = VerifyQuery(q, true, (n, row) =>
+                var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var expectedID = $"doc-{n:D3}";
                     row.DocumentID.Should().Be(expectedID, "because otherwise the IDs were out of order");
@@ -311,7 +311,7 @@ namespace Test
                 .From(DataSourceFactory.Database(Db))
                 .Where(ExpressionFactory.Property("string").Is("string"))) {
 
-                var numRows = VerifyQuery(q, true, (n, row) =>
+                var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
                     doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
@@ -324,7 +324,7 @@ namespace Test
                 .From(DataSourceFactory.Database(Db))
                 .Where(ExpressionFactory.Property("string").IsNot("string1"))) {
 
-                var numRows = VerifyQuery(q, true, (n, row) =>
+                var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
                     doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
@@ -359,7 +359,7 @@ namespace Test
                 .Where(firstName.InExpressions(expected))
                 .OrderBy(OrderByFactory.Property("name.first"))) {
 
-                var numRows = VerifyQuery(q, true, (n, row) =>
+                var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var name = row.Document.GetDictionary("name").GetString("first");
                     name.Should().Be(expected[n - 1], "because otherwise incorrect rows were returned");
@@ -381,7 +381,7 @@ namespace Test
                 .OrderBy(OrderByFactory.Property("name.first").Ascending())) {
 
                 var firstNames = new List<string>();
-                var numRows = VerifyQuery(q, false, (n, row) =>
+                var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
                     var firstName = doc.GetDictionary("name")?.GetString("first");
@@ -408,7 +408,7 @@ namespace Test
                 .OrderBy(OrderByFactory.Property("name.first").Ascending())) {
 
                 var firstNames = new List<string>();
-                var numRows = VerifyQuery(q, false, (n, row) =>
+                var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var doc = row.Document;
                     var firstName = doc.GetDictionary("name")?.GetString("first");
@@ -434,7 +434,7 @@ namespace Test
                 .From(DataSourceFactory.Database(Db))
                 .Where(ExpressionFactory.Property("sentence").Match("'Dummie woman'"))
                 .OrderBy(OrderByFactory.Property("rank(sentence)").Descending())) {
-                var numRows = VerifyQuery(q, true, (n, row) =>
+                var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var ftsRow = row as IFullTextQueryRow;
                     var text = ftsRow?.FullTextMatched;
@@ -463,7 +463,7 @@ namespace Test
 
                 using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(null).OrderBy(order)) {
                     var firstNames = new List<object>();
-                    var numRows = VerifyQuery(q, false, (n, row) =>
+                    var numRows = VerifyQuery(q, (n, row) =>
                     {
                         var doc = row.Document;
                         var firstName = doc.GetDictionary("name").GetString("first");
@@ -498,7 +498,7 @@ namespace Test
             Db.Save(doc2);
 
             var q = QueryFactory.SelectDistinct().From(DataSourceFactory.Database(Db));
-            var numRows = VerifyQuery(q, true, (n, row) =>
+            var numRows = VerifyQuery(q, (n, row) =>
             {
                 var doc = row.Document;
                 doc.Id.Should().Be(doc1.Id, "because doc2 is identical and should be skipped");
@@ -524,7 +524,7 @@ namespace Test
                             () => args.Rows.Count == 9);
                     } else {
                         wa2.RunConditionalAssert(
-                            () => args.Rows.Count == 10 && args.Rows[0].Document.GetInt("number1") == -1);
+                            () => args.Rows.Count == 10 && args.Rows.First().Document.GetInt("number1") == -1);
                     }
                     
                 };
@@ -557,6 +557,25 @@ namespace Test
                 // is not true
                 CreateDocInSeries(111, 100);
                 mre.Wait(5000).Should().BeFalse("because the Changed event should not fire needlessly");
+            }
+        }
+
+        [Fact]
+        public void TestJoin()
+        {
+            LoadNumbers(100);
+            var testDoc = new Document("joinme");
+            testDoc.Set("theone", 42);
+            Db.Save(testDoc);
+            using (var q = QueryFactory.Select("main.number2")
+                .From(DataSourceFactory.Database(Db).As("main"))
+                .Join(JoinFactory.Join(DataSourceFactory.Database(Db).As("secondary"))
+                    .On(ExpressionFactory.Property("number1").From("main")
+                        .EqualTo(ExpressionFactory.Property("theone").From("secondary"))))) {
+                var results = q.Run();
+                results.Count.Should().Be(1, "because only one document should match 42");
+                results.First().GetInt(0).Should().Be(58,
+                    "because that was the number stored in 'number2' of the matching doc");
             }
         }
 
@@ -597,7 +616,7 @@ namespace Test
             foreach (var c in validator) {
                 using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(c.Item1)) {
                     var lastN = 0;
-                    VerifyQuery(q, false, (n, row) =>
+                    VerifyQuery(q, (n, row) =>
                     {
                         var props =row.Document.ToDictionary();
                         c.Item2(props, c.Item3).Should().BeTrue("because otherwise the row failed validation");
@@ -636,7 +655,7 @@ namespace Test
             return doc;
         }
 
-        private int VerifyQuery(IQuery query, bool randomAccess, Action<int, IQueryRow> block)
+        private int VerifyQuery(IQuery query, Action<int, IQueryRow> block)
         {
             var result = query.Run();
             using (var e = result.GetEnumerator()) {
@@ -644,13 +663,7 @@ namespace Test
                 while(e.MoveNext()) { 
                     block?.Invoke(++n, e.Current);
                 }
-
-                if (randomAccess && n > 0) {
-                    // Note:  The block's first parameter is 1-based, while IList is 0-based
-                    block(n, result[n - 1]);
-                    block(1, result[0]);
-                    block(n / 2 + 1, result[n / 2]);
-                }
+                
 
                 return n;
             }

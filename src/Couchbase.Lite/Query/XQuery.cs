@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
@@ -14,11 +15,10 @@ namespace Couchbase.Lite.Internal.Query
         private const string Tag = nameof(XQuery);
 
         private C4Query* _c4Query;
-        private ulong _skip;
-        private ulong _limit = UInt64.MaxValue;
-        private IDictionary<string, object> _parameters = new Dictionary<string, object>();
 
         public Database Database { get; set; }
+
+        public IParameters Parameters { get; } = new QueryParameters();
 
         protected ISelect SelectImpl { get; set; }
 
@@ -30,12 +30,18 @@ namespace Couchbase.Lite.Internal.Query
 
         protected IOrderBy OrderByImpl { get; set; }
 
+        protected IJoin JoinImpl { get; set; }
+
+        protected object SkipValue { get; set; }
+
+        protected object LimitValue { get; set; }
+
         ~XQuery()
         {
             Dispose(true);
         }
 
-        public IReadOnlyList<IQueryRow> Run()
+        public IResultSet Run()
         {
             if (Database == null) {
                 throw new InvalidOperationException("Invalid query, Database == null");
@@ -51,12 +57,7 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             var options = C4QueryOptions.Default;
-            options.skip = _skip;
-            options.limit = _limit;
-            var paramJson = default(string);
-            if (_parameters.Any()) {
-                paramJson = JsonConvert.SerializeObject(_parameters);
-            }
+            var paramJson = ((QueryParameters) Parameters).ToString();
 
             var e = (C4QueryEnumerator*) LiteCoreBridge.Check(err =>
             {
@@ -65,12 +66,6 @@ namespace Couchbase.Lite.Internal.Query
             });
 
             return new QueryEnumerator(this, _c4Query, e);
-        }
-
-        public IQuery Skip(ulong skip)
-        {
-            _skip = skip;
-            return this;
         }
 
         public ILiveQuery ToLive()
@@ -84,18 +79,6 @@ namespace Couchbase.Lite.Internal.Query
                 WhereImpl = WhereImpl,
                 OrderByImpl = OrderByImpl
             });
-        }
-
-        public IQuery Limit(ulong limit)
-        {
-            _limit = limit;
-            return this;
-        }
-
-        public IQuery SetParameters(IDictionary<string, object> parameters)
-        {
-            _parameters = parameters ?? new Dictionary<string, object>();
-            return this;
         }
 
         protected void Copy(XQuery source)
@@ -143,6 +126,14 @@ namespace Couchbase.Lite.Internal.Query
                 parameters["DISTINCT"] = true;
             }
 
+            if (LimitValue != null) {
+                parameters["LIMIT"] = LimitValue;
+            }
+
+            if (SkipValue != null) {
+                parameters["OFFSET"] = SkipValue;
+            }
+
             var orderBy = OrderByImpl as OrderBy;
             if (orderBy != null) {
                 parameters["ORDER_BY"] = orderBy.ToJSON();
@@ -158,6 +149,24 @@ namespace Couchbase.Lite.Internal.Query
                 }
             } else {
                 throw new NotSupportedException("Custom ISelect not supported");
+            }
+
+            var join = JoinImpl as Join;
+            var from = FromImpl as DataSource;
+            if (join != null) {
+                var fromJson = from?.ToJSON();
+                if (fromJson == null) {
+                    throw new InvalidOperationException(
+                        "The default database must have an alias in order to use a JOIN statement" +
+                        " (Make sure your data source uses the As() function)");
+                }
+
+                var joinJson = join.ToJSON() as IList<object>;
+                Debug.Assert(joinJson != null);
+                joinJson.Insert(0, fromJson);
+                parameters["FROM"] = joinJson;
+            } else if(JoinImpl != null) {
+                throw new NotSupportedException("Custom IJoin not supported");
             }
 
             return JsonConvert.SerializeObject(parameters);

@@ -1,5 +1,5 @@
 ﻿// 
-// IQuery.cs
+// FunctionFactory.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -19,34 +19,37 @@
 // limitations under the License.
 // 
 using System;
-using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
 {
-    /// <summary>
-    /// An interface representing a runnable query over a data source
-    /// </summary>
-    public interface IQuery : IDisposable
+    public static class FunctionFactory
     {
-        #region Properties
-
-        IParameters Parameters { get; }
-
-        #endregion
-
         #region Public Methods
 
-        /// <summary>
-        /// Runs the query
-        /// </summary>
-        /// <returns>The results of running the query</returns>
-        IResultSet Run();
+        public static IFunction Avg(object expression)
+        {
+            throw new NotImplementedException();
+        }
 
-        /// <summary>
-        /// Converts a query to a <see cref="ILiveQuery"/> for realtime monitoring.
-        /// </summary>
-        /// <returns>The instantiated live query object</returns>
-        ILiveQuery ToLive();
+        public static IFunction Count(object expression)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static IFunction Max(object expression)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static IFunction Min(object expression)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static IFunction Sum(object expression)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
     }

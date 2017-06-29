@@ -18,6 +18,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System;
 using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
@@ -35,9 +37,14 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="database">The database to operate on</param>
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
-        public static IDatabaseSource Database(Database database)
+        public static IDataSourceAs Database(Database database)
         {
             return new DatabaseSource(database);
+        }
+
+        public static IDataSourceAs Query(IQuery query)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

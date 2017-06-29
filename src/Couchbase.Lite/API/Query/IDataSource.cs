@@ -33,7 +33,7 @@ namespace Couchbase.Lite.Query
     /// An interface representing a source of data that comes from
     /// an <see cref="Database"/>
     /// </summary>
-    public interface IDatabaseSource : IDataSource
+    public interface IDataSourceAs : IDataSource
     {
         #region Public Methods
 

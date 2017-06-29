@@ -1,5 +1,5 @@
 ﻿// 
-// IQuery.cs
+// LimitedQuery.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,35 +18,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
-using System.Collections.Generic;
+using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
 {
-    /// <summary>
-    /// An interface representing a runnable query over a data source
-    /// </summary>
-    public interface IQuery : IDisposable
+    internal abstract class LimitedQuery : XQuery, ILimitRouter, ILimit
     {
-        #region Properties
+        #region Constructors
 
-        IParameters Parameters { get; }
+        protected LimitedQuery()
+        {
+            
+        }
+
+        protected LimitedQuery(XQuery source)
+        {
+            Copy(source);
+        }
 
         #endregion
 
-        #region Public Methods
+        #region ILimitRouter
 
-        /// <summary>
-        /// Runs the query
-        /// </summary>
-        /// <returns>The results of running the query</returns>
-        IResultSet Run();
+        public ILimit Limit(object limit)
+        {
+            LimitValue = limit;
+            return this;
+        }
 
-        /// <summary>
-        /// Converts a query to a <see cref="ILiveQuery"/> for realtime monitoring.
-        /// </summary>
-        /// <returns>The instantiated live query object</returns>
-        ILiveQuery ToLive();
+        public ILimit Limit(object limit, object offset)
+        {
+            LimitValue = limit;
+            SkipValue = offset;
+            return this;
+        }
 
         #endregion
     }

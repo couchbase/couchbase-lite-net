@@ -18,13 +18,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-
+using System.Collections.Generic;
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class DatabaseSource : DataSource, IDatabaseSource
+    internal sealed class DatabaseSource : DataSource, IDataSourceAs
     {
+        #region Variables
+
+        private string _as;
+
+        #endregion
+
         #region Properties
 
         internal Database Database => Source as Database;
@@ -40,10 +46,26 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        #region IDatabaseSource
+        #region Overrides
+
+        public override object ToJSON()
+        {
+            if (_as == null) {
+                return null;
+            }
+
+            return new Dictionary<string, object> {
+                ["AS"] = _as
+            };
+        }
+
+        #endregion
+
+        #region IDataSourceAs
 
         public IDataSource As(string alias)
         {
+            _as = alias;
             return this;
         }
 

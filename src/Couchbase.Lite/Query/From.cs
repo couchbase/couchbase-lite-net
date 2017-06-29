@@ -22,11 +22,12 @@ using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class From : XQuery, IFrom
+    internal sealed class From : LimitedQuery, IFrom
     {
         #region Constructors
 
         public From(XQuery query, IDataSource impl)
+            :base(query)
         {
             Copy(query);
 
@@ -36,12 +37,30 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        #region Public Methods
+        public object ToJSON()
+        {
+            return (FromImpl as DataSource)?.ToJSON();
+        }
+
+        #region IJoinRouter
+
+        public IJoin Join(params IJoin[] @join)
+        {
+            return new Join(this, join);
+        }
+
+        #endregion
+
+        #region IOrderByRouter
 
         public IOrderBy OrderBy(params IOrderBy[] orderBy)
         {
             return new OrderBy(this, orderBy);
         }
+
+        #endregion
+
+        #region IWhereRouter
 
         public IWhere Where(IExpression expression)
         {

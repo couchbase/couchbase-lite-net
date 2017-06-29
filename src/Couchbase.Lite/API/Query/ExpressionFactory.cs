@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 
+using System;
 using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
@@ -38,6 +39,11 @@ namespace Couchbase.Lite.Query
         public static IExpression Group(params IExpression[] expressions)
         {
             return null;
+        }
+
+        public static IMeta Meta()
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -60,12 +66,22 @@ namespace Couchbase.Lite.Query
             return Negated(expression);
         }
 
+        public static IExpression Parameter(int index)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static IExpression Parameter(string name)
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Returns an expression representing the value of a named property
         /// </summary>
         /// <param name="property">The name of the property to fetch</param>
         /// <returns>An expression representing the value of a named property</returns>
-        public static IExpression Property(string property)
+        public static IPropertySource Property(string property)
         {
             return new QueryTypeExpression(property);
         }

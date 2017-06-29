@@ -22,14 +22,16 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Query;
 using LiteCore;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed unsafe class QueryEnumerator : IEnumerator<IQueryRow>, IReadOnlyList<IQueryRow>
+    internal sealed unsafe class QueryEnumerator : IEnumerator<IQueryRow>, IResultSet
     {
         private const string Tag = nameof(QueryEnumerator);
 
@@ -37,7 +39,6 @@ namespace Couchbase.Lite.Internal.Query
 
         private readonly IQueryInternal _query;
         private readonly C4QueryEnumerator* _c4Enum;
-        private bool _randomAccess;
 
         #endregion
 
@@ -58,15 +59,6 @@ namespace Couchbase.Lite.Internal.Query
             }
         }
 
-        public IQueryRow this[int index]
-        {
-            get {
-                _randomAccess = true;
-                LiteCoreBridge.Check(err => Native.c4queryenum_seek(_c4Enum, (ulong) index, err));
-                return Current;
-            }
-        }
-
         object IEnumerator.Current => Current;
 
         internal C4Query* C4Query { get; }
@@ -77,10 +69,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public QueryEnumerator(IQueryInternal query, C4Query* c4Query, C4QueryEnumerator* e)
         {
-            if (e == null) {
-                throw new ArgumentNullException(nameof(e));
-            }
-
+            Debug.Assert(e != null);
             _query = query;
             C4Query = c4Query;
             _c4Enum = e;
@@ -142,10 +131,6 @@ namespace Couchbase.Lite.Internal.Query
 
         public bool MoveNext()
         {
-            if (_randomAccess) {
-                throw new InvalidOperationException("Cannot enumerate in random access mode");
-            }
-
             ((QueryRow)Current)?.StopBeingCurrent();
             C4Error err;
             var moved = Native.c4queryenum_next(_c4Enum, &err);

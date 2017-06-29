@@ -20,7 +20,7 @@
 // 
 using System.Collections;
 using System.Collections.Generic;
-
+using Couchbase.Lite.Query;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
@@ -32,11 +32,12 @@ namespace Couchbase.Lite.Internal.Query
         Aggregate
     }
 
-    internal sealed class QueryTypeExpression : QueryExpression
+    internal sealed class QueryTypeExpression : QueryExpression, IPropertySource
     {
         #region Variables
 
         private readonly IList _subpredicates;
+        private string _from;
 
         #endregion
 
@@ -78,7 +79,7 @@ namespace Couchbase.Lite.Internal.Query
                 return new object[] {"rank()", new[] {".", KeyPath.Substring(5, KeyPath.Length - 6)}};
             }
 
-            return new[] { $".{KeyPath}" };
+            return _from != null ? new[] { $".{_from}.{KeyPath}" } : new[] { $".{KeyPath}" };
         }
 
         #endregion
@@ -110,6 +111,13 @@ namespace Couchbase.Lite.Internal.Query
         public override string ToString()
         {
             return JsonConvert.SerializeObject(ConvertToJSON());
+        }
+
+        public IExpression From(string alias)
+        {
+            _from = alias;
+            Reset();
+            return this;
         }
 
         #endregion

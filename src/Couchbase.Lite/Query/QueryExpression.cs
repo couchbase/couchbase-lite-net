@@ -47,6 +47,11 @@ namespace Couchbase.Lite.Internal.Query
 
         protected abstract object ToJSON();
 
+        protected void Reset()
+        {
+            _serialized = null;
+        }
+
         #endregion
 
         #region Internal Methods

@@ -33,7 +33,7 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// Gets the updated rows of the query
         /// </summary>
-        public IReadOnlyList<IQueryRow> Rows { get; }
+        public IResultSet Rows { get; }
 
         /// <summary>
         /// Gets the error that occurred, if any
@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Query
 
         #region Constructors
 
-        internal LiveQueryChangedEventArgs(IReadOnlyList<IQueryRow> rows, Exception e = null)
+        internal LiveQueryChangedEventArgs(IResultSet rows, Exception e = null)
         {
             Rows = rows;
             Error = e;
